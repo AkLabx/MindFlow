@@ -366,8 +366,9 @@ export function ActiveQuizSession({
     const isFiftyFiftyDisabled = isFiftyFiftyUsed || isAnswered || showTimeUpOverlay;
 
     return (
+        // Fullscreen Overlay to hide MainLayout Footer
         <div 
-            className="bg-white md:rounded-3xl shadow-xl border border-gray-200 overflow-hidden flex flex-col min-h-[calc(100vh-2rem)] md:h-auto md:min-h-[600px] relative transition-all"
+            className="fixed inset-0 z-40 bg-gray-50/30 backdrop-blur-sm flex items-center justify-center md:p-6"
             onTouchStart={onTouchStart}
             onTouchEnd={onTouchEnd}
         >
@@ -386,245 +387,252 @@ export function ActiveQuizSession({
                 }
             `}</style>
 
-            {/* --- Time's Up Overlay --- */}
-            {showTimeUpOverlay && (
-                <div className="absolute inset-0 z-[60] flex items-center justify-center bg-slate-900/20 backdrop-blur-sm animate-in fade-in duration-300">
-                    <div className="bg-white px-12 py-10 rounded-3xl shadow-2xl flex flex-col items-center border-4 border-red-50 animate-in zoom-in-95 duration-300 transform scale-100">
-                        <div className="bg-red-100 p-5 rounded-full mb-6 shadow-inner">
-                            <Clock className="w-14 h-14 text-red-600" />
-                        </div>
-                        <h2 className="text-4xl font-black text-slate-800 mb-2 tracking-tight">Time's Up!</h2>
-                        <p className="text-slate-500 font-medium text-lg">Let's check the answer...</p>
-                    </div>
-                </div>
-            )}
+            {/* Main Card Container - Fixed Height Structure */}
+            <div className="w-full h-full md:h-[90vh] md:max-w-5xl bg-white md:rounded-3xl shadow-2xl border border-gray-200 overflow-hidden flex flex-col relative transition-all">
 
-            {/* --- Review Warning Modal --- */}
-            {showReviewModal && (
-                <div className="absolute inset-0 z-[60] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200 px-4">
-                    <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl border border-gray-200 animate-in slide-in-from-bottom-4 duration-300 p-6">
-                        <div className="flex flex-col items-center text-center mb-6">
-                            <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mb-4">
-                                <AlertTriangle className="w-6 h-6 text-purple-600" />
+                {/* --- Time's Up Overlay --- */}
+                {showTimeUpOverlay && (
+                    <div className="absolute inset-0 z-[60] flex items-center justify-center bg-slate-900/20 backdrop-blur-sm animate-in fade-in duration-300">
+                        <div className="bg-white px-12 py-10 rounded-3xl shadow-2xl flex flex-col items-center border-4 border-red-50 animate-in zoom-in-95 duration-300 transform scale-100">
+                            <div className="bg-red-100 p-5 rounded-full mb-6 shadow-inner">
+                                <Clock className="w-14 h-14 text-red-600" />
                             </div>
-                            <h3 className="text-xl font-bold text-gray-900 mb-2">Review Pending</h3>
-                            <p className="text-gray-600">
-                                You have <span className="font-bold text-purple-600">{markedForReview.length} questions</span> marked for review. 
-                                Do you want to check them before submitting?
-                            </p>
-                        </div>
-                        <div className="flex flex-col gap-3">
-                            <Button 
-                                onClick={handleReviewAction}
-                                className="w-full bg-purple-600 hover:bg-purple-700 text-white py-3 rounded-xl font-bold shadow-lg shadow-purple-200"
-                            >
-                                Review Questions <ArrowRight className="ml-2 w-4 h-4" />
-                            </Button>
-                            <button 
-                                onClick={() => { setShowReviewModal(false); onFinish(); }}
-                                className="w-full py-3 rounded-xl text-gray-500 font-semibold hover:bg-gray-100 transition-colors"
-                            >
-                                No, Submit Anyway
-                            </button>
+                            <h2 className="text-4xl font-black text-slate-800 mb-2 tracking-tight">Time's Up!</h2>
+                            <p className="text-slate-500 font-medium text-lg">Let's check the answer...</p>
                         </div>
                     </div>
-                </div>
-            )}
+                )}
 
-            {/* --- General Submit Confirmation Modal --- */}
-            {showSubmitConfirm && (
-                <div className="absolute inset-0 z-[60] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200 px-4">
-                    <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl border border-gray-200 animate-in zoom-in-95 duration-300 p-6">
-                        <div className="text-center mb-6">
-                            <div className={cn(
-                                "w-12 h-12 rounded-full flex items-center justify-center mb-4 mx-auto",
-                                (!isAnswered && questionIndex === totalQuestions - 1) ? "bg-amber-100" : "bg-green-100"
-                            )}>
-                                {(!isAnswered && questionIndex === totalQuestions - 1) ? (
-                                    <AlertTriangle className="w-6 h-6 text-amber-600" />
-                                ) : (
-                                    <CheckCircle2 className="w-6 h-6 text-green-600" />
-                                )}
-                            </div>
-                            <h3 className="text-xl font-bold text-gray-900 mb-2">
-                                {(!isAnswered && questionIndex === totalQuestions - 1) ? "Skip Last Question?" : "Submit Quiz?"}
-                            </h3>
-                            <p className="text-gray-600 text-sm">
-                                {(!isAnswered && questionIndex === totalQuestions - 1)
-                                    ? "You haven't answered the last question. It will be marked as skipped."
-                                    : "You are about to finish the quiz. You won't be able to change your answers after this."
-                                }
-                            </p>
-                        </div>
-                        <div className="flex gap-3">
-                            <button 
-                                onClick={() => setShowSubmitConfirm(false)}
-                                className="flex-1 py-2.5 rounded-lg text-gray-600 font-semibold hover:bg-gray-100 transition-colors border border-gray-200"
-                            >
-                                Cancel
-                            </button>
-                            <Button 
-                                onClick={() => { setShowSubmitConfirm(false); onFinish(); }}
-                                className={cn(
-                                    "flex-1 text-white py-2.5 rounded-lg font-bold shadow-md",
-                                    (!isAnswered && questionIndex === totalQuestions - 1) 
-                                        ? "bg-amber-500 hover:bg-amber-600" 
-                                        : "bg-green-600 hover:bg-green-700"
-                                )}
-                            >
-                                {(!isAnswered && questionIndex === totalQuestions - 1) ? "Skip & Submit" : "Submit"}
-                            </Button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Top Bar */}
-            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-white z-20">
-                <div className="flex flex-col">
-                    <QuizBreadcrumbs filters={filters} onGoHome={onGoHome} />
-                    <h1 className="text-lg font-black text-indigo-900 tracking-tight hidden sm:block">MindFlow</h1>
-                </div>
-                
-                <div className="flex items-center gap-2">
-                    <button onClick={() => setIsSettingsOpen(true)} className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-gray-50 rounded-lg transition-colors" aria-label="Settings">
-                        <Settings className="w-5 h-5" />
-                    </button>
-                    <button onClick={toggleFullscreen} className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-gray-50 rounded-lg transition-colors" aria-label="Toggle Fullscreen">
-                        {isFullscreen ? <Minimize className="w-5 h-5" /> : <Maximize className="w-5 h-5" />}
-                    </button>
-                    <button onClick={() => setIsNavOpen(true)} className="p-2 text-gray-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors bg-gray-50 border border-gray-100">
-                        <Menu className="w-5 h-5" />
-                    </button>
-                </div>
-            </div>
-
-            {/* Collapsible Info & Toolbar */}
-            <div className="bg-white border-b border-gray-100 transition-all duration-300 ease-in-out relative z-10">
-                <div className="px-6 py-2 flex items-center justify-between bg-gray-50/50">
-                    <h3 className="font-bold text-gray-700 text-xs truncate max-w-[80%] flex items-center gap-2">
-                        <Filter className="w-3 h-3 text-indigo-500" />
-                        {filterContextString}
-                    </h3>
-                    <button onClick={() => setIsStatsVisible(!isStatsVisible)} className="text-gray-400 hover:text-gray-600">
-                        <ChevronDown className={`w-4 h-4 transition-transform ${isStatsVisible ? '' : 'rotate-180'}`} />
-                    </button>
-                </div>
-
-                {isStatsVisible && (
-                    <div className="px-6 pb-6 pt-2 animate-in slide-in-from-top-2 duration-200">
-                        <QuizOverallProgress current={questionIndex + 1} total={totalQuestions} />
-                        
-                        {/* UPDATED LAYOUT: Zoom and Tools on single row */}
-                        <div className="flex flex-row justify-between items-center gap-4">
-                            {/* Left: Zoom Controls */}
-                            <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-lg shrink-0">
-                                <button onClick={() => setZoomLevel(Math.max(0.8, zoomLevel - 0.1))} className="p-1.5 hover:bg-white rounded-md text-gray-500 transition-all"><ZoomOut className="w-4 h-4" /></button>
-                                <button onClick={() => setZoomLevel(Math.min(1.5, zoomLevel + 0.1))} className="p-1.5 hover:bg-white rounded-md text-gray-500 transition-all"><ZoomIn className="w-4 h-4" /></button>
-                            </div>
-                            
-                            {/* Right: Streak, Timer, 50:50 */}
-                            <div className="flex items-center gap-2 sm:gap-3">
-                                {/* Streak Badge */}
-                                {streak > 1 && (
-                                    <div className="flex items-center gap-1 px-2 py-1.5 rounded-lg font-bold text-xs bg-orange-100 text-orange-600 border border-orange-200 animate-in zoom-in duration-300">
-                                        <Flame className="w-3 h-3 fill-orange-500 animate-pulse" />
-                                        <span>{streak}</span>
-                                    </div>
-                                )}
-
-                                <div className={`flex items-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-lg font-mono font-medium text-xs sm:text-sm border ${secondsLeft < 10 ? 'bg-red-50 text-red-600 border-red-200 animate-pulse' : 'bg-white text-gray-600 border-gray-200'}`}>
-                                    <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                                    {secondsLeft}s
+                {/* --- Review Warning Modal --- */}
+                {showReviewModal && (
+                    <div className="absolute inset-0 z-[60] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200 px-4">
+                        <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl border border-gray-200 animate-in slide-in-from-bottom-4 duration-300 p-6">
+                            <div className="flex flex-col items-center text-center mb-6">
+                                <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mb-4">
+                                    <AlertTriangle className="w-6 h-6 text-purple-600" />
                                 </div>
-
-                                <button 
-                                    onClick={handleFiftyFifty}
-                                    disabled={isFiftyFiftyDisabled}
-                                    className={cn(
-                                        "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm whitespace-nowrap",
-                                        isFiftyFiftyDisabled 
-                                            ? "bg-gray-200 text-gray-400 shadow-[inset_0_2px_4px_rgba(0,0,0,0.1)] cursor-not-allowed border border-gray-200"
-                                            : "bg-yellow-400 text-black hover:bg-yellow-500 hover:-translate-y-0.5 border-b-2 border-yellow-600 active:border-b-0 active:translate-y-0.5 active:shadow-[inset_0_2px_4px_rgba(0,0,0,0.1)]"
-                                    )}
+                                <h3 className="text-xl font-bold text-gray-900 mb-2">Review Pending</h3>
+                                <p className="text-gray-600">
+                                    You have <span className="font-bold text-purple-600">{markedForReview.length} questions</span> marked for review. 
+                                    Do you want to check them before submitting?
+                                </p>
+                            </div>
+                            <div className="flex flex-col gap-3">
+                                <Button 
+                                    onClick={handleReviewAction}
+                                    className="w-full bg-purple-600 hover:bg-purple-700 text-white py-3 rounded-xl font-bold shadow-lg shadow-purple-200"
                                 >
-                                    <Wand2 className="w-3.5 h-3.5" /> 50:50
+                                    Review Questions <ArrowRight className="ml-2 w-4 h-4" />
+                                </Button>
+                                <button 
+                                    onClick={() => { setShowReviewModal(false); onFinish(); }}
+                                    className="w-full py-3 rounded-xl text-gray-500 font-semibold hover:bg-gray-100 transition-colors"
+                                >
+                                    No, Submit Anyway
                                 </button>
                             </div>
                         </div>
                     </div>
                 )}
-                
-                <div className="absolute bottom-0 left-0 h-1 bg-gray-100 w-full">
-                    <div 
-                        className={`h-full transition-all duration-1000 ease-linear ${secondsLeft < 10 ? 'bg-red-500' : 'bg-indigo-500'}`}
-                        style={{ width: `${progressPercent}%` }}
-                    />
-                </div>
-            </div>
 
-            <div className="flex-1 overflow-y-auto p-6 sm:p-8 bg-gray-50/30">
-                <div className="max-w-3xl mx-auto">
-                    <QuizQuestionHeader 
-                        question={question}
-                        currentIndex={questionIndex}
-                        total={totalQuestions}
-                        isBookmarked={bookmarks.includes(question.id)}
-                        onToggleBookmark={() => onToggleBookmark(question.id)}
-                    />
+                {/* --- General Submit Confirmation Modal --- */}
+                {showSubmitConfirm && (
+                    <div className="absolute inset-0 z-[60] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200 px-4">
+                        <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl border border-gray-200 animate-in zoom-in-95 duration-300 p-6">
+                            <div className="text-center mb-6">
+                                <div className={cn(
+                                    "w-12 h-12 rounded-full flex items-center justify-center mb-4 mx-auto",
+                                    (!isAnswered && questionIndex === totalQuestions - 1) ? "bg-amber-100" : "bg-green-100"
+                                )}>
+                                    {(!isAnswered && questionIndex === totalQuestions - 1) ? (
+                                        <AlertTriangle className="w-6 h-6 text-amber-600" />
+                                    ) : (
+                                        <CheckCircle2 className="w-6 h-6 text-green-600" />
+                                    )}
+                                </div>
+                                <h3 className="text-xl font-bold text-gray-900 mb-2">
+                                    {(!isAnswered && questionIndex === totalQuestions - 1) ? "Skip Last Question?" : "Submit Quiz?"}
+                                </h3>
+                                <p className="text-gray-600 text-sm">
+                                    {(!isAnswered && questionIndex === totalQuestions - 1)
+                                        ? "You haven't answered the last question. It will be marked as skipped."
+                                        : "You are about to finish the quiz. You won't be able to change your answers after this."
+                                    }
+                                </p>
+                            </div>
+                            <div className="flex gap-3">
+                                <button 
+                                    onClick={() => setShowSubmitConfirm(false)}
+                                    className="flex-1 py-2.5 rounded-lg text-gray-600 font-semibold hover:bg-gray-100 transition-colors border border-gray-200"
+                                >
+                                    Cancel
+                                </button>
+                                <Button 
+                                    onClick={() => { setShowSubmitConfirm(false); onFinish(); }}
+                                    className={cn(
+                                        "flex-1 text-white py-2.5 rounded-lg font-bold shadow-md",
+                                        (!isAnswered && questionIndex === totalQuestions - 1) 
+                                            ? "bg-amber-500 hover:bg-amber-600" 
+                                            : "bg-green-600 hover:bg-green-700"
+                                    )}
+                                >
+                                    {(!isAnswered && questionIndex === totalQuestions - 1) ? "Skip & Submit" : "Submit"}
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
-                    <QuizQuestionDisplay 
-                        question={question}
-                        selectedAnswer={userAnswer}
-                        hiddenOptions={currentHiddenOptions}
-                        onAnswerSelect={handleOptionSelect}
-                        zoomLevel={zoomLevel}
-                    />
-
-                    <div>
-                        {isAnswered && (
-                            <QuizExplanation 
-                                explanation={question.explanation} 
-                                zoomLevel={zoomLevel}
-                            />
-                        )}
+                {/* Top Bar - Flex None (Sticky) */}
+                <div className="flex-none px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-white z-20">
+                    <div className="flex flex-col">
+                        <QuizBreadcrumbs filters={filters} onGoHome={onGoHome} />
+                        <h1 className="text-lg font-black text-indigo-900 tracking-tight hidden sm:block">MindFlow</h1>
+                    </div>
+                    
+                    <div className="flex items-center gap-2">
+                        <button onClick={() => setIsSettingsOpen(true)} className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-gray-50 rounded-lg transition-colors" aria-label="Settings">
+                            <Settings className="w-5 h-5" />
+                        </button>
+                        <button onClick={toggleFullscreen} className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-gray-50 rounded-lg transition-colors" aria-label="Toggle Fullscreen">
+                            {isFullscreen ? <Minimize className="w-5 h-5" /> : <Maximize className="w-5 h-5" />}
+                        </button>
+                        <button onClick={() => setIsNavOpen(true)} className="p-2 text-gray-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors bg-gray-50 border border-gray-100">
+                            <Menu className="w-5 h-5" />
+                        </button>
                     </div>
                 </div>
+
+                {/* Info & Toolbar - Flex None (Sticky) */}
+                <div className="flex-none bg-white border-b border-gray-100 transition-all duration-300 ease-in-out relative z-10">
+                    <div className="px-6 py-2 flex items-center justify-between bg-gray-50/50">
+                        <h3 className="font-bold text-gray-700 text-xs truncate max-w-[80%] flex items-center gap-2">
+                            <Filter className="w-3 h-3 text-indigo-500" />
+                            {filterContextString}
+                        </h3>
+                        <button onClick={() => setIsStatsVisible(!isStatsVisible)} className="text-gray-400 hover:text-gray-600">
+                            <ChevronDown className={`w-4 h-4 transition-transform ${isStatsVisible ? '' : 'rotate-180'}`} />
+                        </button>
+                    </div>
+
+                    {isStatsVisible && (
+                        <div className="px-6 pb-6 pt-2 animate-in slide-in-from-top-2 duration-200">
+                            <QuizOverallProgress current={questionIndex + 1} total={totalQuestions} />
+                            
+                            <div className="flex flex-row justify-between items-center gap-4">
+                                {/* Left: Zoom Controls */}
+                                <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-lg shrink-0">
+                                    <button onClick={() => setZoomLevel(Math.max(0.8, zoomLevel - 0.1))} className="p-1.5 hover:bg-white rounded-md text-gray-500 transition-all"><ZoomOut className="w-4 h-4" /></button>
+                                    <button onClick={() => setZoomLevel(Math.min(1.5, zoomLevel + 0.1))} className="p-1.5 hover:bg-white rounded-md text-gray-500 transition-all"><ZoomIn className="w-4 h-4" /></button>
+                                </div>
+                                
+                                {/* Right: Streak, Timer, 50:50 */}
+                                <div className="flex items-center gap-2 sm:gap-3">
+                                    {/* Streak Badge */}
+                                    {streak > 1 && (
+                                        <div className="flex items-center gap-1 px-2 py-1.5 rounded-lg font-bold text-xs bg-orange-100 text-orange-600 border border-orange-200 animate-in zoom-in duration-300">
+                                            <Flame className="w-3 h-3 fill-orange-500 animate-pulse" />
+                                            <span>{streak}</span>
+                                        </div>
+                                    )}
+
+                                    <div className={`flex items-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-lg font-mono font-medium text-xs sm:text-sm border ${secondsLeft < 10 ? 'bg-red-50 text-red-600 border-red-200 animate-pulse' : 'bg-white text-gray-600 border-gray-200'}`}>
+                                        <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                                        {secondsLeft}s
+                                    </div>
+
+                                    <button 
+                                        onClick={handleFiftyFifty}
+                                        disabled={isFiftyFiftyDisabled}
+                                        className={cn(
+                                            "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm whitespace-nowrap",
+                                            isFiftyFiftyDisabled 
+                                                ? "bg-gray-200 text-gray-400 shadow-[inset_0_2px_4px_rgba(0,0,0,0.1)] cursor-not-allowed border border-gray-200"
+                                                : "bg-yellow-400 text-black hover:bg-yellow-500 hover:-translate-y-0.5 border-b-2 border-yellow-600 active:border-b-0 active:translate-y-0.5 active:shadow-[inset_0_2px_4px_rgba(0,0,0,0.1)]"
+                                        )}
+                                    >
+                                        <Wand2 className="w-3.5 h-3.5" /> 50:50
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                    
+                    <div className="absolute bottom-0 left-0 h-1 bg-gray-100 w-full">
+                        <div 
+                            className={`h-full transition-all duration-1000 ease-linear ${secondsLeft < 10 ? 'bg-red-500' : 'bg-indigo-500'}`}
+                            style={{ width: `${progressPercent}%` }}
+                        />
+                    </div>
+                </div>
+
+                {/* Main Content - Flex 1 & Scrollable */}
+                <div className="flex-1 overflow-y-auto p-6 sm:p-8 bg-gray-50/30 scroll-smooth">
+                    <div className="max-w-3xl mx-auto">
+                        <QuizQuestionHeader 
+                            question={question}
+                            currentIndex={questionIndex}
+                            total={totalQuestions}
+                            isBookmarked={bookmarks.includes(question.id)}
+                            onToggleBookmark={() => onToggleBookmark(question.id)}
+                        />
+
+                        <QuizQuestionDisplay 
+                            question={question}
+                            selectedAnswer={userAnswer}
+                            hiddenOptions={currentHiddenOptions}
+                            onAnswerSelect={handleOptionSelect}
+                            zoomLevel={zoomLevel}
+                        />
+
+                        <div>
+                            {isAnswered && (
+                                <QuizExplanation 
+                                    explanation={question.explanation} 
+                                    zoomLevel={zoomLevel}
+                                />
+                            )}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Bottom Nav - Flex None (Sticky) */}
+                <div className="flex-none">
+                    <QuizBottomNav 
+                        onPrevious={() => handleNavigation(onPrev)}
+                        onNext={() => {
+                            if (questionIndex === totalQuestions - 1) {
+                                handleFinishRequest();
+                            } else {
+                                handleNavigation(onNext);
+                            }
+                        }}
+                        onToggleMarkForReview={() => onToggleReview(question.id)}
+                        isMarked={markedForReview.includes(question.id)}
+                        isFirst={questionIndex === 0}
+                        isLast={questionIndex === totalQuestions - 1}
+                        isAnswered={isAnswered}
+                    />
+                </div>
+
+                <QuizNavigationPanel 
+                    isOpen={isNavOpen}
+                    onClose={() => setIsNavOpen(false)}
+                    questions={allQuestions}
+                    userAnswers={userAnswers}
+                    currentQuestionIndex={questionIndex}
+                    onJumpToQuestion={(idx) => handleNavigation(() => onJump(idx))}
+                    markedForReview={markedForReview}
+                    bookmarks={bookmarks}
+                    onSubmitAndReview={handleFinishRequest}
+                />
+
+                <SettingsModal 
+                    isOpen={isSettingsOpen} 
+                    onClose={() => setIsSettingsOpen(false)} 
+                />
+
             </div>
-
-            <QuizBottomNav 
-                onPrevious={() => handleNavigation(onPrev)}
-                onNext={() => {
-                    if (questionIndex === totalQuestions - 1) {
-                        handleFinishRequest();
-                    } else {
-                        handleNavigation(onNext);
-                    }
-                }}
-                onToggleMarkForReview={() => onToggleReview(question.id)}
-                isMarked={markedForReview.includes(question.id)}
-                isFirst={questionIndex === 0}
-                isLast={questionIndex === totalQuestions - 1}
-                isAnswered={isAnswered}
-            />
-
-            <QuizNavigationPanel 
-                isOpen={isNavOpen}
-                onClose={() => setIsNavOpen(false)}
-                questions={allQuestions}
-                userAnswers={userAnswers}
-                currentQuestionIndex={questionIndex}
-                onJumpToQuestion={(idx) => handleNavigation(() => onJump(idx))}
-                markedForReview={markedForReview}
-                bookmarks={bookmarks}
-                onSubmitAndReview={handleFinishRequest}
-            />
-
-            <SettingsModal 
-                isOpen={isSettingsOpen} 
-                onClose={() => setIsSettingsOpen(false)} 
-            />
-
         </div>
     );
 }

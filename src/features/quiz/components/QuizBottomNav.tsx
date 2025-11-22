@@ -22,7 +22,7 @@ export function QuizBottomNav({
     isAnswered: boolean;
 }) {
     return (
-        <div className="flex items-center justify-between pt-6 mt-auto border-t border-gray-100 bg-white z-10 px-6 pb-4 md:pb-6">
+        <div className="flex items-center justify-between pt-4 pb-4 md:pb-6 px-6 bg-white border-t border-gray-100 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-10">
             <Button 
                 variant="ghost" 
                 onClick={onPrevious} 

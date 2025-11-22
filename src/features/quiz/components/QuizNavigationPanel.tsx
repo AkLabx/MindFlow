@@ -91,18 +91,18 @@ export function QuizNavigationPanel({
 
   return (
     <>
-      {/* Overlay */}
+      {/* Overlay - Increased z-index to 70 */}
       <div 
         className={cn(
-            "fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40 transition-opacity duration-300",
+            "fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[70] transition-opacity duration-300",
             isOpen ? "opacity-100" : "opacity-0 pointer-events-none"
         )}
         onClick={onClose}
       />
       
-      {/* Drawer */}
+      {/* Drawer - Increased z-index to 80 */}
       <div className={cn(
-          "fixed top-0 right-0 h-full w-80 bg-white shadow-2xl z-50 transform transition-transform duration-300 ease-in-out flex flex-col border-l border-gray-200",
+          "fixed top-0 right-0 h-full w-80 bg-white shadow-2xl z-[80] transform transition-transform duration-300 ease-in-out flex flex-col border-l border-gray-200",
           isOpen ? "translate-x-0" : "translate-x-full"
       )}>
         {/* Header */}
