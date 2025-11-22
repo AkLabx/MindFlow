@@ -80,7 +80,7 @@ export const QuizOption: React.FC<QuizOptionProps> = ({
                 {icon}
             </div>
             <div className="flex-1">
-                <div className={cn("leading-snug transition-colors text-[1em]", textClass)}>
+                <div className={cn("leading-snug transition-colors text-[1em] font-poppins", textClass)}>
                     {option}
                 </div>
                 {option_hi && (

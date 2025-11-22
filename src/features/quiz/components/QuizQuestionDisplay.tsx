@@ -22,7 +22,7 @@ export function QuizQuestionDisplay({
         <div className="space-y-6 zoom-container">
             {/* Question Text */}
             <div className="space-y-3 transition-all duration-200">
-                <h2 className="font-bold text-gray-900 leading-snug text-[1.2em]">
+                <h2 className="font-bold text-gray-900 leading-snug text-[1.2em] font-poppins">
                     {question.question}
                 </h2>
                 {question.question_hi && (
