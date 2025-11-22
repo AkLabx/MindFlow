@@ -109,7 +109,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted }) => {
               
               {/* Animated SVG Underline */}
               <svg className="absolute w-[105%] h-4 -bottom-1 -left-1 text-indigo-300 z-0" viewBox="0 0 200 9" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M2.00025 7.00001C45.9181 3.36732 122.893 1.12598 196.001 4.00002" stroke="currentColor" strokeWidth="3" strokeLinecap="round" style={{ strokeDasharray: 200, strokeDashoffset: 200, animation: 'draw-line 2s ease-out forwards 0.5s' }} />
+                <path d="M2.00025 7.00001C45.9181 3.36732 122.893 1.12598 196.001 4.00002" stroke="currentColor" strokeWidth="3" strokeLinecap="round" style={{ strokeDasharray: 200, strokeDashoffset: 200, animation: 'draw-line 6s ease-in-out infinite' }} />
               </svg>
             </span>
           </h1>
@@ -285,8 +285,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted }) => {
         }
 
         @keyframes draw-line {
-          from { stroke-dashoffset: 200; }
-          to { stroke-dashoffset: 0; }
+          0% { stroke-dashoffset: 200; opacity: 0; }
+          5% { opacity: 1; }
+          20% { stroke-dashoffset: 0; }
+          80% { stroke-dashoffset: 0; opacity: 1; }
+          100% { stroke-dashoffset: 0; opacity: 0; }
         }
         
         .perspective-1000 {
@@ -310,3 +313,4 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted }) => {
     </div>
   );
 };
+    
