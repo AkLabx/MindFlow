@@ -3,13 +3,14 @@ import React, { useState, useContext, useCallback, useMemo, useRef, useEffect } 
 import { 
   Clock, ZoomIn, ZoomOut, Wand2, Settings, 
   Maximize, Minimize, Menu, ChevronDown, Filter,
-  AlertTriangle, ArrowRight, CheckCircle2
+  AlertTriangle, ArrowRight, CheckCircle2, Flame
 } from 'lucide-react';
 import { Question, InitialFilters } from '../types';
 import { useTimer } from '../../../hooks/useTimer';
 import { SettingsContext } from '../../../context/SettingsContext';
 import { SettingsModal } from './ui/SettingsModal';
 import { Button } from '../../../components/Button/Button';
+import { useLocalStorageState } from '../../../hooks/useLocalStorageState';
 
 // Components
 import { QuizOverallProgress } from './QuizOverallProgress';
@@ -75,11 +76,15 @@ export function ActiveQuizSession({
     filters: InitialFilters;
 }) {
     // Local UI State
-    const [zoomLevel, setZoomLevel] = useState(1); // 1 = 100%, 1.2 = 120%
+    // Persist zoom level preference
+    const [zoomLevel, setZoomLevel] = useLocalStorageState('quiz_zoom_level', 1); 
     const [isStatsVisible, setIsStatsVisible] = useState(true);
     const [isNavOpen, setIsNavOpen] = useState(false);
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [isFullscreen, setIsFullscreen] = useState(false);
+    
+    // Gamification State
+    const [streak, setStreak] = useState(0);
     
     // Overlays & Modals
     const [showTimeUpOverlay, setShowTimeUpOverlay] = useState(false);
@@ -94,9 +99,8 @@ export function ActiveQuizSession({
     const activeOscillatorRef = useRef<OscillatorNode | null>(null);
     const activeGainRef = useRef<GainNode | null>(null);
 
-    // Swipe Refs
-    const touchStartRef = useRef<number | null>(null);
-    const touchEndRef = useRef<number | null>(null);
+    // Swipe Refs - Updated to store X and Y for diagonal check
+    const touchStartRef = useRef<{ x: number, y: number } | null>(null);
 
     // Access settings
     const { isHapticEnabled, isSoundEnabled } = useContext(SettingsContext);
@@ -202,6 +206,7 @@ export function ActiveQuizSession({
             
             // 2. Play Sound
             playIncorrectSound();
+            setStreak(0); // Reset streak on timeout
 
             // 3. Wait then Reveal
             setTimeout(() => {
@@ -232,55 +237,62 @@ export function ActiveQuizSession({
     }, [isAnswered]);
 
     // Navigation Wrapper
-    const handleNavigation = (navAction: () => void) => {
+    const handleNavigation = useCallback((navAction: () => void) => {
         if (!isAnswered) {
             onSaveTime(question.id, secondsLeft);
         }
         navAction();
-    };
+    }, [isAnswered, onSaveTime, question.id, secondsLeft]);
 
     // Swipe Handlers
     const onTouchStart = (e: React.TouchEvent) => {
-        touchStartRef.current = e.targetTouches[0].clientX;
+        touchStartRef.current = {
+            x: e.targetTouches[0].clientX,
+            y: e.targetTouches[0].clientY
+        };
     };
 
     const onTouchEnd = (e: React.TouchEvent) => {
         if (!touchStartRef.current) return;
-        touchEndRef.current = e.changedTouches[0].clientX;
         
-        const distance = touchStartRef.current - touchEndRef.current;
+        const touchEndX = e.changedTouches[0].clientX;
+        const touchEndY = e.changedTouches[0].clientY;
+        
+        const diffX = touchStartRef.current.x - touchEndX;
+        const diffY = touchStartRef.current.y - touchEndY;
         const minSwipeDistance = 50;
         
-        // Swipe Left -> Next
-        if (distance > minSwipeDistance) {
-            if (questionIndex < totalQuestions - 1) {
-                handleNavigation(onNext);
-            } else {
-                // If last question, treat swipe left as finish attempt
-                handleFinishRequest();
+        // Only trigger swipe if horizontal movement is greater than vertical movement (Diagonal Scroll Fix)
+        if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > minSwipeDistance) {
+            // Swipe Left -> Next (diffX > 0)
+            if (diffX > 0) {
+                if (questionIndex < totalQuestions - 1) {
+                    handleNavigation(onNext);
+                } else {
+                    // If last question, treat swipe left as finish attempt
+                    handleFinishRequest();
+                }
             }
-        }
-        
-        // Swipe Right -> Prev
-        if (distance < -minSwipeDistance) {
-            if (questionIndex > 0) {
-                handleNavigation(onPrev);
+            // Swipe Right -> Prev (diffX < 0)
+            else {
+                if (questionIndex > 0) {
+                    handleNavigation(onPrev);
+                }
             }
         }
         
         touchStartRef.current = null;
-        touchEndRef.current = null;
     };
 
     // Intercept Finish Action
-    const handleFinishRequest = () => {
+    const handleFinishRequest = useCallback(() => {
         if (markedForReview.length > 0) {
             setShowReviewModal(true);
         } else {
             // Show simple confirmation before immediate submit
             setShowSubmitConfirm(true);
         }
-    };
+    }, [markedForReview]);
 
     const handleReviewAction = () => {
         const firstMarkedId = markedForReview[0];
@@ -304,8 +316,9 @@ export function ActiveQuizSession({
         }
     };
 
-    const handleOptionSelect = (option: string) => {
-        if (isAnswered || showTimeUpOverlay) return;
+    const handleOptionSelect = useCallback((option: string) => {
+        // Prevent select if answered, time up, OR option is hidden (50:50)
+        if (isAnswered || showTimeUpOverlay || currentHiddenOptions.includes(option)) return;
 
         const isCorrect = option === question.correct;
         
@@ -314,12 +327,54 @@ export function ActiveQuizSession({
             else navigator.vibrate([50, 50, 50]);
         }
 
-        if (isCorrect) playCorrectSound();
-        else playIncorrectSound();
+        if (isCorrect) {
+            playCorrectSound();
+            setStreak(s => s + 1);
+        } else {
+            playIncorrectSound();
+            setStreak(0);
+        }
 
         const timeSpent = QUIZ_DURATION_SECONDS - secondsLeft;
         onAnswer(question.id, option, timeSpent);
-    };
+    }, [isAnswered, showTimeUpOverlay, currentHiddenOptions, question, isHapticEnabled, playCorrectSound, playIncorrectSound, secondsLeft, onAnswer]);
+
+    // Keyboard Shortcuts
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            // Avoid interfering with native inputs if any exist
+            if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+
+            switch (e.key) {
+                case 'ArrowRight':
+                    if (questionIndex < totalQuestions - 1) handleNavigation(onNext);
+                    else handleFinishRequest();
+                    break;
+                case 'ArrowLeft':
+                    if (questionIndex > 0) handleNavigation(onPrev);
+                    break;
+                case '1':
+                case 'Numpad1':
+                    if (question.options[0]) handleOptionSelect(question.options[0]);
+                    break;
+                case '2':
+                case 'Numpad2':
+                    if (question.options[1]) handleOptionSelect(question.options[1]);
+                    break;
+                case '3':
+                case 'Numpad3':
+                    if (question.options[2]) handleOptionSelect(question.options[2]);
+                    break;
+                case '4':
+                case 'Numpad4':
+                    if (question.options[3]) handleOptionSelect(question.options[3]);
+                    break;
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [question, questionIndex, totalQuestions, onNext, onPrev, handleFinishRequest, handleNavigation, handleOptionSelect]);
 
     const isFiftyFiftyDisabled = isFiftyFiftyUsed || isAnswered || showTimeUpOverlay;
 
@@ -394,12 +449,24 @@ export function ActiveQuizSession({
                 <div className="absolute inset-0 z-[60] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200 px-4">
                     <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl border border-gray-200 animate-in zoom-in-95 duration-300 p-6">
                         <div className="text-center mb-6">
-                            <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mb-4 mx-auto">
-                                <CheckCircle2 className="w-6 h-6 text-green-600" />
+                            <div className={cn(
+                                "w-12 h-12 rounded-full flex items-center justify-center mb-4 mx-auto",
+                                (!isAnswered && questionIndex === totalQuestions - 1) ? "bg-amber-100" : "bg-green-100"
+                            )}>
+                                {(!isAnswered && questionIndex === totalQuestions - 1) ? (
+                                    <AlertTriangle className="w-6 h-6 text-amber-600" />
+                                ) : (
+                                    <CheckCircle2 className="w-6 h-6 text-green-600" />
+                                )}
                             </div>
-                            <h3 className="text-xl font-bold text-gray-900 mb-2">Submit Quiz?</h3>
+                            <h3 className="text-xl font-bold text-gray-900 mb-2">
+                                {(!isAnswered && questionIndex === totalQuestions - 1) ? "Skip Last Question?" : "Submit Quiz?"}
+                            </h3>
                             <p className="text-gray-600 text-sm">
-                                You are about to finish the quiz. You won't be able to change your answers after this.
+                                {(!isAnswered && questionIndex === totalQuestions - 1)
+                                    ? "You haven't answered the last question. It will be marked as skipped."
+                                    : "You are about to finish the quiz. You won't be able to change your answers after this."
+                                }
                             </p>
                         </div>
                         <div className="flex gap-3">
@@ -411,9 +478,14 @@ export function ActiveQuizSession({
                             </button>
                             <Button 
                                 onClick={() => { setShowSubmitConfirm(false); onFinish(); }}
-                                className="flex-1 bg-green-600 hover:bg-green-700 text-white py-2.5 rounded-lg font-bold shadow-md"
+                                className={cn(
+                                    "flex-1 text-white py-2.5 rounded-lg font-bold shadow-md",
+                                    (!isAnswered && questionIndex === totalQuestions - 1) 
+                                        ? "bg-amber-500 hover:bg-amber-600" 
+                                        : "bg-green-600 hover:bg-green-700"
+                                )}
                             >
-                                Submit
+                                {(!isAnswered && questionIndex === totalQuestions - 1) ? "Skip & Submit" : "Submit"}
                             </Button>
                         </div>
                     </div>
@@ -463,6 +535,14 @@ export function ActiveQuizSession({
                             </div>
                             
                             <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
+                                {/* Streak Badge */}
+                                {streak > 1 && (
+                                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold text-sm bg-orange-100 text-orange-600 border border-orange-200 animate-in zoom-in duration-300">
+                                        <Flame className="w-4 h-4 fill-orange-500 animate-pulse" />
+                                        <span>{streak}</span>
+                                    </div>
+                                )}
+
                                 <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg font-mono font-medium text-sm border ${secondsLeft < 10 ? 'bg-red-50 text-red-600 border-red-200 animate-pulse' : 'bg-white text-gray-600 border-gray-200'}`}>
                                     <Clock className="w-4 h-4" />
                                     {secondsLeft}s
