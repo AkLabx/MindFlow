@@ -21,6 +21,7 @@ export const QuizContainer: React.FC = () => {
     goToIntro,
     startQuiz,
     answerQuestion,
+    logTimeSpent,
     saveTimer,
     syncGlobalTimer,
     nextQuestion,
@@ -214,6 +215,7 @@ export const QuizContainer: React.FC = () => {
             score={state.score}
             
             onAnswer={answerQuestion}
+            onLogTime={logTimeSpent}
             onSaveTime={saveTimer}
             onSyncGlobalTimer={syncGlobalTimer}
             onNext={nextQuestion}

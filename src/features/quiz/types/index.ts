@@ -97,6 +97,7 @@ export type QuizAction =
   | { type: 'GO_TO_INTRO' }
   | { type: 'START_QUIZ'; payload: { questions: Question[]; filters: InitialFilters; mode: QuizMode } }
   | { type: 'ANSWER_QUESTION'; payload: { questionId: string; answer: string; timeTaken: number } }
+  | { type: 'LOG_TIME_SPENT'; payload: { questionId: string; timeTaken: number } }
   | { type: 'SAVE_TIMER'; payload: { questionId: string; time: number } }
   | { type: 'SYNC_GLOBAL_TIMER'; payload: { time: number } }
   | { type: 'NEXT_QUESTION' }

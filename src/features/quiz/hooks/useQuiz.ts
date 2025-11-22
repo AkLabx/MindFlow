@@ -74,11 +74,6 @@ function quizReducer(state: QuizState, action: QuizAction): QuizState {
       
       const isCorrect = question?.correct === answer;
       
-      // Logic: If user changes answer, we need to adjust score if previously correct/incorrect
-      // But simpler approach: Recalculate score entirely at finish or here.
-      // Let's stick to simple cumulative update. 
-      // NOTE: In Mock mode, we don't show score until end, but we can track it here silently.
-      
       const prevAnswer = state.answers[questionId];
       let newScore = state.score;
 
@@ -93,15 +88,23 @@ function quizReducer(state: QuizState, action: QuizAction): QuizState {
           if (!wasCorrect && isCorrect) newScore++;
       }
       
-      // Accumulate time taken. 
+      // Accumulate time taken (usually 0 in mock mode via this action, handled by LOG_TIME_SPENT)
       const prevTime = state.timeTaken[questionId] || 0;
 
       return {
         ...state,
         answers: { ...state.answers, [questionId]: answer },
-        // In mock mode, timeTaken is cumulative for analytics
         timeTaken: { ...state.timeTaken, [questionId]: prevTime + timeTaken },
         score: newScore,
+      };
+    }
+
+    case 'LOG_TIME_SPENT': {
+      const { questionId, timeTaken } = action.payload;
+      const prevTime = state.timeTaken[questionId] || 0;
+      return {
+        ...state,
+        timeTaken: { ...state.timeTaken, [questionId]: prevTime + timeTaken }
       };
     }
 
@@ -219,6 +222,10 @@ export const useQuiz = () => {
     dispatch({ type: 'ANSWER_QUESTION', payload: { questionId, answer, timeTaken } });
   }, []);
 
+  const logTimeSpent = useCallback((questionId: string, timeTaken: number) => {
+    dispatch({ type: 'LOG_TIME_SPENT', payload: { questionId, timeTaken } });
+  }, []);
+
   const saveTimer = useCallback((questionId: string, time: number) => {
     dispatch({ type: 'SAVE_TIMER', payload: { questionId, time } });
   }, []);
@@ -268,6 +275,7 @@ export const useQuiz = () => {
     goToIntro,
     startQuiz,
     answerQuestion,
+    logTimeSpent,
     saveTimer,
     syncGlobalTimer,
     nextQuestion,

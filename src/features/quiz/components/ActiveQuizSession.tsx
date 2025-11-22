@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { 
   Timer, 
   Settings, 
@@ -8,7 +8,8 @@ import {
   ZoomOut, 
   Zap,
   AlertTriangle,
-  CheckCircle
+  CheckCircle,
+  Hourglass
 } from 'lucide-react';
 import { Question, InitialFilters, QuizMode } from '../types';
 import { QuizQuestionDisplay } from './QuizQuestionDisplay';
@@ -39,7 +40,8 @@ interface ActiveQuizSessionProps {
   score: number;
   
   onAnswer: (questionId: string, answer: string, timeTaken: number) => void;
-  onSaveTime: (questionId: string, time: number) => void;
+  onLogTime: (questionId: string, timeTaken: number) => void; // For updating time without answering
+  onSaveTime: (questionId: string, time: number) => void; // For saving remaining countdown
   onSyncGlobalTimer: (time: number) => void;
   onNext: () => void;
   onPrev: () => void;
@@ -67,6 +69,7 @@ export const ActiveQuizSession: React.FC<ActiveQuizSessionProps> = ({
   bookmarks,
   markedForReview,
   onAnswer,
+  onLogTime,
   onSaveTime,
   onSyncGlobalTimer,
   onNext,
@@ -84,6 +87,10 @@ export const ActiveQuizSession: React.FC<ActiveQuizSessionProps> = ({
   const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
   const [zoomLevel, setZoomLevel] = useState(1);
   
+  // Mock Mode: Question Stopwatch (Count up from 0)
+  const [questionTimeElapsed, setQuestionTimeElapsed] = useState(0);
+  const questionTimeRef = useRef(0); // Ref to track latest time for cleanup
+
   // Sound effects
   const playCorrect = useSound('/sounds/correct.mp3');
   const playIncorrect = useSound('/sounds/wrong.mp3');
@@ -95,23 +102,48 @@ export const ActiveQuizSession: React.FC<ActiveQuizSessionProps> = ({
 
   // --- Timer Logic ---
   
-  // Learning Mode Timer (Per Question)
+  // 1. Learning Mode Timer (Per Question Countdown)
   const [secondsLeftLearning] = useTimer({
     duration: remainingTime,
     onTimeUp: () => {
-       // In learning mode, we might not auto-submit, just let it sit at 0
+       // In learning mode, we might not auto-submit, just let it sit at 0 or auto-reveal
     },
     key: question.id, // Resets when question changes
     isPaused: isAnswered || isMockMode
   });
 
-  // Mock Mode Timer (Global)
+  // 2. Mock Mode Timer (Global Countdown)
   const [secondsLeftMock] = useTimer({
     duration: globalTimeRemaining,
     onTimeUp: onFinish,
     key: 'global-mock-timer',
     isPaused: !isMockMode || (globalTimeRemaining <= 0)
   });
+
+  // 3. Mock Mode Question Stopwatch (Count Up)
+  useEffect(() => {
+    if (!isMockMode) return;
+
+    // Reset for new question
+    setQuestionTimeElapsed(0);
+    questionTimeRef.current = 0;
+
+    const interval = setInterval(() => {
+      setQuestionTimeElapsed(prev => {
+        const next = prev + 1;
+        questionTimeRef.current = next;
+        return next;
+      });
+    }, 1000);
+
+    // Log time when leaving the question (unmount or id change)
+    return () => {
+      clearInterval(interval);
+      if (questionTimeRef.current > 0) {
+        onLogTime(question.id, questionTimeRef.current);
+      }
+    };
+  }, [question.id, isMockMode, onLogTime]);
 
   // Sync timers back to state
   useEffect(() => {
@@ -130,8 +162,7 @@ export const ActiveQuizSession: React.FC<ActiveQuizSessionProps> = ({
       }
   }, [isMockMode, secondsLeftMock, onSyncGlobalTimer]);
 
-  // Display Time
-  const displayTime = isMockMode ? secondsLeftMock : secondsLeftLearning;
+  // Display Time Helpers
   const formatTime = (s: number) => {
       const mins = Math.floor(s / 60);
       const secs = s % 60;
@@ -150,12 +181,14 @@ export const ActiveQuizSession: React.FC<ActiveQuizSessionProps> = ({
   // --- Handlers ---
 
   const handleOptionSelect = useCallback((answer: string) => {
-      // In Mock Mode, we always allow changing answers (unless time is up, handled globally)
+      // In Mock Mode, we always allow changing answers.
       // In Learning Mode, once answered, it's locked.
       if (isAnswered && !isMockMode) return; 
       
-      // Simple approach for time tracking in this context
-      onAnswer(question.id, answer, 1);
+      // In Mock Mode, we pass 0 for time here because time is tracked separately via onLogTime on navigation.
+      // In Learning Mode, we track time as 1 (or derived) for now, but typically Learning mode doesn't heavily rely on analytics accuracy.
+      const timeToLog = isMockMode ? 0 : 1;
+      onAnswer(question.id, answer, timeToLog);
 
       if (!isMockMode) {
           if (answer === question.correct) playCorrect();
@@ -184,7 +217,6 @@ export const ActiveQuizSession: React.FC<ActiveQuizSessionProps> = ({
   };
 
   const handleFinishRequest = () => {
-      // Always show confirmation modal
       setShowSubmitConfirm(true);
   };
 
@@ -199,21 +231,37 @@ export const ActiveQuizSession: React.FC<ActiveQuizSessionProps> = ({
   }, [handleNext, onPrev]);
 
   return (
-    <div className="flex flex-col h-full min-h-[calc(100vh-100px)]">
+    <div className="fixed inset-0 z-50 bg-white flex flex-col">
        
        {/* --- Header Bar --- */}
-       <header className="flex items-center justify-between mb-6 bg-white p-4 rounded-2xl border border-gray-200 shadow-sm sticky top-4 z-40">
-          <div className="flex items-center gap-4">
+       <header className="flex-none flex items-center justify-between p-4 bg-white border-b border-gray-200 shadow-sm z-40">
+          <div className="flex flex-row justify-between items-center w-full md:w-auto gap-4">
              <button onClick={() => setIsNavOpen(true)} className="p-2 hover:bg-gray-100 rounded-lg text-gray-600">
                 <Menu className="w-5 h-5" />
              </button>
              
-             <div className={cn(
-                 "flex items-center gap-2 px-3 py-1.5 rounded-lg font-mono font-bold text-sm transition-colors",
-                 displayTime < 10 ? "bg-red-100 text-red-600 animate-pulse" : "bg-gray-100 text-gray-700"
-             )}>
-                <Timer className="w-4 h-4" />
-                {formatTime(displayTime)}
+             {/* --- TIMERS --- */}
+             <div className="flex items-center gap-3">
+                
+                {/* Global Timer (Mock Mode: Countdown) / Question Timer (Learning: Countdown) */}
+                <div className={cn(
+                    "flex items-center gap-2 px-3 py-1.5 rounded-lg font-mono font-bold text-sm transition-colors whitespace-nowrap",
+                    (isMockMode ? secondsLeftMock : secondsLeftLearning) < 10 ? "bg-red-100 text-red-600 animate-pulse" : "bg-gray-100 text-gray-700"
+                )}>
+                    <Timer className="w-4 h-4" />
+                    {isMockMode ? formatTime(secondsLeftMock) : formatTime(secondsLeftLearning)}
+                </div>
+
+                {/* Extra Timer for Mock Mode (Per Question Count-Up) */}
+                {isMockMode && (
+                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg font-mono font-bold text-sm bg-blue-50 text-blue-700 whitespace-nowrap">
+                        <Hourglass className="w-4 h-4" />
+                        {formatTime(questionTimeElapsed)}
+                    </div>
+                )}
+
+                {/* Streak Counter (Visual only, non-functional in mock mode for now) */}
+                {/* Add streak here if needed */}
              </div>
           </div>
 
@@ -240,20 +288,23 @@ export const ActiveQuizSession: React.FC<ActiveQuizSessionProps> = ({
                  </button>
              )}
 
-             <div className="flex items-center border-l border-gray-200 pl-2 ml-2 gap-1">
-                <button onClick={() => setZoomLevel(z => Math.max(0.8, z - 0.1))} className="p-2 hover:bg-gray-100 rounded-lg text-gray-500"><ZoomOut className="w-4 h-4" /></button>
-                <button onClick={() => setZoomLevel(z => Math.min(1.5, z + 0.1))} className="p-2 hover:bg-gray-100 rounded-lg text-gray-500"><ZoomIn className="w-4 h-4" /></button>
+             <div className="flex items-center gap-2">
+                <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden">
+                    <button onClick={() => setZoomLevel(z => Math.max(0.8, z - 0.1))} className="p-1.5 hover:bg-gray-100 text-gray-500"><ZoomOut className="w-4 h-4" /></button>
+                    <div className="w-px h-4 bg-gray-200"></div>
+                    <button onClick={() => setZoomLevel(z => Math.min(1.5, z + 0.1))} className="p-1.5 hover:bg-gray-100 text-gray-500"><ZoomIn className="w-4 h-4" /></button>
+                </div>
+                
+                <button onClick={() => setIsSettingsOpen(true)} className="p-2 hover:bg-gray-100 rounded-lg text-gray-500">
+                    <Settings className="w-5 h-5" />
+                </button>
              </div>
-             
-             <button onClick={() => setIsSettingsOpen(true)} className="p-2 hover:bg-gray-100 rounded-lg text-gray-500 ml-1">
-                <Settings className="w-5 h-5" />
-             </button>
           </div>
        </header>
 
-       {/* --- Main Content Area --- */}
-       <main className="flex-1 relative">
-          <div className="max-w-3xl mx-auto">
+       {/* --- Main Content Area (Scrollable) --- */}
+       <main className="flex-1 overflow-y-auto bg-white relative">
+          <div className="max-w-3xl mx-auto p-4 md:p-6 pb-24">
              
              <QuizQuestionHeader 
                 question={question}
@@ -280,8 +331,8 @@ export const ActiveQuizSession: React.FC<ActiveQuizSessionProps> = ({
           </div>
        </main>
 
-       {/* --- Bottom Navigation --- */}
-       <footer className="sticky bottom-0 z-30 -mx-4 sm:mx-0 mt-8">
+       {/* --- Bottom Navigation (Fixed) --- */}
+       <footer className="flex-none bg-white border-t border-gray-200 z-30">
           <QuizBottomNav 
              onPrevious={onPrev}
              onNext={handleNext}
