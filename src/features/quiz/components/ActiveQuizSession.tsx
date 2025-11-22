@@ -528,23 +528,26 @@ export function ActiveQuizSession({
                     <div className="px-6 pb-6 pt-2 animate-in slide-in-from-top-2 duration-200">
                         <QuizOverallProgress current={questionIndex + 1} total={totalQuestions} />
                         
-                        <div className="flex flex-col sm:flex-row gap-4 justify-between items-center">
-                            <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-lg">
+                        {/* UPDATED LAYOUT: Zoom and Tools on single row */}
+                        <div className="flex flex-row justify-between items-center gap-4">
+                            {/* Left: Zoom Controls */}
+                            <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-lg shrink-0">
                                 <button onClick={() => setZoomLevel(Math.max(0.8, zoomLevel - 0.1))} className="p-1.5 hover:bg-white rounded-md text-gray-500 transition-all"><ZoomOut className="w-4 h-4" /></button>
                                 <button onClick={() => setZoomLevel(Math.min(1.5, zoomLevel + 0.1))} className="p-1.5 hover:bg-white rounded-md text-gray-500 transition-all"><ZoomIn className="w-4 h-4" /></button>
                             </div>
                             
-                            <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
+                            {/* Right: Streak, Timer, 50:50 */}
+                            <div className="flex items-center gap-2 sm:gap-3">
                                 {/* Streak Badge */}
                                 {streak > 1 && (
-                                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold text-sm bg-orange-100 text-orange-600 border border-orange-200 animate-in zoom-in duration-300">
-                                        <Flame className="w-4 h-4 fill-orange-500 animate-pulse" />
+                                    <div className="flex items-center gap-1 px-2 py-1.5 rounded-lg font-bold text-xs bg-orange-100 text-orange-600 border border-orange-200 animate-in zoom-in duration-300">
+                                        <Flame className="w-3 h-3 fill-orange-500 animate-pulse" />
                                         <span>{streak}</span>
                                     </div>
                                 )}
 
-                                <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg font-mono font-medium text-sm border ${secondsLeft < 10 ? 'bg-red-50 text-red-600 border-red-200 animate-pulse' : 'bg-white text-gray-600 border-gray-200'}`}>
-                                    <Clock className="w-4 h-4" />
+                                <div className={`flex items-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-lg font-mono font-medium text-xs sm:text-sm border ${secondsLeft < 10 ? 'bg-red-50 text-red-600 border-red-200 animate-pulse' : 'bg-white text-gray-600 border-gray-200'}`}>
+                                    <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                                     {secondsLeft}s
                                 </div>
 
@@ -552,7 +555,7 @@ export function ActiveQuizSession({
                                     onClick={handleFiftyFifty}
                                     disabled={isFiftyFiftyDisabled}
                                     className={cn(
-                                        "flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm",
+                                        "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm whitespace-nowrap",
                                         isFiftyFiftyDisabled 
                                             ? "bg-gray-200 text-gray-400 shadow-[inset_0_2px_4px_rgba(0,0,0,0.1)] cursor-not-allowed border border-gray-200"
                                             : "bg-yellow-400 text-black hover:bg-yellow-500 hover:-translate-y-0.5 border-b-2 border-yellow-600 active:border-b-0 active:translate-y-0.5 active:shadow-[inset_0_2px_4px_rgba(0,0,0,0.1)]"
