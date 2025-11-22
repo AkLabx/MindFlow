@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo } from 'react';
-import { Trophy, RotateCcw, Share2, Target, Clock, CheckCircle2, XCircle, List, ChevronRight } from 'lucide-react';
+import { Trophy, RotateCcw, Home, Target, Clock, CheckCircle2, XCircle, List, ChevronRight } from 'lucide-react';
 import { Button } from '../../../components/Button/Button';
 import { Question } from '../types';
 import { DonutChart } from './ui/DonutChart';
@@ -198,8 +198,8 @@ export const QuizResult: React.FC<QuizResultProps> = ({
                  <Button onClick={onRestart} variant="outline" className="justify-center">
                     <RotateCcw className="w-4 h-4 mr-2" /> Play Again
                  </Button>
-                 <Button onClick={() => {}} variant="outline" className="justify-center text-gray-500">
-                    <Share2 className="w-4 h-4 mr-2" /> Share
+                 <Button onClick={onGoHome} variant="outline" className="justify-center text-gray-700">
+                    <Home className="w-4 h-4 mr-2" /> Home
                  </Button>
              </div>
           </div>

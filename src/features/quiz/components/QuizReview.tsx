@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useEffect } from 'react';
 import { ArrowLeft, Home, CheckCircle2, XCircle, Bookmark, Filter } from 'lucide-react';
 import { Question } from '../types';
@@ -88,7 +89,7 @@ export const QuizReview: React.FC<QuizReviewProps> = ({
                 />
             </div>
 
-            <Button variant="outline" size="sm" onClick={onGoHome} className="hidden md:flex">
+            <Button variant="outline" size="sm" onClick={onGoHome} className="w-full md:w-auto justify-center">
                 <Home className="w-4 h-4 mr-2" /> Home
             </Button>
         </div>
