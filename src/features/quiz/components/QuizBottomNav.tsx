@@ -1,5 +1,6 @@
+
 import React from 'react';
-import { ArrowLeft, ArrowRight, Flag } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Flag, CheckCircle } from 'lucide-react';
 import { cn } from '../../../utils/cn';
 import { Button } from '../../../components/Button/Button';
 
@@ -21,7 +22,7 @@ export function QuizBottomNav({
     isAnswered: boolean;
 }) {
     return (
-        <div className="flex items-center justify-between pt-6 mt-auto border-t border-gray-100 bg-white z-10">
+        <div className="flex items-center justify-between pt-6 mt-auto border-t border-gray-100 bg-white z-10 px-6 pb-4 md:pb-6">
             <Button 
                 variant="ghost" 
                 onClick={onPrevious} 
@@ -41,18 +42,25 @@ export function QuizBottomNav({
                 )}
             >
                 <Flag className={cn("w-4 h-4", isMarked ? "fill-current" : "")} />
-                {isMarked ? 'Marked for Review' : 'Mark for Review'}
+                <span className="hidden sm:inline">{isMarked ? 'Marked for Review' : 'Mark for Review'}</span>
+                <span className="sm:hidden">Review</span>
             </button>
 
             <Button 
                 onClick={onNext} 
-                disabled={!isAnswered} // Enforce answering before moving next? Or allow skipping? Original code disabled it.
+                // disabled={!isAnswered} // Keeping it enabled to allow skipping/navigating
                 className={cn(
-                    "pl-6 pr-4", 
-                    isLast ? "bg-green-600 hover:bg-green-700" : ""
+                    "transition-all",
+                    isLast 
+                        ? "bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white px-8 shadow-md hover:shadow-lg border-0" 
+                        : "pl-6 pr-4"
                 )}
             >
-                {isLast ? 'Finish Quiz' : 'Next'} <ArrowRight className="w-4 h-4 ml-2" />
+                {isLast ? (
+                    <>Finish <CheckCircle className="w-4 h-4 ml-2" /></>
+                ) : (
+                    <>Next <ArrowRight className="w-4 h-4 ml-2" /></>
+                )}
             </Button>
         </div>
     );

@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Check, X } from 'lucide-react';
+import { Check, X, EyeOff } from 'lucide-react';
 import { cn } from '../../../utils/cn';
 
 interface QuizOptionProps {
@@ -23,17 +23,21 @@ export const QuizOption: React.FC<QuizOptionProps> = ({
     onClick
 }) => {
     // Visual State Logic
-    let containerClass = "bg-white border-gray-200 hover:border-indigo-300 hover:bg-gray-50";
-    let icon = <div className="w-5 h-5 rounded-full border-2 border-gray-300" />;
+    let containerClass = "bg-white border-gray-200 hover:border-indigo-300 hover:bg-gray-50 cursor-pointer";
+    let icon = <div className="w-5 h-5 rounded-full border-2 border-gray-300 transition-colors group-hover:border-indigo-400" />;
     let textClass = "text-gray-700";
     let animationClass = "";
 
     // 50-50 Elimination Logic (Visual Only)
     if (isHidden) {
-        containerClass = "bg-gray-100 border-gray-200 opacity-50 cursor-not-allowed";
-        textClass = "text-gray-400 line-through decoration-gray-400 decoration-2";
-        // We render it, but disabled and styled as crossed out
+        // Fix: Explicitly remove hover effects and set cursor to not-allowed
+        containerClass = "bg-gray-50 border-gray-100 opacity-60 cursor-not-allowed shadow-none"; 
+        textClass = "text-gray-400 line-through decoration-gray-300 decoration-2 select-none";
+        // Fix: Use a specific icon for hidden state
+        icon = <EyeOff className="w-5 h-5 text-gray-300" />;
     } else if (isAnswered) {
+        containerClass = "cursor-default"; // Remove pointer on answered state
+        
         if (isCorrect) {
             containerClass = "bg-green-50 border-green-500 ring-1 ring-green-500";
             icon = <div className="w-5 h-5 rounded-full bg-green-500 flex items-center justify-center"><Check className="w-3 h-3 text-white" /></div>;
@@ -54,7 +58,7 @@ export const QuizOption: React.FC<QuizOptionProps> = ({
              textClass = "text-green-700";
         } else {
              // Other incorrect options
-             containerClass = "opacity-50 bg-gray-50";
+             containerClass = "opacity-50 bg-gray-50 border-gray-200";
         }
     } else if (isSelected) {
         containerClass = "bg-indigo-50 border-indigo-600 ring-1 ring-indigo-600";
@@ -71,10 +75,6 @@ export const QuizOption: React.FC<QuizOptionProps> = ({
                 containerClass,
                 animationClass
             )}
-            style={{
-                // Ensure blur is applied if hidden
-                filter: isHidden ? 'blur(0.5px)' : 'none'
-            }}
         >
             <div className="flex-shrink-0">
                 {icon}
