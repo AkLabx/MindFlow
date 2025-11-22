@@ -179,7 +179,8 @@ export function ActiveQuizSession({
 
             // 3. Wait then Reveal
             setTimeout(() => {
-                onAnswer(question.id, "", QUIZ_DURATION_SECONDS);
+                // Use a specific string for Time Up to mark as answered and show explanation
+                onAnswer(question.id, "TIME_UP", QUIZ_DURATION_SECONDS);
                 setShowTimeUpOverlay(false);
             }, 1500);
         }
