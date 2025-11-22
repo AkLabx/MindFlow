@@ -5,10 +5,9 @@ import { QuizResult } from './components/QuizResult';
 import { QuizConfig } from './components/QuizConfig';
 import { LandingPage } from './components/LandingPage';
 import { ActiveQuizSession } from './components/ActiveQuizSession';
-import { AdminDashboard } from './components/AdminDashboard';
 import { Fireballs } from '../../components/Background/Fireballs';
 import { Button } from '../../components/Button/Button';
-import { ArrowRight, ListChecks, FileText, BookOpen, ArrowLeft, Download, Lock } from 'lucide-react';
+import { ArrowRight, ListChecks, FileText, BookOpen, ArrowLeft, Download } from 'lucide-react';
 import { SettingsContext } from '../../context/SettingsContext';
 import { usePWAInstall } from '../../hooks/usePWAInstall';
 
@@ -30,9 +29,7 @@ export const QuizContainer: React.FC = () => {
     useFiftyFifty,
     finishQuiz,
     restartQuiz,
-    goHome,
-    enterAdmin,
-    exitAdmin
+    goHome
   } = useQuiz();
 
   const { areBgAnimationsEnabled } = useContext(SettingsContext);
@@ -40,12 +37,7 @@ export const QuizContainer: React.FC = () => {
 
   // 0. Intro / Landing Page
   if (state.status === 'intro') {
-    return <LandingPage onGetStarted={enterHome} onAdminClick={enterAdmin} />;
-  }
-
-  // 5. Admin Dashboard
-  if (state.status === 'admin') {
-    return <AdminDashboard onExit={exitAdmin} />;
+    return <LandingPage onGetStarted={enterHome} />;
   }
 
   // Helper to render content based on state
@@ -56,7 +48,7 @@ export const QuizContainer: React.FC = () => {
         <div className="flex flex-col items-center justify-center min-h-[calc(100vh-12rem)] space-y-10 py-10 relative z-10">
           
           {/* Back to Intro Navigation */}
-          <div className="w-full max-w-6xl mx-auto px-4 flex justify-between items-center">
+          <div className="w-full max-w-6xl mx-auto px-4">
              <Button 
                 variant="ghost" 
                 onClick={goToIntro} 
@@ -64,15 +56,6 @@ export const QuizContainer: React.FC = () => {
              >
                <ArrowLeft className="w-4 h-4" /> Back to Intro
              </Button>
-
-             {/* Discreet Admin Lock */}
-             <button 
-                onClick={enterAdmin}
-                className="p-2 text-gray-300 hover:text-gray-500 transition-colors rounded-full hover:bg-gray-100"
-                aria-label="Admin Access"
-             >
-                <Lock className="w-3 h-3" />
-             </button>
           </div>
 
           {/* Hero Section */}

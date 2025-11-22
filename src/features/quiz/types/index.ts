@@ -38,7 +38,7 @@ export interface Question {
   explanation: Explanation;
 }
 
-export type QuizStatus = 'intro' | 'idle' | 'config' | 'quiz' | 'result' | 'admin';
+export type QuizStatus = 'intro' | 'idle' | 'config' | 'quiz' | 'result';
 
 export interface InitialFilters {
   subject: string[];
@@ -98,9 +98,7 @@ export type QuizAction =
   | { type: 'USE_50_50'; payload: { questionId: string; hiddenOptions: string[] } }
   | { type: 'FINISH_QUIZ' }
   | { type: 'RESTART_QUIZ' }
-  | { type: 'GO_HOME' }
-  | { type: 'ENTER_ADMIN' }
-  | { type: 'EXIT_ADMIN' };
+  | { type: 'GO_HOME' };
 
 export interface SettingsContextType {
   isDarkMode: boolean;

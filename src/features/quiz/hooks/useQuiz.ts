@@ -1,3 +1,4 @@
+
 import { useReducer, useCallback, useEffect } from 'react';
 import { QuizState, QuizAction, Question, InitialFilters } from '../types';
 import { logEvent } from '../services/analyticsService';
@@ -132,12 +133,6 @@ function quizReducer(state: QuizState, action: QuizAction): QuizState {
     case 'GO_HOME':
       return { ...initialState, status: 'idle' };
 
-    case 'ENTER_ADMIN':
-      return { ...state, status: 'admin' };
-
-    case 'EXIT_ADMIN':
-      return { ...initialState, status: 'idle' };
-
     default:
       return state;
   }
@@ -159,8 +154,6 @@ export const useQuiz = () => {
   const enterHome = useCallback(() => dispatch({ type: 'ENTER_HOME' }), []);
   const enterConfig = useCallback(() => dispatch({ type: 'ENTER_CONFIG' }), []);
   const goToIntro = useCallback(() => dispatch({ type: 'GO_TO_INTRO' }), []);
-  const enterAdmin = useCallback(() => dispatch({ type: 'ENTER_ADMIN' }), []);
-  const exitAdmin = useCallback(() => dispatch({ type: 'EXIT_ADMIN' }), []);
   
   const startQuiz = useCallback((filteredQuestions: Question[], filters: InitialFilters) => {
     // Log the start event with metadata about what they are studying
@@ -191,7 +184,7 @@ export const useQuiz = () => {
       score: state.score,
       total_questions: state.activeQuestions.length,
       percentage: Math.round((state.score / state.activeQuestions.length) * 100),
-      time_spent_total: (Object.values(state.timeTaken) as number[]).reduce((a, b) => a + b, 0)
+      time_spent_total: Object.values(state.timeTaken).reduce((a, b) => a + b, 0)
     });
     dispatch({ type: 'FINISH_QUIZ' });
   }, [state.score, state.activeQuestions.length, state.timeTaken]);
@@ -224,8 +217,6 @@ export const useQuiz = () => {
     useFiftyFifty,
     finishQuiz,
     restartQuiz,
-    goHome,
-    enterAdmin,
-    exitAdmin
+    goHome
   };
 };
