@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom';
 import { X, Volume2, Moon, Smartphone, Sparkles } from 'lucide-react';
 import { SettingsContext } from '../../../../context/SettingsContext';
 import { SettingsToggle } from './SettingsToggle';
+import { InstallPWA } from './InstallPWA';
 
 export function SettingsModal({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) {
   const { 
@@ -74,11 +75,14 @@ export function SettingsModal({ isOpen, onClose }: { isOpen: boolean, onClose: (
                 </div>
             </div>
 
+            {/* Section: PWA Install */}
+            <InstallPWA />
+
         </div>
         
         {/* Footer */}
         <div className="p-4 bg-gray-50 border-t border-gray-100 text-center">
-            <p className="text-xs text-gray-400">MindFlow Quiz App v1.0.0</p>
+            <p className="text-xs text-gray-400">MindFlow Quiz App v2.0.0</p>
         </div>
       </div>
     </div>,

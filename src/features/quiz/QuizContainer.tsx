@@ -7,8 +7,9 @@ import { LandingPage } from './components/LandingPage';
 import { ActiveQuizSession } from './components/ActiveQuizSession';
 import { Fireballs } from '../../components/Background/Fireballs';
 import { Button } from '../../components/Button/Button';
-import { ArrowRight, ListChecks, FileText, BookOpen, ArrowLeft } from 'lucide-react';
+import { ArrowRight, ListChecks, FileText, BookOpen, ArrowLeft, Download } from 'lucide-react';
 import { SettingsContext } from '../../context/SettingsContext';
+import { usePWAInstall } from '../../hooks/usePWAInstall';
 
 export const QuizContainer: React.FC = () => {
   const {
@@ -32,6 +33,7 @@ export const QuizContainer: React.FC = () => {
   } = useQuiz();
 
   const { areBgAnimationsEnabled } = useContext(SettingsContext);
+  const { canInstall, triggerInstall } = usePWAInstall();
 
   // 0. Intro / Landing Page
   if (state.status === 'intro') {
@@ -74,13 +76,27 @@ export const QuizContainer: React.FC = () => {
               Build custom quizzes from a vast question bank, generate study materials, and track your progress like never before.
             </p>
             
-            <Button 
-              size="lg" 
-              onClick={enterConfig} 
-              className="bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-4 text-lg rounded-xl shadow-xl shadow-indigo-200 hover:shadow-2xl hover:shadow-indigo-300 transition-all transform hover:-translate-y-1 relative z-20"
-            >
-              Start a New Quiz <ArrowRight className="ml-2 h-5 w-5" />
-            </Button>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 relative z-20">
+              <Button 
+                size="lg" 
+                onClick={enterConfig} 
+                className="bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-4 text-lg rounded-xl shadow-xl shadow-indigo-200 hover:shadow-2xl hover:shadow-indigo-300 transition-all transform hover:-translate-y-1"
+              >
+                Start a New Quiz <ArrowRight className="ml-2 h-5 w-5" />
+              </Button>
+
+              {/* PWA Install Button for Dashboard */}
+              {canInstall && (
+                <Button 
+                  size="lg"
+                  variant="outline"
+                  onClick={triggerInstall}
+                  className="px-8 py-4 text-lg rounded-xl bg-white border-indigo-200 text-indigo-700 hover:bg-indigo-50 hover:border-indigo-300 shadow-lg transition-all transform hover:-translate-y-1"
+                >
+                  <Download className="w-5 h-5 mr-2" /> Download App
+                </Button>
+              )}
+            </div>
           </div>
 
           {/* Cards Grid */}

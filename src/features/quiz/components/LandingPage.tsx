@@ -1,16 +1,19 @@
 
 import React from 'react';
-import { ArrowRight, Brain, Target, Zap, Layers, Star, Play, Github } from 'lucide-react';
+import { ArrowRight, Brain, Target, Zap, Layers, Star, Play, Github, Download } from 'lucide-react';
 import { Button } from '../../../components/Button/Button';
 import { Typewriter } from './Landing/Typewriter';
 // MobileDemoCard removed to provide high-fidelity experience on all devices
 import { DemoCard } from './Landing/DemoCard';
+import { usePWAInstall } from '../../../hooks/usePWAInstall';
 
 interface LandingPageProps {
   onGetStarted: () => void;
 }
 
 export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted }) => {
+  const { canInstall, triggerInstall } = usePWAInstall();
+
   return (
     <div className="relative min-h-screen flex flex-col items-center justify-start pt-10 md:pt-20 pb-10 overflow-hidden bg-slate-50 selection:bg-indigo-100 selection:text-indigo-900 font-sans -mt-8">
       
@@ -36,6 +39,17 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted }) => {
 
         {/* Right Nav Actions */}
         <div className="flex items-center gap-6">
+           
+           {/* PWA Install Button (Visible if installable) */}
+           {canInstall && (
+              <button 
+                onClick={triggerInstall}
+                className="hidden md:flex items-center gap-2 px-4 py-2 rounded-full border border-indigo-200 bg-white/50 text-indigo-700 font-bold text-xs uppercase tracking-wide hover:bg-indigo-50 hover:border-indigo-300 transition-all shadow-sm"
+              >
+                <Download className="w-4 h-4" /> Download App
+              </button>
+           )}
+
            <div className="hidden md:flex items-center gap-6 text-sm font-semibold text-slate-600">
               <a href="#" className="hover:text-indigo-600 transition-colors">Features</a>
               <a href="#" className="hover:text-indigo-600 transition-colors">Methodology</a>
