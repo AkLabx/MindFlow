@@ -75,6 +75,9 @@ export function ActiveQuizSession({
     const [isNavOpen, setIsNavOpen] = useState(false);
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [isFullscreen, setIsFullscreen] = useState(false);
+    
+    // New state for Time Up Overlay
+    const [showTimeUpOverlay, setShowTimeUpOverlay] = useState(false);
 
     // Access settings
     const { isHapticEnabled, isSoundEnabled } = useContext(SettingsContext);
@@ -145,7 +148,7 @@ export function ActiveQuizSession({
 
 
     const handleFiftyFifty = () => {
-        if (isFiftyFiftyUsed || isAnswered) return;
+        if (isFiftyFiftyUsed || isAnswered || showTimeUpOverlay) return;
         // Find incorrect options
         const incorrectOptions = question.options.filter(o => o !== question.correct);
         // Shuffle and take 2
@@ -156,16 +159,26 @@ export function ActiveQuizSession({
 
     // Timer Logic
     const handleTimeUp = useCallback(() => {
-        if (!isAnswered) {
-            onAnswer(question.id, "", QUIZ_DURATION_SECONDS);
+        if (!isAnswered && !showTimeUpOverlay) {
+            // 1. Show Overlay
+            setShowTimeUpOverlay(true);
+            
+            // 2. Play Sound
+            playIncorrectSound();
+
+            // 3. Wait then Reveal
+            setTimeout(() => {
+                onAnswer(question.id, "", QUIZ_DURATION_SECONDS);
+                setShowTimeUpOverlay(false);
+            }, 1500);
         }
-    }, [question.id, isAnswered, onAnswer]);
+    }, [question.id, isAnswered, onAnswer, playIncorrectSound, showTimeUpOverlay]);
 
     const [secondsLeft] = useTimer({ 
         duration: QUIZ_DURATION_SECONDS, 
         onTimeUp: handleTimeUp, 
         key: question.id, 
-        isPaused: isAnswered 
+        isPaused: isAnswered || showTimeUpOverlay // Pause timer logic if overlay is showing
     });
     
     const progressPercent = (secondsLeft / QUIZ_DURATION_SECONDS) * 100;
@@ -188,7 +201,7 @@ export function ActiveQuizSession({
 
     // Answer Handler
     const handleOptionSelect = (option: string) => {
-        if (isAnswered) return;
+        if (isAnswered || showTimeUpOverlay) return;
 
         const isCorrect = option === question.correct;
         
@@ -222,6 +235,19 @@ export function ActiveQuizSession({
                     font-size: ${zoomLevel}rem;
                 }
             `}</style>
+
+            {/* --- Time's Up Overlay --- */}
+            {showTimeUpOverlay && (
+                <div className="absolute inset-0 z-[60] flex items-center justify-center bg-slate-900/20 backdrop-blur-sm animate-in fade-in duration-300">
+                    <div className="bg-white px-12 py-10 rounded-3xl shadow-2xl flex flex-col items-center border-4 border-red-50 animate-in zoom-in-95 duration-300 transform scale-100">
+                        <div className="bg-red-100 p-5 rounded-full mb-6 shadow-inner">
+                            <Clock className="w-14 h-14 text-red-600" />
+                        </div>
+                        <h2 className="text-4xl font-black text-slate-800 mb-2 tracking-tight">Time's Up!</h2>
+                        <p className="text-slate-500 font-medium text-lg">Let's check the answer...</p>
+                    </div>
+                </div>
+            )}
 
             {/* Top Bar */}
             <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-white z-20">
@@ -274,7 +300,7 @@ export function ActiveQuizSession({
 
                                 <button 
                                     onClick={handleFiftyFifty}
-                                    disabled={isFiftyFiftyUsed || isAnswered}
+                                    disabled={isFiftyFiftyUsed || isAnswered || showTimeUpOverlay}
                                     className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold border transition-all
                                         ${isFiftyFiftyUsed ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed' : 'bg-indigo-50 text-indigo-600 border-indigo-200 hover:bg-indigo-100'}
                                     `}
