@@ -7,9 +7,6 @@ import {
   FileText, 
   Tag, 
   RotateCcw, 
-  LayoutList,
-  FileJson,
-  Presentation,
   Loader2,
   AlertCircle,
   Database,
@@ -48,7 +45,6 @@ const emptyFilters: InitialFilters = {
 };
 
 export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
-  const [activeTab, setActiveTab] = useState<'quiz' | 'ppt' | 'json'>('quiz');
   const [mode, setMode] = useState<QuizMode>('learning');
   const [filters, setFilters] = useState<InitialFilters>(emptyFilters);
   
@@ -261,172 +257,148 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
       )}
 
       {/* Header */}
-      <div className="px-6 pt-6 pb-0">
+      <div className="px-6 pt-6 pb-2">
         <div className="flex items-center gap-2 text-sm text-gray-500 mb-4 cursor-pointer hover:text-indigo-600 w-fit" onClick={onBack}>
           <ArrowLeft className="w-4 h-4" />
           <span className="font-medium">HOME</span>
         </div>
         
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-indigo-900 mb-2">Customize Your Session</h1>
-          <p className="text-gray-500">Select from <span className="font-bold text-indigo-600">{metadata.length.toLocaleString()}</span> available questions.</p>
-        </div>
-
-        {/* Tabs */}
-        <div className="flex border-b border-gray-200 overflow-x-auto">
-          <button onClick={() => setActiveTab('quiz')} className={cn("flex items-center gap-2 px-6 py-3 text-sm font-bold border-b-2 transition-colors whitespace-nowrap", activeTab === 'quiz' ? "border-indigo-600 text-indigo-600" : "border-transparent text-gray-500 hover:text-gray-700")}>
-            <LayoutList className="w-4 h-4" /> Build a Quiz
-          </button>
-          <button onClick={() => setActiveTab('ppt')} className={cn("flex items-center gap-2 px-6 py-3 text-sm font-bold border-b-2 transition-colors whitespace-nowrap", activeTab === 'ppt' ? "border-indigo-600 text-indigo-600" : "border-transparent text-gray-500 hover:text-gray-700")}>
-            <Presentation className="w-4 h-4" /> Create PPT
-          </button>
-          <button onClick={() => setActiveTab('json')} className={cn("flex items-center gap-2 px-6 py-3 text-sm font-bold border-b-2 transition-colors whitespace-nowrap", activeTab === 'json' ? "border-indigo-600 text-indigo-600" : "border-transparent text-gray-500 hover:text-gray-700")}>
-            <FileJson className="w-4 h-4" /> Download JSON
-          </button>
+        <div className="text-center mb-4">
+          <h1 className="text-2xl md:text-3xl font-bold text-indigo-900 mb-1">Customize Your Session</h1>
+          <p className="text-sm md:text-base text-gray-500">Select from <span className="font-bold text-indigo-600">{metadata.length.toLocaleString()}</span> available questions.</p>
         </div>
       </div>
 
-      {activeTab === 'quiz' ? (
-        <div className="p-6 space-y-6 bg-gray-50/50 flex-1 overflow-y-auto">
+      {/* Scrollable Config Content */}
+      <div className="p-6 space-y-6 bg-gray-50/50 flex-1 overflow-y-auto">
+        
+        {/* Mode Selection - Responsive Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-white p-2 rounded-xl border border-gray-200 shadow-sm">
+           <button 
+             onClick={() => setMode('learning')}
+             className={cn(
+               "flex flex-col items-center justify-center p-4 rounded-lg transition-all border-2",
+               mode === 'learning' ? "bg-indigo-50 border-indigo-500 shadow-sm" : "border-transparent hover:bg-gray-50"
+             )}
+           >
+             <BookOpen className={cn("w-6 h-6 mb-2", mode === 'learning' ? "text-indigo-600" : "text-gray-400")} />
+             <div className="text-sm font-bold text-gray-900">Learning Mode</div>
+             <div className="text-xs text-gray-500 mt-1">Instant feedback & Explanations</div>
+           </button>
+           
+           <button 
+             onClick={() => setMode('mock')}
+             className={cn(
+               "flex flex-col items-center justify-center p-4 rounded-lg transition-all border-2",
+               mode === 'mock' ? "bg-indigo-50 border-indigo-500 shadow-sm" : "border-transparent hover:bg-gray-50"
+             )}
+           >
+             <Timer className={cn("w-6 h-6 mb-2", mode === 'mock' ? "text-indigo-600" : "text-gray-400")} />
+             <div className="text-sm font-bold text-gray-900">Mock Mode</div>
+             <div className="text-xs text-gray-500 mt-1">Exam Sim (30s/Q), No hints</div>
+           </button>
+        </div>
+
+        {/* Quick Start Component */}
+        <QuickStartButtons onQuickStart={handleQuickStart} />
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           
-          {/* Mode Selection */}
-          <div className="grid grid-cols-2 gap-4 bg-white p-2 rounded-xl border border-gray-200 shadow-sm">
-             <button 
-               onClick={() => setMode('learning')}
-               className={cn(
-                 "flex flex-col items-center justify-center p-4 rounded-lg transition-all border-2",
-                 mode === 'learning' ? "bg-indigo-50 border-indigo-500 shadow-sm" : "border-transparent hover:bg-gray-50"
-               )}
-             >
-               <BookOpen className={cn("w-6 h-6 mb-2", mode === 'learning' ? "text-indigo-600" : "text-gray-400")} />
-               <div className="text-sm font-bold text-gray-900">Learning Mode</div>
-               <div className="text-xs text-gray-500 mt-1">Instant feedback & Explanations</div>
-             </button>
-             
-             <button 
-               onClick={() => setMode('mock')}
-               className={cn(
-                 "flex flex-col items-center justify-center p-4 rounded-lg transition-all border-2",
-                 mode === 'mock' ? "bg-indigo-50 border-indigo-500 shadow-sm" : "border-transparent hover:bg-gray-50"
-               )}
-             >
-               <Timer className={cn("w-6 h-6 mb-2", mode === 'mock' ? "text-indigo-600" : "text-gray-400")} />
-               <div className="text-sm font-bold text-gray-900">Mock Mode</div>
-               <div className="text-xs text-gray-500 mt-1">Exam Sim (30s/Q), No hints</div>
-             </button>
-          </div>
+          {/* Column 1: Classification */}
+          <FilterGroup title="Classification" icon={<Layers className="w-5 h-5" />}>
+             <MultiSelectDropdown 
+                label="Subject"
+                options={allSubjects}
+                selectedOptions={filters.subject}
+                onSelectionChange={(sel) => handleFilterChange('subject', sel)}
+                placeholder="Select Subjects"
+                counts={filterCounts.subject}
+             />
+             <MultiSelectDropdown 
+                label="Topic"
+                options={availableTopics}
+                selectedOptions={filters.topic}
+                onSelectionChange={(sel) => handleFilterChange('topic', sel)}
+                placeholder={availableTopics.length > 0 ? "Select Topics" : "Select Subject First"}
+                disabled={availableTopics.length === 0}
+                counts={filterCounts.topic}
+             />
+             <MultiSelectDropdown 
+                label="Sub-Topic"
+                options={availableSubTopics}
+                selectedOptions={filters.subTopic}
+                onSelectionChange={(sel) => handleFilterChange('subTopic', sel)}
+                placeholder={availableSubTopics.length > 0 ? "Select Sub-Topics" : "Select Topic First"}
+                disabled={availableSubTopics.length === 0}
+                counts={filterCounts.subTopic}
+             />
+          </FilterGroup>
 
-          {/* Quick Start Component */}
-          <QuickStartButtons onQuickStart={handleQuickStart} />
+          {/* Column 2: Properties */}
+          <FilterGroup title="Properties" icon={<Settings className="w-5 h-5" />}>
+              <SegmentedControl 
+                  label="Difficulty"
+                  options={['Easy', 'Medium', 'Hard']}
+                  selectedOptions={filters.difficulty}
+                  onOptionToggle={(opt) => handleSegmentToggle('difficulty', opt)}
+                  counts={filterCounts.difficulty}
+              />
+              <SegmentedControl 
+                  label="Question Type"
+                  options={['MCQ']}
+                  selectedOptions={filters.questionType}
+                  onOptionToggle={(opt) => handleSegmentToggle('questionType', opt)}
+                  counts={filterCounts.questionType}
+              />
+          </FilterGroup>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            
-            {/* Column 1: Classification */}
-            <FilterGroup title="Classification" icon={<Layers className="w-5 h-5" />}>
-               <MultiSelectDropdown 
-                  label="Subject"
-                  options={allSubjects}
-                  selectedOptions={filters.subject}
-                  onSelectionChange={(sel) => handleFilterChange('subject', sel)}
-                  placeholder="Select Subjects"
-                  counts={filterCounts.subject}
-               />
-               <MultiSelectDropdown 
-                  label="Topic"
-                  options={availableTopics}
-                  selectedOptions={filters.topic}
-                  onSelectionChange={(sel) => handleFilterChange('topic', sel)}
-                  placeholder={availableTopics.length > 0 ? "Select Topics" : "Select Subject First"}
-                  disabled={availableTopics.length === 0}
-                  counts={filterCounts.topic}
-               />
-               <MultiSelectDropdown 
-                  label="Sub-Topic"
-                  options={availableSubTopics}
-                  selectedOptions={filters.subTopic}
-                  onSelectionChange={(sel) => handleFilterChange('subTopic', sel)}
-                  placeholder={availableSubTopics.length > 0 ? "Select Sub-Topics" : "Select Topic First"}
-                  disabled={availableSubTopics.length === 0}
-                  counts={filterCounts.subTopic}
-               />
-            </FilterGroup>
+          {/* Column 3: Source */}
+          <FilterGroup title="Source" icon={<FileText className="w-5 h-5" />}>
+             <MultiSelectDropdown 
+                label="Exam Name"
+                options={allExamNames}
+                selectedOptions={filters.examName}
+                onSelectionChange={(sel) => handleFilterChange('examName', sel)}
+                placeholder="Select Exams"
+                counts={filterCounts.examName}
+             />
+             <MultiSelectDropdown 
+                label="Exam Year"
+                options={allExamYears}
+                selectedOptions={filters.examYear}
+                onSelectionChange={(sel) => handleFilterChange('examYear', sel)}
+                placeholder="Select Years"
+                counts={filterCounts.examYear}
+             />
+             <MultiSelectDropdown 
+                label="Exam Shift"
+                options={allExamShifts}
+                selectedOptions={filters.examDateShift}
+                onSelectionChange={(sel) => handleFilterChange('examDateShift', sel)}
+                placeholder="Select Shifts"
+                counts={filterCounts.examDateShift}
+             />
+          </FilterGroup>
 
-            {/* Column 2: Properties */}
-            <FilterGroup title="Properties" icon={<Settings className="w-5 h-5" />}>
-                <SegmentedControl 
-                    label="Difficulty"
-                    options={['Easy', 'Medium', 'Hard']}
-                    selectedOptions={filters.difficulty}
-                    onOptionToggle={(opt) => handleSegmentToggle('difficulty', opt)}
-                    counts={filterCounts.difficulty}
-                />
-                <SegmentedControl 
-                    label="Question Type"
-                    options={['MCQ']}
-                    selectedOptions={filters.questionType}
-                    onOptionToggle={(opt) => handleSegmentToggle('questionType', opt)}
-                    counts={filterCounts.questionType}
-                />
-            </FilterGroup>
-
-            {/* Column 3: Source */}
-            <FilterGroup title="Source" icon={<FileText className="w-5 h-5" />}>
-               <MultiSelectDropdown 
-                  label="Exam Name"
-                  options={allExamNames}
-                  selectedOptions={filters.examName}
-                  onSelectionChange={(sel) => handleFilterChange('examName', sel)}
-                  placeholder="Select Exams"
-                  counts={filterCounts.examName}
-               />
-               <MultiSelectDropdown 
-                  label="Exam Year"
-                  options={allExamYears}
-                  selectedOptions={filters.examYear}
-                  onSelectionChange={(sel) => handleFilterChange('examYear', sel)}
-                  placeholder="Select Years"
-                  counts={filterCounts.examYear}
-               />
-               <MultiSelectDropdown 
-                  label="Exam Shift"
-                  options={allExamShifts}
-                  selectedOptions={filters.examDateShift}
-                  onSelectionChange={(sel) => handleFilterChange('examDateShift', sel)}
-                  placeholder="Select Shifts"
-                  counts={filterCounts.examDateShift}
-               />
-            </FilterGroup>
-
-            {/* Column 4: Tags */}
-            <FilterGroup title="Tags" icon={<Tag className="w-5 h-5" />}>
-               <MultiSelectDropdown 
-                  label="Search Tags"
-                  options={allTags}
-                  selectedOptions={filters.tags}
-                  onSelectionChange={(sel) => handleFilterChange('tags', sel)}
-                  placeholder="Filter by Tags"
-                  counts={filterCounts.tags}
-               />
-            </FilterGroup>
-          </div>
-
-          {/* Active Filters Component */}
-          <ActiveFiltersBar 
-            filters={filters} 
-            onRemoveFilter={removeFilter} 
-          />
+          {/* Column 4: Tags */}
+          <FilterGroup title="Tags" icon={<Tag className="w-5 h-5" />}>
+             <MultiSelectDropdown 
+                label="Search Tags"
+                options={allTags}
+                selectedOptions={filters.tags}
+                onSelectionChange={(sel) => handleFilterChange('tags', sel)}
+                placeholder="Filter by Tags"
+                counts={filterCounts.tags}
+             />
+          </FilterGroup>
         </div>
-      ) : (
-        <div className="flex-1 flex items-center justify-center p-10 text-gray-400 bg-gray-50/50">
-           <div className="text-center">
-             <div className="bg-gray-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-               {activeTab === 'ppt' ? <Presentation className="w-8 h-8" /> : <FileJson className="w-8 h-8" />}
-             </div>
-             <h3 className="text-lg font-bold text-gray-600 mb-1">Coming Soon</h3>
-             <p className="text-sm">This feature is under development.</p>
-           </div>
-        </div>
-      )}
+
+        {/* Active Filters Component */}
+        <ActiveFiltersBar 
+          filters={filters} 
+          onRemoveFilter={removeFilter} 
+        />
+      </div>
 
       {/* Footer */}
       <div className="border-t border-gray-200 bg-white p-6">
