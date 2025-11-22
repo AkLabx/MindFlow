@@ -1,5 +1,6 @@
 
 import { useState, useEffect } from 'react';
+import { logEvent } from '../features/quiz/services/analyticsService';
 
 export function usePWAInstall() {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
@@ -28,7 +29,9 @@ export function usePWAInstall() {
     if (!deferredPrompt) return;
     deferredPrompt.prompt();
     const { outcome } = await deferredPrompt.userChoice;
+    
     if (outcome === 'accepted') {
+      logEvent('app_installed', { platform: navigator.userAgent });
       setDeferredPrompt(null);
     }
   };

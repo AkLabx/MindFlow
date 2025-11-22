@@ -1,6 +1,7 @@
 
 import { useReducer, useCallback, useEffect } from 'react';
 import { QuizState, QuizAction, Question, InitialFilters } from '../types';
+import { logEvent } from '../services/analyticsService';
 
 const STORAGE_KEY = 'mindflow_quiz_session_v1';
 
@@ -132,6 +133,12 @@ function quizReducer(state: QuizState, action: QuizAction): QuizState {
     case 'GO_HOME':
       return { ...initialState, status: 'idle' };
 
+    case 'ENTER_ADMIN':
+      return { ...state, status: 'admin' };
+
+    case 'EXIT_ADMIN':
+      return { ...initialState, status: 'idle' };
+
     default:
       return state;
   }
@@ -153,8 +160,16 @@ export const useQuiz = () => {
   const enterHome = useCallback(() => dispatch({ type: 'ENTER_HOME' }), []);
   const enterConfig = useCallback(() => dispatch({ type: 'ENTER_CONFIG' }), []);
   const goToIntro = useCallback(() => dispatch({ type: 'GO_TO_INTRO' }), []);
+  const enterAdmin = useCallback(() => dispatch({ type: 'ENTER_ADMIN' }), []);
+  const exitAdmin = useCallback(() => dispatch({ type: 'EXIT_ADMIN' }), []);
   
   const startQuiz = useCallback((filteredQuestions: Question[], filters: InitialFilters) => {
+    // Log the start event with metadata about what they are studying
+    logEvent('quiz_started', {
+      subject: filters.subject,
+      difficulty: filters.difficulty,
+      question_count: filteredQuestions.length
+    });
     dispatch({ type: 'START_QUIZ', payload: { questions: filteredQuestions, filters } });
   }, []);
   
@@ -170,7 +185,18 @@ export const useQuiz = () => {
   const toggleReview = useCallback((questionId: string) => dispatch({ type: 'TOGGLE_REVIEW', payload: { questionId } }), []);
   const useFiftyFifty = useCallback((questionId: string, hiddenOptions: string[]) => dispatch({ type: 'USE_50_50', payload: { questionId, hiddenOptions } }), []);
 
-  const finishQuiz = useCallback(() => dispatch({ type: 'FINISH_QUIZ' }), []);
+  const finishQuiz = useCallback(() => {
+    // Log completion stats
+    // We use the state directly here (add state to dependency) to get final numbers
+    logEvent('quiz_completed', {
+      score: state.score,
+      total_questions: state.activeQuestions.length,
+      percentage: Math.round((state.score / state.activeQuestions.length) * 100),
+      time_spent_total: Object.values(state.timeTaken).reduce((a, b) => a + b, 0)
+    });
+    dispatch({ type: 'FINISH_QUIZ' });
+  }, [state.score, state.activeQuestions.length, state.timeTaken]);
+
   const restartQuiz = useCallback(() => dispatch({ type: 'RESTART_QUIZ' }), []);
   const goHome = useCallback(() => dispatch({ type: 'GO_HOME' }), []);
 
@@ -199,6 +225,8 @@ export const useQuiz = () => {
     useFiftyFifty,
     finishQuiz,
     restartQuiz,
-    goHome
+    goHome,
+    enterAdmin,
+    exitAdmin
   };
 };

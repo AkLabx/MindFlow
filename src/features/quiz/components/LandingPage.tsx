@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { ArrowRight, Brain, Target, Zap, Layers, Star, Play, Github, Download } from 'lucide-react';
+import { ArrowRight, Brain, Target, Zap, Layers, Star, Play, Github, Download, Lock } from 'lucide-react';
 import { Button } from '../../../components/Button/Button';
 import { Typewriter } from './Landing/Typewriter';
 // MobileDemoCard removed to provide high-fidelity experience on all devices
@@ -9,9 +9,10 @@ import { usePWAInstall } from '../../../hooks/usePWAInstall';
 
 interface LandingPageProps {
   onGetStarted: () => void;
+  onAdminClick?: () => void;
 }
 
-export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted }) => {
+export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onAdminClick }) => {
   const { canInstall, triggerInstall } = usePWAInstall();
 
   return (
@@ -222,7 +223,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted }) => {
       </div>
 
       {/* Footer Strip / Feature Ticker */}
-      <div className="w-full border-t border-white/50 bg-white/30 backdrop-blur-lg py-6 mt-auto">
+      <div className="w-full border-t border-white/50 bg-white/30 backdrop-blur-lg py-6 mt-auto relative">
         <div className="max-w-7xl mx-auto px-4 flex flex-wrap justify-center md:justify-between gap-8 text-slate-400 text-xs md:text-sm font-bold uppercase tracking-widest">
           <div className="flex items-center gap-2 hover:text-indigo-500 transition-colors cursor-default"><Zap className="w-4 h-4" /> Instant Evaluation</div>
           <div className="hidden md:block w-1 h-1 rounded-full bg-slate-300"></div>
@@ -230,6 +231,17 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted }) => {
           <div className="hidden md:block w-1 h-1 rounded-full bg-slate-300"></div>
           <div className="flex items-center gap-2 hover:text-indigo-500 transition-colors cursor-default"><Star className="w-4 h-4" /> Expert Curated</div>
         </div>
+
+        {/* Discreet Admin Entry Point in Footer */}
+        {onAdminClick && (
+          <button 
+            onClick={onAdminClick}
+            className="absolute bottom-6 right-6 p-1 text-slate-300 hover:text-indigo-400 hover:bg-indigo-50 rounded-full transition-all duration-300 opacity-50 hover:opacity-100"
+            aria-label="Admin Access"
+          >
+            <Lock className="w-3 h-3" />
+          </button>
+        )}
       </div>
 
       {/* --- CSS Keyframes & Accessibility --- */}
