@@ -6,6 +6,8 @@ import react from '@vitejs/plugin-react';
 export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, '.', '');
     return {
+      // Sets the base path for production to /MindFlow/ (Repo Name) and / for local dev
+      base: mode === 'production' ? '/MindFlow/' : '/',
       server: {
         port: 3000,
         host: '0.0.0.0',
@@ -19,7 +21,7 @@ export default defineConfig(({ mode }) => {
       },
       resolve: {
         alias: {
-          '@': path.resolve(process.cwd(), './src'),
+          '@': path.resolve('./src'),
         }
       }
     };

@@ -81,13 +81,14 @@ export interface QuizState {
   markedForReview: string[]; // array of questionIds
   hiddenOptions: Record<string, string[]>; // questionId -> array of hidden option texts (50:50)
   activeQuestions: Question[]; // The filtered subset of questions being used
+  filters?: InitialFilters; // Persisted filters for context/breadcrumbs
 }
 
 export type QuizAction =
   | { type: 'ENTER_HOME' }
   | { type: 'ENTER_CONFIG' }
   | { type: 'GO_TO_INTRO' }
-  | { type: 'START_QUIZ'; payload: { questions: Question[] } }
+  | { type: 'START_QUIZ'; payload: { questions: Question[]; filters: InitialFilters } }
   | { type: 'ANSWER_QUESTION'; payload: { questionId: string; answer: string; timeTaken: number } }
   | { type: 'NEXT_QUESTION' }
   | { type: 'PREV_QUESTION' }

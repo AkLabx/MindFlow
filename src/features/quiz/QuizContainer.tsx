@@ -1,5 +1,5 @@
 
-import React, { useState, useContext } from 'react';
+import React, { useContext } from 'react';
 import { useQuiz } from './hooks/useQuiz';
 import { QuizResult } from './components/QuizResult';
 import { QuizConfig } from './components/QuizConfig';
@@ -8,7 +8,6 @@ import { ActiveQuizSession } from './components/ActiveQuizSession';
 import { Fireballs } from '../../components/Background/Fireballs';
 import { Button } from '../../components/Button/Button';
 import { ArrowRight, ListChecks, FileText, BookOpen, ArrowLeft } from 'lucide-react';
-import { InitialFilters } from './types';
 import { SettingsContext } from '../../context/SettingsContext';
 
 export const QuizContainer: React.FC = () => {
@@ -33,11 +32,6 @@ export const QuizContainer: React.FC = () => {
   } = useQuiz();
 
   const { areBgAnimationsEnabled } = useContext(SettingsContext);
-
-  // Keep track of filters just for Breadcrumbs display
-  const [currentFilters, setCurrentFilters] = useState<InitialFilters>({
-      subject: [], topic: [], subTopic: [], difficulty: [], questionType: [], examName: [], examYear: [], tags: []
-  });
 
   // 0. Intro / Landing Page
   if (state.status === 'intro') {
@@ -143,8 +137,11 @@ export const QuizContainer: React.FC = () => {
         <div className="relative z-10">
            <QuizConfig 
             onStart={(questions, filters) => {
-                if (filters) setCurrentFilters(filters);
-                startQuiz(questions);
+                // Pass empty object as default if filters is undefined, though QuizConfig always passes it
+                startQuiz(questions, filters || {
+                  subject: [], topic: [], subTopic: [], difficulty: [], 
+                  questionType: [], examName: [], examYear: [], tags: []
+                });
             }} 
             onBack={goHome}
           />
@@ -195,7 +192,10 @@ export const QuizContainer: React.FC = () => {
             onFinish={finishQuiz}
             onGoHome={goHome}
             
-            filters={currentFilters}
+            filters={state.filters || {
+              subject: [], topic: [], subTopic: [], difficulty: [], 
+              questionType: [], examName: [], examYear: [], tags: []
+            }}
         />
       </div>
     );

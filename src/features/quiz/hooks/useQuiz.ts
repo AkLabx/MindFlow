@@ -1,5 +1,8 @@
-import { useReducer, useCallback } from 'react';
-import { QuizState, QuizAction, Question } from '../types';
+
+import { useReducer, useCallback, useEffect } from 'react';
+import { QuizState, QuizAction, Question, InitialFilters } from '../types';
+
+const STORAGE_KEY = 'mindflow_quiz_session_v1';
 
 const initialState: QuizState = {
   status: 'intro',
@@ -11,6 +14,25 @@ const initialState: QuizState = {
   markedForReview: [],
   hiddenOptions: {},
   activeQuestions: [],
+  filters: undefined,
+};
+
+// Lazy initializer to restore session from localStorage
+const loadState = (defaultState: QuizState): QuizState => {
+  if (typeof window === 'undefined') return defaultState;
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      // Only restore if we are in a valid active/result state
+      if (parsed.status === 'quiz' || parsed.status === 'result') {
+        return parsed;
+      }
+    }
+  } catch (e) {
+    console.warn("Failed to load quiz session:", e);
+  }
+  return defaultState;
 };
 
 function quizReducer(state: QuizState, action: QuizAction): QuizState {
@@ -28,7 +50,8 @@ function quizReducer(state: QuizState, action: QuizAction): QuizState {
       return { 
         ...initialState, 
         status: 'quiz', 
-        activeQuestions: action.payload.questions 
+        activeQuestions: action.payload.questions,
+        filters: action.payload.filters
       };
     
     case 'ANSWER_QUESTION': {
@@ -102,7 +125,8 @@ function quizReducer(state: QuizState, action: QuizAction): QuizState {
       return { 
         ...initialState, 
         status: 'quiz', 
-        activeQuestions: state.activeQuestions 
+        activeQuestions: state.activeQuestions,
+        filters: state.filters // Preserve filters on restart
       };
       
     case 'GO_HOME':
@@ -114,14 +138,24 @@ function quizReducer(state: QuizState, action: QuizAction): QuizState {
 }
 
 export const useQuiz = () => {
-  const [state, dispatch] = useReducer(quizReducer, initialState);
+  const [state, dispatch] = useReducer(quizReducer, initialState, loadState);
+
+  // Persistence Effect
+  useEffect(() => {
+    if (state.status === 'quiz' || state.status === 'result') {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    } else if (state.status === 'idle' || state.status === 'intro') {
+      // Clear session when explicitly leaving quiz flow
+      localStorage.removeItem(STORAGE_KEY);
+    }
+  }, [state]);
 
   const enterHome = useCallback(() => dispatch({ type: 'ENTER_HOME' }), []);
   const enterConfig = useCallback(() => dispatch({ type: 'ENTER_CONFIG' }), []);
   const goToIntro = useCallback(() => dispatch({ type: 'GO_TO_INTRO' }), []);
   
-  const startQuiz = useCallback((filteredQuestions: Question[]) => {
-    dispatch({ type: 'START_QUIZ', payload: { questions: filteredQuestions } });
+  const startQuiz = useCallback((filteredQuestions: Question[], filters: InitialFilters) => {
+    dispatch({ type: 'START_QUIZ', payload: { questions: filteredQuestions, filters } });
   }, []);
   
   const answerQuestion = useCallback((questionId: string, answer: string, timeTaken: number) => {
