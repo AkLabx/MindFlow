@@ -1,0 +1,298 @@
+
+import React from 'react';
+import { ArrowRight, Brain, Target, Zap, Layers, Star, Play, Github } from 'lucide-react';
+import { Button } from '../../../components/Button/Button';
+import { Typewriter } from './Landing/Typewriter';
+// MobileDemoCard removed to provide high-fidelity experience on all devices
+import { DemoCard } from './Landing/DemoCard';
+
+interface LandingPageProps {
+  onGetStarted: () => void;
+}
+
+export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted }) => {
+  return (
+    <div className="relative min-h-screen flex flex-col items-center justify-start pt-10 md:pt-20 pb-10 overflow-hidden bg-slate-50 selection:bg-indigo-100 selection:text-indigo-900 font-sans -mt-8">
+      
+      {/* --- 0. Noise Texture Overlay (Visual Polish) --- */}
+      <div 
+        className="fixed inset-0 z-0 pointer-events-none opacity-[0.035] mix-blend-overlay"
+        style={{
+          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`
+        }}
+      />
+
+      {/* --- Header / Navigation --- */}
+      <nav className="absolute top-0 w-full z-50 px-6 py-6 md:px-10 flex justify-between items-center animate-fade-in">
+        {/* Logo */}
+        <div className="flex items-center gap-3 group cursor-pointer">
+          <div className="bg-indigo-600 p-2.5 rounded-xl shadow-lg shadow-indigo-500/20 group-hover:scale-110 transition-transform duration-300">
+            <Brain className="w-6 h-6 text-white" />
+          </div>
+          <span className="text-2xl font-black text-slate-900 tracking-tight group-hover:text-indigo-600 transition-colors">
+            MindFlow
+          </span>
+        </div>
+
+        {/* Right Nav Actions */}
+        <div className="flex items-center gap-6">
+           <div className="hidden md:flex items-center gap-6 text-sm font-semibold text-slate-600">
+              <a href="#" className="hover:text-indigo-600 transition-colors">Features</a>
+              <a href="#" className="hover:text-indigo-600 transition-colors">Methodology</a>
+              <a href="#" className="hover:text-indigo-600 transition-colors">Pricing</a>
+           </div>
+           <div className="h-5 w-px bg-slate-200 hidden md:block"></div>
+           <div className="flex items-center gap-3">
+              <a href="#" className="p-2 text-slate-400 hover:text-slate-900 transition-colors" aria-label="Github">
+                 <Github className="w-5 h-5" />
+              </a>
+              <Button variant="ghost" className="hidden sm:flex text-slate-600 hover:text-indigo-600 hover:bg-indigo-50">
+                Log in
+              </Button>
+           </div>
+        </div>
+      </nav>
+
+      {/* --- 1. The "Aurora" Atmosphere (Background) --- */}
+      <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
+        {/* Grid Texture Overlay - Kept for all devices */}
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808008_1px,transparent_1px),linear-gradient(to_bottom,#80808008_1px,transparent_1px)] bg-[size:32px_32px] mix-blend-multiply" />
+        
+        {/* MOBILE BACKGROUND: Lightweight Static Gradient with Hue Rotate Animation */}
+        <div className="absolute inset-0 bg-gradient-to-br from-indigo-50 via-purple-50/50 to-white md:hidden animate-hue-slow" />
+
+        {/* DESKTOP BACKGROUND: Heavy Animated Blobs (High Fidelity) */}
+        <div className="hidden md:block">
+          <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-indigo-300/40 mix-blend-multiply filter blur-[120px] animate-blob" />
+          <div className="absolute top-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-purple-300/40 mix-blend-multiply filter blur-[120px] animate-blob animation-delay-2000" />
+          <div className="absolute bottom-[-20%] left-[20%] w-[60%] h-[60%] rounded-full bg-pink-200/40 mix-blend-multiply filter blur-[120px] animate-blob animation-delay-4000" />
+        </div>
+      </div>
+
+      {/* --- Main Content --- */}
+      <div className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center gap-12 lg:gap-24 mt-24 md:mt-10">
+        
+        {/* Left Side: Kinetic Typography & Actions */}
+        <div className="flex-1 text-center md:text-left space-y-8">
+          
+          {/* Micro-Delight: Pulsing Badge */}
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/60 border border-indigo-100 text-indigo-600 text-xs font-bold uppercase tracking-wide shadow-[0_2px_10px_-3px_rgba(99,102,241,0.2)] backdrop-blur-md hover:bg-white hover:shadow-indigo-200/50 transition-all duration-300 cursor-default group">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+            </span>
+            <span className="group-hover:tracking-widest transition-all duration-300">v2.0 Live</span>
+          </div>
+
+          {/* Kinetic Headline */}
+          <h1 className="text-5xl sm:text-6xl lg:text-7xl font-black text-slate-900 tracking-tight leading-[1.1]">
+            Ignite your <br />
+            <span className="relative inline-block pb-2">
+              {/* Gradient Mask Text */}
+              <span className="relative z-10 text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-purple-500 to-pink-500 animate-gradient-x bg-[length:200%_200%]">
+                Curiosity.
+              </span>
+              
+              {/* Animated SVG Underline */}
+              <svg className="absolute w-[105%] h-4 -bottom-1 -left-1 text-indigo-300 z-0" viewBox="0 0 200 9" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M2.00025 7.00001C45.9181 3.36732 122.893 1.12598 196.001 4.00002" stroke="currentColor" strokeWidth="3" strokeLinecap="round" style={{ strokeDasharray: 200, strokeDashoffset: 200, animation: 'draw-line 2s ease-out forwards 0.5s' }} />
+              </svg>
+            </span>
+          </h1>
+
+          <p className="text-lg sm:text-xl text-slate-600 max-w-xl mx-auto md:mx-0 leading-relaxed font-medium">
+            MindFlow is an intelligent knowledge engine. We combine adaptive learning with 
+            <span className="text-indigo-600 font-semibold"> beautiful design</span> to make mastering complex topics feel like play.
+          </p>
+
+          <div className="flex flex-col sm:flex-row items-center gap-5 justify-center md:justify-start pt-4 relative z-20">
+            
+            {/* --- DYNAMIC CTA BUTTON START --- */}
+            <button 
+              onClick={onGetStarted}
+              aria-label="Start Exploring"
+              className="relative group w-full sm:w-auto overflow-hidden rounded-full p-[2px] focus:outline-none focus:ring-4 focus:ring-indigo-400/50 transition-all duration-300 hover:scale-105 shadow-[0_20px_40px_-15px_rgba(99,102,241,0.3)] hover:shadow-[0_20px_40px_-10px_rgba(99,102,241,0.6)]"
+            >
+              {/* 1. Animated Gradient Border/Glow Layer */}
+              <span className="absolute inset-[-1000%] animate-[spin_4s_linear_infinite] bg-[conic-gradient(from_90deg_at_50%_50%,#E2E8F0_0%,#818CF8_50%,#E2E8F0_100%)] group-hover:bg-[conic-gradient(from_90deg_at_50%_50%,#6366F1_0%,#EC4899_50%,#6366F1_100%)]" />
+              
+              {/* 2. Main Button Content */}
+              <span className="relative flex items-center justify-center gap-3 h-full w-full rounded-full bg-slate-900 px-8 py-4 text-lg font-bold text-white backdrop-blur-3xl transition-all duration-300 group-hover:bg-slate-900/90">
+                
+                {/* Shine Effect inside button */}
+                <div className="absolute top-0 -left-[100%] w-full h-full bg-gradient-to-r from-transparent via-white/10 to-transparent transform -skew-x-12 transition-all duration-700 group-hover:left-[100%] ease-in-out" />
+                
+                <span className="flex items-center">
+                  Start&nbsp;<Typewriter />
+                </span>
+                <ArrowRight className="w-5 h-5 transition-transform duration-300 group-hover:translate-x-1 group-hover:text-indigo-300" />
+              </span>
+            </button>
+            {/* --- DYNAMIC CTA BUTTON END --- */}
+
+            
+            <button className="group flex items-center gap-3 px-6 py-4 text-slate-600 font-semibold transition-all w-full sm:w-auto justify-center rounded-full hover:bg-white/50 hover:text-indigo-700 border border-transparent hover:border-indigo-100">
+              <div className="w-10 h-10 rounded-full bg-white border border-slate-200 flex items-center justify-center shadow-sm group-hover:shadow-md group-hover:scale-110 transition-all duration-300 text-slate-900 group-hover:text-indigo-600">
+                <Play className="w-4 h-4 ml-0.5 fill-current" />
+              </div>
+              <span>Watch Demo</span>
+            </button>
+          </div>
+
+          {/* --- Enhanced Social Proof --- */}
+          <div className="pt-10 flex flex-col sm:flex-row items-center sm:items-start gap-6 animate-fade-in delay-150">
+             {/* Avatar Stack */}
+             <div className="flex -space-x-4">
+                {[
+                  "https://i.pravatar.cc/100?img=32",
+                  "https://i.pravatar.cc/100?img=12",
+                  "https://i.pravatar.cc/100?img=59",
+                  "https://i.pravatar.cc/100?img=5"
+                ].map((src, i) => (
+                   <div key={i} className="relative w-12 h-12 rounded-full border-[3px] border-white shadow-sm overflow-hidden hover:scale-110 hover:z-10 transition-transform duration-200 cursor-pointer">
+                      <img src={src} alt={`User ${i+1}`} className="w-full h-full object-cover" />
+                   </div>
+                ))}
+                <div className="relative w-12 h-12 rounded-full border-[3px] border-white bg-slate-100 flex items-center justify-center text-xs font-bold text-slate-600 shadow-sm">
+                  2k+
+                </div>
+             </div>
+             
+             {/* Ratings & Trust Text */}
+             <div className="text-center sm:text-left space-y-1">
+                <div className="flex items-center gap-2 justify-center sm:justify-start">
+                   <div className="flex text-yellow-400">
+                      {[1,2,3,4,5].map(n => <Star key={n} className="w-4 h-4 fill-current" />)}
+                   </div>
+                   <span className="font-bold text-slate-700">4.9/5</span>
+                </div>
+                <p className="text-sm text-slate-500 font-medium">
+                   Loved by students at <span className="text-slate-800 font-bold">MIT</span>, <span className="text-slate-800 font-bold">Stanford</span> & <span className="text-slate-800 font-bold">Google</span>.
+                </p>
+             </div>
+          </div>
+
+        </div>
+
+        {/* Right Side: Visuals */}
+        <div className="flex-1 w-full max-w-[550px] relative mt-6 md:mt-0 perspective-1000">
+          
+          {/* --- 3D Animated Experience (Unified for Mobile & Desktop) --- */}
+          <div className="relative animate-fade-in transform transition-transform hover:scale-[1.02] duration-500">
+            <DemoCard />
+
+            {/* Floating Artifacts */}
+            <div 
+              className="absolute -top-10 -right-10 w-40 h-40 bg-gradient-to-br from-amber-200 to-orange-300 rounded-full blur-2xl opacity-60 animate-pulse -z-10"
+              style={{ animationDuration: '4s' }}
+            />
+            
+            <div className="absolute -bottom-6 -left-8 p-[1px] rounded-2xl bg-gradient-to-br from-white/80 via-white/20 to-transparent animate-float animation-delay-2000 z-30 shadow-[0_20px_40px_-10px_rgba(0,0,0,0.15)] hidden sm:block">
+               <div className="bg-white/80 backdrop-blur-md p-4 pr-6 rounded-2xl flex items-center gap-4 h-full w-full">
+                  <div className="bg-emerald-100 p-2.5 rounded-xl text-emerald-600">
+                    <Target className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Accuracy</div>
+                    <div className="text-xl font-black text-slate-800">98.5%</div>
+                  </div>
+               </div>
+            </div>
+
+            <div className="absolute -top-12 left-8 bg-white p-4 rounded-3xl shadow-xl shadow-indigo-500/10 animate-bounce-slow z-30 transform -rotate-12 hidden sm:block">
+                <Brain className="w-8 h-8 text-indigo-600" />
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      {/* Footer Strip / Feature Ticker */}
+      <div className="w-full border-t border-white/50 bg-white/30 backdrop-blur-lg py-6 mt-auto">
+        <div className="max-w-7xl mx-auto px-4 flex flex-wrap justify-center md:justify-between gap-8 text-slate-400 text-xs md:text-sm font-bold uppercase tracking-widest">
+          <div className="flex items-center gap-2 hover:text-indigo-500 transition-colors cursor-default"><Zap className="w-4 h-4" /> Instant Evaluation</div>
+          <div className="hidden md:block w-1 h-1 rounded-full bg-slate-300"></div>
+          <div className="flex items-center gap-2 hover:text-indigo-500 transition-colors cursor-default"><Layers className="w-4 h-4" /> Adaptive Learning</div>
+          <div className="hidden md:block w-1 h-1 rounded-full bg-slate-300"></div>
+          <div className="flex items-center gap-2 hover:text-indigo-500 transition-colors cursor-default"><Star className="w-4 h-4" /> Expert Curated</div>
+        </div>
+      </div>
+
+      {/* --- CSS Keyframes & Accessibility --- */}
+      <style>{`
+        @keyframes blob {
+          0% { transform: translate(0px, 0px) scale(1); }
+          33% { transform: translate(30px, -50px) scale(1.1); }
+          66% { transform: translate(-20px, 20px) scale(0.9); }
+          100% { transform: translate(0px, 0px) scale(1); }
+        }
+        .animate-blob {
+          animation: blob 10s infinite;
+        }
+        
+        @keyframes hue-slow {
+          0% { filter: hue-rotate(0deg); }
+          100% { filter: hue-rotate(360deg); }
+        }
+        .animate-hue-slow {
+          animation: hue-slow 20s linear infinite;
+        }
+
+        .animation-delay-2000 {
+          animation-delay: 2s;
+        }
+        .animation-delay-4000 {
+          animation-delay: 4s;
+        }
+        
+        @keyframes float {
+          0% { transform: rotateY(-10deg) rotateX(5deg) translateY(0px); }
+          50% { transform: rotateY(-10deg) rotateX(5deg) translateY(-20px); }
+          100% { transform: rotateY(-10deg) rotateX(5deg) translateY(0px); }
+        }
+        .animate-float {
+          animation: float 6s ease-in-out infinite;
+        }
+        
+        @keyframes bounce-slow {
+           0%, 100% { transform: rotate(-12deg) translateY(0); }
+           50% { transform: rotate(-12deg) translateY(-15px); }
+        }
+        .animate-bounce-slow {
+          animation: bounce-slow 4s ease-in-out infinite;
+        }
+
+        @keyframes gradient-x {
+          0%, 100% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+        }
+        .animate-gradient-x {
+          animation: gradient-x 8s ease infinite;
+        }
+
+        @keyframes draw-line {
+          from { stroke-dashoffset: 200; }
+          to { stroke-dashoffset: 0; }
+        }
+        
+        .perspective-1000 {
+          perspective: 1000px;
+        }
+
+        /* Reduce Motion */
+        @media (prefers-reduced-motion: reduce) {
+          .animate-blob, 
+          .animate-float, 
+          .animate-bounce-slow, 
+          .animate-gradient-x, 
+          .animate-spin,
+          .animate-pulse, 
+          .animate-hue-slow {
+            animation: none !important;
+            transform: none !important;
+          }
+        }
+      `}</style>
+    </div>
+  );
+};
