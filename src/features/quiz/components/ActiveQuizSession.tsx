@@ -1,8 +1,8 @@
 
-import React, { useState, useContext, useCallback } from 'react';
+import React, { useState, useContext, useCallback, useMemo } from 'react';
 import { 
   Clock, ZoomIn, ZoomOut, Wand2, Settings, 
-  Maximize, Minimize, Menu, ChevronDown 
+  Maximize, Minimize, Menu, ChevronDown, Filter
 } from 'lucide-react';
 import { Question, InitialFilters } from '../types';
 import { useTimer } from '../../../hooks/useTimer';
@@ -11,7 +11,6 @@ import { SettingsModal } from './ui/SettingsModal';
 
 // Components
 import { QuizOverallProgress } from './QuizOverallProgress';
-import { QuizStats } from './QuizStats';
 import { QuizQuestionHeader } from './QuizQuestionHeader';
 import { QuizQuestionDisplay } from './QuizQuestionDisplay';
 import { QuizExplanation } from './QuizExplanation';
@@ -88,6 +87,18 @@ export function ActiveQuizSession({
     // 50:50 Logic
     const currentHiddenOptions = hiddenOptions[question.id] || [];
     const isFiftyFiftyUsed = currentHiddenOptions.length > 0;
+
+    // Contextual Filter String
+    const filterContextString = useMemo(() => {
+        const parts = [];
+        if (filters.subject.length) parts.push(...filters.subject);
+        if (filters.topic.length) parts.push(...filters.topic);
+        if (filters.difficulty.length) parts.push(...filters.difficulty);
+        if (filters.examName.length) parts.push(...filters.examName);
+        
+        if (parts.length === 0) return "Custom Quiz";
+        return `[ ${parts.join(', ')} ]`;
+    }, [filters]);
 
     // --- Sound Synthesis Logic (No external files required) ---
     const playCorrectSound = useCallback(() => {
@@ -183,9 +194,6 @@ export function ActiveQuizSession({
     
     const progressPercent = (secondsLeft / QUIZ_DURATION_SECONDS) * 100;
 
-    // Stats Calculation
-    const wrongCount = Object.keys(userAnswers).length - score; 
-
     // Fullscreen Handler
     const toggleFullscreen = () => {
         if (!document.fullscreenElement) {
@@ -253,7 +261,7 @@ export function ActiveQuizSession({
             <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-white z-20">
                 <div className="flex flex-col">
                     <QuizBreadcrumbs filters={filters} onGoHome={onGoHome} />
-                    <h1 className="text-lg font-black text-indigo-900 tracking-tight hidden sm:block">CGL Hustle</h1>
+                    <h1 className="text-lg font-black text-indigo-900 tracking-tight hidden sm:block">MindFlow</h1>
                 </div>
                 
                 <div className="flex items-center gap-2">
@@ -269,10 +277,13 @@ export function ActiveQuizSession({
                 </div>
             </div>
 
-            {/* Collapsible Stats & Toolbar */}
+            {/* Collapsible Info & Toolbar */}
             <div className="bg-white border-b border-gray-100 transition-all duration-300 ease-in-out relative z-10">
                 <div className="px-6 py-2 flex items-center justify-between bg-gray-50/50">
-                    <h3 className="font-bold text-gray-700 text-sm">{question.classification.subject}</h3>
+                    <h3 className="font-bold text-gray-700 text-xs truncate max-w-[80%] flex items-center gap-2">
+                        <Filter className="w-3 h-3 text-indigo-500" />
+                        {filterContextString}
+                    </h3>
                     <button onClick={() => setIsStatsVisible(!isStatsVisible)} className="text-gray-400 hover:text-gray-600">
                         <ChevronDown className={`w-4 h-4 transition-transform ${isStatsVisible ? '' : 'rotate-180'}`} />
                     </button>
@@ -283,8 +294,10 @@ export function ActiveQuizSession({
                         <QuizOverallProgress current={questionIndex + 1} total={totalQuestions} />
                         
                         <div className="flex flex-col sm:flex-row gap-4 justify-between items-center">
-                            <div className="w-full sm:w-auto">
-                                <QuizStats correct={score} wrong={wrongCount} total={totalQuestions} />
+                            {/* Zoom Controls (Moved to left) */}
+                            <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-lg">
+                                <button onClick={() => setZoomLevel(Math.max(0.8, zoomLevel - 0.1))} className="p-1.5 hover:bg-white rounded-md text-gray-500 transition-all"><ZoomOut className="w-4 h-4" /></button>
+                                <button onClick={() => setZoomLevel(Math.min(1.5, zoomLevel + 0.1))} className="p-1.5 hover:bg-white rounded-md text-gray-500 transition-all"><ZoomIn className="w-4 h-4" /></button>
                             </div>
                             
                             <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
@@ -293,19 +306,18 @@ export function ActiveQuizSession({
                                     {secondsLeft}s
                                 </div>
 
-                                <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-lg">
-                                    <button onClick={() => setZoomLevel(Math.max(0.8, zoomLevel - 0.1))} className="p-1.5 hover:bg-white rounded-md text-gray-500 transition-all"><ZoomOut className="w-4 h-4" /></button>
-                                    <button onClick={() => setZoomLevel(Math.min(1.5, zoomLevel + 0.1))} className="p-1.5 hover:bg-white rounded-md text-gray-500 transition-all"><ZoomIn className="w-4 h-4" /></button>
-                                </div>
-
+                                {/* 50:50 Button */}
                                 <button 
                                     onClick={handleFiftyFifty}
                                     disabled={isFiftyFiftyUsed || isAnswered || showTimeUpOverlay}
-                                    className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold border transition-all
-                                        ${isFiftyFiftyUsed ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed' : 'bg-indigo-50 text-indigo-600 border-indigo-200 hover:bg-indigo-100'}
-                                    `}
+                                    className={cn(
+                                        "flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm",
+                                        isFiftyFiftyUsed 
+                                            ? "bg-gray-200 text-gray-400 shadow-[inset_0_2px_4px_rgba(0,0,0,0.1)] cursor-not-allowed border border-gray-200" // Pressed/Used State (Pit effect)
+                                            : "bg-yellow-400 text-black hover:bg-yellow-500 hover:-translate-y-0.5 border-b-2 border-yellow-600 active:border-b-0 active:translate-y-0.5 active:shadow-[inset_0_2px_4px_rgba(0,0,0,0.1)]" // Active/Bold State
+                                    )}
                                 >
-                                    <Wand2 className="w-3 h-3" /> 50:50
+                                    <Wand2 className="w-3.5 h-3.5" /> 50:50
                                 </button>
                             </div>
                         </div>
