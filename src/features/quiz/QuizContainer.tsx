@@ -157,7 +157,7 @@ export const QuizContainer: React.FC = () => {
                 // Pass empty object as default if filters is undefined, though QuizConfig always passes it
                 startQuiz(questions, filters || {
                   subject: [], topic: [], subTopic: [], difficulty: [], 
-                  questionType: [], examName: [], examYear: [], tags: []
+                  questionType: [], examName: [], examYear: [], examDateShift: [], tags: []
                 });
             }} 
             onBack={goHome}
@@ -213,7 +213,7 @@ export const QuizContainer: React.FC = () => {
             
             filters={state.filters || {
               subject: [], topic: [], subTopic: [], difficulty: [], 
-              questionType: [], examName: [], examYear: [], tags: []
+              questionType: [], examName: [], examYear: [], examDateShift: [], tags: []
             }}
         />
       </div>

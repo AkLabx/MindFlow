@@ -48,13 +48,15 @@ export interface InitialFilters {
   questionType: string[];
   examName: string[];
   examYear: string[];
+  examDateShift: string[];
   tags: string[];
 }
 
 export const filterKeys = [
   'subject', 'topic', 'subTopic', 
   'difficulty', 'questionType', 
-  'examName', 'examYear', 'tags'
+  'examName', 'examYear', 'examDateShift', 
+  'tags'
 ] as const;
 
 export function getQuestionValue(question: Question, key: keyof InitialFilters): string | string[] | undefined {
@@ -66,6 +68,7 @@ export function getQuestionValue(question: Question, key: keyof InitialFilters):
     case 'questionType': return question.properties.questionType;
     case 'examName': return question.sourceInfo.examName;
     case 'examYear': return String(question.sourceInfo.examYear);
+    case 'examDateShift': return question.sourceInfo.examDateShift;
     case 'tags': return question.tags;
     default: return undefined;
   }

@@ -41,6 +41,7 @@ const emptyFilters: InitialFilters = {
   questionType: [],
   examName: [],
   examYear: [],
+  examDateShift: [],
   tags: [],
 };
 
@@ -113,6 +114,7 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
   const allSubjects = useMemo(() => Array.from(classificationMap.keys()).sort(), [classificationMap]);
   const allExamNames = useMemo(() => Array.from(new Set(metadata.map(q => q.sourceInfo.examName))).sort(), [metadata]);
   const allExamYears = useMemo(() => Array.from(new Set(metadata.map(q => String(q.sourceInfo.examYear)))).sort(), [metadata]);
+  const allExamShifts = useMemo(() => Array.from(new Set(metadata.map(q => q.sourceInfo.examDateShift || ''))).filter(Boolean).sort(), [metadata]);
   const allTags = useMemo(() => Array.from(new Set(metadata.flatMap(q => q.tags))).sort(), [metadata]);
   
   // 4. Final Filtered Metadata Calculation
@@ -125,6 +127,7 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
        if (filters.questionType.length > 0 && !filters.questionType.includes(q.properties.questionType)) return false;
        if (filters.examName.length > 0 && !filters.examName.includes(q.sourceInfo.examName)) return false;
        if (filters.examYear.length > 0 && !filters.examYear.includes(String(q.sourceInfo.examYear))) return false;
+       if (filters.examDateShift.length > 0 && !filters.examDateShift.includes(q.sourceInfo.examDateShift || '')) return false;
        // Changed from .every() to .some() to allow OR logic for tags (Union of selected tags)
        if (filters.tags.length > 0 && !filters.tags.some(t => q.tags.includes(t))) return false;
        return true;
@@ -367,6 +370,14 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
                   onSelectionChange={(sel) => handleFilterChange('examYear', sel)}
                   placeholder="Select Years"
                   counts={filterCounts.examYear}
+               />
+               <MultiSelectDropdown 
+                  label="Exam Shift"
+                  options={allExamShifts}
+                  selectedOptions={filters.examDateShift}
+                  onSelectionChange={(sel) => handleFilterChange('examDateShift', sel)}
+                  placeholder="Select Shifts"
+                  counts={filterCounts.examDateShift}
                />
             </FilterGroup>
 
