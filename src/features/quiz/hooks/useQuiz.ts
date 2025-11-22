@@ -184,7 +184,8 @@ export const useQuiz = () => {
       score: state.score,
       total_questions: state.activeQuestions.length,
       percentage: state.activeQuestions.length > 0 ? Math.round((state.score / state.activeQuestions.length) * 100) : 0,
-      time_spent_total: (Object.values(state.timeTaken) as number[]).reduce((a, b) => a + b, 0)
+      // Explicitly cast and type to ensure TS knows these are numbers for addition
+      time_spent_total: (Object.values(state.timeTaken) as number[]).reduce((a: number, b: number) => a + b, 0)
     });
     dispatch({ type: 'FINISH_QUIZ' });
   }, [state.score, state.activeQuestions.length, state.timeTaken]);
