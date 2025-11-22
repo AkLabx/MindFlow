@@ -125,21 +125,21 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted }) => {
             <button 
               onClick={onGetStarted}
               aria-label="Start Exploring"
-              className="relative group w-full sm:w-auto overflow-hidden rounded-full p-[2px] focus:outline-none focus:ring-4 focus:ring-indigo-400/50 transition-all duration-300 hover:scale-105 shadow-[0_20px_40px_-15px_rgba(99,102,241,0.3)] hover:shadow-[0_20px_40px_-10px_rgba(99,102,241,0.6)]"
+              className="relative group w-full sm:w-auto overflow-hidden rounded-full p-[3px] focus:outline-none focus:ring-4 focus:ring-indigo-400/50 transition-all duration-300 hover:scale-105 shadow-xl hover:shadow-2xl hover:shadow-indigo-200"
             >
-              {/* 1. Animated Gradient Border/Glow Layer */}
-              <span className="absolute inset-[-1000%] animate-[spin_4s_linear_infinite] bg-[conic-gradient(from_90deg_at_50%_50%,#E2E8F0_0%,#818CF8_50%,#E2E8F0_100%)] group-hover:bg-[conic-gradient(from_90deg_at_50%_50%,#6366F1_0%,#EC4899_50%,#6366F1_100%)]" />
+              {/* 1. Animated Gradient Border/Glow Layer (Faster & Brighter) */}
+              <span className="absolute inset-[-1000%] animate-[spin_2s_linear_infinite] bg-[conic-gradient(from_90deg_at_50%_50%,#F1F5F9_0%,#F1F5F9_50%,#6366F1_75%,#EC4899_100%)]" />
               
-              {/* 2. Main Button Content */}
-              <span className="relative flex items-center justify-center gap-3 h-full w-full rounded-full bg-slate-900 px-8 py-4 text-lg font-bold text-white backdrop-blur-3xl transition-all duration-300 group-hover:bg-slate-900/90">
+              {/* 2. Main Button Content (White BG, Dark Text) */}
+              <span className="relative flex items-center justify-center gap-3 h-full w-full rounded-full bg-white px-8 py-4 text-lg font-bold text-slate-900 backdrop-blur-3xl transition-all duration-300 group-hover:bg-slate-50">
                 
-                {/* Shine Effect inside button */}
-                <div className="absolute top-0 -left-[100%] w-full h-full bg-gradient-to-r from-transparent via-white/10 to-transparent transform -skew-x-12 transition-all duration-700 group-hover:left-[100%] ease-in-out" />
+                {/* Shine Effect inside button (Darker for white bg) */}
+                <div className="absolute top-0 -left-[100%] w-full h-full bg-gradient-to-r from-transparent via-slate-400/20 to-transparent transform -skew-x-12 transition-all duration-700 group-hover:left-[100%] ease-in-out" />
                 
                 <span className="flex items-center">
                   Start&nbsp;<Typewriter />
                 </span>
-                <ArrowRight className="w-5 h-5 transition-transform duration-300 group-hover:translate-x-1 group-hover:text-indigo-300" />
+                <ArrowRight className="w-5 h-5 transition-transform duration-300 group-hover:translate-x-1 text-indigo-600" />
               </span>
             </button>
             {/* --- DYNAMIC CTA BUTTON END --- */}
