@@ -366,9 +366,9 @@ export function ActiveQuizSession({
     const isFiftyFiftyDisabled = isFiftyFiftyUsed || isAnswered || showTimeUpOverlay;
 
     return (
-        // Fullscreen Overlay to hide MainLayout Footer
+        // Fullscreen Overlay (Opaque) to hide MainLayout Footer
         <div 
-            className="fixed inset-0 z-40 bg-gray-50/30 backdrop-blur-sm flex items-center justify-center md:p-6"
+            className="fixed inset-0 z-50 bg-gray-50 flex items-center justify-center md:p-4"
             onTouchStart={onTouchStart}
             onTouchEnd={onTouchEnd}
         >
@@ -387,8 +387,8 @@ export function ActiveQuizSession({
                 }
             `}</style>
 
-            {/* Main Card Container - Fixed Height Structure */}
-            <div className="w-full h-full md:h-[90vh] md:max-w-5xl bg-white md:rounded-3xl shadow-2xl border border-gray-200 overflow-hidden flex flex-col relative transition-all">
+            {/* Main Card Container - Flex Column Layout */}
+            <div className="w-full h-full md:h-[95vh] md:max-w-5xl bg-white md:rounded-3xl shadow-none md:shadow-2xl border-0 md:border border-gray-200 overflow-hidden flex flex-col relative transition-all">
 
                 {/* --- Time's Up Overlay --- */}
                 {showTimeUpOverlay && (
@@ -483,121 +483,125 @@ export function ActiveQuizSession({
                     </div>
                 )}
 
-                {/* Top Bar - Flex None (Sticky) */}
-                <div className="flex-none px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-white z-20">
-                    <div className="flex flex-col">
-                        <QuizBreadcrumbs filters={filters} onGoHome={onGoHome} />
-                        <h1 className="text-lg font-black text-indigo-900 tracking-tight hidden sm:block">MindFlow</h1>
-                    </div>
+                {/* === SCROLLABLE REGION (Header + Toolbar + Content) === */}
+                <div className="flex-1 overflow-y-auto scroll-smooth bg-gray-50/30">
                     
-                    <div className="flex items-center gap-2">
-                        <button onClick={() => setIsSettingsOpen(true)} className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-gray-50 rounded-lg transition-colors" aria-label="Settings">
-                            <Settings className="w-5 h-5" />
-                        </button>
-                        <button onClick={toggleFullscreen} className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-gray-50 rounded-lg transition-colors" aria-label="Toggle Fullscreen">
-                            {isFullscreen ? <Minimize className="w-5 h-5" /> : <Maximize className="w-5 h-5" />}
-                        </button>
-                        <button onClick={() => setIsNavOpen(true)} className="p-2 text-gray-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors bg-gray-50 border border-gray-100">
-                            <Menu className="w-5 h-5" />
-                        </button>
-                    </div>
-                </div>
-
-                {/* Info & Toolbar - Flex None (Sticky) */}
-                <div className="flex-none bg-white border-b border-gray-100 transition-all duration-300 ease-in-out relative z-10">
-                    <div className="px-6 py-2 flex items-center justify-between bg-gray-50/50">
-                        <h3 className="font-bold text-gray-700 text-xs truncate max-w-[80%] flex items-center gap-2">
-                            <Filter className="w-3 h-3 text-indigo-500" />
-                            {filterContextString}
-                        </h3>
-                        <button onClick={() => setIsStatsVisible(!isStatsVisible)} className="text-gray-400 hover:text-gray-600">
-                            <ChevronDown className={`w-4 h-4 transition-transform ${isStatsVisible ? '' : 'rotate-180'}`} />
-                        </button>
+                    {/* Top Bar (Scrolls with content) */}
+                    <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-white">
+                        <div className="flex flex-col">
+                            <QuizBreadcrumbs filters={filters} onGoHome={onGoHome} />
+                            <h1 className="text-lg font-black text-indigo-900 tracking-tight hidden sm:block">MindFlow</h1>
+                        </div>
+                        
+                        <div className="flex items-center gap-2">
+                            <button onClick={() => setIsSettingsOpen(true)} className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-gray-50 rounded-lg transition-colors" aria-label="Settings">
+                                <Settings className="w-5 h-5" />
+                            </button>
+                            <button onClick={toggleFullscreen} className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-gray-50 rounded-lg transition-colors" aria-label="Toggle Fullscreen">
+                                {isFullscreen ? <Minimize className="w-5 h-5" /> : <Maximize className="w-5 h-5" />}
+                            </button>
+                            <button onClick={() => setIsNavOpen(true)} className="p-2 text-gray-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors bg-gray-50 border border-gray-100">
+                                <Menu className="w-5 h-5" />
+                            </button>
+                        </div>
                     </div>
 
-                    {isStatsVisible && (
-                        <div className="px-6 pb-6 pt-2 animate-in slide-in-from-top-2 duration-200">
-                            <QuizOverallProgress current={questionIndex + 1} total={totalQuestions} />
-                            
-                            <div className="flex flex-row justify-between items-center gap-4">
-                                {/* Left: Zoom Controls */}
-                                <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-lg shrink-0">
-                                    <button onClick={() => setZoomLevel(Math.max(0.8, zoomLevel - 0.1))} className="p-1.5 hover:bg-white rounded-md text-gray-500 transition-all"><ZoomOut className="w-4 h-4" /></button>
-                                    <button onClick={() => setZoomLevel(Math.min(1.5, zoomLevel + 0.1))} className="p-1.5 hover:bg-white rounded-md text-gray-500 transition-all"><ZoomIn className="w-4 h-4" /></button>
-                                </div>
+                    {/* Info & Toolbar (Scrolls with content) */}
+                    <div className="bg-white border-b border-gray-100 transition-all duration-300 ease-in-out relative">
+                        <div className="px-6 py-2 flex items-center justify-between bg-gray-50/50">
+                            <h3 className="font-bold text-gray-700 text-xs truncate max-w-[80%] flex items-center gap-2">
+                                <Filter className="w-3 h-3 text-indigo-500" />
+                                {filterContextString}
+                            </h3>
+                            <button onClick={() => setIsStatsVisible(!isStatsVisible)} className="text-gray-400 hover:text-gray-600">
+                                <ChevronDown className={`w-4 h-4 transition-transform ${isStatsVisible ? '' : 'rotate-180'}`} />
+                            </button>
+                        </div>
+
+                        {isStatsVisible && (
+                            <div className="px-6 pb-6 pt-2 animate-in slide-in-from-top-2 duration-200">
+                                <QuizOverallProgress current={questionIndex + 1} total={totalQuestions} />
                                 
-                                {/* Right: Streak, Timer, 50:50 */}
-                                <div className="flex items-center gap-2 sm:gap-3">
-                                    {/* Streak Badge */}
-                                    {streak > 1 && (
-                                        <div className="flex items-center gap-1 px-2 py-1.5 rounded-lg font-bold text-xs bg-orange-100 text-orange-600 border border-orange-200 animate-in zoom-in duration-300">
-                                            <Flame className="w-3 h-3 fill-orange-500 animate-pulse" />
-                                            <span>{streak}</span>
-                                        </div>
-                                    )}
-
-                                    <div className={`flex items-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-lg font-mono font-medium text-xs sm:text-sm border ${secondsLeft < 10 ? 'bg-red-50 text-red-600 border-red-200 animate-pulse' : 'bg-white text-gray-600 border-gray-200'}`}>
-                                        <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                                        {secondsLeft}s
+                                <div className="flex flex-row justify-between items-center gap-4">
+                                    {/* Left: Zoom Controls */}
+                                    <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-lg shrink-0">
+                                        <button onClick={() => setZoomLevel(Math.max(0.8, zoomLevel - 0.1))} className="p-1.5 hover:bg-white rounded-md text-gray-500 transition-all"><ZoomOut className="w-4 h-4" /></button>
+                                        <button onClick={() => setZoomLevel(Math.min(1.5, zoomLevel + 0.1))} className="p-1.5 hover:bg-white rounded-md text-gray-500 transition-all"><ZoomIn className="w-4 h-4" /></button>
                                     </div>
-
-                                    <button 
-                                        onClick={handleFiftyFifty}
-                                        disabled={isFiftyFiftyDisabled}
-                                        className={cn(
-                                            "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm whitespace-nowrap",
-                                            isFiftyFiftyDisabled 
-                                                ? "bg-gray-200 text-gray-400 shadow-[inset_0_2px_4px_rgba(0,0,0,0.1)] cursor-not-allowed border border-gray-200"
-                                                : "bg-yellow-400 text-black hover:bg-yellow-500 hover:-translate-y-0.5 border-b-2 border-yellow-600 active:border-b-0 active:translate-y-0.5 active:shadow-[inset_0_2px_4px_rgba(0,0,0,0.1)]"
+                                    
+                                    {/* Right: Streak, Timer, 50:50 */}
+                                    <div className="flex items-center gap-2 sm:gap-3">
+                                        {/* Streak Badge */}
+                                        {streak > 1 && (
+                                            <div className="flex items-center gap-1 px-2 py-1.5 rounded-lg font-bold text-xs bg-orange-100 text-orange-600 border border-orange-200 animate-in zoom-in duration-300">
+                                                <Flame className="w-3 h-3 fill-orange-500 animate-pulse" />
+                                                <span>{streak}</span>
+                                            </div>
                                         )}
-                                    >
-                                        <Wand2 className="w-3.5 h-3.5" /> 50:50
-                                    </button>
+
+                                        <div className={`flex items-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-lg font-mono font-medium text-xs sm:text-sm border ${secondsLeft < 10 ? 'bg-red-50 text-red-600 border-red-200 animate-pulse' : 'bg-white text-gray-600 border-gray-200'}`}>
+                                            <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                                            {secondsLeft}s
+                                        </div>
+
+                                        <button 
+                                            onClick={handleFiftyFifty}
+                                            disabled={isFiftyFiftyDisabled}
+                                            className={cn(
+                                                "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm whitespace-nowrap",
+                                                isFiftyFiftyDisabled 
+                                                    ? "bg-gray-200 text-gray-400 shadow-[inset_0_2px_4px_rgba(0,0,0,0.1)] cursor-not-allowed border border-gray-200"
+                                                    : "bg-yellow-400 text-black hover:bg-yellow-500 hover:-translate-y-0.5 border-b-2 border-yellow-600 active:border-b-0 active:translate-y-0.5 active:shadow-[inset_0_2px_4px_rgba(0,0,0,0.1)]"
+                                            )}
+                                        >
+                                            <Wand2 className="w-3.5 h-3.5" /> 50:50
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
+                        )}
+                        
+                        <div className="absolute bottom-0 left-0 h-1 bg-gray-100 w-full">
+                            <div 
+                                className={`h-full transition-all duration-1000 ease-linear ${secondsLeft < 10 ? 'bg-red-500' : 'bg-indigo-500'}`}
+                                style={{ width: `${progressPercent}%` }}
+                            />
                         </div>
-                    )}
-                    
-                    <div className="absolute bottom-0 left-0 h-1 bg-gray-100 w-full">
-                        <div 
-                            className={`h-full transition-all duration-1000 ease-linear ${secondsLeft < 10 ? 'bg-red-500' : 'bg-indigo-500'}`}
-                            style={{ width: `${progressPercent}%` }}
-                        />
+                    </div>
+
+                    {/* Main Question Content */}
+                    <div className="p-6 sm:p-8">
+                        <div className="max-w-3xl mx-auto">
+                            <QuizQuestionHeader 
+                                question={question}
+                                currentIndex={questionIndex}
+                                total={totalQuestions}
+                                isBookmarked={bookmarks.includes(question.id)}
+                                onToggleBookmark={() => onToggleBookmark(question.id)}
+                            />
+
+                            <QuizQuestionDisplay 
+                                question={question}
+                                selectedAnswer={userAnswer}
+                                hiddenOptions={currentHiddenOptions}
+                                onAnswerSelect={handleOptionSelect}
+                                zoomLevel={zoomLevel}
+                            />
+
+                            <div>
+                                {isAnswered && (
+                                    <QuizExplanation 
+                                        explanation={question.explanation} 
+                                        zoomLevel={zoomLevel}
+                                    />
+                                )}
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                {/* Main Content - Flex 1 & Scrollable */}
-                <div className="flex-1 overflow-y-auto p-6 sm:p-8 bg-gray-50/30 scroll-smooth">
-                    <div className="max-w-3xl mx-auto">
-                        <QuizQuestionHeader 
-                            question={question}
-                            currentIndex={questionIndex}
-                            total={totalQuestions}
-                            isBookmarked={bookmarks.includes(question.id)}
-                            onToggleBookmark={() => onToggleBookmark(question.id)}
-                        />
-
-                        <QuizQuestionDisplay 
-                            question={question}
-                            selectedAnswer={userAnswer}
-                            hiddenOptions={currentHiddenOptions}
-                            onAnswerSelect={handleOptionSelect}
-                            zoomLevel={zoomLevel}
-                        />
-
-                        <div>
-                            {isAnswered && (
-                                <QuizExplanation 
-                                    explanation={question.explanation} 
-                                    zoomLevel={zoomLevel}
-                                />
-                            )}
-                        </div>
-                    </div>
-                </div>
-
-                {/* Bottom Nav - Flex None (Sticky) */}
-                <div className="flex-none">
+                {/* === BOTTOM NAV (Fixed/Sticky) === */}
+                <div className="flex-none bg-white border-t border-gray-100 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-20">
                     <QuizBottomNav 
                         onPrevious={() => handleNavigation(onPrev)}
                         onNext={() => {
