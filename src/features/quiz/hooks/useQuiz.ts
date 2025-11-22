@@ -1,4 +1,3 @@
-
 import { useReducer, useCallback, useEffect } from 'react';
 import { QuizState, QuizAction, Question, InitialFilters } from '../types';
 import { logEvent } from '../services/analyticsService';
@@ -192,7 +191,7 @@ export const useQuiz = () => {
       score: state.score,
       total_questions: state.activeQuestions.length,
       percentage: Math.round((state.score / state.activeQuestions.length) * 100),
-      time_spent_total: Object.values(state.timeTaken).reduce((a, b) => a + b, 0)
+      time_spent_total: (Object.values(state.timeTaken) as number[]).reduce((a, b) => a + b, 0)
     });
     dispatch({ type: 'FINISH_QUIZ' });
   }, [state.score, state.activeQuestions.length, state.timeTaken]);
