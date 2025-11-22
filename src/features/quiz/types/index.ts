@@ -77,6 +77,7 @@ export interface QuizState {
   score: number;
   answers: Record<string, string>; // questionId -> selectedOptionText
   timeTaken: Record<string, number>; // questionId -> seconds
+  remainingTimes: Record<string, number>; // questionId -> seconds left
   bookmarks: string[]; // array of questionIds
   markedForReview: string[]; // array of questionIds
   hiddenOptions: Record<string, string[]>; // questionId -> array of hidden option texts (50:50)
@@ -90,6 +91,7 @@ export type QuizAction =
   | { type: 'GO_TO_INTRO' }
   | { type: 'START_QUIZ'; payload: { questions: Question[]; filters: InitialFilters } }
   | { type: 'ANSWER_QUESTION'; payload: { questionId: string; answer: string; timeTaken: number } }
+  | { type: 'SAVE_TIMER'; payload: { questionId: string; time: number } }
   | { type: 'NEXT_QUESTION' }
   | { type: 'PREV_QUESTION' }
   | { type: 'JUMP_TO_QUESTION'; payload: { index: number } }

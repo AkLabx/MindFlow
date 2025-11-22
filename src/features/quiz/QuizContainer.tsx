@@ -21,6 +21,7 @@ export const QuizContainer: React.FC = () => {
     goToIntro,
     startQuiz,
     answerQuestion,
+    saveTimer,
     nextQuestion,
     prevQuestion,
     jumpToQuestion,
@@ -193,12 +194,14 @@ export const QuizContainer: React.FC = () => {
             allQuestions={state.activeQuestions}
             userAnswers={state.answers}
             timeTaken={state.timeTaken}
+            remainingTime={state.remainingTimes[currentQuestion.id] ?? 60}
             hiddenOptions={state.hiddenOptions}
             bookmarks={state.bookmarks}
             markedForReview={state.markedForReview}
             score={state.score}
             
             onAnswer={answerQuestion}
+            onSaveTime={saveTimer}
             onNext={nextQuestion}
             onPrev={prevQuestion}
             onJump={jumpToQuestion}

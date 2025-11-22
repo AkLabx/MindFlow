@@ -11,6 +11,7 @@ const initialState: QuizState = {
   score: 0,
   answers: {},
   timeTaken: {},
+  remainingTimes: {},
   bookmarks: [],
   markedForReview: [],
   hiddenOptions: {},
@@ -27,7 +28,7 @@ const loadState = (defaultState: QuizState): QuizState => {
       const parsed = JSON.parse(saved);
       // Only restore if we are in a valid active/result state
       if (parsed.status === 'quiz' || parsed.status === 'result') {
-        return parsed;
+        return { ...defaultState, ...parsed };
       }
     }
   } catch (e) {
@@ -69,6 +70,14 @@ function quizReducer(state: QuizState, action: QuizAction): QuizState {
         answers: { ...state.answers, [questionId]: answer },
         timeTaken: { ...state.timeTaken, [questionId]: timeTaken },
         score: isCorrect ? state.score + 1 : state.score,
+      };
+    }
+
+    case 'SAVE_TIMER': {
+      const { questionId, time } = action.payload;
+      return {
+        ...state,
+        remainingTimes: { ...state.remainingTimes, [questionId]: time }
       };
     }
 
@@ -169,6 +178,10 @@ export const useQuiz = () => {
     dispatch({ type: 'ANSWER_QUESTION', payload: { questionId, answer, timeTaken } });
   }, []);
 
+  const saveTimer = useCallback((questionId: string, time: number) => {
+    dispatch({ type: 'SAVE_TIMER', payload: { questionId, time } });
+  }, []);
+
   const nextQuestion = useCallback(() => dispatch({ type: 'NEXT_QUESTION' }), []);
   const prevQuestion = useCallback(() => dispatch({ type: 'PREV_QUESTION' }), []);
   const jumpToQuestion = useCallback((index: number) => dispatch({ type: 'JUMP_TO_QUESTION', payload: { index } }), []);
@@ -210,6 +223,7 @@ export const useQuiz = () => {
     goToIntro,
     startQuiz,
     answerQuestion,
+    saveTimer,
     nextQuestion,
     prevQuestion,
     jumpToQuestion,

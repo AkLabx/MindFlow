@@ -1,5 +1,5 @@
 
-import React, { useState, useContext, useCallback, useMemo } from 'react';
+import React, { useState, useContext, useCallback, useMemo, useRef, useEffect } from 'react';
 import { 
   Clock, ZoomIn, ZoomOut, Wand2, Settings, 
   Maximize, Minimize, Menu, ChevronDown, Filter
@@ -19,21 +19,23 @@ import { QuizBreadcrumbs } from './QuizBreadcrumbs';
 import { QuizNavigationPanel } from './QuizNavigationPanel';
 import { cn } from '../../../utils/cn';
 
-const QUIZ_DURATION_SECONDS = 60; // Per question timer
+const QUIZ_DURATION_SECONDS = 60; // Default duration per question
 
 export function ActiveQuizSession({
     question, 
     questionIndex, 
-    totalQuestions,
+    totalQuestions, 
     allQuestions,
     userAnswers,
     timeTaken,
+    remainingTime,
     hiddenOptions,
     bookmarks,
     markedForReview,
     score,
     
     onAnswer,
+    onSaveTime,
     onNext,
     onPrev,
     onJump,
@@ -51,12 +53,14 @@ export function ActiveQuizSession({
     allQuestions: Question[];
     userAnswers: Record<string, string>;
     timeTaken: Record<string, number>;
+    remainingTime: number;
     hiddenOptions: Record<string, string[]>;
     bookmarks: string[];
     markedForReview: string[];
     score: number;
     
     onAnswer: (id: string, answer: string, time: number) => void;
+    onSaveTime: (id: string, time: number) => void;
     onNext: () => void;
     onPrev: () => void;
     onJump: (idx: number) => void;
@@ -77,6 +81,9 @@ export function ActiveQuizSession({
     
     // New state for Time Up Overlay
     const [showTimeUpOverlay, setShowTimeUpOverlay] = useState(false);
+
+    // Refs for auto-scroll
+    const explanationRef = useRef<HTMLDivElement>(null);
 
     // Access settings
     const { isHapticEnabled, isSoundEnabled } = useContext(SettingsContext);
@@ -179,21 +186,43 @@ export function ActiveQuizSession({
 
             // 3. Wait then Reveal
             setTimeout(() => {
-                // Use a specific string for Time Up to mark as answered and show explanation
+                // Submit a specific token "TIME_UP" instead of empty string
+                // This ensures the system treats it as an 'answered' state, revealing the explanation
                 onAnswer(question.id, "TIME_UP", QUIZ_DURATION_SECONDS);
                 setShowTimeUpOverlay(false);
             }, 1500);
         }
     }, [question.id, isAnswered, onAnswer, playIncorrectSound, showTimeUpOverlay]);
 
+    // Initialize Timer with saved remaining time (passed via props)
     const [secondsLeft] = useTimer({ 
-        duration: QUIZ_DURATION_SECONDS, 
+        duration: remainingTime, 
         onTimeUp: handleTimeUp, 
         key: question.id, 
-        isPaused: isAnswered || showTimeUpOverlay // Pause timer logic if overlay is showing
+        isPaused: isAnswered || showTimeUpOverlay 
     });
     
     const progressPercent = (secondsLeft / QUIZ_DURATION_SECONDS) * 100;
+
+    // Auto-scroll to explanation when answered
+    useEffect(() => {
+        if (isAnswered) {
+            // Small timeout to ensure the DOM has updated and the explanation is rendered
+            const timer = setTimeout(() => {
+                explanationRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 200);
+            return () => clearTimeout(timer);
+        }
+    }, [isAnswered]);
+
+    // Navigation Wrapper to Save Time
+    const handleNavigation = (navAction: () => void) => {
+        // If the question is NOT answered, save the current timer state before leaving
+        if (!isAnswered) {
+            onSaveTime(question.id, secondsLeft);
+        }
+        navAction();
+    };
 
     // Fullscreen Handler
     const toggleFullscreen = () => {
@@ -227,6 +256,9 @@ export function ActiveQuizSession({
         const timeSpent = QUIZ_DURATION_SECONDS - secondsLeft;
         onAnswer(question.id, option, timeSpent);
     };
+
+    // Derived state for button visual
+    const isFiftyFiftyDisabled = isFiftyFiftyUsed || isAnswered || showTimeUpOverlay;
 
     return (
         <div className="bg-white md:rounded-3xl shadow-xl border border-gray-200 overflow-hidden flex flex-col min-h-[calc(100vh-2rem)] md:h-auto md:min-h-[600px] relative transition-all">
@@ -310,10 +342,10 @@ export function ActiveQuizSession({
                                 {/* 50:50 Button */}
                                 <button 
                                     onClick={handleFiftyFifty}
-                                    disabled={isFiftyFiftyUsed || isAnswered || showTimeUpOverlay}
+                                    disabled={isFiftyFiftyDisabled}
                                     className={cn(
                                         "flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm",
-                                        isFiftyFiftyUsed 
+                                        isFiftyFiftyDisabled 
                                             ? "bg-gray-200 text-gray-400 shadow-[inset_0_2px_4px_rgba(0,0,0,0.1)] cursor-not-allowed border border-gray-200" // Pressed/Used State (Pit effect)
                                             : "bg-yellow-400 text-black hover:bg-yellow-500 hover:-translate-y-0.5 border-b-2 border-yellow-600 active:border-b-0 active:translate-y-0.5 active:shadow-[inset_0_2px_4px_rgba(0,0,0,0.1)]" // Active/Bold State
                                     )}
@@ -353,19 +385,22 @@ export function ActiveQuizSession({
                         zoomLevel={zoomLevel}
                     />
 
-                    {isAnswered && (
-                        <QuizExplanation 
-                            explanation={question.explanation} 
-                            zoomLevel={zoomLevel}
-                        />
-                    )}
+                    {/* Explanation Container for Auto-Scroll */}
+                    <div ref={explanationRef}>
+                        {isAnswered && (
+                            <QuizExplanation 
+                                explanation={question.explanation} 
+                                zoomLevel={zoomLevel}
+                            />
+                        )}
+                    </div>
                 </div>
             </div>
 
             {/* Bottom Navigation */}
             <QuizBottomNav 
-                onPrevious={onPrev}
-                onNext={onNext}
+                onPrevious={() => handleNavigation(onPrev)}
+                onNext={() => handleNavigation(onNext)}
                 onToggleMarkForReview={() => onToggleReview(question.id)}
                 isMarked={markedForReview.includes(question.id)}
                 isFirst={questionIndex === 0}
@@ -380,7 +415,7 @@ export function ActiveQuizSession({
                 questions={allQuestions}
                 userAnswers={userAnswers}
                 currentQuestionIndex={questionIndex}
-                onJumpToQuestion={onJump}
+                onJumpToQuestion={(idx) => handleNavigation(() => onJump(idx))}
                 markedForReview={markedForReview}
                 bookmarks={bookmarks}
                 onSubmitAndReview={onFinish}
