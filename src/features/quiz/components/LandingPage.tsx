@@ -57,10 +57,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted }) => {
            </div>
            <div className="h-5 w-px bg-slate-200 hidden md:block"></div>
            <div className="flex items-center gap-3">
-              <a href="#" className="p-2 text-slate-400 hover:text-slate-900 transition-colors" aria-label="Github">
+              <a href="#" className="hidden sm:block p-2 text-slate-400 hover:text-slate-900 transition-colors" aria-label="Github">
                  <Github className="w-5 h-5" />
               </a>
-              <Button variant="ghost" className="hidden sm:flex text-slate-600 hover:text-indigo-600 hover:bg-indigo-50">
+              <Button variant="ghost" className="flex text-slate-600 hover:text-indigo-600 hover:bg-indigo-50">
                 Log in
               </Button>
            </div>
