@@ -15,7 +15,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted }) => {
   const { canInstall, triggerInstall } = usePWAInstall();
 
   return (
-    <div className="relative min-h-screen flex flex-col items-center justify-start pt-10 md:pt-20 pb-10 overflow-hidden bg-slate-50 selection:bg-indigo-100 selection:text-indigo-900 font-sans -mt-8">
+    <div className="relative min-h-screen flex flex-col items-center justify-start pt-10 md:pt-20 pb-0 overflow-hidden bg-slate-50 selection:bg-indigo-100 selection:text-indigo-900 font-sans -mt-8">
       
       {/* --- 0. Noise Texture Overlay (Visual Polish) --- */}
       <div 
@@ -84,7 +84,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted }) => {
       </div>
 
       {/* --- Main Content --- */}
-      <div className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center gap-12 lg:gap-24 mt-24 md:mt-10">
+      <div className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center gap-12 lg:gap-24 mt-24 md:mt-10 flex-1">
         
         {/* Left Side: Kinetic Typography & Actions */}
         <div className="flex-1 text-center md:text-left space-y-8">
@@ -223,12 +223,19 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted }) => {
 
       {/* Footer Strip / Feature Ticker */}
       <div className="w-full border-t border-white/50 bg-white/30 backdrop-blur-lg py-6 mt-auto">
-        <div className="max-w-7xl mx-auto px-4 flex flex-wrap justify-center md:justify-between gap-8 text-slate-400 text-xs md:text-sm font-bold uppercase tracking-widest">
+        <div className="max-w-7xl mx-auto px-4 flex flex-wrap justify-center md:justify-between gap-8 text-slate-400 text-xs md:text-sm font-bold uppercase tracking-widest mb-4">
           <div className="flex items-center gap-2 hover:text-indigo-500 transition-colors cursor-default"><Zap className="w-4 h-4" /> Instant Evaluation</div>
           <div className="hidden md:block w-1 h-1 rounded-full bg-slate-300"></div>
           <div className="flex items-center gap-2 hover:text-indigo-500 transition-colors cursor-default"><Layers className="w-4 h-4" /> Adaptive Learning</div>
           <div className="hidden md:block w-1 h-1 rounded-full bg-slate-300"></div>
           <div className="flex items-center gap-2 hover:text-indigo-500 transition-colors cursor-default"><Star className="w-4 h-4" /> Expert Curated</div>
+        </div>
+        
+        {/* Footer Copyright - Added here exclusively for Landing Page */}
+        <div className="w-full text-center border-t border-slate-200/50 pt-4 pb-2">
+            <p className="text-xs text-slate-400 font-medium">
+              &copy; {new Date().getFullYear()} MindFlow Quiz App by Aalok Kumar Sharma. All Rights Reserved.
+            </p>
         </div>
       </div>
 
@@ -313,4 +320,3 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted }) => {
     </div>
   );
 };
-    
