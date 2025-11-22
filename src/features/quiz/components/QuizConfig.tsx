@@ -391,24 +391,6 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
                   placeholder="Filter by Tags"
                   counts={filterCounts.tags}
                />
-               
-               {/* Visual Tag Cloud for top tags */}
-               <div className="mt-4 flex flex-wrap gap-2">
-                 {allTags.slice(0, 8).map(tag => (
-                   <button 
-                     key={tag} 
-                     onClick={() => handleSegmentToggle('tags', tag)}
-                     className={cn(
-                       "text-xs px-2 py-1 rounded-full border transition-colors",
-                       filters.tags.includes(tag) 
-                        ? "bg-indigo-100 border-indigo-200 text-indigo-700"
-                        : "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100"
-                     )}
-                   >
-                     {tag} ({filterCounts.tags[tag] || 0})
-                   </button>
-                 ))}
-               </div>
             </FilterGroup>
           </div>
 
