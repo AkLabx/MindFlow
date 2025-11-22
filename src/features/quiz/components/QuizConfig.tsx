@@ -12,11 +12,13 @@ import {
   Presentation,
   Loader2,
   AlertCircle,
-  Database
+  Database,
+  BookOpen,
+  Timer
 } from 'lucide-react';
 import { Button } from '../../../components/Button/Button';
 import { fetchQuestionMetadata, fetchQuestionsByIds } from '../services/questionService'; 
-import { Question, InitialFilters } from '../types';
+import { Question, InitialFilters, QuizMode } from '../types';
 import { cn } from '../../../utils/cn';
 import { useDependentFilters } from '../../../hooks/useDependentFilters';
 import { useFilterCounts } from '../../../hooks/useFilterCounts';
@@ -29,7 +31,7 @@ import { QuickStartButtons } from './ui/QuickStartButtons';
 import { ActiveFiltersBar } from './ui/ActiveFiltersBar';
 
 interface QuizConfigProps {
-  onStart: (questions: Question[], filters?: InitialFilters) => void;
+  onStart: (questions: Question[], filters?: InitialFilters, mode?: QuizMode) => void;
   onBack: () => void;
 }
 
@@ -47,10 +49,11 @@ const emptyFilters: InitialFilters = {
 
 export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
   const [activeTab, setActiveTab] = useState<'quiz' | 'ppt' | 'json'>('quiz');
+  const [mode, setMode] = useState<QuizMode>('learning');
   const [filters, setFilters] = useState<InitialFilters>(emptyFilters);
   
   // State for Data Fetching
-  const [metadata, setMetadata] = useState<Question[]>([]); // Holds lightweight question data
+  const [metadata, setMetadata] = useState<Question[]>([]); 
   const [isLoadingMetadata, setIsLoadingMetadata] = useState(true);
   const [isStartingQuiz, setIsStartingQuiz] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -63,7 +66,6 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
       setError(null);
       setProgress({ current: 0, total: 0 });
       
-      // Fetch only columns needed for filtering (Fast)
       const data = await fetchQuestionMetadata((current, total) => {
         setProgress({ current, total });
       });
@@ -128,7 +130,6 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
        if (filters.examName.length > 0 && !filters.examName.includes(q.sourceInfo.examName)) return false;
        if (filters.examYear.length > 0 && !filters.examYear.includes(String(q.sourceInfo.examYear))) return false;
        if (filters.examDateShift.length > 0 && !filters.examDateShift.includes(q.sourceInfo.examDateShift || '')) return false;
-       // Changed from .every() to .some() to allow OR logic for tags (Union of selected tags)
        if (filters.tags.length > 0 && !filters.tags.some(t => q.tags.includes(t))) return false;
        return true;
      });
@@ -139,17 +140,12 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
   const startQuizWithQuestions = async (questionSubset: Question[], activeFilters: InitialFilters) => {
     try {
       setIsStartingQuiz(true);
-      // Extract IDs
       const ids = questionSubset.map(q => q.id);
-      
-      // Limit to reasonable number if too many (e.g., 100 max for a single session for performance)
-      // Or keep it unlimited. Let's slice to 100 to ensure performance if user selects "All"
       const idsToFetch = ids.slice(0, 100); 
       
-      // Fetch FULL data for these IDs
       const fullQuestions = await fetchQuestionsByIds(idsToFetch);
       
-      onStart(fullQuestions, activeFilters);
+      onStart(fullQuestions, activeFilters, mode);
     } catch (err) {
       console.error("Failed to prepare quiz:", err);
       alert("Failed to start quiz. Please try again.");
@@ -174,7 +170,6 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
        ? metadata 
        : metadata.filter(q => q.properties.difficulty === type);
        
-    // Shuffle and take 25 random metadata items
     const shuffled = [...subset].sort(() => 0.5 - Math.random()).slice(0, 25);
     
     if (shuffled.length === 0) {
@@ -211,7 +206,6 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
   // --- Loading State ---
   if (isLoadingMetadata) {
     const percentage = progress.total > 0 ? Math.round((progress.current / progress.total) * 100) : 0;
-    
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center space-y-6 bg-white md:rounded-3xl w-full max-w-6xl mx-auto md:border border-gray-200 shadow-sm animate-fade-in p-8">
         <div className="relative">
@@ -222,7 +216,6 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
              <Loader2 className="w-4 h-4 text-indigo-600 animate-spin" />
           </div>
         </div>
-        
         <div className="text-center space-y-2 max-w-xs w-full">
           <h2 className="text-xl font-bold text-gray-800">Syncing Question Bank</h2>
           <p className="text-gray-500 text-sm">
@@ -230,12 +223,8 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
               ? `Indexed ${progress.current.toLocaleString()} of ${progress.total.toLocaleString()} items` 
               : 'Connecting to Database...'}
           </p>
-          
           <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden mt-4">
-            <div 
-              className="h-full bg-indigo-600 transition-all duration-500 ease-out rounded-full" 
-              style={{ width: `${percentage}%` }}
-            />
+            <div className="h-full bg-indigo-600 transition-all duration-500 ease-out rounded-full" style={{ width: `${percentage}%` }} />
           </div>
           <p className="text-xs text-gray-400 font-medium text-right mt-1">{percentage}%</p>
         </div>
@@ -300,6 +289,33 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
       {activeTab === 'quiz' ? (
         <div className="p-6 space-y-6 bg-gray-50/50 flex-1 overflow-y-auto">
           
+          {/* Mode Selection */}
+          <div className="grid grid-cols-2 gap-4 bg-white p-2 rounded-xl border border-gray-200 shadow-sm">
+             <button 
+               onClick={() => setMode('learning')}
+               className={cn(
+                 "flex flex-col items-center justify-center p-4 rounded-lg transition-all border-2",
+                 mode === 'learning' ? "bg-indigo-50 border-indigo-500 shadow-sm" : "border-transparent hover:bg-gray-50"
+               )}
+             >
+               <BookOpen className={cn("w-6 h-6 mb-2", mode === 'learning' ? "text-indigo-600" : "text-gray-400")} />
+               <div className="text-sm font-bold text-gray-900">Learning Mode</div>
+               <div className="text-xs text-gray-500 mt-1">Instant feedback & Explanations</div>
+             </button>
+             
+             <button 
+               onClick={() => setMode('mock')}
+               className={cn(
+                 "flex flex-col items-center justify-center p-4 rounded-lg transition-all border-2",
+                 mode === 'mock' ? "bg-indigo-50 border-indigo-500 shadow-sm" : "border-transparent hover:bg-gray-50"
+               )}
+             >
+               <Timer className={cn("w-6 h-6 mb-2", mode === 'mock' ? "text-indigo-600" : "text-gray-400")} />
+               <div className="text-sm font-bold text-gray-900">Mock Mode</div>
+               <div className="text-xs text-gray-500 mt-1">Exam Sim (30s/Q), No hints</div>
+             </button>
+          </div>
+
           {/* Quick Start Component */}
           <QuickStartButtons onQuickStart={handleQuickStart} />
 

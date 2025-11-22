@@ -1,12 +1,12 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { X, ChevronDown, CheckCircle, Flag, Star, Check, Circle } from 'lucide-react';
-import { Question } from '../types';
+import { X, ChevronDown, CheckCircle, Flag, Star, Check, Circle, HelpCircle } from 'lucide-react';
+import { Question, QuizMode } from '../types';
 import { cn } from '../../../utils/cn';
 
 export function QuizNavigationPanel({
   isOpen, onClose, questions, userAnswers, currentQuestionIndex,
-  onJumpToQuestion, markedForReview, bookmarks, onSubmitAndReview
+  onJumpToQuestion, markedForReview, bookmarks, onSubmitAndReview, mode
 }: {
   isOpen: boolean; onClose: () => void; questions: Question[];
   userAnswers: { [key: string]: string }; currentQuestionIndex: number;
@@ -14,6 +14,7 @@ export function QuizNavigationPanel({
   markedForReview: string[]; 
   bookmarks: string[];
   onSubmitAndReview: () => void;
+  mode: QuizMode;
 }) {
   const [openGroups, setOpenGroups] = useState<Set<number>>(new Set([0]));
   const chunkSize = 25;
@@ -76,10 +77,16 @@ export function QuizNavigationPanel({
       let statusColor = "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"; // Default / Unanswered
       
       if (isAnswered) {
-          if (isCorrect) {
-              statusColor = "bg-emerald-100 border-emerald-200 text-emerald-700";
+          if (mode === 'mock') {
+              // Mock Mode: Just show answered (Gray/Blue), don't reveal correctness
+              statusColor = "bg-indigo-100 border-indigo-200 text-indigo-700";
           } else {
-              statusColor = "bg-rose-100 border-rose-200 text-rose-700";
+              // Learning Mode: Show Correct/Incorrect
+              if (isCorrect) {
+                  statusColor = "bg-emerald-100 border-emerald-200 text-emerald-700";
+              } else {
+                  statusColor = "bg-rose-100 border-rose-200 text-rose-700";
+              }
           }
       }
 
@@ -122,32 +129,55 @@ export function QuizNavigationPanel({
                 <span className="text-xs font-bold uppercase text-gray-400 tracking-wider">Progress</span>
                 <span className="text-xs font-bold text-indigo-600">{stats.answered}/{stats.total} Attempted</span>
             </div>
-            <div className="grid grid-cols-3 gap-2 mb-2">
-                <div className="bg-emerald-50 border border-emerald-100 rounded-lg p-2 text-center">
-                    <div className="text-lg font-black text-emerald-600 leading-none">{stats.correct}</div>
-                    <div className="text-[10px] font-bold text-emerald-800/70 uppercase">Correct</div>
+            
+            {mode === 'mock' ? (
+                // Mock Mode Stats (Hide Correct/Wrong)
+                <div className="grid grid-cols-2 gap-2 mb-2">
+                    <div className="bg-indigo-50 border border-indigo-100 rounded-lg p-2 text-center">
+                        <div className="text-lg font-black text-indigo-600 leading-none">{stats.answered}</div>
+                        <div className="text-[10px] font-bold text-indigo-800/70 uppercase">Done</div>
+                    </div>
+                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-2 text-center">
+                        <div className="text-lg font-black text-gray-600 leading-none">{stats.remaining}</div>
+                        <div className="text-[10px] font-bold text-gray-500 uppercase">Left</div>
+                    </div>
                 </div>
-                <div className="bg-rose-50 border border-rose-100 rounded-lg p-2 text-center">
-                    <div className="text-lg font-black text-rose-600 leading-none">{stats.incorrect}</div>
-                    <div className="text-[10px] font-bold text-rose-800/70 uppercase">Wrong</div>
+            ) : (
+                // Learning Mode Stats
+                <div className="grid grid-cols-3 gap-2 mb-2">
+                    <div className="bg-emerald-50 border border-emerald-100 rounded-lg p-2 text-center">
+                        <div className="text-lg font-black text-emerald-600 leading-none">{stats.correct}</div>
+                        <div className="text-[10px] font-bold text-emerald-800/70 uppercase">Correct</div>
+                    </div>
+                    <div className="bg-rose-50 border border-rose-100 rounded-lg p-2 text-center">
+                        <div className="text-lg font-black text-rose-600 leading-none">{stats.incorrect}</div>
+                        <div className="text-[10px] font-bold text-rose-800/70 uppercase">Wrong</div>
+                    </div>
+                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-2 text-center">
+                        <div className="text-lg font-black text-gray-600 leading-none">{stats.remaining}</div>
+                        <div className="text-[10px] font-bold text-gray-500 uppercase">Left</div>
+                    </div>
                 </div>
-                <div className="bg-gray-50 border border-gray-200 rounded-lg p-2 text-center">
-                    <div className="text-lg font-black text-gray-600 leading-none">{stats.remaining}</div>
-                    <div className="text-[10px] font-bold text-gray-500 uppercase">Left</div>
-                </div>
-            </div>
+            )}
         </div>
 
         {/* Scrollable Map */}
         <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50/30">
             {/* Legend */}
             <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-[10px] font-bold text-gray-500 uppercase tracking-wide bg-white p-3 rounded-xl border border-gray-100 shadow-sm mb-2">
-                <div className="flex items-center gap-2"><div className="w-2.5 h-2.5 bg-emerald-100 border border-emerald-300 rounded-full"></div> Correct</div>
-                <div className="flex items-center gap-2"><div className="w-2.5 h-2.5 bg-rose-100 border border-rose-300 rounded-full"></div> Wrong</div>
-                <div className="flex items-center gap-2"><div className="w-2.5 h-2.5 bg-slate-50 border border-gray-300 rounded-full"></div> Unanswered</div>
+                {mode === 'mock' ? (
+                    <>
+                        <div className="flex items-center gap-2"><div className="w-2.5 h-2.5 bg-indigo-100 border border-indigo-300 rounded-full"></div> Attempted</div>
+                        <div className="flex items-center gap-2"><div className="w-2.5 h-2.5 bg-slate-50 border border-gray-300 rounded-full"></div> Unanswered</div>
+                    </>
+                ) : (
+                    <>
+                        <div className="flex items-center gap-2"><div className="w-2.5 h-2.5 bg-emerald-100 border border-emerald-300 rounded-full"></div> Correct</div>
+                        <div className="flex items-center gap-2"><div className="w-2.5 h-2.5 bg-rose-100 border border-rose-300 rounded-full"></div> Wrong</div>
+                    </>
+                )}
                 <div className="flex items-center gap-2"><div className="w-2.5 h-2.5 bg-white border-2 border-indigo-600 rounded-full"></div> Current</div>
                 <div className="flex items-center gap-2"><Flag className="w-3 h-3 text-purple-500 fill-current" /> Review</div>
-                <div className="flex items-center gap-2"><Star className="w-3 h-3 text-amber-400 fill-current" /> Saved</div>
             </div>
 
             {groups.map((group, i) => {

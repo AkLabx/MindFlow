@@ -1,17 +1,19 @@
 
 import { useReducer, useCallback, useEffect } from 'react';
-import { QuizState, QuizAction, Question, InitialFilters } from '../types';
+import { QuizState, QuizAction, Question, InitialFilters, QuizMode } from '../types';
 import { logEvent } from '../services/analyticsService';
 
 const STORAGE_KEY = 'mindflow_quiz_session_v1';
 
 const initialState: QuizState = {
   status: 'intro',
+  mode: 'learning',
   currentQuestionIndex: 0,
   score: 0,
   answers: {},
   timeTaken: {},
   remainingTimes: {},
+  quizTimeRemaining: 0,
   bookmarks: [],
   markedForReview: [],
   hiddenOptions: {},
@@ -48,28 +50,58 @@ function quizReducer(state: QuizState, action: QuizAction): QuizState {
     case 'GO_TO_INTRO':
       return { ...initialState, status: 'intro' };
 
-    case 'START_QUIZ':
+    case 'START_QUIZ': {
+      const { questions, filters, mode } = action.payload;
+      // Mock Mode: 30 seconds per question
+      const globalTime = mode === 'mock' ? questions.length * 30 : 0;
+      
       return { 
         ...initialState, 
         status: 'quiz', 
-        activeQuestions: action.payload.questions,
-        filters: action.payload.filters
+        mode: mode,
+        activeQuestions: questions,
+        filters: filters,
+        quizTimeRemaining: globalTime
       };
+    }
     
     case 'ANSWER_QUESTION': {
       const { questionId, answer, timeTaken } = action.payload;
       const question = state.activeQuestions.find(q => q.id === questionId);
       
-      // Prevent re-answering if already answered (optional, but good for stats)
-      if (state.answers[questionId]) return state;
-
+      // In Mock mode, we allow changing answers, so we remove the 'already answered' check
+      // In Learning mode, we typically lock it, but the UI handles disabling.
+      
       const isCorrect = question?.correct === answer;
       
+      // Logic: If user changes answer, we need to adjust score if previously correct/incorrect
+      // But simpler approach: Recalculate score entirely at finish or here.
+      // Let's stick to simple cumulative update. 
+      // NOTE: In Mock mode, we don't show score until end, but we can track it here silently.
+      
+      const prevAnswer = state.answers[questionId];
+      let newScore = state.score;
+
+      // Update score logic
+      if (!prevAnswer) {
+          // First time answering
+          if (isCorrect) newScore++;
+      } else {
+          // Changing answer
+          const wasCorrect = question?.correct === prevAnswer;
+          if (wasCorrect && !isCorrect) newScore--;
+          if (!wasCorrect && isCorrect) newScore++;
+      }
+      
+      // Accumulate time taken. 
+      const prevTime = state.timeTaken[questionId] || 0;
+
       return {
         ...state,
         answers: { ...state.answers, [questionId]: answer },
-        timeTaken: { ...state.timeTaken, [questionId]: timeTaken },
-        score: isCorrect ? state.score + 1 : state.score,
+        // In mock mode, timeTaken is cumulative for analytics
+        timeTaken: { ...state.timeTaken, [questionId]: prevTime + timeTaken },
+        score: newScore,
       };
     }
 
@@ -79,6 +111,10 @@ function quizReducer(state: QuizState, action: QuizAction): QuizState {
         ...state,
         remainingTimes: { ...state.remainingTimes, [questionId]: time }
       };
+    }
+
+    case 'SYNC_GLOBAL_TIMER': {
+        return { ...state, quizTimeRemaining: action.payload.time };
     }
 
     case 'NEXT_QUESTION': {
@@ -131,13 +167,17 @@ function quizReducer(state: QuizState, action: QuizAction): QuizState {
     case 'FINISH_QUIZ':
       return { ...state, status: 'result' };
 
-    case 'RESTART_QUIZ':
-      return { 
-        ...initialState, 
-        status: 'quiz', 
-        activeQuestions: state.activeQuestions,
-        filters: state.filters // Preserve filters on restart
-      };
+    case 'RESTART_QUIZ': {
+        const globalTime = state.mode === 'mock' ? state.activeQuestions.length * 30 : 0;
+        return { 
+            ...initialState, 
+            status: 'quiz', 
+            mode: state.mode,
+            activeQuestions: state.activeQuestions,
+            filters: state.filters,
+            quizTimeRemaining: globalTime
+        };
+    }
       
     case 'GO_HOME':
       return { ...initialState, status: 'idle' };
@@ -164,14 +204,15 @@ export const useQuiz = () => {
   const enterConfig = useCallback(() => dispatch({ type: 'ENTER_CONFIG' }), []);
   const goToIntro = useCallback(() => dispatch({ type: 'GO_TO_INTRO' }), []);
   
-  const startQuiz = useCallback((filteredQuestions: Question[], filters: InitialFilters) => {
+  const startQuiz = useCallback((filteredQuestions: Question[], filters: InitialFilters, mode: QuizMode = 'learning') => {
     // Log the start event with metadata about what they are studying
     logEvent('quiz_started', {
       subject: filters.subject,
       difficulty: filters.difficulty,
-      question_count: filteredQuestions.length
+      question_count: filteredQuestions.length,
+      mode: mode
     });
-    dispatch({ type: 'START_QUIZ', payload: { questions: filteredQuestions, filters } });
+    dispatch({ type: 'START_QUIZ', payload: { questions: filteredQuestions, filters, mode } });
   }, []);
   
   const answerQuestion = useCallback((questionId: string, answer: string, timeTaken: number) => {
@@ -180,6 +221,10 @@ export const useQuiz = () => {
 
   const saveTimer = useCallback((questionId: string, time: number) => {
     dispatch({ type: 'SAVE_TIMER', payload: { questionId, time } });
+  }, []);
+
+  const syncGlobalTimer = useCallback((time: number) => {
+    dispatch({ type: 'SYNC_GLOBAL_TIMER', payload: { time } });
   }, []);
 
   const nextQuestion = useCallback(() => dispatch({ type: 'NEXT_QUESTION' }), []);
@@ -192,16 +237,16 @@ export const useQuiz = () => {
 
   const finishQuiz = useCallback(() => {
     // Log completion stats
-    // We use the state directly here (add state to dependency) to get final numbers
     logEvent('quiz_completed', {
       score: state.score,
       total_questions: state.activeQuestions.length,
       percentage: state.activeQuestions.length > 0 ? Math.round((state.score / state.activeQuestions.length) * 100) : 0,
       // Explicitly cast and type to ensure TS knows these are numbers for addition
-      time_spent_total: (Object.values(state.timeTaken) as number[]).reduce((a: number, b: number) => a + b, 0)
+      time_spent_total: (Object.values(state.timeTaken) as number[]).reduce((a: number, b: number) => a + b, 0),
+      mode: state.mode
     });
     dispatch({ type: 'FINISH_QUIZ' });
-  }, [state.score, state.activeQuestions.length, state.timeTaken]);
+  }, [state.score, state.activeQuestions.length, state.timeTaken, state.mode]);
 
   const restartQuiz = useCallback(() => dispatch({ type: 'RESTART_QUIZ' }), []);
   const goHome = useCallback(() => dispatch({ type: 'GO_HOME' }), []);
@@ -224,6 +269,7 @@ export const useQuiz = () => {
     startQuiz,
     answerQuestion,
     saveTimer,
+    syncGlobalTimer,
     nextQuestion,
     prevQuestion,
     jumpToQuestion,

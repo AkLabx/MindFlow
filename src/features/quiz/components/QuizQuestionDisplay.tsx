@@ -8,13 +8,15 @@ export function QuizQuestionDisplay({
     selectedAnswer,
     hiddenOptions = [],
     onAnswerSelect,
-    zoomLevel
+    zoomLevel,
+    isMockMode = false // New prop with default
 }: {
     question: Question;
     selectedAnswer?: string;
     hiddenOptions?: string[];
     onAnswerSelect: (answer: string) => void;
     zoomLevel: number;
+    isMockMode?: boolean;
 }) {
     const isAnswered = !!selectedAnswer;
     
@@ -43,6 +45,7 @@ export function QuizQuestionDisplay({
                         isCorrect={option === question.correct}
                         isAnswered={isAnswered}
                         isHidden={hiddenOptions.includes(option)}
+                        isMockMode={isMockMode}
                         onClick={() => onAnswerSelect(option)}
                     />
                 ))}

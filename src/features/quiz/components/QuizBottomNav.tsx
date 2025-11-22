@@ -1,8 +1,9 @@
 
 import React from 'react';
-import { ArrowLeft, ArrowRight, Flag, CheckCircle } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Flag, CheckCircle, Save } from 'lucide-react';
 import { cn } from '../../../utils/cn';
 import { Button } from '../../../components/Button/Button';
+import { QuizMode } from '../types';
 
 export function QuizBottomNav({ 
     onPrevious, 
@@ -11,7 +12,8 @@ export function QuizBottomNav({
     isMarked, 
     isFirst, 
     isLast, 
-    isAnswered 
+    isAnswered,
+    mode
 }: {
     onPrevious: () => void;
     onNext: () => void;
@@ -20,7 +22,10 @@ export function QuizBottomNav({
     isFirst: boolean;
     isLast: boolean;
     isAnswered: boolean;
+    mode: QuizMode;
 }) {
+    const isMock = mode === 'mock';
+
     return (
         <div className="flex items-center justify-between pt-4 pb-4 md:pb-6 px-6 bg-white border-t border-gray-100 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-10">
             <Button 
@@ -48,7 +53,8 @@ export function QuizBottomNav({
 
             <Button 
                 onClick={onNext} 
-                // disabled={!isAnswered} // Keeping it enabled to allow skipping/navigating
+                // In Mock mode, we always allow moving forward (Save & Next).
+                // In Learning mode, we typically allow skipping too.
                 className={cn(
                     "transition-all",
                     isLast 
@@ -59,7 +65,11 @@ export function QuizBottomNav({
                 {isLast ? (
                     <>Finish <CheckCircle className="w-4 h-4 ml-2" /></>
                 ) : (
-                    <>Next <ArrowRight className="w-4 h-4 ml-2" /></>
+                    isMock ? (
+                        <>Save & Next <Save className="w-4 h-4 ml-2" /></>
+                    ) : (
+                        <>Next <ArrowRight className="w-4 h-4 ml-2" /></>
+                    )
                 )}
             </Button>
         </div>

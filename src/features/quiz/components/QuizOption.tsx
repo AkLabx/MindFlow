@@ -10,6 +10,7 @@ interface QuizOptionProps {
     isCorrect: boolean;
     isAnswered: boolean;
     isHidden: boolean;
+    isMockMode: boolean; // New prop
     onClick: () => void;
 }
 
@@ -20,6 +21,7 @@ export const QuizOption: React.FC<QuizOptionProps> = ({
     isCorrect,
     isAnswered,
     isHidden,
+    isMockMode,
     onClick
 }) => {
     // Visual State Logic
@@ -30,12 +32,20 @@ export const QuizOption: React.FC<QuizOptionProps> = ({
 
     // 50-50 Elimination Logic (Visual Only)
     if (isHidden) {
-        // Fix: Explicitly remove hover effects and set cursor to not-allowed
         containerClass = "bg-gray-50 border-gray-100 opacity-60 cursor-not-allowed shadow-none"; 
         textClass = "text-gray-400 line-through decoration-gray-300 decoration-2 select-none";
-        // Fix: Use a specific icon for hidden state
         icon = <EyeOff className="w-5 h-5 text-gray-300" />;
+    } else if (isMockMode) {
+        // --- MOCK MODE LOGIC ---
+        // Only show selected state (Blue), no Correct/Incorrect feedback
+        if (isSelected) {
+            containerClass = "bg-indigo-50 border-indigo-600 ring-1 ring-indigo-600";
+            icon = <div className="w-5 h-5 rounded-full border-[5px] border-indigo-600" />;
+            textClass = "text-indigo-800 font-medium";
+        }
+        // We don't disable cursor in Mock mode to allow changing answer, handled by parent logic if needed
     } else if (isAnswered) {
+        // --- LEARNING MODE LOGIC ---
         containerClass = "cursor-default"; // Remove pointer on answered state
         
         if (isCorrect) {
@@ -61,6 +71,7 @@ export const QuizOption: React.FC<QuizOptionProps> = ({
              containerClass = "opacity-50 bg-gray-50 border-gray-200";
         }
     } else if (isSelected) {
+        // Fallback for non-answered selection (rare in learning mode due to immediate submit)
         containerClass = "bg-indigo-50 border-indigo-600 ring-1 ring-indigo-600";
         icon = <div className="w-5 h-5 rounded-full border-[5px] border-indigo-600" />;
         textClass = "text-indigo-800 font-medium";
@@ -69,7 +80,7 @@ export const QuizOption: React.FC<QuizOptionProps> = ({
     return (
         <button
             onClick={!isHidden ? onClick : undefined}
-            disabled={isAnswered || isHidden}
+            disabled={isHidden} // In Mock mode we allow changing answers
             className={cn(
                 "w-full text-left p-4 rounded-xl border-2 transition-all duration-200 flex items-center gap-4 group relative overflow-hidden",
                 containerClass,

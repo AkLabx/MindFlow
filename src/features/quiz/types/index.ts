@@ -39,6 +39,7 @@ export interface Question {
 }
 
 export type QuizStatus = 'intro' | 'idle' | 'config' | 'quiz' | 'result';
+export type QuizMode = 'learning' | 'mock';
 
 export interface InitialFilters {
   subject: string[];
@@ -76,11 +77,13 @@ export function getQuestionValue(question: Question, key: keyof InitialFilters):
 
 export interface QuizState {
   status: QuizStatus;
+  mode: QuizMode; // New property
   currentQuestionIndex: number;
   score: number;
   answers: Record<string, string>; // questionId -> selectedOptionText
   timeTaken: Record<string, number>; // questionId -> seconds
-  remainingTimes: Record<string, number>; // questionId -> seconds left
+  remainingTimes: Record<string, number>; // questionId -> seconds left (Learning Mode)
+  quizTimeRemaining: number; // Global seconds left (Mock Mode)
   bookmarks: string[]; // array of questionIds
   markedForReview: string[]; // array of questionIds
   hiddenOptions: Record<string, string[]>; // questionId -> array of hidden option texts (50:50)
@@ -92,9 +95,10 @@ export type QuizAction =
   | { type: 'ENTER_HOME' }
   | { type: 'ENTER_CONFIG' }
   | { type: 'GO_TO_INTRO' }
-  | { type: 'START_QUIZ'; payload: { questions: Question[]; filters: InitialFilters } }
+  | { type: 'START_QUIZ'; payload: { questions: Question[]; filters: InitialFilters; mode: QuizMode } }
   | { type: 'ANSWER_QUESTION'; payload: { questionId: string; answer: string; timeTaken: number } }
   | { type: 'SAVE_TIMER'; payload: { questionId: string; time: number } }
+  | { type: 'SYNC_GLOBAL_TIMER'; payload: { time: number } }
   | { type: 'NEXT_QUESTION' }
   | { type: 'PREV_QUESTION' }
   | { type: 'JUMP_TO_QUESTION'; payload: { index: number } }
