@@ -91,9 +91,6 @@ export function ActiveQuizSession({
     const [showReviewModal, setShowReviewModal] = useState(false);
     const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
 
-    // Refs
-    const explanationRef = useRef<HTMLDivElement>(null);
-    
     // Audio Refs (Singleton Pattern)
     const audioCtxRef = useRef<AudioContext | null>(null);
     const activeOscillatorRef = useRef<OscillatorNode | null>(null);
@@ -225,16 +222,6 @@ export function ActiveQuizSession({
     });
     
     const progressPercent = (secondsLeft / QUIZ_DURATION_SECONDS) * 100;
-
-    // Auto-scroll to explanation
-    useEffect(() => {
-        if (isAnswered) {
-            const timer = setTimeout(() => {
-                explanationRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }, 200);
-            return () => clearTimeout(timer);
-        }
-    }, [isAnswered]);
 
     // Navigation Wrapper
     const handleNavigation = useCallback((navAction: () => void) => {
@@ -594,7 +581,7 @@ export function ActiveQuizSession({
                         zoomLevel={zoomLevel}
                     />
 
-                    <div ref={explanationRef}>
+                    <div>
                         {isAnswered && (
                             <QuizExplanation 
                                 explanation={question.explanation} 
