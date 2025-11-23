@@ -77,23 +77,30 @@ export function QuizQuestionDisplay({
                             {question.sourceInfo.examName} {question.sourceInfo.examYear}
                         </span>
                     )}
+                    {/* Exam Shift Detail - Now visible on all screens and beside exam name */}
+                    {question.sourceInfo?.examDateShift && (
+                        <span className="flex items-center gap-1 text-gray-400 border-l border-gray-200 pl-2 ml-1">
+                            <Calendar className="w-3 h-3" />
+                            {question.sourceInfo.examDateShift}
+                        </span>
+                    )}
                 </div>
-                {question.sourceInfo?.examDateShift && (
-                    <span className="flex items-center gap-1 text-gray-400 hidden sm:flex">
-                        <Calendar className="w-3 h-3" />
-                        {question.sourceInfo.examDateShift}
-                    </span>
-                )}
+                
+                {/* Right side intentionally left empty for future use or balancing */}
             </div>
 
             {/* Question Text */}
             <div className="space-y-4">
                 <div className="flex justify-between items-start gap-4">
                     {/* Removed font-bold, standardized to text-base/text-lg via zoomLevel.
-                        Updated styles to be consistent with options. */}
+                        Updated styles to be consistent with options. 
+                        Added relative z-10 and stopPropagation to ensure text selection works robustly on mobile.
+                    */}
                     <div 
-                        className="text-gray-900 leading-relaxed font-poppins flex-1 selectable-text [&_pre]:whitespace-pre-wrap [&_pre]:font-inherit [&_pre]:my-2 [&_pre]:bg-gray-50 [&_pre]:p-2 [&_pre]:rounded-md [&_pre]:border [&_pre]:border-gray-200"
+                        className="text-gray-900 leading-relaxed font-poppins flex-1 selectable-text relative z-10 [&_pre]:whitespace-pre-wrap [&_pre]:font-inherit [&_pre]:my-2 [&_pre]:bg-gray-50 [&_pre]:p-2 [&_pre]:rounded-md [&_pre]:border [&_pre]:border-gray-200"
                         dangerouslySetInnerHTML={createSafeMarkup(question.question)}
+                        onMouseDown={(e) => e.stopPropagation()}
+                        onTouchStart={(e) => e.stopPropagation()}
                     />
                     
                     {/* Show Time Spent in Review Mode (if userTime provided) */}
@@ -106,8 +113,10 @@ export function QuizQuestionDisplay({
 
                 {question.question_hi && (
                     <div 
-                        className="text-gray-800 font-hindi leading-relaxed border-l-4 border-indigo-100 pl-4 selectable-text [&_pre]:whitespace-pre-wrap [&_pre]:font-inherit [&_pre]:my-2 [&_pre]:bg-gray-50 [&_pre]:p-2 [&_pre]:rounded-md [&_pre]:border [&_pre]:border-gray-200"
+                        className="text-gray-800 font-hindi leading-relaxed border-l-4 border-indigo-100 pl-4 selectable-text relative z-10 [&_pre]:whitespace-pre-wrap [&_pre]:font-inherit [&_pre]:my-2 [&_pre]:bg-gray-50 [&_pre]:p-2 [&_pre]:rounded-md [&_pre]:border [&_pre]:border-gray-200"
                         dangerouslySetInnerHTML={createSafeMarkup(question.question_hi)}
+                        onMouseDown={(e) => e.stopPropagation()}
+                        onTouchStart={(e) => e.stopPropagation()}
                     />
                 )}
             </div>
