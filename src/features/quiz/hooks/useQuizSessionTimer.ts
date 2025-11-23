@@ -15,6 +15,7 @@ interface UseQuizSessionTimerProps {
   onSaveTime: (questionId: string, time: number) => void;
   onSyncGlobalTimer: (time: number) => void;
   onLogTime: (questionId: string, time: number) => void;
+  onTick?: () => void; // New prop for playing sound
 }
 
 export function useQuizSessionTimer({
@@ -27,7 +28,8 @@ export function useQuizSessionTimer({
   onFinish,
   onSaveTime,
   onSyncGlobalTimer,
-  onLogTime
+  onLogTime,
+  onTick
 }: UseQuizSessionTimerProps) {
   const isMockMode = mode === 'mock';
   
@@ -36,7 +38,6 @@ export function useQuizSessionTimer({
   const questionTimeRef = useRef(0); 
 
   // 1. Learning Mode Timer (Per Question Countdown)
-  // We memoize the callback to prevent the timer hook from resetting due to function identity change
   const handleLearningTimerComplete = useCallback(() => {
      // In learning mode, timer hitting zero doesn't auto-submit, just stays at 0.
   }, []);
@@ -47,6 +48,13 @@ export function useQuizSessionTimer({
     key: questionId, // Resets when question changes
     isPaused: isAnswered || isMockMode
   });
+
+  // Sound Effect Logic for Learning Mode (Last 5 seconds)
+  useEffect(() => {
+      if (!isMockMode && !isAnswered && secondsLeftLearning <= 5 && secondsLeftLearning > 0) {
+          onTick?.();
+      }
+  }, [secondsLeftLearning, isMockMode, isAnswered, onTick]);
 
   // Ref to hold the current seconds left to avoid dependency loops in useEffect when saving
   const secondsLeftRef = useRef(secondsLeftLearning);

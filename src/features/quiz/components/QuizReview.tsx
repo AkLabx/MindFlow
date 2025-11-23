@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { ArrowLeft, Home, CheckCircle2, XCircle, Bookmark, Filter } from 'lucide-react';
+import { ArrowLeft, Home, CheckCircle2, XCircle, Bookmark, Filter, CircleDashed } from 'lucide-react';
 import { Question } from '../types';
 import { Button } from '../../../components/Button/Button';
 import { SegmentedControl } from './ui/SegmentedControl';
@@ -11,11 +11,11 @@ import { cn } from '../../../utils/cn';
 interface QuizReviewProps {
   questions: Question[];
   userAnswers: { [key: string]: string };
-  timeTaken?: { [key: string]: number }; // New prop
+  timeTaken?: { [key: string]: number }; 
   bookmarkedQuestions: string[];
   onBackToScore: () => void;
   onGoHome: () => void;
-  initialFilter?: 'All' | 'Correct' | 'Incorrect' | 'Bookmarked';
+  initialFilter?: 'All' | 'Correct' | 'Incorrect' | 'Bookmarked' | 'Skipped';
 }
 
 export const QuizReview: React.FC<QuizReviewProps> = ({
@@ -36,15 +36,19 @@ export const QuizReview: React.FC<QuizReviewProps> = ({
       All: questions.length,
       Correct: 0,
       Incorrect: 0,
+      Skipped: 0,
       Bookmarked: bookmarkedQuestions.length,
     };
     questions.forEach(q => {
       const ans = userAnswers[q.id];
-      if (ans === q.correct) c.Correct++;
-      else if (ans) c.Incorrect++; // Assuming skipped are not incorrect for this count, or include skipped?
+      if (!ans) {
+        c.Skipped++;
+      } else if (ans === q.correct) {
+        c.Correct++;
+      } else {
+        c.Incorrect++;
+      }
     });
-    // Often "Incorrect" in review includes skipped/unanswered. Let's check standard behavior.
-    // Usually Unanswered is separate or lumped with Incorrect. Let's stick to Incorrect = wrong answer.
     return c;
   }, [questions, userAnswers, bookmarkedQuestions]);
 
@@ -53,7 +57,8 @@ export const QuizReview: React.FC<QuizReviewProps> = ({
       const ans = userAnswers[q.id];
       if (filter === 'All') return true;
       if (filter === 'Correct') return ans === q.correct;
-      if (filter === 'Incorrect') return ans !== q.correct; // Includes skipped if we consider != correct
+      if (filter === 'Incorrect') return ans && ans !== q.correct; // Strict incorrect
+      if (filter === 'Skipped') return !ans;
       if (filter === 'Bookmarked') return bookmarkedQuestions.includes(q.id);
       return true;
     });
@@ -67,6 +72,7 @@ export const QuizReview: React.FC<QuizReviewProps> = ({
   const currentQuestion = filteredQuestions[reviewIndex];
   const currentAns = currentQuestion ? userAnswers[currentQuestion.id] : undefined;
   const isCorrect = currentQuestion && currentAns === currentQuestion.correct;
+  const isSkipped = currentQuestion && !currentAns;
   const userTime = currentQuestion ? timeTaken[currentQuestion.id] : 0;
 
   return (
@@ -85,7 +91,7 @@ export const QuizReview: React.FC<QuizReviewProps> = ({
 
             <div className="flex-1 w-full md:w-auto overflow-x-auto">
                 <SegmentedControl 
-                    options={['All', 'Correct', 'Incorrect', 'Bookmarked']}
+                    options={['All', 'Correct', 'Incorrect', 'Skipped', 'Bookmarked']}
                     selectedOptions={[filter]}
                     onOptionToggle={(opt) => setFilter(opt)}
                     counts={counts}
@@ -107,7 +113,7 @@ export const QuizReview: React.FC<QuizReviewProps> = ({
                 {/* Status Banner */}
                 <div className={cn(
                     "absolute top-0 left-0 w-full h-1.5",
-                    isCorrect ? "bg-green-500" : (currentAns ? "bg-red-500" : "bg-gray-300")
+                    isCorrect ? "bg-green-500" : (isSkipped ? "bg-gray-300" : "bg-red-500")
                 )} />
 
                 <div className="flex justify-between items-start mb-6">
@@ -115,7 +121,11 @@ export const QuizReview: React.FC<QuizReviewProps> = ({
                         <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs font-bold rounded">
                             Q {questions.findIndex(q => q.id === currentQuestion.id) + 1}
                         </span>
-                        {currentAns ? (
+                        {isSkipped ? (
+                            <span className="flex items-center gap-1 text-xs font-bold text-gray-500 bg-gray-100 px-2 py-1 rounded border border-gray-200">
+                                <CircleDashed className="w-3 h-3" /> Skipped
+                            </span>
+                        ) : (
                              isCorrect ? (
                                  <span className="flex items-center gap-1 text-xs font-bold text-green-600 bg-green-50 px-2 py-1 rounded border border-green-100">
                                      <CheckCircle2 className="w-3 h-3" /> Correct
@@ -125,10 +135,6 @@ export const QuizReview: React.FC<QuizReviewProps> = ({
                                      <XCircle className="w-3 h-3" /> Incorrect
                                  </span>
                              )
-                        ) : (
-                            <span className="flex items-center gap-1 text-xs font-bold text-gray-500 bg-gray-100 px-2 py-1 rounded border border-gray-200">
-                                Skipped
-                            </span>
                         )}
                     </div>
                     <span className="text-xs text-gray-400 font-mono">ID: {currentQuestion.id}</span>
