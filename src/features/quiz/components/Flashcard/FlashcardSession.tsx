@@ -248,11 +248,15 @@ export const FlashcardSession: React.FC<FlashcardSessionProps> = ({
                         x, 
                         rotate, 
                         opacity,
+                        // Enable vertical pan for scrolling, let framer handle horizontal
                         touchAction: 'pan-y', 
                         cursor: isAnimating ? 'default' : 'grab'
                     } as any}
                     animate={controls}
                     drag={isAnimating ? false : "x"}
+                    // CRITICAL FIX: Disable direction lock to allow horizontal drag detection 
+                    // even if there's some vertical movement (scrolling)
+                    dragDirectionLock={false}
                     dragConstraints={{ left: 0, right: 0 }} 
                     dragElastic={0.7} 
                     onDragEnd={handleDragEnd as any}

@@ -1,5 +1,4 @@
-
-import React, { useContext } from 'react';
+import React, { useContext, useState } from 'react';
 import { useQuiz } from './hooks/useQuiz';
 import { QuizResult } from './components/QuizResult';
 import { QuizConfig } from './components/QuizConfig';
@@ -15,6 +14,8 @@ import { Button } from '../../components/Button/Button';
 import { ArrowRight, ListChecks, FileText, BookOpen, ArrowLeft, Download, Languages } from 'lucide-react';
 import { SettingsContext } from '../../context/SettingsContext';
 import { usePWAInstall } from '../../hooks/usePWAInstall';
+import { MainLayout, TabID } from '../../layouts/MainLayout';
+import { SettingsModal } from './components/ui/SettingsModal';
 
 export const QuizContainer: React.FC = () => {
   const {
@@ -47,251 +48,55 @@ export const QuizContainer: React.FC = () => {
 
   const { areBgAnimationsEnabled } = useContext(SettingsContext);
   const { canInstall, triggerInstall } = usePWAInstall();
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
-  // 0. Intro / Landing Page
+  // Determine active tab for the bottom bar
+  const getActiveTab = (): TabID => {
+    switch (state.status) {
+      case 'english-home':
+      case 'vocab-home':
+      case 'idioms-config':
+        return 'explore';
+      case 'config':
+        return 'create';
+      case 'result':
+      case 'flashcards-complete':
+        return 'profile'; // Reusing profile tab for results/stats context temporarily
+      default:
+        return 'home';
+    }
+  };
+
+  // Handle Tab Navigation
+  const handleTabChange = (tab: TabID) => {
+    switch (tab) {
+      case 'home':
+        enterHome();
+        break;
+      case 'explore':
+        enterEnglishHome();
+        break;
+      case 'create':
+        enterConfig();
+        break;
+      case 'profile':
+        setIsSettingsOpen(true);
+        break;
+    }
+  };
+
+  // 0. Intro / Landing Page (Standalone)
   if (state.status === 'intro') {
-    return <LandingPage onGetStarted={enterHome} />;
+    return (
+      <>
+        {areBgAnimationsEnabled && <Fireballs />}
+        <LandingPage onGetStarted={enterHome} />
+      </>
+    );
   }
 
-  // Helper to render content based on state
-  const renderContent = () => {
-    // 1. Dashboard / Home Page
-    if (state.status === 'idle') {
-      return (
-        <div className="flex flex-col min-h-[calc(100vh-4rem)]"> {/* Wrapper for sticky footer logic in Dashboard */}
-          <div className="flex-1 flex flex-col items-center justify-center space-y-10 py-10 relative z-10">
-            
-            {/* Back to Intro Navigation */}
-            <div className="w-full max-w-6xl mx-auto px-4">
-               <Button 
-                  variant="ghost" 
-                  onClick={goToIntro} 
-                  className="text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 flex items-center gap-2 transition-colors"
-               >
-                 <ArrowLeft className="w-4 h-4" /> Back to Intro
-               </Button>
-            </div>
-
-            {/* Hero Section */}
-            <div className="relative text-center max-w-4xl mx-auto">
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-6xl sm:text-9xl font-black text-gray-200/60 whitespace-nowrap select-none -z-10 pointer-events-none opacity-50">
-                MindFlow
-              </div>
-              
-              <h1 className="text-4xl sm:text-7xl font-extrabold text-gray-900 leading-tight mb-6 drop-shadow-sm">
-                Master Your Subjects,
-                <br />
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-orange-500">
-                  One Quiz at a Time.
-                </span>
-              </h1>
-              
-              <p className="text-lg sm:text-xl text-gray-600 mb-10 max-w-2xl mx-auto leading-relaxed font-medium drop-shadow-sm bg-white/30 backdrop-blur-sm rounded-xl p-2">
-                Build custom quizzes from a vast question bank, generate study materials, and track your progress like never before.
-              </p>
-              
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-4 relative z-20">
-                <Button 
-                  size="lg" 
-                  onClick={enterConfig} 
-                  className="bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-4 text-lg rounded-xl shadow-xl shadow-indigo-200 hover:shadow-2xl hover:shadow-indigo-300 transition-all transform hover:-translate-y-1"
-                >
-                  Start a New Quiz <ArrowRight className="ml-2 h-5 w-5" />
-                </Button>
-
-                {/* PWA Install Button for Dashboard */}
-                {canInstall && (
-                  <Button 
-                    size="lg"
-                    variant="outline"
-                    onClick={triggerInstall}
-                    className="px-8 py-4 text-lg rounded-xl bg-white border-indigo-200 text-indigo-700 hover:bg-indigo-50 hover:border-indigo-300 shadow-lg transition-all transform hover:-translate-y-1"
-                  >
-                    <Download className="w-5 h-5 mr-2" /> Download App
-                  </Button>
-                )}
-              </div>
-            </div>
-
-            {/* Cards Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-6xl mx-auto px-4">
-              {/* Card 1 - Indigo Theme */}
-              <div 
-                onClick={enterConfig}
-                className="bg-white p-8 rounded-3xl border border-gray-200 cursor-pointer group relative z-20 transition-all duration-300 ease-out hover:-translate-y-2 shadow-[12px_2px_0px_0px_#e2e8f0,0px_10px_20px_rgba(0,0,0,0.1)] hover:shadow-[12px_2px_0px_0px_#818cf8,0px_20px_30px_rgba(99,102,241,0.3)] hover:border-indigo-300"
-              >
-                <div className="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform shadow-sm group-hover:bg-indigo-100 group-hover:shadow-indigo-200">
-                  <ListChecks className="w-6 h-6 text-indigo-600" />
-                </div>
-                <h3 className="text-2xl font-bold text-gray-900 mb-3 group-hover:text-indigo-700 transition-colors">Build a Custom Quiz</h3>
-                <p className="text-gray-500 text-sm leading-relaxed font-medium group-hover:text-gray-600">
-                  Use powerful filters to create targeted quizzes based on subject, topic, difficulty, and more.
-                </p>
-              </div>
-
-              {/* Card 2 - English Section (Pink/Rose Theme) */}
-              <div 
-                onClick={enterEnglishHome}
-                className="bg-white p-8 rounded-3xl border border-gray-200 cursor-pointer group relative z-20 transition-all duration-300 ease-out hover:-translate-y-2 shadow-[12px_2px_0px_0px_#e2e8f0,0px_10px_20px_rgba(0,0,0,0.1)] hover:shadow-[12px_2px_0px_0px_#fb7185,0px_20px_30px_rgba(251,113,133,0.3)] hover:border-rose-300"
-              >
-                <div className="w-12 h-12 bg-rose-50 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform shadow-sm group-hover:bg-rose-100 group-hover:shadow-rose-200">
-                  <Languages className="w-6 h-6 text-rose-600" />
-                </div>
-                <h3 className="text-2xl font-bold text-gray-900 mb-3 group-hover:text-rose-700 transition-colors">English Quiz</h3>
-                <p className="text-gray-500 text-sm leading-relaxed font-medium group-hover:text-gray-600">
-                  Dedicated section for Vocabulary, Grammar, and English Mock tests.
-                </p>
-              </div>
-
-              {/* Card 3 - Orange Theme */}
-              <div className="bg-white p-8 rounded-3xl border border-gray-200 relative overflow-hidden group cursor-pointer z-20 transition-all duration-300 ease-out hover:-translate-y-2 shadow-[12px_2px_0px_0px_#e2e8f0,0px_10px_20px_rgba(0,0,0,0.1)] hover:shadow-[12px_2px_0px_0px_#fb923c,0px_20px_30px_rgba(249,115,22,0.3)] hover:border-orange-300"
-              >
-                <div className="absolute top-6 -right-12 bg-gradient-to-r from-yellow-400 to-orange-400 text-white text-[10px] font-black tracking-wider w-48 py-1.5 text-center rotate-45 shadow-md z-10 uppercase group-hover:shadow-orange-300/50">
-                  Paid Services
-                </div>
-                
-                <div className="w-12 h-12 bg-orange-50 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform shadow-sm group-hover:bg-orange-100 group-hover:shadow-orange-200">
-                  <FileText className="w-6 h-6 text-orange-600" />
-                </div>
-                <h3 className="text-2xl font-bold text-gray-900 mb-3 group-hover:text-orange-700 transition-colors">Content Creation</h3>
-                <p className="text-gray-500 text-sm leading-relaxed font-medium group-hover:text-gray-600">
-                  Generate downloadable PPT, PDF, or JSON files from your selected questions for offline study.
-                </p>
-              </div>
-
-              {/* Card 4 - Blue Theme */}
-              <div className="bg-white p-8 rounded-3xl border border-gray-200 cursor-pointer group z-20 transition-all duration-300 ease-out hover:-translate-y-2 shadow-[12px_2px_0px_0px_#e2e8f0,0px_10px_20px_rgba(0,0,0,0.1)] hover:shadow-[12px_2px_0px_0px_#60a5fa,0px_20px_30px_rgba(59,130,246,0.3)] hover:border-blue-300"
-              >
-                <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform shadow-sm group-hover:bg-blue-100 group-hover:shadow-blue-200">
-                  <BookOpen className="w-6 h-6 text-blue-600" />
-                </div>
-                <h3 className="text-2xl font-bold text-gray-900 mb-3 group-hover:text-blue-700 transition-colors">User Guide</h3>
-                <p className="text-gray-500 text-sm leading-relaxed font-medium group-hover:text-gray-600">
-                  Explore all the features of MindFlow and learn how to make the most of your study sessions.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Dashboard Specific Footer */}
-          <footer className="bg-white/80 backdrop-blur-sm border-t border-gray-200 mt-auto relative z-10">
-            <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
-              <p className="text-center text-sm text-gray-500">
-                &copy; {new Date().getFullYear()} MindFlow Quiz App by Aalok Kumar Sharma. All Rights Reserved.
-              </p>
-            </div>
-          </footer>
-        </div>
-      );
-    }
-
-    // 2. English Quiz Home Page
-    if (state.status === 'english-home') {
-      return (
-        <div className="relative z-10">
-          <EnglishQuizHome onBack={enterHome} onVocabClick={enterVocabHome} />
-        </div>
-      );
-    }
-
-    // 2.1 Vocab Quiz Home Page
-    if (state.status === 'vocab-home') {
-      return (
-        <div className="relative z-10">
-          <VocabQuizHome 
-            onBack={enterEnglishHome} 
-            onIdiomsClick={enterIdiomsConfig}
-          />
-        </div>
-      );
-    }
-
-    // 2.1.1 Idioms Config Page
-    if (state.status === 'idioms-config') {
-        return (
-            <div className="relative z-10">
-                <IdiomsConfig 
-                    onBack={enterVocabHome}
-                    onStart={(data, filters) => {
-                        // Start Flashcard Session with Idiom Data
-                        startFlashcards(data as any, filters || {
-                          subject: [], topic: [], subTopic: [], difficulty: [], 
-                          questionType: [], examName: [], examYear: [], examDateShift: [], tags: []
-                        });
-                    }}
-                />
-            </div>
-        );
-    }
-
-    // 2.1.2 Idioms Flashcard Session
-    if (state.status === 'flashcards') {
-        return (
-            <div className="relative z-10">
-                <FlashcardSession 
-                    idioms={state.activeIdioms || []}
-                    currentIndex={state.currentQuestionIndex}
-                    onNext={nextQuestion}
-                    onPrev={prevQuestion}
-                    onExit={goHome}
-                    onFinish={finishFlashcards}
-                    filters={state.filters || {} as any}
-                    onJump={jumpToQuestion}
-                />
-            </div>
-        );
-    }
-
-    // 2.1.3 Flashcard Summary Screen
-    if (state.status === 'flashcards-complete') {
-        return (
-            <div className="relative z-10">
-                <FlashcardSummary 
-                    totalCards={state.activeIdioms?.length || 0}
-                    filters={state.filters || {} as any}
-                    onRestart={restartQuiz}
-                    onHome={goHome}
-                />
-            </div>
-        );
-    }
-
-    // 3. Configuration Page
-    if (state.status === 'config') {
-      return (
-        <div className="relative z-10">
-           <QuizConfig 
-            onStart={(questions, filters, mode) => {
-                startQuiz(questions, filters || {
-                  subject: [], topic: [], subTopic: [], difficulty: [], 
-                  questionType: [], examName: [], examYear: [], examDateShift: [], tags: []
-                }, mode || 'learning');
-            }} 
-            onBack={goHome}
-          />
-        </div>
-      );
-    }
-
-    // 4. Result Page
-    if (state.status === 'result') {
-      return (
-        <div className="relative z-10">
-          <QuizResult 
-            score={state.score} 
-            total={totalQuestions} 
-            questions={state.activeQuestions}
-            answers={state.answers}
-            timeTaken={state.timeTaken}
-            bookmarks={state.bookmarks}
-            onRestart={restartQuiz} 
-            onGoHome={goHome}
-          />
-        </div>
-      );
-    }
-
-    // 5. Active Quiz Page (MCQ)
+  // 1. Immersive Modes (No Header/Footer)
+  if (state.status === 'quiz') {
     return (
       <div className="relative z-10 max-w-6xl mx-auto">
         <ActiveQuizSession 
@@ -329,12 +134,190 @@ export const QuizContainer: React.FC = () => {
         />
       </div>
     );
+  }
+
+  if (state.status === 'flashcards') {
+    return (
+      <div className="relative z-10">
+          <FlashcardSession 
+              idioms={state.activeIdioms || []}
+              currentIndex={state.currentQuestionIndex}
+              onNext={nextQuestion}
+              onPrev={prevQuestion}
+              onExit={goHome}
+              onFinish={finishFlashcards}
+              filters={state.filters || {} as any}
+              onJump={jumpToQuestion}
+          />
+      </div>
+    );
+  }
+
+  // 2. Content for Layout Pages
+  const renderLayoutContent = () => {
+    switch (state.status) {
+      case 'english-home':
+        return <EnglishQuizHome onBack={enterHome} onVocabClick={enterVocabHome} />;
+        
+      case 'vocab-home':
+        return <VocabQuizHome onBack={enterEnglishHome} onIdiomsClick={enterIdiomsConfig} />;
+        
+      case 'idioms-config':
+        return (
+          <IdiomsConfig 
+              onBack={enterVocabHome}
+              onStart={(data, filters) => {
+                  startFlashcards(data as any, filters || {
+                    subject: [], topic: [], subTopic: [], difficulty: [], 
+                    questionType: [], examName: [], examYear: [], examDateShift: [], tags: []
+                  });
+              }}
+          />
+        );
+
+      case 'flashcards-complete':
+        return (
+          <FlashcardSummary 
+              totalCards={state.activeIdioms?.length || 0}
+              filters={state.filters || {} as any}
+              onRestart={restartQuiz}
+              onHome={goHome}
+          />
+        );
+
+      case 'config':
+        return (
+           <QuizConfig 
+            onStart={(questions, filters, mode) => {
+                startQuiz(questions, filters || {
+                  subject: [], topic: [], subTopic: [], difficulty: [], 
+                  questionType: [], examName: [], examYear: [], examDateShift: [], tags: []
+                }, mode || 'learning');
+            }} 
+            onBack={goHome}
+          />
+        );
+
+      case 'result':
+        return (
+          <QuizResult 
+            score={state.score} 
+            total={totalQuestions} 
+            questions={state.activeQuestions}
+            answers={state.answers}
+            timeTaken={state.timeTaken}
+            bookmarks={state.bookmarks}
+            onRestart={restartQuiz} 
+            onGoHome={goHome}
+          />
+        );
+
+      // Default: Dashboard ('idle')
+      default:
+        return (
+          <div className="flex flex-col">
+            <div className="flex-1 flex flex-col items-center justify-center space-y-10 py-6 relative z-10 animate-fade-in">
+              
+              {/* Hero Section */}
+              <div className="relative text-center max-w-4xl mx-auto mt-6">
+                <h1 className="text-4xl sm:text-6xl font-black text-gray-900 leading-tight mb-4 drop-shadow-sm">
+                  Master Your <br />
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-500">
+                    Knowledge.
+                  </span>
+                </h1>
+                
+                <p className="text-base text-gray-600 mb-8 max-w-md mx-auto leading-relaxed font-medium">
+                  Adaptive quizzes, detailed analytics, and instant feedback to help you learn faster.
+                </p>
+                
+                <div className="flex items-center justify-center gap-3 relative z-20">
+                  <Button 
+                    size="lg" 
+                    onClick={enterConfig} 
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-3 rounded-xl shadow-xl shadow-indigo-200 transition-all transform active:scale-95"
+                  >
+                    Start Quiz
+                  </Button>
+                </div>
+              </div>
+
+              {/* Cards Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
+                {/* Card 1 - Custom Quiz */}
+                <div 
+                  onClick={enterConfig}
+                  className="bg-white p-6 rounded-2xl border border-gray-200 cursor-pointer group relative z-20 transition-all duration-200 active:scale-[0.98] shadow-sm hover:shadow-md hover:border-indigo-300"
+                >
+                  <div className="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                    <ListChecks className="w-5 h-5 text-indigo-600" />
+                  </div>
+                  <h3 className="text-lg font-bold text-gray-900 mb-1">Custom Quiz</h3>
+                  <p className="text-gray-500 text-xs font-medium">
+                    Filter by subject, topic, and difficulty.
+                  </p>
+                </div>
+
+                {/* Card 2 - English */}
+                <div 
+                  onClick={enterEnglishHome}
+                  className="bg-white p-6 rounded-2xl border border-gray-200 cursor-pointer group relative z-20 transition-all duration-200 active:scale-[0.98] shadow-sm hover:shadow-md hover:border-rose-300"
+                >
+                  <div className="w-10 h-10 bg-rose-50 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                    <Languages className="w-5 h-5 text-rose-600" />
+                  </div>
+                  <h3 className="text-lg font-bold text-gray-900 mb-1">English Zone</h3>
+                  <p className="text-gray-500 text-xs font-medium">
+                    Vocab, Grammar & Mock Tests.
+                  </p>
+                </div>
+
+                {/* Card 3 - Content */}
+                <div className="bg-white p-6 rounded-2xl border border-gray-200 relative overflow-hidden group cursor-pointer transition-all duration-200 active:scale-[0.98] shadow-sm hover:shadow-md hover:border-orange-300">
+                  <div className="w-10 h-10 bg-orange-50 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                    <FileText className="w-5 h-5 text-orange-600" />
+                  </div>
+                  <h3 className="text-lg font-bold text-gray-900 mb-1">Study Material</h3>
+                  <p className="text-gray-500 text-xs font-medium">
+                    Download PDFs and notes.
+                  </p>
+                </div>
+
+                {/* Card 4 - Guide */}
+                <div className="bg-white p-6 rounded-2xl border border-gray-200 cursor-pointer group transition-all duration-200 active:scale-[0.98] shadow-sm hover:shadow-md hover:border-blue-300">
+                  <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                    <BookOpen className="w-5 h-5 text-blue-600" />
+                  </div>
+                  <h3 className="text-lg font-bold text-gray-900 mb-1">User Guide</h3>
+                  <p className="text-gray-500 text-xs font-medium">
+                    Learn how to use the app.
+                  </p>
+                </div>
+              </div>
+              
+              <div className="w-full text-center pb-4">
+                 <button onClick={goToIntro} className="text-xs text-gray-400 hover:text-indigo-500 font-semibold uppercase tracking-widest">
+                    Back to Intro
+                 </button>
+              </div>
+            </div>
+          </div>
+        );
+    }
   };
 
   return (
-    <>
+    <MainLayout 
+      activeTab={getActiveTab()} 
+      onTabChange={handleTabChange}
+      onOpenSettings={() => setIsSettingsOpen(true)}
+    >
       {areBgAnimationsEnabled && <Fireballs />}
-      {renderContent()}
-    </>
+      
+      {/* Global Settings Modal */}
+      <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
+      
+      {renderLayoutContent()}
+    </MainLayout>
   );
 };
