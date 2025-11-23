@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { ChevronDown, Check, X, Search } from 'lucide-react';
+import { ChevronDown, Check, X, Search, Info } from 'lucide-react';
 import { cn } from '../../../../utils/cn';
 
 export function MultiSelectDropdown({ 
@@ -9,7 +9,8 @@ export function MultiSelectDropdown({
   onSelectionChange,
   placeholder = 'Select Options',
   disabled = false,
-  counts
+  counts,
+  tooltip
 }: { 
   label?: string;
   options: string[]; 
@@ -18,6 +19,7 @@ export function MultiSelectDropdown({
   placeholder?: string;
   disabled?: boolean;
   counts?: { [key: string]: number };
+  tooltip?: string;
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -71,7 +73,20 @@ export function MultiSelectDropdown({
 
   return (
     <div className="relative" ref={dropdownRef}>
-      {label && <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">{label}</label>}
+      {label && (
+        <div className="flex items-center gap-1.5 mb-1.5">
+          <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider">{label}</label>
+          {tooltip && (
+            <div className="group relative flex items-center">
+              <Info className="w-3.5 h-3.5 text-gray-400 cursor-help hover:text-indigo-500 transition-colors" />
+              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block w-48 p-2 bg-gray-800 text-white text-xs rounded shadow-lg z-50 pointer-events-none text-center font-normal leading-relaxed">
+                {tooltip}
+                <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-800" />
+              </div>
+            </div>
+          )}
+        </div>
+      )}
       
       <button 
         onClick={() => !disabled && setIsOpen(!isOpen)} 

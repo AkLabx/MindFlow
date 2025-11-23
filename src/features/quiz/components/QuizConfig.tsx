@@ -55,6 +55,7 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
   const [isStartingQuiz, setIsStartingQuiz] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [progress, setProgress] = useState({ current: 0, total: 0 });
+  const [showEmptyError, setShowEmptyError] = useState(false);
 
   // 0. Fetch Metadata on Mount
   const loadMetadata = useCallback(async () => {
@@ -132,6 +133,13 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
      });
   }, [filters, metadata]);
 
+  // Clear error when filters change
+  useEffect(() => {
+    if (filteredMetadata.length > 0) {
+      setShowEmptyError(false);
+    }
+  }, [filteredMetadata.length]);
+
   // --- Handlers ---
 
   const startQuizWithQuestions = async (questionSubset: Question[], activeFilters: InitialFilters) => {
@@ -152,9 +160,13 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
   };
 
   const handleStart = () => {
-    if (filteredMetadata.length > 0) {
-      startQuizWithQuestions(filteredMetadata, filters);
+    if (filteredMetadata.length === 0) {
+      setShowEmptyError(true);
+      // Auto hide message after 4 seconds
+      setTimeout(() => setShowEmptyError(false), 4000);
+      return;
     }
+    startQuizWithQuestions(filteredMetadata, filters);
   };
 
   const handleQuickStart = (type: 'Easy' | 'Medium' | 'Hard' | 'Mix') => {
@@ -333,6 +345,7 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
           <FilterGroup title="Classification" icon={<Layers className="w-5 h-5" />}>
              <MultiSelectDropdown 
                 label="Subject"
+                tooltip="Filter questions by broad academic discipline"
                 options={allSubjects}
                 selectedOptions={filters.subject}
                 onSelectionChange={(sel) => handleFilterChange('subject', sel)}
@@ -341,6 +354,7 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
              />
              <MultiSelectDropdown 
                 label="Topic"
+                tooltip="Filter by specific topics within the selected subjects"
                 options={availableTopics}
                 selectedOptions={filters.topic}
                 onSelectionChange={(sel) => handleFilterChange('topic', sel)}
@@ -350,6 +364,7 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
              />
              <MultiSelectDropdown 
                 label="Sub-Topic"
+                tooltip="Filter by granular sub-topics for precise practice"
                 options={availableSubTopics}
                 selectedOptions={filters.subTopic}
                 onSelectionChange={(sel) => handleFilterChange('subTopic', sel)}
@@ -363,6 +378,7 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
           <FilterGroup title="Properties" icon={<Settings className="w-5 h-5" />}>
               <SegmentedControl 
                   label="Difficulty"
+                  tooltip="Choose question complexity level"
                   options={['Easy', 'Medium', 'Hard']}
                   selectedOptions={filters.difficulty}
                   onOptionToggle={(opt) => handleSegmentToggle('difficulty', opt)}
@@ -370,6 +386,7 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
               />
               <SegmentedControl 
                   label="Question Type"
+                  tooltip="Filter by question format (e.g., Multiple Choice)"
                   options={['MCQ']}
                   selectedOptions={filters.questionType}
                   onOptionToggle={(opt) => handleSegmentToggle('questionType', opt)}
@@ -381,6 +398,7 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
           <FilterGroup title="Source" icon={<FileText className="w-5 h-5" />}>
              <MultiSelectDropdown 
                 label="Exam Name"
+                tooltip="Filter by specific competitive exam source"
                 options={allExamNames}
                 selectedOptions={filters.examName}
                 onSelectionChange={(sel) => handleFilterChange('examName', sel)}
@@ -389,6 +407,7 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
              />
              <MultiSelectDropdown 
                 label="Exam Year"
+                tooltip="Filter questions by the year they appeared"
                 options={allExamYears}
                 selectedOptions={filters.examYear}
                 onSelectionChange={(sel) => handleFilterChange('examYear', sel)}
@@ -397,6 +416,7 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
              />
              <MultiSelectDropdown 
                 label="Exam Shift"
+                tooltip="Filter by specific exam date or shift"
                 options={allExamShifts}
                 selectedOptions={filters.examDateShift}
                 onSelectionChange={(sel) => handleFilterChange('examDateShift', sel)}
@@ -409,6 +429,7 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
           <FilterGroup title="Tags" icon={<Tag className="w-5 h-5" />}>
              <MultiSelectDropdown 
                 label="Search Tags"
+                tooltip="Filter using specific keywords or concepts"
                 options={allTags}
                 selectedOptions={filters.tags}
                 onSelectionChange={(sel) => handleFilterChange('tags', sel)}
@@ -432,14 +453,22 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
               <RotateCcw className="w-4 h-4" /> Reset
             </Button>
             
-            <Button 
-              size="lg" 
-              onClick={handleStart}
-              disabled={filteredMetadata.length === 0 || isStartingQuiz}
-              className="bg-green-500 hover:bg-green-600 text-white border-0 shadow-lg shadow-green-200 hover:shadow-xl hover:shadow-green-300 w-full sm:w-auto px-8 py-3 text-base"
-            >
-              {isStartingQuiz ? 'Loading...' : `Start Quiz (${filteredMetadata.length})`}
-            </Button>
+            <div className="relative w-full sm:w-auto">
+                {showEmptyError && (
+                  <div className="absolute bottom-full mb-3 right-0 sm:left-auto sm:right-0 w-full sm:w-64 bg-red-50 text-red-600 text-xs font-semibold px-3 py-2 rounded-lg shadow-sm border border-red-100 animate-in fade-in slide-in-from-bottom-2 text-center sm:text-right z-10">
+                    No questions match your criteria. <br/> Please adjust filters.
+                    <div className="absolute top-full right-8 sm:right-12 border-4 border-transparent border-t-red-100"></div>
+                  </div>
+                )}
+                <Button 
+                  size="lg" 
+                  onClick={handleStart}
+                  disabled={isStartingQuiz}
+                  className="bg-green-500 hover:bg-green-600 text-white border-0 shadow-lg shadow-green-200 hover:shadow-xl hover:shadow-green-300 w-full sm:w-auto px-8 py-3 text-base"
+                >
+                  {isStartingQuiz ? 'Loading...' : `Start Quiz (${filteredMetadata.length})`}
+                </Button>
+            </div>
         </div>
       </div>
     </div>
