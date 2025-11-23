@@ -1,29 +1,18 @@
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { cn } from '../../../../utils/cn';
 import { Idiom } from '../../types';
 import { BookOpen, Lightbulb, Quote, RotateCw } from 'lucide-react';
 
 interface FlashcardProps {
   idiom: Idiom;
+  isFlipped: boolean;
 }
 
-export const Flashcard: React.FC<FlashcardProps> = ({ idiom }) => {
-  const [isFlipped, setIsFlipped] = useState(false);
-
-  // Reset flip state when idiom changes
-  useEffect(() => {
-    setIsFlipped(false);
-  }, [idiom.id]);
-
-  const handleFlip = () => {
-    setIsFlipped(!isFlipped);
-  };
-
+export const Flashcard: React.FC<FlashcardProps> = ({ idiom, isFlipped }) => {
   return (
     <div 
       className="relative w-full h-full perspective-1000 cursor-pointer group"
-      onClick={handleFlip}
     >
       <div 
         className={cn(

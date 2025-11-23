@@ -1,7 +1,7 @@
 
 import { Question, InitialFilters, Idiom } from '../../../types/models';
 
-export type QuizStatus = 'intro' | 'idle' | 'config' | 'quiz' | 'flashcards' | 'result' | 'english-home' | 'vocab-home' | 'idioms-config';
+export type QuizStatus = 'intro' | 'idle' | 'config' | 'quiz' | 'flashcards' | 'flashcards-complete' | 'result' | 'english-home' | 'vocab-home' | 'idioms-config';
 export type QuizMode = 'learning' | 'mock';
 
 export interface QuizState {
@@ -41,5 +41,6 @@ export type QuizAction =
   | { type: 'TOGGLE_REVIEW'; payload: { questionId: string } }
   | { type: 'USE_50_50'; payload: { questionId: string; hiddenOptions: string[] } }
   | { type: 'FINISH_QUIZ' }
+  | { type: 'FINISH_FLASHCARDS' }
   | { type: 'RESTART_QUIZ' }
   | { type: 'GO_HOME' };

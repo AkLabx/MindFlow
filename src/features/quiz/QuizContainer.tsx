@@ -9,6 +9,7 @@ import { EnglishQuizHome } from './components/EnglishQuizHome';
 import { VocabQuizHome } from './components/VocabQuizHome';
 import { IdiomsConfig } from './components/IdiomsConfig';
 import { FlashcardSession } from './components/Flashcard/FlashcardSession';
+import { FlashcardSummary } from './components/Flashcard/FlashcardSummary';
 import { Fireballs } from '../../components/Background/Fireballs';
 import { Button } from '../../components/Button/Button';
 import { ArrowRight, ListChecks, FileText, BookOpen, ArrowLeft, Download, Languages } from 'lucide-react';
@@ -28,6 +29,7 @@ export const QuizContainer: React.FC = () => {
     goToIntro,
     startQuiz,
     startFlashcards,
+    finishFlashcards,
     answerQuestion,
     logTimeSpent,
     saveTimer,
@@ -232,7 +234,22 @@ export const QuizContainer: React.FC = () => {
                     onNext={nextQuestion}
                     onPrev={prevQuestion}
                     onExit={goHome}
+                    onFinish={finishFlashcards}
                     filters={state.filters || {} as any}
+                />
+            </div>
+        );
+    }
+
+    // 2.1.3 Flashcard Summary Screen
+    if (state.status === 'flashcards-complete') {
+        return (
+            <div className="relative z-10">
+                <FlashcardSummary 
+                    totalCards={state.activeIdioms?.length || 0}
+                    filters={state.filters || {} as any}
+                    onRestart={restartQuiz}
+                    onHome={goHome}
                 />
             </div>
         );

@@ -1,16 +1,17 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { ArrowLeft, Play, Loader2, Quote, FileText, Settings } from 'lucide-react';
+import { ArrowLeft, Play, Loader2, Quote, FileText, Settings, Calendar } from 'lucide-react';
 import { Button } from '../../../components/Button/Button';
 import { InitialFilters, QuizMode, Idiom } from '../types';
 import { MultiSelectDropdown } from './ui/MultiSelectDropdown';
 import { SegmentedControl } from './ui/SegmentedControl';
 import { ActiveFiltersBar } from './ui/ActiveFiltersBar';
+import { cn } from '../../../utils/cn';
 // Import JSON directly
 import idiomsData from '../data/idioms.json';
 
 interface IdiomsConfigProps {
-  onStart: (questions: any[], filters?: InitialFilters, mode?: QuizMode) => void; // Kept generic to satisfy strict type checker if needed, but effectively used for Flashcards
+  onStart: (questions: any[], filters?: InitialFilters, mode?: QuizMode) => void; 
   onBack: () => void;
 }
 
@@ -83,9 +84,6 @@ export const IdiomsConfig: React.FC<IdiomsConfigProps> = ({ onStart, onBack }) =
           alert("No idioms found matching your criteria.");
           return;
       }
-      // Pass the idioms directly to the handler. 
-      // The parent component will differentiate based on context or we invoke a specific method if passed.
-      // Here we assume onStart is generic enough or we trigger the flashcard mode.
       onStart(filteredIdioms, filters, 'learning'); 
   };
 
@@ -127,31 +125,63 @@ export const IdiomsConfig: React.FC<IdiomsConfigProps> = ({ onStart, onBack }) =
 
             <div className="flex-1 space-y-6">
                 
-                {/* Source Card */}
+                {/* Source Name Card */}
                 <div className="bg-white p-6 rounded-2xl border border-amber-100 shadow-sm relative overflow-hidden">
                     <div className="absolute top-0 left-0 w-1 h-full bg-amber-400" />
                     <div className="flex items-center gap-2 mb-4 text-amber-800 font-bold text-sm uppercase tracking-wider">
                         <FileText className="w-4 h-4" /> Source Material
                     </div>
                     
-                    <div className="space-y-4">
-                        <MultiSelectDropdown 
-                            label="Source Name (e.g., Blackbook)"
-                            options={allExamNames}
-                            selectedOptions={filters.examName}
-                            onSelectionChange={(sel) => setFilters(prev => ({ ...prev, examName: sel }))}
-                            counts={counts}
-                            placeholder="Select Source"
-                        />
-                        
-                        <MultiSelectDropdown 
-                            label="Exam Year"
-                            options={allExamYears}
-                            selectedOptions={filters.examYear}
-                            onSelectionChange={(sel) => setFilters(prev => ({ ...prev, examYear: sel }))}
-                            counts={counts}
-                            placeholder="Select Years"
-                        />
+                    <MultiSelectDropdown 
+                        label="Source Name"
+                        options={allExamNames}
+                        selectedOptions={filters.examName}
+                        onSelectionChange={(sel) => setFilters(prev => ({ ...prev, examName: sel }))}
+                        counts={counts}
+                        placeholder="Select Source (e.g. Blackbook)"
+                    />
+                </div>
+
+                {/* Exam Year Card (New Visuals) */}
+                <div className="bg-white p-6 rounded-2xl border border-amber-100 shadow-sm relative overflow-hidden">
+                    <div className="absolute top-0 left-0 w-1 h-full bg-amber-400" />
+                    <div className="flex items-center gap-2 mb-4 text-amber-800 font-bold text-sm uppercase tracking-wider">
+                        <Calendar className="w-4 h-4" /> Exam Year
+                    </div>
+                    
+                    {/* Custom Chip Grid imitating Segmented Control */}
+                    <div className="flex flex-wrap gap-2">
+                        {allExamYears.map(year => {
+                            const isSelected = filters.examYear.includes(year);
+                            const count = counts[year] || 0;
+                            const isDisabled = !isSelected && count === 0;
+
+                            return (
+                                <button
+                                    key={year}
+                                    onClick={() => !isDisabled && setFilters(prev => {
+                                        const current = prev.examYear;
+                                        return { ...prev, examYear: current.includes(year) ? current.filter(y => y !== year) : [...current, year] };
+                                    })}
+                                    disabled={isDisabled}
+                                    className={cn(
+                                        "px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 border select-none",
+                                        isSelected 
+                                            ? "bg-amber-100 text-amber-900 border-amber-300 ring-1 ring-amber-300" 
+                                            : "bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100 hover:border-gray-300",
+                                        isDisabled && "opacity-40 cursor-not-allowed bg-gray-50"
+                                    )}
+                                >
+                                    {year}
+                                    <span className={cn(
+                                        "text-[10px] px-1.5 py-0.5 rounded-full min-w-[20px] text-center",
+                                        isSelected ? "bg-amber-200 text-amber-800" : "bg-gray-200 text-gray-500"
+                                    )}>
+                                        {count}
+                                    </span>
+                                </button>
+                            );
+                        })}
                     </div>
                 </div>
 

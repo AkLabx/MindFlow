@@ -10,7 +10,7 @@ export const useQuiz = () => {
 
   // Persistence Effect
   useEffect(() => {
-    if (state.status === 'quiz' || state.status === 'result' || state.status === 'flashcards') {
+    if (state.status === 'quiz' || state.status === 'result' || state.status === 'flashcards' || state.status === 'flashcards-complete') {
       localStorage.setItem(APP_CONFIG.STORAGE_KEYS.QUIZ_SESSION, JSON.stringify(state));
     } else if (state.status === 'idle' || state.status === 'intro') {
       // Clear session when explicitly leaving quiz flow
@@ -74,6 +74,10 @@ export const useQuiz = () => {
     dispatch({ type: 'FINISH_QUIZ' });
   }, [state.score, state.activeQuestions.length, state.timeTaken, state.mode]);
 
+  const finishFlashcards = useCallback(() => {
+      dispatch({ type: 'FINISH_FLASHCARDS' });
+  }, []);
+
   const restartQuiz = useCallback(() => dispatch({ type: 'RESTART_QUIZ' }), []);
   const goHome = useCallback(() => dispatch({ type: 'GO_HOME' }), []);
 
@@ -97,6 +101,7 @@ export const useQuiz = () => {
     goToIntro,
     startQuiz,
     startFlashcards,
+    finishFlashcards,
     answerQuestion,
     logTimeSpent,
     saveTimer,

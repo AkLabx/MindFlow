@@ -27,7 +27,7 @@ export const loadState = (defaultState: QuizState): QuizState => {
     if (saved) {
       const parsed = JSON.parse(saved);
       // Only restore if we are in a valid active/result state
-      if (parsed.status === 'quiz' || parsed.status === 'result' || parsed.status === 'flashcards') {
+      if (parsed.status === 'quiz' || parsed.status === 'result' || parsed.status === 'flashcards' || parsed.status === 'flashcards-complete') {
         return { ...defaultState, ...parsed };
       }
     }
@@ -149,8 +149,9 @@ export function quizReducer(state: QuizState, action: QuizAction): QuizState {
       const nextIndex = state.currentQuestionIndex + 1;
       
       if (nextIndex >= maxIndex) {
+        // If we are in flashcards and hit next on the last one, we don't auto-exit here.
+        // The UI handles the "Finish" button which calls FINISH_FLASHCARDS.
         if (state.status === 'flashcards') {
-           // Loop back or stay at end? Let's stay at end for flashcards
            return state; 
         }
         return { ...state, status: 'result' };
@@ -200,7 +201,20 @@ export function quizReducer(state: QuizState, action: QuizAction): QuizState {
     case 'FINISH_QUIZ':
       return { ...state, status: 'result' };
 
+    case 'FINISH_FLASHCARDS':
+      return { ...state, status: 'flashcards-complete' };
+
     case 'RESTART_QUIZ': {
+        // If restarting flashcards
+        if (state.status === 'flashcards' || state.status === 'flashcards-complete') {
+            return {
+                ...state,
+                status: 'flashcards',
+                currentQuestionIndex: 0
+            };
+        }
+
+        // If restarting quiz
         const globalTime = state.mode === 'mock' 
             ? Math.max(APP_CONFIG.TIMERS.MOCK_MODE_DEFAULT_PER_QUESTION, state.activeQuestions.length * APP_CONFIG.TIMERS.MOCK_MODE_DEFAULT_PER_QUESTION) 
             : 0;
@@ -211,7 +225,6 @@ export function quizReducer(state: QuizState, action: QuizAction): QuizState {
             activeQuestions: state.activeQuestions,
             filters: state.filters,
             quizTimeRemaining: globalTime,
-            // Reset learning timers
             remainingTimes: state.mode === 'learning' 
                 ? state.activeQuestions.reduce((acc, q) => ({...acc, [q.id]: APP_CONFIG.TIMERS.LEARNING_MODE_DEFAULT}), {})
                 : {}
