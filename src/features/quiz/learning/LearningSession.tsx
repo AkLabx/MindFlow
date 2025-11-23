@@ -1,13 +1,13 @@
 
 import React, { useState, useEffect } from 'react';
-import { ArrowRight, Star, Settings, X, Menu, ZoomIn, ZoomOut, Maximize2, Minimize2, Clock } from 'lucide-react';
+import { ArrowRight, Star, Settings, X, Menu, ZoomIn, ZoomOut, Maximize2, Minimize2, Clock, ChevronLeft, Home } from 'lucide-react';
 import { Question, InitialFilters } from '../types';
 import { QuizQuestionDisplay } from '../components/QuizQuestionDisplay';
 import { QuizExplanation } from '../components/QuizExplanation';
 import { QuizBreadcrumbs } from '../components/QuizBreadcrumbs';
 import { Button } from '../../../components/Button/Button';
 import { Badge } from '../../../components/ui/Badge';
-import { useQuizSounds } from '../../../hooks/useQuizSounds'; // UPDATED import
+import { useQuizSounds } from '../../../hooks/useQuizSounds';
 import { ActiveQuizLayout } from '../layouts/ActiveQuizLayout';
 import { SettingsModal } from '../components/ui/SettingsModal';
 import { cn } from '../../../utils/cn';
@@ -95,6 +95,12 @@ export const LearningSession: React.FC<LearningSessionProps> = ({ questions, fil
         }
     };
 
+    const handlePrev = () => {
+        if (currentIndex > 0) {
+            setCurrentIndex(prev => prev - 1);
+        }
+    };
+
     const toggleBookmark = () => {
         setBookmarks(prev => {
             if (prev.includes(currentQuestion.id)) return prev.filter(id => id !== currentQuestion.id);
@@ -122,7 +128,15 @@ export const LearningSession: React.FC<LearningSessionProps> = ({ questions, fil
         <div className="flex items-center justify-between p-3 sm:p-4 w-full bg-white">
              <div className="flex-1 flex flex-col">
                  <div className="flex items-center justify-between mb-2">
+                    {/* Desktop Breadcrumbs */}
                     <div className="hidden sm:block"><QuizBreadcrumbs filters={filters} onGoHome={onGoHome} /></div>
+                    
+                    {/* Mobile Home Button */}
+                    <div className="sm:hidden">
+                        <Button variant="ghost" size="sm" onClick={onGoHome} className="p-0 text-gray-500 hover:bg-transparent">
+                            <Home className="w-5 h-5" />
+                        </Button>
+                    </div>
                     
                     {/* Tools Group */}
                     <div className="flex items-center gap-2 ml-auto sm:ml-0">
@@ -155,7 +169,7 @@ export const LearningSession: React.FC<LearningSessionProps> = ({ questions, fil
                  
                  {/* Progress Bar Row */}
                  <div className="flex items-center gap-3">
-                     <button onClick={() => setIsNavOpen(true)} className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-600 sm:hidden border border-gray-200">
+                     <button onClick={() => setIsNavOpen(true)} className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-600 border border-gray-200">
                         <Menu className="w-5 h-5" />
                      </button>
                      
@@ -179,9 +193,14 @@ export const LearningSession: React.FC<LearningSessionProps> = ({ questions, fil
     );
 
     const footer = (
-        <div className="p-4 bg-white border-t border-gray-200 flex justify-between items-center">
-             <Button variant="ghost" onClick={onGoHome} className="text-gray-400 hover:text-gray-600">
-                <X className="w-4 h-4 mr-2" /> Quit
+        <div className="p-4 bg-white border-t border-gray-200 flex justify-between items-center gap-4">
+             <Button 
+                variant="ghost" 
+                onClick={handlePrev} 
+                disabled={currentIndex === 0} 
+                className="text-gray-500 hover:text-indigo-600"
+             >
+                <ChevronLeft className="w-4 h-4 mr-2" /> Previous
              </Button>
 
              <Button 
