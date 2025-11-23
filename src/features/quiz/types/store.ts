@@ -1,12 +1,13 @@
-import { Question, InitialFilters } from '../../../types/models';
 
-export type QuizStatus = 'intro' | 'idle' | 'config' | 'quiz' | 'result';
+import { Question, InitialFilters, Idiom } from '../../../types/models';
+
+export type QuizStatus = 'intro' | 'idle' | 'config' | 'quiz' | 'flashcards' | 'result' | 'english-home' | 'vocab-home' | 'idioms-config';
 export type QuizMode = 'learning' | 'mock';
 
 export interface QuizState {
   status: QuizStatus;
   mode: QuizMode;
-  currentQuestionIndex: number;
+  currentQuestionIndex: number; // Also used for Flashcard Index
   score: number;
   answers: Record<string, string>; // questionId -> selectedOptionText
   timeTaken: Record<string, number>; // questionId -> seconds
@@ -16,14 +17,19 @@ export interface QuizState {
   markedForReview: string[]; // array of questionIds
   hiddenOptions: Record<string, string[]>; // questionId -> array of hidden option texts (50:50)
   activeQuestions: Question[]; // The filtered subset of questions being used
+  activeIdioms?: Idiom[]; // The filtered subset of idioms for flashcards
   filters?: InitialFilters; // Persisted filters for context/breadcrumbs
 }
 
 export type QuizAction =
   | { type: 'ENTER_HOME' }
   | { type: 'ENTER_CONFIG' }
+  | { type: 'ENTER_ENGLISH_HOME' }
+  | { type: 'ENTER_VOCAB_HOME' }
+  | { type: 'ENTER_IDIOMS_CONFIG' }
   | { type: 'GO_TO_INTRO' }
   | { type: 'START_QUIZ'; payload: { questions: Question[]; filters: InitialFilters; mode: QuizMode } }
+  | { type: 'START_FLASHCARDS'; payload: { idioms: Idiom[]; filters: InitialFilters } }
   | { type: 'ANSWER_QUESTION'; payload: { questionId: string; answer: string; timeTaken: number } }
   | { type: 'LOG_TIME_SPENT'; payload: { questionId: string; timeTaken: number } }
   | { type: 'SAVE_TIMER'; payload: { questionId: string; time: number } }

@@ -5,9 +5,13 @@ import { QuizResult } from './components/QuizResult';
 import { QuizConfig } from './components/QuizConfig';
 import { LandingPage } from './components/LandingPage';
 import { ActiveQuizSession } from './components/ActiveQuizSession';
+import { EnglishQuizHome } from './components/EnglishQuizHome';
+import { VocabQuizHome } from './components/VocabQuizHome';
+import { IdiomsConfig } from './components/IdiomsConfig';
+import { FlashcardSession } from './components/Flashcard/FlashcardSession';
 import { Fireballs } from '../../components/Background/Fireballs';
 import { Button } from '../../components/Button/Button';
-import { ArrowRight, ListChecks, FileText, BookOpen, ArrowLeft, Download } from 'lucide-react';
+import { ArrowRight, ListChecks, FileText, BookOpen, ArrowLeft, Download, Languages } from 'lucide-react';
 import { SettingsContext } from '../../context/SettingsContext';
 import { usePWAInstall } from '../../hooks/usePWAInstall';
 
@@ -18,8 +22,12 @@ export const QuizContainer: React.FC = () => {
     totalQuestions,
     enterHome,
     enterConfig,
+    enterEnglishHome,
+    enterVocabHome,
+    enterIdiomsConfig,
     goToIntro,
     startQuiz,
+    startFlashcards,
     answerQuestion,
     logTimeSpent,
     saveTimer,
@@ -104,7 +112,7 @@ export const QuizContainer: React.FC = () => {
             </div>
 
             {/* Cards Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-12 w-full max-w-6xl mx-auto px-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-6xl mx-auto px-4">
               {/* Card 1 - Indigo Theme */}
               <div 
                 onClick={enterConfig}
@@ -119,7 +127,21 @@ export const QuizContainer: React.FC = () => {
                 </p>
               </div>
 
-              {/* Card 2 - Orange Theme */}
+              {/* Card 2 - English Section (Pink/Rose Theme) */}
+              <div 
+                onClick={enterEnglishHome}
+                className="bg-white p-8 rounded-3xl border border-gray-200 cursor-pointer group relative z-20 transition-all duration-300 ease-out hover:-translate-y-2 shadow-[12px_2px_0px_0px_#e2e8f0,0px_10px_20px_rgba(0,0,0,0.1)] hover:shadow-[12px_2px_0px_0px_#fb7185,0px_20px_30px_rgba(251,113,133,0.3)] hover:border-rose-300"
+              >
+                <div className="w-12 h-12 bg-rose-50 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform shadow-sm group-hover:bg-rose-100 group-hover:shadow-rose-200">
+                  <Languages className="w-6 h-6 text-rose-600" />
+                </div>
+                <h3 className="text-2xl font-bold text-gray-900 mb-3 group-hover:text-rose-700 transition-colors">English Quiz</h3>
+                <p className="text-gray-500 text-sm leading-relaxed font-medium group-hover:text-gray-600">
+                  Dedicated section for Vocabulary, Grammar, and English Mock tests.
+                </p>
+              </div>
+
+              {/* Card 3 - Orange Theme */}
               <div className="bg-white p-8 rounded-3xl border border-gray-200 relative overflow-hidden group cursor-pointer z-20 transition-all duration-300 ease-out hover:-translate-y-2 shadow-[12px_2px_0px_0px_#e2e8f0,0px_10px_20px_rgba(0,0,0,0.1)] hover:shadow-[12px_2px_0px_0px_#fb923c,0px_20px_30px_rgba(249,115,22,0.3)] hover:border-orange-300"
               >
                 <div className="absolute top-6 -right-12 bg-gradient-to-r from-yellow-400 to-orange-400 text-white text-[10px] font-black tracking-wider w-48 py-1.5 text-center rotate-45 shadow-md z-10 uppercase group-hover:shadow-orange-300/50">
@@ -135,11 +157,11 @@ export const QuizContainer: React.FC = () => {
                 </p>
               </div>
 
-              {/* Card 3 - Blue Theme */}
+              {/* Card 4 - Blue Theme */}
               <div className="bg-white p-8 rounded-3xl border border-gray-200 cursor-pointer group z-20 transition-all duration-300 ease-out hover:-translate-y-2 shadow-[12px_2px_0px_0px_#e2e8f0,0px_10px_20px_rgba(0,0,0,0.1)] hover:shadow-[12px_2px_0px_0px_#60a5fa,0px_20px_30px_rgba(59,130,246,0.3)] hover:border-blue-300"
               >
-                <div className="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform shadow-sm group-hover:bg-blue-100 group-hover:shadow-blue-200">
-                  <BookOpen className="w-6 h-6 text-indigo-600 group-hover:text-blue-600" />
+                <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform shadow-sm group-hover:bg-blue-100 group-hover:shadow-blue-200">
+                  <BookOpen className="w-6 h-6 text-blue-600" />
                 </div>
                 <h3 className="text-2xl font-bold text-gray-900 mb-3 group-hover:text-blue-700 transition-colors">User Guide</h3>
                 <p className="text-gray-500 text-sm leading-relaxed font-medium group-hover:text-gray-600">
@@ -161,7 +183,62 @@ export const QuizContainer: React.FC = () => {
       );
     }
 
-    // 2. Configuration Page
+    // 2. English Quiz Home Page
+    if (state.status === 'english-home') {
+      return (
+        <div className="relative z-10">
+          <EnglishQuizHome onBack={enterHome} onVocabClick={enterVocabHome} />
+        </div>
+      );
+    }
+
+    // 2.1 Vocab Quiz Home Page
+    if (state.status === 'vocab-home') {
+      return (
+        <div className="relative z-10">
+          <VocabQuizHome 
+            onBack={enterEnglishHome} 
+            onIdiomsClick={enterIdiomsConfig}
+          />
+        </div>
+      );
+    }
+
+    // 2.1.1 Idioms Config Page
+    if (state.status === 'idioms-config') {
+        return (
+            <div className="relative z-10">
+                <IdiomsConfig 
+                    onBack={enterVocabHome}
+                    onStart={(data, filters) => {
+                        // Start Flashcard Session with Idiom Data
+                        startFlashcards(data as any, filters || {
+                          subject: [], topic: [], subTopic: [], difficulty: [], 
+                          questionType: [], examName: [], examYear: [], examDateShift: [], tags: []
+                        });
+                    }}
+                />
+            </div>
+        );
+    }
+
+    // 2.1.2 Idioms Flashcard Session
+    if (state.status === 'flashcards') {
+        return (
+            <div className="relative z-10">
+                <FlashcardSession 
+                    idioms={state.activeIdioms || []}
+                    currentIndex={state.currentQuestionIndex}
+                    onNext={nextQuestion}
+                    onPrev={prevQuestion}
+                    onExit={goHome}
+                    filters={state.filters || {} as any}
+                />
+            </div>
+        );
+    }
+
+    // 3. Configuration Page
     if (state.status === 'config') {
       return (
         <div className="relative z-10">
@@ -178,7 +255,7 @@ export const QuizContainer: React.FC = () => {
       );
     }
 
-    // 3. Result Page
+    // 4. Result Page
     if (state.status === 'result') {
       return (
         <div className="relative z-10">
@@ -196,7 +273,7 @@ export const QuizContainer: React.FC = () => {
       );
     }
 
-    // 4. Active Quiz Page
+    // 5. Active Quiz Page (MCQ)
     return (
       <div className="relative z-10 max-w-6xl mx-auto">
         <ActiveQuizSession 
@@ -207,7 +284,7 @@ export const QuizContainer: React.FC = () => {
             allQuestions={state.activeQuestions}
             userAnswers={state.answers}
             timeTaken={state.timeTaken}
-            remainingTime={state.remainingTimes[currentQuestion.id] ?? 60}
+            remainingTime={state.remainingTimes[currentQuestion?.id] ?? 60}
             globalTimeRemaining={state.quizTimeRemaining}
             hiddenOptions={state.hiddenOptions}
             bookmarks={state.bookmarks}

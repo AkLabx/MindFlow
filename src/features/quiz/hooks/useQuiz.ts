@@ -3,14 +3,14 @@ import { useReducer, useCallback, useEffect } from 'react';
 import { logEvent } from '../services/analyticsService';
 import { APP_CONFIG } from '../../../constants/config';
 import { quizReducer, initialState, loadState } from '../stores/quizReducer';
-import { Question, InitialFilters, QuizMode } from '../types';
+import { Question, InitialFilters, QuizMode, Idiom } from '../types';
 
 export const useQuiz = () => {
   const [state, dispatch] = useReducer(quizReducer, initialState, loadState);
 
   // Persistence Effect
   useEffect(() => {
-    if (state.status === 'quiz' || state.status === 'result') {
+    if (state.status === 'quiz' || state.status === 'result' || state.status === 'flashcards') {
       localStorage.setItem(APP_CONFIG.STORAGE_KEYS.QUIZ_SESSION, JSON.stringify(state));
     } else if (state.status === 'idle' || state.status === 'intro') {
       // Clear session when explicitly leaving quiz flow
@@ -20,6 +20,9 @@ export const useQuiz = () => {
 
   const enterHome = useCallback(() => dispatch({ type: 'ENTER_HOME' }), []);
   const enterConfig = useCallback(() => dispatch({ type: 'ENTER_CONFIG' }), []);
+  const enterEnglishHome = useCallback(() => dispatch({ type: 'ENTER_ENGLISH_HOME' }), []);
+  const enterVocabHome = useCallback(() => dispatch({ type: 'ENTER_VOCAB_HOME' }), []);
+  const enterIdiomsConfig = useCallback(() => dispatch({ type: 'ENTER_IDIOMS_CONFIG' }), []);
   const goToIntro = useCallback(() => dispatch({ type: 'GO_TO_INTRO' }), []);
   
   const startQuiz = useCallback((filteredQuestions: Question[], filters: InitialFilters, mode: QuizMode = 'learning') => {
@@ -30,6 +33,10 @@ export const useQuiz = () => {
       mode: mode
     });
     dispatch({ type: 'START_QUIZ', payload: { questions: filteredQuestions, filters, mode } });
+  }, []);
+
+  const startFlashcards = useCallback((idioms: Idiom[], filters: InitialFilters) => {
+    dispatch({ type: 'START_FLASHCARDS', payload: { idioms, filters } });
   }, []);
   
   const answerQuestion = useCallback((questionId: string, answer: string, timeTaken: number) => {
@@ -84,8 +91,12 @@ export const useQuiz = () => {
     progress,
     enterHome,
     enterConfig,
+    enterEnglishHome,
+    enterVocabHome,
+    enterIdiomsConfig,
     goToIntro,
     startQuiz,
+    startFlashcards,
     answerQuestion,
     logTimeSpent,
     saveTimer,

@@ -15,6 +15,7 @@ export const initialState: QuizState = {
   markedForReview: [],
   hiddenOptions: {},
   activeQuestions: [],
+  activeIdioms: [],
   filters: undefined,
 };
 
@@ -26,7 +27,7 @@ export const loadState = (defaultState: QuizState): QuizState => {
     if (saved) {
       const parsed = JSON.parse(saved);
       // Only restore if we are in a valid active/result state
-      if (parsed.status === 'quiz' || parsed.status === 'result') {
+      if (parsed.status === 'quiz' || parsed.status === 'result' || parsed.status === 'flashcards') {
         return { ...defaultState, ...parsed };
       }
     }
@@ -43,6 +44,15 @@ export function quizReducer(state: QuizState, action: QuizAction): QuizState {
 
     case 'ENTER_CONFIG':
       return { ...state, status: 'config' };
+
+    case 'ENTER_ENGLISH_HOME':
+      return { ...state, status: 'english-home' };
+
+    case 'ENTER_VOCAB_HOME':
+      return { ...state, status: 'vocab-home' };
+
+    case 'ENTER_IDIOMS_CONFIG':
+      return { ...state, status: 'idioms-config' };
 
     case 'GO_TO_INTRO':
       return { ...initialState, status: 'intro' };
@@ -65,6 +75,17 @@ export function quizReducer(state: QuizState, action: QuizAction): QuizState {
         remainingTimes: mode === 'learning' 
             ? questions.reduce((acc, q) => ({...acc, [q.id]: APP_CONFIG.TIMERS.LEARNING_MODE_DEFAULT}), {})
             : {}
+      };
+    }
+
+    case 'START_FLASHCARDS': {
+      const { idioms, filters } = action.payload;
+      return {
+        ...initialState,
+        status: 'flashcards',
+        activeIdioms: idioms,
+        filters: filters,
+        currentQuestionIndex: 0
       };
     }
     
@@ -121,8 +142,17 @@ export function quizReducer(state: QuizState, action: QuizAction): QuizState {
     }
 
     case 'NEXT_QUESTION': {
+      const maxIndex = state.status === 'flashcards' 
+        ? (state.activeIdioms?.length || 0)
+        : state.activeQuestions.length;
+
       const nextIndex = state.currentQuestionIndex + 1;
-      if (nextIndex >= state.activeQuestions.length) {
+      
+      if (nextIndex >= maxIndex) {
+        if (state.status === 'flashcards') {
+           // Loop back or stay at end? Let's stay at end for flashcards
+           return state; 
+        }
         return { ...state, status: 'result' };
       }
       return { ...state, currentQuestionIndex: nextIndex };

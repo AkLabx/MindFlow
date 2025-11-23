@@ -38,6 +38,33 @@ export interface Question {
   explanation: Explanation;
 }
 
+// --- Idiom Types ---
+export interface IdiomContent {
+  phrase: string;
+  meanings: {
+    english: string;
+    hindi: string;
+  };
+  usage: string;
+  extras: {
+    mnemonic: string;
+    origin: string;
+  };
+}
+
+export interface Idiom {
+  id: string;
+  sourceInfo: {
+    pdfName: string;
+    examYear: number;
+  };
+  properties: {
+    difficulty: string;
+    status: string;
+  };
+  content: IdiomContent;
+}
+
 export interface InitialFilters {
   subject: string[];
   topic: string[];

@@ -1,0 +1,117 @@
+[
+  {
+    "id": "1",
+    "sourceInfo": {
+      "pdfName": "Blackbook",
+      "examYear": 2025
+    },
+    "properties": {
+      "difficulty": "Medium",
+      "status": "Active"
+    },
+    "content": {
+      "phrase": "A bite at the cherry",
+      "meanings": {
+        "english": "An attempt or opportunity to do something.",
+        "hindi": "कुछ करने का अवसर या प्रयास।"
+      },
+      "usage": "He failed the exam, but he will get another bite at the cherry next year.",
+      "extras": {
+        "mnemonic": "Imagine a cherry being a prize; taking a 'bite' is taking a chance to get it.",
+        "origin": "From the idea that cherries are small and usually eaten in one bite; getting a 'bite' implies getting a chance at the treat."
+      }
+    }
+  },
+  {
+    "id": "2",
+    "sourceInfo": {
+      "pdfName": "Blackbook",
+      "examYear": 2025
+    },
+    "properties": {
+      "difficulty": "Easy",
+      "status": "Active"
+    },
+    "content": {
+      "phrase": "A beast of burden",
+      "meanings": {
+        "english": "An animal (or person) that carries heavy luggage or work.",
+        "hindi": "बोझा ढोने वाला जानवर (या अत्यधिक काम करने वाला व्यक्ति)।"
+      },
+      "usage": "Donkeys have served as beasts of burden for thousands of years.",
+      "extras": {
+        "mnemonic": "A 'beast' that bears a 'burden' (load).",
+        "origin": "Historical reference to animals like donkeys, oxen, and camels domesticated for labor."
+      }
+    }
+  },
+  {
+    "id": "3",
+    "sourceInfo": {
+      "pdfName": "Blackbook",
+      "examYear": 2025
+    },
+    "properties": {
+      "difficulty": "Medium",
+      "status": "Active"
+    },
+    "content": {
+      "phrase": "A bull market",
+      "meanings": {
+        "english": "A market where prices are rising, encouraging buying.",
+        "hindi": "तेज़ी का बाज़ार (शेयर बाजार में बढ़ती कीमतें)।"
+      },
+      "usage": "Investors made significant profits during the long bull market.",
+      "extras": {
+        "mnemonic": "Bulls attack by thrusting their horns UP; hence, the market goes UP.",
+        "origin": "Contrasted with 'Bear market' (bears swipe down); likely originated in early 18th century exchange slang."
+      }
+    }
+  },
+  {
+    "id": "4",
+    "sourceInfo": {
+      "pdfName": "Blackbook",
+      "examYear": 2025
+    },
+    "properties": {
+      "difficulty": "Medium",
+      "status": "Active"
+    },
+    "content": {
+      "phrase": "A can of worms",
+      "meanings": {
+        "english": "A complicated situation; a problem that causes more trouble when you try to fix it.",
+        "hindi": "एक जटिल समस्या जिसे छेड़ने पर और मुसीबतें खड़ी हो जाएं।"
+      },
+      "usage": "Investigating the corruption scandal opened a real can of worms for the government.",
+      "extras": {
+        "mnemonic": "If you open a sealed can full of worms, they all wiggle out and make a mess that is hard to put back.",
+        "origin": "Used by fishermen who carried worms in closed cans; opening it could result in a messy escape."
+      }
+    }
+  },
+  {
+    "id": "5",
+    "sourceInfo": {
+      "pdfName": "Blackbook",
+      "examYear": 2025
+    },
+    "properties": {
+      "difficulty": "Easy",
+      "status": "Active"
+    },
+    "content": {
+      "phrase": "A clean slate",
+      "meanings": {
+        "english": "A fresh start; a situation where past mistakes are forgiven or forgotten.",
+        "hindi": "नई शुरुआत / पिछली गलतियों को भुला देना।"
+      },
+      "usage": "Moving to a new city gave him a clean slate to start his career.",
+      "extras": {
+        "mnemonic": "Think of an old chalkboard (slate) wiped clean so you can write something new.",
+        "origin": "Refers to slate chalkboards used in schools and taverns; wiping them clean meant clearing the debt or record."
+      }
+    }
+  }
+]
