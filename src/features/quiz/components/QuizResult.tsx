@@ -1,7 +1,8 @@
-
 import React, { useState, useMemo } from 'react';
 import { Trophy, RotateCcw, Home, Target, Clock, CheckCircle2, XCircle, List, ChevronRight } from 'lucide-react';
 import { Button } from '../../../components/Button/Button';
+import { Card } from '../../../components/ui/Card';
+import { ProgressBar } from '../../../components/ui/ProgressBar';
 import { Question } from '../types';
 import { DonutChart } from './ui/DonutChart';
 import { QuizReview } from './QuizReview';
@@ -109,7 +110,7 @@ export const QuizResult: React.FC<QuizResultProps> = ({
     <div className="max-w-4xl mx-auto p-6 animate-fade-in">
       
       {/* Hero Card */}
-      <div className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden mb-8">
+      <Card noPadding className="mb-8 border-0 shadow-lg">
           <div className="bg-indigo-600 p-8 text-white text-center relative overflow-hidden">
               {/* Background Pattern */}
               <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-white via-transparent to-transparent" />
@@ -128,8 +129,8 @@ export const QuizResult: React.FC<QuizResultProps> = ({
               <div className="flex flex-col items-center justify-center">
                   <DonutChart correct={correct} incorrect={incorrect} unanswered={unanswered} size={180} />
                   <div className="flex gap-4 mt-4 text-xs font-bold uppercase tracking-wider">
-                      <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-green-500" /> {correct} Correct</div>
-                      <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-red-500" /> {incorrect} Wrong</div>
+                      <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-emerald-500" /> {correct} Correct</div>
+                      <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-rose-500" /> {incorrect} Wrong</div>
                   </div>
               </div>
 
@@ -151,17 +152,17 @@ export const QuizResult: React.FC<QuizResultProps> = ({
                       <div className="flex items-center gap-2 text-gray-500 mb-1 text-sm font-semibold">
                           <Clock className="w-4 h-4" /> Avg. Time (Correct)
                       </div>
-                      <div className="text-2xl font-black text-green-600">{timeAnalysis.avgCorrect}s</div>
+                      <div className="text-2xl font-black text-emerald-600">{timeAnalysis.avgCorrect}s</div>
                   </div>
                   <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
                       <div className="flex items-center gap-2 text-gray-500 mb-1 text-sm font-semibold">
                           <Clock className="w-4 h-4" /> Avg. Time (Wrong)
                       </div>
-                      <div className="text-2xl font-black text-red-600">{timeAnalysis.avgIncorrect}s</div>
+                      <div className="text-2xl font-black text-rose-600">{timeAnalysis.avgIncorrect}s</div>
                   </div>
               </div>
           </div>
-      </div>
+      </Card>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           
@@ -169,30 +170,27 @@ export const QuizResult: React.FC<QuizResultProps> = ({
           <div className="space-y-4 order-2 md:order-1">
              <h3 className="font-bold text-gray-900 text-lg">Actions</h3>
              
-             <button 
-                onClick={() => { setReviewFilter('All'); setView('review'); }}
-                className="w-full p-4 bg-white border border-gray-200 rounded-xl shadow-sm hover:border-indigo-300 hover:shadow-md transition-all flex items-center justify-between group"
-             >
+             <Card onClick={() => { setReviewFilter('All'); setView('review'); }} className="flex items-center justify-between group border-transparent shadow-md hover:shadow-lg">
                  <div className="flex items-center gap-3">
                     <div className="bg-indigo-50 p-2 rounded-lg text-indigo-600"><List className="w-5 h-5" /></div>
                     <span className="font-semibold text-gray-700">Review All Questions</span>
                  </div>
                  <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-indigo-500" />
-             </button>
+             </Card>
 
              <button 
                 onClick={() => { setReviewFilter('Incorrect'); setView('review'); }}
                 disabled={incorrect === 0}
                 className={cn(
-                    "w-full p-4 bg-white border border-gray-200 rounded-xl shadow-sm transition-all flex items-center justify-between group",
-                    incorrect === 0 ? "opacity-50 cursor-not-allowed" : "hover:border-red-300 hover:shadow-md"
+                    "w-full bg-white p-4 md:p-6 rounded-xl border border-transparent shadow-md transition-all flex items-center justify-between group text-left",
+                    incorrect === 0 ? "opacity-50 cursor-not-allowed" : "hover:shadow-lg cursor-pointer"
                 )}
              >
                  <div className="flex items-center gap-3">
-                    <div className="bg-red-50 p-2 rounded-lg text-red-600"><XCircle className="w-5 h-5" /></div>
+                    <div className="bg-rose-50 p-2 rounded-lg text-rose-600"><XCircle className="w-5 h-5" /></div>
                     <span className="font-semibold text-gray-700">Review Incorrect</span>
                  </div>
-                 <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-red-500" />
+                 <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-rose-500" />
              </button>
 
              <div className="grid grid-cols-2 gap-3 pt-4">
@@ -210,26 +208,25 @@ export const QuizResult: React.FC<QuizResultProps> = ({
               <h3 className="font-bold text-gray-900 text-lg mb-4">Performance by Subject</h3>
               <div className="space-y-4">
                   {subjectPerformance.map(sub => (
-                      <div key={sub.name} className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+                      <Card key={sub.name} className="py-4 border-l-4 border-l-transparent hover:border-l-indigo-500 transition-all">
                           <div className="flex justify-between items-end mb-2">
-                              <span className="font-semibold text-gray-700">{sub.name}</span>
-                              <span className={cn("font-bold", sub.accuracy >= 80 ? "text-green-600" : sub.accuracy >= 50 ? "text-yellow-600" : "text-red-600")}>
+                              <span className="font-bold text-gray-700">{sub.name}</span>
+                              <span className={cn("font-bold", sub.accuracy >= 80 ? "text-emerald-600" : sub.accuracy >= 50 ? "text-amber-600" : "text-rose-600")}>
                                   {sub.accuracy}%
                               </span>
                           </div>
-                          <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
-                              <div 
-                                className={cn("h-full rounded-full transition-all duration-1000", 
-                                    sub.accuracy >= 80 ? "bg-green-500" : sub.accuracy >= 50 ? "bg-yellow-500" : "bg-red-500"
-                                )}
-                                style={{ width: `${sub.accuracy}%` }}
-                              />
-                          </div>
-                          <div className="mt-2 text-xs text-gray-400 flex justify-between">
+                          
+                          <ProgressBar 
+                            value={sub.accuracy} 
+                            variant={sub.accuracy >= 80 ? 'success' : sub.accuracy >= 50 ? 'warning' : 'danger'} 
+                            size="sm"
+                          />
+
+                          <div className="mt-2 text-xs text-gray-400 flex justify-between font-medium">
                               <span>{sub.correct} / {sub.total} Correct</span>
                               <span>Target: 80%</span>
                           </div>
-                      </div>
+                      </Card>
                   ))}
               </div>
           </div>

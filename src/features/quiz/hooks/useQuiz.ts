@@ -1,192 +1,9 @@
 
 import { useReducer, useCallback, useEffect } from 'react';
-import { QuizState, QuizAction, Question, InitialFilters, QuizMode } from '../types';
 import { logEvent } from '../services/analyticsService';
-
-const STORAGE_KEY = 'mindflow_quiz_session_v1';
-
-const initialState: QuizState = {
-  status: 'intro',
-  mode: 'learning',
-  currentQuestionIndex: 0,
-  score: 0,
-  answers: {},
-  timeTaken: {},
-  remainingTimes: {},
-  quizTimeRemaining: 0,
-  bookmarks: [],
-  markedForReview: [],
-  hiddenOptions: {},
-  activeQuestions: [],
-  filters: undefined,
-};
-
-// Lazy initializer to restore session from localStorage
-const loadState = (defaultState: QuizState): QuizState => {
-  if (typeof window === 'undefined') return defaultState;
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      // Only restore if we are in a valid active/result state
-      if (parsed.status === 'quiz' || parsed.status === 'result') {
-        return { ...defaultState, ...parsed };
-      }
-    }
-  } catch (e) {
-    console.warn("Failed to load quiz session:", e);
-  }
-  return defaultState;
-};
-
-function quizReducer(state: QuizState, action: QuizAction): QuizState {
-  switch (action.type) {
-    case 'ENTER_HOME':
-      return { ...initialState, status: 'idle' };
-
-    case 'ENTER_CONFIG':
-      return { ...state, status: 'config' };
-
-    case 'GO_TO_INTRO':
-      return { ...initialState, status: 'intro' };
-
-    case 'START_QUIZ': {
-      const { questions, filters, mode } = action.payload;
-      // Mock Mode: 30 seconds per question. Ensure it's at least 30s.
-      const globalTime = mode === 'mock' ? Math.max(30, questions.length * 30) : 0;
-      
-      return { 
-        ...initialState, 
-        status: 'quiz', 
-        mode: mode,
-        activeQuestions: questions,
-        filters: filters,
-        quizTimeRemaining: globalTime
-      };
-    }
-    
-    case 'ANSWER_QUESTION': {
-      const { questionId, answer, timeTaken } = action.payload;
-      const question = state.activeQuestions.find(q => q.id === questionId);
-      
-      const isCorrect = question?.correct === answer;
-      
-      const prevAnswer = state.answers[questionId];
-      let newScore = state.score;
-
-      // Update score logic
-      if (!prevAnswer) {
-          // First time answering
-          if (isCorrect) newScore++;
-      } else {
-          // Changing answer
-          const wasCorrect = question?.correct === prevAnswer;
-          if (wasCorrect && !isCorrect) newScore--;
-          if (!wasCorrect && isCorrect) newScore++;
-      }
-      
-      // Accumulate time taken
-      const prevTime = state.timeTaken[questionId] || 0;
-
-      return {
-        ...state,
-        answers: { ...state.answers, [questionId]: answer },
-        timeTaken: { ...state.timeTaken, [questionId]: prevTime + timeTaken },
-        score: newScore,
-      };
-    }
-
-    case 'LOG_TIME_SPENT': {
-      const { questionId, timeTaken } = action.payload;
-      const prevTime = state.timeTaken[questionId] || 0;
-      return {
-        ...state,
-        timeTaken: { ...state.timeTaken, [questionId]: prevTime + timeTaken }
-      };
-    }
-
-    case 'SAVE_TIMER': {
-      const { questionId, time } = action.payload;
-      return {
-        ...state,
-        remainingTimes: { ...state.remainingTimes, [questionId]: time }
-      };
-    }
-
-    case 'SYNC_GLOBAL_TIMER': {
-        return { ...state, quizTimeRemaining: action.payload.time };
-    }
-
-    case 'NEXT_QUESTION': {
-      const nextIndex = state.currentQuestionIndex + 1;
-      if (nextIndex >= state.activeQuestions.length) {
-        // If next is clicked on last question, typically handled by Finish, but strictly speaking:
-        return { ...state, status: 'result' };
-      }
-      return { ...state, currentQuestionIndex: nextIndex };
-    }
-
-    case 'PREV_QUESTION': {
-      const prevIndex = Math.max(0, state.currentQuestionIndex - 1);
-      return { ...state, currentQuestionIndex: prevIndex };
-    }
-
-    case 'JUMP_TO_QUESTION': {
-      return { ...state, currentQuestionIndex: action.payload.index };
-    }
-
-    case 'TOGGLE_BOOKMARK': {
-      const { questionId } = action.payload;
-      const isBookmarked = state.bookmarks.includes(questionId);
-      return {
-        ...state,
-        bookmarks: isBookmarked 
-          ? state.bookmarks.filter(id => id !== questionId)
-          : [...state.bookmarks, questionId]
-      };
-    }
-
-    case 'TOGGLE_REVIEW': {
-      const { questionId } = action.payload;
-      const isMarked = state.markedForReview.includes(questionId);
-      return {
-        ...state,
-        markedForReview: isMarked 
-          ? state.markedForReview.filter(id => id !== questionId)
-          : [...state.markedForReview, questionId]
-      };
-    }
-
-    case 'USE_50_50': {
-      const { questionId, hiddenOptions } = action.payload;
-      return {
-        ...state,
-        hiddenOptions: { ...state.hiddenOptions, [questionId]: hiddenOptions }
-      };
-    }
-
-    case 'FINISH_QUIZ':
-      return { ...state, status: 'result' };
-
-    case 'RESTART_QUIZ': {
-        const globalTime = state.mode === 'mock' ? Math.max(30, state.activeQuestions.length * 30) : 0;
-        return { 
-            ...initialState, 
-            status: 'quiz', 
-            mode: state.mode,
-            activeQuestions: state.activeQuestions,
-            filters: state.filters,
-            quizTimeRemaining: globalTime
-        };
-    }
-      
-    case 'GO_HOME':
-      return { ...initialState, status: 'idle' };
-
-    default:
-      return state;
-  }
-}
+import { APP_CONFIG } from '../../../constants/config';
+import { quizReducer, initialState, loadState } from '../stores/quizReducer';
+import { Question, InitialFilters, QuizMode } from '../types';
 
 export const useQuiz = () => {
   const [state, dispatch] = useReducer(quizReducer, initialState, loadState);
@@ -194,10 +11,10 @@ export const useQuiz = () => {
   // Persistence Effect
   useEffect(() => {
     if (state.status === 'quiz' || state.status === 'result') {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      localStorage.setItem(APP_CONFIG.STORAGE_KEYS.QUIZ_SESSION, JSON.stringify(state));
     } else if (state.status === 'idle' || state.status === 'intro') {
       // Clear session when explicitly leaving quiz flow
-      localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem(APP_CONFIG.STORAGE_KEYS.QUIZ_SESSION);
     }
   }, [state]);
 

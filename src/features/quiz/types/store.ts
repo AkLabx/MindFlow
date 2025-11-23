@@ -1,0 +1,39 @@
+import { Question, InitialFilters } from '../../../types/models';
+
+export type QuizStatus = 'intro' | 'idle' | 'config' | 'quiz' | 'result';
+export type QuizMode = 'learning' | 'mock';
+
+export interface QuizState {
+  status: QuizStatus;
+  mode: QuizMode;
+  currentQuestionIndex: number;
+  score: number;
+  answers: Record<string, string>; // questionId -> selectedOptionText
+  timeTaken: Record<string, number>; // questionId -> seconds
+  remainingTimes: Record<string, number>; // questionId -> seconds left (Learning Mode)
+  quizTimeRemaining: number; // Global seconds left (Mock Mode)
+  bookmarks: string[]; // array of questionIds
+  markedForReview: string[]; // array of questionIds
+  hiddenOptions: Record<string, string[]>; // questionId -> array of hidden option texts (50:50)
+  activeQuestions: Question[]; // The filtered subset of questions being used
+  filters?: InitialFilters; // Persisted filters for context/breadcrumbs
+}
+
+export type QuizAction =
+  | { type: 'ENTER_HOME' }
+  | { type: 'ENTER_CONFIG' }
+  | { type: 'GO_TO_INTRO' }
+  | { type: 'START_QUIZ'; payload: { questions: Question[]; filters: InitialFilters; mode: QuizMode } }
+  | { type: 'ANSWER_QUESTION'; payload: { questionId: string; answer: string; timeTaken: number } }
+  | { type: 'LOG_TIME_SPENT'; payload: { questionId: string; timeTaken: number } }
+  | { type: 'SAVE_TIMER'; payload: { questionId: string; time: number } }
+  | { type: 'SYNC_GLOBAL_TIMER'; payload: { time: number } }
+  | { type: 'NEXT_QUESTION' }
+  | { type: 'PREV_QUESTION' }
+  | { type: 'JUMP_TO_QUESTION'; payload: { index: number } }
+  | { type: 'TOGGLE_BOOKMARK'; payload: { questionId: string } }
+  | { type: 'TOGGLE_REVIEW'; payload: { questionId: string } }
+  | { type: 'USE_50_50'; payload: { questionId: string; hiddenOptions: string[] } }
+  | { type: 'FINISH_QUIZ' }
+  | { type: 'RESTART_QUIZ' }
+  | { type: 'GO_HOME' };

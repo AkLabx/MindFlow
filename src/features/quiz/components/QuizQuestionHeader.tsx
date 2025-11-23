@@ -1,8 +1,8 @@
-
 import React from 'react';
-import { Star, Bookmark, Calendar, Clock } from 'lucide-react';
+import { Star, Calendar, Clock, Hash } from 'lucide-react';
 import { Question } from '../types';
 import { cn } from '../../../utils/cn';
+import { Badge } from '../../../components/ui/Badge';
 
 export function QuizQuestionHeader({ 
     question, 
@@ -27,47 +27,47 @@ export function QuizQuestionHeader({
   };
 
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 pb-4 border-b border-gray-100">
+    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 pb-4 border-b border-gray-100">
       
       <div className="flex items-center gap-3 flex-wrap">
-        <span className="px-2.5 py-1 bg-indigo-100 text-indigo-700 text-xs font-bold rounded-md">
-          Q.{currentIndex + 1} <span className="text-indigo-400 font-normal">/ {total}</span>
-        </span>
+        <Badge variant="primary" className="text-sm">
+          Question {currentIndex + 1} <span className="text-indigo-400 font-normal ml-1">/ {total}</span>
+        </Badge>
 
         {elapsedTime !== undefined && (
-            <span className="flex items-center gap-1 px-2.5 py-1 bg-blue-50 text-blue-700 text-xs font-bold rounded-md border border-blue-100">
-                <Clock className="w-3 h-3" />
+            <Badge variant="neutral" icon={<Clock className="w-3 h-3" />}>
                 {formatStopwatch(elapsedTime)}
-            </span>
+            </Badge>
         )}
         
         <button 
             onClick={onToggleBookmark}
             className={cn(
-                "p-1.5 rounded-md transition-colors flex items-center gap-1.5 text-xs font-medium",
+                "p-1.5 rounded-md transition-colors flex items-center gap-1.5 text-xs font-medium border",
                 isBookmarked 
-                    ? "bg-yellow-50 text-yellow-600 hover:bg-yellow-100" 
-                    : "text-gray-400 hover:bg-gray-50 hover:text-gray-600"
+                    ? "bg-amber-50 text-amber-600 border-amber-200 hover:bg-amber-100" 
+                    : "bg-white text-gray-400 border-gray-200 hover:bg-gray-50 hover:text-gray-600"
             )}
         >
-            <Star className={cn("w-4 h-4", isBookmarked ? "fill-current" : "")} />
-            <span className="hidden xs:inline">{isBookmarked ? "Bookmarked" : "Bookmark"}</span>
+            <Star className={cn("w-3.5 h-3.5", isBookmarked ? "fill-current" : "")} />
+            <span className="hidden xs:inline">{isBookmarked ? "Saved" : "Save"}</span>
         </button>
 
-        <span className="text-xs text-gray-300 font-mono hidden sm:inline-block">ID: {question.id}</span>
+        <span className="text-xs text-gray-300 font-mono hidden sm:flex items-center gap-1">
+            <Hash className="w-3 h-3" /> {question.id}
+        </span>
       </div>
 
-      <div className="flex flex-wrap gap-2 text-xs items-center">
+      <div className="flex flex-wrap gap-2 text-xs items-center justify-end">
         {question.sourceInfo?.examName && (
-             <span className="px-2 py-1 rounded-md bg-gray-100 text-gray-700 font-bold border border-gray-200">
-               {question.sourceInfo.examName} <span className="font-normal text-gray-500">{question.sourceInfo.examYear}</span>
-             </span>
+             <Badge variant="neutral" className="font-normal bg-gray-50">
+               {question.sourceInfo.examName} <span className="text-gray-400 mx-1">|</span> {question.sourceInfo.examYear}
+             </Badge>
         )}
         {question.sourceInfo?.examDateShift && (
-             <span className="px-2 py-1 rounded-md bg-white text-gray-500 font-medium border border-gray-200 flex items-center gap-1.5 shadow-sm">
-               <Calendar className="w-3 h-3 text-gray-400" />
+             <Badge variant="outline" icon={<Calendar className="w-3 h-3 text-gray-400" />} className="font-normal border-dashed">
                {question.sourceInfo.examDateShift}
-             </span>
+             </Badge>
         )}
       </div>
     </div>
