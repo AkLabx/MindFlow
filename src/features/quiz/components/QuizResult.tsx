@@ -95,6 +95,7 @@ export const QuizResult: React.FC<QuizResultProps> = ({
           <QuizReview 
             questions={questions}
             userAnswers={answers}
+            timeTaken={timeTaken}
             bookmarkedQuestions={bookmarks}
             onBackToScore={() => setView('score')}
             onGoHome={onGoHome || onRestart}

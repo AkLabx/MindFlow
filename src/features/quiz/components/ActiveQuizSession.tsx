@@ -8,8 +8,7 @@ import {
   ZoomOut, 
   Zap,
   AlertTriangle,
-  CheckCircle,
-  Hourglass
+  CheckCircle
 } from 'lucide-react';
 import { Question, InitialFilters, QuizMode } from '../types';
 import { QuizQuestionDisplay } from './QuizQuestionDisplay';
@@ -113,17 +112,21 @@ export const ActiveQuizSession: React.FC<ActiveQuizSessionProps> = ({
   });
 
   // 2. Mock Mode Timer (Global Countdown)
+  // Use a specific fixed key so it doesn't reset on question change.
+  // Use globalTimeRemaining as initial value only if we are starting (or refreshing). 
+  // Since globalTimeRemaining is updated via sync, we trust it.
   const [secondsLeftMock] = useTimer({
-    duration: globalTimeRemaining,
+    duration: globalTimeRemaining > 0 ? globalTimeRemaining : totalQuestions * 30,
     onTimeUp: onFinish,
-    key: 'global-mock-timer',
+    key: 'global-mock-timer', 
     isPaused: !isMockMode || (globalTimeRemaining <= 0)
   });
 
   // 3. Mock Mode Question Stopwatch (Count Up)
   useEffect(() => {
-    if (!isMockMode) return;
-
+    // Always count up for stopwatch (Learning or Mock) to show time spent, 
+    // but specifically log it for mock mode logic.
+    
     // Reset for new question
     setQuestionTimeElapsed(0);
     questionTimeRef.current = 0;
@@ -139,7 +142,8 @@ export const ActiveQuizSession: React.FC<ActiveQuizSessionProps> = ({
     // Log time when leaving the question (unmount or id change)
     return () => {
       clearInterval(interval);
-      if (questionTimeRef.current > 0) {
+      // In Mock Mode, log time when leaving question to accumulate
+      if (isMockMode && questionTimeRef.current > 0) {
         onLogTime(question.id, questionTimeRef.current);
       }
     };
@@ -154,6 +158,7 @@ export const ActiveQuizSession: React.FC<ActiveQuizSessionProps> = ({
 
   useEffect(() => {
       if (isMockMode) {
+          // Sync global timer less frequently to avoid excessive re-renders/dispatches
           const interval = setInterval(() => onSyncGlobalTimer(secondsLeftMock), 5000);
           return () => {
               clearInterval(interval);
@@ -186,7 +191,7 @@ export const ActiveQuizSession: React.FC<ActiveQuizSessionProps> = ({
       if (isAnswered && !isMockMode) return; 
       
       // In Mock Mode, we pass 0 for time here because time is tracked separately via onLogTime on navigation.
-      // In Learning Mode, we track time as 1 (or derived) for now, but typically Learning mode doesn't heavily rely on analytics accuracy.
+      // In Learning Mode, we track time as 1 (or derived) for now.
       const timeToLog = isMockMode ? 0 : 1;
       onAnswer(question.id, answer, timeToLog);
 
@@ -251,17 +256,6 @@ export const ActiveQuizSession: React.FC<ActiveQuizSessionProps> = ({
                     <Timer className="w-4 h-4" />
                     {isMockMode ? formatTime(secondsLeftMock) : formatTime(secondsLeftLearning)}
                 </div>
-
-                {/* Extra Timer for Mock Mode (Per Question Count-Up) */}
-                {isMockMode && (
-                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg font-mono font-bold text-sm bg-blue-50 text-blue-700 whitespace-nowrap">
-                        <Hourglass className="w-4 h-4" />
-                        {formatTime(questionTimeElapsed)}
-                    </div>
-                )}
-
-                {/* Streak Counter (Visual only, non-functional in mock mode for now) */}
-                {/* Add streak here if needed */}
              </div>
           </div>
 
@@ -312,6 +306,7 @@ export const ActiveQuizSession: React.FC<ActiveQuizSessionProps> = ({
                 total={totalQuestions}
                 isBookmarked={bookmarks.includes(question.id)}
                 onToggleBookmark={() => onToggleBookmark(question.id)}
+                elapsedTime={questionTimeElapsed} // Pass the stopwatch time
              />
 
              <QuizQuestionDisplay 

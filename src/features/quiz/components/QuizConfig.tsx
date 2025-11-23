@@ -11,7 +11,8 @@ import {
   AlertCircle,
   Database,
   BookOpen,
-  Timer
+  Timer,
+  Check
 } from 'lucide-react';
 import { Button } from '../../../components/Button/Button';
 import { fetchQuestionMetadata, fetchQuestionsByIds } from '../services/questionService'; 
@@ -273,28 +274,52 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
       <div className="p-6 space-y-6 bg-gray-50/50 flex-1 overflow-y-auto">
         
         {/* Mode Selection - Responsive Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-white p-2 rounded-xl border border-gray-200 shadow-sm">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
            <button 
              onClick={() => setMode('learning')}
              className={cn(
-               "flex flex-col items-center justify-center p-4 rounded-lg transition-all border-2",
-               mode === 'learning' ? "bg-indigo-50 border-indigo-500 shadow-sm" : "border-transparent hover:bg-gray-50"
+               "relative flex flex-col items-center justify-center p-6 rounded-2xl transition-all border-2 group",
+               mode === 'learning' 
+                 ? "bg-white border-indigo-600 shadow-lg" 
+                 : "bg-white border-gray-200 hover:border-indigo-300 shadow-sm hover:shadow-md"
              )}
            >
-             <BookOpen className={cn("w-6 h-6 mb-2", mode === 'learning' ? "text-indigo-600" : "text-gray-400")} />
-             <div className="text-sm font-bold text-gray-900">Learning Mode</div>
+             {mode === 'learning' && (
+               <div className="absolute top-3 right-3 bg-indigo-600 rounded-full p-1">
+                 <Check className="w-3 h-3 text-white" />
+               </div>
+             )}
+             <div className={cn(
+               "p-3 rounded-full mb-3",
+               mode === 'learning' ? "bg-indigo-50 text-indigo-600" : "bg-gray-100 text-gray-400 group-hover:bg-indigo-50 group-hover:text-indigo-500"
+             )}>
+                <BookOpen className="w-6 h-6" />
+             </div>
+             <div className="text-base font-bold text-gray-900">Learning Mode</div>
              <div className="text-xs text-gray-500 mt-1">Instant feedback & Explanations</div>
            </button>
            
            <button 
              onClick={() => setMode('mock')}
              className={cn(
-               "flex flex-col items-center justify-center p-4 rounded-lg transition-all border-2",
-               mode === 'mock' ? "bg-indigo-50 border-indigo-500 shadow-sm" : "border-transparent hover:bg-gray-50"
+               "relative flex flex-col items-center justify-center p-6 rounded-2xl transition-all border-2 group",
+               mode === 'mock' 
+                 ? "bg-white border-indigo-600 shadow-lg" 
+                 : "bg-white border-gray-200 hover:border-indigo-300 shadow-sm hover:shadow-md"
              )}
            >
-             <Timer className={cn("w-6 h-6 mb-2", mode === 'mock' ? "text-indigo-600" : "text-gray-400")} />
-             <div className="text-sm font-bold text-gray-900">Mock Mode</div>
+             {mode === 'mock' && (
+               <div className="absolute top-3 right-3 bg-indigo-600 rounded-full p-1">
+                 <Check className="w-3 h-3 text-white" />
+               </div>
+             )}
+             <div className={cn(
+               "p-3 rounded-full mb-3",
+               mode === 'mock' ? "bg-indigo-50 text-indigo-600" : "bg-gray-100 text-gray-400 group-hover:bg-indigo-50 group-hover:text-indigo-500"
+             )}>
+                <Timer className="w-6 h-6" />
+             </div>
+             <div className="text-base font-bold text-gray-900">Mock Mode</div>
              <div className="text-xs text-gray-500 mt-1">Exam Sim (30s/Q), No hints</div>
            </button>
         </div>

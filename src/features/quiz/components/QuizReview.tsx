@@ -11,6 +11,7 @@ import { cn } from '../../../utils/cn';
 interface QuizReviewProps {
   questions: Question[];
   userAnswers: { [key: string]: string };
+  timeTaken?: { [key: string]: number }; // New prop
   bookmarkedQuestions: string[];
   onBackToScore: () => void;
   onGoHome: () => void;
@@ -20,6 +21,7 @@ interface QuizReviewProps {
 export const QuizReview: React.FC<QuizReviewProps> = ({
   questions,
   userAnswers,
+  timeTaken = {},
   bookmarkedQuestions,
   onBackToScore,
   onGoHome,
@@ -65,6 +67,7 @@ export const QuizReview: React.FC<QuizReviewProps> = ({
   const currentQuestion = filteredQuestions[reviewIndex];
   const currentAns = currentQuestion ? userAnswers[currentQuestion.id] : undefined;
   const isCorrect = currentQuestion && currentAns === currentQuestion.correct;
+  const userTime = currentQuestion ? timeTaken[currentQuestion.id] : 0;
 
   return (
     <div className="max-w-4xl mx-auto animate-fade-in">
@@ -136,6 +139,7 @@ export const QuizReview: React.FC<QuizReviewProps> = ({
                     selectedAnswer={currentAns} // Pass user answer to highlight
                     onAnswerSelect={() => {}} // Read only
                     zoomLevel={1}
+                    userTime={userTime} // Pass time taken
                 />
             </div>
 

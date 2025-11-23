@@ -52,8 +52,8 @@ function quizReducer(state: QuizState, action: QuizAction): QuizState {
 
     case 'START_QUIZ': {
       const { questions, filters, mode } = action.payload;
-      // Mock Mode: 30 seconds per question
-      const globalTime = mode === 'mock' ? questions.length * 30 : 0;
+      // Mock Mode: 30 seconds per question. Ensure it's at least 30s.
+      const globalTime = mode === 'mock' ? Math.max(30, questions.length * 30) : 0;
       
       return { 
         ...initialState, 
@@ -68,9 +68,6 @@ function quizReducer(state: QuizState, action: QuizAction): QuizState {
     case 'ANSWER_QUESTION': {
       const { questionId, answer, timeTaken } = action.payload;
       const question = state.activeQuestions.find(q => q.id === questionId);
-      
-      // In Mock mode, we allow changing answers, so we remove the 'already answered' check
-      // In Learning mode, we typically lock it, but the UI handles disabling.
       
       const isCorrect = question?.correct === answer;
       
@@ -88,7 +85,7 @@ function quizReducer(state: QuizState, action: QuizAction): QuizState {
           if (!wasCorrect && isCorrect) newScore++;
       }
       
-      // Accumulate time taken (usually 0 in mock mode via this action, handled by LOG_TIME_SPENT)
+      // Accumulate time taken
       const prevTime = state.timeTaken[questionId] || 0;
 
       return {
@@ -123,6 +120,7 @@ function quizReducer(state: QuizState, action: QuizAction): QuizState {
     case 'NEXT_QUESTION': {
       const nextIndex = state.currentQuestionIndex + 1;
       if (nextIndex >= state.activeQuestions.length) {
+        // If next is clicked on last question, typically handled by Finish, but strictly speaking:
         return { ...state, status: 'result' };
       }
       return { ...state, currentQuestionIndex: nextIndex };
@@ -171,7 +169,7 @@ function quizReducer(state: QuizState, action: QuizAction): QuizState {
       return { ...state, status: 'result' };
 
     case 'RESTART_QUIZ': {
-        const globalTime = state.mode === 'mock' ? state.activeQuestions.length * 30 : 0;
+        const globalTime = state.mode === 'mock' ? Math.max(30, state.activeQuestions.length * 30) : 0;
         return { 
             ...initialState, 
             status: 'quiz', 
@@ -208,7 +206,6 @@ export const useQuiz = () => {
   const goToIntro = useCallback(() => dispatch({ type: 'GO_TO_INTRO' }), []);
   
   const startQuiz = useCallback((filteredQuestions: Question[], filters: InitialFilters, mode: QuizMode = 'learning') => {
-    // Log the start event with metadata about what they are studying
     logEvent('quiz_started', {
       subject: filters.subject,
       difficulty: filters.difficulty,
@@ -243,12 +240,10 @@ export const useQuiz = () => {
   const useFiftyFifty = useCallback((questionId: string, hiddenOptions: string[]) => dispatch({ type: 'USE_50_50', payload: { questionId, hiddenOptions } }), []);
 
   const finishQuiz = useCallback(() => {
-    // Log completion stats
     logEvent('quiz_completed', {
       score: state.score,
       total_questions: state.activeQuestions.length,
       percentage: state.activeQuestions.length > 0 ? Math.round((state.score / state.activeQuestions.length) * 100) : 0,
-      // Explicitly cast and type to ensure TS knows these are numbers for addition
       time_spent_total: (Object.values(state.timeTaken) as number[]).reduce((a: number, b: number) => a + b, 0),
       mode: state.mode
     });
