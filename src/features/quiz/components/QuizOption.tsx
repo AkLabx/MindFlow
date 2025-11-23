@@ -53,8 +53,8 @@ export const QuizOption: React.FC<QuizOptionProps> = ({
         else if (isAnswered) {
             containerClass = "cursor-default relative"; 
             
-            if (isCorrect) {
-                // Correct Answer (Green)
+            if (isCorrect && isSelected) {
+                // Correct Answer (Green) - User Selected It
                 containerClass = "bg-green-50 border-green-500 ring-1 ring-green-500 relative";
                 textClass = "text-green-900 font-medium"; 
                 // Icon as Flex Item (Robust Positioning)
@@ -64,7 +64,7 @@ export const QuizOption: React.FC<QuizOptionProps> = ({
                     </div>
                 );
                 
-                if (isSelected) animationClass = "scale-[1.02] shadow-md";
+                animationClass = "scale-[1.02] shadow-md";
 
             } else if (isSelected) {
                 // Incorrect Selected (Red)
@@ -79,7 +79,7 @@ export const QuizOption: React.FC<QuizOptionProps> = ({
                 // Shake Effect
                 animationClass = "animate-shake";
 
-            } else if (isCorrect && !isSelected) {
+            } else if (isCorrect) {
                  // Ghost view of correct answer when user picked wrong
                  containerClass = "bg-green-50/50 border-green-400 border-dashed relative";
                  textClass = "text-green-800";
