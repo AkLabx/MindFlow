@@ -25,8 +25,10 @@ export const FlashcardSummary: React.FC<FlashcardSummaryProps> = ({
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-amber-50/50">
       <motion.div 
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
+        {...({
+            initial: { opacity: 0, scale: 0.9 },
+            animate: { opacity: 1, scale: 1 }
+        } as any)}
         className="bg-white rounded-3xl shadow-xl border border-amber-100 p-8 max-w-md w-full text-center relative overflow-hidden"
       >
         {/* Decorative Background Elements */}
@@ -35,9 +37,11 @@ export const FlashcardSummary: React.FC<FlashcardSummaryProps> = ({
         <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-orange-100 rounded-full opacity-50 blur-2xl" />
 
         <motion.div 
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.2 }}
+          {...({
+              initial: { y: 20, opacity: 0 },
+              animate: { y: 0, opacity: 1 },
+              transition: { delay: 0.2 }
+          } as any)}
           className="relative z-10"
         >
             <div className="w-20 h-20 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm">

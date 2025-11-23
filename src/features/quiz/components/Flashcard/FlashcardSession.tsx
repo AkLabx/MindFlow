@@ -1,12 +1,20 @@
 
 import React, { useEffect, useState } from 'react';
 import { ArrowLeft, ArrowRight, Home, RotateCcw, Maximize2, Minimize2, RotateCw, Menu } from 'lucide-react';
-import { motion, useMotionValue, useTransform, useAnimation, PanInfo } from 'framer-motion';
+import { motion, useMotionValue, useTransform, useAnimation } from 'framer-motion';
 import { Button } from '../../../../components/Button/Button';
 import { Flashcard } from './Flashcard';
 import { FlashcardNavigationPanel } from './FlashcardNavigationPanel';
 import { Idiom, InitialFilters } from '../../types';
 import { cn } from '../../../../utils/cn';
+
+// Define PanInfo locally to fix import error from framer-motion
+interface PanInfo {
+    point: { x: number; y: number };
+    delta: { x: number; y: number };
+    offset: { x: number; y: number };
+    velocity: { x: number; y: number };
+}
 
 interface FlashcardSessionProps {
   idioms: Idiom[];
@@ -208,7 +216,7 @@ export const FlashcardSession: React.FC<FlashcardSessionProps> = ({
                <button onClick={() => setIsNavOpen(true)} className="p-2 bg-amber-50 hover:bg-amber-100 text-amber-600 rounded-lg transition-colors" aria-label="Open Map">
                  <Menu className="w-5 h-5" />
                </button>
-               <button onClick={toggleFullScreen} className="p-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-600 hidden sm:block">
+               <button onClick={toggleFullScreen} className="p-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-600">
                  <Maximize2 className="w-5 h-5" />
                </button>
              </div>
@@ -223,7 +231,7 @@ export const FlashcardSession: React.FC<FlashcardSessionProps> = ({
       <div className="flex-1 relative flex flex-col items-center justify-center p-4 md:p-8 overflow-hidden">
          
          {isFullScreen && (
-           <button onClick={toggleFullScreen} className="absolute top-4 right-4 z-30 p-3 bg-white/20 backdrop-blur-md rounded-full text-gray-800 shadow-lg">
+           <button onClick={toggleFullScreen} className="absolute top-4 right-4 z-30 p-3 bg-white/20 backdrop-blur-md rounded-full text-gray-800 shadow-lg hover:bg-white/40 transition-colors">
              <Minimize2 className="w-6 h-6" />
            </button>
          )}
@@ -242,12 +250,12 @@ export const FlashcardSession: React.FC<FlashcardSessionProps> = ({
                         opacity,
                         touchAction: 'pan-y', 
                         cursor: isAnimating ? 'default' : 'grab'
-                    }}
+                    } as any}
                     animate={controls}
                     drag={isAnimating ? false : "x"}
                     dragConstraints={{ left: 0, right: 0 }} 
                     dragElastic={0.7} 
-                    onDragEnd={handleDragEnd}
+                    onDragEnd={handleDragEnd as any}
                     onTap={() => !isAnimating && setIsFlipped(!isFlipped)}
                     className="absolute w-full h-full select-none touch-callout-none active:cursor-grabbing"
                 >
