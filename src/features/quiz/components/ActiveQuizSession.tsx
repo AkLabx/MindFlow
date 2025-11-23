@@ -291,7 +291,7 @@ export const ActiveQuizSession: React.FC<ActiveQuizSessionProps> = ({
                             }}
                             className={cn(
                                 "text-white",
-                                attemptStats.unattempted > 0 ? "bg-amber-50 hover:bg-amber-600" : "bg-indigo-600 hover:bg-indigo-700"
+                                attemptStats.unattempted > 0 ? "bg-amber-500 hover:bg-amber-600" : "bg-indigo-600 hover:bg-indigo-700"
                             )}
                         >
                             Submit
