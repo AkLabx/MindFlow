@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { ArrowLeft, Play, Loader2, Quote, FileText, Settings, Calendar } from 'lucide-react';
+import { ArrowLeft, Play, Loader2, Quote, FileText, Settings, Calendar, Type } from 'lucide-react';
 import { Button } from '../../../components/Button/Button';
 import { InitialFilters, QuizMode, Idiom } from '../types';
 import { MultiSelectDropdown } from './ui/MultiSelectDropdown';
@@ -29,6 +29,7 @@ const emptyFilters: InitialFilters = {
 
 export const IdiomsConfig: React.FC<IdiomsConfigProps> = ({ onStart, onBack }) => {
   const [filters, setFilters] = useState<InitialFilters>(emptyFilters);
+  const [selectedLetter, setSelectedLetter] = useState<string | null>(null);
   const [metadata, setMetadata] = useState<Idiom[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -45,15 +46,20 @@ export const IdiomsConfig: React.FC<IdiomsConfigProps> = ({ onStart, onBack }) =
   // Derived Options
   const allExamNames = useMemo(() => Array.from(new Set(metadata.map(q => q.sourceInfo.pdfName))).sort(), [metadata]);
   const allExamYears = useMemo(() => Array.from(new Set(metadata.map(q => String(q.sourceInfo.examYear)))).sort(), [metadata]);
+  const alphabet = useMemo(() => 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split(''), []);
 
-  // Filter Counts
+  // Filter Counts (For Dropdowns)
   const counts = useMemo(() => {
     const c: Record<string, number> = {};
     const countFor = (key: keyof InitialFilters | 'pdfName', value: string) => {
         return metadata.filter(q => {
+            // When counting for a specific filter, apply all OTHER active filters (including letter)
             if (filters.examName.length && !filters.examName.includes(q.sourceInfo.pdfName) && key !== 'pdfName') return false;
             if (filters.examYear.length && !filters.examYear.includes(String(q.sourceInfo.examYear)) && key !== 'examYear') return false;
             if (filters.difficulty.length && !filters.difficulty.includes(q.properties.difficulty) && key !== 'difficulty') return false;
+            
+            // Apply letter filter to these counts
+            if (selectedLetter && !q.content.phrase.trim().toUpperCase().startsWith(selectedLetter)) return false;
             
             if (key === 'pdfName') return q.sourceInfo.pdfName === value;
             if (key === 'examYear') return String(q.sourceInfo.examYear) === value;
@@ -67,7 +73,24 @@ export const IdiomsConfig: React.FC<IdiomsConfigProps> = ({ onStart, onBack }) =
     ['Easy', 'Medium', 'Hard'].forEach(diff => c[diff] = countFor('difficulty', diff));
     
     return c;
-  }, [metadata, filters, allExamNames, allExamYears]);
+  }, [metadata, filters, allExamNames, allExamYears, selectedLetter]);
+
+  // Letter Counts (Specific logic to show availability based on other filters)
+  const letterCounts = useMemo(() => {
+      const c: Record<string, number> = {};
+      alphabet.forEach(letter => {
+          c[letter] = metadata.filter(q => {
+              // Apply all other active filters
+              if (filters.examName.length && !filters.examName.includes(q.sourceInfo.pdfName)) return false;
+              if (filters.examYear.length && !filters.examYear.includes(String(q.sourceInfo.examYear))) return false;
+              if (filters.difficulty.length && !filters.difficulty.includes(q.properties.difficulty)) return false;
+              
+              // Check if phrase starts with this letter
+              return q.content.phrase.trim().toUpperCase().startsWith(letter);
+          }).length;
+      });
+      return c;
+  }, [metadata, filters, alphabet]);
 
   // Filtered subset for starting
   const filteredIdioms = useMemo(() => {
@@ -75,9 +98,14 @@ export const IdiomsConfig: React.FC<IdiomsConfigProps> = ({ onStart, onBack }) =
           if (filters.examName.length && !filters.examName.includes(q.sourceInfo.pdfName)) return false;
           if (filters.examYear.length && !filters.examYear.includes(String(q.sourceInfo.examYear))) return false;
           if (filters.difficulty.length && !filters.difficulty.includes(q.properties.difficulty)) return false;
+          
+          if (selectedLetter) {
+              return q.content.phrase.trim().toUpperCase().startsWith(selectedLetter);
+          }
+
           return true;
       });
-  }, [metadata, filters]);
+  }, [metadata, filters, selectedLetter]);
 
   const handleStart = () => {
       if (filteredIdioms.length === 0) {
@@ -125,6 +153,50 @@ export const IdiomsConfig: React.FC<IdiomsConfigProps> = ({ onStart, onBack }) =
 
             <div className="flex-1 space-y-6">
                 
+                {/* Alphabetical Filter Card */}
+                <div className="bg-white p-6 rounded-2xl border border-amber-100 border-l-4 border-l-amber-400 shadow-sm relative">
+                    <div className="flex items-center gap-2 mb-4 text-amber-800 font-bold text-sm uppercase tracking-wider">
+                        <Type className="w-4 h-4" /> Alphabetical Order
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                        <button 
+                            onClick={() => setSelectedLetter(null)}
+                            className={cn(
+                                "px-3 py-2 rounded-lg text-xs font-bold transition-all border shadow-sm",
+                                !selectedLetter 
+                                    ? "bg-amber-500 text-white border-amber-500 ring-2 ring-amber-200" 
+                                    : "bg-white text-gray-500 border-gray-200 hover:border-amber-300 hover:text-amber-600"
+                            )}
+                        >
+                            ALL
+                        </button>
+                        {alphabet.map(letter => {
+                            const count = letterCounts[letter] || 0;
+                            const isDisabled = count === 0;
+                            const isSelected = selectedLetter === letter;
+                            return (
+                                <button
+                                    key={letter}
+                                    onClick={() => !isDisabled && setSelectedLetter(isSelected ? null : letter)}
+                                    disabled={isDisabled}
+                                    className={cn(
+                                        "w-8 h-8 flex items-center justify-center rounded-lg text-xs font-bold transition-all border",
+                                        isSelected 
+                                            ? "bg-amber-100 text-amber-900 border-amber-300 ring-1 ring-amber-300" 
+                                            : "bg-white text-gray-600 border-gray-200 hover:border-amber-300 hover:text-amber-700",
+                                        isDisabled && "opacity-30 cursor-not-allowed bg-gray-50 text-gray-300 border-gray-100"
+                                    )}
+                                >
+                                    {letter}
+                                </button>
+                            )
+                        })}
+                    </div>
+                    <p className="text-[10px] text-gray-400 mt-2 text-right">
+                       * Shows counts based on other selected filters
+                    </p>
+                </div>
+
                 {/* Source Name Card */}
                 <div className="bg-white p-6 rounded-2xl border border-amber-100 border-l-4 border-l-amber-400 shadow-sm relative">
                     <div className="flex items-center gap-2 mb-4 text-amber-800 font-bold text-sm uppercase tracking-wider">
