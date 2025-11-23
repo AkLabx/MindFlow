@@ -87,12 +87,12 @@ export function QuizQuestionDisplay({
             </div>
 
             {/* Question Text */}
-            <div className="space-y-4 selectable-text">
+            <div className="space-y-4">
                 <div className="flex justify-between items-start gap-4">
                     {/* Removed font-bold, standardized to text-base/text-lg via zoomLevel.
                         Updated styles to be consistent with options. */}
                     <div 
-                        className="text-gray-900 leading-relaxed font-poppins flex-1 [&_pre]:whitespace-pre-wrap [&_pre]:font-inherit [&_pre]:my-2 [&_pre]:bg-gray-50 [&_pre]:p-2 [&_pre]:rounded-md [&_pre]:border [&_pre]:border-gray-200"
+                        className="text-gray-900 leading-relaxed font-poppins flex-1 selectable-text [&_pre]:whitespace-pre-wrap [&_pre]:font-inherit [&_pre]:my-2 [&_pre]:bg-gray-50 [&_pre]:p-2 [&_pre]:rounded-md [&_pre]:border [&_pre]:border-gray-200"
                         dangerouslySetInnerHTML={createSafeMarkup(question.question)}
                     />
                     
@@ -106,14 +106,14 @@ export function QuizQuestionDisplay({
 
                 {question.question_hi && (
                     <div 
-                        className="text-gray-800 font-hindi leading-relaxed border-l-4 border-indigo-100 pl-4 [&_pre]:whitespace-pre-wrap [&_pre]:font-inherit [&_pre]:my-2 [&_pre]:bg-gray-50 [&_pre]:p-2 [&_pre]:rounded-md [&_pre]:border [&_pre]:border-gray-200"
+                        className="text-gray-800 font-hindi leading-relaxed border-l-4 border-indigo-100 pl-4 selectable-text [&_pre]:whitespace-pre-wrap [&_pre]:font-inherit [&_pre]:my-2 [&_pre]:bg-gray-50 [&_pre]:p-2 [&_pre]:rounded-md [&_pre]:border [&_pre]:border-gray-200"
                         dangerouslySetInnerHTML={createSafeMarkup(question.question_hi)}
                     />
                 )}
             </div>
 
             {/* Options Grid */}
-            <div className="grid gap-3 selectable-text">
+            <div className="grid gap-3">
                 {question.options.map((option, index) => (
                     <QuizOption
                         key={option}
