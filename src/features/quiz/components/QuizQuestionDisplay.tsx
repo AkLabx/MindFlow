@@ -26,7 +26,7 @@ export function QuizQuestionDisplay({
     return (
         <div className="space-y-6 zoom-container">
             {/* Question Text */}
-            <div className="space-y-3 transition-all duration-200">
+            <div className="space-y-3 transition-all duration-200 selectable-text">
                 <div className="flex justify-between items-start">
                     <h2 className="font-bold text-gray-900 leading-snug text-[1.2em] font-poppins flex-1">
                         {question.question}
@@ -34,7 +34,7 @@ export function QuizQuestionDisplay({
                     
                     {/* Show Time Spent in Review Mode (if userTime provided) */}
                     {userTime !== undefined && (
-                        <div className="flex items-center gap-1 text-xs font-bold text-gray-500 bg-gray-100 px-2 py-1 rounded-full ml-2 whitespace-nowrap">
+                        <div className="flex items-center gap-1 text-xs font-bold text-gray-500 bg-gray-100 px-2 py-1 rounded-full ml-2 whitespace-nowrap select-none">
                             <Clock className="w-3 h-3" /> {userTime}s
                         </div>
                     )}
@@ -48,7 +48,7 @@ export function QuizQuestionDisplay({
             </div>
 
             {/* Options Grid */}
-            <div className="grid gap-3">
+            <div className="grid gap-3 selectable-text">
                 {question.options.map((option, index) => (
                     <QuizOption
                         key={option}

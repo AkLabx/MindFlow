@@ -28,14 +28,13 @@ export const FlashcardSession: React.FC<FlashcardSessionProps> = ({
 }) => {
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [isFlipped, setIsFlipped] = useState(false);
-  const [isAnimating, setIsAnimating] = useState(false); // Prevent interaction spam
+  const [isAnimating, setIsAnimating] = useState(false); // Lock interactions during animation
   
   // Motion Values for Physics
   const x = useMotionValue(0);
   const controls = useAnimation();
   
   // Physics: Rotate card based on X distance (x / 15 degrees)
-  // Example: Drag 150px right -> Rotate 10deg
   const rotate = useTransform(x, [-200, 200], [-15, 15]);
   
   // Opacity fade on extreme edges to cue exit
@@ -46,7 +45,7 @@ export const FlashcardSession: React.FC<FlashcardSessionProps> = ({
   const isFirst = currentIndex === 0;
   const isLast = currentIndex === idioms.length - 1;
 
-  // Reset position when index changes via buttons
+  // Reset position when index changes
   useEffect(() => {
     x.set(0); 
   }, [currentIndex, x]);
@@ -76,7 +75,7 @@ export const FlashcardSession: React.FC<FlashcardSessionProps> = ({
                 // Animate off screen right
                 await controls.start({ x: -500, opacity: 0, transition: { duration: 0.2 } });
                 
-                // Critical: Reset flip BEFORE next render to prevent showing back of new card
+                // Critical: Reset flip BEFORE calling onNext to prevent showing back of new card
                 setIsFlipped(false); 
                 onNext();
                 
@@ -154,7 +153,6 @@ export const FlashcardSession: React.FC<FlashcardSessionProps> = ({
     }
   };
 
-  // --- FULL SCREEN ---
   const toggleFullScreen = () => {
     if (!isFullScreen) {
       setIsFullScreen(true);
@@ -166,10 +164,10 @@ export const FlashcardSession: React.FC<FlashcardSessionProps> = ({
   };
 
   return (
-    // Native Feel: Fixed inset, no body scroll, flex column layout
+    // Fixed layout for native app feel
     <div className="fixed inset-0 h-[100dvh] w-full bg-gray-100 flex flex-col overflow-hidden">
       
-      {/* Header - Sticky/Fixed at top via flex layout */}
+      {/* Header */}
       {!isFullScreen && (
         <div className="flex-none z-30 bg-white border-b border-gray-200 shadow-sm">
           <div className="px-6 py-4 flex items-center justify-between">
@@ -200,7 +198,7 @@ export const FlashcardSession: React.FC<FlashcardSessionProps> = ({
         </div>
       )}
 
-      {/* Card Arena - Takes all available space */}
+      {/* Card Arena */}
       <div className="flex-1 relative flex flex-col items-center justify-center p-4 md:p-8 overflow-hidden">
          
          {isFullScreen && (
@@ -221,28 +219,23 @@ export const FlashcardSession: React.FC<FlashcardSessionProps> = ({
                         x, 
                         rotate, 
                         opacity,
-                        // CRITICAL: 'pan-y' allows browser to handle vertical scrolling (for back of card),
-                        // while JS handles horizontal drag.
+                        // Critical: pan-y allows vertical scrolling of content (back side) while JS handles horizontal drag
                         touchAction: 'pan-y', 
                         cursor: isAnimating ? 'default' : 'grab'
                     }}
                     animate={controls}
                     
-                    // Drag Configuration
-                    drag={isAnimating ? false : "x"} // Disable drag during animation
+                    // Disable dragging when animating to prevent double-swipes
+                    drag={isAnimating ? false : "x"}
                     
-                    // REMOVED: dragDirectionLock={true}
-                    // We remove locking to allow the swipe gesture to register even if the user
-                    // moves slightly vertically (which is common when scrolling the back side).
-                    
+                    // IMPORTANT: Removed dragDirectionLock to allow swiping even if finger moves slightly vertically
                     dragConstraints={{ left: 0, right: 0 }} 
                     dragElastic={0.7} 
                     
-                    // Event Handlers
                     onDragEnd={handleDragEnd}
-                    onTap={() => !isAnimating && setIsFlipped(!isFlipped)} // Prevent tap during transition
+                    onTap={() => !isAnimating && setIsFlipped(!isFlipped)}
                     
-                    // CSS Hardening for Ghost Clicks
+                    // select-none is crucial for card behavior
                     className="absolute w-full h-full select-none touch-callout-none active:cursor-grabbing"
                 >
                     <Flashcard idiom={currentIdiom} isFlipped={isFlipped} />
@@ -254,13 +247,13 @@ export const FlashcardSession: React.FC<FlashcardSessionProps> = ({
             )}
          </div>
          
-         {/* Hint for user */}
+         {/* Hint */}
          <div className="absolute bottom-8 text-gray-400 text-xs font-medium uppercase tracking-widest animate-pulse pointer-events-none select-none z-0">
             {isFlipped ? "Scroll to read • Swipe to Next" : "Tap to flip"}
          </div>
       </div>
 
-      {/* Footer Controls - Sticky/Fixed at bottom */}
+      {/* Footer */}
       <div className="flex-none z-30 bg-white border-t border-gray-200 p-4 md:p-6 pb-safe">
          <div className="max-w-md mx-auto flex items-center justify-between gap-4">
             <Button 
@@ -296,7 +289,6 @@ export const FlashcardSession: React.FC<FlashcardSessionProps> = ({
       <style>{`
         .perspective-1000 { perspective: 1000px; }
         .touch-callout-none { -webkit-touch-callout: none; }
-        /* Safe area padding for iOS home indicator */
         .pb-safe { padding-bottom: env(safe-area-inset-bottom, 1.5rem); }
       `}</style>
     </div>
