@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { X, ChevronDown, CheckCircle, Flag, Star, Check, Circle, HelpCircle } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { X, ChevronDown, CheckCircle, Flag, Star } from 'lucide-react';
 import { Question, QuizMode } from '../types';
 import { cn } from '../../../utils/cn';
 
@@ -96,21 +97,21 @@ export function QuizNavigationPanel({
       return cn(baseStyles, statusColor, currentIndicator);
   };
 
-  return (
+  if (!isOpen) return null;
+
+  return createPortal(
     <>
       {/* Overlay - Increased z-index to 70 */}
       <div 
         className={cn(
-            "fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[70] transition-opacity duration-300",
-            isOpen ? "opacity-100" : "opacity-0 pointer-events-none"
+            "fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[70] transition-opacity duration-300 animate-in fade-in"
         )}
         onClick={onClose}
       />
       
       {/* Drawer - Increased z-index to 80 */}
       <div className={cn(
-          "fixed top-0 right-0 h-full w-80 bg-white shadow-2xl z-[80] transform transition-transform duration-300 ease-in-out flex flex-col border-l border-gray-200",
-          isOpen ? "translate-x-0" : "translate-x-full"
+          "fixed top-0 right-0 h-full w-80 bg-white shadow-2xl z-[80] transform transition-transform duration-300 ease-in-out flex flex-col border-l border-gray-200 animate-in slide-in-from-right"
       )}>
         {/* Header */}
         <div className="px-5 py-4 border-b border-gray-200 bg-gray-50/50 flex justify-between items-center">
@@ -241,6 +242,7 @@ export function QuizNavigationPanel({
             </button>
         </div>
       </div>
-    </>
+    </>,
+    document.body
   );
 }
