@@ -46,8 +46,7 @@ export const FlashcardSession: React.FC<FlashcardSessionProps> = ({
   const isFirst = currentIndex === 0;
   const isLast = currentIndex === idioms.length - 1;
 
-  // Reset position when index changes. 
-  // Note: Flip reset is handled in navigation functions to avoid render flash.
+  // Reset position when index changes via buttons
   useEffect(() => {
     x.set(0); 
   }, [currentIndex, x]);
@@ -77,8 +76,8 @@ export const FlashcardSession: React.FC<FlashcardSessionProps> = ({
                 // Animate off screen right
                 await controls.start({ x: -500, opacity: 0, transition: { duration: 0.2 } });
                 
-                // Critical: Reset flip state BEFORE changing index to prevent "back side" flash
-                setIsFlipped(false);
+                // Critical: Reset flip BEFORE next render to prevent showing back of new card
+                setIsFlipped(false); 
                 onNext();
                 
                 // Reset instantly off-screen then spring back in
@@ -222,14 +221,20 @@ export const FlashcardSession: React.FC<FlashcardSessionProps> = ({
                         x, 
                         rotate, 
                         opacity,
-                        touchAction: 'pan-y', // CRITICAL: Browser handles vertical scroll, JS handles horizontal
+                        // CRITICAL: 'pan-y' allows browser to handle vertical scrolling (for back of card),
+                        // while JS handles horizontal drag.
+                        touchAction: 'pan-y', 
                         cursor: isAnimating ? 'default' : 'grab'
                     }}
                     animate={controls}
                     
                     // Drag Configuration
                     drag={isAnimating ? false : "x"} // Disable drag during animation
-                    dragDirectionLock={true} 
+                    
+                    // REMOVED: dragDirectionLock={true}
+                    // We remove locking to allow the swipe gesture to register even if the user
+                    // moves slightly vertically (which is common when scrolling the back side).
+                    
                     dragConstraints={{ left: 0, right: 0 }} 
                     dragElastic={0.7} 
                     
