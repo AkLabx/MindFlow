@@ -236,6 +236,7 @@ export const QuizContainer: React.FC = () => {
                     onExit={goHome}
                     onFinish={finishFlashcards}
                     filters={state.filters || {} as any}
+                    onJump={jumpToQuestion}
                 />
             </div>
         );

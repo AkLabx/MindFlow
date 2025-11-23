@@ -1,9 +1,10 @@
 
 import React, { useEffect, useState } from 'react';
-import { ArrowLeft, ArrowRight, Home, RotateCcw, Maximize2, Minimize2, RotateCw } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Home, RotateCcw, Maximize2, Minimize2, RotateCw, Menu } from 'lucide-react';
 import { motion, useMotionValue, useTransform, useAnimation, PanInfo } from 'framer-motion';
 import { Button } from '../../../../components/Button/Button';
 import { Flashcard } from './Flashcard';
+import { FlashcardNavigationPanel } from './FlashcardNavigationPanel';
 import { Idiom, InitialFilters } from '../../types';
 import { cn } from '../../../../utils/cn';
 
@@ -14,6 +15,7 @@ interface FlashcardSessionProps {
   onPrev: () => void;
   onExit: () => void;
   onFinish: () => void;
+  onJump: (index: number) => void;
   filters: InitialFilters;
 }
 
@@ -24,11 +26,13 @@ export const FlashcardSession: React.FC<FlashcardSessionProps> = ({
   onPrev,
   onExit,
   onFinish,
+  onJump,
   filters
 }) => {
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [isFlipped, setIsFlipped] = useState(false);
-  const [isAnimating, setIsAnimating] = useState(false); // Lock interactions during animation
+  const [isAnimating, setIsAnimating] = useState(false);
+  const [isNavOpen, setIsNavOpen] = useState(false);
   
   // Motion Values for Physics
   const x = useMotionValue(0);
@@ -75,7 +79,7 @@ export const FlashcardSession: React.FC<FlashcardSessionProps> = ({
                 // Animate off screen right
                 await controls.start({ x: -500, opacity: 0, transition: { duration: 0.2 } });
                 
-                // Critical: Reset flip BEFORE calling onNext to prevent showing back of new card
+                // Critical: Reset flip BEFORE next render
                 setIsFlipped(false); 
                 onNext();
                 
@@ -163,10 +167,24 @@ export const FlashcardSession: React.FC<FlashcardSessionProps> = ({
     }
   };
 
+  const handleJump = (index: number) => {
+      setIsFlipped(false); // Reset flip state before jump
+      onJump(index);
+  };
+
   return (
     // Fixed layout for native app feel
     <div className="fixed inset-0 h-[100dvh] w-full bg-gray-100 flex flex-col overflow-hidden">
       
+      {/* Navigation Panel */}
+      <FlashcardNavigationPanel 
+        isOpen={isNavOpen}
+        onClose={() => setIsNavOpen(false)}
+        idioms={idioms}
+        currentIndex={currentIndex}
+        onJump={handleJump}
+      />
+
       {/* Header */}
       {!isFullScreen && (
         <div className="flex-none z-30 bg-white border-b border-gray-200 shadow-sm">
@@ -183,11 +201,14 @@ export const FlashcardSession: React.FC<FlashcardSessionProps> = ({
                 </div>
              </div>
              
-             <div className="flex items-center gap-3">
-               <div className="font-mono font-bold text-indigo-600 bg-indigo-50 px-3 py-1 rounded-lg text-sm">
+             <div className="flex items-center gap-2">
+               <div className="font-mono font-bold text-indigo-600 bg-indigo-50 px-3 py-1 rounded-lg text-sm hidden sm:block">
                   {currentIndex + 1} / {idioms.length}
                </div>
-               <button onClick={toggleFullScreen} className="p-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-600">
+               <button onClick={() => setIsNavOpen(true)} className="p-2 bg-amber-50 hover:bg-amber-100 text-amber-600 rounded-lg transition-colors" aria-label="Open Map">
+                 <Menu className="w-5 h-5" />
+               </button>
+               <button onClick={toggleFullScreen} className="p-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-600 hidden sm:block">
                  <Maximize2 className="w-5 h-5" />
                </button>
              </div>
@@ -219,23 +240,15 @@ export const FlashcardSession: React.FC<FlashcardSessionProps> = ({
                         x, 
                         rotate, 
                         opacity,
-                        // Critical: pan-y allows vertical scrolling of content (back side) while JS handles horizontal drag
                         touchAction: 'pan-y', 
                         cursor: isAnimating ? 'default' : 'grab'
                     }}
                     animate={controls}
-                    
-                    // Disable dragging when animating to prevent double-swipes
                     drag={isAnimating ? false : "x"}
-                    
-                    // IMPORTANT: Removed dragDirectionLock to allow swiping even if finger moves slightly vertically
                     dragConstraints={{ left: 0, right: 0 }} 
                     dragElastic={0.7} 
-                    
                     onDragEnd={handleDragEnd}
                     onTap={() => !isAnimating && setIsFlipped(!isFlipped)}
-                    
-                    // select-none is crucial for card behavior
                     className="absolute w-full h-full select-none touch-callout-none active:cursor-grabbing"
                 >
                     <Flashcard idiom={currentIdiom} isFlipped={isFlipped} />
