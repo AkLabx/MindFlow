@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { ArrowRight, Star, Settings, Menu, ZoomIn, ZoomOut, Maximize2, Minimize2, Clock, ChevronLeft, Home, AlertCircle, X } from 'lucide-react';
 import { Question, InitialFilters } from '../types';
 import { QuizQuestionDisplay } from '../components/QuizQuestionDisplay';
@@ -69,15 +69,14 @@ export const LearningSession: React.FC<LearningSessionProps> = ({ questions, fil
     };
 
     // Handle Timer Expiry
-    const handleTimeUp = () => {
-        if (!isAnswered) {
-            setShowTimeUpModal(true);
-            // Mark as answered with a placeholder so explanation reveals
-            // We use 'TIME_UP' to signify no option was selected
-            setAnswers(prev => ({ ...prev, [currentQuestion.id]: 'TIME_UP' }));
-            playWrong(); // Play wrong sound as penalty
-        }
-    };
+    // Memoized to prevent timer from resetting on every render
+    const handleTimeUp = useCallback(() => {
+        setShowTimeUpModal(true);
+        // Mark as answered with a placeholder so explanation reveals
+        // We use 'TIME_UP' to signify no option was selected
+        setAnswers(prev => ({ ...prev, [currentQuestion.id]: 'TIME_UP' }));
+        playWrong(); // Play wrong sound as penalty
+    }, [currentQuestion.id, playWrong]);
 
     // Timer Integration
     const { secondsLeftLearning, formatTime } = useQuizSessionTimer({

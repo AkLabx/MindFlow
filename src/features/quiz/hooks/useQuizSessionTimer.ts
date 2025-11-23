@@ -39,8 +39,10 @@ export function useQuizSessionTimer({
 
   // 1. Learning Mode Timer (Per Question Countdown)
   const handleLearningTimerComplete = useCallback(() => {
-     // In learning mode, timer hitting zero doesn't auto-submit, just stays at 0.
-  }, []);
+     if (!isMockMode) {
+         onFinish();
+     }
+  }, [isMockMode, onFinish]);
 
   const [secondsLeftLearning] = useTimer({
     duration: remainingTime ?? APP_CONFIG.TIMERS.LEARNING_MODE_DEFAULT,

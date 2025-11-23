@@ -26,15 +26,15 @@ export const QuizOption: React.FC<QuizOptionProps> = ({
 }) => {
     // Default / Mock Mode Styles
     let containerClass = "bg-white border-gray-200 hover:border-indigo-300 hover:bg-gray-50 cursor-pointer relative";
-    let icon = <div className="w-5 h-5 rounded-full border-2 border-gray-300 transition-colors group-hover:border-indigo-400" />;
+    let icon = <div className="w-5 h-5 rounded-full border-2 border-gray-300 transition-colors group-hover:border-indigo-400 flex-shrink-0" />;
     let textClass = "text-gray-700";
     let animationClass = "";
 
     // --- MOCK MODE ---
     if (isMockMode) {
         if (isSelected) {
-            containerClass = "bg-indigo-50 border-indigo-600 ring-1 ring-indigo-600";
-            icon = <div className="w-5 h-5 rounded-full border-[5px] border-indigo-600" />;
+            containerClass = "bg-indigo-50 border-indigo-600 ring-1 ring-indigo-600 relative";
+            icon = <div className="w-5 h-5 rounded-full border-[5px] border-indigo-600 flex-shrink-0" />;
             textClass = "text-indigo-800 font-medium";
         }
     } 
@@ -45,8 +45,9 @@ export const QuizOption: React.FC<QuizOptionProps> = ({
         icon = null;
 
         if (isHidden) {
-             containerClass = "bg-gray-50 border-gray-100 opacity-60 cursor-not-allowed shadow-none"; 
+             containerClass = "bg-gray-50 border-gray-100 opacity-60 cursor-not-allowed shadow-none relative"; 
              textClass = "text-gray-400 line-through decoration-gray-300 decoration-2 select-none";
+             // Keep EyeOff absolute as it's a special overlay state
              icon = <div className="absolute right-4"><EyeOff className="w-5 h-5 text-gray-300" /></div>;
         }
         else if (isAnswered) {
@@ -54,11 +55,11 @@ export const QuizOption: React.FC<QuizOptionProps> = ({
             
             if (isCorrect) {
                 // Correct Answer (Green)
-                containerClass = "bg-green-50 border-green-500 ring-1 ring-green-500";
-                textClass = "text-green-900 font-medium pr-8"; // Add padding right for icon
-                // Overlay Icon on Right
+                containerClass = "bg-green-50 border-green-500 ring-1 ring-green-500 relative";
+                textClass = "text-green-900 font-medium"; 
+                // Icon as Flex Item (Robust Positioning)
                 icon = (
-                    <div className="absolute right-4 top-1/2 -translate-y-1/2 bg-green-500 rounded-full p-1 shadow-sm">
+                    <div className="flex-shrink-0 bg-green-500 rounded-full p-1 shadow-sm">
                         <Check className="w-4 h-4 text-white" />
                     </div>
                 );
@@ -67,11 +68,11 @@ export const QuizOption: React.FC<QuizOptionProps> = ({
 
             } else if (isSelected) {
                 // Incorrect Selected (Red)
-                containerClass = "bg-red-50 border-red-500 ring-1 ring-red-500";
-                textClass = "text-red-900 font-medium pr-8";
-                // Overlay Icon on Right
+                containerClass = "bg-red-50 border-red-500 ring-1 ring-red-500 relative";
+                textClass = "text-red-900 font-medium";
+                // Icon as Flex Item
                 icon = (
-                    <div className="absolute right-4 top-1/2 -translate-y-1/2 bg-red-500 rounded-full p-1 shadow-sm">
+                    <div className="flex-shrink-0 bg-red-500 rounded-full p-1 shadow-sm">
                         <X className="w-4 h-4 text-white" />
                     </div>
                 );
@@ -80,20 +81,21 @@ export const QuizOption: React.FC<QuizOptionProps> = ({
 
             } else if (isCorrect && !isSelected) {
                  // Ghost view of correct answer when user picked wrong
-                 containerClass = "bg-green-50/50 border-green-400 border-dashed";
-                 textClass = "text-green-800 pr-8";
+                 containerClass = "bg-green-50/50 border-green-400 border-dashed relative";
+                 textClass = "text-green-800";
+                 // Icon as Flex Item
                  icon = (
-                    <div className="absolute right-4 top-1/2 -translate-y-1/2 border-2 border-green-500 rounded-full p-0.5">
+                    <div className="flex-shrink-0 border-2 border-green-500 rounded-full p-0.5">
                          <Check className="w-3 h-3 text-green-500" />
                     </div>
                  );
             } else {
                  // Irrelevant options fade out
-                 containerClass = "opacity-50 bg-gray-50 border-gray-200";
+                 containerClass = "opacity-50 bg-gray-50 border-gray-200 relative";
             }
         } else if (isSelected) {
             // Should rarely happen in immediate learning mode, but fallback
-            containerClass = "bg-indigo-50 border-indigo-600";
+            containerClass = "bg-indigo-50 border-indigo-600 relative";
             textClass = "text-indigo-900 font-medium";
         }
     }
@@ -115,12 +117,12 @@ export const QuizOption: React.FC<QuizOptionProps> = ({
                 </div>
             )}
 
-            <div className="flex-1">
-                <div className={cn("leading-snug transition-colors text-[1em] font-poppins", textClass)}>
+            <div className="flex-1 min-w-0">
+                <div className={cn("leading-snug transition-colors text-[1em] font-poppins selectable-text", textClass)}>
                     {option}
                 </div>
                 {option_hi && (
-                    <div className={cn("mt-1 font-hindi opacity-80 group-hover:opacity-100 transition-opacity text-[0.95em]", isHidden && "line-through")}>
+                    <div className={cn("mt-1 font-hindi opacity-80 group-hover:opacity-100 transition-opacity text-[0.95em] selectable-text", isHidden && "line-through")}>
                         {option_hi}
                     </div>
                 )}

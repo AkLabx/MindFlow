@@ -55,7 +55,6 @@ export const QuizContainer: React.FC = () => {
         return 'explore';
       case 'config':
         return 'create';
-      case 'result':
       case 'flashcards-complete':
         return 'profile'; 
       default:
@@ -130,6 +129,24 @@ export const QuizContainer: React.FC = () => {
     );
   }
 
+  // Result Page (Immersive to allow QuizReview to handle its own layout without app header/footer interference)
+  if (state.status === 'result') {
+    return (
+      <div className="min-h-screen bg-gray-50 animate-in fade-in duration-300">
+          <QuizResult 
+            score={state.score} 
+            total={totalQuestions} 
+            questions={state.activeQuestions}
+            answers={state.answers}
+            timeTaken={state.timeTaken}
+            bookmarks={state.bookmarks}
+            onRestart={restartQuiz} 
+            onGoHome={goHome}
+          />
+      </div>
+    );
+  }
+
   // 2. Content for Layout Pages
   const renderLayoutContent = () => {
     switch (state.status) {
@@ -172,20 +189,6 @@ export const QuizContainer: React.FC = () => {
                 }, mode || 'learning');
             }} 
             onBack={goHome}
-          />
-        );
-
-      case 'result':
-        return (
-          <QuizResult 
-            score={state.score} 
-            total={totalQuestions} 
-            questions={state.activeQuestions}
-            answers={state.answers}
-            timeTaken={state.timeTaken}
-            bookmarks={state.bookmarks}
-            onRestart={restartQuiz} 
-            onGoHome={goHome}
           />
         );
 

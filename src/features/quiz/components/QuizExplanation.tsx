@@ -82,7 +82,7 @@ export function QuizExplanation({ explanation, zoomLevel }: { explanation: Expla
 
     return (
         <div 
-            className="mt-6 space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-700 ease-out font-poppins"
+            className="mt-6 space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-700 ease-out font-poppins selectable-text"
             style={{ fontSize: zoomLevel ? `${zoomLevel}rem` : undefined }}
         >
             {englishSummary && (

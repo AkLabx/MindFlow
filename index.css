@@ -24,8 +24,9 @@ body {
 /* Re-enable text selection for specific content areas (Quiz Questions/Explanations) */
 .selectable-text, 
 .selectable-text * {
-  -webkit-user-select: text;
-  user-select: text;
+  -webkit-user-select: text !important;
+  user-select: text !important;
+  -webkit-touch-callout: default !important; /* Re-enable Copy menu on iOS */
   cursor: text;
 }
 
