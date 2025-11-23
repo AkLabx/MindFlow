@@ -39,6 +39,7 @@ export const useQuiz = () => {
     dispatch({ type: 'START_FLASHCARDS', payload: { idioms, filters } });
   }, []);
   
+  // Deprecated in favor of local session logic, but kept for backward compat if needed
   const answerQuestion = useCallback((questionId: string, answer: string, timeTaken: number) => {
     dispatch({ type: 'ANSWER_QUESTION', payload: { questionId, answer, timeTaken } });
   }, []);
@@ -63,16 +64,19 @@ export const useQuiz = () => {
   const toggleReview = useCallback((questionId: string) => dispatch({ type: 'TOGGLE_REVIEW', payload: { questionId } }), []);
   const useFiftyFifty = useCallback((questionId: string, hiddenOptions: string[]) => dispatch({ type: 'USE_50_50', payload: { questionId, hiddenOptions } }), []);
 
+  // New method for bulk submission from separate sessions
+  const submitSessionResults = useCallback((results: { answers: Record<string, string>, timeTaken: Record<string, number>, score: number, bookmarks: string[] }) => {
+      logEvent('quiz_completed', {
+        score: results.score,
+        total_questions: state.activeQuestions.length,
+        mode: state.mode
+      });
+      dispatch({ type: 'SUBMIT_SESSION_RESULTS', payload: results });
+  }, [state.activeQuestions.length, state.mode]);
+
   const finishQuiz = useCallback(() => {
-    logEvent('quiz_completed', {
-      score: state.score,
-      total_questions: state.activeQuestions.length,
-      percentage: state.activeQuestions.length > 0 ? Math.round((state.score / state.activeQuestions.length) * 100) : 0,
-      time_spent_total: (Object.values(state.timeTaken) as number[]).reduce((a: number, b: number) => a + b, 0),
-      mode: state.mode
-    });
     dispatch({ type: 'FINISH_QUIZ' });
-  }, [state.score, state.activeQuestions.length, state.timeTaken, state.mode]);
+  }, []);
 
   const finishFlashcards = useCallback(() => {
       dispatch({ type: 'FINISH_FLASHCARDS' });
@@ -101,6 +105,7 @@ export const useQuiz = () => {
     goToIntro,
     startQuiz,
     startFlashcards,
+    submitSessionResults,
     finishFlashcards,
     answerQuestion,
     logTimeSpent,

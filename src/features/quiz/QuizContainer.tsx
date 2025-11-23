@@ -1,9 +1,11 @@
+
 import React, { useContext, useState } from 'react';
 import { useQuiz } from './hooks/useQuiz';
 import { QuizResult } from './components/QuizResult';
 import { QuizConfig } from './components/QuizConfig';
 import { LandingPage } from './components/LandingPage';
-import { ActiveQuizSession } from './components/ActiveQuizSession';
+import { LearningSession } from './learning/LearningSession';
+import { MockSession } from './mock/MockSession';
 import { EnglishQuizHome } from './components/EnglishQuizHome';
 import { VocabQuizHome } from './components/VocabQuizHome';
 import { IdiomsConfig } from './components/IdiomsConfig';
@@ -31,17 +33,11 @@ export const QuizContainer: React.FC = () => {
     startQuiz,
     startFlashcards,
     finishFlashcards,
-    answerQuestion,
-    logTimeSpent,
-    saveTimer,
-    syncGlobalTimer,
+    // Legacy action creators - now handled inside sessions mostly, but kept for flashcards
     nextQuestion,
     prevQuestion,
     jumpToQuestion,
-    toggleBookmark,
-    toggleReview,
-    useFiftyFifty,
-    finishQuiz,
+    submitSessionResults, // New action
     restartQuiz,
     goHome
   } = useQuiz();
@@ -61,7 +57,7 @@ export const QuizContainer: React.FC = () => {
         return 'create';
       case 'result':
       case 'flashcards-complete':
-        return 'profile'; // Reusing profile tab for results/stats context temporarily
+        return 'profile'; 
       default:
         return 'home';
     }
@@ -97,43 +93,24 @@ export const QuizContainer: React.FC = () => {
 
   // 1. Immersive Modes (No Header/Footer)
   if (state.status === 'quiz') {
-    return (
-      <div className="relative z-10 max-w-6xl mx-auto">
-        <ActiveQuizSession 
-            mode={state.mode}
-            question={currentQuestion}
-            questionIndex={state.currentQuestionIndex}
-            totalQuestions={totalQuestions}
-            allQuestions={state.activeQuestions}
-            userAnswers={state.answers}
-            timeTaken={state.timeTaken}
-            remainingTime={state.remainingTimes[currentQuestion?.id] ?? 60}
-            globalTimeRemaining={state.quizTimeRemaining}
-            hiddenOptions={state.hiddenOptions}
-            bookmarks={state.bookmarks}
-            markedForReview={state.markedForReview}
-            score={state.score}
-            
-            onAnswer={answerQuestion}
-            onLogTime={logTimeSpent}
-            onSaveTime={saveTimer}
-            onSyncGlobalTimer={syncGlobalTimer}
-            onNext={nextQuestion}
-            onPrev={prevQuestion}
-            onJump={jumpToQuestion}
-            onToggleBookmark={toggleBookmark}
-            onToggleReview={toggleReview}
-            onUseFiftyFifty={useFiftyFifty}
-            onFinish={finishQuiz}
-            onGoHome={goHome}
-            
-            filters={state.filters || {
-              subject: [], topic: [], subTopic: [], difficulty: [], 
-              questionType: [], examName: [], examYear: [], examDateShift: [], tags: []
-            }}
-        />
-      </div>
-    );
+    // Route to specific session based on mode
+    if (state.mode === 'learning') {
+        return (
+            <LearningSession 
+                questions={state.activeQuestions}
+                filters={state.filters || {} as any}
+                onComplete={submitSessionResults}
+                onGoHome={goHome}
+            />
+        );
+    } else if (state.mode === 'mock') {
+        return (
+            <MockSession 
+                questions={state.activeQuestions}
+                onComplete={submitSessionResults}
+            />
+        );
+    }
   }
 
   if (state.status === 'flashcards') {

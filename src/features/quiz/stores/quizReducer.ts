@@ -201,6 +201,18 @@ export function quizReducer(state: QuizState, action: QuizAction): QuizState {
     case 'FINISH_QUIZ':
       return { ...state, status: 'result' };
 
+    case 'SUBMIT_SESSION_RESULTS': {
+        const { answers, timeTaken, score, bookmarks } = action.payload;
+        return {
+            ...state,
+            answers,
+            timeTaken,
+            score,
+            bookmarks, // Replace bookmarks with session state
+            status: 'result'
+        };
+    }
+
     case 'FINISH_FLASHCARDS':
       return { ...state, status: 'flashcards-complete' };
 

@@ -41,6 +41,7 @@ export type QuizAction =
   | { type: 'TOGGLE_REVIEW'; payload: { questionId: string } }
   | { type: 'USE_50_50'; payload: { questionId: string; hiddenOptions: string[] } }
   | { type: 'FINISH_QUIZ' }
+  | { type: 'SUBMIT_SESSION_RESULTS'; payload: { answers: Record<string, string>; timeTaken: Record<string, number>; score: number; bookmarks: string[] } }
   | { type: 'FINISH_FLASHCARDS' }
   | { type: 'RESTART_QUIZ' }
   | { type: 'GO_HOME' };
