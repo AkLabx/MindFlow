@@ -6,7 +6,6 @@ import {
   Menu, 
   ZoomIn, 
   ZoomOut, 
-  Zap,
   AlertTriangle,
   CheckCircle
 } from 'lucide-react';
@@ -111,10 +110,15 @@ export const ActiveQuizSession: React.FC<ActiveQuizSessionProps> = ({
     isPaused: isAnswered || isMockMode
   });
 
+  // Ref to hold the current seconds left to avoid dependency loops in useEffect
+  const secondsLeftRef = useRef(secondsLeftLearning);
+  
+  // Keep ref in sync with the timer state
+  useEffect(() => {
+    secondsLeftRef.current = secondsLeftLearning;
+  }, [secondsLeftLearning]);
+
   // 2. Mock Mode Timer (Global Countdown)
-  // Use a specific fixed key so it doesn't reset on question change.
-  // Use globalTimeRemaining as initial value only if we are starting (or refreshing). 
-  // Since globalTimeRemaining is updated via sync, we trust it.
   const [secondsLeftMock] = useTimer({
     duration: globalTimeRemaining > 0 ? globalTimeRemaining : totalQuestions * 30,
     onTimeUp: onFinish,
@@ -124,10 +128,6 @@ export const ActiveQuizSession: React.FC<ActiveQuizSessionProps> = ({
 
   // 3. Mock Mode Question Stopwatch (Count Up)
   useEffect(() => {
-    // Always count up for stopwatch (Learning or Mock) to show time spent, 
-    // but specifically log it for mock mode logic.
-    
-    // Reset for new question
     setQuestionTimeElapsed(0);
     questionTimeRef.current = 0;
 
@@ -139,26 +139,28 @@ export const ActiveQuizSession: React.FC<ActiveQuizSessionProps> = ({
       });
     }, 1000);
 
-    // Log time when leaving the question (unmount or id change)
     return () => {
       clearInterval(interval);
-      // In Mock Mode, log time when leaving question to accumulate
       if (isMockMode && questionTimeRef.current > 0) {
         onLogTime(question.id, questionTimeRef.current);
       }
     };
   }, [question.id, isMockMode, onLogTime]);
 
-  // Sync timers back to state
+  // Sync timers back to state (Learning Mode)
+  // CRITICAL FIX: Removed secondsLeftLearning from dependency array. 
+  // We use secondsLeftRef.current in the cleanup function to get the value *at the moment of unmount*.
   useEffect(() => {
-      if (!isMockMode && !isAnswered) {
-          return () => onSaveTime(question.id, secondsLeftLearning);
-      }
-  }, [question.id, isMockMode, isAnswered, secondsLeftLearning, onSaveTime]);
+      return () => {
+          if (!isMockMode && !isAnswered) {
+              // Use ref to get latest value without triggering re-render loop
+              onSaveTime(question.id, secondsLeftRef.current);
+          }
+      };
+  }, [question.id, isMockMode, isAnswered, onSaveTime]); // Stable dependencies
 
   useEffect(() => {
       if (isMockMode) {
-          // Sync global timer less frequently to avoid excessive re-renders/dispatches
           const interval = setInterval(() => onSyncGlobalTimer(secondsLeftMock), 5000);
           return () => {
               clearInterval(interval);
@@ -167,14 +169,12 @@ export const ActiveQuizSession: React.FC<ActiveQuizSessionProps> = ({
       }
   }, [isMockMode, secondsLeftMock, onSyncGlobalTimer]);
 
-  // Display Time Helpers
   const formatTime = (s: number) => {
       const mins = Math.floor(s / 60);
       const secs = s % 60;
       return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
   };
 
-  // --- Stats for Submission ---
   const attemptStats = useMemo(() => {
       const attempted = Object.keys(userAnswers).length;
       return {
@@ -186,18 +186,18 @@ export const ActiveQuizSession: React.FC<ActiveQuizSessionProps> = ({
   // --- Handlers ---
 
   const handleOptionSelect = useCallback((answer: string) => {
-      // In Mock Mode, we always allow changing answers.
-      // In Learning Mode, once answered, it's locked.
       if (isAnswered && !isMockMode) return; 
       
-      // In Mock Mode, we pass 0 for time here because time is tracked separately via onLogTime on navigation.
-      // In Learning Mode, we track time as 1 (or derived) for now.
       const timeToLog = isMockMode ? 0 : 1;
       onAnswer(question.id, answer, timeToLog);
 
       if (!isMockMode) {
-          if (answer === question.correct) playCorrect();
-          else playIncorrect();
+          // Using setTimeout ensures audio plays after state updates settle
+          // preventing race conditions if the component re-renders heavily
+          setTimeout(() => {
+            if (answer === question.correct) playCorrect();
+            else playIncorrect();
+          }, 0);
       }
   }, [isAnswered, isMockMode, onAnswer, question.id, question.correct, playCorrect, playIncorrect]);
 
@@ -211,9 +211,7 @@ export const ActiveQuizSession: React.FC<ActiveQuizSessionProps> = ({
       onUseFiftyFifty(question.id, toHide);
   };
 
-  // Navigation Handlers
   const handleNext = () => {
-      // If last question, trigger finish logic
       if (questionIndex === totalQuestions - 1) {
           handleFinishRequest();
       } else {
@@ -225,7 +223,6 @@ export const ActiveQuizSession: React.FC<ActiveQuizSessionProps> = ({
       setShowSubmitConfirm(true);
   };
 
-  // Keyboard navigation
   useEffect(() => {
       const handleKeyDown = (e: KeyboardEvent) => {
           if (e.key === 'ArrowRight') handleNext();
@@ -238,17 +235,13 @@ export const ActiveQuizSession: React.FC<ActiveQuizSessionProps> = ({
   return (
     <div className="fixed inset-0 z-50 bg-white flex flex-col">
        
-       {/* --- Header Bar --- */}
        <header className="flex-none flex items-center justify-between p-4 bg-white border-b border-gray-200 shadow-sm z-40">
           <div className="flex flex-row justify-between items-center w-full md:w-auto gap-4">
              <button onClick={() => setIsNavOpen(true)} className="p-2 hover:bg-gray-100 rounded-lg text-gray-600">
                 <Menu className="w-5 h-5" />
              </button>
              
-             {/* --- TIMERS --- */}
              <div className="flex items-center gap-3">
-                
-                {/* Global Timer (Mock Mode: Countdown) / Question Timer (Learning: Countdown) */}
                 <div className={cn(
                     "flex items-center gap-2 px-3 py-1.5 rounded-lg font-mono font-bold text-sm transition-colors whitespace-nowrap",
                     (isMockMode ? secondsLeftMock : secondsLeftLearning) < 10 ? "bg-red-100 text-red-600 animate-pulse" : "bg-gray-100 text-gray-700"
@@ -264,21 +257,20 @@ export const ActiveQuizSession: React.FC<ActiveQuizSessionProps> = ({
           </div>
 
           <div className="flex items-center gap-2">
-             {/* 50-50 Lifeline (Learning Mode only) */}
+             {/* Restored Classic 50:50 Button */}
              {!isMockMode && (
                  <button 
                     onClick={handleFiftyFifty}
                     disabled={isAnswered || currentHiddenOptions.length > 0}
                     className={cn(
-                        "flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold transition-all border",
+                        "flex items-center justify-center h-8 w-12 rounded-md text-xs font-black transition-all border-b-4 active:border-b-0 active:translate-y-1",
                         (isAnswered || currentHiddenOptions.length > 0) 
-                            ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed" 
-                            : "bg-yellow-50 text-yellow-700 border-yellow-200 hover:bg-yellow-100 shadow-sm"
+                            ? "bg-gray-200 text-gray-400 border-gray-300 cursor-not-allowed" 
+                            : "bg-yellow-400 text-black border-yellow-600 hover:bg-yellow-300 hover:border-yellow-500 shadow-sm"
                     )}
                     title="Remove 2 incorrect options"
                  >
-                    <Zap className={cn("w-3.5 h-3.5", !(isAnswered || currentHiddenOptions.length > 0) && "fill-yellow-500")} />
-                    <span className="hidden sm:inline">50:50</span>
+                    50:50
                  </button>
              )}
 
@@ -296,17 +288,15 @@ export const ActiveQuizSession: React.FC<ActiveQuizSessionProps> = ({
           </div>
        </header>
 
-       {/* --- Main Content Area (Scrollable) --- */}
        <main className="flex-1 overflow-y-auto bg-white relative">
           <div className="max-w-3xl mx-auto p-4 md:p-6 pb-24">
-             
              <QuizQuestionHeader 
                 question={question}
                 currentIndex={questionIndex}
                 total={totalQuestions}
                 isBookmarked={bookmarks.includes(question.id)}
                 onToggleBookmark={() => onToggleBookmark(question.id)}
-                elapsedTime={questionTimeElapsed} // Pass the stopwatch time
+                elapsedTime={questionTimeElapsed}
              />
 
              <QuizQuestionDisplay 
@@ -318,15 +308,12 @@ export const ActiveQuizSession: React.FC<ActiveQuizSessionProps> = ({
                 isMockMode={isMockMode}
              />
 
-             {/* Explanation (Learning Mode Only) */}
              {!isMockMode && isAnswered && (
                  <QuizExplanation explanation={question.explanation} zoomLevel={zoomLevel} />
              )}
-
           </div>
        </main>
 
-       {/* --- Bottom Navigation (Fixed) --- */}
        <footer className="flex-none bg-white border-t border-gray-200 z-30">
           <QuizBottomNav 
              onPrevious={onPrev}
@@ -340,7 +327,6 @@ export const ActiveQuizSession: React.FC<ActiveQuizSessionProps> = ({
           />
        </footer>
 
-       {/* --- Drawers & Modals --- */}
        <QuizNavigationPanel 
           isOpen={isNavOpen}
           onClose={() => setIsNavOpen(false)}
@@ -362,7 +348,6 @@ export const ActiveQuizSession: React.FC<ActiveQuizSessionProps> = ({
           onClose={() => setIsSettingsOpen(false)} 
        />
 
-       {/* --- Submission Confirmation Modal --- */}
         {showSubmitConfirm && (
             <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
                 <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 text-center scale-100 animate-in zoom-in-95 duration-200">
@@ -406,7 +391,6 @@ export const ActiveQuizSession: React.FC<ActiveQuizSessionProps> = ({
                 </div>
             </div>
         )}
-
     </div>
   );
 };
