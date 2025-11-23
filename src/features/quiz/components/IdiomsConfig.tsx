@@ -126,8 +126,7 @@ export const IdiomsConfig: React.FC<IdiomsConfigProps> = ({ onStart, onBack }) =
             <div className="flex-1 space-y-6">
                 
                 {/* Source Name Card */}
-                <div className="bg-white p-6 rounded-2xl border border-amber-100 shadow-sm relative overflow-hidden">
-                    <div className="absolute top-0 left-0 w-1 h-full bg-amber-400" />
+                <div className="bg-white p-6 rounded-2xl border border-amber-100 border-l-4 border-l-amber-400 shadow-sm relative">
                     <div className="flex items-center gap-2 mb-4 text-amber-800 font-bold text-sm uppercase tracking-wider">
                         <FileText className="w-4 h-4" /> Source Material
                     </div>
@@ -143,8 +142,7 @@ export const IdiomsConfig: React.FC<IdiomsConfigProps> = ({ onStart, onBack }) =
                 </div>
 
                 {/* Exam Year Card (New Visuals) */}
-                <div className="bg-white p-6 rounded-2xl border border-amber-100 shadow-sm relative overflow-hidden">
-                    <div className="absolute top-0 left-0 w-1 h-full bg-amber-400" />
+                <div className="bg-white p-6 rounded-2xl border border-amber-100 border-l-4 border-l-amber-400 shadow-sm relative">
                     <div className="flex items-center gap-2 mb-4 text-amber-800 font-bold text-sm uppercase tracking-wider">
                         <Calendar className="w-4 h-4" /> Exam Year
                     </div>
@@ -186,8 +184,7 @@ export const IdiomsConfig: React.FC<IdiomsConfigProps> = ({ onStart, onBack }) =
                 </div>
 
                 {/* Difficulty Card */}
-                <div className="bg-white p-6 rounded-2xl border border-amber-100 shadow-sm relative overflow-hidden">
-                    <div className="absolute top-0 left-0 w-1 h-full bg-amber-400" />
+                <div className="bg-white p-6 rounded-2xl border border-amber-100 border-l-4 border-l-amber-400 shadow-sm relative">
                     <div className="flex items-center gap-2 mb-4 text-amber-800 font-bold text-sm uppercase tracking-wider">
                         <Settings className="w-4 h-4" /> Difficulty Level
                     </div>

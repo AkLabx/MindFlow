@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState } from 'react';
-import { ArrowLeft, ArrowRight, Home, RotateCcw, Maximize2, Minimize2 } from 'lucide-react';
-import { motion, AnimatePresence, Variants } from 'framer-motion';
+import { ArrowLeft, ArrowRight, Home, RotateCcw, Maximize2, Minimize2, RotateCw } from 'lucide-react';
+import { motion, useMotionValue, useTransform, useAnimation, PanInfo } from 'framer-motion';
 import { Button } from '../../../../components/Button/Button';
 import { Flashcard } from './Flashcard';
 import { Idiom, InitialFilters } from '../../types';
@@ -17,41 +17,6 @@ interface FlashcardSessionProps {
   filters: InitialFilters;
 }
 
-// Animation variants for the slide effect
-const variants: Variants = {
-  enter: (direction: number) => ({
-    x: direction > 0 ? 1000 : -1000,
-    opacity: 0,
-    scale: 0.8,
-    rotate: direction > 0 ? 10 : -10, // Subtle rotation on entry
-  }),
-  center: {
-    zIndex: 1,
-    x: 0,
-    opacity: 1,
-    scale: 1,
-    rotate: 0,
-    transition: {
-      type: "spring",
-      stiffness: 300,
-      damping: 30
-    }
-  },
-  exit: (direction: number) => ({
-    zIndex: 0,
-    x: direction < 0 ? 1000 : -1000,
-    opacity: 0,
-    scale: 0.8,
-    rotate: direction < 0 ? 10 : -10, // Subtle rotation on exit
-    transition: { duration: 0.2 }
-  })
-};
-
-const swipeConfidenceThreshold = 10000;
-const swipePower = (offset: number, velocity: number) => {
-  return Math.abs(offset) * velocity;
-};
-
 export const FlashcardSession: React.FC<FlashcardSessionProps> = ({
   idioms,
   currentIndex,
@@ -62,96 +27,153 @@ export const FlashcardSession: React.FC<FlashcardSessionProps> = ({
   filters
 }) => {
   const [isFullScreen, setIsFullScreen] = useState(false);
-  // Direction: 1 for Next (Left Swipe), -1 for Prev (Right Swipe)
-  const [direction, setDirection] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
+  const [isAnimating, setIsAnimating] = useState(false); // Prevent interaction spam
+  
+  // Motion Values for Physics
+  const x = useMotionValue(0);
+  const controls = useAnimation();
+  
+  // Physics: Rotate card based on X distance (x / 15 degrees)
+  // Example: Drag 150px right -> Rotate 10deg
+  const rotate = useTransform(x, [-200, 200], [-15, 15]);
+  
+  // Opacity fade on extreme edges to cue exit
+  const opacity = useTransform(x, [-300, -150, 0, 150, 300], [0, 1, 1, 1, 0]);
 
   const currentIdiom = idioms[currentIndex];
   const progress = ((currentIndex + 1) / idioms.length) * 100;
   const isFirst = currentIndex === 0;
   const isLast = currentIndex === idioms.length - 1;
 
-  // Helper to handle navigation with direction
-  const paginate = (newDirection: number) => {
-    if (newDirection > 0) {
-        if (!isLast) {
-            setIsFlipped(false); // Reset flip state
-            setDirection(newDirection);
-            onNext();
-        } else {
-            // Is last, trigger finish
-            onFinish();
-        }
-    } else {
-        if (!isFirst) {
-            setIsFlipped(false); // Reset flip state
-            setDirection(newDirection);
-            onPrev();
-        }
-    }
-  };
+  // Reset position when index changes. 
+  // Note: Flip reset is handled in navigation functions to avoid render flash.
+  useEffect(() => {
+    x.set(0); 
+  }, [currentIndex, x]);
 
-  // Keyboard Navigation
+  // --- KEYBOARD SUPPORT ---
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-        if (e.key === 'ArrowRight') paginate(1);
-        if (e.key === 'ArrowLeft') paginate(-1);
+        if (isAnimating) return;
+        if (e.key === 'ArrowRight') handleManualNavigation('next');
+        if (e.key === 'ArrowLeft') handleManualNavigation('prev');
         if (e.key === ' ' || e.key === 'Enter') setIsFlipped(prev => !prev);
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [onNext, onPrev, isLast, isFirst, onFinish]); 
+  }, [currentIndex, isLast, isFirst, isAnimating]); 
 
-  // Full Screen Logic
+  // --- MANUAL NAVIGATION (Buttons) ---
+  const handleManualNavigation = async (direction: 'next' | 'prev') => {
+    if (isAnimating) return;
+    setIsAnimating(true);
+
+    try {
+        if (direction === 'next') {
+            if (isLast) {
+                onFinish();
+            } else {
+                // Animate off screen right
+                await controls.start({ x: -500, opacity: 0, transition: { duration: 0.2 } });
+                
+                // Critical: Reset flip state BEFORE changing index to prevent "back side" flash
+                setIsFlipped(false);
+                onNext();
+                
+                // Reset instantly off-screen then spring back in
+                x.set(500); 
+                await controls.start({ x: 0, opacity: 1, transition: { type: "spring", stiffness: 300, damping: 30 } });
+            }
+        } else {
+            if (!isFirst) {
+                // Animate off screen left
+                await controls.start({ x: 500, opacity: 0, transition: { duration: 0.2 } });
+                
+                setIsFlipped(false);
+                onPrev();
+                
+                x.set(-500);
+                await controls.start({ x: 0, opacity: 1, transition: { type: "spring", stiffness: 300, damping: 30 } });
+            }
+        }
+    } finally {
+        setIsAnimating(false);
+    }
+  };
+
+  // --- SWIPE LOGIC ---
+  const handleDragEnd = async (event: any, info: PanInfo) => {
+    const threshold = 100; // Pixel distance to commit
+    const swipePower = Math.abs(info.offset.x) * info.velocity.x;
+
+    const isIntentionalSwipe = Math.abs(info.offset.x) > threshold || Math.abs(swipePower) > 10000;
+
+    if (isIntentionalSwipe) {
+        const isRightSwipe = info.offset.x > 0; // Dragging Right -> Prev
+        const isLeftSwipe = info.offset.x < 0;  // Dragging Left -> Next
+
+        if (isLeftSwipe) {
+            if (!isLast) {
+                setIsAnimating(true);
+                // Commit: Fly away to left
+                await controls.start({ x: -1000, opacity: 0, transition: { duration: 0.2 } });
+                
+                setIsFlipped(false);
+                onNext();
+                
+                // Reset position for next card (enter from right)
+                x.set(1000); 
+                await controls.start({ x: 0, opacity: 1 });
+                setIsAnimating(false);
+            } else {
+                // Last card: Fly away and Finish
+                await controls.start({ x: -1000, opacity: 0 });
+                onFinish();
+            }
+        } else if (isRightSwipe) {
+            if (!isFirst) {
+                setIsAnimating(true);
+                // Commit: Fly away to right
+                await controls.start({ x: 1000, opacity: 0, transition: { duration: 0.2 } });
+                
+                setIsFlipped(false);
+                onPrev();
+                
+                // Reset position for next card (enter from left)
+                x.set(-1000);
+                await controls.start({ x: 0, opacity: 1 });
+                setIsAnimating(false);
+            } else {
+                // First card: Spring back (cannot go prev)
+                controls.start({ x: 0, transition: { type: "spring", stiffness: 500, damping: 30 } });
+            }
+        }
+    } else {
+        // Reset: Spring back to center if threshold not met
+        controls.start({ x: 0, transition: { type: "spring", stiffness: 500, damping: 30 } });
+    }
+  };
+
+  // --- FULL SCREEN ---
   const toggleFullScreen = () => {
     if (!isFullScreen) {
       setIsFullScreen(true);
-      document.documentElement.requestFullscreen?.().catch((e) => console.warn(e));
+      document.documentElement.requestFullscreen?.().catch(console.warn);
     } else {
       setIsFullScreen(false);
-      if (document.fullscreenElement) {
-        document.exitFullscreen?.().catch((e) => console.warn(e));
-      }
+      if (document.fullscreenElement) document.exitFullscreen?.().catch(console.warn);
     }
-  };
-
-  // Sync state with browser native fullscreen changes
-  useEffect(() => {
-    const handleFsChange = () => {
-      setIsFullScreen(!!document.fullscreenElement);
-    };
-    document.addEventListener('fullscreenchange', handleFsChange);
-    return () => document.removeEventListener('fullscreenchange', handleFsChange);
-  }, []);
-
-  // Handle Drag End
-  const handleDragEnd = (e: MouseEvent | TouchEvent | PointerEvent, { offset, velocity }: { offset: { x: number, y: number }, velocity: { x: number, y: number } }) => {
-    const swipe = swipePower(offset.x, velocity.x);
-
-    if (swipe < -swipeConfidenceThreshold) {
-      paginate(1); // Swipe Left -> Next
-    } else if (swipe > swipeConfidenceThreshold) {
-      paginate(-1); // Swipe Right -> Prev
-    }
-  };
-
-  // Calculate Drag Elasticity to restrict movement on edges
-  const dragElastic = {
-      top: 0,
-      bottom: 0,
-      // If it's the first card, prevent dragging right (positive x) which triggers Prev
-      right: isFirst ? 0 : 0.7,
-      // If it's the last card, prevent dragging left (negative x) which triggers Next
-      left: isLast ? 0 : 0.7
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 flex flex-col transition-colors duration-300">
+    // Native Feel: Fixed inset, no body scroll, flex column layout
+    <div className="fixed inset-0 h-[100dvh] w-full bg-gray-100 flex flex-col overflow-hidden">
       
-      {/* Header - Hidden in Full Screen */}
+      {/* Header - Sticky/Fixed at top via flex layout */}
       {!isFullScreen && (
-        <>
-          <div className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between sticky top-0 z-20 shadow-sm">
+        <div className="flex-none z-30 bg-white border-b border-gray-200 shadow-sm">
+          <div className="px-6 py-4 flex items-center justify-between">
              <div className="flex items-center gap-4">
                 <button onClick={onExit} className="p-2 hover:bg-gray-100 rounded-full text-gray-500 transition-colors">
                    <Home className="w-5 h-5" />
@@ -168,91 +190,94 @@ export const FlashcardSession: React.FC<FlashcardSessionProps> = ({
                <div className="font-mono font-bold text-indigo-600 bg-indigo-50 px-3 py-1 rounded-lg text-sm">
                   {currentIndex + 1} / {idioms.length}
                </div>
-               <button 
-                 onClick={toggleFullScreen}
-                 className="p-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-600 transition-colors"
-                 aria-label="Enter Full Screen"
-               >
+               <button onClick={toggleFullScreen} className="p-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-600">
                  <Maximize2 className="w-5 h-5" />
                </button>
              </div>
           </div>
-
-          {/* Progress Bar */}
           <div className="h-1 w-full bg-gray-200">
              <div className="h-full bg-indigo-600 transition-all duration-300" style={{ width: `${progress}%` }} />
           </div>
-        </>
+        </div>
       )}
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col items-center justify-center p-4 md:p-8 overflow-hidden relative bg-gray-100">
+      {/* Card Arena - Takes all available space */}
+      <div className="flex-1 relative flex flex-col items-center justify-center p-4 md:p-8 overflow-hidden">
          
-         {/* Floating Exit Full Screen Button */}
          {isFullScreen && (
-           <button 
-             onClick={toggleFullScreen}
-             className="absolute top-4 right-4 z-30 p-3 bg-white/20 backdrop-blur-md hover:bg-white/40 border border-white/30 rounded-full text-gray-600 shadow-lg transition-all"
-             aria-label="Exit Full Screen"
-           >
-             <Minimize2 className="w-6 h-6 text-gray-800" />
+           <button onClick={toggleFullScreen} className="absolute top-4 right-4 z-30 p-3 bg-white/20 backdrop-blur-md rounded-full text-gray-800 shadow-lg">
+             <Minimize2 className="w-6 h-6" />
            </button>
          )}
 
          <div className={cn(
-             "relative w-full max-w-md transition-all duration-300",
-             isFullScreen ? "h-[80vh] md:h-[70vh] max-w-lg" : "h-[500px] md:h-[600px]"
+             "relative w-full max-w-md transition-all duration-300 perspective-1000 z-10",
+             isFullScreen ? "h-[80vh] md:h-[70vh] max-w-lg" : "h-[60vh] max-h-[600px]"
            )}
          >
-            <AnimatePresence initial={false} custom={direction}>
-              {currentIdiom ? (
-                 <motion.div
+            {currentIdiom ? (
+                <motion.div
                     key={currentIdiom.id}
-                    custom={direction}
-                    variants={variants}
-                    initial="enter"
-                    animate="center"
-                    exit="exit"
-                    drag="x"
-                    dragConstraints={{ left: 0, right: 0 }}
-                    dragElastic={dragElastic}
-                    dragDirectionLock={true} // CRITICAL: Locks drag to X-axis to allow vertical scrolling
+                    style={{ 
+                        x, 
+                        rotate, 
+                        opacity,
+                        touchAction: 'pan-y', // CRITICAL: Browser handles vertical scroll, JS handles horizontal
+                        cursor: isAnimating ? 'default' : 'grab'
+                    }}
+                    animate={controls}
+                    
+                    // Drag Configuration
+                    drag={isAnimating ? false : "x"} // Disable drag during animation
+                    dragDirectionLock={true} 
+                    dragConstraints={{ left: 0, right: 0 }} 
+                    dragElastic={0.7} 
+                    
+                    // Event Handlers
                     onDragEnd={handleDragEnd}
-                    onTap={() => setIsFlipped(!isFlipped)} // Detects taps only (not drags)
-                    className="absolute w-full h-full cursor-grab active:cursor-grabbing touch-pan-y"
-                    style={{ touchAction: 'pan-y' }} // Explicitly allow vertical scroll
-                 >
+                    onTap={() => !isAnimating && setIsFlipped(!isFlipped)} // Prevent tap during transition
+                    
+                    // CSS Hardening for Ghost Clicks
+                    className="absolute w-full h-full select-none touch-callout-none active:cursor-grabbing"
+                >
                     <Flashcard idiom={currentIdiom} isFlipped={isFlipped} />
-                 </motion.div>
-              ) : (
-                  <div className="h-full w-full flex items-center justify-center bg-white rounded-3xl shadow-sm">
-                      <p className="text-gray-400">No flashcards available.</p>
-                  </div>
-              )}
-            </AnimatePresence>
+                </motion.div>
+            ) : (
+                <div className="h-full w-full flex items-center justify-center bg-white rounded-3xl shadow-sm">
+                    <p className="text-gray-400">No flashcards available.</p>
+                </div>
+            )}
          </div>
-
+         
+         {/* Hint for user */}
+         <div className="absolute bottom-8 text-gray-400 text-xs font-medium uppercase tracking-widest animate-pulse pointer-events-none select-none z-0">
+            {isFlipped ? "Scroll to read • Swipe to Next" : "Tap to flip"}
+         </div>
       </div>
 
-      {/* Footer Controls - Always Visible */}
-      <div className="bg-white border-t border-gray-200 p-4 md:p-6 sticky bottom-0 z-20 safe-area-bottom">
+      {/* Footer Controls - Sticky/Fixed at bottom */}
+      <div className="flex-none z-30 bg-white border-t border-gray-200 p-4 md:p-6 pb-safe">
          <div className="max-w-md mx-auto flex items-center justify-between gap-4">
             <Button 
                variant="outline" 
-               onClick={() => paginate(-1)} 
-               disabled={isFirst}
+               onClick={() => handleManualNavigation('prev')} 
+               disabled={isFirst || isAnimating}
                className="flex-1 justify-center"
             >
                <ArrowLeft className="w-4 h-4 mr-2" /> Previous
             </Button>
 
-            <div className="text-xs font-bold text-gray-400 uppercase tracking-wider hidden sm:block">
-               Tap flip • Swipe nav
+            <div 
+                onClick={() => !isAnimating && setIsFlipped(!isFlipped)}
+                className="p-3 bg-gray-50 rounded-full text-gray-400 hover:bg-gray-100 cursor-pointer active:scale-95 transition-transform"
+            >
+                <RotateCw className={cn("w-6 h-6", isAnimating && "opacity-50")} />
             </div>
 
             <Button 
-               onClick={() => isLast ? onFinish() : paginate(1)} 
-               className="flex-1 justify-center bg-indigo-600 hover:bg-indigo-700 text-white border-none shadow-lg shadow-indigo-200"
+               onClick={() => handleManualNavigation('next')} 
+               disabled={isAnimating}
+               className="flex-1 justify-center bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-200"
             >
                {isLast ? (
                    <>Finish <RotateCcw className="w-4 h-4 ml-2" /></>
@@ -263,6 +288,12 @@ export const FlashcardSession: React.FC<FlashcardSessionProps> = ({
          </div>
       </div>
 
+      <style>{`
+        .perspective-1000 { perspective: 1000px; }
+        .touch-callout-none { -webkit-touch-callout: none; }
+        /* Safe area padding for iOS home indicator */
+        .pb-safe { padding-bottom: env(safe-area-inset-bottom, 1.5rem); }
+      `}</style>
     </div>
   );
 };
