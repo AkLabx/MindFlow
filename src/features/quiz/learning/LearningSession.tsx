@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { ArrowRight, Star, Settings, X, Menu, ZoomIn, ZoomOut, Maximize2, Minimize2, Clock, ChevronLeft, Home } from 'lucide-react';
+import { ArrowRight, Star, Settings, Menu, ZoomIn, ZoomOut, Maximize2, Minimize2, Clock, ChevronLeft, Home, AlertCircle, X } from 'lucide-react';
 import { Question, InitialFilters } from '../types';
 import { QuizQuestionDisplay } from '../components/QuizQuestionDisplay';
 import { QuizExplanation } from '../components/QuizExplanation';
@@ -31,12 +31,20 @@ export const LearningSession: React.FC<LearningSessionProps> = ({ questions, fil
     const [zoomLevel, setZoomLevel] = useState(1);
     const [isFullScreen, setIsFullScreen] = useState(false);
     
+    // Pop-up state for timer expiry
+    const [showTimeUpModal, setShowTimeUpModal] = useState(false);
+
     // Hook to sync with global store for persistence
     const { saveTimer, syncGlobalTimer, logTimeSpent, state } = useQuiz();
     
     const currentQuestion = questions[currentIndex];
     const userAnswer = answers[currentQuestion.id];
-    const isAnswered = !!userAnswer;
+    
+    // Check if question is conceptually "done" (either user clicked or time ran out)
+    // We use a special marker 'TIME_UP' in answers to denote timeout if needed, 
+    // or simply check if the modal triggered a reveal.
+    const isAnswered = !!userAnswer; 
+
     const progress = ((currentIndex + 1) / questions.length) * 100;
 
     // New Synthesized Sounds
@@ -60,6 +68,17 @@ export const LearningSession: React.FC<LearningSessionProps> = ({ questions, fil
         });
     };
 
+    // Handle Timer Expiry
+    const handleTimeUp = () => {
+        if (!isAnswered) {
+            setShowTimeUpModal(true);
+            // Mark as answered with a placeholder so explanation reveals
+            // We use 'TIME_UP' to signify no option was selected
+            setAnswers(prev => ({ ...prev, [currentQuestion.id]: 'TIME_UP' }));
+            playWrong(); // Play wrong sound as penalty
+        }
+    };
+
     // Timer Integration
     const { secondsLeftLearning, formatTime } = useQuizSessionTimer({
         mode: 'learning',
@@ -68,11 +87,11 @@ export const LearningSession: React.FC<LearningSessionProps> = ({ questions, fil
         remainingTime: state.remainingTimes[currentQuestion.id],
         globalTimeRemaining: 0,
         totalQuestions: questions.length,
-        onFinish: () => {}, // Timer running out in learning mode doesn't force finish
+        onFinish: handleTimeUp, // Trigger modal when timer hits 0
         onSaveTime: saveTimer,
         onSyncGlobalTimer: syncGlobalTimer,
         onLogTime: logTimeSpent,
-        onTick: playTick // Passing the synthesized tick sound
+        onTick: playTick
     });
 
     const handleAnswer = (option: string) => {
@@ -83,11 +102,13 @@ export const LearningSession: React.FC<LearningSessionProps> = ({ questions, fil
         if (option === currentQuestion.correct) {
             playCorrect();
         } else {
-            playIncorrect: playWrong(); // Using the new playWrong
+            playWrong();
         }
     };
 
     const handleNext = () => {
+        // Reset Time Up Modal for next question
+        setShowTimeUpModal(false);
         if (currentIndex < questions.length - 1) {
             setCurrentIndex(prev => prev + 1);
         } else {
@@ -96,6 +117,7 @@ export const LearningSession: React.FC<LearningSessionProps> = ({ questions, fil
     };
 
     const handlePrev = () => {
+        setShowTimeUpModal(false);
         if (currentIndex > 0) {
             setCurrentIndex(prev => prev - 1);
         }
@@ -160,8 +182,8 @@ export const LearningSession: React.FC<LearningSessionProps> = ({ questions, fil
                             <button onClick={() => setZoomLevel(z => Math.min(1.6, z + 0.1))} className="p-1.5 hover:bg-gray-200 text-gray-500 active:bg-gray-300"><ZoomIn className="w-4 h-4" /></button>
                         </div>
 
-                        {/* Fullscreen Toggle */}
-                        <button onClick={toggleFullScreen} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 border border-gray-200 hidden sm:flex">
+                        {/* Fullscreen Toggle - Visible on Mobile Now */}
+                        <button onClick={toggleFullScreen} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 border border-gray-200 flex">
                             {isFullScreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
                         </button>
                     </div>
@@ -234,11 +256,49 @@ export const LearningSession: React.FC<LearningSessionProps> = ({ questions, fil
                 onSubmitAndReview={finishSession}
                 mode='learning'
             />
+            
+            {/* Floating Exit Full Screen Button - Only when Full Screen */}
+            {isFullScreen && (
+                <div className="fixed top-4 right-4 z-50">
+                     <button 
+                        onClick={toggleFullScreen}
+                        className="bg-black/50 hover:bg-black/70 text-white px-4 py-2 rounded-full text-sm font-bold backdrop-blur-sm flex items-center gap-2 transition-all"
+                    >
+                        <Minimize2 className="w-4 h-4" /> Exit Full Screen
+                    </button>
+                </div>
+            )}
+
+            {/* Time Up Modal */}
+            {showTimeUpModal && (
+                 <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-4 bg-black/20 pointer-events-none">
+                    <div className="bg-white border border-red-100 shadow-2xl rounded-2xl p-4 flex items-center gap-4 animate-in slide-in-from-bottom-10 pointer-events-auto max-w-sm w-full mx-auto">
+                         <div className="bg-red-100 p-3 rounded-full text-red-600">
+                             <AlertCircle className="w-6 h-6" />
+                         </div>
+                         <div>
+                             <h3 className="font-bold text-gray-900">Time's Up!</h3>
+                             <p className="text-xs text-gray-500">Revealing answer & explanation.</p>
+                         </div>
+                         <button 
+                            onClick={() => setShowTimeUpModal(false)}
+                            className="ml-auto text-gray-400 hover:text-gray-600"
+                         >
+                             <X className="w-5 h-5" />
+                         </button>
+                    </div>
+                 </div>
+            )}
         </>
     );
 
     return (
-        <ActiveQuizLayout header={header} footer={footer} overlays={overlays}>
+        <ActiveQuizLayout 
+            // If in Full Screen, don't render the standard header to save space
+            header={isFullScreen ? null : header} 
+            footer={footer} 
+            overlays={overlays}
+        >
             <div className="pb-8">
                 <QuizQuestionDisplay 
                     question={currentQuestion}
