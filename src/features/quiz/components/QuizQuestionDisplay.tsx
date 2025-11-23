@@ -1,9 +1,40 @@
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Question } from '../types';
 import { QuizOption } from './QuizOption';
 import { Clock, Hash, Calendar, FileText } from 'lucide-react';
-import { Badge } from '../../../components/ui/Badge';
+
+// --- Basic Client-Side Sanitizer ---
+// Prevents XSS by stripping scripts and event handlers while keeping formatting.
+const sanitizeHTML = (html: string) => {
+    if (!html) return "";
+    
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+    
+    // 1. Remove dangerous tags completely
+    const dangerousTags = ['script', 'iframe', 'object', 'embed', 'form', 'link', 'style', 'meta'];
+    dangerousTags.forEach(tag => {
+        const elements = doc.querySelectorAll(tag);
+        elements.forEach(el => el.remove());
+    });
+
+    // 2. Remove dangerous attributes (on* events, javascript: links)
+    const allElements = doc.querySelectorAll('*');
+    allElements.forEach(el => {
+        const attributes = Array.from(el.attributes);
+        attributes.forEach(attr => {
+            if (attr.name.startsWith('on')) {
+                el.removeAttribute(attr.name); // Remove onclick, onerror, etc.
+            }
+            if (attr.name === 'href' && attr.value.toLowerCase().includes('javascript:')) {
+                el.removeAttribute('href'); // Remove javascript: links
+            }
+        });
+    });
+
+    return doc.body.innerHTML;
+};
 
 export function QuizQuestionDisplay({
     question,
@@ -24,6 +55,11 @@ export function QuizQuestionDisplay({
 }) {
     const isAnswered = !!selectedAnswer;
     
+    // Helper to safely render HTML content after sanitization
+    const createSafeMarkup = (html: string) => {
+        return { __html: sanitizeHTML(html) };
+    };
+
     return (
         <div 
             className="space-y-6 transition-all duration-200 ease-out"
@@ -53,9 +89,12 @@ export function QuizQuestionDisplay({
             {/* Question Text */}
             <div className="space-y-4 selectable-text">
                 <div className="flex justify-between items-start gap-4">
-                    <h2 className="font-bold text-gray-900 leading-relaxed text-[1.15em] font-poppins flex-1">
-                        {question.question}
-                    </h2>
+                    {/* Using div with dangerouslySetInnerHTML to parse <br>, <pre> etc. */}
+                    {/* Styling [&_pre] to handle preformatted text blocks gracefully within the question */}
+                    <div 
+                        className="font-bold text-gray-900 leading-relaxed text-[1.15em] font-poppins flex-1 [&_pre]:whitespace-pre-wrap [&_pre]:font-inherit [&_pre]:my-2 [&_pre]:bg-gray-50 [&_pre]:p-2 [&_pre]:rounded-md [&_pre]:border [&_pre]:border-gray-200"
+                        dangerouslySetInnerHTML={createSafeMarkup(question.question)}
+                    />
                     
                     {/* Show Time Spent in Review Mode (if userTime provided) */}
                     {userTime !== undefined && (
@@ -66,9 +105,10 @@ export function QuizQuestionDisplay({
                 </div>
 
                 {question.question_hi && (
-                    <p className="text-gray-600 font-hindi leading-relaxed border-l-4 border-indigo-100 pl-4 text-[1.1em]">
-                        {question.question_hi}
-                    </p>
+                    <div 
+                        className="text-gray-600 font-hindi leading-relaxed border-l-4 border-indigo-100 pl-4 text-[1.1em] [&_pre]:whitespace-pre-wrap [&_pre]:font-inherit [&_pre]:my-2 [&_pre]:bg-gray-50 [&_pre]:p-2 [&_pre]:rounded-md [&_pre]:border [&_pre]:border-gray-200"
+                        dangerouslySetInnerHTML={createSafeMarkup(question.question_hi)}
+                    />
                 )}
             </div>
 
