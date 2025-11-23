@@ -1,5 +1,4 @@
 {
   "name": "MindFlow Quiz",
-  "description": "A modern, responsive Multiple Choice Question (MCQ) application featuring a modular architecture, clean Tailwind CSS styling, and immediate feedback.",
-  "requestFramePermissions": []
+  "description": "A modern, responsive Multiple Choice Question (MCQ) application featuring a modular architecture, clean Tailwind CSS styling, and immediate feedback."
 }
