@@ -1,0 +1,117 @@
+[
+  {
+    "id": "1",
+    "sourceInfo": {
+      "pdfName": "Blackbook",
+      "examYear": 2025
+    },
+    "properties": {
+      "difficulty": "Easy",
+      "status": "Active"
+    },
+    "content": {
+      "id": 1,
+      "pos": "Noun",
+      "word": "Abbreviation",
+      "meaning_en": "A shortened form of a word or phrase.",
+      "meaning_hi": "संक्षेप / लघु रूप",
+      "usage_sentences": [
+        "Please use the full name instead of the abbreviation.",
+        "'Dr.' is a common abbreviation for 'Doctor'."
+      ],
+      "note": "Don't confuse it with acronym which is the short form of a group of words but pronounced as whole. example - VIBGYOR.",
+      "origin": "From Latin 'abbreviare', meaning 'to shorten'."
+    }
+  },
+  {
+    "id": "2",
+    "sourceInfo": {
+      "pdfName": "Blackbook",
+      "examYear": 2025
+    },
+    "properties": {
+      "difficulty": "Medium",
+      "status": "Active"
+    },
+    "content": {
+      "id": 2,
+      "pos": "Noun",
+      "word": "Abdication",
+      "meaning_en": "To give up one's authority or throne voluntarily.",
+      "meaning_hi": "स्वेच्छा से पद त्यागना",
+      "usage_sentences": [
+        "The king's abdication surprised the entire nation.",
+        "Abdication of responsibility is not an option for a leader."
+      ],
+      "origin": "From Latin 'abdicare', meaning 'to disclaim'."
+    }
+  },
+  {
+    "id": "3",
+    "sourceInfo": {
+      "pdfName": "Blackbook",
+      "examYear": 2024
+    },
+    "properties": {
+      "difficulty": "Hard",
+      "status": "Active"
+    },
+    "content": {
+      "id": 3,
+      "pos": "Noun",
+      "word": "Abstruse",
+      "meaning_en": "Hard to understand.",
+      "meaning_hi": "गूढ़ / समझने में कठिन",
+      "usage_sentences": [
+        "His theory is too abstruse for the average student.",
+        "The philosophical text was abstruse and dense."
+      ],
+      "note": "Often used for complex academic subjects."
+    }
+  },
+  {
+    "id": "4",
+    "sourceInfo": {
+      "pdfName": "Previous Papers",
+      "examYear": 2023
+    },
+    "properties": {
+      "difficulty": "Medium",
+      "status": "Active"
+    },
+    "content": {
+      "id": 4,
+      "pos": "Adjective",
+      "word": "Infallible",
+      "meaning_en": "Incapable of making mistakes or being wrong.",
+      "meaning_hi": "अचूक / जो कभी गलती न करे",
+      "usage_sentences": [
+        "No human being is infallible.",
+        "He thinks his memory is infallible, but he forgets things often."
+      ]
+    }
+  },
+  {
+    "id": "5",
+    "sourceInfo": {
+      "pdfName": "Blackbook",
+      "examYear": 2025
+    },
+    "properties": {
+      "difficulty": "Medium",
+      "status": "Active"
+    },
+    "content": {
+      "id": 5,
+      "pos": "Noun",
+      "word": "Misogynist",
+      "meaning_en": "A person who dislikes, despises, or is strongly prejudiced against women.",
+      "meaning_hi": "महिला-द्वेषी",
+      "usage_sentences": [
+        "His comments revealed him to be a misogynist.",
+        "The novel explores the mind of a bitter misogynist."
+      ],
+      "origin": "Greek 'misein' (to hate) + 'gune' (woman)."
+    }
+  }
+]

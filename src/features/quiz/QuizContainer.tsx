@@ -9,7 +9,9 @@ import { MockSession } from './mock/MockSession';
 import { EnglishQuizHome } from './components/EnglishQuizHome';
 import { VocabQuizHome } from './components/VocabQuizHome';
 import { IdiomsConfig } from './components/IdiomsConfig';
+import { OWSConfig } from './components/OWSConfig';
 import { FlashcardSession } from './components/Flashcard/FlashcardSession';
+import { OWSSession } from './components/OWS/OWSSession';
 import { FlashcardSummary } from './components/Flashcard/FlashcardSummary';
 import { Fireballs } from '../../components/Background/Fireballs';
 import { Button } from '../../components/Button/Button';
@@ -29,15 +31,16 @@ export const QuizContainer: React.FC = () => {
     enterEnglishHome,
     enterVocabHome,
     enterIdiomsConfig,
+    enterOWSConfig,
     goToIntro,
     startQuiz,
     startFlashcards,
+    startOWSFlashcards,
     finishFlashcards,
-    // Legacy action creators - now handled inside sessions mostly, but kept for flashcards
     nextQuestion,
     prevQuestion,
     jumpToQuestion,
-    submitSessionResults, // New action
+    submitSessionResults,
     restartQuiz,
     goHome
   } = useQuiz();
@@ -52,6 +55,7 @@ export const QuizContainer: React.FC = () => {
       case 'english-home':
       case 'vocab-home':
       case 'idioms-config':
+      case 'ows-config':
         return 'explore';
       case 'config':
         return 'create';
@@ -129,7 +133,24 @@ export const QuizContainer: React.FC = () => {
     );
   }
 
-  // Result Page (Immersive to allow QuizReview to handle its own layout without app header/footer interference)
+  if (state.status === 'ows-flashcards') {
+    return (
+      <div className="relative z-10">
+          <OWSSession
+              data={state.activeOWS || []}
+              currentIndex={state.currentQuestionIndex}
+              onNext={nextQuestion}
+              onPrev={prevQuestion}
+              onExit={goHome}
+              onFinish={finishFlashcards}
+              filters={state.filters || {} as any}
+              onJump={jumpToQuestion}
+          />
+      </div>
+    );
+  }
+
+  // Result Page
   if (state.status === 'result') {
     return (
       <div className="min-h-screen bg-gray-50 animate-in fade-in duration-300">
@@ -154,7 +175,7 @@ export const QuizContainer: React.FC = () => {
         return <EnglishQuizHome onBack={enterHome} onVocabClick={enterVocabHome} />;
         
       case 'vocab-home':
-        return <VocabQuizHome onBack={enterEnglishHome} onIdiomsClick={enterIdiomsConfig} />;
+        return <VocabQuizHome onBack={enterEnglishHome} onIdiomsClick={enterIdiomsConfig} onOWSClick={enterOWSConfig} />;
         
       case 'idioms-config':
         return (
@@ -168,11 +189,26 @@ export const QuizContainer: React.FC = () => {
               }}
           />
         );
+      
+      case 'ows-config':
+        return (
+          <OWSConfig 
+            onBack={enterVocabHome}
+            onStart={(data, filters) => {
+               startOWSFlashcards(data, filters || {
+                 subject: [], topic: [], subTopic: [], difficulty: [], 
+                 questionType: [], examName: [], examYear: [], examDateShift: [], tags: []
+               });
+            }}
+          />
+        );
 
       case 'flashcards-complete':
+        // Determine if it was OWS or Idioms based on active data in state, or just check length
+        const isOWS = state.activeOWS && state.activeOWS.length > 0;
         return (
           <FlashcardSummary 
-              totalCards={state.activeIdioms?.length || 0}
+              totalCards={isOWS ? state.activeOWS!.length : state.activeIdioms!.length}
               filters={state.filters || {} as any}
               onRestart={restartQuiz}
               onHome={goHome}
@@ -197,7 +233,6 @@ export const QuizContainer: React.FC = () => {
         return (
           <div className="flex flex-col">
             <div className="flex-1 flex flex-col items-center justify-center space-y-10 py-6 relative z-10 animate-fade-in">
-              
               {/* Hero Section */}
               <div className="relative text-center max-w-4xl mx-auto mt-6">
                 <h1 className="text-4xl sm:text-6xl font-black text-gray-900 leading-tight mb-4 drop-shadow-sm">

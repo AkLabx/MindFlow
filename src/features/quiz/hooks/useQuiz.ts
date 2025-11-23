@@ -3,14 +3,14 @@ import { useReducer, useCallback, useEffect } from 'react';
 import { logEvent } from '../services/analyticsService';
 import { APP_CONFIG } from '../../../constants/config';
 import { quizReducer, initialState, loadState } from '../stores/quizReducer';
-import { Question, InitialFilters, QuizMode, Idiom } from '../types';
+import { Question, InitialFilters, QuizMode, Idiom, OneWord } from '../types';
 
 export const useQuiz = () => {
   const [state, dispatch] = useReducer(quizReducer, initialState, loadState);
 
   // Persistence Effect
   useEffect(() => {
-    if (state.status === 'quiz' || state.status === 'result' || state.status === 'flashcards' || state.status === 'flashcards-complete') {
+    if (state.status === 'quiz' || state.status === 'result' || state.status === 'flashcards' || state.status === 'ows-flashcards' || state.status === 'flashcards-complete') {
       localStorage.setItem(APP_CONFIG.STORAGE_KEYS.QUIZ_SESSION, JSON.stringify(state));
     } else if (state.status === 'idle' || state.status === 'intro') {
       // Clear session when explicitly leaving quiz flow
@@ -23,6 +23,7 @@ export const useQuiz = () => {
   const enterEnglishHome = useCallback(() => dispatch({ type: 'ENTER_ENGLISH_HOME' }), []);
   const enterVocabHome = useCallback(() => dispatch({ type: 'ENTER_VOCAB_HOME' }), []);
   const enterIdiomsConfig = useCallback(() => dispatch({ type: 'ENTER_IDIOMS_CONFIG' }), []);
+  const enterOWSConfig = useCallback(() => dispatch({ type: 'ENTER_OWS_CONFIG' }), []);
   const goToIntro = useCallback(() => dispatch({ type: 'GO_TO_INTRO' }), []);
   
   const startQuiz = useCallback((filteredQuestions: Question[], filters: InitialFilters, mode: QuizMode = 'learning') => {
@@ -37,6 +38,10 @@ export const useQuiz = () => {
 
   const startFlashcards = useCallback((idioms: Idiom[], filters: InitialFilters) => {
     dispatch({ type: 'START_FLASHCARDS', payload: { idioms, filters } });
+  }, []);
+
+  const startOWSFlashcards = useCallback((data: OneWord[], filters: InitialFilters) => {
+    dispatch({ type: 'START_OWS_FLASHCARDS', payload: { data, filters } });
   }, []);
   
   // Deprecated in favor of local session logic, but kept for backward compat if needed
@@ -102,9 +107,11 @@ export const useQuiz = () => {
     enterEnglishHome,
     enterVocabHome,
     enterIdiomsConfig,
+    enterOWSConfig,
     goToIntro,
     startQuiz,
     startFlashcards,
+    startOWSFlashcards,
     submitSessionResults,
     finishFlashcards,
     answerQuestion,

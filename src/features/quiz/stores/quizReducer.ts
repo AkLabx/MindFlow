@@ -16,6 +16,7 @@ export const initialState: QuizState = {
   hiddenOptions: {},
   activeQuestions: [],
   activeIdioms: [],
+  activeOWS: [],
   filters: undefined,
 };
 
@@ -27,7 +28,7 @@ export const loadState = (defaultState: QuizState): QuizState => {
     if (saved) {
       const parsed = JSON.parse(saved);
       // Only restore if we are in a valid active/result state
-      if (parsed.status === 'quiz' || parsed.status === 'result' || parsed.status === 'flashcards' || parsed.status === 'flashcards-complete') {
+      if (parsed.status === 'quiz' || parsed.status === 'result' || parsed.status === 'flashcards' || parsed.status === 'flashcards-complete' || parsed.status === 'ows-flashcards') {
         return { ...defaultState, ...parsed };
       }
     }
@@ -53,6 +54,9 @@ export function quizReducer(state: QuizState, action: QuizAction): QuizState {
 
     case 'ENTER_IDIOMS_CONFIG':
       return { ...state, status: 'idioms-config' };
+      
+    case 'ENTER_OWS_CONFIG':
+      return { ...state, status: 'ows-config' };
 
     case 'GO_TO_INTRO':
       return { ...initialState, status: 'intro' };
@@ -84,6 +88,17 @@ export function quizReducer(state: QuizState, action: QuizAction): QuizState {
         ...initialState,
         status: 'flashcards',
         activeIdioms: idioms,
+        filters: filters,
+        currentQuestionIndex: 0
+      };
+    }
+
+    case 'START_OWS_FLASHCARDS': {
+      const { data, filters } = action.payload;
+      return {
+        ...initialState,
+        status: 'ows-flashcards',
+        activeOWS: data,
         filters: filters,
         currentQuestionIndex: 0
       };
@@ -144,14 +159,15 @@ export function quizReducer(state: QuizState, action: QuizAction): QuizState {
     case 'NEXT_QUESTION': {
       const maxIndex = state.status === 'flashcards' 
         ? (state.activeIdioms?.length || 0)
+        : state.status === 'ows-flashcards'
+        ? (state.activeOWS?.length || 0)
         : state.activeQuestions.length;
 
       const nextIndex = state.currentQuestionIndex + 1;
       
       if (nextIndex >= maxIndex) {
-        // If we are in flashcards and hit next on the last one, we don't auto-exit here.
-        // The UI handles the "Finish" button which calls FINISH_FLASHCARDS.
-        if (state.status === 'flashcards') {
+        // Stay on last card, wait for explicit finish
+        if (state.status === 'flashcards' || state.status === 'ows-flashcards') {
            return state; 
         }
         return { ...state, status: 'result' };
@@ -217,16 +233,18 @@ export function quizReducer(state: QuizState, action: QuizAction): QuizState {
       return { ...state, status: 'flashcards-complete' };
 
     case 'RESTART_QUIZ': {
-        // If restarting flashcards
-        if (state.status === 'flashcards' || state.status === 'flashcards-complete') {
+        // If restarting flashcards (Idioms or OWS)
+        if (state.status === 'flashcards' || state.status === 'ows-flashcards' || state.status === 'flashcards-complete') {
+            // Determine previous flashcard type based on loaded data
+            const isOWS = state.activeOWS && state.activeOWS.length > 0;
             return {
                 ...state,
-                status: 'flashcards',
+                status: isOWS ? 'ows-flashcards' : 'flashcards',
                 currentQuestionIndex: 0
             };
         }
 
-        // If restarting quiz
+        // If restarting regular quiz
         const globalTime = state.mode === 'mock' 
             ? Math.max(APP_CONFIG.TIMERS.MOCK_MODE_DEFAULT_PER_QUESTION, state.activeQuestions.length * APP_CONFIG.TIMERS.MOCK_MODE_DEFAULT_PER_QUESTION) 
             : 0;

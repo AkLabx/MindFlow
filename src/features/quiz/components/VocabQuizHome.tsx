@@ -6,9 +6,10 @@ import { Button } from '../../../components/Button/Button';
 interface VocabQuizHomeProps {
   onBack: () => void;
   onIdiomsClick?: () => void;
+  onOWSClick?: () => void;
 }
 
-export const VocabQuizHome: React.FC<VocabQuizHomeProps> = ({ onBack, onIdiomsClick }) => {
+export const VocabQuizHome: React.FC<VocabQuizHomeProps> = ({ onBack, onIdiomsClick, onOWSClick }) => {
   const items = [
     {
       id: 'idioms',
@@ -24,11 +25,11 @@ export const VocabQuizHome: React.FC<VocabQuizHomeProps> = ({ onBack, onIdiomsCl
       id: 'oneword',
       title: "One-word Substitution",
       description: "Learn to express complex ideas with a single precise word.",
-      icon: <Target className="w-6 h-6 text-sky-600" />,
-      bgClass: "bg-sky-50",
-      borderClass: "hover:border-sky-300",
-      iconBg: "bg-sky-100",
-      action: () => console.log("One Word clicked") // Placeholder
+      icon: <Target className="w-6 h-6 text-teal-600" />,
+      bgClass: "bg-teal-50",
+      borderClass: "hover:border-teal-300",
+      iconBg: "bg-teal-100",
+      action: onOWSClick
     },
     {
       id: 'synonyms',

@@ -65,6 +65,31 @@ export interface Idiom {
   content: IdiomContent;
 }
 
+// --- OWS Types ---
+export interface OWSContent {
+  id: number;
+  pos: string; // Part of speech (Noun, Verb, etc.)
+  word: string;
+  meaning_en: string;
+  meaning_hi: string;
+  usage_sentences: string[];
+  note?: string;
+  origin?: string;
+}
+
+export interface OneWord {
+  id: string;
+  sourceInfo: {
+    pdfName: string;
+    examYear: number;
+  };
+  properties: {
+    difficulty: string;
+    status: string;
+  };
+  content: OWSContent;
+}
+
 export interface InitialFilters {
   subject: string[];
   topic: string[];
