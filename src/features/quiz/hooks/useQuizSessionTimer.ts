@@ -64,6 +64,12 @@ export function useQuizSessionTimer({
     isPaused: !isMockMode || (globalTimeRemaining <= 0)
   });
 
+  // Ref for Mock Timer to prevent re-render loops when syncing to store
+  const secondsLeftMockRef = useRef(secondsLeftMock);
+  useEffect(() => {
+    secondsLeftMockRef.current = secondsLeftMock;
+  }, [secondsLeftMock]);
+
   // 3. Mock Mode Question Stopwatch (Count Up)
   useEffect(() => {
     setQuestionTimeElapsed(0);
@@ -99,13 +105,20 @@ export function useQuizSessionTimer({
   // Sync Global Timer (Mock Mode) occasionally
   useEffect(() => {
       if (isMockMode) {
-          const interval = setInterval(() => onSyncGlobalTimer(secondsLeftMock), 5000);
+          const interval = setInterval(() => {
+              // Use Ref to get current time without adding it to dependencies
+              // This prevents the effect from re-running every second, which causes the timer to reset repeatedly
+              onSyncGlobalTimer(secondsLeftMockRef.current);
+          }, 5000);
+          
           return () => {
               clearInterval(interval);
-              onSyncGlobalTimer(secondsLeftMock);
+              if (secondsLeftMockRef.current > 0) {
+                  onSyncGlobalTimer(secondsLeftMockRef.current);
+              }
           }
       }
-  }, [isMockMode, secondsLeftMock, onSyncGlobalTimer]);
+  }, [isMockMode, onSyncGlobalTimer]);
 
   const formatTime = (s: number) => {
       const mins = Math.floor(s / 60);
