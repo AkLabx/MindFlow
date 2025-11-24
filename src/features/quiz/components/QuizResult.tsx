@@ -61,15 +61,21 @@ export const QuizResult: React.FC<QuizResultProps> = ({
       
       questions.forEach(q => {
           const t = timeTaken[q.id] || 0;
-          if (t > 0) {
-              if (t < fastest) fastest = t;
-              if (t > slowest) slowest = t;
-          }
-
           const ans = answers[q.id];
+
           if (ans) {
-              if (ans === q.correct) { correctTime += t; correctCount++; }
-              else { incorrectTime += t; incorrectCount++; }
+              if (ans === q.correct) {
+                  correctTime += t;
+                  correctCount++;
+                  // Only consider CORRECT answers for fastest/slowest stats
+                  if (t > 0) {
+                      if (t < fastest) fastest = t;
+                      if (t > slowest) slowest = t;
+                  }
+              } else {
+                  incorrectTime += t;
+                  incorrectCount++;
+              }
           }
       });
       return {
@@ -179,10 +185,11 @@ export const QuizResult: React.FC<QuizResultProps> = ({
 
           {/* Advanced Stats Grid */}
           <div className="bg-white p-6 border-t border-gray-100">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-6">
                   <StatBox label="Total Score" value={score} suffix={`/ ${total}`} icon={<Trophy className="w-4 h-4 text-amber-500" />} />
                   <StatBox label="Attempted" value={attempted} suffix={`/ ${total}`} icon={<Target className="w-4 h-4 text-indigo-500" />} />
                   <StatBox label="Avg Time (Correct)" value={stats.avgCorrect} suffix="s" icon={<Zap className="w-4 h-4 text-emerald-500" />} />
+                  <StatBox label="Avg Time (Incorrect)" value={stats.avgIncorrect} suffix="s" icon={<Clock className="w-4 h-4 text-rose-500" />} />
                   <StatBox label="Fastest Answer" value={stats.fastest} suffix="s" icon={<Clock className="w-4 h-4 text-blue-500" />} />
               </div>
           </div>
