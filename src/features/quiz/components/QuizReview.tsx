@@ -79,7 +79,7 @@ export const QuizReview: React.FC<QuizReviewProps> = ({
     <div className="max-w-4xl mx-auto animate-fade-in">
       
       {/* Header */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-4 mb-6 sticky top-4 z-30">
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-4 mb-6 sticky top-0 z-50">
         <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-3 w-full md:w-auto">
                 <Button variant="ghost" size="sm" onClick={onBackToScore} className="text-gray-500">
