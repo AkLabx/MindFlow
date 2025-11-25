@@ -18,6 +18,7 @@ export const initialState: QuizState = {
   activeIdioms: [],
   activeOWS: [],
   filters: undefined,
+  isPaused: false,
 };
 
 // Lazy initializer to restore session from localStorage
@@ -212,6 +213,29 @@ export function quizReducer(state: QuizState, action: QuizAction): QuizState {
         ...state,
         hiddenOptions: { ...state.hiddenOptions, [questionId]: hiddenOptions }
       };
+    }
+
+    case 'PAUSE_QUIZ': {
+      const { questionId, remainingTime } = action.payload;
+      let newRemainingTimes = state.remainingTimes;
+
+      // If we have a specific time to save before pausing
+      if (questionId && remainingTime !== undefined) {
+          newRemainingTimes = { ...state.remainingTimes, [questionId]: remainingTime };
+      }
+
+      return {
+        ...state,
+        isPaused: true,
+        remainingTimes: newRemainingTimes
+      };
+    }
+
+    case 'RESUME_QUIZ': {
+        return {
+            ...state,
+            isPaused: false
+        };
     }
 
     case 'FINISH_QUIZ':

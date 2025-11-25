@@ -42,7 +42,12 @@ export const QuizContainer: React.FC = () => {
     jumpToQuestion,
     submitSessionResults,
     restartQuiz,
-    goHome
+    goHome,
+    pauseQuiz,
+    resumeQuiz,
+    saveTimer,
+    answerQuestion,
+    toggleBookmark
   } = useQuiz();
 
   const { areBgAnimationsEnabled } = useContext(SettingsContext);
@@ -102,8 +107,22 @@ export const QuizContainer: React.FC = () => {
             <LearningSession 
                 questions={state.activeQuestions}
                 filters={state.filters || {} as any}
+                remainingTimes={state.remainingTimes}
+                isPaused={state.isPaused}
+                currentIndex={state.currentQuestionIndex}
+                answers={state.answers}
+                bookmarks={state.bookmarks}
+                timeTaken={state.timeTaken}
+                onAnswer={answerQuestion}
+                onNext={nextQuestion}
+                onPrev={prevQuestion}
+                onJump={jumpToQuestion}
+                onToggleBookmark={toggleBookmark}
                 onComplete={submitSessionResults}
                 onGoHome={goHome}
+                onPause={pauseQuiz}
+                onResume={resumeQuiz}
+                onSaveTimer={saveTimer}
             />
         );
     } else if (state.mode === 'mock') {

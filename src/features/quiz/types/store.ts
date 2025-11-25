@@ -20,6 +20,7 @@ export interface QuizState {
   activeIdioms?: Idiom[]; // The filtered subset of idioms for flashcards
   activeOWS?: OneWord[]; // The filtered subset of OWS for flashcards
   filters?: InitialFilters; // Persisted filters for context/breadcrumbs
+  isPaused?: boolean; // Persisted pause state for Learning Mode
 }
 
 export type QuizAction =
@@ -43,6 +44,8 @@ export type QuizAction =
   | { type: 'TOGGLE_BOOKMARK'; payload: { questionId: string } }
   | { type: 'TOGGLE_REVIEW'; payload: { questionId: string } }
   | { type: 'USE_50_50'; payload: { questionId: string; hiddenOptions: string[] } }
+  | { type: 'PAUSE_QUIZ'; payload: { questionId?: string; remainingTime?: number } }
+  | { type: 'RESUME_QUIZ' }
   | { type: 'FINISH_QUIZ' }
   | { type: 'SUBMIT_SESSION_RESULTS'; payload: { answers: Record<string, string>; timeTaken: Record<string, number>; score: number; bookmarks: string[] } }
   | { type: 'FINISH_FLASHCARDS' }
