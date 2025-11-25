@@ -55,6 +55,7 @@ export function useLearningTimer({
 
   return {
     timeLeft,
+    timeLeftRef,
     formatTime
   };
 }
