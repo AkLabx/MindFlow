@@ -1,18 +1,20 @@
 
-import React, { useContext, useState } from 'react';
+import React, { lazy, useContext, useState } from 'react';
 import { useQuiz } from './hooks/useQuiz';
-import { QuizResult } from './components/QuizResult';
-import { QuizConfig } from './components/QuizConfig';
-import { LandingPage } from './components/LandingPage';
-import { LearningSession } from './learning/LearningSession';
-import { MockSession } from './mock/MockSession';
-import { EnglishQuizHome } from './components/EnglishQuizHome';
-import { VocabQuizHome } from './components/VocabQuizHome';
-import { IdiomsConfig } from './components/IdiomsConfig';
-import { OWSConfig } from './components/OWSConfig';
-import { FlashcardSession } from './components/Flashcard/FlashcardSession';
-import { OWSSession } from './components/OWS/OWSSession';
-import { FlashcardSummary } from './components/Flashcard/FlashcardSummary';
+
+const QuizResult = lazy(() => import('./components/QuizResult').then(m => ({ default: m.QuizResult })));
+const QuizConfig = lazy(() => import('./components/QuizConfig').then(m => ({ default: m.QuizConfig })));
+const LandingPage = lazy(() => import('./components/LandingPage').then(m => ({ default: m.LandingPage })));
+const LearningSession = lazy(() => import('./learning/LearningSession').then(m => ({ default: m.LearningSession })));
+const MockSession = lazy(() => import('./mock/MockSession').then(m => ({ default: m.MockSession })));
+const EnglishQuizHome = lazy(() => import('./components/EnglishQuizHome').then(m => ({ default: m.EnglishQuizHome })));
+const VocabQuizHome = lazy(() => import('./components/VocabQuizHome').then(m => ({ default: m.VocabQuizHome })));
+const IdiomsConfig = lazy(() => import('./components/IdiomsConfig').then(m => ({ default: m.IdiomsConfig })));
+const OWSConfig = lazy(() => import('./components/OWSConfig').then(m => ({ default: m.OWSConfig })));
+const FlashcardSession = lazy(() => import('./components/Flashcard/FlashcardSession').then(m => ({ default: m.FlashcardSession })));
+const OWSSession = lazy(() => import('./components/OWS/OWSSession').then(m => ({ default: m.OWSSession })));
+const FlashcardSummary = lazy(() => import('./components/Flashcard/FlashcardSummary').then(m => ({ default: m.FlashcardSummary })));
+
 import { Fireballs } from '../../components/Background/Fireballs';
 import { Button } from '../../components/Button/Button';
 import { ArrowRight, ListChecks, FileText, BookOpen, ArrowLeft, Download, Languages } from 'lucide-react';
@@ -20,6 +22,8 @@ import { SettingsContext } from '../../context/SettingsContext';
 import { usePWAInstall } from '../../hooks/usePWAInstall';
 import { MainLayout, TabID } from '../../layouts/MainLayout';
 import { SettingsModal } from './components/ui/SettingsModal';
+
+import { Suspense } from 'react';
 
 export const QuizContainer: React.FC = () => {
   const {
@@ -346,12 +350,14 @@ export const QuizContainer: React.FC = () => {
       onTabChange={handleTabChange}
       onOpenSettings={() => setIsSettingsOpen(true)}
     >
+      <Suspense fallback={<div>Loading...</div>}>
       {areBgAnimationsEnabled && <Fireballs />}
       
       {/* Global Settings Modal */}
       <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
       
       {renderLayoutContent()}
+      </Suspense>
     </MainLayout>
   );
 };
