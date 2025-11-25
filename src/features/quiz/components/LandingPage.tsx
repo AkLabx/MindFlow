@@ -44,9 +44,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted }) => {
            {canInstall && (
               <button 
                 onClick={triggerInstall}
-                className="hidden md:flex items-center gap-2 px-4 py-2 rounded-full border border-indigo-200 bg-white/50 text-indigo-700 font-bold text-xs uppercase tracking-wide hover:bg-indigo-50 hover:border-indigo-300 transition-all shadow-sm"
+                className="flex items-center gap-2 px-3 py-2 md:px-4 rounded-full border border-indigo-200 bg-white/50 text-indigo-700 font-bold text-[10px] md:text-xs uppercase tracking-wide hover:bg-indigo-50 hover:border-indigo-300 transition-all shadow-sm whitespace-nowrap"
               >
-                <Download className="w-4 h-4" /> Download App
+                <Download className="w-3.5 h-3.5 md:w-4 md:h-4" /> <span className="hidden xs:inline">Download App</span><span className="xs:hidden">App</span>
               </button>
            )}
 
@@ -139,6 +139,16 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted }) => {
                 <ArrowRight className="w-5 h-5 transition-transform duration-300 group-hover:translate-x-1 text-indigo-600" />
               </span>
             </button>
+
+            {/* Mobile-Only Download App Button (Below Start) */}
+            {canInstall && (
+              <button
+                onClick={triggerInstall}
+                className="flex md:hidden w-full items-center justify-center gap-2 px-6 py-3 rounded-full bg-indigo-50 text-indigo-700 font-bold text-sm border border-indigo-200 shadow-sm hover:bg-indigo-100 transition-all active:scale-95"
+              >
+                <Download className="w-4 h-4" /> Install App
+              </button>
+            )}
 
             <button className="group flex items-center gap-3 px-6 py-4 text-slate-600 font-semibold transition-all w-full sm:w-auto justify-center rounded-full hover:bg-white/50 hover:text-indigo-700 border border-transparent hover:border-indigo-100">
               <div className="w-10 h-10 rounded-full bg-white border border-slate-200 flex items-center justify-center shadow-sm group-hover:shadow-md group-hover:scale-110 transition-all duration-300 text-slate-900 group-hover:text-indigo-600">
