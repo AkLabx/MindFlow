@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { ArrowRight, Star, Settings, Menu, ZoomIn, ZoomOut, Maximize2, Minimize2, Clock, ChevronLeft, Home, AlertCircle, X } from 'lucide-react';
+import { ArrowRight, Star, Settings, Menu, ZoomIn, ZoomOut, Maximize2, Minimize2, Clock, ChevronLeft, Home, AlertCircle, X, Pause, Play } from 'lucide-react';
 import { Question, InitialFilters } from '../types';
 import { QuizQuestionDisplay } from '../components/QuizQuestionDisplay';
 import { QuizExplanation } from '../components/QuizExplanation';
@@ -12,20 +12,56 @@ import { ActiveQuizLayout } from '../layouts/ActiveQuizLayout';
 import { SettingsModal } from '../components/ui/SettingsModal';
 import { cn } from '../../../utils/cn';
 import { QuizNavigationPanel } from '../components/QuizNavigationPanel';
-import { useQuizSessionTimer } from '../hooks/useQuizSessionTimer';
-import { useQuiz } from '../hooks/useQuiz';
+import { APP_CONFIG } from '../../../constants/config';
+import { useLearningTimer } from '../hooks/useLearningTimer';
 
 interface LearningSessionProps {
     questions: Question[];
     filters: InitialFilters;
+    remainingTimes: Record<string, number>;
+    isPaused: boolean;
+
+    // State from Parent
+    currentIndex: number;
+    answers: Record<string, string>;
+    bookmarks: string[];
+    timeTaken: Record<string, number>; // Add this if needed for completion
+
+    // Actions
+    onAnswer: (questionId: string, answer: string, timeTaken: number) => void;
+    onNext: () => void;
+    onPrev: () => void;
+    onJump: (index: number) => void;
+    onToggleBookmark: (questionId: string) => void;
+
     onComplete: (results: { answers: Record<string, string>, timeTaken: Record<string, number>, score: number, bookmarks: string[] }) => void;
     onGoHome: () => void;
+    onPause: (questionId?: string, timeLeft?: number) => void;
+    onResume: () => void;
+    onSaveTimer: (questionId: string, time: number) => void;
 }
 
-export const LearningSession: React.FC<LearningSessionProps> = ({ questions, filters, onComplete, onGoHome }) => {
-    const [currentIndex, setCurrentIndex] = useState(0);
-    const [answers, setAnswers] = useState<Record<string, string>>({});
-    const [bookmarks, setBookmarks] = useState<string[]>([]);
+export const LearningSession: React.FC<LearningSessionProps> = ({
+    questions,
+    filters,
+    remainingTimes,
+    isPaused,
+    currentIndex,
+    answers,
+    bookmarks,
+    timeTaken,
+    onAnswer,
+    onNext,
+    onPrev,
+    onJump,
+    onToggleBookmark,
+    onComplete,
+    onGoHome,
+    onPause,
+    onResume,
+    onSaveTimer
+}) => {
+    // UI State (Local)
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [isNavOpen, setIsNavOpen] = useState(false);
     const [zoomLevel, setZoomLevel] = useState(1);
@@ -33,16 +69,11 @@ export const LearningSession: React.FC<LearningSessionProps> = ({ questions, fil
     
     // Pop-up state for timer expiry
     const [showTimeUpModal, setShowTimeUpModal] = useState(false);
-
-    // Hook to sync with global store for persistence
-    const { saveTimer, syncGlobalTimer, logTimeSpent, state } = useQuiz();
     
     const currentQuestion = questions[currentIndex];
     const userAnswer = answers[currentQuestion.id];
     
-    // Check if question is conceptually "done" (either user clicked or time ran out)
-    // We use a special marker 'TIME_UP' in answers to denote timeout if needed, 
-    // or simply check if the modal triggered a reveal.
+    // Check if question is conceptually "done"
     const isAnswered = !!userAnswer; 
 
     const progress = ((currentIndex + 1) / questions.length) * 100;
@@ -62,41 +93,60 @@ export const LearningSession: React.FC<LearningSessionProps> = ({ questions, fil
 
         onComplete({
             answers,
-            timeTaken: {}, 
+            timeTaken: timeTaken || {},
             score,
             bookmarks
         });
     };
 
     // Handle Timer Expiry
-    // Memoized to prevent timer from resetting on every render
     const handleTimeUp = useCallback(() => {
         setShowTimeUpModal(true);
-        // Mark as answered with a placeholder so explanation reveals
-        // We use 'TIME_UP' to signify no option was selected
-        setAnswers(prev => ({ ...prev, [currentQuestion.id]: 'TIME_UP' }));
-        playWrong(); // Play wrong sound as penalty
-    }, [currentQuestion.id, playWrong]);
+        // Mark as time up (0 time taken for this attempt effectively, or max?)
+        // Ideally we pass 0 or current time?
+        // We call onAnswer with a special marker.
+        onAnswer(currentQuestion.id, 'TIME_UP', 0);
+        playWrong();
+    }, [currentQuestion.id, playWrong, onAnswer]);
 
-    // Timer Integration
-    const { secondsLeftLearning, formatTime } = useQuizSessionTimer({
-        mode: 'learning',
+    // Dedicated Learning Timer
+    const { timeLeft, formatTime } = useLearningTimer({
+        initialTime: remainingTimes[currentQuestion.id] ?? APP_CONFIG.TIMERS.LEARNING_MODE_DEFAULT,
         questionId: currentQuestion.id,
-        isAnswered: isAnswered,
-        remainingTime: state.remainingTimes[currentQuestion.id],
-        globalTimeRemaining: 0,
-        totalQuestions: questions.length,
-        onFinish: handleTimeUp, // Trigger modal when timer hits 0
-        onSaveTime: saveTimer,
-        onSyncGlobalTimer: syncGlobalTimer,
-        onLogTime: logTimeSpent,
-        onTick: playTick
+        isPaused: isPaused || isAnswered,
+        onTimeUp: handleTimeUp,
+        onTick: (time) => {
+            // Play tick sound in last 5 seconds
+            if (time <= 5 && time > 0) playTick();
+        }
     });
 
-    const handleAnswer = (option: string) => {
+    // Save timer when unmounting or changing questions
+    useEffect(() => {
+        return () => {
+            if (!isAnswered && !isPaused) {
+                onSaveTimer(currentQuestion.id, timeLeft);
+            }
+        };
+    }, [currentQuestion.id, isAnswered, isPaused, onSaveTimer, timeLeft]);
+
+    const handlePause = () => {
+        onPause(currentQuestion.id, timeLeft);
+    };
+
+    const handleResume = () => {
+        onResume();
+    };
+
+    const handleAnswerSelect = (option: string) => {
         if (isAnswered) return;
 
-        setAnswers(prev => ({ ...prev, [currentQuestion.id]: option }));
+        // Calculate time spent on this question
+        // Total allowed - remaining = spent
+        const allowed = remainingTimes[currentQuestion.id] ?? APP_CONFIG.TIMERS.LEARNING_MODE_DEFAULT;
+        const spent = allowed - timeLeft;
+
+        onAnswer(currentQuestion.id, option, spent);
 
         if (option === currentQuestion.correct) {
             playCorrect();
@@ -105,28 +155,20 @@ export const LearningSession: React.FC<LearningSessionProps> = ({ questions, fil
         }
     };
 
-    const handleNext = () => {
-        // Reset Time Up Modal for next question
+    const handleNextClick = () => {
         setShowTimeUpModal(false);
         if (currentIndex < questions.length - 1) {
-            setCurrentIndex(prev => prev + 1);
+            onNext();
         } else {
             finishSession();
         }
     };
 
-    const handlePrev = () => {
+    const handlePrevClick = () => {
         setShowTimeUpModal(false);
         if (currentIndex > 0) {
-            setCurrentIndex(prev => prev - 1);
+            onPrev();
         }
-    };
-
-    const toggleBookmark = () => {
-        setBookmarks(prev => {
-            if (prev.includes(currentQuestion.id)) return prev.filter(id => id !== currentQuestion.id);
-            return [...prev, currentQuestion.id];
-        });
     };
 
     const toggleFullScreen = () => {
@@ -146,7 +188,7 @@ export const LearningSession: React.FC<LearningSessionProps> = ({ questions, fil
     // --- RENDER ---
 
     const header = (
-        <div className="flex items-center justify-between p-3 sm:p-4 w-full bg-white">
+        <div className="flex items-center justify-between p-3 sm:p-4 w-full bg-white relative z-20">
              <div className="flex-1 flex flex-col">
                  <div className="flex items-center justify-between mb-2">
                     {/* Desktop Breadcrumbs */}
@@ -168,11 +210,21 @@ export const LearningSession: React.FC<LearningSessionProps> = ({ questions, fil
                             icon={<Clock className="w-3.5 h-3.5" />}
                             className={cn(
                                 "font-mono font-bold tabular-nums min-w-[4rem] justify-center transition-colors",
-                                secondsLeftLearning <= 10 ? "bg-red-50 text-red-600 border-red-200 animate-pulse" : "bg-gray-50"
+                                timeLeft <= 10 ? "bg-red-50 text-red-600 border-red-200 animate-pulse" : "bg-gray-50"
                             )}
                          >
-                            {formatTime(secondsLeftLearning)}
+                            {formatTime(timeLeft)}
                          </Badge>
+
+                         {/* Pause Button */}
+                         <button
+                            onClick={handlePause}
+                            className="p-1.5 rounded-lg bg-gray-50 border border-gray-200 hover:bg-gray-100 text-gray-500"
+                            title="Pause Quiz"
+                            data-testid="pause-button"
+                         >
+                             <Pause className="w-4 h-4" />
+                         </button>
 
                         {/* Zoom Controls */}
                         <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden bg-gray-50">
@@ -181,7 +233,7 @@ export const LearningSession: React.FC<LearningSessionProps> = ({ questions, fil
                             <button onClick={() => setZoomLevel(z => Math.min(1.6, z + 0.1))} className="p-1.5 hover:bg-gray-200 text-gray-500 active:bg-gray-300"><ZoomIn className="w-4 h-4" /></button>
                         </div>
 
-                        {/* Fullscreen Toggle - Visible on Mobile Now */}
+                        {/* Fullscreen Toggle */}
                         <button onClick={toggleFullScreen} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 border border-gray-200 flex">
                             {isFullScreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
                         </button>
@@ -203,7 +255,7 @@ export const LearningSession: React.FC<LearningSessionProps> = ({ questions, fil
              
              {/* Right Actions */}
              <div className="flex items-center gap-2 pl-3 border-l border-gray-100 ml-3">
-                 <button onClick={toggleBookmark} className={cn("p-2 rounded-full transition-colors", bookmarks.includes(currentQuestion.id) ? "bg-amber-100 text-amber-500" : "bg-gray-50 text-gray-400 hover:bg-gray-100")}>
+                 <button onClick={() => onToggleBookmark(currentQuestion.id)} className={cn("p-2 rounded-full transition-colors", bookmarks.includes(currentQuestion.id) ? "bg-amber-100 text-amber-500" : "bg-gray-50 text-gray-400 hover:bg-gray-100")}>
                      <Star className={cn("w-5 h-5", bookmarks.includes(currentQuestion.id) && "fill-current")} />
                  </button>
                  <button onClick={() => setIsSettingsOpen(true)} className="p-2 rounded-full bg-gray-50 text-gray-500 hover:bg-gray-100 transition-colors">
@@ -217,7 +269,7 @@ export const LearningSession: React.FC<LearningSessionProps> = ({ questions, fil
         <div className="p-4 bg-white border-t border-gray-200 flex justify-between items-center gap-4">
              <Button 
                 variant="ghost" 
-                onClick={handlePrev} 
+                onClick={handlePrevClick}
                 disabled={currentIndex === 0} 
                 className="text-gray-500 hover:text-indigo-600"
              >
@@ -225,7 +277,7 @@ export const LearningSession: React.FC<LearningSessionProps> = ({ questions, fil
              </Button>
 
              <Button 
-                onClick={handleNext} 
+                onClick={handleNextClick}
                 disabled={!isAnswered}
                 className={cn(
                     "px-8 transition-all shadow-lg",
@@ -247,7 +299,7 @@ export const LearningSession: React.FC<LearningSessionProps> = ({ questions, fil
                 userAnswers={answers}
                 currentQuestionIndex={currentIndex}
                 onJumpToQuestion={(idx) => {
-                    setCurrentIndex(idx);
+                    onJump(idx);
                     setIsNavOpen(false);
                 }}
                 markedForReview={[]}
@@ -256,7 +308,6 @@ export const LearningSession: React.FC<LearningSessionProps> = ({ questions, fil
                 mode='learning'
             />
             
-            {/* Floating Exit Full Screen Button - Only when Full Screen */}
             {isFullScreen && (
                 <div className="fixed top-4 right-4 z-50">
                      <button 
@@ -268,7 +319,6 @@ export const LearningSession: React.FC<LearningSessionProps> = ({ questions, fil
                 </div>
             )}
 
-            {/* Time Up Modal */}
             {showTimeUpModal && (
                  <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-4 bg-black/20 pointer-events-none">
                     <div className="bg-white border border-red-100 shadow-2xl rounded-2xl p-4 flex items-center gap-4 animate-in slide-in-from-bottom-10 pointer-events-auto max-w-sm w-full mx-auto">
@@ -288,21 +338,44 @@ export const LearningSession: React.FC<LearningSessionProps> = ({ questions, fil
                     </div>
                  </div>
             )}
+
+            {/* Pause Overlay - Heavily Blurred */}
+            {isPaused && (
+                <div
+                    className="fixed inset-0 z-[70] flex flex-col items-center justify-center p-4 bg-black/10 backdrop-blur-md animate-in fade-in duration-300"
+                    data-testid="session-paused-overlay"
+                >
+                    <div className="bg-white p-6 rounded-2xl shadow-2xl border border-gray-100 max-w-sm w-full text-center transform scale-100 animate-in zoom-in-95 duration-200">
+                        <div className="w-16 h-16 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <Pause className="w-8 h-8 fill-current" />
+                        </div>
+                        <h2 className="text-2xl font-bold text-gray-900 mb-2">Quiz Paused</h2>
+                        <p className="text-gray-500 mb-6">Take a break! Your progress is saved.</p>
+
+                        <Button
+                            onClick={handleResume}
+                            size="lg"
+                            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-200"
+                        >
+                            <Play className="w-5 h-5 mr-2 fill-current" /> Resume Quiz
+                        </Button>
+                    </div>
+                </div>
+            )}
         </>
     );
 
     return (
         <ActiveQuizLayout 
-            // If in Full Screen, don't render the standard header to save space
             header={isFullScreen ? null : header} 
             footer={footer} 
             overlays={overlays}
         >
-            <div className="pb-8">
+            <div className={cn("pb-8", isPaused && "filter blur-lg transition-all duration-300 select-none pointer-events-none")}>
                 <QuizQuestionDisplay 
                     question={currentQuestion}
                     selectedAnswer={userAnswer}
-                    onAnswerSelect={handleAnswer}
+                    onAnswerSelect={handleAnswerSelect}
                     zoomLevel={zoomLevel}
                     isMockMode={false}
                 />

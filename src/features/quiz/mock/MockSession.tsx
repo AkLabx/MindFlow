@@ -8,6 +8,7 @@ import { Button } from '../../../components/Button/Button';
 import { ActiveQuizLayout } from '../layouts/ActiveQuizLayout';
 import { cn } from '../../../utils/cn';
 import { APP_CONFIG } from '../../../constants/config';
+import { useMockTimer } from '../hooks/useMockTimer';
 
 interface MockSessionProps {
     questions: Question[];
@@ -24,29 +25,42 @@ export const MockSession: React.FC<MockSessionProps> = ({ questions, onComplete 
     const [zoomLevel, setZoomLevel] = useState(1);
     const [isFullScreen, setIsFullScreen] = useState(false);
     
-    // Timer State
-    const totalTime = questions.length * APP_CONFIG.TIMERS.MOCK_MODE_DEFAULT_PER_QUESTION;
-    const [timeLeft, setTimeLeft] = useState(totalTime);
-    
     // Track time per question for analytics (approximate)
     const [timeSpentPerQuestion, setTimeSpentPerQuestion] = useState<Record<string, number>>({});
     const currentQTimer = useRef(0);
 
-    // Global Timer Effect
-    useEffect(() => {
-        const timer = setInterval(() => {
-            setTimeLeft(prev => {
-                if (prev <= 1) {
-                    clearInterval(timer);
-                    finishSession();
-                    return 0;
-                }
-                return prev - 1;
-            });
-            currentQTimer.current += 1;
-        }, 1000);
-        return () => clearInterval(timer);
-    }, []);
+    // Dedicated Mock Timer (Global)
+    const totalExamTime = questions.length * APP_CONFIG.TIMERS.MOCK_MODE_DEFAULT_PER_QUESTION;
+
+    const finishSession = () => {
+        saveCurrentQuestionTime(); // Save last question time
+
+        // Calculate score
+        let score = 0;
+        questions.forEach(q => {
+            if (answers[q.id] === q.correct) score++;
+        });
+
+        if (document.fullscreenElement) {
+            document.exitFullscreen().catch(() => {});
+        }
+
+        onComplete({
+            answers,
+            timeTaken: timeSpentPerQuestion,
+            score,
+            bookmarks: []
+        });
+    };
+
+    const { timeLeft, formatTime } = useMockTimer({
+        totalTime: totalExamTime,
+        onTimeUp: finishSession,
+        onTick: () => {
+             // Increment internal tracking for current question
+             currentQTimer.current += 1;
+        }
+    });
 
     // Record time when switching questions
     const saveCurrentQuestionTime = () => {
@@ -110,34 +124,6 @@ export const MockSession: React.FC<MockSessionProps> = ({ questions, onComplete 
                 setIsFullScreen(false);
             }
         }
-    };
-
-    const finishSession = () => {
-        saveCurrentQuestionTime(); // Save last question time
-        
-        // Calculate score
-        let score = 0;
-        questions.forEach(q => {
-            if (answers[q.id] === q.correct) score++;
-        });
-
-        if (document.fullscreenElement) {
-            document.exitFullscreen().catch(() => {});
-        }
-
-        onComplete({
-            answers,
-            timeTaken: timeSpentPerQuestion,
-            score,
-            bookmarks: [] 
-        });
-    };
-
-    // Format Timer
-    const formatTime = (seconds: number) => {
-        const mins = Math.floor(seconds / 60);
-        const secs = seconds % 60;
-        return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
     };
 
     const attemptedCount = Object.keys(answers).length;

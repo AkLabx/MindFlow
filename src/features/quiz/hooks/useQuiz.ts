@@ -69,6 +69,14 @@ export const useQuiz = () => {
   const toggleReview = useCallback((questionId: string) => dispatch({ type: 'TOGGLE_REVIEW', payload: { questionId } }), []);
   const useFiftyFifty = useCallback((questionId: string, hiddenOptions: string[]) => dispatch({ type: 'USE_50_50', payload: { questionId, hiddenOptions } }), []);
 
+  const pauseQuiz = useCallback((questionId?: string, remainingTime?: number) => {
+    dispatch({ type: 'PAUSE_QUIZ', payload: { questionId, remainingTime } });
+  }, []);
+
+  const resumeQuiz = useCallback(() => {
+    dispatch({ type: 'RESUME_QUIZ' });
+  }, []);
+
   // New method for bulk submission from separate sessions
   const submitSessionResults = useCallback((results: { answers: Record<string, string>, timeTaken: Record<string, number>, score: number, bookmarks: string[] }) => {
       logEvent('quiz_completed', {
@@ -124,6 +132,8 @@ export const useQuiz = () => {
     toggleBookmark,
     toggleReview,
     useFiftyFifty,
+    pauseQuiz,
+    resumeQuiz,
     finishQuiz,
     restartQuiz,
     goHome
