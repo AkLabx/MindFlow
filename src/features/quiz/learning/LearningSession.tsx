@@ -110,7 +110,7 @@ export const LearningSession: React.FC<LearningSessionProps> = ({
     }, [currentQuestion.id, playWrong, onAnswer]);
 
     // Dedicated Learning Timer
-    const { timeLeft, formatTime } = useLearningTimer({
+    const { timeLeft, timeLeftRef, formatTime } = useLearningTimer({
         initialTime: remainingTimes[currentQuestion.id] ?? APP_CONFIG.TIMERS.LEARNING_MODE_DEFAULT,
         questionId: currentQuestion.id,
         isPaused: isPaused || isAnswered,
@@ -125,13 +125,13 @@ export const LearningSession: React.FC<LearningSessionProps> = ({
     useEffect(() => {
         return () => {
             if (!isAnswered && !isPaused) {
-                onSaveTimer(currentQuestion.id, timeLeft);
+                onSaveTimer(currentQuestion.id, timeLeftRef.current);
             }
         };
-    }, [currentQuestion.id, isAnswered, isPaused, onSaveTimer, timeLeft]);
+    }, [currentQuestion.id, isAnswered, isPaused, onSaveTimer]);
 
     const handlePause = () => {
-        onPause(currentQuestion.id, timeLeft);
+        onPause(currentQuestion.id, timeLeftRef.current);
     };
 
     const handleResume = () => {
@@ -144,7 +144,7 @@ export const LearningSession: React.FC<LearningSessionProps> = ({
         // Calculate time spent on this question
         // Total allowed - remaining = spent
         const allowed = remainingTimes[currentQuestion.id] ?? APP_CONFIG.TIMERS.LEARNING_MODE_DEFAULT;
-        const spent = allowed - timeLeft;
+        const spent = allowed - timeLeftRef.current;
 
         onAnswer(currentQuestion.id, option, spent);
 
