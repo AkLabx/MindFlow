@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import App from './src/App';
+import App from './App';
 import './index.css'; // Assuming global styles might be needed, usually defined in App or handled by Tailwind CDN
 
 const rootElement = document.getElementById('root');

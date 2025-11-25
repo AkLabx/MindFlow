@@ -1,6 +1,8 @@
 import React from 'react';
 import { BrainCircuit, Home, Compass, PlusCircle, User, Settings } from 'lucide-react';
 import { cn } from '../utils/cn';
+import { useAuth } from '../context/AuthContext';
+import { signOut } from '../lib/auth';
 
 export type TabID = 'home' | 'explore' | 'create' | 'profile';
 
@@ -8,15 +10,15 @@ interface MainLayoutProps {
   children: React.ReactNode;
   activeTab: TabID;
   onTabChange: (tab: TabID) => void;
-  onOpenSettings: () => void;
 }
 
 export const MainLayout: React.FC<MainLayoutProps> = ({ 
   children, 
   activeTab, 
-  onTabChange,
-  onOpenSettings 
+  onTabChange
 }) => {
+  const { user } = useAuth();
+
   return (
     <div className="min-h-screen flex flex-col bg-gray-50/50 relative">
       
@@ -30,12 +32,23 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
             <span className="text-lg font-black tracking-tight text-gray-900">MindFlow</span>
           </div>
           
-          <button 
-            onClick={onOpenSettings}
-            className="p-2 text-gray-500 hover:bg-gray-100 rounded-full transition-colors"
-          >
-            <Settings className="w-5 h-5" />
-          </button>
+          {user ? (
+            <img
+              src={user.user_metadata.avatar_url || `https://api.dicebear.com/6.x/initials/svg?seed=${user.email}`}
+              alt="User profile"
+              className="w-8 h-8 rounded-full"
+              onClick={() => onTabChange('profile')}
+            />
+          ) : (
+            <button
+              onClick={() => {
+                // This will be handled by the AuthPage, which is now rendered when the user is not authenticated.
+              }}
+              className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700"
+            >
+              Login
+            </button>
+          )}
         </div>
       </header>
 
