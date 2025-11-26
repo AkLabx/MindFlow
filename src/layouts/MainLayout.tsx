@@ -59,7 +59,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
           
           <NavTab 
             id="explore" 
-            label="Explore" 
+            label="English" 
             icon={<Compass className="w-6 h-6" />} 
             isActive={activeTab === 'explore'} 
             onClick={() => onTabChange('explore')} 

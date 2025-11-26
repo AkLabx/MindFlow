@@ -205,7 +205,7 @@ export const DemoCard: React.FC = () => {
                   bg-slate-900 text-white px-5 py-2 md:px-6 md:py-2 rounded-xl text-xs md:text-sm font-semibold shadow-lg transition-transform duration-100
                   ${phase === 'CLICK_START' ? 'scale-95' : 'scale-100'}
               `}>
-                Start Quiz
+                Start Gk Quiz
               </button>
             </div>
           )}
