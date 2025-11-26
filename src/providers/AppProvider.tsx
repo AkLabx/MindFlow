@@ -1,5 +1,6 @@
 import React from 'react';
 import { SettingsProvider } from '../context/SettingsContext';
+import { AuthProvider } from '../context/AuthContext';
 
 // In a real app, this would compose ThemeProvider, AuthProvider, QueryClientProvider etc.
 interface AppProviderProps {
@@ -8,8 +9,10 @@ interface AppProviderProps {
 
 export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   return (
-    <SettingsProvider>
-      {children}
-    </SettingsProvider>
+    <AuthProvider>
+      <SettingsProvider>
+        {children}
+      </SettingsProvider>
+    </AuthProvider>
   );
 };
