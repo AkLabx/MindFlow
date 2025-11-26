@@ -1,7 +1,7 @@
 
 import { Question, InitialFilters, Idiom, OneWord } from '../../../types/models';
 
-export type QuizStatus = 'intro' | 'idle' | 'config' | 'quiz' | 'flashcards' | 'flashcards-complete' | 'result' | 'english-home' | 'vocab-home' | 'idioms-config' | 'ows-config' | 'ows-flashcards';
+export type QuizStatus = 'intro' | 'idle' | 'config' | 'quiz' | 'flashcards' | 'flashcards-complete' | 'result' | 'english-home' | 'vocab-home' | 'idioms-config' | 'ows-config' | 'ows-flashcards' | 'profile';
 export type QuizMode = 'learning' | 'mock';
 
 export interface QuizState {
@@ -30,6 +30,7 @@ export type QuizAction =
   | { type: 'ENTER_VOCAB_HOME' }
   | { type: 'ENTER_IDIOMS_CONFIG' }
   | { type: 'ENTER_OWS_CONFIG' }
+  | { type: 'ENTER_PROFILE' }
   | { type: 'GO_TO_INTRO' }
   | { type: 'START_QUIZ'; payload: { questions: Question[]; filters: InitialFilters; mode: QuizMode } }
   | { type: 'START_FLASHCARDS'; payload: { idioms: Idiom[]; filters: InitialFilters } }

@@ -5,6 +5,10 @@ import { useAuth } from '../auth/context/AuthContext';
 import AuthPage from '../auth/components/AuthPage';
 import ProfilePage from '../auth/components/ProfilePage';
 import SettingsPage from '../auth/components/SettingsPage';
+
+const QuizResult = lazy(() => import('./components/QuizResult').then(m => ({ default: m.QuizResult })));
+const QuizConfig = lazy(() => import('./components/QuizConfig').then(m => ({ default: m.QuizConfig })));
+const LandingPage = lazy(() => import('./components/LandingPage').then(m => ({ default: m.LandingPage })));
 const LearningSession = lazy(() => import('./learning/LearningSession').then(m => ({ default: m.LearningSession })));
 const MockSession = lazy(() => import('./mock/MockSession').then(m => ({ default: m.MockSession })));
 const EnglishQuizHome = lazy(() => import('./components/EnglishQuizHome').then(m => ({ default: m.EnglishQuizHome })));
