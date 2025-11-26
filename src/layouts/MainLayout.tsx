@@ -1,8 +1,9 @@
 import React from 'react';
-import { BrainCircuit, Home, Compass, PlusCircle, User, Settings } from 'lucide-react';
+import { BrainCircuit, Home, Compass, PlusCircle, User, Settings, LogIn } from 'lucide-react';
 import { cn } from '../utils/cn';
+import { useAuth } from '../features/auth/context/AuthContext';
 
-export type TabID = 'home' | 'explore' | 'create' | 'profile';
+export type TabID = 'home' | 'explore' | 'create' | 'profile' | 'login';
 
 interface MainLayoutProps {
   children: React.ReactNode;
@@ -17,30 +18,49 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
   onTabChange,
   onOpenSettings 
 }) => {
+  const { user } = useAuth();
+
+  const handleProfileClick = () => {
+    if (user) {
+      onTabChange('profile');
+    } else {
+      onTabChange('login');
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-gray-50/50 relative">
       
       {/* --- Sticky Top Header --- */}
       <header className="sticky top-0 z-40 w-full bg-white/80 backdrop-blur-md border-b border-gray-200/50 transition-all duration-200">
         <div className="max-w-3xl mx-auto px-4 h-14 flex items-center justify-between">
-          <div className="flex items-center gap-2" onClick={() => onTabChange('home')}>
+          <div className="flex items-center gap-2 cursor-pointer" onClick={() => onTabChange('home')}>
             <div className="bg-indigo-600 p-1.5 rounded-lg">
               <BrainCircuit className="h-5 w-5 text-white" />
             </div>
             <span className="text-lg font-black tracking-tight text-gray-900">MindFlow</span>
           </div>
           
-          <button 
-            onClick={onOpenSettings}
-            className="p-2 text-gray-500 hover:bg-gray-100 rounded-full transition-colors"
-          >
-            <Settings className="w-5 h-5" />
-          </button>
+          {user ? (
+            <button onClick={() => onTabChange('profile')} className="rounded-full transition-opacity duration-200 hover:opacity-80">
+              <img
+                src={user.user_metadata?.avatar_url || `https://api.dicebear.com/6.x/initials/svg?seed=${user.user_metadata?.full_name || user.email}`}
+                alt="User Avatar"
+                className="w-8 h-8 rounded-full"
+              />
+            </button>
+          ) : (
+             <button
+              onClick={onOpenSettings}
+              className="p-2 text-gray-500 hover:bg-gray-100 rounded-full transition-colors"
+            >
+              <Settings className="w-5 h-5" />
+            </button>
+          )}
         </div>
       </header>
 
       {/* --- Main Scrollable Content --- */}
-      {/* pb-24 ensures content isn't hidden behind the bottom tab bar */}
       <main className="flex-1 w-full max-w-3xl mx-auto px-4 pt-4 pb-24 relative z-0">
         {children}
       </main>
@@ -65,7 +85,6 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
             onClick={() => onTabChange('explore')} 
           />
           
-          {/* Floating Action Button style for center tab */}
           <button 
             onClick={() => onTabChange('create')}
             className="relative -top-5 group"
@@ -86,14 +105,23 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
             </span>
           </button>
 
-          <NavTab 
-            id="profile" 
-            label="Profile" 
-            icon={<User className="w-6 h-6" />} 
-            isActive={activeTab === 'profile'} 
-            onClick={() => onTabChange('profile')} 
-          />
-          
+          {user ? (
+            <NavTab
+              id="profile"
+              label="Profile"
+              icon={<User className="w-6 h-6" />}
+              isActive={activeTab === 'profile'}
+              onClick={handleProfileClick}
+            />
+          ) : (
+            <NavTab
+              id="login"
+              label="Sign In"
+              icon={<LogIn className="w-6 h-6" />}
+              isActive={activeTab === 'login'}
+              onClick={handleProfileClick}
+            />
+          )}
         </div>
       </nav>
     </div>

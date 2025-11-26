@@ -1,10 +1,10 @@
 
 import React, { lazy, useContext, useState } from 'react';
 import { useQuiz } from './hooks/useQuiz';
-
-const QuizResult = lazy(() => import('./components/QuizResult').then(m => ({ default: m.QuizResult })));
-const QuizConfig = lazy(() => import('./components/QuizConfig').then(m => ({ default: m.QuizConfig })));
-const LandingPage = lazy(() => import('./components/LandingPage').then(m => ({ default: m.LandingPage })));
+import { useAuth } from '../auth/context/AuthContext';
+import AuthPage from '../auth/components/AuthPage';
+import ProfilePage from '../auth/components/ProfilePage';
+import SettingsPage from '../auth/components/SettingsPage';
 const LearningSession = lazy(() => import('./learning/LearningSession').then(m => ({ default: m.LearningSession })));
 const MockSession = lazy(() => import('./mock/MockSession').then(m => ({ default: m.MockSession })));
 const EnglishQuizHome = lazy(() => import('./components/EnglishQuizHome').then(m => ({ default: m.EnglishQuizHome })));
@@ -33,6 +33,7 @@ export const QuizContainer: React.FC = () => {
     enterHome,
     enterConfig,
     enterEnglishHome,
+    enterProfile,
     enterVocabHome,
     enterIdiomsConfig,
     enterOWSConfig,
@@ -57,9 +58,15 @@ export const QuizContainer: React.FC = () => {
   const { areBgAnimationsEnabled } = useContext(SettingsContext);
   const { canInstall, triggerInstall } = usePWAInstall();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [showLogin, setShowLogin] = useState(false);
+  const [activeProfileView, setActiveProfileView] = useState<'profile' | 'settings'>('profile');
+  const { user } = useAuth();
 
   // Determine active tab for the bottom bar
   const getActiveTab = (): TabID => {
+    if (showLogin) return 'login';
+    if (!user && state.status !== 'intro') return 'login'; // Default to login tab if not logged in
+    if (state.status === 'profile') return 'profile';
     switch (state.status) {
       case 'english-home':
       case 'vocab-home':
@@ -77,6 +84,8 @@ export const QuizContainer: React.FC = () => {
 
   // Handle Tab Navigation
   const handleTabChange = (tab: TabID) => {
+    setShowLogin(false); // Hide login page on any tab change
+    setActiveProfileView('profile'); // Reset to profile view on tab change
     switch (tab) {
       case 'home':
         enterHome();
@@ -88,7 +97,10 @@ export const QuizContainer: React.FC = () => {
         enterConfig();
         break;
       case 'profile':
-        setIsSettingsOpen(true);
+        enterProfile();
+        break;
+      case 'login':
+        setShowLogin(true);
         break;
     }
   };
@@ -101,6 +113,10 @@ export const QuizContainer: React.FC = () => {
         <LandingPage onGetStarted={enterHome} />
       </>
     );
+  }
+
+  if (showLogin && !user) {
+    return <AuthPage />;
   }
 
   // 1. Immersive Modes (No Header/Footer)
@@ -193,6 +209,13 @@ export const QuizContainer: React.FC = () => {
 
   // 2. Content for Layout Pages
   const renderLayoutContent = () => {
+    if (state.status === 'profile' && user) {
+      if (activeProfileView === 'settings') {
+        return <SettingsPage onBack={() => setActiveProfileView('profile')} />;
+      }
+      return <ProfilePage onNavigateToSettings={() => setActiveProfileView('settings')} />;
+    }
+
     switch (state.status) {
       case 'english-home':
         return <EnglishQuizHome onBack={enterHome} onVocabClick={enterVocabHome} />;

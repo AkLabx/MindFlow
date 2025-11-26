@@ -24,6 +24,7 @@ export const useQuiz = () => {
   const enterVocabHome = useCallback(() => dispatch({ type: 'ENTER_VOCAB_HOME' }), []);
   const enterIdiomsConfig = useCallback(() => dispatch({ type: 'ENTER_IDIOMS_CONFIG' }), []);
   const enterOWSConfig = useCallback(() => dispatch({ type: 'ENTER_OWS_CONFIG' }), []);
+  const enterProfile = useCallback(() => dispatch({ type: 'ENTER_PROFILE' }), []);
   const goToIntro = useCallback(() => dispatch({ type: 'GO_TO_INTRO' }), []);
   
   const startQuiz = useCallback((filteredQuestions: Question[], filters: InitialFilters, mode: QuizMode = 'learning') => {
@@ -116,6 +117,7 @@ export const useQuiz = () => {
     enterVocabHome,
     enterIdiomsConfig,
     enterOWSConfig,
+    enterProfile,
     goToIntro,
     startQuiz,
     startFlashcards,
