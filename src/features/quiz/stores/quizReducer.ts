@@ -59,6 +59,9 @@ export function quizReducer(state: QuizState, action: QuizAction): QuizState {
     case 'ENTER_OWS_CONFIG':
       return { ...state, status: 'ows-config' };
 
+    case 'ENTER_PROFILE':
+      return { ...state, status: 'profile' };
+
     case 'GO_TO_INTRO':
       return { ...initialState, status: 'intro' };
 
