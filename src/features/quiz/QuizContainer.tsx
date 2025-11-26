@@ -1,18 +1,24 @@
 
-import React, { useContext, useState } from 'react';
+import React, { lazy, useContext, useState } from 'react';
 import { useQuiz } from './hooks/useQuiz';
-import { QuizResult } from './components/QuizResult';
-import { QuizConfig } from './components/QuizConfig';
-import { LandingPage } from './components/LandingPage';
-import { LearningSession } from './learning/LearningSession';
-import { MockSession } from './mock/MockSession';
-import { EnglishQuizHome } from './components/EnglishQuizHome';
-import { VocabQuizHome } from './components/VocabQuizHome';
-import { IdiomsConfig } from './components/IdiomsConfig';
-import { OWSConfig } from './components/OWSConfig';
-import { FlashcardSession } from './components/Flashcard/FlashcardSession';
-import { OWSSession } from './components/OWS/OWSSession';
-import { FlashcardSummary } from './components/Flashcard/FlashcardSummary';
+import { useAuth } from '../auth/context/AuthContext';
+import AuthPage from '../auth/components/AuthPage';
+import ProfilePage from '../auth/components/ProfilePage';
+import SettingsPage from '../auth/components/SettingsPage';
+
+const QuizResult = lazy(() => import('./components/QuizResult').then(m => ({ default: m.QuizResult })));
+const QuizConfig = lazy(() => import('./components/QuizConfig').then(m => ({ default: m.QuizConfig })));
+const LandingPage = lazy(() => import('./components/LandingPage').then(m => ({ default: m.LandingPage })));
+const LearningSession = lazy(() => import('./learning/LearningSession').then(m => ({ default: m.LearningSession })));
+const MockSession = lazy(() => import('./mock/MockSession').then(m => ({ default: m.MockSession })));
+const EnglishQuizHome = lazy(() => import('./components/EnglishQuizHome').then(m => ({ default: m.EnglishQuizHome })));
+const VocabQuizHome = lazy(() => import('./components/VocabQuizHome').then(m => ({ default: m.VocabQuizHome })));
+const IdiomsConfig = lazy(() => import('./components/IdiomsConfig').then(m => ({ default: m.IdiomsConfig })));
+const OWSConfig = lazy(() => import('./components/OWSConfig').then(m => ({ default: m.OWSConfig })));
+const FlashcardSession = lazy(() => import('./components/Flashcard/FlashcardSession').then(m => ({ default: m.FlashcardSession })));
+const OWSSession = lazy(() => import('./components/OWS/OWSSession').then(m => ({ default: m.OWSSession })));
+const FlashcardSummary = lazy(() => import('./components/Flashcard/FlashcardSummary').then(m => ({ default: m.FlashcardSummary })));
+
 import { Fireballs } from '../../components/Background/Fireballs';
 import { Button } from '../../components/Button/Button';
 import { ArrowRight, ListChecks, FileText, BookOpen, ArrowLeft, Download, Languages } from 'lucide-react';
@@ -20,6 +26,8 @@ import { SettingsContext } from '../../context/SettingsContext';
 import { usePWAInstall } from '../../hooks/usePWAInstall';
 import { MainLayout, TabID } from '../../layouts/MainLayout';
 import { SettingsModal } from './components/ui/SettingsModal';
+
+import { Suspense } from 'react';
 
 export const QuizContainer: React.FC = () => {
   const {
@@ -29,6 +37,7 @@ export const QuizContainer: React.FC = () => {
     enterHome,
     enterConfig,
     enterEnglishHome,
+    enterProfile,
     enterVocabHome,
     enterIdiomsConfig,
     enterOWSConfig,
@@ -53,9 +62,15 @@ export const QuizContainer: React.FC = () => {
   const { areBgAnimationsEnabled } = useContext(SettingsContext);
   const { canInstall, triggerInstall } = usePWAInstall();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [showLogin, setShowLogin] = useState(false);
+  const [activeProfileView, setActiveProfileView] = useState<'profile' | 'settings'>('profile');
+  const { user } = useAuth();
 
   // Determine active tab for the bottom bar
   const getActiveTab = (): TabID => {
+    if (showLogin) return 'login';
+    if (!user && state.status !== 'intro') return 'login'; // Default to login tab if not logged in
+    if (state.status === 'profile') return 'profile';
     switch (state.status) {
       case 'english-home':
       case 'vocab-home':
@@ -73,6 +88,8 @@ export const QuizContainer: React.FC = () => {
 
   // Handle Tab Navigation
   const handleTabChange = (tab: TabID) => {
+    setShowLogin(false); // Hide login page on any tab change
+    setActiveProfileView('profile'); // Reset to profile view on tab change
     switch (tab) {
       case 'home':
         enterHome();
@@ -84,7 +101,10 @@ export const QuizContainer: React.FC = () => {
         enterConfig();
         break;
       case 'profile':
-        setIsSettingsOpen(true);
+        enterProfile();
+        break;
+      case 'login':
+        setShowLogin(true);
         break;
     }
   };
@@ -97,6 +117,10 @@ export const QuizContainer: React.FC = () => {
         <LandingPage onGetStarted={enterHome} />
       </>
     );
+  }
+
+  if (showLogin && !user) {
+    return <AuthPage />;
   }
 
   // 1. Immersive Modes (No Header/Footer)
@@ -189,6 +213,13 @@ export const QuizContainer: React.FC = () => {
 
   // 2. Content for Layout Pages
   const renderLayoutContent = () => {
+    if (state.status === 'profile' && user) {
+      if (activeProfileView === 'settings') {
+        return <SettingsPage onBack={() => setActiveProfileView('profile')} />;
+      }
+      return <ProfilePage onNavigateToSettings={() => setActiveProfileView('settings')} />;
+    }
+
     switch (state.status) {
       case 'english-home':
         return <EnglishQuizHome onBack={enterHome} onVocabClick={enterVocabHome} />;
@@ -346,12 +377,14 @@ export const QuizContainer: React.FC = () => {
       onTabChange={handleTabChange}
       onOpenSettings={() => setIsSettingsOpen(true)}
     >
+      <Suspense fallback={<div>Loading...</div>}>
       {areBgAnimationsEnabled && <Fireballs />}
       
       {/* Global Settings Modal */}
       <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
       
       {renderLayoutContent()}
+      </Suspense>
     </MainLayout>
   );
 };

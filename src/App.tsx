@@ -1,11 +1,15 @@
+
 import React from 'react';
 import { AppProvider } from './providers/AppProvider';
 import { QuizContainer } from './features/quiz/QuizContainer';
+import AuthGuard from './features/auth/AuthGuard';
 
 const App: React.FC = () => {
   return (
     <AppProvider>
-      <QuizContainer />
+      <AuthGuard>
+        <QuizContainer />
+      </AuthGuard>
     </AppProvider>
   );
 };
