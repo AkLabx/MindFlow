@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { supabase } from '../../../lib/supabase';
 import { BrainCircuit, ArrowLeft } from 'lucide-react';
@@ -78,7 +77,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ onBack }) => {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: 'https://aklabx.github.io/MindFlow/'
+          redirectTo: `${window.location.origin}${import.meta.env.BASE_URL}`
         }
       });
       if (error) throw error;
