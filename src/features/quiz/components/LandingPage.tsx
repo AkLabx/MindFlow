@@ -1,19 +1,34 @@
 
-import React from 'react';
-import { ArrowRight, Brain, Zap, Layers, Star, Play, Github, Download, Target } from 'lucide-react';
+import React, { useState } from 'react';
+import { ArrowRight, Brain, Zap, Layers, Star, Play, Github, Download, Target, User as UserIcon, LogOut, ChevronDown } from 'lucide-react';
 import { Button } from '../../../components/Button/Button';
 import { Typewriter } from './Landing/Typewriter';
 import { DemoCard } from './Landing/DemoCard';
 import { MobileDemoCard } from './Landing/MobileDemoCard';
 import { usePWAInstall } from '../../../hooks/usePWAInstall';
+import { User } from '@supabase/supabase-js';
 
 interface LandingPageProps {
   onGetStarted: () => void;
   onLoginClick: () => void;
+  onProfileClick: () => void;
+  user: User | null;
+  onSignOut: () => void;
 }
 
-export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLoginClick }) => {
+export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLoginClick, user, onProfileClick, onSignOut }) => {
   const { canInstall, triggerInstall } = usePWAInstall();
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+
+  const handleSignOut = () => {
+    onSignOut();
+    setIsProfileMenuOpen(false);
+  }
+
+  const handleProfileClick = () => {
+    onProfileClick();
+    setIsProfileMenuOpen(false);
+  }
 
   return (
     <div className="relative min-h-screen flex flex-col items-center justify-start pb-0 overflow-x-hidden bg-slate-50 selection:bg-indigo-100 selection:text-indigo-900 font-sans pt-[env(safe-area-inset-top)]">
@@ -61,9 +76,31 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLoginC
               <a href="#" className="hidden sm:block p-2 text-slate-400 hover:text-slate-900 transition-colors" aria-label="Github">
                  <Github className="w-5 h-5" />
               </a>
-              <Button variant="ghost" className="flex text-slate-600 hover:text-indigo-600 hover:bg-indigo-50" onClick={onLoginClick}>
-                Log in
-              </Button>
+              
+              {user ? (
+                <div className="relative">
+                  <button onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)} className="flex items-center gap-2 cursor-pointer">
+                    <img src={user.user_metadata.avatar_url} alt="User avatar" className="w-8 h-8 rounded-full" />
+                    <ChevronDown className={`w-4 h-4 text-slate-600 transition-transform ${isProfileMenuOpen ? 'rotate-180' : ''}`} />
+                  </button>
+                  {isProfileMenuOpen && (
+                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50">
+                      <button onClick={handleProfileClick} className="flex items-center gap-2 w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-100">
+                        <UserIcon className="w-4 h-4" />
+                        Profile
+                      </button>
+                      <button onClick={handleSignOut} className="flex items-center gap-2 w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-100">
+                        <LogOut className="w-4 h-4" />
+                        Sign Out
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <Button variant="ghost" className="flex text-slate-600 hover:text-indigo-600 hover:bg-indigo-50" onClick={onLoginClick}>
+                  Log in
+                </Button>
+              )}
            </div>
         </div>
       </nav>

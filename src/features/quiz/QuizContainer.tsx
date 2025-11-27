@@ -64,7 +64,7 @@ export const QuizContainer: React.FC = () => {
   const { canInstall, triggerInstall } = usePWAInstall();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [activeProfileView, setActiveProfileView] = useState<'profile' | 'settings'>('profile');
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
 
   // Determine active tab for the bottom bar
   const getActiveTab = (): TabID => {
@@ -116,7 +116,7 @@ export const QuizContainer: React.FC = () => {
     return (
       <>
         {areBgAnimationsEnabled && <Fireballs />}
-        <LandingPage onGetStarted={enterHome} onLoginClick={enterLogin} />
+        <LandingPage onGetStarted={enterHome} onLoginClick={enterLogin} user={user} onProfileClick={enterProfile} onSignOut={signOut} />
       </>
     );
   }
