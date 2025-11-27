@@ -2,6 +2,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '../../../lib/supabase';
+import defaultAvatar from '../../../assets/default-avatar.svg';
 
 interface AuthContextType {
   session: Session | null;
@@ -19,18 +20,33 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const getSession = async () => {
+    const getInitialSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
     };
 
-    getSession();
+    getInitialSession();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      setUser(session?.user ?? null);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+        if (session?.user) {
+            let finalUser = session.user;
+            // If the user signed in with Google and doesn't have an avatar, set a default one.
+            if (session.user.app_metadata.provider === 'google' && !session.user.user_metadata.avatar_url) {
+                const { data, error } = await supabase.auth.updateUser({
+                    data: { 
+                        avatar_url: defaultAvatar,
+                    }
+                });
+                if (data.user) finalUser = data.user;
+                if(error) console.error('Error updating user metadata:', error);
+            }
+            setUser(finalUser);
+        } else {
+            setUser(null);
+        }
+        setSession(session);
     });
 
     return () => {
@@ -43,8 +59,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const refreshUser = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    setUser(user);
+    const { data, error } = await supabase.auth.refreshSession();
+    if (data.user) {
+        setUser(data.user);
+    } else {
+        const { data: { user } } = await supabase.auth.getUser();
+        setUser(user);
+    }
   };
 
   const value = {
