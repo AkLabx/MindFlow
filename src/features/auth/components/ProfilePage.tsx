@@ -1,14 +1,18 @@
 
-import React from 'react';
+import React, { useState, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Settings, LogOut, Award, CheckCircle, BarChart, ChevronRight } from 'lucide-react';
+import { supabase } from '../../../lib/supabase';
+import { Settings, LogOut, Award, CheckCircle, BarChart, ChevronRight, Pencil, Loader2, AlertTriangle } from 'lucide-react';
 
 interface ProfilePageProps {
   onNavigateToSettings: () => void;
 }
 
 const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigateToSettings }) => {
-  const { user, signOut } = useAuth();
+  const { user, signOut, refreshUser } = useAuth();
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
 
   if (!user) {
     return (
@@ -18,7 +22,55 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigateToSettings }) => {
     );
   }
 
-  // Dummy data for stats, can be replaced with real data later
+  const handleAvatarClick = () => {
+    avatarInputRef.current?.click();
+  };
+
+  const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (!user || !event.target.files || event.target.files.length === 0) {
+      return;
+    }
+
+    const file = event.target.files[0];
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${user.id}-${Date.now()}.${fileExt}`;
+    const filePath = `avatars/${fileName}`;
+
+    setUploading(true);
+    setError(null);
+
+    // 1. Upload new avatar
+    const { error: uploadError } = await supabase.storage
+      .from('avatars')
+      .upload(filePath, file, { upsert: true });
+
+    if (uploadError) {
+      setError(`Failed to upload avatar: ${uploadError.message}`);
+      setUploading(false);
+      return;
+    }
+
+    // 2. Get public URL
+    const { data: { publicUrl } } = supabase.storage
+      .from('avatars')
+      .getPublicUrl(filePath);
+
+    // 3. Update user metadata
+    const { error: updateUserError } = await supabase.auth.updateUser({
+      data: {
+        avatar_url: publicUrl,
+      },
+    });
+
+    if (updateUserError) {
+      setError(`Failed to update profile: ${updateUserError.message}`);
+    } else {
+      await refreshUser(); // Refresh user data to show new avatar
+    }
+    
+    setUploading(false);
+  };
+
   const stats = [
     { name: 'Quizzes Completed', value: 24, icon: Award },
     { name: 'Correct Answers', value: '1,200', icon: CheckCircle },
@@ -31,15 +83,34 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigateToSettings }) => {
         
         {/* --- Profile Header Card --- */}
         <div className="bg-white rounded-3xl border border-slate-200/80 shadow-lg shadow-slate-200/30 overflow-hidden">
-          <div className="relative h-24 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500">
-             {/* Avatar is positioned to overlap the header */}
-          </div>
+          <div className="relative h-24 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"></div>
           <div className="p-6 pb-8 text-center relative">
-            <img
-              src={user.user_metadata?.avatar_url || `https://api.dicebear.com/6.x/initials/svg?seed=${user.user_metadata?.full_name || user.email}`}
-              alt="User Avatar"
-              className="w-28 h-28 rounded-full mx-auto -mt-20 border-4 border-white shadow-lg"
-            />
+            
+            {/* --- Avatar with Edit Button --- */}
+            <div className="relative w-28 h-28 mx-auto -mt-20">
+                <img
+                    src={user.user_metadata?.avatar_url || `https://api.dicebear.com/6.x/initials/svg?seed=${user.user_metadata?.full_name || user.email}`}
+                    alt="User Avatar"
+                    className="w-28 h-28 rounded-full border-4 border-white shadow-lg"
+                />
+                <input
+                    type="file"
+                    ref={avatarInputRef}
+                    className="hidden"
+                    onChange={handleAvatarUpload}
+                    accept="image/png, image/jpeg"
+                    disabled={uploading}
+                />
+                <button
+                    onClick={handleAvatarClick}
+                    disabled={uploading}
+                    className="absolute bottom-1 right-1 w-9 h-9 bg-indigo-600 rounded-full flex items-center justify-center text-white border-2 border-white hover:bg-indigo-700 transition-all duration-300 shadow-md group"
+                    aria-label="Change profile picture"
+                >
+                    {uploading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Pencil className="w-5 h-5 group-hover:scale-110 transition-transform" />}
+                </button>
+            </div>
+
             <div className="mt-4 flex items-center justify-center gap-2">
                 <h1 className="text-3xl font-black text-slate-800">{user.user_metadata?.full_name || user.email}</h1>
                 <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-gradient-to-r from-amber-400 to-orange-500 text-white shadow-md">
@@ -47,6 +118,14 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigateToSettings }) => {
                 </span>
             </div>
             <p className="text-slate-500 font-medium mt-1">{user.email}</p>
+
+            {/* --- Error Message Display --- */}
+            {error && (
+                <div className="mt-4 bg-red-100 border border-red-200 text-red-700 px-4 py-2 rounded-xl flex items-center justify-center gap-2 text-sm">
+                    <AlertTriangle className="w-4 h-4"/>
+                    <span>{error}</span>
+                </div>
+            )}
           </div>
         </div>
 
