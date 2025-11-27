@@ -15,7 +15,7 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
   }
 
   if (!session) {
-    return <AuthPage />;
+    return <AuthPage onBack={() => {}} />;
   }
 
   return <>{children}</>;
