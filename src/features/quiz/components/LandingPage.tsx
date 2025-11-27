@@ -206,7 +206,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLoginC
               </button>
             )}
 
-            <button className="group flex items-center gap-3 px-6 py-4 text-slate-600 font-semibold transition-all w-full sm:w-auto justify-center rounded-full hover:bg-white/50 hover:text-indigo-700 border border-transparent hover:border-indigo-100">
+            <button className="group hidden sm:flex items-center gap-3 px-6 py-4 text-slate-600 font-semibold transition-all w-full sm:w-auto justify-center rounded-full hover:bg-white/50 hover:text-indigo-700 border border-transparent hover:border-indigo-100">
               <div className="w-10 h-10 rounded-full bg-white border border-slate-200 flex items-center justify-center shadow-sm group-hover:shadow-md group-hover:scale-110 transition-all duration-300 text-slate-900 group-hover:text-indigo-600">
                 <Play className="w-4 h-4 ml-0.5 fill-current" />
               </div>
@@ -215,7 +215,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLoginC
           </div>
 
           {/* --- Enhanced Social Proof --- */}
-          <div className="pt-6 md:pt-10 flex flex-col sm:flex-row items-center sm:items-start gap-6 animate-fade-in delay-150">
+          <div className="hidden md:flex pt-6 md:pt-10 flex-col sm:flex-row items-center sm:items-start gap-6 animate-fade-in delay-150">
              <div className="flex -space-x-4">
                 {[
                   "https://i.pravatar.cc/100?img=32",
