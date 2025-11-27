@@ -112,6 +112,15 @@ export const QuizContainer: React.FC = () => {
   };
 
   // 1. Immersive Modes (No Header/Footer)
+   if (state.status === 'intro') {
+    return (
+      <Suspense fallback={<div>Loading...</div>}>
+        {areBgAnimationsEnabled && <Fireballs />}
+        <LandingPage onGetStarted={enterHome} onLoginClick={enterLogin} user={user} onProfileClick={enterProfile} onSignOut={signOut} />
+      </Suspense>
+    );
+  }
+
   if (state.status === 'quiz') {
     // Route to specific session based on mode
     if (state.mode === 'learning') {
@@ -201,15 +210,6 @@ export const QuizContainer: React.FC = () => {
 
   // 2. Content for Layout Pages
   const renderLayoutContent = () => {
-    if (state.status === 'intro') {
-        return (
-          <>
-            {areBgAnimationsEnabled && <Fireballs />}
-            <LandingPage onGetStarted={enterHome} onLoginClick={enterLogin} user={user} onProfileClick={enterProfile} onSignOut={signOut} />
-          </>
-        );
-    }
-    
     if (state.status === 'login' && !user) {
         return <AuthPage onBack={goToIntro} />;
     }
