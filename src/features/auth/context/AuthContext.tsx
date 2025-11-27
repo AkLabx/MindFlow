@@ -29,11 +29,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     getInitialSession();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-        if (event === 'SIGNED_IN' && session) {
-            // This is the key change. After a successful sign-in, we redirect to the root of the app.
-            // This forces the PWA to reload in the correct standalone display mode.
+        // PWA post-auth redirect fix to prevent infinite loops.
+        // This redirect should only happen ONCE, immediately after the user returns from the OAuth provider.
+        // We can reliably detect this specific moment by checking for the 'access_token' in the URL hash.
+        if (event === 'SIGNED_IN' && window.location.hash.includes('access_token')) {
+            // By redirecting to the base URL, the page reloads. On this new load, the URL hash
+            // will be gone, so this 'if' block will not be triggered again, breaking the loop.
+            // This also ensures the PWA displays correctly in standalone mode.
             window.location.href = import.meta.env.BASE_URL;
+            return; // Halt further execution in this callback, as a reload is imminent.
         }
+
+        setSession(session);
+
         if (session?.user) {
             let finalUser = session.user;
             // If the user signed in with Google and doesn't have an avatar, set a default one.
@@ -50,7 +58,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         } else {
             setUser(null);
         }
-        setSession(session);
     });
 
     return () => {
