@@ -24,8 +24,10 @@ export default defineConfig(({ mode }) => {
             theme_color: '#4f46e5', // Indigo-600
             background_color: '#f9fafb', // Gray-50
             display: 'standalone',
+            scope: '/',
+            start_url: '/',
             orientation: 'portrait',
-            start_url: '.',
+            display_override: ['standalone', 'fullscreen', 'minimal-ui'],
             icons: [
               {
                 src: 'mindflow-icon.svg',
