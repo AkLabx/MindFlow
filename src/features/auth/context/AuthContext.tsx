@@ -29,15 +29,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     getInitialSession();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-        // PWA post-auth redirect fix to prevent infinite loops.
-        // This redirect should only happen ONCE, immediately after the user returns from the OAuth provider.
-        // We can reliably detect this specific moment by checking for the 'access_token' in the URL hash.
+        // PWA post-auth redirect fix to ensure standalone mode.
         if (event === 'SIGNED_IN' && window.location.hash.includes('access_token')) {
-            // By redirecting to the base URL, the page reloads. On this new load, the URL hash
-            // will be gone, so this 'if' block will not be triggered again, breaking the loop.
-            // This also ensures the PWA displays correctly in standalone mode.
-            window.location.href = import.meta.env.BASE_URL;
-            return; // Halt further execution in this callback, as a reload is imminent.
+            // 1. Clean the URL by removing the auth hash. This prevents an infinite loop.
+            //    We use replaceState to do this without triggering a page reload.
+            history.replaceState(null, '', window.location.pathname);
+            
+            // 2. Force a hard reload. This is more reliable for PWAs to
+            //    re-evaluate their display mode and enter the correct standalone view.
+            window.location.reload();
+
+            return; // Halt further execution as a reload is imminent.
         }
 
         setSession(session);
