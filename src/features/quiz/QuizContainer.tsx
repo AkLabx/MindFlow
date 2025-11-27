@@ -116,7 +116,7 @@ export const QuizContainer: React.FC = () => {
     return (
       <>
         {areBgAnimationsEnabled && <Fireballs />}
-        <LandingPage onGetStarted={enterHome} />
+        <LandingPage onGetStarted={enterHome} onLoginClick={enterLogin} />
       </>
     );
   }
