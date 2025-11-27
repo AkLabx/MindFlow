@@ -1,11 +1,12 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ArrowRight, Brain, Zap, Layers, Star, Play, Github, Download, Target, User as UserIcon, LogOut, ChevronDown } from 'lucide-react';
 import { Button } from '../../../components/Button/Button';
 import { Typewriter } from './Landing/Typewriter';
 import { DemoCard } from './Landing/DemoCard';
 import { MobileDemoCard } from './Landing/MobileDemoCard';
 import { usePWAInstall } from '../../../hooks/usePWAInstall';
+import InstallPwaModal from '../../../components/common/InstallPwaModal';
 import { User } from '@supabase/supabase-js';
 
 interface LandingPageProps {
@@ -17,9 +18,24 @@ interface LandingPageProps {
 }
 
 export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLoginClick, user, onProfileClick, onSignOut }) => {
-  const { canInstall, triggerInstall } = usePWAInstall();
+  const { canInstall, triggerInstall, installStatus } = usePWAInstall();
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [showToast, setShowToast] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
 
+  const handleInstallClick = () => {
+    setIsModalOpen(true);
+  };
+
+  const handleInstallConfirm = async () => {
+    setIsModalOpen(false);
+    const installed = await triggerInstall();
+    if (installed) {
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 5000);
+    }
+  };
+  
   const handleSignOut = () => {
     onSignOut();
     setIsProfileMenuOpen(false);
@@ -29,6 +45,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLoginC
     onProfileClick();
     setIsProfileMenuOpen(false);
   }
+
+  const shouldShowInstallButton = canInstall && installStatus !== 'success';
 
   return (
     <div className="relative min-h-screen flex flex-col items-center justify-start pb-0 overflow-x-hidden bg-slate-50 selection:bg-indigo-100 selection:text-indigo-900 font-sans pt-[env(safe-area-inset-top)]">
@@ -57,9 +75,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLoginC
         <div className="flex items-center gap-6">
            
            {/* PWA Install Button (Visible if installable) */}
-           {canInstall && (
+           {shouldShowInstallButton && (
               <button 
-                onClick={triggerInstall}
+                onClick={handleInstallClick}
                 className="flex items-center gap-2 px-3 py-2 md:px-4 rounded-full border border-indigo-200 bg-white/50 text-indigo-700 font-bold text-[10px] md:text-xs uppercase tracking-wide hover:bg-indigo-50 hover:border-indigo-300 transition-all shadow-sm whitespace-nowrap"
               >
                 <Download className="w-3.5 h-3.5 md:w-4 md:h-4" /> <span className="hidden xs:inline">Download App</span><span className="xs:hidden">App</span>
@@ -179,9 +197,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLoginC
             </button>
 
             {/* Mobile-Only Download App Button (Below Start) */}
-            {canInstall && (
+            {shouldShowInstallButton && (
               <button
-                onClick={triggerInstall}
+                onClick={handleInstallClick}
                 className="flex md:hidden w-full items-center justify-center gap-2 px-6 py-3 rounded-full bg-indigo-50 text-indigo-700 font-bold text-sm border border-indigo-200 shadow-sm hover:bg-indigo-100 transition-all active:scale-95"
               >
                 <Download className="w-4 h-4" /> Install App
@@ -284,6 +302,19 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLoginC
         </div>
       </div>
 
+      {isModalOpen && (
+        <InstallPwaModal 
+          onConfirm={handleInstallConfirm}
+          onCancel={() => setIsModalOpen(false)}
+        />
+      )}
+
+      {showToast && (
+        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 bg-gray-900 text-white px-6 py-3 rounded-full text-sm font-semibold shadow-lg z-50 animate-fade-in-up">
+          Installation started! Check your device's home screen for the MindFlow icon.
+        </div>
+      )}
+
       {/* --- CSS Keyframes & Accessibility --- */}
       <style>{`
         @keyframes blob {
@@ -336,7 +367,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLoginC
           animation: gradient-x 8s ease infinite;
         }
 
-        @keyframes draw-line {
+        @keyframes draw-.kihG2N7m_A-left-1 { --left: 1; }
+.kihG2N7m_A-left-1:before { content: var(--left); }line {
           0% { stroke-dashoffset: 200; opacity: 0; }
           5% { opacity: 1; }
           20% { stroke-dashoffset: 0; }
@@ -360,6 +392,14 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLoginC
             animation: none !important;
             transform: none !important;
           }
+        }
+
+        @keyframes fade-in-up {
+          from { opacity: 0; transform: translateY(20px) translateX(-50%); }
+          to { opacity: 1; transform: translateY(0) translateX(-50%); }
+        }
+        .animate-fade-in-up {
+            animation: fade-in-up 0.5s ease-out forwards;
         }
       `}</style>
     </div>
