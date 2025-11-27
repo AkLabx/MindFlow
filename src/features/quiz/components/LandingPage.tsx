@@ -251,7 +251,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLoginC
         <div className="flex-1 w-full max-w-[550px] relative mt-0 md:mt-0 perspective-1000">
           
           {/* MOBILE SPECIFIC CARD */}
-          <div className="block md:hidden animate-fade-in">
+          <div className="hidden md:hidden animate-fade-in">
              <MobileDemoCard />
           </div>
 
