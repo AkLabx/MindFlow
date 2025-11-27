@@ -111,20 +111,6 @@ export const QuizContainer: React.FC = () => {
     }
   };
 
-  // 0. Intro / Landing Page (Standalone)
-  if (state.status === 'intro') {
-    return (
-      <>
-        {areBgAnimationsEnabled && <Fireballs />}
-        <LandingPage onGetStarted={enterHome} onLoginClick={enterLogin} user={user} onProfileClick={enterProfile} onSignOut={signOut} />
-      </>
-    );
-  }
-
-  if (state.status === 'login' && !user) {
-    return <AuthPage onBack={goToIntro} />;
-  }
-
   // 1. Immersive Modes (No Header/Footer)
   if (state.status === 'quiz') {
     // Route to specific session based on mode
@@ -215,6 +201,19 @@ export const QuizContainer: React.FC = () => {
 
   // 2. Content for Layout Pages
   const renderLayoutContent = () => {
+    if (state.status === 'intro') {
+        return (
+          <>
+            {areBgAnimationsEnabled && <Fireballs />}
+            <LandingPage onGetStarted={enterHome} onLoginClick={enterLogin} user={user} onProfileClick={enterProfile} onSignOut={signOut} />
+          </>
+        );
+    }
+    
+    if (state.status === 'login' && !user) {
+        return <AuthPage onBack={goToIntro} />;
+    }
+
     if (state.status === 'profile' && user) {
       if (activeProfileView === 'settings') {
         return <SettingsPage onBack={() => setActiveProfileView('profile')} />;
