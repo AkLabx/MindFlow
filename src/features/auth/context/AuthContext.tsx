@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '../../../lib/supabase';
@@ -33,7 +32,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         if (event === 'SIGNED_IN' && session) {
             // This is the key change. After a successful sign-in, we redirect to the root of the app.
             // This forces the PWA to reload in the correct standalone display mode.
-            window.location.href = '/';
+            window.location.href = import.meta.env.BASE_URL;
         }
         if (session?.user) {
             let finalUser = session.user;

@@ -5,9 +5,11 @@ import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, '.', '');
+    const isProduction = mode === 'production';
+    const base = isProduction ? '/MindFlow/' : '/';
     return {
       // Sets the base path for production to /MindFlow/ (Repo Name) and / for local dev
-      base: mode === 'production' ? '/MindFlow/' : '/',
+      base,
       server: {
         port: 3000,
         host: '0.0.0.0',
@@ -24,8 +26,8 @@ export default defineConfig(({ mode }) => {
             theme_color: '#4f46e5', // Indigo-600
             background_color: '#f9fafb', // Gray-50
             display: 'standalone',
-            scope: '/',
-            start_url: '/',
+            scope: base,
+            start_url: base,
             orientation: 'portrait',
             display_override: ['standalone', 'fullscreen', 'minimal-ui'],
             icons: [
