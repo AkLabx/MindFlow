@@ -77,6 +77,9 @@ const AuthPage: React.FC<AuthPageProps> = ({ onBack }) => {
     try {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
+        options: {
+          redirectTo: 'https://aklabx.github.io/MindFlow/'
+        }
       });
       if (error) throw error;
     } catch (error: any) {
