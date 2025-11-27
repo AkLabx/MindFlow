@@ -29,7 +29,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     getInitialSession();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+        if (event === 'SIGNED_IN' && session) {
+            // This is the key change. After a successful sign-in, we redirect to the root of the app.
+            // This forces the PWA to reload in the correct standalone display mode.
+            window.location.href = '/';
+        }
         if (session?.user) {
             let finalUser = session.user;
             // If the user signed in with Google and doesn't have an avatar, set a default one.
