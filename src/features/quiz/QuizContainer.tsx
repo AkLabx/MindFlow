@@ -41,6 +41,7 @@ export const QuizContainer: React.FC = () => {
     enterVocabHome,
     enterIdiomsConfig,
     enterOWSConfig,
+    enterLogin,
     goToIntro,
     startQuiz,
     startFlashcards,
@@ -62,14 +63,12 @@ export const QuizContainer: React.FC = () => {
   const { areBgAnimationsEnabled } = useContext(SettingsContext);
   const { canInstall, triggerInstall } = usePWAInstall();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [showLogin, setShowLogin] = useState(false);
   const [activeProfileView, setActiveProfileView] = useState<'profile' | 'settings'>('profile');
   const { user } = useAuth();
 
   // Determine active tab for the bottom bar
   const getActiveTab = (): TabID => {
-    if (showLogin) return 'login';
-    if (!user && state.status !== 'intro') return 'login'; // Default to login tab if not logged in
+    if (state.status === 'login') return 'login';
     if (state.status === 'profile') return 'profile';
     switch (state.status) {
       case 'english-home':
@@ -88,7 +87,6 @@ export const QuizContainer: React.FC = () => {
 
   // Handle Tab Navigation
   const handleTabChange = (tab: TabID) => {
-    setShowLogin(false); // Hide login page on any tab change
     setActiveProfileView('profile'); // Reset to profile view on tab change
     switch (tab) {
       case 'home':
@@ -101,10 +99,14 @@ export const QuizContainer: React.FC = () => {
         enterConfig();
         break;
       case 'profile':
-        enterProfile();
+        if (user) {
+          enterProfile();
+        } else {
+          enterLogin();
+        }
         break;
       case 'login':
-        setShowLogin(true);
+        enterLogin();
         break;
     }
   };
@@ -119,8 +121,8 @@ export const QuizContainer: React.FC = () => {
     );
   }
 
-  if (showLogin && !user) {
-    return <AuthPage />;
+  if (state.status === 'login' && !user) {
+    return <AuthPage onBack={goToIntro} />;
   }
 
   // 1. Immersive Modes (No Header/Footer)

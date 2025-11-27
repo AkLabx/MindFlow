@@ -9,9 +9,10 @@ import { usePWAInstall } from '../../../hooks/usePWAInstall';
 
 interface LandingPageProps {
   onGetStarted: () => void;
+  onLoginClick: () => void;
 }
 
-export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted }) => {
+export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLoginClick }) => {
   const { canInstall, triggerInstall } = usePWAInstall();
 
   return (
@@ -60,7 +61,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted }) => {
               <a href="#" className="hidden sm:block p-2 text-slate-400 hover:text-slate-900 transition-colors" aria-label="Github">
                  <Github className="w-5 h-5" />
               </a>
-              <Button variant="ghost" className="flex text-slate-600 hover:text-indigo-600 hover:bg-indigo-50">
+              <Button variant="ghost" className="flex text-slate-600 hover:text-indigo-600 hover:bg-indigo-50" onClick={onLoginClick}>
                 Log in
               </Button>
            </div>

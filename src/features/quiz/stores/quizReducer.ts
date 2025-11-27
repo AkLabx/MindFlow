@@ -62,6 +62,9 @@ export function quizReducer(state: QuizState, action: QuizAction): QuizState {
     case 'ENTER_PROFILE':
       return { ...state, status: 'profile' };
 
+    case 'ENTER_LOGIN':
+      return { ...state, status: 'login' };
+
     case 'GO_TO_INTRO':
       return { ...initialState, status: 'intro' };
 
