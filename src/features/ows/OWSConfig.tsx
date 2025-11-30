@@ -2,7 +2,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { ArrowLeft, Play, Loader2, Target, FileText, Settings, Calendar, Type } from 'lucide-react';
 import { Button } from '../../components/Button/Button';
-import { InitialFilters, QuizMode, OWS } from '../quiz/types';
+import { InitialFilters, QuizMode } from '../quiz/types';
+import { OneWord } from '../../types/models';
 import { MultiSelectDropdown } from '../quiz/components/ui/MultiSelectDropdown';
 import { SegmentedControl } from '../quiz/components/ui/SegmentedControl';
 import { ActiveFiltersBar } from '../quiz/components/ui/ActiveFiltersBar';

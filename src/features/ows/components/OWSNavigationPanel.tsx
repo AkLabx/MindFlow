@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { X, ChevronDown, ChevronRight, Map } from 'lucide-react';
-import { OneWord } from '../../types';
+import { OneWord } from '../../../types/models';
 import { cn } from '../../../../utils/cn';
 
 interface OWSNavigationPanelProps {
@@ -43,22 +43,22 @@ export const OWSNavigationPanel: React.FC<OWSNavigationPanelProps> = ({
   return createPortal(
     <>
       {/* Overlay */}
-      <div 
-        className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[60] animate-in fade-in duration-300" 
-        onClick={onClose} 
+      <div
+        className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[60] animate-in fade-in duration-300"
+        onClick={onClose}
       />
-      
+
       {/* Drawer */}
       <div className="fixed top-0 right-0 h-full w-80 bg-white shadow-2xl z-[70] flex flex-col border-l border-gray-200 animate-in slide-in-from-right duration-300">
         {/* Header */}
         <div className="p-5 border-b border-teal-100 bg-teal-50 flex justify-between items-center">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-teal-100 rounded-lg text-teal-600">
-                <Map className="w-5 h-5" />
+              <Map className="w-5 h-5" />
             </div>
             <div>
-                <h2 className="font-bold text-teal-900 leading-tight">Word Map</h2>
-                <p className="text-xs text-teal-700 font-medium">{data.length} items total</p>
+              <h2 className="font-bold text-teal-900 leading-tight">Word Map</h2>
+              <p className="text-xs text-teal-700 font-medium">{data.length} items total</p>
             </div>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-teal-200/50 rounded-full text-teal-800 transition-colors">
@@ -72,13 +72,13 @@ export const OWSNavigationPanel: React.FC<OWSNavigationPanelProps> = ({
             const start = chunkIndex * chunkSize;
             const end = Math.min(start + chunkSize, data.length);
             const isOpen = openGroups.has(chunkIndex);
-            
+
             const containsCurrent = currentIndex >= start && currentIndex < end;
 
             return (
               <div key={chunkIndex} className={cn(
-                  "border rounded-xl overflow-hidden transition-all duration-200",
-                  containsCurrent ? "border-teal-300 shadow-sm bg-white" : "border-gray-200 bg-white"
+                "border rounded-xl overflow-hidden transition-all duration-200",
+                containsCurrent ? "border-teal-300 shadow-sm bg-white" : "border-gray-200 bg-white"
               )}>
                 <button
                   onClick={() => toggleGroup(chunkIndex)}
@@ -96,7 +96,7 @@ export const OWSNavigationPanel: React.FC<OWSNavigationPanelProps> = ({
                     {data.slice(start, end).map((item, localIdx) => {
                       const globalIdx = start + localIdx;
                       const isCurrent = globalIdx === currentIndex;
-                      
+
                       return (
                         <button
                           key={item.id}
@@ -107,8 +107,8 @@ export const OWSNavigationPanel: React.FC<OWSNavigationPanelProps> = ({
                           title={item.content.word}
                           className={cn(
                             "aspect-square rounded-lg flex items-center justify-center text-xs font-bold transition-all relative overflow-hidden",
-                            isCurrent 
-                              ? "bg-teal-500 text-white shadow-md ring-2 ring-teal-300 ring-offset-1 scale-105 z-10" 
+                            isCurrent
+                              ? "bg-teal-500 text-white shadow-md ring-2 ring-teal-300 ring-offset-1 scale-105 z-10"
                               : "bg-gray-50 border border-gray-200 hover:border-teal-300 hover:bg-teal-50 text-gray-600 hover:text-teal-900"
                           )}
                         >

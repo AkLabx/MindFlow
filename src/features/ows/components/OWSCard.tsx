@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { cn } from '../../../../utils/cn';
-import { OneWord } from '../../types';
+import { OneWord } from '../../../types/models';
 import { BookOpen, Lightbulb, RotateCw, Target, Tag } from 'lucide-react';
 
 interface OWSCardProps {
@@ -12,7 +12,7 @@ interface OWSCardProps {
 export const OWSCard: React.FC<OWSCardProps> = ({ data, isFlipped }) => {
   return (
     <div className="relative w-full h-full perspective-1000 cursor-pointer group">
-      <div 
+      <div
         className={cn(
           "relative w-full h-full transition-transform duration-500 transform-style-3d shadow-xl rounded-3xl",
           isFlipped ? "rotate-y-180" : ""
@@ -20,102 +20,102 @@ export const OWSCard: React.FC<OWSCardProps> = ({ data, isFlipped }) => {
       >
         {/* --- FRONT FACE --- */}
         <div className="absolute inset-0 w-full h-full backface-hidden rounded-3xl overflow-hidden bg-white border border-gray-200 shadow-sm flex flex-col">
-          
+
           {/* Header Decoration */}
           <div className="h-2 w-full bg-gradient-to-r from-teal-400 to-cyan-500"></div>
           <div className="absolute top-4 right-4 text-teal-100">
-             <RotateCw className="w-6 h-6" />
+            <RotateCw className="w-6 h-6" />
           </div>
 
           <div className="flex-1 flex flex-col items-center justify-center p-8 text-center space-y-6 bg-teal-50/30">
-             <div className="w-16 h-16 rounded-full bg-teal-100 flex items-center justify-center text-teal-600 mb-2 shadow-sm">
-                <Target className="w-8 h-8" />
-             </div>
-             
-             <h2 className="text-3xl sm:text-4xl font-black text-gray-900 leading-tight drop-shadow-sm font-serif">
-               {data.content.word}
-             </h2>
-             
-             <p className="text-sm text-gray-400 font-medium uppercase tracking-widest mt-4">
-               Tap to Reveal Meaning
-             </p>
+            <div className="w-16 h-16 rounded-full bg-teal-100 flex items-center justify-center text-teal-600 mb-2 shadow-sm">
+              <Target className="w-8 h-8" />
+            </div>
+
+            <h2 className="text-3xl sm:text-4xl font-black text-gray-900 leading-tight drop-shadow-sm font-serif">
+              {data.content.word}
+            </h2>
+
+            <p className="text-sm text-gray-400 font-medium uppercase tracking-widest mt-4">
+              Tap to Reveal Meaning
+            </p>
           </div>
-          
+
           {/* Footer Tags */}
           <div className="p-4 bg-white border-t border-gray-100 flex justify-between items-center text-xs text-gray-500">
-             <span className="bg-gray-100 px-2 py-1 rounded-md">{data.properties.difficulty}</span>
-             <span>{data.sourceInfo.pdfName} | {data.sourceInfo.examYear}</span>
+            <span className="bg-gray-100 px-2 py-1 rounded-md">{data.properties.difficulty}</span>
+            <span>{data.sourceInfo.pdfName} | {data.sourceInfo.examYear}</span>
           </div>
         </div>
 
         {/* --- BACK FACE --- */}
         <div className="absolute inset-0 w-full h-full backface-hidden rotate-y-180 rounded-3xl overflow-hidden bg-white border border-gray-200 shadow-sm flex flex-col">
-           {/* Header */}
-           <div className="bg-teal-50 p-4 border-b border-teal-100 flex justify-between items-center">
-              <div className="flex items-center gap-2">
-                 <h3 className="font-bold text-teal-900 truncate max-w-[200px] font-serif text-lg">{data.content.word}</h3>
-                 <span className="text-[10px] px-2 py-0.5 bg-teal-200 text-teal-800 rounded-full font-bold uppercase tracking-wide">
-                    {data.content.pos}
-                 </span>
-              </div>
-              <div className="text-teal-400">
-                 <BookOpen className="w-5 h-5" />
-              </div>
-           </div>
+          {/* Header */}
+          <div className="bg-teal-50 p-4 border-b border-teal-100 flex justify-between items-center">
+            <div className="flex items-center gap-2">
+              <h3 className="font-bold text-teal-900 truncate max-w-[200px] font-serif text-lg">{data.content.word}</h3>
+              <span className="text-[10px] px-2 py-0.5 bg-teal-200 text-teal-800 rounded-full font-bold uppercase tracking-wide">
+                {data.content.pos}
+              </span>
+            </div>
+            <div className="text-teal-400">
+              <BookOpen className="w-5 h-5" />
+            </div>
+          </div>
 
-           {/* Scrollable Content */}
-           <div className="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-thin scrollbar-thumb-teal-200 scrollbar-track-transparent">
-              
-              {/* Meanings */}
-              <div className="space-y-3">
-                 <div className="bg-white p-4 rounded-xl border-l-4 border-teal-500 shadow-sm ring-1 ring-gray-100">
-                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Meaning</p>
-                    <p className="text-gray-800 font-medium leading-relaxed text-lg">{data.content.meaning_en}</p>
-                 </div>
-                 <div className="bg-white p-4 rounded-xl border-l-4 border-cyan-400 shadow-sm ring-1 ring-gray-100">
-                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Hindi Meaning</p>
-                    <p className="text-gray-800 font-hindi font-medium text-lg">{data.content.meaning_hi}</p>
-                 </div>
+          {/* Scrollable Content */}
+          <div className="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-thin scrollbar-thumb-teal-200 scrollbar-track-transparent">
+
+            {/* Meanings */}
+            <div className="space-y-3">
+              <div className="bg-white p-4 rounded-xl border-l-4 border-teal-500 shadow-sm ring-1 ring-gray-100">
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Meaning</p>
+                <p className="text-gray-800 font-medium leading-relaxed text-lg">{data.content.meaning_en}</p>
               </div>
+              <div className="bg-white p-4 rounded-xl border-l-4 border-cyan-400 shadow-sm ring-1 ring-gray-100">
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Hindi Meaning</p>
+                <p className="text-gray-800 font-hindi font-medium text-lg">{data.content.meaning_hi}</p>
+              </div>
+            </div>
 
-              {/* Usage */}
-              {data.content.usage_sentences && data.content.usage_sentences.length > 0 && (
-                <div className="space-y-2">
-                     <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Examples</p>
-                     <ul className="list-disc list-outside pl-4 space-y-1 text-gray-600 italic text-sm leading-relaxed">
-                        {data.content.usage_sentences.map((sentence, idx) => (
-                            <li key={idx}>{sentence}</li>
-                        ))}
-                     </ul>
-                </div>
-              )}
+            {/* Usage */}
+            {data.content.usage_sentences && data.content.usage_sentences.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Examples</p>
+                <ul className="list-disc list-outside pl-4 space-y-1 text-gray-600 italic text-sm leading-relaxed">
+                  {data.content.usage_sentences.map((sentence, idx) => (
+                    <li key={idx}>{sentence}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
 
-              {/* Extras (Note & Origin) */}
-              {(data.content.note || data.content.origin) && (
-                  <div className="bg-slate-50 rounded-xl p-4 space-y-3 border border-slate-100">
-                      
-                      {data.content.note && (
-                          <div className="flex gap-3">
-                              <Lightbulb className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
-                              <div>
-                                <span className="text-xs font-bold text-slate-400 uppercase block mb-1">Note</span>
-                                <span className="text-slate-700 text-sm">{data.content.note}</span>
-                              </div>
-                          </div>
-                      )}
-                      
-                      {data.content.origin && (
-                          <div className={cn("flex gap-3", data.content.note && "pt-3 border-t border-slate-200")}>
-                              <Tag className="w-4 h-4 text-slate-400 flex-shrink-0 mt-0.5" />
-                              <div>
-                                <span className="text-xs font-bold text-slate-400 uppercase block mb-1">Origin</span>
-                                <span className="text-slate-700 text-sm font-serif italic">{data.content.origin}</span>
-                              </div>
-                          </div>
-                      )}
+            {/* Extras (Note & Origin) */}
+            {(data.content.note || data.content.origin) && (
+              <div className="bg-slate-50 rounded-xl p-4 space-y-3 border border-slate-100">
+
+                {data.content.note && (
+                  <div className="flex gap-3">
+                    <Lightbulb className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <span className="text-xs font-bold text-slate-400 uppercase block mb-1">Note</span>
+                      <span className="text-slate-700 text-sm">{data.content.note}</span>
+                    </div>
                   </div>
-              )}
-           </div>
+                )}
+
+                {data.content.origin && (
+                  <div className={cn("flex gap-3", data.content.note && "pt-3 border-t border-slate-200")}>
+                    <Tag className="w-4 h-4 text-slate-400 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <span className="text-xs font-bold text-slate-400 uppercase block mb-1">Origin</span>
+                      <span className="text-slate-700 text-sm font-serif italic">{data.content.origin}</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 

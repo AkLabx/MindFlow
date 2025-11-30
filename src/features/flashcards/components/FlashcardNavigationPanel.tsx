@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { X, ChevronDown, ChevronRight, Map } from 'lucide-react';
-import { Idiom } from '../../types';
+import { Idiom } from '../../../types/models';
 import { cn } from '../../../../utils/cn';
 
 interface FlashcardNavigationPanelProps {
@@ -43,22 +43,22 @@ export const FlashcardNavigationPanel: React.FC<FlashcardNavigationPanelProps> =
   return createPortal(
     <>
       {/* Overlay */}
-      <div 
-        className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[60] animate-in fade-in duration-300" 
-        onClick={onClose} 
+      <div
+        className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[60] animate-in fade-in duration-300"
+        onClick={onClose}
       />
-      
+
       {/* Drawer */}
       <div className="fixed top-0 right-0 h-full w-80 bg-white shadow-2xl z-[70] flex flex-col border-l border-gray-200 animate-in slide-in-from-right duration-300">
         {/* Header */}
         <div className="p-5 border-b border-amber-100 bg-amber-50 flex justify-between items-center">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-amber-100 rounded-lg text-amber-600">
-                <Map className="w-5 h-5" />
+              <Map className="w-5 h-5" />
             </div>
             <div>
-                <h2 className="font-bold text-amber-900 leading-tight">Idiom Map</h2>
-                <p className="text-xs text-amber-700 font-medium">{idioms.length} items total</p>
+              <h2 className="font-bold text-amber-900 leading-tight">Idiom Map</h2>
+              <p className="text-xs text-amber-700 font-medium">{idioms.length} items total</p>
             </div>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-amber-200/50 rounded-full text-amber-800 transition-colors">
@@ -72,14 +72,14 @@ export const FlashcardNavigationPanel: React.FC<FlashcardNavigationPanelProps> =
             const start = chunkIndex * chunkSize;
             const end = Math.min(start + chunkSize, idioms.length);
             const isOpen = openGroups.has(chunkIndex);
-            
+
             // Check if current idiom is in this chunk for styling
             const containsCurrent = currentIndex >= start && currentIndex < end;
 
             return (
               <div key={chunkIndex} className={cn(
-                  "border rounded-xl overflow-hidden transition-all duration-200",
-                  containsCurrent ? "border-amber-300 shadow-sm bg-white" : "border-gray-200 bg-white"
+                "border rounded-xl overflow-hidden transition-all duration-200",
+                containsCurrent ? "border-amber-300 shadow-sm bg-white" : "border-gray-200 bg-white"
               )}>
                 <button
                   onClick={() => toggleGroup(chunkIndex)}
@@ -97,7 +97,7 @@ export const FlashcardNavigationPanel: React.FC<FlashcardNavigationPanelProps> =
                     {idioms.slice(start, end).map((idiom, localIdx) => {
                       const globalIdx = start + localIdx;
                       const isCurrent = globalIdx === currentIndex;
-                      
+
                       return (
                         <button
                           key={idiom.id}
@@ -108,8 +108,8 @@ export const FlashcardNavigationPanel: React.FC<FlashcardNavigationPanelProps> =
                           title={idiom.content.phrase}
                           className={cn(
                             "aspect-square rounded-lg flex items-center justify-center text-xs font-bold transition-all relative overflow-hidden",
-                            isCurrent 
-                              ? "bg-amber-500 text-white shadow-md ring-2 ring-amber-300 ring-offset-1 scale-105 z-10" 
+                            isCurrent
+                              ? "bg-amber-500 text-white shadow-md ring-2 ring-amber-300 ring-offset-1 scale-105 z-10"
                               : "bg-gray-50 border border-gray-200 hover:border-amber-300 hover:bg-amber-50 text-gray-600 hover:text-amber-900"
                           )}
                         >
