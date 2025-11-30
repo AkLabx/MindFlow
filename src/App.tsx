@@ -1,13 +1,16 @@
 
 import React from 'react';
+import { HashRouter } from 'react-router-dom';
 import { AppProvider } from './providers/AppProvider';
-import { QuizContainer } from './features/quiz/QuizContainer';
+import { AppRoutes } from './routes/AppRoutes';
 
 const App: React.FC = () => {
   return (
-    <AppProvider>
-      <QuizContainer />
-    </AppProvider>
+    <HashRouter>
+      <AppProvider>
+        <AppRoutes />
+      </AppProvider>
+    </HashRouter>
   );
 };
 

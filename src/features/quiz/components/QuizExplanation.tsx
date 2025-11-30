@@ -1,14 +1,13 @@
-
 import React from 'react';
 import { Explanation } from '../types';
 import { CheckCircle2, XCircle, Lightbulb, FileText } from 'lucide-react';
 
 export function QuizExplanation({ explanation, zoomLevel }: { explanation: Explanation, zoomLevel?: number }) {
-    
+
     // Helper to clean markdown-like symbols and redundant headers from the text
     const cleanText = (text: string) => {
         if (!text) return "";
-        
+
         // 1. Remove specific emojis used in source data
         let cleaned = text.replace(/✅|❌|📝|💡/g, '');
 
@@ -31,7 +30,7 @@ export function QuizExplanation({ explanation, zoomLevel }: { explanation: Expla
         const filteredLines = lines.filter(line => {
             // Remove bold markers, trimming, etc to check content
             const plainLine = line.replace(/\*\*|__/g, '').trim();
-            
+
             // Check if this line matches any redundant header (case insensitive)
             // Also check with simple punctuation like ':'
             return !redundantHeaders.some(header => {
@@ -69,7 +68,11 @@ export function QuizExplanation({ explanation, zoomLevel }: { explanation: Expla
                 <p key={i} className="mb-2 last:mb-0">
                     {parts.map((part, j) => {
                         if (part.startsWith('**') && part.endsWith('**')) {
-                            return <strong key={j} className="font-bold text-gray-900">{part.slice(2, -2)}</strong>;
+                            return (
+                                <strong key={j} className="font-bold text-gray-900">
+                                    {part.slice(2, -2)}
+                                </strong>
+                            );
                         }
                         return part;
                     })}
@@ -81,14 +84,16 @@ export function QuizExplanation({ explanation, zoomLevel }: { explanation: Expla
     const englishSummary = explanation.summary ? getEnglishSummary(explanation.summary) : null;
 
     return (
-        <div 
+        <div
             className="mt-6 space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-700 ease-out font-poppins selectable-text"
             style={{ fontSize: zoomLevel ? `${zoomLevel}rem` : undefined }}
         >
             {englishSummary && (
                 <div className="p-4 bg-white border border-gray-200 rounded-xl shadow-sm border-l-4 border-l-indigo-500">
                     <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Answer</h3>
-                    <p className="font-bold text-indigo-700 text-[1em] whitespace-pre-line">{englishSummary}</p>
+                    <p className="font-bold text-indigo-700 text-[1em] whitespace-pre-line">
+                        {englishSummary}
+                    </p>
                 </div>
             )}
 

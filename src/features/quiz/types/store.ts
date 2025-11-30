@@ -21,6 +21,7 @@ export interface QuizState {
   activeOWS?: OneWord[]; // The filtered subset of OWS for flashcards
   filters?: InitialFilters; // Persisted filters for context/breadcrumbs
   isPaused?: boolean; // Persisted pause state for Learning Mode
+  quizId?: string; // ID of the saved quiz in IndexedDB
 }
 
 export type QuizAction =
@@ -52,4 +53,5 @@ export type QuizAction =
   | { type: 'SUBMIT_SESSION_RESULTS'; payload: { answers: Record<string, string>; timeTaken: Record<string, number>; score: number; bookmarks: string[] } }
   | { type: 'FINISH_FLASHCARDS' }
   | { type: 'RESTART_QUIZ' }
+  | { type: 'LOAD_SAVED_QUIZ'; payload: QuizState }
   | { type: 'GO_HOME' };

@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { ArrowRight, Star, Settings, Menu, ZoomIn, ZoomOut, Maximize2, Minimize2, Clock, ChevronLeft, Home, AlertCircle, X, Pause, Play } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { ArrowRight, Star, Settings, Menu, ZoomIn, ZoomOut, Maximize2, Minimize2, Clock, ChevronLeft, Home, AlertCircle, X, Pause, Play, Percent } from 'lucide-react';
 import { Question, InitialFilters } from '../types';
 import { QuizQuestionDisplay } from '../components/QuizQuestionDisplay';
 import { QuizExplanation } from '../components/QuizExplanation';
@@ -26,6 +27,7 @@ interface LearningSessionProps {
     answers: Record<string, string>;
     bookmarks: string[];
     timeTaken: Record<string, number>; // Add this if needed for completion
+    hiddenOptions: Record<string, string[]>;
 
     // Actions
     onAnswer: (questionId: string, answer: string, timeTaken: number) => void;
@@ -33,6 +35,7 @@ interface LearningSessionProps {
     onPrev: () => void;
     onJump: (index: number) => void;
     onToggleBookmark: (questionId: string) => void;
+    onFiftyFifty: (questionId: string, hiddenOptions: string[]) => void;
 
     onComplete: (results: { answers: Record<string, string>, timeTaken: Record<string, number>, score: number, bookmarks: string[] }) => void;
     onGoHome: () => void;
@@ -50,31 +53,36 @@ export const LearningSession: React.FC<LearningSessionProps> = ({
     answers,
     bookmarks,
     timeTaken,
+    hiddenOptions,
     onAnswer,
     onNext,
     onPrev,
     onJump,
     onToggleBookmark,
+    onFiftyFifty,
     onComplete,
     onGoHome,
     onPause,
     onResume,
     onSaveTimer
 }) => {
+    const navigate = useNavigate();
     // UI State (Local)
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [isNavOpen, setIsNavOpen] = useState(false);
     const [zoomLevel, setZoomLevel] = useState(1);
     const [isFullScreen, setIsFullScreen] = useState(false);
-    
+
     // Pop-up state for timer expiry
     const [showTimeUpModal, setShowTimeUpModal] = useState(false);
-    
+
     const currentQuestion = questions[currentIndex];
     const userAnswer = answers[currentQuestion.id];
-    
+
     // Check if question is conceptually "done"
-    const isAnswered = !!userAnswer; 
+    const isAnswered = !!userAnswer;
+    const currentHiddenOptions = hiddenOptions[currentQuestion.id] || [];
+    const isFiftyFiftyUsed = currentHiddenOptions.length > 0;
 
     const progress = ((currentIndex + 1) / questions.length) * 100;
 
@@ -88,7 +96,7 @@ export const LearningSession: React.FC<LearningSessionProps> = ({
         });
 
         if (document.fullscreenElement && document.exitFullscreen) {
-            document.exitFullscreen().catch(() => {});
+            document.exitFullscreen().catch(() => { });
         }
 
         onComplete({
@@ -108,6 +116,16 @@ export const LearningSession: React.FC<LearningSessionProps> = ({
         onAnswer(currentQuestion.id, 'TIME_UP', 0);
         playWrong();
     }, [currentQuestion.id, playWrong, onAnswer]);
+
+    // Auto-close Time Up Modal after 2 seconds
+    useEffect(() => {
+        if (showTimeUpModal) {
+            const timer = setTimeout(() => {
+                setShowTimeUpModal(false);
+            }, 2000);
+            return () => clearTimeout(timer);
+        }
+    }, [showTimeUpModal]);
 
     // Dedicated Learning Timer
     const { timeLeft, timeLeftRef, formatTime } = useLearningTimer({
@@ -132,10 +150,33 @@ export const LearningSession: React.FC<LearningSessionProps> = ({
 
     const handlePause = () => {
         onPause(currentQuestion.id, timeLeftRef.current);
+        // Small delay to allow the immediate DB save in useQuiz to trigger before we navigate away
+        // and potentially load the old state from DB in SavedQuizzes
+        setTimeout(() => {
+            navigate('/quiz/saved');
+        }, 100);
     };
 
     const handleResume = () => {
         onResume();
+    };
+
+    const handleFiftyFifty = () => {
+        if (isAnswered || isFiftyFiftyUsed) return;
+
+        // Identify incorrect options
+        const incorrectOptions = currentQuestion.options.filter(opt => opt !== currentQuestion.correct);
+
+        // Shuffle incorrect options
+        const shuffled = [...incorrectOptions].sort(() => 0.5 - Math.random());
+
+        // Determine how many to hide (half of total options)
+        const countToHide = Math.floor(currentQuestion.options.length / 2);
+
+        // Select options to hide
+        const optionsToHide = shuffled.slice(0, countToHide);
+
+        onFiftyFifty(currentQuestion.id, optionsToHide);
     };
 
     const handleAnswerSelect = (option: string) => {
@@ -189,42 +230,57 @@ export const LearningSession: React.FC<LearningSessionProps> = ({
 
     const header = (
         <div className="flex items-center justify-between p-3 sm:p-4 w-full bg-white relative z-20">
-             <div className="flex-1 flex flex-col">
-                 <div className="flex items-center justify-between mb-2">
+            <div className="flex-1 flex flex-col">
+                <div className="flex items-center justify-between mb-2">
                     {/* Desktop Breadcrumbs */}
                     <div className="hidden sm:block"><QuizBreadcrumbs filters={filters} onGoHome={onGoHome} /></div>
-                    
+
                     {/* Mobile Home Button */}
                     <div className="sm:hidden">
                         <Button variant="ghost" size="sm" onClick={onGoHome} className="p-0 text-gray-500 hover:bg-transparent">
                             <Home className="w-5 h-5" />
                         </Button>
                     </div>
-                    
+
                     {/* Tools Group */}
                     <div className="flex items-center gap-2 ml-auto sm:ml-0">
-                        
-                         {/* Timer Badge */}
-                         <Badge 
-                            variant="neutral" 
+
+                        {/* Timer Badge */}
+                        <Badge
+                            variant="neutral"
                             icon={<Clock className="w-3.5 h-3.5" />}
                             className={cn(
                                 "font-mono font-bold tabular-nums min-w-[4rem] justify-center transition-colors",
                                 timeLeft <= 10 ? "bg-red-50 text-red-600 border-red-200 animate-pulse" : "bg-gray-50"
                             )}
-                         >
+                        >
                             {formatTime(timeLeft)}
-                         </Badge>
+                        </Badge>
 
-                         {/* Pause Button */}
-                         <button
+                        {/* 50:50 Lifeline Button */}
+                        <button
+                            onClick={handleFiftyFifty}
+                            disabled={isAnswered || isFiftyFiftyUsed}
+                            className={cn(
+                                "p-1.5 rounded-lg border transition-colors",
+                                isFiftyFiftyUsed
+                                    ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed"
+                                    : "bg-indigo-50 text-indigo-600 border-indigo-100 hover:bg-indigo-100"
+                            )}
+                            title="50:50 Lifeline"
+                        >
+                            <Percent className="w-4 h-4" />
+                        </button>
+
+                        {/* Pause Button */}
+                        <button
                             onClick={handlePause}
                             className="p-1.5 rounded-lg bg-gray-50 border border-gray-200 hover:bg-gray-100 text-gray-500"
                             title="Pause Quiz"
                             data-testid="pause-button"
-                         >
-                             <Pause className="w-4 h-4" />
-                         </button>
+                        >
+                            <Pause className="w-4 h-4" />
+                        </button>
 
                         {/* Zoom Controls */}
                         <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden bg-gray-50">
@@ -238,61 +294,69 @@ export const LearningSession: React.FC<LearningSessionProps> = ({
                             {isFullScreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
                         </button>
                     </div>
-                 </div>
-                 
-                 {/* Progress Bar Row */}
-                 <div className="flex items-center gap-3">
-                     <button onClick={() => setIsNavOpen(true)} className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-600 border border-gray-200">
+                </div>
+
+                {/* Progress Bar Row */}
+                <div className="flex items-center gap-3">
+                    <button onClick={() => setIsNavOpen(true)} className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-600 border border-gray-200">
                         <Menu className="w-5 h-5" />
-                     </button>
-                     
-                     <div className="flex-1 h-2.5 bg-gray-100 rounded-full overflow-hidden">
-                         <div className="h-full bg-indigo-600 transition-all duration-300" style={{ width: `${progress}%` }} />
-                     </div>
-                     <span className="text-xs font-bold text-gray-500 min-w-[3rem] text-right">{currentIndex + 1} / {questions.length}</span>
-                 </div>
-             </div>
-             
-             {/* Right Actions */}
-             <div className="flex items-center gap-2 pl-3 border-l border-gray-100 ml-3">
-                 <button onClick={() => onToggleBookmark(currentQuestion.id)} className={cn("p-2 rounded-full transition-colors", bookmarks.includes(currentQuestion.id) ? "bg-amber-100 text-amber-500" : "bg-gray-50 text-gray-400 hover:bg-gray-100")}>
-                     <Star className={cn("w-5 h-5", bookmarks.includes(currentQuestion.id) && "fill-current")} />
-                 </button>
-                 <button onClick={() => setIsSettingsOpen(true)} className="p-2 rounded-full bg-gray-50 text-gray-500 hover:bg-gray-100 transition-colors">
-                     <Settings className="w-5 h-5" />
-                 </button>
-             </div>
+                    </button>
+
+                    <div className="flex-1 h-2.5 bg-gray-100 rounded-full overflow-hidden">
+                        <div
+                            className={cn(
+                                "h-full transition-all duration-1000 ease-linear",
+                                timeLeft <= 5 ? "bg-red-600 animate-pulse" :
+                                    timeLeft <= 10 ? "bg-red-500" :
+                                        "bg-indigo-600"
+                            )}
+                            style={{ width: `${(timeLeft / APP_CONFIG.TIMERS.LEARNING_MODE_DEFAULT) * 100}%` }}
+                        />
+                    </div>
+                    <span className="text-xs font-bold text-gray-500 min-w-[3rem] text-right">{currentIndex + 1} / {questions.length}</span>
+                </div>
+            </div>
+
+            {/* Right Actions */}
+            <div className="flex items-center gap-2 pl-3 border-l border-gray-100 ml-3">
+                <button onClick={() => onToggleBookmark(currentQuestion.id)} className={cn("p-2 rounded-full transition-colors", bookmarks.includes(currentQuestion.id) ? "bg-amber-100 text-amber-500" : "bg-gray-50 text-gray-400 hover:bg-gray-100")}>
+                    <Star className={cn("w-5 h-5", bookmarks.includes(currentQuestion.id) && "fill-current")} />
+                </button>
+                <button onClick={() => setIsSettingsOpen(true)} className="p-2 rounded-full bg-gray-50 text-gray-500 hover:bg-gray-100 transition-colors">
+                    <Settings className="w-5 h-5" />
+                </button>
+            </div>
         </div>
     );
 
     const footer = (
         <div className="p-4 bg-white border-t border-gray-200 flex justify-between items-center gap-4">
-             <Button 
-                variant="ghost" 
+            <Button
+                variant="ghost"
                 onClick={handlePrevClick}
-                disabled={currentIndex === 0} 
+                disabled={currentIndex === 0}
                 className="text-gray-500 hover:text-indigo-600"
-             >
+            >
                 <ChevronLeft className="w-4 h-4 mr-2" /> Previous
-             </Button>
+            </Button>
 
-             <Button 
+            <Button
                 onClick={handleNextClick}
                 disabled={!isAnswered}
                 className={cn(
                     "px-8 transition-all shadow-lg",
                     !isAnswered ? "opacity-50 cursor-not-allowed" : "bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-200"
                 )}
-             >
+            >
                 {currentIndex === questions.length - 1 ? "Finish Quiz" : "Next Question"} <ArrowRight className="w-4 h-4 ml-2" />
-             </Button>
+            </Button>
         </div>
     );
 
     const overlays = (
         <>
             <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
-            <QuizNavigationPanel 
+            <QuizNavigationPanel
                 isOpen={isNavOpen}
                 onClose={() => setIsNavOpen(false)}
                 questions={questions}
@@ -307,10 +371,10 @@ export const LearningSession: React.FC<LearningSessionProps> = ({
                 onSubmitAndReview={finishSession}
                 mode='learning'
             />
-            
+
             {isFullScreen && (
                 <div className="fixed top-4 right-4 z-50">
-                     <button 
+                    <button
                         onClick={toggleFullScreen}
                         className="bg-black/50 hover:bg-black/70 text-white px-4 py-2 rounded-full text-sm font-bold backdrop-blur-sm flex items-center gap-2 transition-all"
                     >
@@ -320,23 +384,23 @@ export const LearningSession: React.FC<LearningSessionProps> = ({
             )}
 
             {showTimeUpModal && (
-                 <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-4 bg-black/20 pointer-events-none">
+                <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-4 bg-black/20 pointer-events-none">
                     <div className="bg-white border border-red-100 shadow-2xl rounded-2xl p-4 flex items-center gap-4 animate-in slide-in-from-bottom-10 pointer-events-auto max-w-sm w-full mx-auto">
-                         <div className="bg-red-100 p-3 rounded-full text-red-600">
-                             <AlertCircle className="w-6 h-6" />
-                         </div>
-                         <div>
-                             <h3 className="font-bold text-gray-900">Time's Up!</h3>
-                             <p className="text-xs text-gray-500">Revealing answer & explanation.</p>
-                         </div>
-                         <button 
+                        <div className="bg-red-100 p-3 rounded-full text-red-600">
+                            <AlertCircle className="w-6 h-6" />
+                        </div>
+                        <div>
+                            <h3 className="font-bold text-gray-900">Time's Up!</h3>
+                            <p className="text-xs text-gray-500">Revealing answer & explanation.</p>
+                        </div>
+                        <button
                             onClick={() => setShowTimeUpModal(false)}
                             className="ml-auto text-gray-400 hover:text-gray-600"
-                         >
-                             <X className="w-5 h-5" />
-                         </button>
+                        >
+                            <X className="w-5 h-5" />
+                        </button>
                     </div>
-                 </div>
+                </div>
             )}
 
             {/* Pause Overlay - Heavily Blurred */}
@@ -366,15 +430,16 @@ export const LearningSession: React.FC<LearningSessionProps> = ({
     );
 
     return (
-        <ActiveQuizLayout 
-            header={isFullScreen ? null : header} 
-            footer={footer} 
+        <ActiveQuizLayout
+            header={isFullScreen ? null : header}
+            footer={footer}
             overlays={overlays}
         >
             <div className={cn("pb-8", isPaused && "filter blur-lg transition-all duration-300 select-none pointer-events-none")}>
-                <QuizQuestionDisplay 
+                <QuizQuestionDisplay
                     question={currentQuestion}
                     selectedAnswer={userAnswer}
+                    hiddenOptions={currentHiddenOptions}
                     onAnswerSelect={handleAnswerSelect}
                     zoomLevel={zoomLevel}
                     isMockMode={false}

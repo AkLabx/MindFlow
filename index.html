@@ -1,53 +1,59 @@
-
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <meta name="theme-color" content="#4f46e5" />
-    <meta name="description" content="MindFlow: Master subjects with adaptive quizzes and detailed explanations." />
-    <link rel="icon" href="/mindflow-icon.svg" type="image/svg+xml">
-    <link rel="apple-touch-icon" href="/mindflow-icon.svg">
-    <title>MindFlow Quiz</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-      tailwind.config = {
-        theme: {
-          extend: {
-            fontFamily: {
-              sans: ['Inter', 'sans-serif'],
-              // Poppins for English, falling back to Noto Sans Devanagari for mixed content
-              poppins: ['Poppins', '"Noto Sans Devanagari"', 'sans-serif'],
-              // Specific Hindi font
-              hindi: ['"Noto Sans Devanagari"', 'sans-serif'],
-            }
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#4f46e5" />
+  <meta name="description" content="MindFlow: Master subjects with adaptive quizzes and detailed explanations." />
+  <link rel="icon" href="/mindflow-icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/mindflow-icon.svg">
+  <title>MindFlow Quiz</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            // Poppins for English, falling back to Noto Sans Devanagari for mixed content
+            poppins: ['Poppins', '"Noto Sans Devanagari"', 'sans-serif'],
+            // Specific Hindi font
+            hindi: ['"Noto Sans Devanagari"', 'sans-serif'],
           }
         }
       }
-    </script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Noto+Sans+Devanagari:wght@400;500;600;700&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-      body {
-        font-family: 'Inter', sans-serif;
-        background-color: #f3f4f6;
-      }
-      /* Custom scrollbar for Webkit */
-      ::-webkit-scrollbar {
-        width: 8px;
-      }
-      ::-webkit-scrollbar-track {
-        background: transparent; 
-      }
-      ::-webkit-scrollbar-thumb {
-        background: #cbd5e1; 
-        border-radius: 4px;
-      }
-      ::-webkit-scrollbar-thumb:hover {
-        background: #94a3b8; 
-      }
-    </style>
+    }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Noto+Sans+Devanagari:wght@400;500;600;700&family=Poppins:wght@300;400;500;600;700&display=swap"
+    rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #f3f4f6;
+    }
+
+    /* Custom scrollbar for Webkit */
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+  </style>
   <script type="importmap">
 {
   "imports": {
@@ -66,14 +72,20 @@
     "vite": "https://aistudiocdn.com/vite@^7.2.4",
     "@supabase/supabase-js": "https://aistudiocdn.com/@supabase/supabase-js@^2.84.0",
     "vite-plugin-pwa": "https://aistudiocdn.com/vite-plugin-pwa@^0.19.2",
-    "workbox-window": "https://aistudiocdn.com/workbox-window@^7.0.0"
+    "workbox-window": "https://aistudiocdn.com/workbox-window@^7.0.0",
+    "vitest": "https://aistudiocdn.com/vitest@^4.0.14",
+    "@testing-library/react": "https://aistudiocdn.com/@testing-library/react@^16.3.0",
+    "react-router-dom": "https://aistudiocdn.com/react-router-dom@^7.9.6",
+    "react-easy-crop": "https://aistudiocdn.com/react-easy-crop@^5.5.6"
   }
 }
 </script>
-<link rel="stylesheet" href="/index.css">
+  <link rel="stylesheet" href="/src/index.css">
 </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/index.tsx"></script>
-  </body>
+
+<body>
+  <div id="root"></div>
+  <script type="module" src="/src/index.tsx"></script>
+</body>
+
 </html>

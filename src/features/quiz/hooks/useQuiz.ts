@@ -3,18 +3,38 @@ import { useReducer, useCallback, useEffect } from 'react';
 import { logEvent } from '../services/analyticsService';
 import { APP_CONFIG } from '../../../constants/config';
 import { quizReducer, initialState, loadState } from '../stores/quizReducer';
-import { Question, InitialFilters, QuizMode, Idiom, OneWord } from '../types';
+import { Question, InitialFilters, QuizMode, Idiom, OneWord, QuizState } from '../types';
+
+import { db } from '../../../lib/db';
 
 export const useQuiz = () => {
   const [state, dispatch] = useReducer(quizReducer, initialState, loadState);
 
-  // Persistence Effect
+  // Persistence Effect (LocalStorage - Active Session)
   useEffect(() => {
     if (state.status === 'quiz' || state.status === 'result' || state.status === 'flashcards' || state.status === 'ows-flashcards' || state.status === 'flashcards-complete') {
       localStorage.setItem(APP_CONFIG.STORAGE_KEYS.QUIZ_SESSION, JSON.stringify(state));
     } else if (state.status === 'idle' || state.status === 'intro') {
       // Clear session when explicitly leaving quiz flow
       localStorage.removeItem(APP_CONFIG.STORAGE_KEYS.QUIZ_SESSION);
+    }
+  }, [state]);
+
+  // Persistence Effect (IndexedDB - Saved Quizzes)
+  useEffect(() => {
+    if (state.quizId && (state.status === 'quiz' || state.status === 'result')) {
+      const saveToDb = () => {
+        db.updateQuizProgress(state.quizId!, state).catch(err => console.error("Failed to auto-save to DB:", err));
+      };
+
+      if (state.isPaused) {
+        // Save immediately when paused to ensure data is persisted before navigation
+        saveToDb();
+      } else {
+        // Debounce updates during active quiz
+        const timeoutId = setTimeout(saveToDb, 2000);
+        return () => clearTimeout(timeoutId);
+      }
     }
   }, [state]);
 
@@ -27,7 +47,7 @@ export const useQuiz = () => {
   const enterProfile = useCallback(() => dispatch({ type: 'ENTER_PROFILE' }), []);
   const enterLogin = useCallback(() => dispatch({ type: 'ENTER_LOGIN' }), []);
   const goToIntro = useCallback(() => dispatch({ type: 'GO_TO_INTRO' }), []);
-  
+
   const startQuiz = useCallback((filteredQuestions: Question[], filters: InitialFilters, mode: QuizMode = 'learning') => {
     logEvent('quiz_started', {
       subject: filters.subject,
@@ -45,7 +65,7 @@ export const useQuiz = () => {
   const startOWSFlashcards = useCallback((data: OneWord[], filters: InitialFilters) => {
     dispatch({ type: 'START_OWS_FLASHCARDS', payload: { data, filters } });
   }, []);
-  
+
   // Deprecated in favor of local session logic, but kept for backward compat if needed
   const answerQuestion = useCallback((questionId: string, answer: string, timeTaken: number) => {
     dispatch({ type: 'ANSWER_QUESTION', payload: { questionId, answer, timeTaken } });
@@ -66,7 +86,7 @@ export const useQuiz = () => {
   const nextQuestion = useCallback(() => dispatch({ type: 'NEXT_QUESTION' }), []);
   const prevQuestion = useCallback(() => dispatch({ type: 'PREV_QUESTION' }), []);
   const jumpToQuestion = useCallback((index: number) => dispatch({ type: 'JUMP_TO_QUESTION', payload: { index } }), []);
-  
+
   const toggleBookmark = useCallback((questionId: string) => dispatch({ type: 'TOGGLE_BOOKMARK', payload: { questionId } }), []);
   const toggleReview = useCallback((questionId: string) => dispatch({ type: 'TOGGLE_REVIEW', payload: { questionId } }), []);
   const useFiftyFifty = useCallback((questionId: string, hiddenOptions: string[]) => dispatch({ type: 'USE_50_50', payload: { questionId, hiddenOptions } }), []);
@@ -81,12 +101,12 @@ export const useQuiz = () => {
 
   // New method for bulk submission from separate sessions
   const submitSessionResults = useCallback((results: { answers: Record<string, string>, timeTaken: Record<string, number>, score: number, bookmarks: string[] }) => {
-      logEvent('quiz_completed', {
-        score: results.score,
-        total_questions: state.activeQuestions.length,
-        mode: state.mode
-      });
-      dispatch({ type: 'SUBMIT_SESSION_RESULTS', payload: results });
+    logEvent('quiz_completed', {
+      score: results.score,
+      total_questions: state.activeQuestions.length,
+      mode: state.mode
+    });
+    dispatch({ type: 'SUBMIT_SESSION_RESULTS', payload: results });
   }, [state.activeQuestions.length, state.mode]);
 
   const finishQuiz = useCallback(() => {
@@ -94,7 +114,7 @@ export const useQuiz = () => {
   }, []);
 
   const finishFlashcards = useCallback(() => {
-      dispatch({ type: 'FINISH_FLASHCARDS' });
+    dispatch({ type: 'FINISH_FLASHCARDS' });
   }, []);
 
   const restartQuiz = useCallback(() => dispatch({ type: 'RESTART_QUIZ' }), []);
@@ -103,9 +123,11 @@ export const useQuiz = () => {
   // Derived state
   const currentQuestion = state.activeQuestions[state.currentQuestionIndex];
   const totalQuestions = state.activeQuestions.length;
-  const progress = totalQuestions > 0 
-    ? ((state.currentQuestionIndex + 1) / totalQuestions) * 100 
+  const progress = totalQuestions > 0
+    ? ((state.currentQuestionIndex + 1) / totalQuestions) * 100
     : 0;
+
+  const loadSavedQuiz = useCallback((savedState: QuizState) => dispatch({ type: 'LOAD_SAVED_QUIZ', payload: savedState }), []);
 
   return {
     state,
@@ -140,6 +162,7 @@ export const useQuiz = () => {
     resumeQuiz,
     finishQuiz,
     restartQuiz,
-    goHome
+    goHome,
+    loadSavedQuiz
   };
 };

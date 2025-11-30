@@ -16,6 +16,8 @@
     "react-dom": "^19.2.0",
     "react-easy-crop": "^5.5.5",
     "react-icons": "^5.5.0",
+    "react-latex-next": "^3.0.0",
+    "react-router-dom": "^7.9.6",
     "workbox-window": "^7.0.0"
   },
   "devDependencies": {

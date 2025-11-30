@@ -1,14 +1,25 @@
-
 import { Question, InitialFilters } from '../../../types/models';
+import { QuizState, QuizMode } from './store';
 
 // Re-export models so existing imports in components don't break
 export * from '../../../types/models';
 export * from './store';
 
+export interface SavedQuiz {
+  id: string;
+  name: string;
+  createdAt: number;
+  filters: InitialFilters;
+  mode: QuizMode;
+  questions: Question[];
+  state: QuizState;
+}
+
+
 export const filterKeys = [
-  'subject', 'topic', 'subTopic', 
-  'difficulty', 'questionType', 
-  'examName', 'examYear', 'examDateShift', 
+  'subject', 'topic', 'subTopic',
+  'difficulty', 'questionType',
+  'examName', 'examYear', 'examDateShift',
   'tags'
 ] as const;
 
