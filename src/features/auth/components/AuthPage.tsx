@@ -76,7 +76,7 @@
          try {
            // --- REDIRECT FIX ---
            const redirectURL = import.meta.env.PROD
-             ? 'https://aklabx.github.io/MindFlow/'
+             ? 'https://aklabx.github.io/MindFlow/?'
              : 'http://localhost:3000';
      
            const { error } = await supabase.auth.signInWithOAuth({
