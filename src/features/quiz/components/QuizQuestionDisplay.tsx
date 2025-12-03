@@ -1,8 +1,9 @@
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect } from 'react';
 import { Question } from '../types';
 import { QuizOption } from './QuizOption';
-import { Clock, Hash, Calendar, FileText } from 'lucide-react';
+import { Clock, Hash, Calendar, FileText, Volume2, Square, Loader2 } from 'lucide-react';
+import { useTextToSpeech } from '../hooks/useTextToSpeech';
 
 // --- Basic Client-Side Sanitizer ---
 // Prevents XSS by stripping scripts and event handlers while keeping formatting.
@@ -54,6 +55,12 @@ export function QuizQuestionDisplay({
     userTime?: number;
 }) {
     const isAnswered = !!selectedAnswer;
+    const { speak, stop, isPlaying, isLoading } = useTextToSpeech();
+
+    // Stop audio when question changes
+    useEffect(() => {
+        stop();
+    }, [question.id, stop]);
     
     // Helper to safely render HTML content after sanitization
     const createSafeMarkup = (html: string) => {
@@ -112,12 +119,42 @@ export function QuizQuestionDisplay({
                 </div>
 
                 {question.question_hi && (
-                    <div 
-                        className="text-gray-800 font-hindi leading-relaxed border-l-4 border-indigo-100 pl-4 selectable-text relative z-10 [&_pre]:whitespace-pre-wrap [&_pre]:font-inherit [&_pre]:my-2 [&_pre]:bg-gray-50 [&_pre]:p-2 [&_pre]:rounded-md [&_pre]:border [&_pre]:border-gray-200"
-                        dangerouslySetInnerHTML={createSafeMarkup(question.question_hi)}
-                        onMouseDown={(e) => e.stopPropagation()}
-                        onTouchStart={(e) => e.stopPropagation()}
-                    />
+                    <div className="relative group">
+                        <div
+                            className="text-gray-800 font-hindi leading-relaxed border-l-4 border-indigo-100 pl-4 pr-12 selectable-text relative z-10 [&_pre]:whitespace-pre-wrap [&_pre]:font-inherit [&_pre]:my-2 [&_pre]:bg-gray-50 [&_pre]:p-2 [&_pre]:rounded-md [&_pre]:border [&_pre]:border-gray-200"
+                            dangerouslySetInnerHTML={createSafeMarkup(question.question_hi)}
+                            onMouseDown={(e) => e.stopPropagation()}
+                            onTouchStart={(e) => e.stopPropagation()}
+                        />
+                        <button
+                            onClick={() => {
+                                if (isPlaying) {
+                                    stop();
+                                } else {
+                                    // Use a temporary element to strip HTML and decode entities
+                                    const tempDiv = document.createElement('div');
+                                    tempDiv.innerHTML = question.question_hi || '';
+                                    const textContent = tempDiv.textContent || tempDiv.innerText || '';
+                                    speak(textContent);
+                                }
+                            }}
+                            disabled={isLoading}
+                            className={`absolute top-0 right-0 p-2 rounded-full transition-colors ${
+                                isPlaying
+                                    ? 'text-red-500 bg-red-50 hover:bg-red-100'
+                                    : 'text-indigo-400 hover:text-indigo-600 hover:bg-indigo-50'
+                            }`}
+                            title={isPlaying ? "Stop reading" : "Read question in Hindi"}
+                        >
+                            {isLoading ? (
+                                <Loader2 className="w-5 h-5 animate-spin" />
+                            ) : isPlaying ? (
+                                <Square className="w-5 h-5 fill-current" />
+                            ) : (
+                                <Volume2 className="w-5 h-5" />
+                            )}
+                        </button>
+                    </div>
                 )}
             </div>
 
