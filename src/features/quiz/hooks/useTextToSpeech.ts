@@ -9,6 +9,46 @@ interface UseTextToSpeechReturn {
   error: string | null;
 }
 
+// Helper to add WAV header to raw PCM data
+// Gemini Native Audio is 24kHz, 1 channel, 16-bit PCM (usually)
+function addWavHeader(pcmData: Uint8Array, sampleRate: number = 24000, numChannels: number = 1): ArrayBuffer {
+  const header = new ArrayBuffer(44);
+  const view = new DataView(header);
+  const dataLen = pcmData.length;
+
+  // RIFF chunk descriptor
+  writeString(view, 0, 'RIFF');
+  view.setUint32(4, 36 + dataLen, true);
+  writeString(view, 8, 'WAVE');
+
+  // fmt sub-chunk
+  writeString(view, 12, 'fmt ');
+  view.setUint32(16, 16, true); // Subchunk1Size (16 for PCM)
+  view.setUint16(20, 1, true); // AudioFormat (1 for PCM)
+  view.setUint16(22, numChannels, true); // NumChannels
+  view.setUint32(24, sampleRate, true); // SampleRate
+  view.setUint32(28, sampleRate * numChannels * 2, true); // ByteRate
+  view.setUint16(32, numChannels * 2, true); // BlockAlign
+  view.setUint16(34, 16, true); // BitsPerSample
+
+  // data sub-chunk
+  writeString(view, 36, 'data');
+  view.setUint32(40, dataLen, true);
+
+  // Concatenate header and data
+  const wavFile = new Uint8Array(header.byteLength + pcmData.byteLength);
+  wavFile.set(new Uint8Array(header), 0);
+  wavFile.set(pcmData, header.byteLength);
+
+  return wavFile.buffer;
+}
+
+function writeString(view: DataView, offset: number, string: string) {
+  for (let i = 0; i < string.length; i++) {
+    view.setUint8(offset + i, string.charCodeAt(i));
+  }
+}
+
 export function useTextToSpeech(): UseTextToSpeechReturn {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -41,21 +81,14 @@ export function useTextToSpeech(): UseTextToSpeechReturn {
     setError(null);
 
     try {
-      console.log('Requesting TTS for:', text.substring(0, 20) + '...');
+      console.log('Requesting Gemini Native Audio for:', text.substring(0, 20) + '...');
 
       const { data, error: functionError } = await supabase.functions.invoke('gemini-tts', {
         body: { text, languageCode },
       });
 
       if (functionError) {
-        // Fallback for Development Environment if function is not deployed
-        console.warn('Supabase Function Invocation Failed (Likely not deployed in this environment).');
-        console.warn('Details:', functionError);
-        console.info('Simulating Audio Playback for Dev/Demo purposes.');
-
-        // Throw to trigger catch block if we want to show error,
-        // OR simulate success for demo.
-        // Let's throw to be honest, but maybe handle specific "Function not found"
+        console.warn('Supabase Function Invocation Failed:', functionError);
         throw new Error(functionError.message || 'Failed to invoke TTS function');
       }
 
@@ -63,15 +96,28 @@ export function useTextToSpeech(): UseTextToSpeechReturn {
         throw new Error('No audio content received from service');
       }
 
-      // Convert base64 to blob
+      // Convert base64 to binary
       const binaryString = atob(data.audioContent);
       const len = binaryString.length;
       const bytes = new Uint8Array(len);
       for (let i = 0; i < len; i++) {
         bytes[i] = binaryString.charCodeAt(i);
       }
-      const blob = new Blob([bytes], { type: 'audio/mp3' });
-      const url = URL.createObjectURL(blob);
+
+      let audioBlob: Blob;
+
+      // Check if we need to wrap PCM in WAV container
+      // The Edge Function returns 'isRawPcm: true' if it detected/assumed PCM
+      if (data.isRawPcm || data.mimeType === 'audio/pcm') {
+          console.log("Wrapping raw PCM in WAV header (24kHz)...");
+          const wavBuffer = addWavHeader(bytes, 24000, 1);
+          audioBlob = new Blob([wavBuffer], { type: 'audio/wav' });
+      } else {
+          // Assume it's already a playable format like MP3
+          audioBlob = new Blob([bytes], { type: 'audio/mp3' });
+      }
+
+      const url = URL.createObjectURL(audioBlob);
 
       const audio = new Audio(url);
       audioRef.current = audio;
@@ -93,10 +139,6 @@ export function useTextToSpeech(): UseTextToSpeechReturn {
     } catch (err: any) {
       console.error('TTS Error:', err);
       setError(err.message || 'An unexpected error occurred');
-
-      // DEV MODE FALLBACK: If we are in dev/sandbox and valid keys aren't set up,
-      // we might want to fail gracefully or simulate.
-      // For now, setting error is correct.
 
     } finally {
       setIsLoading(false);
