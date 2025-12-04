@@ -4,6 +4,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { AiExplanationButton } from './AiExplanationButton';
 import { Question } from '../types';
 
+// Unit tests for AI Explanation Button
 // Mock fetch
 global.fetch = vi.fn();
 
