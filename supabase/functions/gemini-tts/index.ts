@@ -24,14 +24,16 @@ serve(async (req) => {
     const GOOGLE_AI_KEY = Deno.env.get("GOOGLE_AI_KEY");
     if (!GOOGLE_AI_KEY) {
       console.error("GOOGLE_AI_KEY is not set");
-      return new Response(JSON.stringify({ error: "Server configuration error" }), {
+      return new Response(JSON.stringify({ error: "Server configuration error: GOOGLE_AI_KEY missing" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     // Prepare request for Generative Language API (Gemini)
-    // Model: gemini-2.5-flash-native-audio-preview-09-2025
+    // Switching to the documented REST TTS model alias which is more likely to be stable/public
+    // Previous attempt: gemini-2.5-flash-native-audio-preview-09-2025 (might be restricted/Live-only)
+    // New attempt: gemini-2.5-flash-preview-tts
 
     // System Instruction to force verbatim reading
     const systemInstruction = {
@@ -45,16 +47,18 @@ serve(async (req) => {
       }]
     };
 
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-native-audio-preview-09-2025:generateContent?key=${GOOGLE_AI_KEY}`;
+    const model = "gemini-2.5-flash-preview-tts";
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GOOGLE_AI_KEY}`;
 
-    // Use camelCase for JSON keys as required by the Google Gemini REST API
+    console.log(`Calling Gemini API: ${model}`);
+
     const payload = {
       contents: [{
         parts: [{ text: text }]
       }],
-      systemInstruction: systemInstruction, // camelCase
+      systemInstruction: systemInstruction,
       generationConfig: {
-        responseModalities: ["AUDIO"], // camelCase
+        responseModalities: ["AUDIO"],
         speechConfig: {
           voiceConfig: {
             prebuiltVoiceConfig: {
@@ -75,8 +79,12 @@ serve(async (req) => {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("Gemini API Error:", errorText);
-      return new Response(JSON.stringify({ error: "Failed to fetch audio from Gemini", details: errorText }), {
+      console.error(`Gemini API Error (${response.status}):`, errorText);
+      return new Response(JSON.stringify({
+        error: `Failed to fetch audio from Google (${response.status})`,
+        details: errorText,
+        modelUsed: model
+      }), {
         status: response.status,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -88,7 +96,7 @@ serve(async (req) => {
     const part = data.candidates?.[0]?.content?.parts?.[0];
     if (!part || !part.inlineData) {
        console.error("Unexpected Gemini response structure:", JSON.stringify(data));
-       return new Response(JSON.stringify({ error: "No audio data in response" }), {
+       return new Response(JSON.stringify({ error: "No audio data in response", fullResponse: data }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -99,7 +107,7 @@ serve(async (req) => {
     return new Response(JSON.stringify({
       audioContent: audioBase64,
       mimeType: part.inlineData.mimeType || 'audio/pcm',
-      isRawPcm: true // Flag for client to know it needs WAV header wrapping
+      isRawPcm: true // Still likely 24kHz PCM for this family of models
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
