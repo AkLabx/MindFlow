@@ -30,10 +30,12 @@ serve(async (req) => {
       });
     }
 
-    // Prepare request for Generative Language API (Gemini)
-    // Switching to the documented REST TTS model alias which is more likely to be stable/public
-    // Previous attempt: gemini-2.5-flash-native-audio-preview-09-2025 (might be restricted/Live-only)
-    // New attempt: gemini-2.5-flash-preview-tts
+    // Use Gemini 2.5 Flash TTS for Audio Generation capabilities
+    // This model supports 'responseModalities: ["AUDIO"]'
+    const model = "gemini-2.5-flash-tts";
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GOOGLE_AI_KEY}`;
+
+    console.log(`Calling Gemini API: ${model}`);
 
     // System Instruction to force verbatim reading
     const systemInstruction = {
@@ -47,11 +49,6 @@ serve(async (req) => {
       }]
     };
 
-    const model = "gemini-2.5-flash-preview-tts";
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GOOGLE_AI_KEY}`;
-
-    console.log(`Calling Gemini API: ${model}`);
-
     const payload = {
       contents: [{
         parts: [{ text: text }]
@@ -62,7 +59,7 @@ serve(async (req) => {
         speechConfig: {
           voiceConfig: {
             prebuiltVoiceConfig: {
-              voiceName: "Aoede"
+              voiceName: "Aoede" // Options: "Puck", "Charon", "Kore", "Fenrir", "Aoede"
             }
           }
         }
@@ -94,6 +91,8 @@ serve(async (req) => {
 
     // Parse the response to extract inline audio bytes
     const part = data.candidates?.[0]?.content?.parts?.[0];
+
+    // Check if we got audio data
     if (!part || !part.inlineData) {
        console.error("Unexpected Gemini response structure:", JSON.stringify(data));
        return new Response(JSON.stringify({ error: "No audio data in response", fullResponse: data }), {
@@ -107,7 +106,7 @@ serve(async (req) => {
     return new Response(JSON.stringify({
       audioContent: audioBase64,
       mimeType: part.inlineData.mimeType || 'audio/pcm',
-      isRawPcm: true // Still likely 24kHz PCM for this family of models
+      isRawPcm: true // Gemini Native Audio is 24kHz PCM
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
