@@ -97,16 +97,6 @@ export function useTextToSpeech(): UseTextToSpeechReturn {
         contents: [{
           parts: [{ text: text }]
         }],
-        systemInstruction: {
-          parts: [{
-            text: `You are a precise Text-to-Speech engine.
-        Your ONLY task is to read the user's input exactly as written, word for word.
-        1. Do NOT answer the question.
-        2. Do NOT provide hints.
-        3. Do NOT add conversational filler like "Here is the question."
-        4. Maintain a neutral, clear, and professional reading pace.`
-          }]
-        },
         generationConfig: {
           responseModalities: ["AUDIO"],
           speechConfig: {
