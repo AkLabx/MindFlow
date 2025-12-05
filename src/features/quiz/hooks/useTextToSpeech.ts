@@ -89,7 +89,8 @@ export function useTextToSpeech(): UseTextToSpeechReturn {
     try {
       console.log('Requesting Gemini Native Audio (Direct) for:', text.substring(0, 20) + '...');
 
-      const model = "gemini-2.5-flash-tts";
+      // Confirmed model ID from documentation for TTS
+      const model = "gemini-2.5-flash-preview-tts";
       const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
       const payload = {
