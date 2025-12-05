@@ -30,9 +30,9 @@ serve(async (req) => {
       });
     }
 
-    // Use Gemini 2.0 Flash Experimental for Audio Generation capabilities
+    // Use Gemini 2.5 Flash TTS for Audio Generation capabilities
     // This model supports 'responseModalities: ["AUDIO"]'
-    const model = "gemini-2.0-flash-exp";
+    const model = "gemini-2.5-flash-tts";
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GOOGLE_AI_KEY}`;
 
     console.log(`Calling Gemini API: ${model}`);
