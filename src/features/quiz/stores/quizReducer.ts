@@ -1,7 +1,10 @@
-
 import { QuizState, QuizAction } from '../types/store';
 import { APP_CONFIG } from '../../../constants/config';
 
+/**
+ * The initial state for the Quiz Reducer.
+ * Defines the starting values for a fresh session.
+ */
 export const initialState: QuizState = {
   status: 'intro',
   mode: 'learning',
@@ -21,14 +24,19 @@ export const initialState: QuizState = {
   isPaused: false,
 };
 
-// Lazy initializer to restore session from localStorage
+/**
+ * Initializes the quiz state, attempting to restore a previous session from LocalStorage.
+ *
+ * @param {QuizState} defaultState - The fallback state if no saved session exists.
+ * @returns {QuizState} The loaded state or the default state.
+ */
 export const loadState = (defaultState: QuizState): QuizState => {
   if (typeof window === 'undefined') return defaultState;
   try {
     const saved = localStorage.getItem(APP_CONFIG.STORAGE_KEYS.QUIZ_SESSION);
     if (saved) {
       const parsed = JSON.parse(saved);
-      // Only restore if we are in a valid active/result state
+      // Only restore if we are in a valid active/result state to prevent stuck UIs
       if (parsed.status === 'quiz' || parsed.status === 'result' || parsed.status === 'flashcards' || parsed.status === 'flashcards-complete' || parsed.status === 'ows-flashcards') {
         return { ...defaultState, ...parsed };
       }
@@ -39,6 +47,20 @@ export const loadState = (defaultState: QuizState): QuizState => {
   return defaultState;
 };
 
+/**
+ * The core Reducer function for managing quiz state transitions.
+ *
+ * Handles all actions related to:
+ * - Navigation (Next, Prev, Jump, Home)
+ * - Quiz Lifecycle (Start, Pause, Resume, Finish, Restart)
+ * - User Interaction (Answer, Bookmark, 50:50, Review)
+ * - Timing (Log Time, Sync Timers)
+ * - Session Management (Load Saved, Submit Results)
+ *
+ * @param {QuizState} state - The current state.
+ * @param {QuizAction} action - The action to perform.
+ * @returns {QuizState} The new state.
+ */
 export function quizReducer(state: QuizState, action: QuizAction): QuizState {
   switch (action.type) {
     case 'ENTER_HOME':
@@ -70,7 +92,7 @@ export function quizReducer(state: QuizState, action: QuizAction): QuizState {
 
     case 'START_QUIZ': {
       const { questions, filters, mode } = action.payload;
-      // Mock Mode: Default time per question. Ensure it's at least default.
+      // Mock Mode: Calculate global time (e.g. 30s * questions)
       const globalTime = mode === 'mock'
         ? Math.max(APP_CONFIG.TIMERS.MOCK_MODE_DEFAULT_PER_QUESTION, questions.length * APP_CONFIG.TIMERS.MOCK_MODE_DEFAULT_PER_QUESTION)
         : 0;
@@ -120,7 +142,7 @@ export function quizReducer(state: QuizState, action: QuizAction): QuizState {
       const prevAnswer = state.answers[questionId];
       let newScore = state.score;
 
-      // Update score logic
+      // Update score logic: handle re-answering
       if (!prevAnswer) {
         // First time answering
         if (isCorrect) newScore++;
@@ -173,10 +195,13 @@ export function quizReducer(state: QuizState, action: QuizAction): QuizState {
       const nextIndex = state.currentQuestionIndex + 1;
 
       if (nextIndex >= maxIndex) {
-        // Stay on last card, wait for explicit finish
+        // Stay on last card if flashcards (wait for explicit finish)
         if (state.status === 'flashcards' || state.status === 'ows-flashcards') {
           return state;
         }
+        // Auto-finish quiz if last question reached (or wait for submit? usually manual submit in mock)
+        // Here, we auto-transition to result for now or user clicks 'Finish'.
+        // Assuming NEXT on last question goes to results:
         return { ...state, status: 'result' };
       }
       return { ...state, currentQuestionIndex: nextIndex };
@@ -225,7 +250,7 @@ export function quizReducer(state: QuizState, action: QuizAction): QuizState {
       const { questionId, remainingTime } = action.payload;
       let newRemainingTimes = state.remainingTimes;
 
-      // If we have a specific time to save before pausing
+      // If we have a specific time to save before pausing (e.g. current question timer)
       if (questionId && remainingTime !== undefined) {
         newRemainingTimes = { ...state.remainingTimes, [questionId]: remainingTime };
       }
@@ -254,7 +279,7 @@ export function quizReducer(state: QuizState, action: QuizAction): QuizState {
         answers,
         timeTaken,
         score,
-        bookmarks, // Replace bookmarks with session state
+        bookmarks, // Replace bookmarks with session state from IndexedDB
         status: 'result'
       };
     }
@@ -265,7 +290,7 @@ export function quizReducer(state: QuizState, action: QuizAction): QuizState {
     case 'RESTART_QUIZ': {
       // If restarting flashcards (Idioms or OWS)
       if (state.status === 'flashcards' || state.status === 'ows-flashcards' || state.status === 'flashcards-complete') {
-        // Determine previous flashcard type based on loaded data
+        // Determine previous flashcard type based on active data availability
         const isOWS = state.activeOWS && state.activeOWS.length > 0;
         return {
           ...state,
@@ -296,7 +321,7 @@ export function quizReducer(state: QuizState, action: QuizAction): QuizState {
 
     case 'LOAD_SAVED_QUIZ': {
       const savedState = action.payload;
-      // Deduplicate activeQuestions to prevent accumulation bugs
+      // Deduplicate activeQuestions to prevent accumulation bugs during hydration
       if (savedState.activeQuestions) {
         const uniqueQuestions = Array.from(new Map(savedState.activeQuestions.map(q => [q.id, q])).values());
         return { ...savedState, activeQuestions: uniqueQuestions };

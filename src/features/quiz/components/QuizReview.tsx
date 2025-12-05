@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useEffect } from 'react';
 import { ArrowLeft, Home, CheckCircle2, XCircle, Bookmark, Filter, CircleDashed } from 'lucide-react';
 import { Question } from '../types';
@@ -18,6 +17,18 @@ interface QuizReviewProps {
   initialFilter?: 'All' | 'Correct' | 'Incorrect' | 'Bookmarked' | 'Skipped';
 }
 
+/**
+ * A detailed review screen for exploring quiz answers post-completion.
+ *
+ * Features:
+ * - Filtering by status (Correct, Incorrect, Skipped, Bookmarked).
+ * - Detailed question view (using `QuizQuestionDisplay` in read-only mode).
+ * - Full explanations.
+ * - Time taken per question.
+ *
+ * @param {QuizReviewProps} props - The component props.
+ * @returns {JSX.Element} The rendered Review screen.
+ */
 export const QuizReview: React.FC<QuizReviewProps> = ({
   questions,
   userAnswers,
@@ -30,7 +41,7 @@ export const QuizReview: React.FC<QuizReviewProps> = ({
   const [filter, setFilter] = useState<string>(initialFilter);
   const [reviewIndex, setReviewIndex] = useState(0);
 
-  // Calculate counts for tabs
+  // Calculate dynamic counts for filter tabs
   const counts = useMemo(() => {
     const c = {
       All: questions.length,
@@ -52,19 +63,20 @@ export const QuizReview: React.FC<QuizReviewProps> = ({
     return c;
   }, [questions, userAnswers, bookmarkedQuestions]);
 
+  // Filter questions based on selected tab
   const filteredQuestions = useMemo(() => {
     return questions.filter(q => {
       const ans = userAnswers[q.id];
       if (filter === 'All') return true;
       if (filter === 'Correct') return ans === q.correct;
-      if (filter === 'Incorrect') return ans && ans !== q.correct; // Strict incorrect
+      if (filter === 'Incorrect') return ans && ans !== q.correct; // Strict incorrect (answered wrong)
       if (filter === 'Skipped') return !ans;
       if (filter === 'Bookmarked') return bookmarkedQuestions.includes(q.id);
       return true;
     });
   }, [filter, questions, userAnswers, bookmarkedQuestions]);
 
-  // Reset index when filter changes
+  // Reset pagination index when filter changes to avoid out-of-bounds
   useEffect(() => {
     setReviewIndex(0);
   }, [filter]);
@@ -78,7 +90,7 @@ export const QuizReview: React.FC<QuizReviewProps> = ({
   return (
     <div className="max-w-4xl mx-auto animate-fade-in">
       
-      {/* Header */}
+      {/* Header & Controls */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-4 mb-6 sticky top-0 z-50">
         <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-3 w-full md:w-auto">
@@ -104,18 +116,19 @@ export const QuizReview: React.FC<QuizReviewProps> = ({
         </div>
       </div>
 
-      {/* Content */}
+      {/* Main Review Content */}
       {currentQuestion ? (
         <div className="space-y-6 pb-20">
             {/* Question Card */}
             <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 md:p-8 relative overflow-hidden">
                 
-                {/* Status Banner */}
+                {/* Status Color Strip */}
                 <div className={cn(
                     "absolute top-0 left-0 w-full h-1.5",
                     isCorrect ? "bg-green-500" : (isSkipped ? "bg-gray-300" : "bg-red-500")
                 )} />
 
+                {/* Question Header */}
                 <div className="flex justify-between items-start mb-6">
                     <div className="flex items-center gap-2">
                         <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs font-bold rounded">
@@ -140,19 +153,20 @@ export const QuizReview: React.FC<QuizReviewProps> = ({
                     <span className="text-xs text-gray-400 font-mono">ID: {currentQuestion.id}</span>
                 </div>
 
+                {/* Reusing Question Display Component in Read-Only Mode */}
                 <QuizQuestionDisplay 
                     question={currentQuestion}
-                    selectedAnswer={currentAns} // Pass user answer to highlight
-                    onAnswerSelect={() => {}} // Read only
+                    selectedAnswer={currentAns} // Pass user answer to highlight their choice
+                    onAnswerSelect={() => {}} // No-op for read-only
                     zoomLevel={1}
-                    userTime={userTime} // Pass time taken
+                    userTime={userTime} // Display time spent
                 />
             </div>
 
-            {/* Explanation */}
+            {/* Explanation Section */}
             <QuizExplanation explanation={currentQuestion.explanation} />
 
-            {/* Navigation Footer */}
+            {/* Fixed Navigation Footer */}
             <div className="fixed bottom-0 left-0 w-full bg-white border-t border-gray-200 p-4 shadow-lg z-40">
                 <div className="max-w-4xl mx-auto flex justify-between items-center">
                     <Button 

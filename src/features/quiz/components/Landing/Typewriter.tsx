@@ -1,12 +1,20 @@
 import React, { useState, useEffect } from 'react';
 
+/**
+ * A typewriter effect component that cycles through a list of words.
+ *
+ * It types out a word, pauses, deletes it, and then types the next one.
+ * Used in the Landing Page hero section for dynamic text.
+ *
+ * @returns {JSX.Element} The rendered Typewriter text.
+ */
 export const Typewriter = () => {
   const words = ["Exploring", "Learning", "Creating", "Mastering"];
   const [index, setIndex] = useState(0);
   const [text, setText] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // Typing Loop
+  // Typing Loop: Handles character addition/removal
   useEffect(() => {
     const currentWord = words[index];
     // Stop typing timer if we reached the target state (full word or empty)
@@ -19,12 +27,12 @@ export const Typewriter = () => {
       } else {
         setText((prev) => currentWord.slice(0, prev.length + 1));
       }
-    }, isDeleting ? 50 : 150);
+    }, isDeleting ? 50 : 150); // Delete faster than type
 
     return () => clearTimeout(timer);
   }, [text, isDeleting, index, words]);
 
-  // State Transition (Pause & Switch)
+  // State Transition: Handles pauses between words and switching to next word
   useEffect(() => {
     const currentWord = words[index];
     
@@ -35,7 +43,7 @@ export const Typewriter = () => {
     }
     
     if (isDeleting && text === "") {
-      // Finished deleting, switch word
+      // Finished deleting, switch word immediately
       setIsDeleting(false);
       setIndex((prev) => (prev + 1) % words.length);
     }

@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { ArrowLeft, BookA, PenTool, FileText } from 'lucide-react';
 import { Button } from '../../../components/Button/Button';
@@ -8,12 +7,23 @@ interface EnglishQuizHomeProps {
   onVocabClick: () => void;
 }
 
+/**
+ * A dedicated landing page for the English Subject Zone.
+ *
+ * Provides navigation to:
+ * - Vocabulary Quizzes (Idioms, OWS, etc.)
+ * - Grammar Quizzes (Placeholder for future)
+ * - Mock Tests (Placeholder for future)
+ *
+ * @param {EnglishQuizHomeProps} props - The component props.
+ * @returns {JSX.Element} The rendered English Zone home screen.
+ */
 export const EnglishQuizHome: React.FC<EnglishQuizHomeProps> = ({ onBack, onVocabClick }) => {
   return (
     <div className="flex flex-col min-h-[calc(100vh-4rem)]">
       <div className="flex-1 flex flex-col items-center justify-center space-y-10 py-10 relative z-10">
         
-        {/* Navigation */}
+        {/* Navigation Bar */}
         <div className="w-full max-w-6xl mx-auto px-4">
            <Button 
               variant="ghost" 
@@ -24,7 +34,7 @@ export const EnglishQuizHome: React.FC<EnglishQuizHomeProps> = ({ onBack, onVoca
            </Button>
         </div>
 
-        {/* Header */}
+        {/* Hero Header */}
         <div className="text-center max-w-4xl mx-auto px-4">
           <h1 className="text-4xl sm:text-6xl font-extrabold text-gray-900 leading-tight mb-6">
             English <span className="text-transparent bg-clip-text bg-gradient-to-r from-rose-500 to-orange-500">Proficiency</span>
@@ -34,10 +44,10 @@ export const EnglishQuizHome: React.FC<EnglishQuizHomeProps> = ({ onBack, onVoca
           </p>
         </div>
 
-        {/* Cards Grid */}
+        {/* Feature Cards Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 w-full max-w-6xl mx-auto px-4">
           
-          {/* Card 1: Vocab */}
+          {/* Card 1: Vocab Quiz */}
           <div 
             onClick={onVocabClick}
             className="bg-white p-8 rounded-3xl border border-gray-200 cursor-pointer group relative z-20 transition-all duration-300 ease-out hover:-translate-y-2 shadow-[12px_2px_0px_0px_#e2e8f0,0px_10px_20px_rgba(0,0,0,0.1)] hover:shadow-[12px_2px_0px_0px_#10b981,0px_20px_30px_rgba(16,185,129,0.3)] hover:border-emerald-300"
@@ -51,7 +61,7 @@ export const EnglishQuizHome: React.FC<EnglishQuizHomeProps> = ({ onBack, onVoca
             </p>
           </div>
 
-          {/* Card 2: Grammar */}
+          {/* Card 2: Grammar Quiz */}
           <div className="bg-white p-8 rounded-3xl border border-gray-200 cursor-pointer group relative z-20 transition-all duration-300 ease-out hover:-translate-y-2 shadow-[12px_2px_0px_0px_#e2e8f0,0px_10px_20px_rgba(0,0,0,0.1)] hover:shadow-[12px_2px_0px_0px_#8b5cf6,0px_20px_30px_rgba(139,92,246,0.3)] hover:border-violet-300">
             <div className="w-12 h-12 bg-violet-50 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform shadow-sm group-hover:bg-violet-100 group-hover:shadow-violet-200">
               <PenTool className="w-6 h-6 text-violet-600" />
@@ -62,7 +72,7 @@ export const EnglishQuizHome: React.FC<EnglishQuizHomeProps> = ({ onBack, onVoca
             </p>
           </div>
 
-          {/* Card 3: Mock */}
+          {/* Card 3: Mock Test */}
           <div className="bg-white p-8 rounded-3xl border border-gray-200 cursor-pointer group relative z-20 transition-all duration-300 ease-out hover:-translate-y-2 shadow-[12px_2px_0px_0px_#e2e8f0,0px_10px_20px_rgba(0,0,0,0.1)] hover:shadow-[12px_2px_0px_0px_#f43f5e,0px_20px_30px_rgba(244,63,94,0.3)] hover:border-rose-300">
             <div className="w-12 h-12 bg-rose-50 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform shadow-sm group-hover:bg-rose-100 group-hover:shadow-rose-200">
               <FileText className="w-6 h-6 text-rose-600" />

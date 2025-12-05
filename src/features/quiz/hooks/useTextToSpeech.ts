@@ -1,15 +1,33 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 
+/**
+ * Hook return interface.
+ */
 interface UseTextToSpeechReturn {
+  /** Function to trigger text-to-speech. */
   speak: (text: string) => Promise<void>;
+  /** Function to stop playback immediately. */
   stop: () => void;
+  /** Whether audio is currently playing. */
   isPlaying: boolean;
+  /** Whether the audio is being fetched/generated. */
   isLoading: boolean;
+  /** Error message if generation fails. */
   error: string | null;
 }
 
-// Helper to add WAV header to raw PCM data
-// Gemini Native Audio is 24kHz, 1 channel, 16-bit PCM (usually)
+/**
+ * Adds a standard WAV header to raw PCM audio data.
+ *
+ * The Gemini Native Audio API returns raw PCM data (Linear 16-bit) which browsers
+ * cannot play directly via the Audio element without a container format. This function
+ * wraps the PCM bytes in a WAV container.
+ *
+ * @param {Uint8Array} pcmData - The raw PCM audio bytes.
+ * @param {number} [sampleRate=24000] - Sample rate in Hz (Gemini defaults to 24kHz).
+ * @param {number} [numChannels=1] - Number of channels (Gemini is Mono).
+ * @returns {ArrayBuffer} The complete WAV file buffer.
+ */
 function addWavHeader(pcmData: Uint8Array, sampleRate: number = 24000, numChannels: number = 1): ArrayBuffer {
   const header = new ArrayBuffer(44);
   const view = new DataView(header);
@@ -42,19 +60,35 @@ function addWavHeader(pcmData: Uint8Array, sampleRate: number = 24000, numChanne
   return wavFile.buffer;
 }
 
+/**
+ * Helper to write ASCII strings to a DataView.
+ */
 function writeString(view: DataView, offset: number, string: string) {
   for (let i = 0; i < string.length; i++) {
     view.setUint8(offset + i, string.charCodeAt(i));
   }
 }
 
+/**
+ * Custom hook for Text-to-Speech using Google's Gemini Native Audio API.
+ *
+ * This hook bypasses intermediate backends by calling the Gemini API directly from the client.
+ * It handles:
+ * 1. API authentication (via environment key).
+ * 2. Request construction for the `gemini-2.5-flash-preview-tts` model.
+ * 3. Base64 decoding of the response.
+ * 4. Conversion of raw PCM to WAV format.
+ * 5. Audio playback management (Play/Stop/Loading).
+ *
+ * @returns {UseTextToSpeechReturn} Control methods and state.
+ */
 export function useTextToSpeech(): UseTextToSpeechReturn {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  // Cleanup audio on unmount
+  // Cleanup audio on unmount to prevent leaks or background playing
   useEffect(() => {
     return () => {
       if (audioRef.current) {
@@ -93,6 +127,7 @@ export function useTextToSpeech(): UseTextToSpeechReturn {
       const model = "gemini-2.5-flash-preview-tts";
       const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
+      // Payload structure for Gemini 1.5/2.0 API
       const payload = {
         contents: [{
           parts: [{ text: text }]
@@ -102,7 +137,7 @@ export function useTextToSpeech(): UseTextToSpeechReturn {
           speechConfig: {
             voiceConfig: {
               prebuiltVoiceConfig: {
-                voiceName: "Algenib"
+                voiceName: "Algenib" // Specific voice suitable for clear reading
               }
             }
           }
@@ -140,7 +175,7 @@ export function useTextToSpeech(): UseTextToSpeechReturn {
         bytes[i] = binaryString.charCodeAt(i);
       }
 
-      // Gemini Native Audio is 24kHz PCM, wrap in WAV
+      // Gemini Native Audio is 24kHz PCM, wrap in WAV for browser compatibility
       const wavBuffer = addWavHeader(bytes, 24000, 1);
       const audioBlob = new Blob([wavBuffer], { type: 'audio/wav' });
 
@@ -150,7 +185,7 @@ export function useTextToSpeech(): UseTextToSpeechReturn {
 
       audio.onended = () => {
         setIsPlaying(false);
-        URL.revokeObjectURL(audioUrl);
+        URL.revokeObjectURL(audioUrl); // Clean up memory
       };
 
       audio.onerror = (e) => {

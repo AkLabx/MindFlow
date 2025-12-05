@@ -1,11 +1,16 @@
-
 import React, { useState, useEffect } from 'react';
 import { Sparkles, Trophy, MousePointer2 } from 'lucide-react';
 import { useMediaQuery } from '../../../../hooks/useMediaQuery';
 
+/**
+ * Stages of the demo animation lifecycle.
+ */
 type DemoPhase = 'START' | 'CLICK_START' | 'LOADING' | 'QUESTION' | 'SELECT_OPTION' | 'CLICK_SUBMIT' | 'RESULT';
 
-// Data for the rotating questions
+/**
+ * Rotating content configuration for the demo card.
+ * Includes category, question, options, and color themes.
+ */
 const DEMO_CONTENT = [
   {
     category: "React",
@@ -55,9 +60,20 @@ const DEMO_CONTENT = [
   }
 ];
 
+/**
+ * A highly interactive, self-playing demo card for the Landing Page.
+ *
+ * Features:
+ * - Rotates through different quiz topics (React, History, Science).
+ * - Simulates user interaction (mouse movement, clicks, selection).
+ * - Adapts to reduced motion preferences and mobile devices (disables animation).
+ * - Uses 3D CSS transforms for a "floating" effect.
+ *
+ * @returns {JSX.Element} The rendered DemoCard component.
+ */
 export const DemoCard: React.FC = () => {
   const [phase, setPhase] = useState<DemoPhase>('START');
-  // Cursor position percentage {x, y}
+  // Cursor position percentage {x, y} relative to container
   const [cursor, setCursor] = useState({ x: 85, y: 85 });
   const [isClicking, setIsClicking] = useState(false);
   const [topicIndex, setTopicIndex] = useState(0); // Tracks current topic
@@ -66,7 +82,7 @@ export const DemoCard: React.FC = () => {
   const isMobile = useMediaQuery('(max-width: 768px)');
   const currentContent = DEMO_CONTENT[topicIndex];
 
-  // Disable heavy animations on mobile or reduced motion preference
+  // Disable heavy animations on mobile or reduced motion preference for accessibility/performance
   const shouldAnimate = !prefersReducedMotion && !isMobile;
 
   useEffect(() => {

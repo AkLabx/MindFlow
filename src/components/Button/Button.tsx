@@ -1,12 +1,29 @@
 import React from 'react';
 import { cn } from '../../utils/cn';
 
+/**
+ * Props for the Button component.
+ * Extends standard HTML button attributes.
+ */
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  /** The visual style variant of the button. */
   variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger';
+  /** The size of the button. */
   size?: 'sm' | 'md' | 'lg';
+  /** If true, the button takes up the full width of its container. */
   fullWidth?: boolean;
 }
 
+/**
+ * A flexible, highly reusable Button component.
+ *
+ * Supports various visual variants (primary, secondary, outline, etc.),
+ * sizes, and full-width mode. It handles states like disabled and focus
+ * automatically via utility classes.
+ *
+ * @param {ButtonProps} props - The component props.
+ * @returns {JSX.Element} The rendered Button component.
+ */
 export const Button: React.FC<ButtonProps> = ({
   className,
   variant = 'primary',

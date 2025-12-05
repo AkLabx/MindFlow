@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../../../lib/supabase';
@@ -9,7 +8,17 @@ interface SettingsPageProps {
   onBack: () => void;
 }
 
-// A new component for inline editing
+/**
+ * A sub-component for inline editing of text fields.
+ *
+ * Displays a value and allows the user to switch to edit mode.
+ * In edit mode, shows Save and Cancel buttons.
+ *
+ * @param {object} props - The component props.
+ * @param {string} props.value - The current value of the field.
+ * @param {function} props.onSave - Async callback function executed when saving the new value.
+ * @returns {JSX.Element} The rendered editable field component.
+ */
 const EditableField: React.FC<{value: string, onSave: (newValue: string) => Promise<void>}> = ({ value, onSave }) => {
     const [isEditing, setIsEditing] = useState(false);
     const [currentValue, setCurrentValue] = useState(value);
@@ -60,7 +69,14 @@ const EditableField: React.FC<{value: string, onSave: (newValue: string) => Prom
     );
 }
 
-
+/**
+ * User Settings Page Component.
+ *
+ * Allows users to update their personal information (Name) and security credentials (Password).
+ *
+ * @param {SettingsPageProps} props - The component props.
+ * @returns {JSX.Element} The rendered Settings Page.
+ */
 const SettingsPage: React.FC<SettingsPageProps> = ({ onBack }) => {
   const { user, refreshUser } = useAuth();
   
@@ -70,6 +86,10 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onBack }) => {
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
+  /**
+   * Updates the user's full name in Supabase.
+   * @param {string} newName - The new name to save.
+   */
   const handleUpdateName = async (newName: string) => {
     if (!user) return;
     
@@ -84,6 +104,10 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onBack }) => {
     setTimeout(() => setMessage(null), 3000);
   };
 
+  /**
+   * Updates the user's password.
+   * @param {React.FormEvent} e - Form submission event.
+   */
   const handleUpdatePassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (password !== confirmPassword) {

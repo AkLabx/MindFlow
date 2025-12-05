@@ -1,9 +1,14 @@
+# GitHub Actions Workflow: Deploy to GitHub Pages
+# This workflow automates the build and deployment process of the React application to GitHub Pages.
+# It triggers on pushes to the 'main' branch or manual dispatch.
 
 name: Deploy to GitHub Pages
 
 on:
+  # Trigger the workflow on push to the main branch
   push:
     branches: ["main"]
+  # Allow manual trigger from the Actions tab
   workflow_dispatch:
 
 # Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
@@ -12,12 +17,13 @@ permissions:
   pages: write
   id-token: write
 
-# Allow only one concurrent deployment
+# Allow only one concurrent deployment to prevent race conditions
 concurrency:
   group: "pages"
   cancel-in-progress: true
 
 jobs:
+  # Build Job: Installs dependencies and builds the project
   build:
     runs-on: ubuntu-latest
     steps:
@@ -31,23 +37,27 @@ jobs:
           # cache: 'npm' removed because package-lock.json is missing
 
       - name: Install dependencies
+        # Uses legacy-peer-deps to resolve React version conflicts
         run: npm install --legacy-peer-deps
 
       - name: Build
+        # Runs the production build script
         run: npm run build
         env:
+          # Inject secrets into the build environment
           # These secrets must be added in Repo Settings > Secrets and variables > Actions
-          # If you haven't added them, the build will use empty strings or hardcoded fallbacks
           API_KEY: ${{ secrets.API_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
 
       - name: Upload artifact
+        # Uploads the build output ('./dist') for the deploy job
         uses: actions/upload-pages-artifact@v3
         with:
           path: ./dist
 
+  # Deploy Job: Deploys the built artifact to GitHub Pages
   deploy:
     environment:
       name: github-pages

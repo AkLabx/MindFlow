@@ -1,7 +1,22 @@
-
 import { useState, useEffect, Dispatch, SetStateAction, useRef } from 'react';
 import { InitialFilters } from '../features/quiz/types';
 
+/**
+ * Custom hook to manage dependent dropdown filters (cascading selects).
+ *
+ * This hook handles the logic for updating available options in child filters
+ * based on the selection in parent filters.
+ * Logic: Subject -> Topic -> SubTopic.
+ *
+ * @param {object} props - The hook properties.
+ * @param {InitialFilters} props.selectedFilters - The current state of all selected filters.
+ * @param {Dispatch<SetStateAction<InitialFilters>>} props.setSelectedFilters - State setter for updating filters.
+ * @param {Map<string, Map<string, Set<string>>>} props.classificationMap - A nested map structure representing the hierarchy: Subject -> Topic -> SubTopics.
+ *
+ * @returns {object} An object containing:
+ * - `availableTopics` {string[]}: List of topics available based on selected subjects.
+ * - `availableSubTopics` {string[]}: List of sub-topics available based on selected subjects and topics.
+ */
 export function useDependentFilters({ selectedFilters, setSelectedFilters, classificationMap }: {
   selectedFilters: InitialFilters;
   setSelectedFilters: Dispatch<SetStateAction<InitialFilters>>;
@@ -21,7 +36,7 @@ export function useDependentFilters({ selectedFilters, setSelectedFilters, class
     }
     setAvailableTopics(Array.from(newTopics).sort());
 
-    // Reset dependent fields if not initial mount
+    // Reset dependent fields if not initial mount to avoid invalid selections
     if (!isInitialMount.current) {
       setSelectedFilters(prev => ({
           ...prev,

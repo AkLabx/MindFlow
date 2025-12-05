@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Trophy, RotateCcw, Home, BookOpen, CheckCircle2 } from 'lucide-react';
 import { cn } from '../../../utils/cn';
@@ -6,13 +5,30 @@ import { Button } from '../../../components/Button/Button';
 import { InitialFilters } from '../../quiz/types';
 import { motion } from 'framer-motion';
 
+/**
+ * Props for the FlashcardSummary component.
+ */
 interface FlashcardSummaryProps {
+  /** The total number of flashcards reviewed in the session. */
   totalCards: number;
+  /** The filters applied to the session (used for display context). */
   filters: InitialFilters;
+  /** Callback to restart the session with the same settings. */
   onRestart: () => void;
+  /** Callback to return to the dashboard. */
   onHome: () => void;
 }
 
+/**
+ * The completion screen for a Flashcard session.
+ *
+ * Displays a summary of the session, including total cards reviewed
+ * and metadata about the set (Source, Difficulty).
+ * Provides options to restart the session or exit to home.
+ *
+ * @param {FlashcardSummaryProps} props - The component props.
+ * @returns {JSX.Element} The rendered Summary screen.
+ */
 export const FlashcardSummary: React.FC<FlashcardSummaryProps> = ({
   totalCards,
   filters,
@@ -20,6 +36,7 @@ export const FlashcardSummary: React.FC<FlashcardSummaryProps> = ({
   onHome
 }) => {
 
+  // derived display values
   const sourceName = filters.examName.length > 0 ? filters.examName.join(", ") : "Various Sources";
   const difficulty = filters.difficulty.length > 0 ? filters.difficulty.join(", ") : "Mixed Difficulty";
 

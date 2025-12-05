@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { Trophy, RotateCcw, Home, Target, Clock, CheckCircle2, XCircle, List, ChevronRight, Award, Zap, CircleDashed } from 'lucide-react';
 import { Button } from '../../../components/Button/Button';
@@ -21,6 +20,18 @@ interface QuizResultProps {
   onGoHome?: () => void;
 }
 
+/**
+ * The Quiz Result Summary Screen.
+ *
+ * Displays:
+ * - Overall Grade/Score and Visual Chart.
+ * - Key Performance Indicators (KPIs) like Accuracy, Speed, Attempted count.
+ * - Subject-wise performance breakdown.
+ * - Options to review answers (All, Incorrect, Skipped).
+ *
+ * @param {QuizResultProps} props - The component props.
+ * @returns {JSX.Element} The rendered Result screen.
+ */
 export const QuizResult: React.FC<QuizResultProps> = ({ 
   score, 
   total, 
@@ -34,7 +45,9 @@ export const QuizResult: React.FC<QuizResultProps> = ({
   const [view, setView] = useState<'score' | 'review'>('score');
   const [reviewFilter, setReviewFilter] = useState<'All' | 'Correct' | 'Incorrect' | 'Bookmarked' | 'Skipped'>('All');
 
-  // --- Calculations ---
+  // --- Statistics Calculations ---
+
+  // Basic Counts
   const { correct, incorrect, unanswered, attempted } = useMemo(() => {
       let c = 0, i = 0, a = 0;
       questions.forEach(q => {
@@ -52,7 +65,7 @@ export const QuizResult: React.FC<QuizResultProps> = ({
   const totalTime = (Object.values(timeTaken) as number[]).reduce((a, b) => a + b, 0);
   const formattedTime = `${Math.floor(totalTime / 60)}m ${Math.round(totalTime % 60)}s`;
 
-  // Advanced Stats
+  // Advanced Stats (Speed Analysis)
   const stats = useMemo(() => {
       let correctTime = 0, correctCount = 0;
       let incorrectTime = 0, incorrectCount = 0;
@@ -67,7 +80,7 @@ export const QuizResult: React.FC<QuizResultProps> = ({
               if (ans === q.correct) {
                   correctTime += t;
                   correctCount++;
-                  // Only consider CORRECT answers for fastest/slowest stats
+                  // Only calculate speed records for CORRECT answers to filter out guessing
                   if (t > 0) {
                       if (t < fastest) fastest = t;
                       if (t > slowest) slowest = t;
@@ -86,7 +99,7 @@ export const QuizResult: React.FC<QuizResultProps> = ({
       };
   }, [questions, answers, timeTaken]);
 
-  // Subject Performance
+  // Subject Performance Breakdown
   const subjectPerformance = useMemo(() => {
       const s: Record<string, { total: number, correct: number }> = {};
       questions.forEach(q => {
@@ -100,7 +113,7 @@ export const QuizResult: React.FC<QuizResultProps> = ({
         .sort((a, b) => b.accuracy - a.accuracy);
   }, [questions, answers]);
 
-  // Grade Logic
+  // Dynamic Grade Assignment
   const getGrade = (acc: number) => {
       if (acc >= 90) return { label: 'S', color: 'text-yellow-300', title: 'Legendary!', bg: 'bg-gradient-to-br from-indigo-900 via-purple-900 to-slate-900' };
       if (acc >= 80) return { label: 'A', color: 'text-emerald-300', title: 'Excellent!', bg: 'bg-gradient-to-br from-emerald-800 to-teal-900' };
@@ -111,7 +124,7 @@ export const QuizResult: React.FC<QuizResultProps> = ({
 
   const grade = getGrade(accuracy);
 
-  // --- View: Review Mode ---
+  // --- Sub-View: Review Mode ---
   if (view === 'review') {
       return (
           <QuizReview 
@@ -126,20 +139,20 @@ export const QuizResult: React.FC<QuizResultProps> = ({
       );
   }
 
-  // --- View: Score Dashboard ---
+  // --- Main View: Score Dashboard ---
   return (
     <div className="max-w-5xl mx-auto p-4 md:p-8 animate-in fade-in duration-500">
       
-      {/* Hero Section */}
+      {/* Hero Section: Grade & Chart */}
       <Card noPadding className="mb-8 border-0 shadow-2xl overflow-hidden">
           <div className={cn("p-8 md:p-10 text-white relative transition-all duration-1000", grade.bg)}>
               
-              {/* Background Particles/Texture */}
+              {/* Background Texture */}
               <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-white via-transparent to-transparent" />
               
               <div className="relative z-10 grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
                   
-                  {/* Left: Score & Grade */}
+                  {/* Left: Text Summary */}
                   <div className="flex flex-col items-center md:items-start text-center md:text-left">
                       <div className="flex items-center gap-3 mb-2">
                            <div className="p-2 bg-white/10 rounded-lg backdrop-blur-sm">
@@ -161,7 +174,7 @@ export const QuizResult: React.FC<QuizResultProps> = ({
                       </div>
                   </div>
 
-                  {/* Right: Donut & Key Stats */}
+                  {/* Right: Donut Chart Visualization */}
                   <div className="flex flex-col items-center justify-center relative">
                       <div className="relative">
                           <DonutChart correct={correct} incorrect={incorrect} unanswered={unanswered} size={220} />
@@ -183,7 +196,7 @@ export const QuizResult: React.FC<QuizResultProps> = ({
               </div>
           </div>
 
-          {/* Advanced Stats Grid */}
+          {/* KPI Grid */}
           <div className="bg-white p-6 border-t border-gray-100">
               <div className="grid grid-cols-2 md:grid-cols-5 gap-6">
                   <StatBox label="Total Score" value={score} suffix={`/ ${total}`} icon={<Trophy className="w-4 h-4 text-amber-500" />} />
@@ -197,7 +210,7 @@ export const QuizResult: React.FC<QuizResultProps> = ({
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           
-          {/* Column 1: Actions */}
+          {/* Column 1: Review Actions */}
           <div className="space-y-5 order-2 lg:order-1">
              <h3 className="font-bold text-gray-900 text-lg flex items-center gap-2">
                  <List className="w-5 h-5 text-indigo-600" /> Review & Analysis
@@ -255,7 +268,7 @@ export const QuizResult: React.FC<QuizResultProps> = ({
              </div>
           </div>
 
-          {/* Column 2: Subject Breakdown */}
+          {/* Column 2: Subject Performance List */}
           <div className="lg:col-span-2 order-1 lg:order-2">
               <h3 className="font-bold text-gray-900 text-lg mb-5 flex items-center gap-2">
                   <Target className="w-5 h-5 text-indigo-600" /> Performance Breakdown
@@ -294,7 +307,7 @@ export const QuizResult: React.FC<QuizResultProps> = ({
   );
 };
 
-// Helper Component for KPI Grid
+// Helper Component for KPI Grid Item
 const StatBox = ({ label, value, suffix, icon }: { label: string, value: number, suffix?: string, icon: React.ReactNode }) => (
     <div className="flex flex-col items-start p-3 rounded-lg hover:bg-gray-50 transition-colors">
         <div className="flex items-center gap-2 mb-1 text-gray-500 text-xs font-bold uppercase tracking-wide">

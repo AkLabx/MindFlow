@@ -1,5 +1,16 @@
 import React from 'react';
 
+/**
+ * A minimalist progress bar for tracking overall quiz completion.
+ *
+ * Displays a thin, gradient bar indicating the percentage of questions completed.
+ * Used at the top of the quiz interface.
+ *
+ * @param {object} props - The component props.
+ * @param {number} props.current - The current question index (0-based) or count.
+ * @param {number} props.total - The total number of questions.
+ * @returns {JSX.Element} The rendered progress bar.
+ */
 export function QuizOverallProgress({ current, total }: { current: number, total: number }) {
   const progress = total > 0 ? (current / total) * 100 : 0;
   

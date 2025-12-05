@@ -1,6 +1,18 @@
 import React from 'react';
 import { cn } from '../../../../utils/cn';
 
+/**
+ * A toggle switch component for settings items.
+ *
+ * Renders a label (optional icon) and an iOS-style toggle switch.
+ *
+ * @param {object} props - The component props.
+ * @param {string} props.label - The text label for the setting.
+ * @param {boolean} props.checked - The current state (on/off).
+ * @param {function} props.onChange - Callback to toggle the state.
+ * @param {React.ReactNode} [props.icon] - Optional icon to display next to the label.
+ * @returns {JSX.Element} The rendered toggle component.
+ */
 export function SettingsToggle({ label, checked, onChange, icon }: { label: string, checked: boolean, onChange: () => void, icon?: React.ReactNode }) {
   return (
     <div className="flex items-center justify-between py-2">

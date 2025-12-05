@@ -1,29 +1,75 @@
-
 import { Question, InitialFilters, Idiom, OneWord } from '../../../types/models';
 
-export type QuizStatus = 'intro' | 'idle' | 'config' | 'quiz' | 'flashcards' | 'flashcards-complete' | 'result' | 'english-home' | 'vocab-home' | 'idioms-config' | 'ows-config' | 'ows-flashcards' | 'profile' | 'login';
+/**
+ * Represents the various distinct screens or states of the application.
+ */
+export type QuizStatus =
+  | 'intro'              // Landing Page
+  | 'idle'               // Dashboard
+  | 'config'             // General Quiz Configuration
+  | 'quiz'               // Active Quiz Session (Question View)
+  | 'flashcards'         // Active Idiom Flashcard Session
+  | 'flashcards-complete'// Idiom Flashcard Summary
+  | 'result'             // Quiz Result Summary
+  | 'english-home'       // English Subject Home
+  | 'vocab-home'         // Vocabulary Home
+  | 'idioms-config'      // Idioms Configuration
+  | 'ows-config'         // One Word Substitution Configuration
+  | 'ows-flashcards'     // Active OWS Flashcard Session
+  | 'profile'            // User Profile Screen
+  | 'login';             // Auth Screen (if applicable)
+
+/**
+ * Modes of the quiz operation.
+ * - 'learning': Interactive, immediate feedback, untimed or per-question timer.
+ * - 'mock': Exam simulation, global timer, no immediate feedback.
+ */
 export type QuizMode = 'learning' | 'mock';
 
+/**
+ * The core state object for the Quiz Reducer.
+ * Manages the entire session state including navigation, progress, scores, and active data.
+ */
 export interface QuizState {
+  /** Current screen/view of the application. */
   status: QuizStatus;
+  /** Current quiz mode (Learning vs Mock). */
   mode: QuizMode;
-  currentQuestionIndex: number; // Also used for Flashcard Index
+  /** Index of the currently active question or flashcard. */
+  currentQuestionIndex: number;
+  /** Current score (number of correct answers). */
   score: number;
-  answers: Record<string, string>; // questionId -> selectedOptionText
-  timeTaken: Record<string, number>; // questionId -> seconds
-  remainingTimes: Record<string, number>; // questionId -> seconds left (Learning Mode)
-  quizTimeRemaining: number; // Global seconds left (Mock Mode)
-  bookmarks: string[]; // array of questionIds
-  markedForReview: string[]; // array of questionIds
-  hiddenOptions: Record<string, string[]>; // questionId -> array of hidden option texts (50:50)
-  activeQuestions: Question[]; // The filtered subset of questions being used
-  activeIdioms?: Idiom[]; // The filtered subset of idioms for flashcards
-  activeOWS?: OneWord[]; // The filtered subset of OWS for flashcards
-  filters?: InitialFilters; // Persisted filters for context/breadcrumbs
-  isPaused?: boolean; // Persisted pause state for Learning Mode
-  quizId?: string; // ID of the saved quiz in IndexedDB
+  /** Map of Question ID to the selected answer text. */
+  answers: Record<string, string>;
+  /** Map of Question ID to seconds spent on that question. */
+  timeTaken: Record<string, number>;
+  /** Map of Question ID to remaining seconds (Learning Mode per-question timer). */
+  remainingTimes: Record<string, number>;
+  /** Global seconds remaining for the entire session (Mock Mode). */
+  quizTimeRemaining: number;
+  /** List of bookmarked Question IDs. */
+  bookmarks: string[];
+  /** List of Question IDs marked for review. */
+  markedForReview: string[];
+  /** Map of Question ID to list of options hidden by 50:50 lifeline. */
+  hiddenOptions: Record<string, string[]>;
+  /** The subset of questions active in the current session. */
+  activeQuestions: Question[];
+  /** The subset of idioms active in the current session (if applicable). */
+  activeIdioms?: Idiom[];
+  /** The subset of OWS active in the current session (if applicable). */
+  activeOWS?: OneWord[];
+  /** The filters configuration used to start this session. */
+  filters?: InitialFilters;
+  /** Whether the session is currently paused. */
+  isPaused?: boolean;
+  /** The database ID of the saved quiz (if loaded from history). */
+  quizId?: string;
 }
 
+/**
+ * Discriminated Union of all possible actions for the Quiz Reducer.
+ */
 export type QuizAction =
   | { type: 'ENTER_HOME' }
   | { type: 'ENTER_CONFIG' }

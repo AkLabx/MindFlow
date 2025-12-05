@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useCallback } from 'react';
 import Cropper from 'react-easy-crop';
 import { useAuth } from '../context/AuthContext';
@@ -10,7 +9,13 @@ interface ProfilePageProps {
   onNavigateToSettings: () => void;
 }
 
-// --- Utility to create a cropped image ---
+/**
+ * Helper function to create an HTMLImageElement from a URL.
+ * Required for the canvas drawing operation.
+ *
+ * @param {string} url - The URL of the image.
+ * @returns {Promise<HTMLImageElement>} A promise resolving to the loaded image element.
+ */
 const createImage = (url: string): Promise<HTMLImageElement> =>
   new Promise((resolve, reject) => {
     const image = new Image();
@@ -20,6 +25,13 @@ const createImage = (url: string): Promise<HTMLImageElement> =>
     image.src = url;
   });
 
+/**
+ * Generates a cropped image blob from a source image and crop pixel coordinates.
+ *
+ * @param {string} imageSrc - The source image URL.
+ * @param {object} pixelCrop - The crop area coordinates (x, y, width, height).
+ * @returns {Promise<Blob | null>} A promise resolving to the cropped image Blob.
+ */
 async function getCroppedImg(
   imageSrc: string,
   pixelCrop: { x: number; y: number; width: number; height: number; }
@@ -58,7 +70,19 @@ async function getCroppedImg(
   });
 }
 
-
+/**
+ * User Profile Page Component.
+ *
+ * Displays user information, avatar, and statistics.
+ * Provides functionality to:
+ * - View profile details.
+ * - Upload and crop a new avatar image.
+ * - Navigate to settings.
+ * - Sign out.
+ *
+ * @param {ProfilePageProps} props - The component props.
+ * @returns {JSX.Element} The rendered Profile Page.
+ */
 const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigateToSettings }) => {
   const { user, signOut, refreshUser } = useAuth();
   const [uploading, setUploading] = useState(false);
@@ -103,16 +127,19 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigateToSettings }) => {
         const fileName = `${user.id}-${Date.now()}.${fileExt}`;
         const filePath = `avatars/${fileName}`;
 
+        // Upload to Supabase Storage
         const { error: uploadError } = await supabase.storage
           .from('avatars')
           .upload(filePath, croppedImage, { upsert: true, contentType: 'image/jpeg' });
 
         if (uploadError) throw uploadError;
 
+        // Get Public URL
         const { data: { publicUrl } } = supabase.storage
           .from('avatars')
           .getPublicUrl(filePath);
 
+        // Update User Profile
         const { error: updateUserError } = await supabase.auth.updateUser({
           data: { avatar_url: `${publicUrl}?t=${new Date().getTime()}` }, // Bust cache
         });

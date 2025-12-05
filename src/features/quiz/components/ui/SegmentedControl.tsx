@@ -2,6 +2,21 @@ import React from 'react';
 import { Info } from 'lucide-react';
 import { cn } from '../../../../utils/cn';
 
+/**
+ * A segmented control component (toggle button group).
+ *
+ * Allows users to select one or more options from a linear group.
+ * Displays counts for each option and handles disabled states.
+ *
+ * @param {object} props - The component props.
+ * @param {string} [props.label] - Optional label for the control.
+ * @param {string[]} props.options - List of options to display.
+ * @param {string[]} props.selectedOptions - List of currently selected values.
+ * @param {function} props.onOptionToggle - Callback when an option is toggled.
+ * @param {{ [key: string]: number }} [props.counts] - Map of counts for each option.
+ * @param {boolean} [props.allowMultiple=true] - Whether multiple selections are allowed (styling context).
+ * @param {string} [props.tooltip] - Optional tooltip text.
+ */
 export function SegmentedControl({ 
   label,
   options, 

@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { ArrowLeft, ArrowRight, Home, RotateCcw, Maximize2, Minimize2, RotateCw, Menu } from 'lucide-react';
 import { motion, useMotionValue, useTransform, useAnimation } from 'framer-motion';
@@ -8,7 +7,10 @@ import { FlashcardNavigationPanel } from './FlashcardNavigationPanel';
 import { Idiom, InitialFilters } from '../../quiz/types';
 import { cn } from '../../../utils/cn';
 
-// Define PanInfo locally to fix import error from framer-motion
+/**
+ * Interface for Framer Motion pan gesture info.
+ * Explicitly defined to resolve type issues in strict mode.
+ */
 interface PanInfo {
   point: { x: number; y: number };
   delta: { x: number; y: number };
@@ -16,17 +18,44 @@ interface PanInfo {
   velocity: { x: number; y: number };
 }
 
+/**
+ * Props for the FlashcardSession component.
+ */
 interface FlashcardSessionProps {
+  /** List of idioms to display as flashcards. */
   idioms: Idiom[];
+  /** Current index of the displayed idiom. */
   currentIndex: number;
+  /** Callback for next card navigation. */
   onNext: () => void;
+  /** Callback for previous card navigation. */
   onPrev: () => void;
+  /** Callback to exit the session. */
   onExit: () => void;
+  /** Callback to finish the session. */
   onFinish: () => void;
+  /** Callback to jump to a specific index. */
   onJump: (index: number) => void;
+  /** Current active filters (used for display). */
   filters: InitialFilters;
 }
 
+/**
+ * The main container for the Flashcard learning experience.
+ *
+ * Features:
+ * - Tinder-like swipe gestures for navigation (Left/Right).
+ * - Tap to flip animation for revealing answers.
+ * - Fullscreen mode support.
+ * - Keyboard navigation (Arrows, Spacebar).
+ * - Progress tracking.
+ * - Side navigation drawer.
+ *
+ * Uses `framer-motion` for complex gesture-based animations.
+ *
+ * @param {FlashcardSessionProps} props - The component props.
+ * @returns {JSX.Element} The rendered Flashcard session.
+ */
 export const FlashcardSession: React.FC<FlashcardSessionProps> = ({
   idioms,
   currentIndex,
@@ -46,10 +75,10 @@ export const FlashcardSession: React.FC<FlashcardSessionProps> = ({
   const x = useMotionValue(0);
   const controls = useAnimation();
 
-  // Physics: Rotate card based on X distance (x / 15 degrees)
+  // Physics: Rotate card slightly based on X drag distance (tilt effect)
   const rotate = useTransform(x, [-200, 200], [-15, 15]);
 
-  // Opacity fade on extreme edges to cue exit
+  // Opacity fade on extreme edges to cue exit/discard visual
   const opacity = useTransform(x, [-300, -150, 0, 150, 300], [0, 1, 1, 1, 0]);
 
   const currentIdiom = idioms[currentIndex];
@@ -57,7 +86,7 @@ export const FlashcardSession: React.FC<FlashcardSessionProps> = ({
   const isFirst = currentIndex === 0;
   const isLast = currentIndex === idioms.length - 1;
 
-  // Reset position when index changes
+  // Reset position when index changes (new card appears)
   useEffect(() => {
     x.set(0);
   }, [currentIndex, x]);
@@ -74,7 +103,12 @@ export const FlashcardSession: React.FC<FlashcardSessionProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [currentIndex, isLast, isFirst, isAnimating]);
 
-  // --- MANUAL NAVIGATION (Buttons) ---
+  /**
+   * Handles manual button clicks (Next/Prev).
+   * Orchestrates the exit animation, state update, and entry animation.
+   *
+   * @param {'next' | 'prev'} direction - The direction to navigate.
+   */
   const handleManualNavigation = async (direction: 'next' | 'prev') => {
     if (isAnimating) return;
     setIsAnimating(true);
@@ -84,25 +118,26 @@ export const FlashcardSession: React.FC<FlashcardSessionProps> = ({
         if (isLast) {
           onFinish();
         } else {
-          // Animate off screen right
+          // Animate off screen to the left (card goes out left)
           await controls.start({ x: -500, opacity: 0, transition: { duration: 0.2 } });
 
-          // Critical: Reset flip BEFORE next render
+          // Critical: Reset flip state BEFORE rendering the next card
           setIsFlipped(false);
           onNext();
 
-          // Reset instantly off-screen then spring back in
+          // Reset position instantly off-screen right, then spring back in to center
           x.set(500);
           await controls.start({ x: 0, opacity: 1, transition: { type: "spring", stiffness: 300, damping: 30 } });
         }
       } else {
         if (!isFirst) {
-          // Animate off screen left
+          // Animate off screen to the right
           await controls.start({ x: 500, opacity: 0, transition: { duration: 0.2 } });
 
           setIsFlipped(false);
           onPrev();
 
+          // Reset position instantly off-screen left, then spring back in
           x.set(-500);
           await controls.start({ x: 0, opacity: 1, transition: { type: "spring", stiffness: 300, damping: 30 } });
         }
@@ -112,9 +147,15 @@ export const FlashcardSession: React.FC<FlashcardSessionProps> = ({
     }
   };
 
-  // --- SWIPE LOGIC ---
+  /**
+   * Handles the end of a drag gesture (swipe).
+   * Determines if the drag was far enough or fast enough to count as a swipe.
+   *
+   * @param {any} event - The drag event.
+   * @param {PanInfo} info - Drag information (offset, velocity).
+   */
   const handleDragEnd = async (event: any, info: PanInfo) => {
-    const threshold = 100; // Pixel distance to commit
+    const threshold = 100; // Pixel distance to commit action
     const swipePower = Math.abs(info.offset.x) * info.velocity.x;
 
     const isIntentionalSwipe = Math.abs(info.offset.x) > threshold || Math.abs(swipePower) > 10000;
@@ -155,12 +196,12 @@ export const FlashcardSession: React.FC<FlashcardSessionProps> = ({
           await controls.start({ x: 0, opacity: 1 });
           setIsAnimating(false);
         } else {
-          // First card: Spring back (cannot go prev)
+          // First card cannot go back: Spring back to center
           controls.start({ x: 0, transition: { type: "spring", stiffness: 500, damping: 30 } });
         }
       }
     } else {
-      // Reset: Spring back to center if threshold not met
+      // Reset: Spring back to center if threshold not met (user cancelled swipe)
       controls.start({ x: 0, transition: { type: "spring", stiffness: 500, damping: 30 } });
     }
   };
@@ -181,10 +222,10 @@ export const FlashcardSession: React.FC<FlashcardSessionProps> = ({
   };
 
   return (
-    // Fixed layout for native app feel
+    // Fixed layout for native app feel, preventing bounce scroll on mobile
     <div className="fixed inset-0 h-[100dvh] w-full bg-gray-100 flex flex-col overflow-hidden">
 
-      {/* Navigation Panel */}
+      {/* Navigation Panel Drawer */}
       <FlashcardNavigationPanel
         isOpen={isNavOpen}
         onClose={() => setIsNavOpen(false)}
@@ -193,7 +234,7 @@ export const FlashcardSession: React.FC<FlashcardSessionProps> = ({
         onJump={handleJump}
       />
 
-      {/* Header */}
+      {/* Header Bar (Hidden in Fullscreen) */}
       {!isFullScreen && (
         <div className="flex-none z-30 bg-white border-b border-gray-200 shadow-sm">
           <div className="px-6 py-4 flex items-center justify-between">
@@ -227,7 +268,7 @@ export const FlashcardSession: React.FC<FlashcardSessionProps> = ({
         </div>
       )}
 
-      {/* Card Arena */}
+      {/* Card Arena - The main interactive area */}
       <div className="flex-1 relative flex flex-col items-center justify-center p-4 md:p-8 overflow-hidden">
 
         {isFullScreen && (
@@ -248,14 +289,14 @@ export const FlashcardSession: React.FC<FlashcardSessionProps> = ({
                 x,
                 rotate,
                 opacity,
-                // Enable vertical pan for scrolling, let framer handle horizontal
+                // Enable vertical pan for scrolling inside the card (back side), let framer handle horizontal
                 touchAction: 'pan-y',
                 cursor: isAnimating ? 'default' : 'grab'
               } as any}
               animate={controls}
               drag={isAnimating ? false : "x"}
               // CRITICAL FIX: Disable direction lock to allow horizontal drag detection 
-              // even if there's some vertical movement (scrolling)
+              // even if there's some vertical movement (scrolling content)
               dragDirectionLock={false}
               dragConstraints={{ left: 0, right: 0 }}
               dragElastic={0.7}
@@ -272,13 +313,13 @@ export const FlashcardSession: React.FC<FlashcardSessionProps> = ({
           )}
         </div>
 
-        {/* Hint */}
+        {/* Hint Text */}
         <div className="absolute bottom-8 text-gray-400 text-xs font-medium uppercase tracking-widest animate-pulse pointer-events-none select-none z-0">
           {isFlipped ? "Scroll to read • Swipe to Next" : "Tap to flip"}
         </div>
       </div>
 
-      {/* Footer */}
+      {/* Footer Controls */}
       <div className="flex-none z-30 bg-white border-t border-gray-200 p-4 md:p-6 pb-safe">
         <div className="max-w-md mx-auto flex items-center justify-between gap-4">
           <Button

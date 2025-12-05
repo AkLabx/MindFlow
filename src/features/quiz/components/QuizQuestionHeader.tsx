@@ -4,6 +4,25 @@ import { Question } from '../types';
 import { cn } from '../../../utils/cn';
 import { Badge } from '../../../components/ui/Badge';
 
+/**
+ * Header component for the individual question view.
+ *
+ * Displays:
+ * - Question number / total (e.g. "Question 5 / 25").
+ * - Stopwatch (if provided, usually for Mock Mode per-question tracking).
+ * - Bookmark toggle button.
+ * - Question ID (Hash).
+ * - Source metadata badges (Exam Name, Year, Date).
+ *
+ * @param {object} props - The component props.
+ * @param {Question} props.question - The current question object.
+ * @param {number} props.currentIndex - Zero-based index of current question.
+ * @param {number} props.total - Total number of questions.
+ * @param {boolean} props.isBookmarked - Whether the question is bookmarked.
+ * @param {function} props.onToggleBookmark - Callback to toggle bookmark.
+ * @param {number} [props.elapsedTime] - Optional elapsed time in seconds to display.
+ * @returns {JSX.Element} The rendered header.
+ */
 export function QuizQuestionHeader({ 
     question, 
     currentIndex, 
@@ -19,7 +38,7 @@ export function QuizQuestionHeader({
     onToggleBookmark: () => void,
     elapsedTime?: number
 }) {
-  // Helper to format stopwatch
+  // Helper to format stopwatch time as MM:SS
   const formatStopwatch = (seconds: number = 0) => {
       const m = Math.floor(seconds / 60);
       const s = seconds % 60;

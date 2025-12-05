@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { ArrowRight, Brain, Zap, Layers, Star, Play, Github, Download, Target, User as UserIcon, LogOut, ChevronDown } from 'lucide-react';
 import { Button } from '../../../components/Button/Button';
@@ -17,12 +16,27 @@ interface LandingPageProps {
   onSignOut: () => void;
 }
 
+/**
+ * The main Landing Page component.
+ *
+ * Acts as the entry point for the application.
+ * Features:
+ * - Immersive 3D/animated background.
+ * - Dynamic "Hero" section with kinetic typography.
+ * - Interactive 3D Demo Card (Desktop) / Static Card (Mobile).
+ * - PWA installation prompts.
+ * - Navigation bar with Auth/Profile menu.
+ *
+ * @param {LandingPageProps} props - The component props.
+ * @returns {JSX.Element} The rendered Landing Page.
+ */
 export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLoginClick, user, onProfileClick, onSignOut }) => {
   const { canInstall, triggerInstall, installStatus } = usePWAInstall();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showToast, setShowToast] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
 
+  // Handlers
   const handleInstallClick = () => {
     setIsModalOpen(true);
   };
@@ -302,6 +316,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLoginC
         </div>
       </div>
 
+      {/* Modals & Toasts */}
       {isModalOpen && (
         <InstallPwaModal 
           onConfirm={handleInstallConfirm}
@@ -367,8 +382,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLoginC
           animation: gradient-x 8s ease infinite;
         }
 
-        @keyframes draw-.kihG2N7m_A-left-1 { --left: 1; }
-.kihG2N7m_A-left-1:before { content: var(--left); }line {
+        @keyframes draw-line {
           0% { stroke-dashoffset: 200; opacity: 0; }
           5% { opacity: 1; }
           20% { stroke-dashoffset: 0; }

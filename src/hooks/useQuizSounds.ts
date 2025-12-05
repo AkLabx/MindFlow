@@ -1,13 +1,24 @@
-
 import { useCallback, useContext, useRef, useEffect } from 'react';
 import { SettingsContext } from '../context/SettingsContext';
 import { SettingsContextType } from '../features/quiz/types';
 
+/**
+ * Custom hook to generate synthesized sound effects for quiz interactions.
+ *
+ * Instead of loading external audio files, this hook uses the Web Audio API to
+ * generate sounds procedurally (Correct, Wrong, Tick). This reduces network requests
+ * and allows for dynamic sound manipulation.
+ *
+ * @returns {object} An object containing the play functions:
+ * - `playCorrect` {() => void}: Plays a cheerful "ding" sound.
+ * - `playWrong` {() => void}: Plays a harsh "buzzer" sound.
+ * - `playTick` {() => void}: Plays a sharp "tick" sound (useful for timers).
+ */
 export const useQuizSounds = () => {
   const { isSoundEnabled } = useContext(SettingsContext) as SettingsContextType;
   const audioCtxRef = useRef<AudioContext | null>(null);
 
-  // Initialize AudioContext lazily
+  // Initialize AudioContext lazily to comply with browser autoplay policies
   const getContext = () => {
     if (!audioCtxRef.current) {
       const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
@@ -22,7 +33,9 @@ export const useQuizSounds = () => {
     return audioCtxRef.current;
   };
 
-  // 1. CORRECT (Ding! - Sine Wave)
+  /**
+   * Plays the "Correct Answer" sound (Sine wave sweep up).
+   */
   const playCorrect = useCallback(() => {
     if (!isSoundEnabled) return;
     const ctx = getContext();
@@ -46,7 +59,9 @@ export const useQuizSounds = () => {
     osc.stop(ctx.currentTime + 0.3);
   }, [isSoundEnabled]);
 
-  // 2. WRONG (Buzzer! - Sawtooth Wave)
+  /**
+   * Plays the "Wrong Answer" sound (Sawtooth wave sweep down).
+   */
   const playWrong = useCallback(() => {
     if (!isSoundEnabled) return;
     const ctx = getContext();
@@ -69,7 +84,9 @@ export const useQuizSounds = () => {
     osc.stop(ctx.currentTime + 0.3);
   }, [isSoundEnabled]);
 
-  // 3. TICK (Clock Ticking - Square Wave)
+  /**
+   * Plays the "Tick" sound (Square wave chirp).
+   */
   const playTick = useCallback(() => {
     if (!isSoundEnabled) return;
     const ctx = getContext();

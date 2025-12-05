@@ -1,14 +1,30 @@
-
 import { useState, useEffect, useRef } from 'react';
 
+/**
+ * Props for the useLearningTimer hook.
+ */
 interface UseLearningTimerProps {
+  /** The initial time in seconds for the countdown. */
   initialTime: number;
-  questionId: string; // Add identifier to force reset
+  /** Unique identifier for the current question. Changing this resets the timer. */
+  questionId: string;
+  /** Whether the timer is currently paused. */
   isPaused: boolean;
+  /** Callback fired when the timer reaches zero. */
   onTimeUp: () => void;
+  /** Optional callback fired on every second tick. */
   onTick?: (timeLeft: number) => void;
 }
 
+/**
+ * Custom hook for managing a per-question countdown timer (Learning Mode).
+ *
+ * It resets automatically when the `questionId` changes.
+ * It respects the `isPaused` state.
+ *
+ * @param {UseLearningTimerProps} props - The hook configuration.
+ * @returns {object} Timer state and helper functions.
+ */
 export function useLearningTimer({
   initialTime,
   questionId,
@@ -19,12 +35,13 @@ export function useLearningTimer({
   const [timeLeft, setTimeLeft] = useState(initialTime);
   const timeLeftRef = useRef(initialTime);
 
-  // Sync state with prop if initialTime changes or question changes
+  // Reset timer when switching to a new question or if initialTime updates
   useEffect(() => {
     setTimeLeft(initialTime);
     timeLeftRef.current = initialTime;
   }, [initialTime, questionId]);
 
+  // Timer interval logic
   useEffect(() => {
     if (isPaused) {
       return;
@@ -47,6 +64,11 @@ export function useLearningTimer({
     return () => clearInterval(intervalId);
   }, [isPaused, onTimeUp, onTick]);
 
+  /**
+   * Formats seconds into MM:SS string.
+   * @param {number} seconds
+   * @returns {string} formatted string (e.g. "01:30")
+   */
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60);
     const s = seconds % 60;

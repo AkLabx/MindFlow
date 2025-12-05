@@ -1,13 +1,25 @@
-
 import React from 'react';
 import { X, Filter } from 'lucide-react';
 import { InitialFilters } from '../../types';
 
+/**
+ * Props for the ActiveFiltersBar component.
+ */
 interface ActiveFiltersBarProps {
+  /** The current state of selected filters. */
   filters: InitialFilters;
+  /** Callback to remove a specific filter value. */
   onRemoveFilter: (key: keyof InitialFilters, value?: string) => void;
 }
 
+/**
+ * A component that displays a list of currently active filters as removable "pills" or tags.
+ *
+ * Provides visual feedback to the user about what criteria are currently applied to the question set.
+ *
+ * @param {ActiveFiltersBarProps} props - The component props.
+ * @returns {JSX.Element} The rendered ActiveFiltersBar.
+ */
 export const ActiveFiltersBar: React.FC<ActiveFiltersBarProps> = ({ filters, onRemoveFilter }) => {
   // Explicitly type arr as string[] because Object.values return unknown[]/any[] depending on config
   const hasFilters = Object.values(filters).some((arr: string[]) => arr.length > 0);

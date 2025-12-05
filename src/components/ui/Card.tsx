@@ -1,13 +1,29 @@
 import React from 'react';
 import { cn } from '../../utils/cn';
 
+/**
+ * Props for the Card component.
+ */
 interface CardProps {
+  /** The content to be rendered inside the card. */
   children: React.ReactNode;
+  /** Additional CSS classes to apply to the card container. */
   className?: string;
+  /** If true, removes the default padding from the card body. */
   noPadding?: boolean;
+  /** Optional click handler. If provided, the card becomes interactive. */
   onClick?: () => void;
 }
 
+/**
+ * A general-purpose container component with a white background, border, and shadow.
+ *
+ * Used for grouping related content (e.g., stats, forms, quiz items).
+ * Supports an interactive mode (hover effects) if an `onClick` handler is provided.
+ *
+ * @param {CardProps} props - The component props.
+ * @returns {JSX.Element} The rendered Card component.
+ */
 export const Card: React.FC<CardProps> = ({ 
   children, 
   className, 

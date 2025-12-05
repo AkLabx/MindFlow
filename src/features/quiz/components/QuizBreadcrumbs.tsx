@@ -1,8 +1,18 @@
 import React from 'react';
 import { InitialFilters } from '../types';
 
+/**
+ * Breadcrumb navigation for the active quiz session.
+ *
+ * Displays the current path/context (Home / Subject / Topic) to help users keep track of where they are.
+ * Allows quick navigation back to the Dashboard.
+ *
+ * @param {object} props - The component props.
+ * @param {InitialFilters} props.filters - The active filters defining the current context.
+ * @param {function} props.onGoHome - Callback to navigate home.
+ * @returns {JSX.Element} The rendered breadcrumbs.
+ */
 export function QuizBreadcrumbs({ filters, onGoHome }: { filters: InitialFilters; onGoHome: () => void; }) {
-    // We only want to show relevant high-level filters to avoid clutter
     const activeSubjects = filters.subject.length > 0 ? filters.subject.join(', ') : 'All Subjects';
     const activeTopics = filters.topic.length > 0 ? filters.topic.join(', ') : null;
 

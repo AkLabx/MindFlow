@@ -1,6 +1,18 @@
 import React from 'react';
 import { CheckCircle2, XCircle, CircleDashed } from 'lucide-react';
 
+/**
+ * A minimalist horizontal status bar showing live quiz stats.
+ *
+ * Displays: Correct count, Wrong count, and Remaining count.
+ * Used during the active quiz session (Learning Mode) to provide immediate feedback.
+ *
+ * @param {object} props - The component props.
+ * @param {number} props.correct - Number of questions answered correctly.
+ * @param {number} props.wrong - Number of questions answered incorrectly.
+ * @param {number} props.total - Total number of questions in the session.
+ * @returns {JSX.Element} The rendered stats bar.
+ */
 export function QuizStats({ correct, wrong, total }: { correct: number, wrong: number, total: number }) {
   const remaining = total - (correct + wrong);
   

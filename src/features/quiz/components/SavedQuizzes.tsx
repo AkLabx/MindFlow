@@ -5,6 +5,18 @@ import { db } from '../../../lib/db';
 import { SavedQuiz } from '../types';
 import { useQuizContext } from '../context/QuizContext';
 
+/**
+ * Screen for managing saved quizzes.
+ *
+ * Features:
+ * - Lists all quizzes stored in IndexedDB.
+ * - Allows resuming a quiz from where the user left off.
+ * - Supports renaming saved quizzes.
+ * - Allows deleting quizzes.
+ * - Sorts by creation date (newest first).
+ *
+ * @returns {JSX.Element} The rendered Saved Quizzes screen.
+ */
 export const SavedQuizzes: React.FC = () => {
     const navigate = useNavigate();
     const { loadSavedQuiz } = useQuizContext();
@@ -20,7 +32,7 @@ export const SavedQuizzes: React.FC = () => {
     const loadQuizzes = async () => {
         try {
             const data = await db.getQuizzes();
-            // Sort by createdAt desc
+            // Sort by createdAt descending (newest first)
             setQuizzes(data.sort((a, b) => b.createdAt - a.createdAt));
         } catch (error) {
             console.error("Failed to load quizzes:", error);
@@ -29,8 +41,12 @@ export const SavedQuizzes: React.FC = () => {
         }
     };
 
+    /** Resumes a selected quiz session. */
     const handleResume = (quiz: SavedQuiz) => {
+        // Hydrate the global context state with the saved session data
         loadSavedQuiz({ ...quiz.state, isPaused: false });
+
+        // Navigate to the appropriate active session view
         if (quiz.mode === 'mock') {
             navigate('/quiz/session/mock');
         } else {
@@ -38,6 +54,7 @@ export const SavedQuizzes: React.FC = () => {
         }
     };
 
+    /** Deletes a quiz from storage. */
     const handleDelete = async (id: string, e: React.MouseEvent) => {
         e.stopPropagation();
         if (window.confirm('Are you sure you want to delete this quiz?')) {
@@ -50,12 +67,14 @@ export const SavedQuizzes: React.FC = () => {
         }
     };
 
+    /** Enters edit mode for renaming a quiz. */
     const startEditing = (quiz: SavedQuiz, e: React.MouseEvent) => {
         e.stopPropagation();
         setEditingId(quiz.id);
         setEditName(quiz.name);
     };
 
+    /** Saves the new name for the quiz. */
     const saveEdit = async (e: React.MouseEvent) => {
         e.stopPropagation();
         if (editingId && editName.trim()) {
@@ -69,12 +88,14 @@ export const SavedQuizzes: React.FC = () => {
         }
     };
 
+    /** Cancels renaming. */
     const cancelEdit = (e: React.MouseEvent) => {
         e.stopPropagation();
         setEditingId(null);
         setEditName('');
     };
 
+    /** Helper to determine if "Start" or "Resume" label should be shown. */
     const isQuizStarted = (quiz: SavedQuiz) => {
         return quiz.state.currentQuestionIndex > 0 || Object.keys(quiz.state.answers).length > 0;
     };
@@ -122,6 +143,7 @@ export const SavedQuizzes: React.FC = () => {
                             >
                                 <div className="flex items-start justify-between">
                                     <div className="flex-1 mr-4">
+                                        {/* Name / Edit Mode */}
                                         {editingId === quiz.id ? (
                                             <div className="flex items-center gap-2 mb-2" onClick={e => e.stopPropagation()}>
                                                 <input
@@ -153,6 +175,7 @@ export const SavedQuizzes: React.FC = () => {
                                             </div>
                                         )}
 
+                                        {/* Metadata */}
                                         <div className="flex flex-wrap gap-4 text-sm text-gray-500">
                                             <div className="flex items-center gap-1">
                                                 <BookOpen className="w-4 h-4" />
@@ -176,6 +199,7 @@ export const SavedQuizzes: React.FC = () => {
                                         </div>
                                     </div>
 
+                                    {/* Action Buttons */}
                                     <div className="flex items-center gap-2">
                                         <button
                                             onClick={(e) => handleResume(quiz)}

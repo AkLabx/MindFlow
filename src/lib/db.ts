@@ -5,6 +5,14 @@ const DB_NAME = 'MindFlowDB';
 const DB_VERSION = 1;
 const STORE_NAME = 'saved_quizzes';
 
+/**
+ * Opens a connection to the IndexedDB database.
+ *
+ * This helper function handles the logic for opening the database and upgrading the schema
+ * if necessary. It ensures the object store exists.
+ *
+ * @returns {Promise<IDBDatabase>} A promise that resolves to the opened IDBDatabase instance.
+ */
 const openDB = (): Promise<IDBDatabase> => {
     return new Promise((resolve, reject) => {
         const request = indexedDB.open(DB_NAME, DB_VERSION);
@@ -26,7 +34,19 @@ const openDB = (): Promise<IDBDatabase> => {
     });
 };
 
+/**
+ * Database abstraction layer for local storage using IndexedDB.
+ *
+ * Provides methods to CRUD (Create, Read, Update, Delete) quiz data locally
+ * in the user's browser, allowing for offline persistence of quiz sessions.
+ */
 export const db = {
+    /**
+     * Saves a new quiz to the database.
+     *
+     * @param {SavedQuiz} quiz - The quiz object to save.
+     * @returns {Promise<void>} A promise that resolves when the quiz is successfully saved.
+     */
     saveQuiz: async (quiz: SavedQuiz): Promise<void> => {
         const db = await openDB();
         return new Promise((resolve, reject) => {
@@ -39,6 +59,11 @@ export const db = {
         });
     },
 
+    /**
+     * Retrieves all saved quizzes from the database.
+     *
+     * @returns {Promise<SavedQuiz[]>} A promise that resolves to an array of saved quizzes.
+     */
     getQuizzes: async (): Promise<SavedQuiz[]> => {
         const db = await openDB();
         return new Promise((resolve, reject) => {
@@ -51,6 +76,12 @@ export const db = {
         });
     },
 
+    /**
+     * Retrieves a specific quiz by its ID.
+     *
+     * @param {string} id - The unique identifier of the quiz to retrieve.
+     * @returns {Promise<SavedQuiz | undefined>} A promise that resolves to the quiz object if found, or undefined.
+     */
     getQuiz: async (id: string): Promise<SavedQuiz | undefined> => {
         const db = await openDB();
         return new Promise((resolve, reject) => {
@@ -63,6 +94,12 @@ export const db = {
         });
     },
 
+    /**
+     * Deletes a quiz from the database by its ID.
+     *
+     * @param {string} id - The unique identifier of the quiz to delete.
+     * @returns {Promise<void>} A promise that resolves when the quiz is successfully deleted.
+     */
     deleteQuiz: async (id: string): Promise<void> => {
         const db = await openDB();
         return new Promise((resolve, reject) => {
@@ -75,6 +112,13 @@ export const db = {
         });
     },
 
+    /**
+     * Updates the progress state of an existing quiz.
+     *
+     * @param {string} id - The unique identifier of the quiz to update.
+     * @param {QuizState} state - The new state object to save.
+     * @returns {Promise<void>} A promise that resolves when the update is complete.
+     */
     updateQuizProgress: async (id: string, state: QuizState): Promise<void> => {
         const db = await openDB();
         return new Promise((resolve, reject) => {
@@ -101,6 +145,13 @@ export const db = {
         });
     },
 
+    /**
+     * Updates the name of an existing quiz.
+     *
+     * @param {string} id - The unique identifier of the quiz to rename.
+     * @param {string} name - The new name for the quiz.
+     * @returns {Promise<void>} A promise that resolves when the name is updated.
+     */
     updateQuizName: async (id: string, name: string): Promise<void> => {
         const db = await openDB();
         return new Promise((resolve, reject) => {

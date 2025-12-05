@@ -4,7 +4,8 @@ import { QuizProvider, useQuizContext } from '../features/quiz/context/QuizConte
 import { QuizLayout } from '../features/quiz/QuizLayout';
 import { useAuth } from '../features/auth/context/AuthContext';
 
-// Lazy Imports
+// Lazy Loaded Components for Code Splitting
+// Groups: Main UI, Quiz Flow, Flashcard Flow, Auth Flow
 const LandingPage = lazy(() => import('../features/quiz/components/LandingPage').then(m => ({ default: m.LandingPage })));
 const Dashboard = lazy(() => import('../features/quiz/components/Dashboard').then(m => ({ default: m.Dashboard })));
 const EnglishQuizHome = lazy(() => import('../features/quiz/components/EnglishQuizHome').then(m => ({ default: m.EnglishQuizHome })));
@@ -16,18 +17,24 @@ const OWSConfig = lazy(() => import('../features/ows/OWSConfig').then(m => ({ de
 const QuizResult = lazy(() => import('../features/quiz/components/QuizResult').then(m => ({ default: m.QuizResult })));
 const FlashcardSummary = lazy(() => import('../features/flashcards/components/FlashcardSummary').then(m => ({ default: m.FlashcardSummary })));
 
-// Sessions
+// Immersive Session Views (No standard layout)
 const LearningSession = lazy(() => import('../features/quiz/learning/LearningSession').then(m => ({ default: m.LearningSession })));
 const MockSession = lazy(() => import('../features/quiz/mock/MockSession').then(m => ({ default: m.MockSession })));
 const FlashcardSession = lazy(() => import('../features/flashcards/components/FlashcardSession').then(m => ({ default: m.FlashcardSession })));
 const OWSSession = lazy(() => import('../features/ows/components/OWSSession').then(m => ({ default: m.OWSSession })));
 
-// Auth & Profile
+// Auth & User Management
 const AuthPage = lazy(() => import('../features/auth/components/AuthPage'));
 const ProfilePage = lazy(() => import('../features/auth/components/ProfilePage'));
 const SettingsPage = lazy(() => import('../features/auth/components/SettingsPage'));
 
+/**
+ * The inner routing logic wrapped in the QuizContext context.
+ *
+ * Maps URL paths to components and connects navigation actions from the `useQuizContext` hook.
+ */
 const AppRoutesContent: React.FC = () => {
+    // Destructure all necessary state and actions from the global store
     const {
         state,
         enterHome, enterConfig, enterEnglishHome, enterVocabHome, enterIdiomsConfig, enterOWSConfig,
@@ -40,14 +47,15 @@ const AppRoutesContent: React.FC = () => {
     const { user, signOut } = useAuth();
     const navigate = useNavigate();
 
-    // Navigation Helpers
+    // Helper: Standardized navigation wrapper
     const navTo = (path: string) => navigate(path);
+    // Helper: Reset state and go to Dashboard
     const navHome = () => { goHome(); navigate('/dashboard'); };
 
     return (
         <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
             <Routes>
-                {/* Public / Intro */}
+                {/* --- Public / Landing Route --- */}
                 <Route path="/" element={
                     <LandingPage
                         onGetStarted={() => { enterHome(); navTo('/dashboard'); }}
@@ -58,7 +66,7 @@ const AppRoutesContent: React.FC = () => {
                     />
                 } />
 
-                {/* Layout Routes */}
+                {/* --- Standard Application Routes (Wrapped in QuizLayout) --- */}
                 <Route element={<QuizLayout />}>
                     <Route path="/dashboard" element={
                         <Dashboard
@@ -151,7 +159,9 @@ const AppRoutesContent: React.FC = () => {
                     } />
                 </Route>
 
-                {/* Immersive Sessions */}
+                {/* --- Immersive Session Routes (No Layout, Fullscreen) --- */}
+
+                {/* Learning Mode: Interactive per-question session */}
                 <Route path="/quiz/session/learning" element={
                     <LearningSession
                         questions={state.activeQuestions}
@@ -177,6 +187,7 @@ const AppRoutesContent: React.FC = () => {
                     />
                 } />
 
+                {/* Mock Mode: Timed exam simulation */}
                 <Route path="/quiz/session/mock" element={
                     <MockSession
                         questions={state.activeQuestions}
@@ -190,6 +201,7 @@ const AppRoutesContent: React.FC = () => {
                     />
                 } />
 
+                {/* Flashcard Sessions */}
                 <Route path="/flashcards/session" element={
                     <FlashcardSession
                         idioms={state.activeIdioms || []}
@@ -216,13 +228,17 @@ const AppRoutesContent: React.FC = () => {
                     />
                 } />
 
-                {/* Fallback */}
+                {/* Fallback Route */}
                 <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
         </Suspense>
     );
 };
 
+/**
+ * The root Routes component.
+ * Wraps the application routes with the QuizProvider context.
+ */
 export const AppRoutes: React.FC = () => {
     return (
         <QuizProvider>

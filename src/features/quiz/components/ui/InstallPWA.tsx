@@ -1,9 +1,17 @@
-
 import React from 'react';
 import { Download } from 'lucide-react';
 import { Button } from '../../../../components/Button/Button';
 import { usePWAInstall } from '../../../../hooks/usePWAInstall';
 
+/**
+ * A UI component that prompts the user to install the application as a PWA.
+ *
+ * It checks the installation status using the `usePWAInstall` hook.
+ * If the app is installable (browser has fired 'beforeinstallprompt' and not already installed),
+ * it displays a promotional card with an install button.
+ *
+ * @returns {JSX.Element | null} The install prompt card, or null if not applicable.
+ */
 export const InstallPWA: React.FC = () => {
   const { canInstall, triggerInstall, isInstalled } = usePWAInstall();
 

@@ -2,6 +2,26 @@ import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { ChevronDown, Check, X, Search, Info } from 'lucide-react';
 import { cn } from '../../../../utils/cn';
 
+/**
+ * A custom multi-select dropdown component with search, filtering, and count display.
+ *
+ * Features:
+ * - Searchable options.
+ * - Displays active selection count.
+ * - Shows item counts (number of available questions) for each option.
+ * - Disables options with zero count.
+ * - Tooltip support.
+ *
+ * @param {object} props - The component props.
+ * @param {string} [props.label] - Optional label above the dropdown.
+ * @param {string[]} props.options - List of all available options.
+ * @param {string[]} props.selectedOptions - List of currently selected values.
+ * @param {function} props.onSelectionChange - Callback when selection changes.
+ * @param {string} [props.placeholder='Select Options'] - Placeholder text.
+ * @param {boolean} [props.disabled=false] - Whether the dropdown is disabled.
+ * @param {{ [key: string]: number }} [props.counts] - Map of option values to their available counts.
+ * @param {string} [props.tooltip] - Optional tooltip text for the label.
+ */
 export function MultiSelectDropdown({ 
   label,
   options, 
@@ -26,6 +46,7 @@ export function MultiSelectDropdown({
   const dropdownRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
+  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -35,7 +56,7 @@ export function MultiSelectDropdown({
     
     if (isOpen) {
       document.addEventListener('mousedown', handleClickOutside);
-      // Auto-focus search input
+      // Auto-focus search input for better UX
       setTimeout(() => {
           searchInputRef.current?.focus();
       }, 50);
@@ -48,6 +69,7 @@ export function MultiSelectDropdown({
     };
   }, [isOpen]);
 
+  // Filter options based on search term
   const filteredOptions = useMemo(() => {
       if (!searchTerm) return options;
       return options.filter(opt => opt.toLowerCase().includes(searchTerm.toLowerCase()));
@@ -143,7 +165,7 @@ export function MultiSelectDropdown({
                     {filteredOptions.map(option => {
                     const count = counts?.[option] || 0;
                     const isSelected = selectedOptions.includes(option);
-                    // Disable if count is 0 AND it's not currently selected (so you can deselect it)
+                    // Disable if count is 0 AND it's not currently selected (so you can deselect it if data changed)
                     const isOptionDisabled = !isSelected && count === 0;
 
                     return (

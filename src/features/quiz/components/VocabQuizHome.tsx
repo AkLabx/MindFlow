@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { ArrowLeft, Quote, Target, Scale, ChevronRight } from 'lucide-react';
 import { Button } from '../../../components/Button/Button';
@@ -9,6 +8,17 @@ interface VocabQuizHomeProps {
   onOWSClick?: () => void;
 }
 
+/**
+ * Landing screen for the Vocabulary section.
+ *
+ * Provides navigation to sub-modules:
+ * - Idioms & Phrases
+ * - One Word Substitution
+ * - Synonyms & Antonyms (Placeholder)
+ *
+ * @param {VocabQuizHomeProps} props - The component props.
+ * @returns {JSX.Element} The rendered Vocabulary Home screen.
+ */
 export const VocabQuizHome: React.FC<VocabQuizHomeProps> = ({ onBack, onIdiomsClick, onOWSClick }) => {
   const items = [
     {
@@ -47,7 +57,7 @@ export const VocabQuizHome: React.FC<VocabQuizHomeProps> = ({ onBack, onIdiomsCl
     <div className="flex flex-col min-h-[calc(100vh-4rem)]">
       <div className="flex-1 flex flex-col items-center justify-center space-y-10 py-10 relative z-10">
         
-        {/* Navigation */}
+        {/* Navigation Bar */}
         <div className="w-full max-w-3xl mx-auto px-4">
            <Button 
               variant="ghost" 
@@ -58,7 +68,7 @@ export const VocabQuizHome: React.FC<VocabQuizHomeProps> = ({ onBack, onIdiomsCl
            </Button>
         </div>
 
-        {/* Header */}
+        {/* Hero Header */}
         <div className="text-center max-w-2xl mx-auto px-4">
           <h1 className="text-3xl sm:text-5xl font-black text-gray-900 leading-tight mb-4">
             Vocabulary <span className="text-emerald-600">Master</span>
@@ -68,7 +78,7 @@ export const VocabQuizHome: React.FC<VocabQuizHomeProps> = ({ onBack, onIdiomsCl
           </p>
         </div>
 
-        {/* List Buttons */}
+        {/* Feature List */}
         <div className="w-full max-w-3xl mx-auto px-4 space-y-4">
           {items.map((item, index) => (
             <button
@@ -81,7 +91,7 @@ export const VocabQuizHome: React.FC<VocabQuizHomeProps> = ({ onBack, onIdiomsCl
                 {item.icon}
               </div>
 
-              {/* Content */}
+              {/* Text Content */}
               <div className="flex-1 min-w-0">
                 <h3 className="text-lg font-bold text-gray-900 group-hover:text-indigo-900 truncate">
                   {item.title}

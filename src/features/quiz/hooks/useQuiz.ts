@@ -1,4 +1,3 @@
-
 import { useReducer, useCallback, useEffect } from 'react';
 import { logEvent } from '../services/analyticsService';
 import { APP_CONFIG } from '../../../constants/config';
@@ -7,20 +6,34 @@ import { Question, InitialFilters, QuizMode, Idiom, OneWord, QuizState } from '.
 
 import { db } from '../../../lib/db';
 
+/**
+ * Custom hook to manage the global quiz application state using `useReducer`.
+ *
+ * This hook acts as the central controller for the application logic. It handles:
+ * - State initialization (loading from LocalStorage).
+ * - Persistence (Syncing active state to LocalStorage and IndexedDB).
+ * - Navigation between different app screens (Home, Config, Quiz, Result).
+ * - Action dispatching for quiz interactions (Answer, Next, Bookmark, etc.).
+ *
+ * @returns {object} An object containing the current `state`, derived properties (like `currentQuestion`), and action methods.
+ */
 export const useQuiz = () => {
   const [state, dispatch] = useReducer(quizReducer, initialState, loadState);
 
-  // Persistence Effect (LocalStorage - Active Session)
+  // Persistence Effect 1: LocalStorage (Active Session)
+  // Saves the state whenever it changes, if we are in an active session.
+  // This allows the user to refresh the page without losing progress.
   useEffect(() => {
     if (state.status === 'quiz' || state.status === 'result' || state.status === 'flashcards' || state.status === 'ows-flashcards' || state.status === 'flashcards-complete') {
       localStorage.setItem(APP_CONFIG.STORAGE_KEYS.QUIZ_SESSION, JSON.stringify(state));
     } else if (state.status === 'idle' || state.status === 'intro') {
-      // Clear session when explicitly leaving quiz flow
+      // Clear session when explicitly leaving the quiz flow to avoid stale data
       localStorage.removeItem(APP_CONFIG.STORAGE_KEYS.QUIZ_SESSION);
     }
   }, [state]);
 
-  // Persistence Effect (IndexedDB - Saved Quizzes)
+  // Persistence Effect 2: IndexedDB (Saved Quizzes)
+  // Auto-saves the quiz progress to the local database for long-term storage.
   useEffect(() => {
     if (state.quizId && (state.status === 'quiz' || state.status === 'result')) {
       const saveToDb = () => {
@@ -31,13 +44,14 @@ export const useQuiz = () => {
         // Save immediately when paused to ensure data is persisted before navigation
         saveToDb();
       } else {
-        // Debounce updates during active quiz
+        // Debounce updates during active quiz to prevent DB thrashing on every click
         const timeoutId = setTimeout(saveToDb, 2000);
         return () => clearTimeout(timeoutId);
       }
     }
   }, [state]);
 
+  // Navigation Actions
   const enterHome = useCallback(() => dispatch({ type: 'ENTER_HOME' }), []);
   const enterConfig = useCallback(() => dispatch({ type: 'ENTER_CONFIG' }), []);
   const enterEnglishHome = useCallback(() => dispatch({ type: 'ENTER_ENGLISH_HOME' }), []);
@@ -48,6 +62,7 @@ export const useQuiz = () => {
   const enterLogin = useCallback(() => dispatch({ type: 'ENTER_LOGIN' }), []);
   const goToIntro = useCallback(() => dispatch({ type: 'GO_TO_INTRO' }), []);
 
+  // Initialization Actions
   const startQuiz = useCallback((filteredQuestions: Question[], filters: InitialFilters, mode: QuizMode = 'learning') => {
     logEvent('quiz_started', {
       subject: filters.subject,
@@ -66,7 +81,7 @@ export const useQuiz = () => {
     dispatch({ type: 'START_OWS_FLASHCARDS', payload: { data, filters } });
   }, []);
 
-  // Deprecated in favor of local session logic, but kept for backward compat if needed
+  // Interaction Actions (Legacy/Direct Dispatch)
   const answerQuestion = useCallback((questionId: string, answer: string, timeTaken: number) => {
     dispatch({ type: 'ANSWER_QUESTION', payload: { questionId, answer, timeTaken } });
   }, []);
@@ -99,7 +114,7 @@ export const useQuiz = () => {
     dispatch({ type: 'RESUME_QUIZ' });
   }, []);
 
-  // New method for bulk submission from separate sessions
+  // Bulk Submission (Used by LearningSession to sync state back to main reducer)
   const submitSessionResults = useCallback((results: { answers: Record<string, string>, timeTaken: Record<string, number>, score: number, bookmarks: string[] }) => {
     logEvent('quiz_completed', {
       score: results.score,
@@ -120,7 +135,7 @@ export const useQuiz = () => {
   const restartQuiz = useCallback(() => dispatch({ type: 'RESTART_QUIZ' }), []);
   const goHome = useCallback(() => dispatch({ type: 'GO_HOME' }), []);
 
-  // Derived state
+  // Derived state helpers
   const currentQuestion = state.activeQuestions[state.currentQuestionIndex];
   const totalQuestions = state.activeQuestions.length;
   const progress = totalQuestions > 0
