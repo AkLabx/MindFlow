@@ -1,8 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { supabase } from '../../../lib/supabase';
 
 interface UseTextToSpeechReturn {
-  speak: (text: string, languageCode?: string) => Promise<void>;
+  speak: (text: string) => Promise<void>;
   stop: () => void;
   isPlaying: boolean;
   isLoading: boolean;
@@ -73,58 +72,94 @@ export function useTextToSpeech(): UseTextToSpeechReturn {
     }
   }, []);
 
-  const speak = useCallback(async (text: string, languageCode: string = 'hi-IN') => {
+  const speak = useCallback(async (text: string) => {
     // If already playing, stop current
     stop();
 
     setIsLoading(true);
     setError(null);
 
-    try {
-      console.log('Requesting Gemini Native Audio for:', text.substring(0, 20) + '...');
+    const apiKey = process.env.GOOGLE_AI_KEY;
+    if (!apiKey) {
+      console.error("GOOGLE_AI_KEY is missing in frontend.");
+      setError("Audio service configuration missing.");
+      return;
+    }
 
-      const { data, error: functionError } = await supabase.functions.invoke('gemini-tts', {
-        body: { text, languageCode },
+    try {
+      console.log('Requesting Gemini Native Audio (Direct) for:', text.substring(0, 20) + '...');
+
+      const model = "gemini-2.0-flash-exp";
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+
+      const payload = {
+        contents: [{
+          parts: [{ text: text }]
+        }],
+        systemInstruction: {
+          parts: [{
+            text: `You are a precise Text-to-Speech engine.
+        Your ONLY task is to read the user's input exactly as written, word for word.
+        1. Do NOT answer the question.
+        2. Do NOT provide hints.
+        3. Do NOT add conversational filler like "Here is the question."
+        4. Maintain a neutral, clear, and professional reading pace.`
+          }]
+        },
+        generationConfig: {
+          responseModalities: ["AUDIO"],
+          speechConfig: {
+            voiceConfig: {
+              prebuiltVoiceConfig: {
+                voiceName: "Aoede"
+              }
+            }
+          }
+        }
+      };
+
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
       });
 
-      if (functionError) {
-        console.warn('Supabase Function Invocation Failed:', functionError);
-        throw new Error(functionError.message || 'Failed to invoke TTS function');
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`Gemini API Error (${response.status}):`, errorText);
+        throw new Error(`Audio service error (${response.status})`);
       }
 
-      if (!data || !data.audioContent) {
-        throw new Error('No audio content received from service');
+      const data = await response.json();
+      const part = data.candidates?.[0]?.content?.parts?.[0];
+
+      if (!part || !part.inlineData) {
+        throw new Error("No audio data received.");
       }
+
+      const audioBase64 = part.inlineData.data;
 
       // Convert base64 to binary
-      const binaryString = atob(data.audioContent);
+      const binaryString = atob(audioBase64);
       const len = binaryString.length;
       const bytes = new Uint8Array(len);
       for (let i = 0; i < len; i++) {
         bytes[i] = binaryString.charCodeAt(i);
       }
 
-      let audioBlob: Blob;
+      // Gemini Native Audio is 24kHz PCM, wrap in WAV
+      const wavBuffer = addWavHeader(bytes, 24000, 1);
+      const audioBlob = new Blob([wavBuffer], { type: 'audio/wav' });
 
-      // Check if we need to wrap PCM in WAV container
-      // The Edge Function returns 'isRawPcm: true' if it detected/assumed PCM
-      if (data.isRawPcm || data.mimeType === 'audio/pcm') {
-          console.log("Wrapping raw PCM in WAV header (24kHz)...");
-          const wavBuffer = addWavHeader(bytes, 24000, 1);
-          audioBlob = new Blob([wavBuffer], { type: 'audio/wav' });
-      } else {
-          // Assume it's already a playable format like MP3
-          audioBlob = new Blob([bytes], { type: 'audio/mp3' });
-      }
-
-      const url = URL.createObjectURL(audioBlob);
-
-      const audio = new Audio(url);
+      const audioUrl = URL.createObjectURL(audioBlob);
+      const audio = new Audio(audioUrl);
       audioRef.current = audio;
 
       audio.onended = () => {
         setIsPlaying(false);
-        URL.revokeObjectURL(url); // Cleanup memory
+        URL.revokeObjectURL(audioUrl);
       };
 
       audio.onerror = (e) => {
@@ -139,7 +174,6 @@ export function useTextToSpeech(): UseTextToSpeechReturn {
     } catch (err: any) {
       console.error('TTS Error:', err);
       setError(err.message || 'An unexpected error occurred');
-
     } finally {
       setIsLoading(false);
     }
