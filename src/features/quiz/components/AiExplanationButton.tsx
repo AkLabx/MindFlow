@@ -5,7 +5,7 @@ import { Question } from '../types';
 
 interface AiExplanationButtonProps {
     question: Question;
-    selectedAnswer?: string; // To check if user was correct/incorrect
+    selectedAnswer?: string;
 }
 
 interface AiResponse {
@@ -15,6 +15,21 @@ interface AiResponse {
     fun_fact: string;
 }
 
+/**
+ * A button component that triggers an AI-powered explanation for the current question.
+ *
+ * Uses Google Gemini API (gemini-2.5-flash) to generate a detailed analysis of the question,
+ * why the answer is correct, and fun facts.
+ *
+ * Features:
+ * - Direct client-side API call to Google Generative AI (using API Key).
+ * - Modal overlay for displaying the result.
+ * - Loading and Error states.
+ * - Markdown parsing for the explanation text.
+ *
+ * @param {AiExplanationButtonProps} props - Component props.
+ * @returns {JSX.Element} The button and the modal portal.
+ */
 export const AiExplanationButton: React.FC<AiExplanationButtonProps> = ({ question, selectedAnswer }) => {
     const [isOpen, setIsOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
@@ -25,12 +40,14 @@ export const AiExplanationButton: React.FC<AiExplanationButtonProps> = ({ questi
 
     const handleExplain = async () => {
         setIsOpen(true);
-        if (data) return; // Already fetched
+        if (data) return; // Cache: Don't re-fetch if we already have it for this instance
 
         setIsLoading(true);
         setError(null);
 
         try {
+            // Environment Variable check
+            // Note: In Vite, this is populated via define: { ... } in vite.config.ts
             const apiKey = process.env.GOOGLE_AI_KEY;
             if (!apiKey) {
                 throw new Error("AI API Key is missing. Please configure the GOOGLE_AI_KEY environment variable.");
@@ -92,7 +109,7 @@ JSON Schema:
         }
     };
 
-    // Close on click outside
+    // Close modal on click outside
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             if (overlayRef.current && !overlayRef.current.contains(event.target as Node)) {
@@ -160,16 +177,16 @@ JSON Schema:
                                 </div>
                             ) : data ? (
                                 <div className="space-y-6">
-                                    {/* Explanation */}
+                                    {/* Explanation Body */}
                                     <div>
                                         <h4 className="text-sm uppercase tracking-wider text-gray-400 font-bold mb-2">Analysis</h4>
                                         <div
                                             className="text-gray-800 leading-relaxed text-[0.95rem] space-y-2 [&_strong]:text-indigo-700 [&_strong]:font-bold"
-                                            dangerouslySetInnerHTML={{ __html: data.explanation.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') }} // Simple markdown bold parser
+                                            dangerouslySetInnerHTML={{ __html: data.explanation.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') }} // Simple regex markdown bold parser
                                         />
                                     </div>
 
-                                    {/* Facts */}
+                                    {/* Interesting Facts */}
                                     {data.interesting_facts?.length > 0 && (
                                         <div className="bg-amber-50 rounded-xl p-4 border border-amber-100">
                                             <h4 className="text-sm font-bold text-amber-800 mb-2 flex items-center gap-2">

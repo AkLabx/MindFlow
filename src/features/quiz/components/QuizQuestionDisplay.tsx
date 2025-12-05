@@ -1,4 +1,3 @@
-
 import React, { useMemo, useEffect } from 'react';
 import { Question } from '../types';
 import { QuizOption } from './QuizOption';
@@ -6,8 +5,14 @@ import { AiExplanationButton } from './AiExplanationButton';
 import { Clock, Hash, Calendar, FileText, Volume2, Square, Loader2 } from 'lucide-react';
 import { useTextToSpeech } from '../hooks/useTextToSpeech';
 
-// --- Basic Client-Side Sanitizer ---
-// Prevents XSS by stripping scripts and event handlers while keeping formatting.
+// --- Client-Side Sanitizer ---
+/**
+ * Strips dangerous tags and attributes from HTML strings to prevent XSS.
+ * Keeps basic formatting (b, i, p, etc.) but removes scripts, iframes, and event handlers.
+ *
+ * @param {string} html - The potentially unsafe HTML string.
+ * @returns {string} Sanitized HTML string.
+ */
 const sanitizeHTML = (html: string) => {
     if (!html) return "";
     
@@ -38,6 +43,19 @@ const sanitizeHTML = (html: string) => {
     return doc.body.innerHTML;
 };
 
+/**
+ * The core component for displaying a single quiz question.
+ *
+ * Includes:
+ * - Question metadata (ID, Exam Source, Year).
+ * - Question text (with HTML support).
+ * - Hindi translation (if available) with TTS support.
+ * - Answer options grid.
+ * - Zoom level scaling.
+ *
+ * @param {object} props - The component props.
+ * @returns {JSX.Element} The rendered question display.
+ */
 export function QuizQuestionDisplay({
     question,
     selectedAnswer,
@@ -58,7 +76,7 @@ export function QuizQuestionDisplay({
     const isAnswered = !!selectedAnswer;
     const { speak, stop, isPlaying, isLoading } = useTextToSpeech();
 
-    // Stop audio when question changes
+    // Stop any playing audio when the question changes to prevent bleed-over
     useEffect(() => {
         stop();
     }, [question.id, stop]);
@@ -71,9 +89,9 @@ export function QuizQuestionDisplay({
     return (
         <div 
             className="space-y-6 transition-all duration-200 ease-out"
-            style={{ fontSize: `${zoomLevel}rem` }} // Applies zoom to everything inside
+            style={{ fontSize: `${zoomLevel}rem` }} // Applies zoom to everything inside via CSS inheritance
         >
-            {/* Metadata Header - Visible in all modes */}
+            {/* Metadata Header - Visible in all modes for context */}
             <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-gray-100 text-[0.75rem] text-gray-400 font-medium select-none">
                 <div className="flex items-center gap-2 flex-wrap">
                     <span className="flex items-center gap-1 bg-gray-50 px-1.5 py-0.5 rounded text-gray-500">
@@ -93,17 +111,13 @@ export function QuizQuestionDisplay({
                         </span>
                     )}
                 </div>
-                
-                {/* Right side intentionally left empty for future use or balancing */}
             </div>
 
-            {/* Question Text */}
+            {/* Question Text Area */}
             <div className="space-y-4">
                 <div className="flex justify-between items-start gap-4">
-                    {/* Removed font-bold, standardized to text-base/text-lg via zoomLevel.
-                        Updated styles to be consistent with options. 
-                        Added relative z-10 and stopPropagation to ensure text selection works robustly on mobile.
-                    */}
+                    {/* Main English Text */}
+                    {/* Added 'selectable-text' utility and stopPropagation to ensure text selection works on touch devices */}
                     <div 
                         className="text-gray-900 leading-relaxed font-poppins flex-1 selectable-text relative z-10 [&_pre]:whitespace-pre-wrap [&_pre]:font-inherit [&_pre]:my-2 [&_pre]:bg-gray-50 [&_pre]:p-2 [&_pre]:rounded-md [&_pre]:border [&_pre]:border-gray-200"
                         dangerouslySetInnerHTML={createSafeMarkup(question.question)}
@@ -119,13 +133,14 @@ export function QuizQuestionDisplay({
                     )}
                 </div>
 
-                {/* AI Explanation Button - Only in Learning Mode after answering */}
+                {/* AI Explanation Button - Conditionally rendered for Learning Mode */}
                 {isAnswered && !isMockMode && (
                    <div className="flex justify-end -mt-2 mb-2">
                        <AiExplanationButton question={question} selectedAnswer={selectedAnswer} />
                    </div>
                 )}
 
+                {/* Hindi Translation & TTS Control */}
                 {question.question_hi && (
                     <div className="relative group">
                         <div
@@ -139,7 +154,7 @@ export function QuizQuestionDisplay({
                                 if (isPlaying) {
                                     stop();
                                 } else {
-                                    // Use a temporary element to strip HTML and decode entities
+                                    // Strip HTML from Hindi text before sending to TTS engine
                                     const tempDiv = document.createElement('div');
                                     tempDiv.innerHTML = question.question_hi || '';
                                     const textContent = tempDiv.textContent || tempDiv.innerText || '';

@@ -1,4 +1,3 @@
-
 import React, { useContext } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Volume2, Moon, Smartphone, Sparkles } from 'lucide-react';
@@ -6,6 +5,23 @@ import { SettingsContext } from '../../../../context/SettingsContext';
 import { SettingsToggle } from './SettingsToggle';
 import { InstallPWA } from './InstallPWA';
 
+/**
+ * A modal dialog for application settings.
+ *
+ * Allows users to toggle:
+ * - Sound effects
+ * - Haptic feedback
+ * - Background animations
+ * - Dark mode (though usually system preferred)
+ * - Also displays PWA install prompt if applicable.
+ *
+ * Uses React Portal to render at the top of the DOM tree.
+ *
+ * @param {object} props - The component props.
+ * @param {boolean} props.isOpen - Whether the modal is visible.
+ * @param {function} props.onClose - Callback to close the modal.
+ * @returns {JSX.Element | null} The rendered modal or null.
+ */
 export function SettingsModal({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) {
   const { 
     isSoundEnabled, toggleSound,

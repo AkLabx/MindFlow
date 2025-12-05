@@ -1,11 +1,26 @@
 import React from 'react';
 
+/**
+ * Props for the QuizProgress component.
+ */
 interface QuizProgressProps {
+  /** Current question number (1-based). */
   current: number;
+  /** Total number of questions. */
   total: number;
+  /** Percentage of completion (0-100). */
   progress: number;
 }
 
+/**
+ * A standard progress bar with text labels.
+ *
+ * Shows "Question X of Y" and percentage completed.
+ * Used in older/alternate layouts or mobile views where explicit text is helpful.
+ *
+ * @param {QuizProgressProps} props - The component props.
+ * @returns {JSX.Element} The rendered progress component.
+ */
 export const QuizProgress: React.FC<QuizProgressProps> = ({ current, total, progress }) => {
   return (
     <div className="w-full mb-6">

@@ -1,14 +1,29 @@
-
 import React, { useEffect, useState } from 'react';
 import { cn } from '../../../../utils/cn';
 
+/**
+ * Props for the DonutChart component.
+ */
 interface DonutChartProps {
+  /** Count of correct answers. */
   correct: number;
+  /** Count of incorrect answers. */
   incorrect: number;
+  /** Count of unanswered questions. */
   unanswered: number;
+  /** Diameter of the chart in pixels. Defaults to 160. */
   size?: number;
 }
 
+/**
+ * A circular chart visualizing the breakdown of quiz results (Correct, Incorrect, Unanswered).
+ *
+ * Uses SVG circles with `stroke-dasharray` to create the segments.
+ * Features a mount animation.
+ *
+ * @param {DonutChartProps} props - The component props.
+ * @returns {JSX.Element | null} The rendered SVG chart or null if total is 0.
+ */
 export const DonutChart: React.FC<DonutChartProps> = ({ 
   correct, 
   incorrect, 
@@ -25,7 +40,7 @@ export const DonutChart: React.FC<DonutChartProps> = ({
   const circumference = 2 * Math.PI * radius;
 
   useEffect(() => {
-    // Trigger animation after mount
+    // Trigger animation after mount for visual effect
     const timer = setTimeout(() => {
       setAnimatedCorrect(correct);
       setAnimatedIncorrect(incorrect);
@@ -35,11 +50,11 @@ export const DonutChart: React.FC<DonutChartProps> = ({
 
   if (total === 0) return null;
 
-  // Calculate Stroke Lengths
+  // Calculate Stroke Lengths based on proportion of circumference
   const correctStroke = (animatedCorrect / total) * circumference;
   const incorrectStroke = (animatedIncorrect / total) * circumference;
   
-  // Calculate Rotation Offsets
+  // Calculate Rotation Offsets to stack segments
   // 1. Correct starts at -90deg (12 o'clock)
   // 2. Incorrect starts after Correct ends. 
   //    Rotation = -90 + (correct / total * 360)
@@ -48,7 +63,7 @@ export const DonutChart: React.FC<DonutChartProps> = ({
   return (
     <div className="relative flex items-center justify-center" style={{ width: size, height: size }}>
       <svg width={size} height={size}>
-        {/* Background Circle (Track) */}
+        {/* Background Circle (Track - Unanswered area essentially) */}
         <circle
           cx={center}
           cy={center}
@@ -72,7 +87,7 @@ export const DonutChart: React.FC<DonutChartProps> = ({
         />
 
         {/* Incorrect Segment (Red) */}
-        {/* We rotate this circle so it starts exactly where the green one ends */}
+        {/* Rotated so it starts exactly where the green segment ends */}
         <circle
           cx={center}
           cy={center}
@@ -86,9 +101,6 @@ export const DonutChart: React.FC<DonutChartProps> = ({
           style={{ transform: `rotate(${incorrectRotation}deg)` }}
         />
       </svg>
-      
-      {/* Center Content (Passed via children or managed here) */}
-      {/* Note: Text is usually handled by parent for flexibility, but we can put a simple label here */}
     </div>
   );
 };

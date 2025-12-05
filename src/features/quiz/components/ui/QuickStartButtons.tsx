@@ -1,10 +1,22 @@
 import React from 'react';
 import { Zap } from 'lucide-react';
 
+/**
+ * Props for the QuickStartButtons component.
+ */
 interface QuickStartButtonsProps {
+  /** Callback executed when a quick start button is clicked, passing the selected difficulty. */
   onQuickStart: (type: 'Easy' | 'Medium' | 'Hard' | 'Mix') => void;
 }
 
+/**
+ * A panel of buttons for launching pre-configured quizzes instantly.
+ *
+ * Provides shortcuts for "Quick 25" quizzes of varying difficulty levels.
+ *
+ * @param {QuickStartButtonsProps} props - The component props.
+ * @returns {JSX.Element} The rendered QuickStartButtons panel.
+ */
 export const QuickStartButtons: React.FC<QuickStartButtonsProps> = ({ onQuickStart }) => {
   return (
     <div className="bg-indigo-100/50 border border-indigo-200 rounded-xl p-6 shadow-sm mb-6">

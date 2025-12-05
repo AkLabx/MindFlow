@@ -1,5 +1,16 @@
 import React from 'react';
 
+/**
+ * A static, simplified version of the DemoCard for mobile devices.
+ *
+ * Features:
+ * - Optimized for smaller screens and touch interactions.
+ * - Removes complex animations and cursor simulation to save battery/performance.
+ * - Maintains the 3D visual style with CSS transforms.
+ * - Provides better contrast for legibility on smaller displays.
+ *
+ * @returns {JSX.Element} The rendered MobileDemoCard.
+ */
 export const MobileDemoCard: React.FC = () => {
   return (
     <div 

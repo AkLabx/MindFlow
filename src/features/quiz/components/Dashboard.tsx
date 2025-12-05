@@ -2,13 +2,32 @@ import React from 'react';
 import { ListChecks, FileText, BookOpen, Languages, Save } from 'lucide-react';
 import { Button } from '../../../components/Button/Button';
 
+/**
+ * Props for the Dashboard component.
+ */
 interface DashboardProps {
+    /** Callback to start creating a new quiz. */
     onStartQuiz: () => void;
+    /** Callback to navigate to the English Zone. */
     onEnglish: () => void;
+    /** Callback to return to the Landing Page intro. */
     onBackToIntro: () => void;
+    /** Callback to view saved quizzes. */
     onSavedQuizzes: () => void;
 }
 
+/**
+ * The main Dashboard screen for logged-in users.
+ *
+ * Provides quick access to:
+ * - Create New Quiz
+ * - Saved Quizzes
+ * - English Zone (Specialized features)
+ * - User Guide (Static content)
+ *
+ * @param {DashboardProps} props - The component props.
+ * @returns {JSX.Element} The rendered Dashboard.
+ */
 export const Dashboard: React.FC<DashboardProps> = ({ onStartQuiz, onEnglish, onBackToIntro, onSavedQuizzes }) => {
     return (
         <div className="flex flex-col">
@@ -93,6 +112,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onStartQuiz, onEnglish, on
                     </div>
                 </div>
 
+                {/* Footer Link */}
                 <div className="w-full text-center pb-4">
                     <button onClick={onBackToIntro} className="text-xs text-gray-400 hover:text-indigo-500 font-semibold uppercase tracking-widest">
                         Back to Intro

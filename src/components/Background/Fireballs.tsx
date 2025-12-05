@@ -1,5 +1,8 @@
 import React, { useEffect, useRef } from 'react';
 
+/**
+ * Interface representing a fireball object in the animation.
+ */
 interface Ball {
   id: number;
   x: number;
@@ -33,6 +36,15 @@ const BALL_STYLES = [
   { stops: ['#C19A6B', '#A0522D', '#8B4513', '#5D4037'], shadow: '#C19A6B' },
 ];
 
+/**
+ * Animated background component rendering floating "fireballs" or glowing orbs.
+ *
+ * This component uses an HTML5 Canvas to render a physics-based simulation of colliding balls.
+ * It is positioned as a fixed background layer with `zIndex: -1` to stay behind other content.
+ * The simulation handles wall collisions and elastic collisions between balls.
+ *
+ * @returns {JSX.Element} A Canvas element rendering the animation.
+ */
 export const Fireballs: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 

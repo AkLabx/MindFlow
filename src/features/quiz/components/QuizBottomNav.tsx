@@ -1,10 +1,20 @@
-
 import React from 'react';
 import { ArrowLeft, ArrowRight, Flag, CheckCircle, Save } from 'lucide-react';
 import { cn } from '../../../utils/cn';
 import { Button } from '../../../components/Button/Button';
 import { QuizMode } from '../types';
 
+/**
+ * Bottom navigation bar for the active quiz session.
+ *
+ * Provides:
+ * - Previous Button.
+ * - Mark for Review toggle.
+ * - Next / Finish Button.
+ *
+ * @param {object} props - The component props.
+ * @returns {JSX.Element} The rendered navigation bar.
+ */
 export function QuizBottomNav({ 
     onPrevious, 
     onNext, 
@@ -53,8 +63,7 @@ export function QuizBottomNav({
 
             <Button 
                 onClick={onNext} 
-                // In Mock mode, we always allow moving forward (Save & Next).
-                // In Learning mode, we typically allow skipping too.
+                // In Mock mode, this acts as "Save & Next"
                 className={cn(
                     "transition-all",
                     isLast 

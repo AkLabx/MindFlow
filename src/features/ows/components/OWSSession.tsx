@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { ArrowLeft, ArrowRight, Home, RotateCcw, Maximize2, Minimize2, RotateCw, Menu } from 'lucide-react';
 import { motion, useMotionValue, useTransform, useAnimation } from 'framer-motion';
@@ -8,7 +7,9 @@ import { OWSNavigationPanel } from './OWSNavigationPanel';
 import { OneWord, InitialFilters } from '../../quiz/types';
 import { cn } from '../../../utils/cn';
 
-// Define PanInfo locally
+/**
+ * Interface for Framer Motion pan gesture info.
+ */
 interface PanInfo {
   point: { x: number; y: number };
   delta: { x: number; y: number };
@@ -16,17 +17,42 @@ interface PanInfo {
   velocity: { x: number; y: number };
 }
 
+/**
+ * Props for the OWSSession component.
+ */
 interface OWSSessionProps {
+  /** The list of OWS data items for the session. */
   data: OneWord[];
+  /** The current index in the list. */
   currentIndex: number;
+  /** Callback for moving to the next card. */
   onNext: () => void;
+  /** Callback for moving to the previous card. */
   onPrev: () => void;
+  /** Callback to exit the session. */
   onExit: () => void;
+  /** Callback to finish the session. */
   onFinish: () => void;
+  /** Callback to jump to a specific index. */
   onJump: (index: number) => void;
+  /** Active filters for display. */
   filters: InitialFilters;
 }
 
+/**
+ * The main container for the One Word Substitution learning session.
+ *
+ * This component mirrors the `FlashcardSession` logic but is specialized for OWS data.
+ * It features:
+ * - Tinder-like card swiping (Next/Previous).
+ * - Animated 3D flipping.
+ * - Progress tracking.
+ * - Fullscreen toggle.
+ * - Keyboard shortcuts.
+ *
+ * @param {OWSSessionProps} props - The component props.
+ * @returns {JSX.Element} The rendered OWS Session.
+ */
 export const OWSSession: React.FC<OWSSessionProps> = ({
   data,
   currentIndex,
@@ -46,7 +72,9 @@ export const OWSSession: React.FC<OWSSessionProps> = ({
   const x = useMotionValue(0);
   const controls = useAnimation();
 
+  // Tilt card based on horizontal drag
   const rotate = useTransform(x, [-200, 200], [-15, 15]);
+  // Fade out opacity near edges
   const opacity = useTransform(x, [-300, -150, 0, 150, 300], [0, 1, 1, 1, 0]);
 
   const currentItem = data[currentIndex];
@@ -54,10 +82,12 @@ export const OWSSession: React.FC<OWSSessionProps> = ({
   const isFirst = currentIndex === 0;
   const isLast = currentIndex === data.length - 1;
 
+  // Reset card position on index change
   useEffect(() => {
     x.set(0);
   }, [currentIndex, x]);
 
+  // Keyboard navigation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (isAnimating) return;
@@ -69,6 +99,10 @@ export const OWSSession: React.FC<OWSSessionProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [currentIndex, isLast, isFirst, isAnimating]);
 
+  /**
+   * Handles click-based navigation with animations.
+   * @param {'next' | 'prev'} direction
+   */
   const handleManualNavigation = async (direction: 'next' | 'prev') => {
     if (isAnimating) return;
     setIsAnimating(true);
@@ -78,17 +112,21 @@ export const OWSSession: React.FC<OWSSessionProps> = ({
         if (isLast) {
           onFinish();
         } else {
+          // Animate out left
           await controls.start({ x: -500, opacity: 0, transition: { duration: 0.2 } });
           setIsFlipped(false);
           onNext();
+          // Reset right
           x.set(500);
           await controls.start({ x: 0, opacity: 1, transition: { type: "spring", stiffness: 300, damping: 30 } });
         }
       } else {
         if (!isFirst) {
+          // Animate out right
           await controls.start({ x: 500, opacity: 0, transition: { duration: 0.2 } });
           setIsFlipped(false);
           onPrev();
+          // Reset left
           x.set(-500);
           await controls.start({ x: 0, opacity: 1, transition: { type: "spring", stiffness: 300, damping: 30 } });
         }
@@ -98,6 +136,9 @@ export const OWSSession: React.FC<OWSSessionProps> = ({
     }
   };
 
+  /**
+   * Handles gesture-based navigation (swipes).
+   */
   const handleDragEnd = async (event: any, info: PanInfo) => {
     const threshold = 100;
     const swipePower = Math.abs(info.offset.x) * info.velocity.x;
@@ -165,6 +206,7 @@ export const OWSSession: React.FC<OWSSessionProps> = ({
         onJump={handleJump}
       />
 
+      {/* Header */}
       {!isFullScreen && (
         <div className="flex-none z-30 bg-white border-b border-gray-200 shadow-sm">
           <div className="px-6 py-4 flex items-center justify-between">
@@ -198,6 +240,7 @@ export const OWSSession: React.FC<OWSSessionProps> = ({
         </div>
       )}
 
+      {/* Card Arena */}
       <div className="flex-1 relative flex flex-col items-center justify-center p-4 md:p-8 overflow-hidden">
 
         {isFullScreen && (
@@ -239,11 +282,13 @@ export const OWSSession: React.FC<OWSSessionProps> = ({
           )}
         </div>
 
+        {/* Hint */}
         <div className="absolute bottom-8 text-gray-400 text-xs font-medium uppercase tracking-widest animate-pulse pointer-events-none select-none z-0">
           {isFlipped ? "Scroll to read • Swipe to Next" : "Tap to flip"}
         </div>
       </div>
 
+      {/* Footer Controls */}
       <div className="flex-none z-30 bg-white border-t border-gray-200 p-4 md:p-6 pb-safe">
         <div className="max-w-md mx-auto flex items-center justify-between gap-4">
           <Button

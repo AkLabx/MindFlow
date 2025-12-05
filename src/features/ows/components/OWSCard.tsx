@@ -1,14 +1,27 @@
-
 import React from 'react';
 import { cn } from '../../../../utils/cn';
 import { OneWord } from '../../../types/models';
 import { BookOpen, Lightbulb, RotateCw, Target, Tag } from 'lucide-react';
 
+/**
+ * Props for the One Word Substitution (OWS) Card.
+ */
 interface OWSCardProps {
+  /** The One Word Substitution data object. */
   data: OneWord;
+  /** Whether the card is flipped (showing the back). */
   isFlipped: boolean;
 }
 
+/**
+ * A 3D flipping flashcard component for One Word Substitutions.
+ *
+ * Displays the word on the front and its definition, usage, and etymology on the back.
+ * Similar to the `Flashcard` component but tailored for OWS content structure.
+ *
+ * @param {OWSCardProps} props - The component props.
+ * @returns {JSX.Element} The rendered OWS Card.
+ */
 export const OWSCard: React.FC<OWSCardProps> = ({ data, isFlipped }) => {
   return (
     <div className="relative w-full h-full perspective-1000 cursor-pointer group">

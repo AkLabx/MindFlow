@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -50,13 +49,26 @@ const emptyFilters: InitialFilters = {
   tags: [],
 };
 
+/**
+ * The Quiz Configuration Screen.
+ *
+ * Allows users to:
+ * - Load question metadata from the database.
+ * - Filter questions by multiple criteria (Subject, Topic, Exam, etc.).
+ * - Select Quiz Mode (Learning vs Mock).
+ * - Create and save a new Quiz Session.
+ * - Use Quick Start shortcuts.
+ *
+ * @param {QuizConfigProps} props - The component props.
+ * @returns {JSX.Element} The rendered Configuration screen.
+ */
 export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
   const navigate = useNavigate();
   const [mode, setMode] = useState<QuizMode>('learning');
   const [filters, setFilters] = useState<InitialFilters>(emptyFilters);
   const [quizName, setQuizName] = useState('');
 
-  // State for Data Fetching
+  // State for Data Fetching & Sync
   const [metadata, setMetadata] = useState<Question[]>([]);
   const [isLoadingMetadata, setIsLoadingMetadata] = useState(true);
   const [isStartingQuiz, setIsStartingQuiz] = useState(false);
@@ -65,6 +77,7 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
   const [showEmptyError, setShowEmptyError] = useState(false);
 
   // 0. Fetch Metadata on Mount
+  // Loads lightweight question data for filtering (no content payload)
   const loadMetadata = useCallback(async () => {
     try {
       setIsLoadingMetadata(true);
@@ -93,6 +106,7 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
   }, [loadMetadata]);
 
   // 1. Build Classification Map
+  // Efficiently maps Subjects -> Topics -> SubTopics for dependent dropdowns
   const classificationMap = useMemo(() => {
     const map = new Map<string, Map<string, Set<string>>>();
     metadata.forEach(q => {
@@ -105,19 +119,20 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
     return map;
   }, [metadata]);
 
-  // 2. Hooks Integration
+  // 2. Hooks Integration for Filter Logic
   const { availableTopics, availableSubTopics } = useDependentFilters({
     selectedFilters: filters,
     setSelectedFilters: setFilters,
     classificationMap
   });
 
+  // Calculate dynamic counts for all filter options based on current selection
   const filterCounts = useFilterCounts({
     allQuestions: metadata,
     selectedFilters: filters
   });
 
-  // 3. Derived Lists for Dropdowns
+  // 3. Derived Lists for Dropdown Options
   const allSubjects = useMemo(() => Array.from(classificationMap.keys()).sort(), [classificationMap]);
   const allExamNames = useMemo(() => Array.from(new Set(metadata.map(q => q.sourceInfo.examName))).sort(), [metadata]);
   const allExamYears = useMemo(() => Array.from(new Set(metadata.map(q => String(q.sourceInfo.examYear)))).sort(), [metadata]);
@@ -125,6 +140,7 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
   const allTags = useMemo(() => Array.from(new Set(metadata.flatMap(q => q.tags))).sort(), [metadata]);
 
   // 4. Final Filtered Metadata Calculation
+  // This represents the potential quiz set based on current filters
   const filteredMetadata = useMemo(() => {
     return metadata.filter(q => {
       if (filters.subject.length > 0 && !filters.subject.includes(q.classification.subject)) return false;
@@ -140,7 +156,7 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
     });
   }, [filters, metadata]);
 
-  // Clear error when filters change
+  // Clear "No questions found" error when filters change
   useEffect(() => {
     if (filteredMetadata.length > 0) {
       setShowEmptyError(false);
@@ -149,16 +165,20 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
 
   // --- Handlers ---
 
+  /**
+   * Fetches full question data for the selected subset and saves the quiz session.
+   */
   const createQuizWithQuestions = async (questionSubset: Question[], activeFilters: InitialFilters) => {
     try {
       setIsStartingQuiz(true);
       const ids = questionSubset.map(q => q.id);
 
+      // Retrieve full content (text, options, explanations) from DB
       const fullQuestions = await fetchQuestionsByIds(ids);
 
       const quizId = crypto.randomUUID();
 
-      // Create SavedQuiz object
+      // Initialize the SavedQuiz object with default state
       const newQuiz: SavedQuiz = {
         id: quizId,
         name: quizName || `Quiz ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`,
@@ -173,15 +193,18 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
           activeQuestions: fullQuestions,
           filters: activeFilters,
           quizId: quizId,
+          // Initialize Global Timer for Mock Mode
           quizTimeRemaining: mode === 'mock'
             ? Math.max(APP_CONFIG.TIMERS.MOCK_MODE_DEFAULT_PER_QUESTION, fullQuestions.length * APP_CONFIG.TIMERS.MOCK_MODE_DEFAULT_PER_QUESTION)
             : 0,
+          // Initialize Individual Timers for Learning Mode
           remainingTimes: mode === 'learning'
             ? fullQuestions.reduce((acc, q) => ({ ...acc, [q.id]: APP_CONFIG.TIMERS.LEARNING_MODE_DEFAULT }), {})
             : {}
         }
       };
 
+      // Save to IndexedDB and redirect to Saved Quizzes list
       await db.saveQuiz(newQuiz);
       navigate('/quiz/saved');
 
@@ -193,16 +216,17 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
     }
   };
 
+  /** Main "Create Quiz" button handler. */
   const handleCreate = () => {
     if (filteredMetadata.length === 0) {
       setShowEmptyError(true);
-      // Auto hide message after 4 seconds
       setTimeout(() => setShowEmptyError(false), 4000);
       return;
     }
     createQuizWithQuestions(filteredMetadata, filters);
   };
 
+  /** Handles Quick Start buttons to launch pre-configured quizzes. */
   const handleQuickStart = (type: 'Easy' | 'Medium' | 'Hard' | 'Mix') => {
     let quickFilters = emptyFilters;
     if (type !== 'Mix') {
@@ -213,6 +237,7 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
       ? metadata
       : metadata.filter(q => q.properties.difficulty === type);
 
+    // Randomly select 25 questions
     const shuffled = [...subset].sort(() => 0.5 - Math.random()).slice(0, 25);
 
     if (shuffled.length === 0) {
@@ -220,12 +245,6 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
       return;
     }
 
-    // For quick start, we can auto-generate a name
-    const quickName = `Quick ${type} Quiz`;
-    // We need to temporarily set the name or pass it? 
-    // Since createQuizWithQuestions uses state quizName, we should probably pass it or set it.
-    // But setState is async. Let's modify createQuizWithQuestions to accept name optionally.
-    // For now, let's just let it fallback to default timestamp name if quizName is empty.
     createQuizWithQuestions(shuffled, quickFilters);
   };
 
@@ -252,7 +271,7 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
     });
   };
 
-  // --- Loading State ---
+  // --- Loading State Render ---
   if (isLoadingMetadata) {
     const percentage = progress.total > 0 ? Math.round((progress.current / progress.total) * 100) : 0;
     return (
@@ -281,6 +300,7 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
     );
   }
 
+  // --- Error State Render ---
   if (error) {
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center space-y-4 bg-white md:rounded-3xl w-full max-w-6xl mx-auto md:border border-gray-200 shadow-sm p-8 text-center animate-fade-in">
@@ -300,7 +320,7 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
   return (
     <div className="bg-white min-h-screen md:min-h-0 md:h-auto md:rounded-3xl shadow-sm border border-gray-200 flex flex-col max-w-6xl mx-auto animate-fade-in overflow-hidden relative">
 
-      {/* Overlay for "Starting Quiz" */}
+      {/* Overlay for "Starting Quiz" blocking interaction */}
       {isStartingQuiz && (
         <div className="absolute inset-0 z-50 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center animate-in fade-in duration-300">
           <Loader2 className="w-12 h-12 text-indigo-600 animate-spin mb-4" />

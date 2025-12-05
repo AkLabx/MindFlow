@@ -1,12 +1,25 @@
-
 import React from 'react';
 import { X } from 'lucide-react';
 
+/**
+ * Props for the InstallPwaModal component.
+ */
 interface InstallPwaModalProps {
+  /** Callback function executed when the user confirms the installation. */
   onConfirm: () => void;
+  /** Callback function executed when the user cancels or closes the modal. */
   onCancel: () => void;
 }
 
+/**
+ * A modal dialog prompting the user to install the application as a PWA.
+ *
+ * This component provides instructions and buttons to trigger the browser's
+ * native installation prompt or dismiss the suggestion.
+ *
+ * @param {InstallPwaModalProps} props - The component props.
+ * @returns {JSX.Element} The rendered modal component.
+ */
 const InstallPwaModal: React.FC<InstallPwaModalProps> = ({ onConfirm, onCancel }) => {
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">

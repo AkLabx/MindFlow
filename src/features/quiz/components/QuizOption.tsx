@@ -1,19 +1,41 @@
-
 import React from 'react';
 import { Check, X, EyeOff } from 'lucide-react';
 import { cn } from '../../../utils/cn';
 
+/**
+ * Props for the QuizOption component.
+ */
 interface QuizOptionProps {
+    /** The option text (English). */
     option: string;
+    /** The option text (Hindi), optional. */
     option_hi?: string;
+    /** Whether this option is currently selected by the user. */
     isSelected: boolean;
+    /** Whether this option is the correct answer. */
     isCorrect: boolean;
+    /** Whether the question has been answered (reveals state in Learning Mode). */
     isAnswered: boolean;
+    /** Whether the option is hidden (e.g., via 50:50 Lifeline). */
     isHidden: boolean;
+    /** Whether the quiz is in Mock Mode (affects visual feedback). */
     isMockMode: boolean;
+    /** Click handler. */
     onClick: () => void;
 }
 
+/**
+ * A selectable answer button for the quiz.
+ *
+ * Supports two visual modes:
+ * - **Learning Mode**: Immediate feedback. Shows Correct (Green) or Incorrect (Red) states immediately after selection. Removes unselected options visually.
+ * - **Mock Mode**: Selection state only. No immediate feedback on correctness. Standard radio-button style.
+ *
+ * Handles bilingual text display and "hidden" states for lifelines.
+ *
+ * @param {QuizOptionProps} props - The component props.
+ * @returns {JSX.Element} The rendered option button.
+ */
 export const QuizOption: React.FC<QuizOptionProps> = ({
     option,
     option_hi,
@@ -24,13 +46,14 @@ export const QuizOption: React.FC<QuizOptionProps> = ({
     isMockMode,
     onClick
 }) => {
-    // Default / Mock Mode Styles
+    // Default base styles
     let containerClass = "bg-white border-gray-200 hover:border-indigo-300 hover:bg-gray-50 cursor-pointer relative";
-    let icon = <div className="w-5 h-5 rounded-full border-2 border-gray-300 transition-colors group-hover:border-indigo-400 flex-shrink-0" />;
+    let icon: React.ReactNode = <div className="w-5 h-5 rounded-full border-2 border-gray-300 transition-colors group-hover:border-indigo-400 flex-shrink-0" />;
     let textClass = "text-gray-700";
     let animationClass = "";
 
-    // --- MOCK MODE ---
+    // --- MOCK MODE LOGIC ---
+    // Simple selection state, no answer reveal
     if (isMockMode) {
         if (isSelected) {
             containerClass = "bg-indigo-50 border-indigo-600 ring-1 ring-indigo-600 relative";
@@ -38,63 +61,59 @@ export const QuizOption: React.FC<QuizOptionProps> = ({
             textClass = "text-indigo-800 font-medium";
         }
     } 
-    // --- LEARNING MODE ---
+    // --- LEARNING MODE LOGIC ---
+    // Immediate feedback and rich visual states
     else {
-        // In Learning Mode, we remove the left circle dot. 
-        // So we set icon to null initially for this mode.
+        // In Learning Mode, we remove the left radio circle to reduce clutter during reading.
+        // Icons appear on the right or as status indicators.
         icon = null;
 
         if (isHidden) {
              containerClass = "bg-gray-50 border-gray-100 opacity-60 cursor-not-allowed shadow-none relative"; 
              textClass = "text-gray-400 line-through decoration-gray-300 decoration-2 select-none";
-             // Keep EyeOff absolute as it's a special overlay state
+             // EyeOff icon indicates this option was removed by a lifeline
              icon = <div className="absolute right-4"><EyeOff className="w-5 h-5 text-gray-300" /></div>;
         }
         else if (isAnswered) {
             containerClass = "cursor-default relative"; 
             
             if (isCorrect && isSelected) {
-                // Correct Answer (Green) - User Selected It
+                // Scenario: User picked the Correct Answer
                 containerClass = "bg-green-50 border-green-500 ring-1 ring-green-500 relative";
                 textClass = "text-green-900 font-medium"; 
-                // Icon as Flex Item (Robust Positioning)
                 icon = (
                     <div className="flex-shrink-0 bg-green-500 rounded-full p-1 shadow-sm">
                         <Check className="w-4 h-4 text-white" />
                     </div>
                 );
-                
                 animationClass = "scale-[1.02] shadow-md";
 
             } else if (isSelected) {
-                // Incorrect Selected (Red)
+                // Scenario: User picked the Wrong Answer
                 containerClass = "bg-red-50 border-red-500 ring-1 ring-red-500 relative";
                 textClass = "text-red-900 font-medium";
-                // Icon as Flex Item
                 icon = (
                     <div className="flex-shrink-0 bg-red-500 rounded-full p-1 shadow-sm">
                         <X className="w-4 h-4 text-white" />
                     </div>
                 );
-                // Shake Effect
                 animationClass = "animate-shake";
 
             } else if (isCorrect) {
-                 // Ghost view of correct answer when user picked wrong
+                 // Scenario: Show the Correct Answer (Ghost View) when user missed it
                  containerClass = "bg-green-50/50 border-green-400 border-dashed relative";
                  textClass = "text-green-800";
-                 // Icon as Flex Item
                  icon = (
                     <div className="flex-shrink-0 border-2 border-green-500 rounded-full p-0.5">
                          <Check className="w-3 h-3 text-green-500" />
                     </div>
                  );
             } else {
-                 // Irrelevant options fade out
+                 // Scenario: Irrelevant options fade out to focus attention
                  containerClass = "opacity-50 bg-gray-50 border-gray-200 relative";
             }
         } else if (isSelected) {
-            // Should rarely happen in immediate learning mode, but fallback
+            // Fallback for immediate selection before processing (rare in sync mode)
             containerClass = "bg-indigo-50 border-indigo-600 relative";
             textClass = "text-indigo-900 font-medium";
         }
@@ -110,13 +129,14 @@ export const QuizOption: React.FC<QuizOptionProps> = ({
                 animationClass
             )}
         >
-            {/* Left Icon (Only for Mock Mode) */}
+            {/* Left Icon (Only shown in Mock Mode for radio-button feel) */}
             {isMockMode && (
                 <div className="flex-shrink-0">
                     {icon}
                 </div>
             )}
 
+            {/* Option Content (English + Hindi) */}
             <div className="flex-1 min-w-0">
                 <div className={cn("leading-snug transition-colors text-[1em] font-poppins selectable-text", textClass)}>
                     {option}
@@ -128,7 +148,7 @@ export const QuizOption: React.FC<QuizOptionProps> = ({
                 )}
             </div>
 
-            {/* Right Icon / Overlay (Only for Learning Mode) */}
+            {/* Right Icon (Only shown in Learning Mode for feedback) */}
             {!isMockMode && icon}
         </button>
     );

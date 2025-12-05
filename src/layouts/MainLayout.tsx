@@ -3,15 +3,37 @@ import { BrainCircuit, Home, Compass, PlusCircle, User, Settings, LogIn } from '
 import { cn } from '../utils/cn';
 import { useAuth } from '../features/auth/context/AuthContext';
 
+/**
+ * Unique identifiers for the main navigation tabs.
+ */
 export type TabID = 'home' | 'explore' | 'create' | 'profile' | 'login';
 
+/**
+ * Props for the MainLayout component.
+ */
 interface MainLayoutProps {
+  /** The main content to render within the layout frame. */
   children: React.ReactNode;
+  /** The currently active navigation tab. */
   activeTab: TabID;
+  /** Callback to switch tabs. */
   onTabChange: (tab: TabID) => void;
+  /** Callback to open the settings modal. */
   onOpenSettings: () => void;
 }
 
+/**
+ * The primary application layout shell.
+ *
+ * Provides:
+ * - Sticky Top Header (Logo + Avatar/Settings).
+ * - Scrollable Main Content Area.
+ * - Sticky Bottom Navigation Bar (Tabs).
+ * - Responsive constraints (centered content max-width).
+ *
+ * @param {MainLayoutProps} props - The layout configuration.
+ * @returns {JSX.Element} The rendered layout.
+ */
 export const MainLayout: React.FC<MainLayoutProps> = ({ 
   children, 
   activeTab, 
@@ -128,6 +150,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
   );
 };
 
+// Helper Subcomponent for Tab Items
 const NavTab = ({ id, label, icon, isActive, onClick }: { id: string, label: string, icon: React.ReactNode, isActive: boolean, onClick: () => void }) => (
   <button 
     onClick={onClick}

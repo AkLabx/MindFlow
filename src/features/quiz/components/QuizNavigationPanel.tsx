@@ -4,6 +4,21 @@ import { X, ChevronDown, CheckCircle, Flag, Star } from 'lucide-react';
 import { Question, QuizMode } from '../types';
 import { cn } from '../../../utils/cn';
 
+/**
+ * A side drawer navigation panel for the active quiz session.
+ *
+ * Provides:
+ * - A grid map of all questions.
+ * - Visual status indicators (Answered, Correct/Wrong, Review, Bookmark).
+ * - Progress statistics summary.
+ * - Quick jump navigation.
+ * - Submit/Finish action.
+ *
+ * Renders via React Portal to overlay the entire app.
+ *
+ * @param {object} props - The component props.
+ * @returns {JSX.Element | null} The rendered panel.
+ */
 export function QuizNavigationPanel({
   isOpen, onClose, questions, userAnswers, currentQuestionIndex,
   onJumpToQuestion, markedForReview, bookmarks, onSubmitAndReview, mode
@@ -17,9 +32,9 @@ export function QuizNavigationPanel({
   mode: QuizMode;
 }) {
   const [openGroups, setOpenGroups] = useState<Set<number>>(new Set([0]));
-  const chunkSize = 25;
+  const chunkSize = 25; // Group questions in chunks for easier navigation of large sets
 
-  // Auto-scroll/focus to current group on open
+  // Auto-expand the group containing the current question when opening
   useEffect(() => {
       if (isOpen) {
           const groupIdx = Math.floor(currentQuestionIndex / chunkSize);
@@ -27,7 +42,7 @@ export function QuizNavigationPanel({
       }
   }, [isOpen, currentQuestionIndex]);
 
-  // Group questions into chunks
+  // Create question chunks
   const groups = [];
   for (let i = 0; i < questions.length; i += chunkSize) {
       groups.push(questions.slice(i, i + chunkSize));
@@ -42,7 +57,7 @@ export function QuizNavigationPanel({
     });
   };
 
-  // Real-time stats for the header skeleton
+  // Compute real-time stats for the summary header
   const stats = useMemo(() => {
       let correct = 0;
       let incorrect = 0;
@@ -66,6 +81,9 @@ export function QuizNavigationPanel({
       };
   }, [questions, userAnswers]);
 
+  /**
+   * Generates dynamic CSS classes for a question grid item based on its status.
+   */
   const getStatusStyles = (q: Question, isCurrent: boolean) => {
       const ans = userAnswers[q.id];
       const isAnswered = !!ans;
@@ -73,15 +91,15 @@ export function QuizNavigationPanel({
       
       const baseStyles = "h-10 w-full rounded-lg border text-sm font-bold flex items-center justify-center relative transition-all shadow-sm";
       
-      // 1. Answer Status Color
-      let statusColor = "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"; // Default / Unanswered
+      // 1. Base Status Color
+      let statusColor = "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"; // Unanswered
       
       if (isAnswered) {
           if (mode === 'mock') {
-              // Mock Mode: Just show answered (Gray/Blue), don't reveal correctness
+              // Mock Mode: Hides Correct/Incorrect status, just shows answered state
               statusColor = "bg-indigo-100 border-indigo-200 text-indigo-700";
           } else {
-              // Learning Mode: Show Correct/Incorrect
+              // Learning Mode: Reveals Correct/Incorrect
               if (isCorrect) {
                   statusColor = "bg-emerald-100 border-emerald-200 text-emerald-700";
               } else {
@@ -90,7 +108,7 @@ export function QuizNavigationPanel({
           }
       }
 
-      // 2. Current Question Indicator (Ring overrides border visually)
+      // 2. Highlight Current Question
       const currentIndicator = isCurrent ? "ring-2 ring-indigo-600 ring-offset-1 z-10 scale-105" : "";
 
       return cn(baseStyles, statusColor, currentIndicator);
@@ -100,7 +118,7 @@ export function QuizNavigationPanel({
 
   return createPortal(
     <>
-      {/* Overlay - Increased z-index to 70 */}
+      {/* Backdrop Overlay */}
       <div 
         className={cn(
             "fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[70] transition-opacity duration-300 animate-in fade-in"
@@ -108,7 +126,7 @@ export function QuizNavigationPanel({
         onClick={onClose}
       />
       
-      {/* Drawer - Increased z-index to 80 */}
+      {/* Sliding Drawer */}
       <div className={cn(
           "fixed top-0 right-0 h-full w-80 bg-white shadow-2xl z-[80] transform transition-transform duration-300 ease-in-out flex flex-col border-l border-gray-200 animate-in slide-in-from-right"
       )}>
@@ -123,7 +141,7 @@ export function QuizNavigationPanel({
             </button>
         </div>
 
-        {/* Skeleton / Stats Summary */}
+        {/* Stats Summary Panel */}
         <div className="px-5 py-4 border-b border-gray-100 bg-white">
             <div className="flex justify-between items-center mb-3">
                 <span className="text-xs font-bold uppercase text-gray-400 tracking-wider">Progress</span>
@@ -131,7 +149,7 @@ export function QuizNavigationPanel({
             </div>
             
             {mode === 'mock' ? (
-                // Mock Mode Stats (Hide Correct/Wrong)
+                // Mock Mode Stats (Masked)
                 <div className="grid grid-cols-2 gap-2 mb-2">
                     <div className="bg-indigo-50 border border-indigo-100 rounded-lg p-2 text-center">
                         <div className="text-lg font-black text-indigo-600 leading-none">{stats.answered}</div>
@@ -143,7 +161,7 @@ export function QuizNavigationPanel({
                     </div>
                 </div>
             ) : (
-                // Learning Mode Stats
+                // Learning Mode Stats (Detailed)
                 <div className="grid grid-cols-3 gap-2 mb-2">
                     <div className="bg-emerald-50 border border-emerald-100 rounded-lg p-2 text-center">
                         <div className="text-lg font-black text-emerald-600 leading-none">{stats.correct}</div>
@@ -161,9 +179,9 @@ export function QuizNavigationPanel({
             )}
         </div>
 
-        {/* Scrollable Map */}
+        {/* Scrollable Question Grid */}
         <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50/30">
-            {/* Legend */}
+            {/* Visual Legend */}
             <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-[10px] font-bold text-gray-500 uppercase tracking-wide bg-white p-3 rounded-xl border border-gray-100 shadow-sm mb-2">
                 {mode === 'mock' ? (
                     <>
@@ -180,6 +198,7 @@ export function QuizNavigationPanel({
                 <div className="flex items-center gap-2"><Flag className="w-3 h-3 text-purple-500 fill-current" /> Review</div>
             </div>
 
+            {/* Question Groups */}
             {groups.map((group, i) => {
                 const start = i * chunkSize + 1;
                 const end = Math.min((i + 1) * chunkSize, questions.length);
@@ -208,13 +227,12 @@ export function QuizNavigationPanel({
                                             key={q.id}
                                             onClick={() => {
                                                 onJumpToQuestion(overallIdx);
-                                                // onClose(); // Keep open for rapid navigation
                                             }}
                                             className={getStatusStyles(q, isCurrent)}
                                         >
                                             {overallIdx + 1}
                                             
-                                            {/* Status Indicators */}
+                                            {/* Badges for Review/Bookmark */}
                                             {isReview && (
                                                 <Flag className="absolute -top-1.5 -right-1.5 w-3.5 h-3.5 text-purple-600 fill-purple-100 bg-white rounded-full shadow-sm ring-1 ring-white" />
                                             )}
@@ -231,7 +249,7 @@ export function QuizNavigationPanel({
             })}
         </div>
 
-        {/* Footer Action */}
+        {/* Footer: Submit Action */}
         <div className="p-4 border-t border-gray-200 bg-white">
             <button 
                 onClick={() => {

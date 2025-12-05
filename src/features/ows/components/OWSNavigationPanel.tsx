@@ -1,18 +1,34 @@
-
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { X, ChevronDown, ChevronRight, Map } from 'lucide-react';
 import { OneWord } from '../../../types/models';
 import { cn } from '../../../../utils/cn';
 
+/**
+ * Props for the OWSNavigationPanel component.
+ */
 interface OWSNavigationPanelProps {
+  /** Whether the panel is currently open. */
   isOpen: boolean;
+  /** Callback to close the panel. */
   onClose: () => void;
+  /** The list of OWS data items. */
   data: OneWord[];
+  /** The index of the currently active item. */
   currentIndex: number;
+  /** Callback to jump to a specific item index. */
   onJump: (index: number) => void;
 }
 
+/**
+ * A side drawer navigation panel for the OWS session.
+ *
+ * Provides an overview map of all words in the current session, grouped by chunks.
+ * Allows quick navigation to specific words.
+ *
+ * @param {OWSNavigationPanelProps} props - The component props.
+ * @returns {JSX.Element | null} The rendered panel or null if closed.
+ */
 export const OWSNavigationPanel: React.FC<OWSNavigationPanelProps> = ({
   isOpen, onClose, data, currentIndex, onJump
 }) => {
@@ -31,6 +47,7 @@ export const OWSNavigationPanel: React.FC<OWSNavigationPanelProps> = ({
 
   const totalChunks = Math.ceil(data.length / chunkSize);
 
+  /** Toggles the expansion state of a word group. */
   const toggleGroup = (index: number) => {
     setOpenGroups(prev => {
       const next = new Set(prev);

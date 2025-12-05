@@ -2,7 +2,9 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 import './index.css';
-// import "katex/dist/katex.min.css"; // Using CDN in index.html due to install issues // Assuming global styles might be needed, usually defined in App or handled by Tailwind CDN
+
+// Entry point for the React application.
+// Mounts the App component to the DOM.
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {

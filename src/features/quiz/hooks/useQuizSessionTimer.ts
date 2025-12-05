@@ -1,23 +1,47 @@
-
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useTimer } from '../../../hooks/useTimer';
 import { QuizMode } from '../types';
 import { APP_CONFIG } from '../../../constants/config';
 
+/**
+ * Props for the useQuizSessionTimer hook.
+ */
 interface UseQuizSessionTimerProps {
+  /** The current quiz mode. */
   mode: QuizMode;
+  /** ID of the current question. */
   questionId: string;
+  /** Whether the current question has been answered. */
   isAnswered: boolean;
-  remainingTime: number; // Per question time for Learning
-  globalTimeRemaining: number; // Total time for Mock
+  /** Remaining time for the current question (Learning Mode). */
+  remainingTime: number;
+  /** Total remaining time for the entire quiz (Mock Mode). */
+  globalTimeRemaining: number;
+  /** Total number of questions (for calculating default mock duration). */
   totalQuestions: number;
+  /** Callback fired when the timer expires (finish quiz or question). */
   onFinish: () => void;
+  /** Callback to save the per-question timer state (Learning Mode). */
   onSaveTime: (questionId: string, time: number) => void;
+  /** Callback to sync the global timer state (Mock Mode). */
   onSyncGlobalTimer: (time: number) => void;
+  /** Callback to log time spent on a question (Mock Mode analytics). */
   onLogTime: (questionId: string, time: number) => void;
-  onTick?: () => void; // New prop for playing sound
+  /** Optional callback for tick sound effects (e.g. last 5 seconds). */
+  onTick?: () => void;
 }
 
+/**
+ * A complex hook that orchestrates timing logic for both Learning and Mock modes.
+ *
+ * - Learning Mode: Manages a countdown timer that resets for each question. Pauses when answered.
+ * - Mock Mode: Manages a global countdown timer for the whole session. Also runs a stopwatch per question for analytics.
+ *
+ * Handles synchronization with the global Redux-like store to preserve state across navigation.
+ *
+ * @param {UseQuizSessionTimerProps} props - The hook configuration.
+ * @returns {object} Timer values and format helpers.
+ */
 export function useQuizSessionTimer({
   mode,
   questionId,
@@ -33,14 +57,14 @@ export function useQuizSessionTimer({
 }: UseQuizSessionTimerProps) {
   const isMockMode = mode === 'mock';
   
-  // Mock Mode: Question Stopwatch (Count up from 0) to track time spent per question
+  // Mock Mode: Question Stopwatch (Count up from 0) to track time spent per question for stats
   const [questionTimeElapsed, setQuestionTimeElapsed] = useState(0);
   const questionTimeRef = useRef(0); 
 
   // 1. Learning Mode Timer (Per Question Countdown)
   const handleLearningTimerComplete = useCallback(() => {
      if (!isMockMode) {
-         onFinish();
+         onFinish(); // Auto-submit or move next? Usually treated as timeout -> wrong/unanswered
      }
   }, [isMockMode, onFinish]);
 
@@ -58,7 +82,7 @@ export function useQuizSessionTimer({
       }
   }, [secondsLeftLearning, isMockMode, isAnswered, onTick]);
 
-  // Ref to hold the current seconds left to avoid dependency loops in useEffect when saving
+  // Ref to hold the current seconds left to avoid dependency loops in cleanup
   const secondsLeftRef = useRef(secondsLeftLearning);
   
   // Keep ref in sync
@@ -95,7 +119,7 @@ export function useQuizSessionTimer({
 
     return () => {
       clearInterval(interval);
-      // When leaving a question in mock mode, log the time spent
+      // When leaving a question in mock mode (unmount or id change), log the time spent
       if (isMockMode && questionTimeRef.current > 0) {
         onLogTime(questionId, questionTimeRef.current);
       }
@@ -117,7 +141,7 @@ export function useQuizSessionTimer({
       if (isMockMode) {
           const interval = setInterval(() => {
               // Use Ref to get current time without adding it to dependencies
-              // This prevents the effect from re-running every second, which causes the timer to reset repeatedly
+              // This prevents the effect from re-running every second
               onSyncGlobalTimer(secondsLeftMockRef.current);
           }, 5000);
           
@@ -130,6 +154,9 @@ export function useQuizSessionTimer({
       }
   }, [isMockMode, onSyncGlobalTimer]);
 
+  /**
+   * Helper to format seconds.
+   */
   const formatTime = (s: number) => {
       const mins = Math.floor(s / 60);
       const secs = s % 60;

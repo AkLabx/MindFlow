@@ -1,25 +1,45 @@
-
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { X, ChevronDown, ChevronRight, Map } from 'lucide-react';
 import { Idiom } from '../../../types/models';
 import { cn } from '../../../../utils/cn';
 
+/**
+ * Props for the FlashcardNavigationPanel component.
+ */
 interface FlashcardNavigationPanelProps {
+  /** Whether the panel is open (visible). */
   isOpen: boolean;
+  /** Callback to close the panel. */
   onClose: () => void;
+  /** The full list of idioms being studied. */
   idioms: Idiom[];
+  /** The index of the currently displayed idiom. */
   currentIndex: number;
+  /** Callback to jump to a specific idiom index. */
   onJump: (index: number) => void;
 }
 
+/**
+ * A side drawer navigation panel for the Flashcard session.
+ *
+ * Allows users to:
+ * - See an overview of all idioms grouped in chunks.
+ * - Jump directly to a specific idiom number.
+ * - Visualize their current position within the session.
+ *
+ * Renders as a Portal to overlay the entire application.
+ *
+ * @param {FlashcardNavigationPanelProps} props - The component props.
+ * @returns {JSX.Element | null} The rendered panel or null if closed.
+ */
 export const FlashcardNavigationPanel: React.FC<FlashcardNavigationPanelProps> = ({
   isOpen, onClose, idioms, currentIndex, onJump
 }) => {
   const [openGroups, setOpenGroups] = useState<Set<number>>(new Set());
   const chunkSize = 50;
 
-  // Auto-expand current group on open
+  // Auto-expand current group on open to show the active question
   useEffect(() => {
     if (isOpen) {
       const currentGroup = Math.floor(currentIndex / chunkSize);
@@ -31,6 +51,7 @@ export const FlashcardNavigationPanel: React.FC<FlashcardNavigationPanelProps> =
 
   const totalChunks = Math.ceil(idioms.length / chunkSize);
 
+  /** Toggles the expansion state of a chunk group. */
   const toggleGroup = (index: number) => {
     setOpenGroups(prev => {
       const next = new Set(prev);
@@ -42,13 +63,13 @@ export const FlashcardNavigationPanel: React.FC<FlashcardNavigationPanelProps> =
 
   return createPortal(
     <>
-      {/* Overlay */}
+      {/* Overlay - click to close */}
       <div
         className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[60] animate-in fade-in duration-300"
         onClick={onClose}
       />
 
-      {/* Drawer */}
+      {/* Drawer Container */}
       <div className="fixed top-0 right-0 h-full w-80 bg-white shadow-2xl z-[70] flex flex-col border-l border-gray-200 animate-in slide-in-from-right duration-300">
         {/* Header */}
         <div className="p-5 border-b border-amber-100 bg-amber-50 flex justify-between items-center">
@@ -66,14 +87,14 @@ export const FlashcardNavigationPanel: React.FC<FlashcardNavigationPanelProps> =
           </button>
         </div>
 
-        {/* Content List */}
+        {/* Content List - Grouped Idioms */}
         <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50/50 scrollbar-thin scrollbar-thumb-amber-200">
           {Array.from({ length: totalChunks }).map((_, chunkIndex) => {
             const start = chunkIndex * chunkSize;
             const end = Math.min(start + chunkSize, idioms.length);
             const isOpen = openGroups.has(chunkIndex);
 
-            // Check if current idiom is in this chunk for styling
+            // Check if current idiom is in this chunk for styling emphasis
             const containsCurrent = currentIndex >= start && currentIndex < end;
 
             return (

@@ -1,14 +1,27 @@
-
 import React from 'react';
 import { cn } from '../../../../utils/cn';
 import { Idiom } from '../../../types/models';
 import { BookOpen, Lightbulb, Quote, RotateCw } from 'lucide-react';
 
+/**
+ * Props for the Flashcard component.
+ */
 interface FlashcardProps {
+  /** The idiom data to display on the card. */
   idiom: Idiom;
+  /** Whether the card is currently showing its back side. */
   isFlipped: boolean;
 }
 
+/**
+ * A 3D flipping flashcard component.
+ *
+ * Displays the idiom phrase on the front and detailed meanings/usage on the back.
+ * Uses CSS 3D transforms for the flip animation.
+ *
+ * @param {FlashcardProps} props - The component props.
+ * @returns {JSX.Element} The rendered Flashcard.
+ */
 export const Flashcard: React.FC<FlashcardProps> = ({ idiom, isFlipped }) => {
   return (
     <div

@@ -2,9 +2,30 @@ import React from 'react';
 import { Explanation } from '../types';
 import { CheckCircle2, XCircle, Lightbulb, FileText } from 'lucide-react';
 
+/**
+ * A component to display detailed explanations for a question.
+ *
+ * It parses the Explanation object and renders sections for:
+ * - Answer Summary (English only)
+ * - Correct Analysis (Green)
+ * - Incorrect Analysis (Red)
+ * - Key Takeaway (Blue)
+ * - Fun Fact (Yellow)
+ *
+ * Includes text cleaning logic to strip redundant headers and symbols from the source data.
+ *
+ * @param {object} props - Component props.
+ * @param {Explanation} props.explanation - The explanation data object.
+ * @param {number} [props.zoomLevel] - Optional font size scaling.
+ * @returns {JSX.Element} The rendered explanation blocks.
+ */
 export function QuizExplanation({ explanation, zoomLevel }: { explanation: Explanation, zoomLevel?: number }) {
 
-    // Helper to clean markdown-like symbols and redundant headers from the text
+    /**
+     * Cleans text by removing emojis and redundant headers found in the source data.
+     * @param {string} text - The raw text.
+     * @returns {string} The cleaned text.
+     */
     const cleanText = (text: string) => {
         if (!text) return "";
 
@@ -25,14 +46,10 @@ export function QuizExplanation({ explanation, zoomLevel }: { explanation: Expla
             "रोचक तथ्य"
         ];
 
-        // 3. Split into lines and filter out lines that are just headers (ignoring markdown like ** or --)
+        // 3. Filter lines
         const lines = cleaned.split('\n');
         const filteredLines = lines.filter(line => {
-            // Remove bold markers, trimming, etc to check content
             const plainLine = line.replace(/\*\*|__/g, '').trim();
-
-            // Check if this line matches any redundant header (case insensitive)
-            // Also check with simple punctuation like ':'
             return !redundantHeaders.some(header => {
                 const h = header.toLowerCase();
                 const l = plainLine.toLowerCase();
@@ -43,24 +60,30 @@ export function QuizExplanation({ explanation, zoomLevel }: { explanation: Expla
         return filteredLines.join('\n').trim();
     };
 
-    // Helper to extract only English text from summary
+    /**
+     * Extracts only English text from the summary, filtering out Hindi lines.
+     * @param {string} summary - The mixed-language summary.
+     * @returns {string} English-only summary.
+     */
     const getEnglishSummary = (summary: string) => {
         if (!summary) return "";
         return summary.split('\n')
             .filter(line => {
                 const trimmed = line.trim();
-                // Filter out lines containing Devanagari script (Hindi) or starting with Hindi prefix
+                // Regex range for Devanagari script
                 return !/[\u0900-\u097F]/.test(trimmed) && !trimmed.startsWith('सही उत्तर');
             })
             .join('\n')
             .trim();
     };
 
+    /**
+     * Formats markdown-style bold text (**text**) into HTML strong tags.
+     * @param {string} content - The text content.
+     * @returns {React.ReactNode[]} Array of elements.
+     */
     const formatContent = (content: string) => {
-        // Simple bold formatting: **text** -> <strong>text</strong>
-        // Also handles newlines
         return content.split('\n').map((line, i) => {
-            // Skip empty lines that might result from cleaning
             if (!line.trim()) return <br key={i} />;
 
             const parts = line.split(/(\*\*.*?\*\*)/g);

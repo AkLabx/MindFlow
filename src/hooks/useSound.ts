@@ -1,11 +1,21 @@
-
 import { useMemo, useContext, useEffect } from 'react';
 import { SettingsContext } from '../context/SettingsContext';
 import { SettingsContextType } from '../features/quiz/types';
 
+/**
+ * Custom hook to play a sound effect.
+ *
+ * This hook creates an HTMLAudioElement for the given URL and returns a play function.
+ * It respects the global sound settings (mute/unmute) from the SettingsContext.
+ * It uses node cloning to allow overlapping playback of the same sound (e.g., rapid button clicks).
+ *
+ * @param {string} url - The URL of the sound file to play.
+ * @returns {() => void} A function that plays the sound when called.
+ */
 export const useSound = (url: string) => {
     const { isSoundEnabled } = useContext(SettingsContext) as SettingsContextType;
     
+    // Create the audio element only when the URL changes
     const audio = useMemo(() => {
         if (typeof Audio === "undefined") return null;
         const a = new Audio(url);
@@ -13,12 +23,16 @@ export const useSound = (url: string) => {
         return a;
     }, [url]);
 
+    // Preload the audio
     useEffect(() => {
         if (audio) {
-            audio.load(); // Preload the audio file
+            audio.load();
         }
     }, [audio]);
     
+    /**
+     * Plays the sound effect if sound is enabled globally.
+     */
     const play = () => {
         if (isSoundEnabled && audio) {
             // Clone node allows overlapping sounds (fast clicking)

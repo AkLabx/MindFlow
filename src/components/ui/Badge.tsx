@@ -1,15 +1,26 @@
 import React from 'react';
 import { cn } from '../../utils/cn';
 
+/**
+ * Available visual variants for the Badge component.
+ */
 type BadgeVariant = 'primary' | 'success' | 'warning' | 'danger' | 'neutral' | 'outline';
 
+/**
+ * Props for the Badge component.
+ */
 interface BadgeProps {
+  /** The content to display inside the badge. */
   children: React.ReactNode;
+  /** The visual style variant of the badge. Defaults to 'neutral'. */
   variant?: BadgeVariant;
+  /** Additional CSS classes to apply. */
   className?: string;
+  /** Optional icon to display before the text. */
   icon?: React.ReactNode;
 }
 
+/** Mapping of variant names to Tailwind CSS class strings. */
 const variantStyles: Record<BadgeVariant, string> = {
   primary: "bg-indigo-100 text-indigo-700 border-transparent",
   success: "bg-emerald-100 text-emerald-700 border-transparent",
@@ -19,6 +30,15 @@ const variantStyles: Record<BadgeVariant, string> = {
   outline: "bg-transparent text-gray-600 border-gray-200",
 };
 
+/**
+ * A small status label or tag component.
+ *
+ * Used to display metadata, status, or labels (e.g., "New", "Admin", "Completed").
+ * Supports icons and multiple color variants.
+ *
+ * @param {BadgeProps} props - The component props.
+ * @returns {JSX.Element} The rendered Badge component.
+ */
 export const Badge: React.FC<BadgeProps> = ({ 
   children, 
   variant = 'neutral', 
