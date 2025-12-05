@@ -147,11 +147,11 @@ export function QuizQuestionDisplay({
                                 }
                             }}
                             disabled={isLoading}
-                            className={`absolute top-0 right-0 p-2 rounded-full transition-colors ${
+                            className={`absolute top-0 right-0 p-2 rounded-full transition-all shadow-sm border ${
                                 isPlaying
-                                    ? 'text-red-500 bg-red-50 hover:bg-red-100'
-                                    : 'text-indigo-400 hover:text-indigo-600 hover:bg-indigo-50'
-                            }`}
+                                    ? 'text-red-600 bg-red-100 border-red-200 hover:bg-red-200 shadow-red-100'
+                                    : 'text-indigo-600 bg-indigo-50 border-indigo-200 hover:bg-indigo-100 shadow-indigo-100'
+                            } active:scale-95`}
                             title={isPlaying ? "Stop reading" : "Read question in Hindi"}
                         >
                             {isLoading ? (

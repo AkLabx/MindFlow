@@ -38,6 +38,7 @@ jobs:
         env:
           # These secrets must be added in Repo Settings > Secrets and variables > Actions
           # If you haven't added them, the build will use empty strings or hardcoded fallbacks
+          API_KEY: ${{ secrets.API_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
