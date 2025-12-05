@@ -2,6 +2,7 @@
 import React, { useMemo, useEffect } from 'react';
 import { Question } from '../types';
 import { QuizOption } from './QuizOption';
+import { AiExplanationButton } from './AiExplanationButton';
 import { Clock, Hash, Calendar, FileText, Volume2, Square, Loader2 } from 'lucide-react';
 import { useTextToSpeech } from '../hooks/useTextToSpeech';
 
@@ -117,6 +118,13 @@ export function QuizQuestionDisplay({
                         </div>
                     )}
                 </div>
+
+                {/* AI Explanation Button - Only in Learning Mode after answering */}
+                {isAnswered && !isMockMode && (
+                   <div className="flex justify-end -mt-2 mb-2">
+                       <AiExplanationButton question={question} selectedAnswer={selectedAnswer} />
+                   </div>
+                )}
 
                 {question.question_hi && (
                     <div className="relative group">
