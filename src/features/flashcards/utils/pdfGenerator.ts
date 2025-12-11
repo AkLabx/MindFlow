@@ -69,7 +69,8 @@ export const generateIdiomsPDF = async (data: Idiom[], config: PDFGenerationConf
     const cardStartY = isTop ? PAGE_EDGE_PADDING : (halfPageHeight + PAGE_EDGE_PADDING);
 
     // Draw Card Background
-    doc.setFillColor(PDF_BG_COLOR);
+    // Use explicit RGB values (255, 233, 226) for #FFE9E2 to prevent black background issue
+    doc.setFillColor(255, 233, 226);
     doc.rect(cardStartX, cardStartY, cardWidth, cardHeight, 'F');
 
     let currentX = cardStartX + CARD_PADDING;
