@@ -4,7 +4,7 @@ import { OneWord } from '../../../types/models';
 import { PDFGenerationConfig } from '../../../hooks/usePDFGenerator';
 
 // Constants
-const PDF_BG_COLOR = '#FFE9E2D2';
+const PDF_BG_COLOR = '#FFE9E2';
 const TEXT_COLOR_DARK = '#000000'; // Or a dark gray if preferred
 const PAGE_MARGIN_X = 15;
 const PAGE_MARGIN_Y = 15;
