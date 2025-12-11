@@ -6,13 +6,11 @@ import { PDFGenerationConfig } from '../../../hooks/usePDFGenerator';
 // Constants
 const PDF_BG_COLOR = '#FFE9E2D2';
 const TEXT_COLOR_DARK = '#000000';
-const PAGE_MARGIN_X = 15;
-const PAGE_MARGIN_Y = 15;
+const PAGE_EDGE_PADDING = 10;
+const CARD_PADDING = 10;
 
 /**
  * Helper to render Hindi text to an image.
- * Duplicated from OWS generator for now to avoid circular deps or complex shared utils,
- * but in a larger refactor could be moved to a shared PDF utils file.
  */
 const renderHindiToImage = async (text: string): Promise<string> => {
   const container = document.createElement('div');
@@ -54,43 +52,44 @@ export const generateIdiomsPDF = async (data: Idiom[], config: PDFGenerationConf
 
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
-  const contentWidth = pageWidth - (PAGE_MARGIN_X * 2);
   const halfPageHeight = pageHeight / 2;
-
-  // Set background for the first page
-  doc.setFillColor(PDF_BG_COLOR);
-  doc.rect(0, 0, pageWidth, pageHeight, 'F');
+  const cardWidth = pageWidth - (PAGE_EDGE_PADDING * 2);
+  const cardHeight = halfPageHeight - (PAGE_EDGE_PADDING * 2);
+  const contentWidth = cardWidth - (CARD_PADDING * 2);
 
   for (let i = 0; i < data.length; i++) {
     const item = data[i];
     const isTop = i % 2 === 0;
 
-    // Add new page if we are starting an odd index (which goes to top) and it's not the first item
     if (i > 0 && isTop) {
       doc.addPage();
-      doc.setFillColor(PDF_BG_COLOR);
-      doc.rect(0, 0, pageWidth, pageHeight, 'F');
     }
 
-    const startY = isTop ? PAGE_MARGIN_Y : halfPageHeight + PAGE_MARGIN_Y;
-    let currentY = startY;
+    const cardStartX = PAGE_EDGE_PADDING;
+    const cardStartY = isTop ? PAGE_EDGE_PADDING : (halfPageHeight + PAGE_EDGE_PADDING);
+
+    // Draw Card Background
+    doc.setFillColor(PDF_BG_COLOR);
+    doc.rect(cardStartX, cardStartY, cardWidth, cardHeight, 'F');
+
+    let currentX = cardStartX + CARD_PADDING;
+    let currentY = cardStartY + CARD_PADDING;
 
     // --- PHRASE (Topic) ---
-    doc.setFontSize(20);
+    doc.setFontSize(18);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(TEXT_COLOR_DARK);
 
     const phraseText = doc.splitTextToSize(item.content.phrase, contentWidth);
-    doc.text(phraseText, PAGE_MARGIN_X, currentY);
-    currentY += (doc.getTextDimensions(phraseText).h + 6);
+    doc.text(phraseText, currentX, currentY + 5);
+    currentY += (doc.getTextDimensions(phraseText).h + 8);
 
-    // Helper to add labeled fields
     const addField = (label: string, content: string | string[], isHindiImage: boolean = false) => {
       // Label
-      doc.setFontSize(9);
+      doc.setFontSize(8);
       doc.setFont('helvetica', 'bold');
-      doc.setTextColor(100, 100, 100);
-      doc.text(label.toUpperCase(), PAGE_MARGIN_X, currentY);
+      doc.setTextColor(80, 80, 80);
+      doc.text(label.toUpperCase(), currentX, currentY);
 
       currentY += 4;
 
@@ -104,7 +103,7 @@ export const generateIdiomsPDF = async (data: Idiom[], config: PDFGenerationConf
 
       const textStr = Array.isArray(content) ? content.join('; ') : content;
       const lines = doc.splitTextToSize(textStr, contentWidth);
-      doc.text(lines, PAGE_MARGIN_X, currentY);
+      doc.text(lines, currentX, currentY);
       currentY += (doc.getTextDimensions(lines).h + 5);
     };
 
@@ -113,20 +112,19 @@ export const generateIdiomsPDF = async (data: Idiom[], config: PDFGenerationConf
 
     // Meaning (Hindi) - IMAGE
     if (item.content.meanings.hindi) {
-        doc.setFontSize(9);
+        doc.setFontSize(8);
         doc.setFont('helvetica', 'bold');
-        doc.setTextColor(100, 100, 100);
-        doc.text('HINDI MEANING', PAGE_MARGIN_X, currentY);
+        doc.setTextColor(80, 80, 80);
+        doc.text('HINDI MEANING', currentX, currentY);
         currentY += 4;
 
         const hindiImgData = await renderHindiToImage(item.content.meanings.hindi);
 
         const imgProps = doc.getImageProperties(hindiImgData);
-        // Scale to fit width nicely, similar to OWS
-        const finalImgWidth = 100; // 100mm wide
+        const finalImgWidth = 80;
         const finalImgHeight = (imgProps.height * finalImgWidth) / imgProps.width;
 
-        doc.addImage(hindiImgData, 'JPEG', PAGE_MARGIN_X, currentY, finalImgWidth, finalImgHeight);
+        doc.addImage(hindiImgData, 'JPEG', currentX, currentY, finalImgWidth, finalImgHeight);
         currentY += (finalImgHeight + 5);
     }
 
@@ -143,15 +141,6 @@ export const generateIdiomsPDF = async (data: Idiom[], config: PDFGenerationConf
     // Mnemonic
     if (item.content.extras.mnemonic) {
       addField('Mnemonic', item.content.extras.mnemonic);
-    }
-
-    // Draw a separator line if it's the top item
-    if (isTop) {
-       doc.setDrawColor(200, 200, 200);
-       // Cast to any because setLineDash is missing from @types/jspdf but exists in the library
-       (doc as any).setLineDash([2, 2], 0);
-       doc.line(10, halfPageHeight, pageWidth - 10, halfPageHeight);
-       (doc as any).setLineDash([], 0);
     }
   }
 
