@@ -60,8 +60,6 @@ export const FlashcardNavigationPanel: React.FC<FlashcardNavigationPanelProps> =
   const { generatePDF, isGenerating, error } = usePDFGenerator(generateIdiomsPDF);
   const [generatingChunk, setGeneratingChunk] = useState<number | null>(null);
 
-  const chunkSize = 50;
-
   // Auto-expand current group on open to show the active question
   useEffect(() => {
     if (isOpen) {
