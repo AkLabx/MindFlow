@@ -148,9 +148,10 @@ export const generateIdiomsPDF = async (data: Idiom[], config: PDFGenerationConf
     // Draw a separator line if it's the top item
     if (isTop) {
        doc.setDrawColor(200, 200, 200);
-       doc.setLineDash([2, 2], 0);
+       // Cast to any because setLineDash is missing from @types/jspdf but exists in the library
+       (doc as any).setLineDash([2, 2], 0);
        doc.line(10, halfPageHeight, pageWidth - 10, halfPageHeight);
-       doc.setLineDash([], 0);
+       (doc as any).setLineDash([], 0);
     }
   }
 
