@@ -18,6 +18,8 @@ export const APP_CONFIG = {
     SETTINGS: 'mindflow_settings_v1',
     /** Key for storing the user's theme preference (e.g., dark mode). */
     THEME: 'darkMode',
+    /** Key for storing the OWS navigation batch size preference. */
+    OWS_BATCH_SIZE: 'mindflow_ows_batch_size_v1',
   },
 
   /**

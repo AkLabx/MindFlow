@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { X, ChevronDown, ChevronRight, Map } from 'lucide-react';
 import { OneWord } from '../../../types/models';
 import { cn } from '../../../../utils/cn';
+import { APP_CONFIG } from '../../../constants/config';
 
 /**
  * Props for the OWSNavigationPanel component.
@@ -33,15 +34,31 @@ export const OWSNavigationPanel: React.FC<OWSNavigationPanelProps> = ({
   isOpen, onClose, data, currentIndex, onJump
 }) => {
   const [openGroups, setOpenGroups] = useState<Set<number>>(new Set());
-  const chunkSize = 50;
 
-  // Auto-expand current group on open
+  // Initialize batch size from local storage or default to 50
+  const [chunkSize, setChunkSize] = useState<number>(() => {
+    try {
+      const saved = localStorage.getItem(APP_CONFIG.STORAGE_KEYS.OWS_BATCH_SIZE);
+      return saved ? parseInt(saved, 10) : 50;
+    } catch {
+      return 50;
+    }
+  });
+
+  const batchOptions = [5, 10, 15, 20, 25, 30, 40, 50, 100];
+
+  // Persist batch size changes
+  useEffect(() => {
+    localStorage.setItem(APP_CONFIG.STORAGE_KEYS.OWS_BATCH_SIZE, chunkSize.toString());
+  }, [chunkSize]);
+
+  // Auto-expand current group on open or when chunkSize changes
   useEffect(() => {
     if (isOpen) {
       const currentGroup = Math.floor(currentIndex / chunkSize);
       setOpenGroups(new Set([currentGroup]));
     }
-  }, [isOpen, currentIndex]);
+  }, [isOpen, currentIndex, chunkSize]);
 
   if (!isOpen) return null;
 
@@ -68,19 +85,38 @@ export const OWSNavigationPanel: React.FC<OWSNavigationPanelProps> = ({
       {/* Drawer */}
       <div className="fixed top-0 right-0 h-full w-80 bg-white shadow-2xl z-[70] flex flex-col border-l border-gray-200 animate-in slide-in-from-right duration-300">
         {/* Header */}
-        <div className="p-5 border-b border-teal-100 bg-teal-50 flex justify-between items-center">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-teal-100 rounded-lg text-teal-600">
-              <Map className="w-5 h-5" />
+        <div className="p-5 border-b border-teal-100 bg-teal-50 space-y-3">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-teal-100 rounded-lg text-teal-600">
+                <Map className="w-5 h-5" />
+              </div>
+              <div>
+                <h2 className="font-bold text-teal-900 leading-tight">Word Map</h2>
+                <p className="text-xs text-teal-700 font-medium">{data.length} items total</p>
+              </div>
             </div>
-            <div>
-              <h2 className="font-bold text-teal-900 leading-tight">Word Map</h2>
-              <p className="text-xs text-teal-700 font-medium">{data.length} items total</p>
-            </div>
+            <button onClick={onClose} className="p-2 hover:bg-teal-200/50 rounded-full text-teal-800 transition-colors">
+              <X className="w-5 h-5" />
+            </button>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-teal-200/50 rounded-full text-teal-800 transition-colors">
-            <X className="w-5 h-5" />
-          </button>
+
+          {/* Batch Size Selector */}
+          <div className="flex items-center justify-between bg-white p-2 rounded-lg border border-teal-200">
+            <label htmlFor="batch-size" className="text-xs font-semibold text-teal-800 pl-1">
+              Group Size:
+            </label>
+            <select
+              id="batch-size"
+              value={chunkSize}
+              onChange={(e) => setChunkSize(parseInt(e.target.value, 10))}
+              className="text-sm font-medium text-teal-900 bg-teal-50 border-none rounded focus:ring-2 focus:ring-teal-500 py-1 pl-2 pr-8 cursor-pointer outline-none"
+            >
+              {batchOptions.map(size => (
+                <option key={size} value={size}>{size}</option>
+              ))}
+            </select>
+          </div>
         </div>
 
         {/* Content List */}
