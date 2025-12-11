@@ -20,6 +20,8 @@ export const APP_CONFIG = {
     THEME: 'darkMode',
     /** Key for storing the OWS navigation batch size preference. */
     OWS_BATCH_SIZE: 'mindflow_ows_batch_size_v1',
+    /** Key for storing the Idioms navigation batch size preference. */
+    IDIOMS_BATCH_SIZE: 'mindflow_idioms_batch_size_v1',
   },
 
   /**

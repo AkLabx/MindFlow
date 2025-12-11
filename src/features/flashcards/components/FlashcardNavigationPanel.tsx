@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { X, ChevronDown, ChevronRight, Map, ArrowDown, Loader2 } from 'lucide-react';
 import { Idiom } from '../../../types/models';
 import { cn } from '../../../../utils/cn';
+import { APP_CONFIG } from '../../../constants/config';
 import { usePDFGenerator } from '../../../hooks/usePDFGenerator';
 import { generateIdiomsPDF } from '../utils/pdfGenerator';
 
@@ -39,6 +40,23 @@ export const FlashcardNavigationPanel: React.FC<FlashcardNavigationPanelProps> =
   isOpen, onClose, idioms, currentIndex, onJump
 }) => {
   const [openGroups, setOpenGroups] = useState<Set<number>>(new Set());
+
+  // Initialize batch size from local storage or default to 50
+  const [chunkSize, setChunkSize] = useState<number>(() => {
+    try {
+      const saved = localStorage.getItem(APP_CONFIG.STORAGE_KEYS.IDIOMS_BATCH_SIZE);
+      return saved ? parseInt(saved, 10) : 50;
+    } catch {
+      return 50;
+    }
+  });
+
+  const batchOptions = [5, 10, 15, 20, 25, 30, 40, 50, 100];
+
+  // Persist batch size changes
+  useEffect(() => {
+    localStorage.setItem(APP_CONFIG.STORAGE_KEYS.IDIOMS_BATCH_SIZE, chunkSize.toString());
+  }, [chunkSize]);
   const { generatePDF, isGenerating, error } = usePDFGenerator(generateIdiomsPDF);
   const [generatingChunk, setGeneratingChunk] = useState<number | null>(null);
 
@@ -50,7 +68,7 @@ export const FlashcardNavigationPanel: React.FC<FlashcardNavigationPanelProps> =
       const currentGroup = Math.floor(currentIndex / chunkSize);
       setOpenGroups(new Set([currentGroup]));
     }
-  }, [isOpen, currentIndex]);
+  }, [isOpen, currentIndex, chunkSize]);
 
   if (!isOpen) return null;
 
@@ -92,6 +110,7 @@ export const FlashcardNavigationPanel: React.FC<FlashcardNavigationPanelProps> =
         {/* Header */}
         <div className="p-5 border-b border-amber-100 bg-amber-50 space-y-3">
           <div className="flex justify-between items-center">
+            <div className="flex items-center gap-3">
              <div className="flex items-center gap-3">
               <div className="p-2 bg-amber-100 rounded-lg text-amber-600">
                 <Map className="w-5 h-5" />
@@ -104,6 +123,24 @@ export const FlashcardNavigationPanel: React.FC<FlashcardNavigationPanelProps> =
             <button onClick={onClose} className="p-2 hover:bg-amber-200/50 rounded-full text-amber-800 transition-colors">
               <X className="w-5 h-5" />
             </button>
+          </div>
+
+          {/* Batch Size Selector */}
+          <div className="flex items-center justify-between bg-white p-2 rounded-lg border border-amber-200">
+            <label htmlFor="batch-size" className="text-xs font-semibold text-amber-800 pl-1">
+              Group Size:
+            </label>
+            <select
+              id="batch-size"
+              value={chunkSize}
+              onChange={(e) => setChunkSize(parseInt(e.target.value, 10))}
+              className="text-sm font-medium text-amber-900 bg-amber-50 border-none rounded focus:ring-2 focus:ring-amber-500 py-1 pl-2 pr-8 cursor-pointer outline-none"
+            >
+              {batchOptions.map(size => (
+                <option key={size} value={size}>{size}</option>
+              ))}
+            </select>
+          </div>
           </div>
 
            {error && (
