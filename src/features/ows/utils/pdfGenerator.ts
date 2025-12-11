@@ -171,9 +171,10 @@ export const generateOWSPDF = async (data: OneWord[], config: PDFGenerationConfi
     // Draw a separator line if it's the top item
     if (isTop) {
        doc.setDrawColor(200, 200, 200); // Light grey line
-       doc.setLineDash([2, 2], 0);
+       // Cast to any because setLineDash is missing from @types/jspdf but exists in the library
+       (doc as any).setLineDash([2, 2], 0);
        doc.line(10, halfPageHeight, pageWidth - 10, halfPageHeight);
-       doc.setLineDash([], 0); // Reset
+       (doc as any).setLineDash([], 0); // Reset
     }
   }
 
