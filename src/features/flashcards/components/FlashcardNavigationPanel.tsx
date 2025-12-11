@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { X, ChevronDown, ChevronRight, Map } from 'lucide-react';
+import { X, ChevronDown, ChevronRight, Map, ArrowDown, Loader2 } from 'lucide-react';
 import { Idiom } from '../../../types/models';
 import { cn } from '../../../../utils/cn';
 import { APP_CONFIG } from '../../../constants/config';
+import { usePDFGenerator } from '../../../hooks/usePDFGenerator';
+import { generateIdiomsPDF } from '../utils/pdfGenerator';
 
 /**
  * Props for the FlashcardNavigationPanel component.
@@ -55,6 +57,10 @@ export const FlashcardNavigationPanel: React.FC<FlashcardNavigationPanelProps> =
   useEffect(() => {
     localStorage.setItem(APP_CONFIG.STORAGE_KEYS.IDIOMS_BATCH_SIZE, chunkSize.toString());
   }, [chunkSize]);
+  const { generatePDF, isGenerating, error } = usePDFGenerator(generateIdiomsPDF);
+  const [generatingChunk, setGeneratingChunk] = useState<number | null>(null);
+
+  const chunkSize = 50;
 
   // Auto-expand current group on open to show the active question
   useEffect(() => {
@@ -78,6 +84,19 @@ export const FlashcardNavigationPanel: React.FC<FlashcardNavigationPanelProps> =
     });
   };
 
+  /** Handles the PDF download for a specific chunk. */
+  const handleDownload = async (e: React.MouseEvent, chunkIndex: number, start: number, end: number) => {
+    e.stopPropagation(); // Prevent toggling the group
+    if (isGenerating) return;
+
+    setGeneratingChunk(chunkIndex);
+    const chunkData = idioms.slice(start, end);
+    const fileName = `Idioms_Flashcards_Part_${chunkIndex + 1}_(${start + 1}-${end}).pdf`;
+
+    await generatePDF(chunkData, { fileName });
+    setGeneratingChunk(null);
+  };
+
   return createPortal(
     <>
       {/* Overlay - click to close */}
@@ -92,6 +111,7 @@ export const FlashcardNavigationPanel: React.FC<FlashcardNavigationPanelProps> =
         <div className="p-5 border-b border-amber-100 bg-amber-50 space-y-3">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-3">
+             <div className="flex items-center gap-3">
               <div className="p-2 bg-amber-100 rounded-lg text-amber-600">
                 <Map className="w-5 h-5" />
               </div>
@@ -121,6 +141,13 @@ export const FlashcardNavigationPanel: React.FC<FlashcardNavigationPanelProps> =
               ))}
             </select>
           </div>
+          </div>
+
+           {error && (
+             <div className="p-2 bg-red-50 border border-red-200 text-red-600 text-xs rounded">
+               Failed to generate PDF. Please try again.
+             </div>
+           )}
         </div>
 
         {/* Content List - Grouped Idioms */}
@@ -129,6 +156,7 @@ export const FlashcardNavigationPanel: React.FC<FlashcardNavigationPanelProps> =
             const start = chunkIndex * chunkSize;
             const end = Math.min(start + chunkSize, idioms.length);
             const isOpen = openGroups.has(chunkIndex);
+            const isDownloading = generatingChunk === chunkIndex;
 
             // Check if current idiom is in this chunk for styling emphasis
             const containsCurrent = currentIndex >= start && currentIndex < end;
@@ -138,16 +166,30 @@ export const FlashcardNavigationPanel: React.FC<FlashcardNavigationPanelProps> =
                 "border rounded-xl overflow-hidden transition-all duration-200",
                 containsCurrent ? "border-amber-300 shadow-sm bg-white" : "border-gray-200 bg-white"
               )}>
-                <button
+                <div
                   onClick={() => toggleGroup(chunkIndex)}
                   className={cn(
-                    "w-full flex items-center justify-between p-3.5 text-sm font-bold transition-colors",
+                    "w-full flex items-center justify-between p-3.5 text-sm font-bold transition-colors cursor-pointer",
                     containsCurrent ? "bg-amber-50 text-amber-800" : "hover:bg-gray-50 text-gray-700"
                   )}
                 >
                   <span>Idioms {start + 1} - {end}</span>
-                  {isOpen ? <ChevronDown className="w-4 h-4 text-amber-500" /> : <ChevronRight className="w-4 h-4 text-gray-400" />}
-                </button>
+                  <div className="flex items-center gap-2">
+                     <button
+                        onClick={(e) => handleDownload(e, chunkIndex, start, end)}
+                        disabled={isGenerating}
+                        className="p-1.5 hover:bg-black/10 rounded-full text-current transition-colors disabled:opacity-50"
+                        title="Download Flashcards PDF"
+                     >
+                        {isDownloading ? (
+                           <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                           <ArrowDown className="w-4 h-4" />
+                        )}
+                     </button>
+                    {isOpen ? <ChevronDown className="w-4 h-4 text-amber-500" /> : <ChevronRight className="w-4 h-4 text-gray-400" />}
+                  </div>
+                </div>
 
                 {isOpen && (
                   <div className="p-3 grid grid-cols-5 gap-2 bg-white border-t border-gray-100 animate-in slide-in-from-top-2 fade-in duration-200">
