@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { X, ChevronDown, ChevronRight, Map } from 'lucide-react';
+import { X, ChevronDown, ChevronRight, Map, ArrowDown, Loader2 } from 'lucide-react';
 import { OneWord } from '../../../types/models';
 import { cn } from '../../../../utils/cn';
 import { APP_CONFIG } from '../../../constants/config';
+import { usePDFGenerator } from '../../../hooks/usePDFGenerator';
+import { generateOWSPDF } from '../utils/pdfGenerator';
 
 /**
  * Props for the OWSNavigationPanel component.
@@ -25,7 +27,7 @@ interface OWSNavigationPanelProps {
  * A side drawer navigation panel for the OWS session.
  *
  * Provides an overview map of all words in the current session, grouped by chunks.
- * Allows quick navigation to specific words.
+ * Allows quick navigation to specific words and downloading flashcards as PDF.
  *
  * @param {OWSNavigationPanelProps} props - The component props.
  * @returns {JSX.Element | null} The rendered panel or null if closed.
@@ -34,6 +36,8 @@ export const OWSNavigationPanel: React.FC<OWSNavigationPanelProps> = ({
   isOpen, onClose, data, currentIndex, onJump
 }) => {
   const [openGroups, setOpenGroups] = useState<Set<number>>(new Set());
+  const { generatePDF, isGenerating, error } = usePDFGenerator(generateOWSPDF);
+  const [generatingChunk, setGeneratingChunk] = useState<number | null>(null);
 
   // Initialize batch size from local storage or default to 50
   const [chunkSize, setChunkSize] = useState<number>(() => {
@@ -72,6 +76,19 @@ export const OWSNavigationPanel: React.FC<OWSNavigationPanelProps> = ({
       else next.add(index);
       return next;
     });
+  };
+
+  /** Handles the PDF download for a specific chunk. */
+  const handleDownload = async (e: React.MouseEvent, chunkIndex: number, start: number, end: number) => {
+    e.stopPropagation(); // Prevent toggling the group
+    if (isGenerating) return;
+
+    setGeneratingChunk(chunkIndex);
+    const chunkData = data.slice(start, end);
+    const fileName = `OWS_Flashcards_Part_${chunkIndex + 1}_(${start + 1}-${end}).pdf`;
+
+    await generatePDF(chunkData, { fileName });
+    setGeneratingChunk(null);
   };
 
   return createPortal(
@@ -117,6 +134,12 @@ export const OWSNavigationPanel: React.FC<OWSNavigationPanelProps> = ({
               ))}
             </select>
           </div>
+
+          {error && (
+             <div className="p-2 bg-red-50 border border-red-200 text-red-600 text-xs rounded">
+               Failed to generate PDF. Please try again.
+             </div>
+          )}
         </div>
 
         {/* Content List */}
@@ -125,6 +148,7 @@ export const OWSNavigationPanel: React.FC<OWSNavigationPanelProps> = ({
             const start = chunkIndex * chunkSize;
             const end = Math.min(start + chunkSize, data.length);
             const isOpen = openGroups.has(chunkIndex);
+            const isDownloading = generatingChunk === chunkIndex;
 
             const containsCurrent = currentIndex >= start && currentIndex < end;
 
@@ -133,16 +157,30 @@ export const OWSNavigationPanel: React.FC<OWSNavigationPanelProps> = ({
                 "border rounded-xl overflow-hidden transition-all duration-200",
                 containsCurrent ? "border-teal-300 shadow-sm bg-white" : "border-gray-200 bg-white"
               )}>
-                <button
+                <div
                   onClick={() => toggleGroup(chunkIndex)}
                   className={cn(
-                    "w-full flex items-center justify-between p-3.5 text-sm font-bold transition-colors",
+                    "w-full flex items-center justify-between p-3.5 text-sm font-bold transition-colors cursor-pointer",
                     containsCurrent ? "bg-teal-50 text-teal-800" : "hover:bg-gray-50 text-gray-700"
                   )}
                 >
                   <span>Words {start + 1} - {end}</span>
-                  {isOpen ? <ChevronDown className="w-4 h-4 text-teal-500" /> : <ChevronRight className="w-4 h-4 text-gray-400" />}
-                </button>
+                  <div className="flex items-center gap-2">
+                     <button
+                        onClick={(e) => handleDownload(e, chunkIndex, start, end)}
+                        disabled={isGenerating}
+                        className="p-1.5 hover:bg-black/10 rounded-full text-current transition-colors disabled:opacity-50"
+                        title="Download Flashcards PDF"
+                     >
+                        {isDownloading ? (
+                           <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                           <ArrowDown className="w-4 h-4" />
+                        )}
+                     </button>
+                    {isOpen ? <ChevronDown className="w-4 h-4 text-teal-500" /> : <ChevronRight className="w-4 h-4 text-gray-400" />}
+                  </div>
+                </div>
 
                 {isOpen && (
                   <div className="p-3 grid grid-cols-5 gap-2 bg-white border-t border-gray-100 animate-in slide-in-from-top-2 fade-in duration-200">
