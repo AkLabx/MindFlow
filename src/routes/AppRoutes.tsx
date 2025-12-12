@@ -16,6 +16,8 @@ const IdiomsConfig = lazy(() => import('../features/idioms/IdiomsConfig').then(m
 const OWSConfig = lazy(() => import('../features/ows/OWSConfig').then(m => ({ default: m.OWSConfig })));
 const QuizResult = lazy(() => import('../features/quiz/components/QuizResult').then(m => ({ default: m.QuizResult })));
 const FlashcardSummary = lazy(() => import('../features/flashcards/components/FlashcardSummary').then(m => ({ default: m.FlashcardSummary })));
+const ToolsHome = lazy(() => import('../features/tools/ToolsHome'));
+const FlashcardMaker = lazy(() => import('../features/tools/flashcard-maker/FlashcardMaker'));
 
 // Immersive Session Views (No standard layout)
 const LearningSession = lazy(() => import('../features/quiz/learning/LearningSession').then(m => ({ default: m.LearningSession })));
@@ -157,6 +159,9 @@ const AppRoutesContent: React.FC = () => {
                             onHome={navHome}
                         />
                     } />
+
+                    <Route path="/tools" element={<ToolsHome />} />
+                    <Route path="/tools/flashcard-maker" element={<FlashcardMaker />} />
                 </Route>
 
                 {/* --- Immersive Session Routes (No Layout, Fullscreen) --- */}
