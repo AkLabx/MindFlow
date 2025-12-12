@@ -1,0 +1,5 @@
+{
+  "name": "FlashCard Image Maker",
+  "description": "A high-fidelity vintage flashcard generator for linguists and engineers, featuring a custom canvas rendering engine and AI-assisted content generation.",
+  "requestFramePermissions": []
+}
