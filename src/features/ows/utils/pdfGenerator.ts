@@ -22,7 +22,7 @@ const renderHindiToImage = async (text: string): Promise<string> => {
   container.style.backgroundColor = PDF_BG_COLOR;
   container.style.padding = '4px';
   container.style.fontFamily = 'serif'; // Use a standard serif font or specific Hindi font if available
-  container.style.fontSize = '12pt'; // Normal size
+  container.style.fontSize = '24pt'; // Increased size as per user request
   container.style.color = TEXT_COLOR_DARK;
   container.style.lineHeight = '1.5';
   container.innerText = text;
