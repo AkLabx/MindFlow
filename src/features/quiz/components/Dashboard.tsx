@@ -1,6 +1,7 @@
 import React from 'react';
-import { ListChecks, FileText, BookOpen, Languages, Save } from 'lucide-react';
+import { ListChecks, FileText, BookOpen, Languages, Save, Wrench } from 'lucide-react';
 import { Button } from '../../../components/Button/Button';
+import { useNavigate } from 'react-router-dom';
 
 /**
  * Props for the Dashboard component.
@@ -23,12 +24,15 @@ interface DashboardProps {
  * - Create New Quiz
  * - Saved Quizzes
  * - English Zone (Specialized features)
+ * - Tools (Utilities like Flashcard Maker)
  * - User Guide (Static content)
  *
  * @param {DashboardProps} props - The component props.
  * @returns {JSX.Element} The rendered Dashboard.
  */
 export const Dashboard: React.FC<DashboardProps> = ({ onStartQuiz, onEnglish, onBackToIntro, onSavedQuizzes }) => {
+    const navigate = useNavigate();
+
     return (
         <div className="flex flex-col">
             <div className="flex-1 flex flex-col items-center justify-center space-y-10 py-6 relative z-10 animate-fade-in">
@@ -57,7 +61,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onStartQuiz, onEnglish, on
                 </div>
 
                 {/* Cards Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 w-full">
                     {/* Card 1 - Custom Quiz */}
                     <div
                         onClick={onStartQuiz}
@@ -100,8 +104,22 @@ export const Dashboard: React.FC<DashboardProps> = ({ onStartQuiz, onEnglish, on
                         </p>
                     </div>
 
-                    {/* Card 4 - Guide */}
-                    <div className="bg-white p-6 rounded-2xl border border-gray-200 cursor-pointer group transition-all duration-200 active:scale-[0.98] shadow-sm hover:shadow-md hover:border-blue-300">
+                     {/* Card 4 - Tools */}
+                     <div
+                        onClick={() => navigate('/tools')}
+                        className="bg-white p-6 rounded-2xl border border-gray-200 cursor-pointer group relative z-20 transition-all duration-200 active:scale-[0.98] shadow-sm hover:shadow-md hover:border-amber-300"
+                    >
+                        <div className="w-10 h-10 bg-amber-50 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                            <Wrench className="w-5 h-5 text-amber-600" />
+                        </div>
+                        <h3 className="text-lg font-bold text-gray-900 mb-1">Tools</h3>
+                        <p className="text-gray-500 text-xs font-medium">
+                            Flashcard Maker & Utilities.
+                        </p>
+                    </div>
+
+                    {/* Card 5 - Guide */}
+                    <div className="bg-white p-6 rounded-2xl border border-gray-200 cursor-pointer group transition-all duration-200 active:scale-[0.98] shadow-sm hover:shadow-md hover:border-blue-300 sm:col-span-2 lg:col-span-1">
                         <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                             <BookOpen className="w-5 h-5 text-blue-600" />
                         </div>
