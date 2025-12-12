@@ -5,7 +5,9 @@ import { Idiom } from '../../../types/models';
 import { cn } from '../../../../utils/cn';
 import { APP_CONFIG } from '../../../constants/config';
 import { usePDFGenerator } from '../../../hooks/usePDFGenerator';
+import { useJSONDownloader } from '../../../hooks/useJSONDownloader';
 import { generateIdiomsPDF } from '../utils/pdfGenerator';
+import { DownloadOptionsModal } from '../../../components/ui/DownloadOptionsModal';
 
 /**
  * Props for the FlashcardNavigationPanel component.
@@ -41,6 +43,20 @@ export const FlashcardNavigationPanel: React.FC<FlashcardNavigationPanelProps> =
 }) => {
   const [openGroups, setOpenGroups] = useState<Set<number>>(new Set());
 
+  // Generators
+  const { generatePDF, isGenerating: isGeneratingPDF, error: pdfError } = usePDFGenerator(generateIdiomsPDF);
+  const { downloadJSON, isGenerating: isGeneratingJSON, error: jsonError } = useJSONDownloader<Idiom>();
+
+  // State to track which chunk is currently being downloaded (to show spinner in list)
+  const [downloadingChunk, setDownloadingChunk] = useState<number | null>(null);
+
+  // State to manage the download options modal
+  const [downloadModalState, setDownloadModalState] = useState<{
+    chunkIndex: number;
+    start: number;
+    end: number;
+  } | null>(null);
+
   // Initialize batch size from local storage or default to 50
   const [chunkSize, setChunkSize] = useState<number>(() => {
     try {
@@ -57,8 +73,6 @@ export const FlashcardNavigationPanel: React.FC<FlashcardNavigationPanelProps> =
   useEffect(() => {
     localStorage.setItem(APP_CONFIG.STORAGE_KEYS.IDIOMS_BATCH_SIZE, chunkSize.toString());
   }, [chunkSize]);
-  const { generatePDF, isGenerating, error } = usePDFGenerator(generateIdiomsPDF);
-  const [generatingChunk, setGeneratingChunk] = useState<number | null>(null);
 
   // Auto-expand current group on open to show the active question
   useEffect(() => {
@@ -82,17 +96,39 @@ export const FlashcardNavigationPanel: React.FC<FlashcardNavigationPanelProps> =
     });
   };
 
-  /** Handles the PDF download for a specific chunk. */
-  const handleDownload = async (e: React.MouseEvent, chunkIndex: number, start: number, end: number) => {
-    e.stopPropagation(); // Prevent toggling the group
-    if (isGenerating) return;
+  /** Opens the download options modal. */
+  const handleDownloadClick = (e: React.MouseEvent, chunkIndex: number, start: number, end: number) => {
+    e.stopPropagation();
+    if (isGeneratingPDF || isGeneratingJSON) return;
+    setDownloadModalState({ chunkIndex, start, end });
+  };
 
-    setGeneratingChunk(chunkIndex);
+  /** Handles PDF generation */
+  const handleDownloadPDF = async () => {
+    if (!downloadModalState) return;
+    const { chunkIndex, start, end } = downloadModalState;
+
+    setDownloadingChunk(chunkIndex);
     const chunkData = idioms.slice(start, end);
     const fileName = `Idioms_Flashcards_Part_${chunkIndex + 1}_(${start + 1}-${end}).pdf`;
 
     await generatePDF(chunkData, { fileName });
-    setGeneratingChunk(null);
+    setDownloadingChunk(null);
+    setDownloadModalState(null);
+  };
+
+  /** Handles JSON download */
+  const handleDownloadJSON = async () => {
+    if (!downloadModalState) return;
+    const { chunkIndex, start, end } = downloadModalState;
+
+    setDownloadingChunk(chunkIndex);
+    const chunkData = idioms.slice(start, end);
+    const fileName = `Idioms_Flashcards_Part_${chunkIndex + 1}_(${start + 1}-${end}).json`;
+
+    await downloadJSON(chunkData, fileName);
+    setDownloadingChunk(null);
+    setDownloadModalState(null);
   };
 
   return createPortal(
@@ -141,9 +177,9 @@ export const FlashcardNavigationPanel: React.FC<FlashcardNavigationPanelProps> =
           </div>
           </div>
 
-           {error && (
+           {(pdfError || jsonError) && (
              <div className="p-2 bg-red-50 border border-red-200 text-red-600 text-xs rounded">
-               Failed to generate PDF. Please try again.
+               Failed to generate download. Please try again.
              </div>
            )}
         </div>
@@ -154,7 +190,9 @@ export const FlashcardNavigationPanel: React.FC<FlashcardNavigationPanelProps> =
             const start = chunkIndex * chunkSize;
             const end = Math.min(start + chunkSize, idioms.length);
             const isOpen = openGroups.has(chunkIndex);
-            const isDownloading = generatingChunk === chunkIndex;
+
+            // Show spinner if this chunk is downloading (via PDF or JSON)
+            const isDownloading = downloadingChunk === chunkIndex;
 
             // Check if current idiom is in this chunk for styling emphasis
             const containsCurrent = currentIndex >= start && currentIndex < end;
@@ -174,10 +212,10 @@ export const FlashcardNavigationPanel: React.FC<FlashcardNavigationPanelProps> =
                   <span>Idioms {start + 1} - {end}</span>
                   <div className="flex items-center gap-2">
                      <button
-                        onClick={(e) => handleDownload(e, chunkIndex, start, end)}
-                        disabled={isGenerating}
+                        onClick={(e) => handleDownloadClick(e, chunkIndex, start, end)}
+                        disabled={isGeneratingPDF || isGeneratingJSON}
                         className="p-1.5 hover:bg-black/10 rounded-full text-current transition-colors disabled:opacity-50"
-                        title="Download Flashcards PDF"
+                        title="Download Flashcards"
                      >
                         {isDownloading ? (
                            <Loader2 className="w-4 h-4 animate-spin" />
@@ -221,6 +259,16 @@ export const FlashcardNavigationPanel: React.FC<FlashcardNavigationPanelProps> =
           })}
         </div>
       </div>
+
+      {/* Download Options Modal */}
+      <DownloadOptionsModal
+        isOpen={!!downloadModalState}
+        onClose={() => !isGeneratingPDF && !isGeneratingJSON && setDownloadModalState(null)}
+        onDownloadPDF={handleDownloadPDF}
+        onDownloadJSON={handleDownloadJSON}
+        isGeneratingPDF={isGeneratingPDF}
+        isGeneratingJSON={isGeneratingJSON}
+      />
     </>,
     document.body
   );

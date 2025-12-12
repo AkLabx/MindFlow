@@ -5,7 +5,9 @@ import { OneWord } from '../../../types/models';
 import { cn } from '../../../../utils/cn';
 import { APP_CONFIG } from '../../../constants/config';
 import { usePDFGenerator } from '../../../hooks/usePDFGenerator';
+import { useJSONDownloader } from '../../../hooks/useJSONDownloader';
 import { generateOWSPDF } from '../utils/pdfGenerator';
+import { DownloadOptionsModal } from '../../../components/ui/DownloadOptionsModal';
 
 /**
  * Props for the OWSNavigationPanel component.
@@ -36,8 +38,20 @@ export const OWSNavigationPanel: React.FC<OWSNavigationPanelProps> = ({
   isOpen, onClose, data, currentIndex, onJump
 }) => {
   const [openGroups, setOpenGroups] = useState<Set<number>>(new Set());
-  const { generatePDF, isGenerating, error } = usePDFGenerator(generateOWSPDF);
-  const [generatingChunk, setGeneratingChunk] = useState<number | null>(null);
+
+  // Generators
+  const { generatePDF, isGenerating: isGeneratingPDF, error: pdfError } = usePDFGenerator(generateOWSPDF);
+  const { downloadJSON, isGenerating: isGeneratingJSON, error: jsonError } = useJSONDownloader<OneWord>();
+
+  // State to track which chunk is currently being downloaded (to show spinner in list)
+  const [downloadingChunk, setDownloadingChunk] = useState<number | null>(null);
+
+  // State to manage the download options modal
+  const [downloadModalState, setDownloadModalState] = useState<{
+    chunkIndex: number;
+    start: number;
+    end: number;
+  } | null>(null);
 
   // Initialize batch size from local storage or default to 50
   const [chunkSize, setChunkSize] = useState<number>(() => {
@@ -78,17 +92,39 @@ export const OWSNavigationPanel: React.FC<OWSNavigationPanelProps> = ({
     });
   };
 
-  /** Handles the PDF download for a specific chunk. */
-  const handleDownload = async (e: React.MouseEvent, chunkIndex: number, start: number, end: number) => {
-    e.stopPropagation(); // Prevent toggling the group
-    if (isGenerating) return;
+  /** Opens the download options modal. */
+  const handleDownloadClick = (e: React.MouseEvent, chunkIndex: number, start: number, end: number) => {
+    e.stopPropagation();
+    if (isGeneratingPDF || isGeneratingJSON) return;
+    setDownloadModalState({ chunkIndex, start, end });
+  };
 
-    setGeneratingChunk(chunkIndex);
+  /** Handles PDF generation */
+  const handleDownloadPDF = async () => {
+    if (!downloadModalState) return;
+    const { chunkIndex, start, end } = downloadModalState;
+
+    setDownloadingChunk(chunkIndex);
     const chunkData = data.slice(start, end);
     const fileName = `OWS_Flashcards_Part_${chunkIndex + 1}_(${start + 1}-${end}).pdf`;
 
     await generatePDF(chunkData, { fileName });
-    setGeneratingChunk(null);
+    setDownloadingChunk(null);
+    setDownloadModalState(null);
+  };
+
+  /** Handles JSON download */
+  const handleDownloadJSON = async () => {
+    if (!downloadModalState) return;
+    const { chunkIndex, start, end } = downloadModalState;
+
+    setDownloadingChunk(chunkIndex);
+    const chunkData = data.slice(start, end);
+    const fileName = `OWS_Flashcards_Part_${chunkIndex + 1}_(${start + 1}-${end}).json`;
+
+    await downloadJSON(chunkData, fileName);
+    setDownloadingChunk(null);
+    setDownloadModalState(null);
   };
 
   return createPortal(
@@ -135,9 +171,9 @@ export const OWSNavigationPanel: React.FC<OWSNavigationPanelProps> = ({
             </select>
           </div>
 
-          {error && (
+          {(pdfError || jsonError) && (
              <div className="p-2 bg-red-50 border border-red-200 text-red-600 text-xs rounded">
-               Failed to generate PDF. Please try again.
+               Failed to generate download. Please try again.
              </div>
           )}
         </div>
@@ -148,7 +184,9 @@ export const OWSNavigationPanel: React.FC<OWSNavigationPanelProps> = ({
             const start = chunkIndex * chunkSize;
             const end = Math.min(start + chunkSize, data.length);
             const isOpen = openGroups.has(chunkIndex);
-            const isDownloading = generatingChunk === chunkIndex;
+
+            // Show spinner if this chunk is downloading (via PDF or JSON)
+            const isDownloading = downloadingChunk === chunkIndex;
 
             const containsCurrent = currentIndex >= start && currentIndex < end;
 
@@ -167,10 +205,10 @@ export const OWSNavigationPanel: React.FC<OWSNavigationPanelProps> = ({
                   <span>Words {start + 1} - {end}</span>
                   <div className="flex items-center gap-2">
                      <button
-                        onClick={(e) => handleDownload(e, chunkIndex, start, end)}
-                        disabled={isGenerating}
+                        onClick={(e) => handleDownloadClick(e, chunkIndex, start, end)}
+                        disabled={isGeneratingPDF || isGeneratingJSON}
                         className="p-1.5 hover:bg-black/10 rounded-full text-current transition-colors disabled:opacity-50"
-                        title="Download Flashcards PDF"
+                        title="Download Flashcards"
                      >
                         {isDownloading ? (
                            <Loader2 className="w-4 h-4 animate-spin" />
@@ -214,6 +252,16 @@ export const OWSNavigationPanel: React.FC<OWSNavigationPanelProps> = ({
           })}
         </div>
       </div>
+
+      {/* Download Options Modal */}
+      <DownloadOptionsModal
+        isOpen={!!downloadModalState}
+        onClose={() => !isGeneratingPDF && !isGeneratingJSON && setDownloadModalState(null)}
+        onDownloadPDF={handleDownloadPDF}
+        onDownloadJSON={handleDownloadJSON}
+        isGeneratingPDF={isGeneratingPDF}
+        isGeneratingJSON={isGeneratingJSON}
+      />
     </>,
     document.body
   );
