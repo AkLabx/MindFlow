@@ -304,7 +304,7 @@ export const FlashcardSession: React.FC<FlashcardSessionProps> = ({
               onTap={() => !isAnimating && setIsFlipped(!isFlipped)}
               className="absolute w-full h-full select-none touch-callout-none active:cursor-grabbing"
             >
-              <Flashcard idiom={currentIdiom} isFlipped={isFlipped} />
+              <Flashcard idiom={currentIdiom} serialNumber={currentIndex + 1} isFlipped={isFlipped} />
             </motion.div>
           ) : (
             <div className="h-full w-full flex items-center justify-center bg-white rounded-3xl shadow-sm">

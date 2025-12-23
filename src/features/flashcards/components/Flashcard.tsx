@@ -9,6 +9,8 @@ import { BookOpen, Lightbulb, Quote, RotateCw } from 'lucide-react';
 interface FlashcardProps {
   /** The idiom data to display on the card. */
   idiom: Idiom;
+  /** The serial number of the card in the current session (1-based). */
+  serialNumber: number;
   /** Whether the card is currently showing its back side. */
   isFlipped: boolean;
 }
@@ -22,7 +24,7 @@ interface FlashcardProps {
  * @param {FlashcardProps} props - The component props.
  * @returns {JSX.Element} The rendered Flashcard.
  */
-export const Flashcard: React.FC<FlashcardProps> = ({ idiom, isFlipped }) => {
+export const Flashcard: React.FC<FlashcardProps> = ({ idiom, serialNumber, isFlipped }) => {
   return (
     <div
       className="relative w-full h-full perspective-1000 cursor-pointer group"
@@ -59,6 +61,7 @@ export const Flashcard: React.FC<FlashcardProps> = ({ idiom, isFlipped }) => {
           {/* Footer Tags */}
           <div className="p-4 bg-white border-t border-gray-100 flex justify-between items-center text-xs text-gray-500">
             <span className="bg-gray-100 px-2 py-1 rounded-md">{idiom.properties.difficulty}</span>
+            <span>#{serialNumber}</span>
             <span>{idiom.sourceInfo.pdfName} | {idiom.sourceInfo.examYear}</span>
           </div>
         </div>
