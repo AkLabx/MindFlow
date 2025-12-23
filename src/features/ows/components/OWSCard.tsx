@@ -9,6 +9,8 @@ import { BookOpen, Lightbulb, RotateCw, Target, Tag } from 'lucide-react';
 interface OWSCardProps {
   /** The One Word Substitution data object. */
   data: OneWord;
+  /** The serial number of the card in the current session (1-based). */
+  serialNumber: number;
   /** Whether the card is flipped (showing the back). */
   isFlipped: boolean;
 }
@@ -22,7 +24,7 @@ interface OWSCardProps {
  * @param {OWSCardProps} props - The component props.
  * @returns {JSX.Element} The rendered OWS Card.
  */
-export const OWSCard: React.FC<OWSCardProps> = ({ data, isFlipped }) => {
+export const OWSCard: React.FC<OWSCardProps> = ({ data, serialNumber, isFlipped }) => {
   return (
     <div className="relative w-full h-full perspective-1000 cursor-pointer group">
       <div
@@ -57,6 +59,7 @@ export const OWSCard: React.FC<OWSCardProps> = ({ data, isFlipped }) => {
           {/* Footer Tags */}
           <div className="p-4 bg-white border-t border-gray-100 flex justify-between items-center text-xs text-gray-500">
             <span className="bg-gray-100 px-2 py-1 rounded-md">{data.properties.difficulty}</span>
+            <span>#{serialNumber}</span>
             <span>{data.sourceInfo.pdfName} | {data.sourceInfo.examYear}</span>
           </div>
         </div>
