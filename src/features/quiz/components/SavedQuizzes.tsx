@@ -48,7 +48,7 @@ export const SavedQuizzes: React.FC = () => {
 
         // Navigate based on completion status
         if (quiz.state.status === 'result') {
-            navigate('/quiz/result');
+            navigate('/result');
         } else {
             // Navigate to the appropriate active session view
             if (quiz.mode === 'mock') {
