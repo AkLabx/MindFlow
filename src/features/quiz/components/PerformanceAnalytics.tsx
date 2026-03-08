@@ -1,0 +1,216 @@
+import React, { useState, useEffect } from 'react';
+import { ChevronLeft, BarChart2, TrendingUp, CheckCircle2, XCircle, Clock, Target, AlertCircle } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { db } from '../../../lib/db';
+import { QuizHistoryRecord } from '../types';
+import { Button } from '../../../components/Button/Button';
+import { Card } from '../../../components/ui/Card';
+import { ProgressBar } from '../../../components/ui/ProgressBar';
+import { cn } from '../../../utils/cn';
+
+export const PerformanceAnalytics: React.FC = () => {
+    const navigate = useNavigate();
+    const [history, setHistory] = useState<QuizHistoryRecord[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        const loadHistory = async () => {
+            try {
+                const records = await db.getQuizHistory();
+                // Sort by date descending
+                setHistory(records.sort((a, b) => b.date - a.date));
+            } catch (error) {
+                console.error("Failed to load quiz history:", error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        loadHistory();
+    }, []);
+
+    // Aggregate Data
+    const totalQuizzes = history.length;
+    const totalQuestionsAttempted = history.reduce((acc, r) => acc + (r.totalCorrect + r.totalIncorrect), 0);
+    const totalQuestionsSeen = history.reduce((acc, r) => acc + r.totalQuestions, 0);
+    const totalCorrect = history.reduce((acc, r) => acc + r.totalCorrect, 0);
+    const averageAccuracy = totalQuestionsAttempted > 0 ? Math.round((totalCorrect / totalQuestionsAttempted) * 100) : 0;
+
+    // Aggregate Subject Stats
+    const subjectTotals: Record<string, { attempted: number; correct: number; incorrect: number; skipped: number }> = {};
+    history.forEach(record => {
+        Object.entries(record.subjectStats).forEach(([subject, stats]) => {
+            if (!subjectTotals[subject]) {
+                subjectTotals[subject] = { attempted: 0, correct: 0, incorrect: 0, skipped: 0 };
+            }
+            subjectTotals[subject].attempted += stats.attempted;
+            subjectTotals[subject].correct += stats.correct;
+            subjectTotals[subject].incorrect += stats.incorrect;
+            subjectTotals[subject].skipped += stats.skipped;
+        });
+    });
+
+    const formatTime = (seconds: number) => {
+        const h = Math.floor(seconds / 3600);
+        const m = Math.floor((seconds % 3600) / 60);
+        const s = seconds % 60;
+        if (h > 0) return `${h}h ${m}m`;
+        if (m > 0) return `${m}m ${s}s`;
+        return `${s}s`;
+    };
+
+    if (isLoading) {
+        return (
+            <div className="flex justify-center items-center h-full min-h-[50vh]">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+            </div>
+        );
+    }
+
+    if (history.length === 0) {
+        return (
+            <div className="max-w-4xl mx-auto p-4 sm:p-6 pb-24 h-full flex flex-col justify-center items-center text-center">
+                <div className="w-24 h-24 bg-indigo-50 rounded-full flex items-center justify-center mb-6">
+                    <BarChart2 className="w-12 h-12 text-indigo-400" />
+                </div>
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">No Data Yet</h2>
+                <p className="text-gray-500 max-w-md mb-8">
+                    Complete your first quiz to start seeing your performance analytics and detailed report cards.
+                </p>
+                <Button onClick={() => navigate('/quiz/config')} className="bg-indigo-600 hover:bg-indigo-700">
+                    Start a Quiz
+                </Button>
+                <button onClick={() => navigate('/dashboard')} className="mt-4 text-sm text-gray-500 hover:text-indigo-600 font-medium">
+                    Back to Dashboard
+                </button>
+            </div>
+        );
+    }
+
+    return (
+        <div className="max-w-4xl mx-auto p-4 sm:p-6 pb-24 space-y-8 animate-fade-in">
+            {/* Header */}
+            <div className="flex items-center space-x-4">
+                <button
+                    onClick={() => navigate('/dashboard')}
+                    className="p-2 -ml-2 rounded-full hover:bg-gray-100 transition-colors"
+                >
+                    <ChevronLeft className="w-6 h-6 text-gray-600" />
+                </button>
+                <div>
+                    <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Performance Analytics</h1>
+                    <p className="text-sm text-gray-500 mt-1">Your detailed learning report card.</p>
+                </div>
+            </div>
+
+            {/* High-level KPIs */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <Card className="p-4 flex flex-col items-center text-center justify-center bg-gradient-to-br from-indigo-50 to-white border-indigo-100">
+                    <TrendingUp className="w-6 h-6 text-indigo-600 mb-2" />
+                    <span className="text-3xl font-black text-indigo-900">{totalQuizzes}</span>
+                    <span className="text-xs font-medium text-indigo-600/80 uppercase tracking-wider">Total Quizzes</span>
+                </Card>
+                <Card className="p-4 flex flex-col items-center text-center justify-center bg-gradient-to-br from-emerald-50 to-white border-emerald-100">
+                    <Target className="w-6 h-6 text-emerald-600 mb-2" />
+                    <span className="text-3xl font-black text-emerald-900">{averageAccuracy}%</span>
+                    <span className="text-xs font-medium text-emerald-600/80 uppercase tracking-wider">Avg Accuracy</span>
+                </Card>
+                <Card className="p-4 flex flex-col items-center text-center justify-center bg-gradient-to-br from-amber-50 to-white border-amber-100">
+                    <CheckCircle2 className="w-6 h-6 text-amber-600 mb-2" />
+                    <span className="text-3xl font-black text-amber-900">{totalCorrect}</span>
+                    <span className="text-xs font-medium text-amber-600/80 uppercase tracking-wider">Total Correct</span>
+                </Card>
+                <Card className="p-4 flex flex-col items-center text-center justify-center bg-gradient-to-br from-rose-50 to-white border-rose-100">
+                    <AlertCircle className="w-6 h-6 text-rose-600 mb-2" />
+                    <span className="text-3xl font-black text-rose-900">{totalQuestionsSeen - totalQuestionsAttempted}</span>
+                    <span className="text-xs font-medium text-rose-600/80 uppercase tracking-wider">Total Skipped</span>
+                </Card>
+            </div>
+
+            {/* Subject-wise Performance */}
+            <div>
+                <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                    <BarChart2 className="w-5 h-5 text-indigo-600" />
+                    Subject Mastery
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {Object.entries(subjectTotals).map(([subject, stats]) => {
+                        const subjAccuracy = stats.attempted > 0 ? Math.round((stats.correct / stats.attempted) * 100) : 0;
+                        return (
+                            <Card key={subject} className="p-5">
+                                <div className="flex justify-between items-center mb-3">
+                                    <h3 className="font-bold text-gray-900 text-lg">{subject}</h3>
+                                    <span className={cn(
+                                        "px-2.5 py-1 rounded-full text-xs font-bold",
+                                        subjAccuracy >= 80 ? "bg-emerald-100 text-emerald-800" :
+                                        subjAccuracy >= 60 ? "bg-amber-100 text-amber-800" :
+                                        "bg-rose-100 text-rose-800"
+                                    )}>
+                                        {subjAccuracy}% Accuracy
+                                    </span>
+                                </div>
+                                <ProgressBar value={subjAccuracy} variant={subjAccuracy >= 80 ? 'success' : subjAccuracy >= 60 ? 'warning' : 'danger'} className="mb-4" />
+
+                                <div className="grid grid-cols-4 gap-2 text-center text-sm">
+                                    <div className="bg-gray-50 rounded-lg p-2">
+                                        <div className="font-bold text-gray-900">{stats.attempted}</div>
+                                        <div className="text-[10px] text-gray-500 uppercase">Attempt</div>
+                                    </div>
+                                    <div className="bg-emerald-50 rounded-lg p-2">
+                                        <div className="font-bold text-emerald-700">{stats.correct}</div>
+                                        <div className="text-[10px] text-emerald-600/80 uppercase">Right</div>
+                                    </div>
+                                    <div className="bg-rose-50 rounded-lg p-2">
+                                        <div className="font-bold text-rose-700">{stats.incorrect}</div>
+                                        <div className="text-[10px] text-rose-600/80 uppercase">Wrong</div>
+                                    </div>
+                                    <div className="bg-gray-50 rounded-lg p-2">
+                                        <div className="font-bold text-gray-500">{stats.skipped}</div>
+                                        <div className="text-[10px] text-gray-400 uppercase">Skip</div>
+                                    </div>
+                                </div>
+                            </Card>
+                        );
+                    })}
+                </div>
+            </div>
+
+            {/* Recent Sessions */}
+            <div>
+                <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                    <Clock className="w-5 h-5 text-indigo-600" />
+                    Recent Activity
+                </h2>
+                <Card className="overflow-hidden">
+                    <div className="divide-y divide-gray-100 max-h-[400px] overflow-y-auto">
+                        {history.slice(0, 10).map((record) => (
+                            <div key={record.id} className="p-4 hover:bg-gray-50 transition-colors flex items-center justify-between">
+                                <div>
+                                    <div className="font-semibold text-gray-900">
+                                        {new Date(record.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                                    </div>
+                                    <div className="text-sm text-gray-500 flex items-center gap-2 mt-1">
+                                        <span className="px-2 py-0.5 bg-gray-100 rounded text-xs">{record.difficulty}</span>
+                                        <span>•</span>
+                                        <span>{formatTime(record.totalTimeSpent)}</span>
+                                    </div>
+                                </div>
+                                <div className="text-right">
+                                    <div className={cn(
+                                        "text-xl font-black",
+                                        record.overallAccuracy >= 80 ? "text-emerald-600" :
+                                        record.overallAccuracy >= 60 ? "text-amber-600" : "text-rose-600"
+                                    )}>
+                                        {record.overallAccuracy}%
+                                    </div>
+                                    <div className="text-xs text-gray-500">
+                                        {record.totalCorrect} / {record.totalQuestions}
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </Card>
+            </div>
+        </div>
+    );
+};

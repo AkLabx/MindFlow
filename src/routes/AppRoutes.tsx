@@ -12,6 +12,8 @@ const EnglishQuizHome = lazy(() => import('../features/quiz/components/EnglishQu
 const VocabQuizHome = lazy(() => import('../features/quiz/components/VocabQuizHome').then(m => ({ default: m.VocabQuizHome })));
 const QuizConfig = lazy(() => import('../features/quiz/components/QuizConfig').then(m => ({ default: m.QuizConfig })));
 const SavedQuizzes = lazy(() => import('../features/quiz/components/SavedQuizzes').then(m => ({ default: m.SavedQuizzes })));
+const PerformanceAnalytics = lazy(() => import('../features/quiz/components/PerformanceAnalytics').then(m => ({ default: m.PerformanceAnalytics })));
+const BookmarksPage = lazy(() => import('../features/quiz/components/BookmarksPage').then(m => ({ default: m.BookmarksPage })));
 const IdiomsConfig = lazy(() => import('../features/idioms/IdiomsConfig').then(m => ({ default: m.IdiomsConfig })));
 const OWSConfig = lazy(() => import('../features/ows/OWSConfig').then(m => ({ default: m.OWSConfig })));
 const QuizResult = lazy(() => import('../features/quiz/components/QuizResult').then(m => ({ default: m.QuizResult })));
@@ -95,6 +97,8 @@ const AppRoutesContent: React.FC = () => {
                     } />
 
                     <Route path="/quiz/saved" element={<SavedQuizzes />} />
+                    <Route path="/quiz/analytics" element={<PerformanceAnalytics />} />
+                    <Route path="/quiz/bookmarks" element={<BookmarksPage />} />
 
                     <Route path="/quiz/config" element={
                         <QuizConfig

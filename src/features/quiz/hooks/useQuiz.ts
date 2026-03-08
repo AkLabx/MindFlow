@@ -2,9 +2,10 @@ import { useReducer, useCallback, useEffect } from 'react';
 import { logEvent } from '../services/analyticsService';
 import { APP_CONFIG } from '../../../constants/config';
 import { quizReducer, initialState, loadState } from '../stores/quizReducer';
-import { Question, InitialFilters, QuizMode, Idiom, OneWord, QuizState } from '../types';
+import { Question, InitialFilters, QuizMode, Idiom, OneWord, QuizState, QuizHistoryRecord, SubjectStats } from '../types';
 
 import { db } from '../../../lib/db';
+import { v4 as uuidv4 } from 'uuid';
 
 /**
  * Custom hook to manage the global quiz application state using `useReducer`.
@@ -121,8 +122,70 @@ export const useQuiz = () => {
       total_questions: state.activeQuestions.length,
       mode: state.mode
     });
+
+    // Calculate detailed stats for QuizHistoryRecord
+    const subjectStats: Record<string, SubjectStats> = {};
+    let totalCorrect = 0;
+    let totalIncorrect = 0;
+    let totalSkipped = 0;
+    let totalTimeSpent = 0;
+
+    state.activeQuestions.forEach(q => {
+      const subject = q.classification.subject || 'Unknown';
+      if (!subjectStats[subject]) {
+        subjectStats[subject] = { attempted: 0, correct: 0, incorrect: 0, skipped: 0, accuracy: 0 };
+      }
+
+      const answer = results.answers[q.id];
+      const time = results.timeTaken[q.id] || 0;
+      totalTimeSpent += time;
+
+      if (!answer) {
+        totalSkipped++;
+        subjectStats[subject].skipped++;
+      } else {
+        subjectStats[subject].attempted++;
+        const isCorrect = answer === q.correct;
+        if (isCorrect) {
+          totalCorrect++;
+          subjectStats[subject].correct++;
+        } else {
+          totalIncorrect++;
+          subjectStats[subject].incorrect++;
+        }
+      }
+    });
+
+    // Calculate accuracy for each subject
+    Object.keys(subjectStats).forEach(subj => {
+      const stats = subjectStats[subj];
+      stats.accuracy = stats.attempted > 0 ? Math.round((stats.correct / stats.attempted) * 100) : 0;
+    });
+
+    const overallAccuracy = state.activeQuestions.length > 0 ? Math.round((totalCorrect / state.activeQuestions.length) * 100) : 0;
+
+    const difficultyStr = Array.isArray(state.filters?.difficulty)
+        ? state.filters.difficulty.join(', ')
+        : (state.filters?.difficulty || 'Mixed');
+
+    const historyRecord: QuizHistoryRecord = {
+      id: uuidv4(),
+      date: Date.now(),
+      totalQuestions: state.activeQuestions.length,
+      totalCorrect,
+      totalIncorrect,
+      totalSkipped,
+      totalTimeSpent,
+      overallAccuracy,
+      difficulty: difficultyStr,
+      subjectStats
+    };
+
+    // Save history to IndexedDB
+    db.saveQuizHistory(historyRecord).catch(err => console.error("Failed to save quiz history", err));
+
     dispatch({ type: 'SUBMIT_SESSION_RESULTS', payload: results });
-  }, [state.activeQuestions.length, state.mode]);
+  }, [state.activeQuestions, state.mode, state.filters?.difficulty]);
 
   const finishQuiz = useCallback(() => {
     dispatch({ type: 'FINISH_QUIZ' });

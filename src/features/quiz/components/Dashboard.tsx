@@ -1,5 +1,5 @@
 import React from 'react';
-import { ListChecks, FileText, BookOpen, Languages, Save, Wrench } from 'lucide-react';
+import { ListChecks, FileText, BookOpen, Languages, Save, Wrench, BarChart2, Star } from 'lucide-react';
 import { Button } from '../../../components/Button/Button';
 import { useNavigate } from 'react-router-dom';
 
@@ -118,14 +118,29 @@ export const Dashboard: React.FC<DashboardProps> = ({ onStartQuiz, onEnglish, on
                         </p>
                     </div>
 
-                    {/* Card 5 - Guide */}
-                    <div className="bg-white p-6 rounded-2xl border border-gray-200 cursor-pointer group transition-all duration-200 active:scale-[0.98] shadow-sm hover:shadow-md hover:border-blue-300 sm:col-span-2 lg:col-span-1">
+                    {/* Card 5 - Analytics */}
+                    <div
+                        onClick={() => navigate('/quiz/analytics')}
+                        className="bg-white p-6 rounded-2xl border border-gray-200 cursor-pointer group transition-all duration-200 active:scale-[0.98] shadow-sm hover:shadow-md hover:border-blue-300">
                         <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                            <BookOpen className="w-5 h-5 text-blue-600" />
+                            <BarChart2 className="w-5 h-5 text-blue-600" />
                         </div>
-                        <h3 className="text-lg font-bold text-gray-900 mb-1">User Guide</h3>
+                        <h3 className="text-lg font-bold text-gray-900 mb-1">Analytics</h3>
                         <p className="text-gray-500 text-xs font-medium">
-                            Learn how to use the app.
+                            Detailed report cards & stats.
+                        </p>
+                    </div>
+
+                    {/* Card 6 - Bookmarks */}
+                    <div
+                        onClick={() => navigate('/quiz/bookmarks')}
+                        className="bg-white p-6 rounded-2xl border border-gray-200 cursor-pointer group transition-all duration-200 active:scale-[0.98] shadow-sm hover:shadow-md hover:border-violet-300 sm:col-span-2 lg:col-span-1">
+                        <div className="w-10 h-10 bg-violet-50 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                            <Star className="w-5 h-5 text-violet-600" />
+                        </div>
+                        <h3 className="text-lg font-bold text-gray-900 mb-1">Bookmarks</h3>
+                        <p className="text-gray-500 text-xs font-medium">
+                            Review your saved questions.
                         </p>
                     </div>
                 </div>

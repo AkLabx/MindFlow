@@ -219,6 +219,18 @@ export function quizReducer(state: QuizState, action: QuizAction): QuizState {
     case 'TOGGLE_BOOKMARK': {
       const { questionId } = action.payload;
       const isBookmarked = state.bookmarks.includes(questionId);
+      const question = state.activeQuestions.find(q => q.id === questionId);
+
+      if (question) {
+        if (isBookmarked) {
+          // Remove from global bookmarks
+          import('../../../lib/db').then(({ db }) => db.removeBookmark(questionId).catch(console.error));
+        } else {
+          // Add to global bookmarks
+          import('../../../lib/db').then(({ db }) => db.saveBookmark(question).catch(console.error));
+        }
+      }
+
       return {
         ...state,
         bookmarks: isBookmarked

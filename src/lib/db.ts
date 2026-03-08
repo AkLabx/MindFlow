@@ -1,9 +1,11 @@
-import { Question, InitialFilters, QuizMode, SavedQuiz } from '../features/quiz/types';
+import { Question, InitialFilters, QuizMode, SavedQuiz, QuizHistoryRecord } from '../features/quiz/types';
 import { QuizState } from '../features/quiz/types/store';
 
 const DB_NAME = 'MindFlowDB';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const STORE_NAME = 'saved_quizzes';
+const HISTORY_STORE_NAME = 'quiz_history';
+const BOOKMARKS_STORE_NAME = 'global_bookmarks';
 
 /**
  * Opens a connection to the IndexedDB database.
@@ -21,6 +23,12 @@ const openDB = (): Promise<IDBDatabase> => {
             const db = (event.target as IDBOpenDBRequest).result;
             if (!db.objectStoreNames.contains(STORE_NAME)) {
                 db.createObjectStore(STORE_NAME, { keyPath: 'id' });
+            }
+            if (!db.objectStoreNames.contains(HISTORY_STORE_NAME)) {
+                db.createObjectStore(HISTORY_STORE_NAME, { keyPath: 'id' });
+            }
+            if (!db.objectStoreNames.contains(BOOKMARKS_STORE_NAME)) {
+                db.createObjectStore(BOOKMARKS_STORE_NAME, { keyPath: 'id' });
             }
         };
 
@@ -173,6 +181,94 @@ export const db = {
             };
 
             getRequest.onerror = () => reject(getRequest.error);
+        });
+    },
+
+    /**
+     * Saves a quiz history record to the database.
+     *
+     * @param {QuizHistoryRecord} record - The history record to save.
+     * @returns {Promise<void>}
+     */
+    saveQuizHistory: async (record: QuizHistoryRecord): Promise<void> => {
+        const db = await openDB();
+        return new Promise((resolve, reject) => {
+            const transaction = db.transaction(HISTORY_STORE_NAME, 'readwrite');
+            const store = transaction.objectStore(HISTORY_STORE_NAME);
+            const request = store.put(record);
+
+            request.onsuccess = () => resolve();
+            request.onerror = () => reject(request.error);
+        });
+    },
+
+    /**
+     * Retrieves all quiz history records.
+     *
+     * @returns {Promise<QuizHistoryRecord[]>}
+     */
+    getQuizHistory: async (): Promise<QuizHistoryRecord[]> => {
+        const db = await openDB();
+        return new Promise((resolve, reject) => {
+            const transaction = db.transaction(HISTORY_STORE_NAME, 'readonly');
+            const store = transaction.objectStore(HISTORY_STORE_NAME);
+            const request = store.getAll();
+
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = () => reject(request.error);
+        });
+    },
+
+    /**
+     * Saves a global bookmark (entire question object).
+     *
+     * @param {Question} question - The question object to bookmark.
+     * @returns {Promise<void>}
+     */
+    saveBookmark: async (question: Question): Promise<void> => {
+        const db = await openDB();
+        return new Promise((resolve, reject) => {
+            const transaction = db.transaction(BOOKMARKS_STORE_NAME, 'readwrite');
+            const store = transaction.objectStore(BOOKMARKS_STORE_NAME);
+            const request = store.put(question);
+
+            request.onsuccess = () => resolve();
+            request.onerror = () => reject(request.error);
+        });
+    },
+
+    /**
+     * Removes a question from global bookmarks by its ID.
+     *
+     * @param {string} id - The ID of the question to remove.
+     * @returns {Promise<void>}
+     */
+    removeBookmark: async (id: string): Promise<void> => {
+        const db = await openDB();
+        return new Promise((resolve, reject) => {
+            const transaction = db.transaction(BOOKMARKS_STORE_NAME, 'readwrite');
+            const store = transaction.objectStore(BOOKMARKS_STORE_NAME);
+            const request = store.delete(id);
+
+            request.onsuccess = () => resolve();
+            request.onerror = () => reject(request.error);
+        });
+    },
+
+    /**
+     * Retrieves all global bookmarks.
+     *
+     * @returns {Promise<Question[]>}
+     */
+    getAllBookmarks: async (): Promise<Question[]> => {
+        const db = await openDB();
+        return new Promise((resolve, reject) => {
+            const transaction = db.transaction(BOOKMARKS_STORE_NAME, 'readonly');
+            const store = transaction.objectStore(BOOKMARKS_STORE_NAME);
+            const request = store.getAll();
+
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = () => reject(request.error);
         });
     }
 };

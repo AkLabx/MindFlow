@@ -6,6 +6,33 @@ export * from '../../../types/models';
 export * from './store';
 
 /**
+ * Detailed performance statistics for a specific subject within a quiz.
+ */
+export interface SubjectStats {
+  attempted: number;
+  correct: number;
+  incorrect: number;
+  skipped: number;
+  accuracy: number;
+}
+
+/**
+ * Represents a historical record of a completed quiz session.
+ */
+export interface QuizHistoryRecord {
+  id: string;
+  date: number;
+  totalQuestions: number;
+  totalCorrect: number;
+  totalIncorrect: number;
+  totalSkipped: number;
+  totalTimeSpent: number;
+  overallAccuracy: number;
+  difficulty: string; // "Mixed", "Easy", etc.
+  subjectStats: Record<string, SubjectStats>;
+}
+
+/**
  * Represents a saved quiz session in the local database.
  */
 export interface SavedQuiz {
