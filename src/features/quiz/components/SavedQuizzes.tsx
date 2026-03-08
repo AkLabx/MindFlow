@@ -41,16 +41,21 @@ export const SavedQuizzes: React.FC = () => {
         }
     };
 
-    /** Resumes a selected quiz session. */
+    /** Resumes a selected quiz session or views results if completed. */
     const handleResume = (quiz: SavedQuiz) => {
         // Hydrate the global context state with the saved session data
         loadSavedQuiz({ ...quiz.state, isPaused: false });
 
-        // Navigate to the appropriate active session view
-        if (quiz.mode === 'mock') {
-            navigate('/quiz/session/mock');
+        // Navigate based on completion status
+        if (quiz.state.status === 'result') {
+            navigate('/quiz/result');
         } else {
-            navigate('/quiz/session/learning');
+            // Navigate to the appropriate active session view
+            if (quiz.mode === 'mock') {
+                navigate('/quiz/session/mock');
+            } else {
+                navigate('/quiz/session/learning');
+            }
         }
     };
 
@@ -93,6 +98,11 @@ export const SavedQuizzes: React.FC = () => {
         e.stopPropagation();
         setEditingId(null);
         setEditName('');
+    };
+
+    /** Helper to determine if the quiz is finished. */
+    const isQuizFinished = (quiz: SavedQuiz) => {
+        return quiz.state.status === 'result';
     };
 
     /** Helper to determine if "Start" or "Resume" label should be shown. */
@@ -204,10 +214,10 @@ export const SavedQuizzes: React.FC = () => {
                                         <button
                                             onClick={(e) => handleResume(quiz)}
                                             className="flex items-center gap-1 px-3 py-2 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-lg transition-colors font-medium text-sm"
-                                            title={isQuizStarted(quiz) ? "Resume Quiz" : "Start Quiz"}
+                                            title={isQuizFinished(quiz) ? "View Results" : isQuizStarted(quiz) ? "Resume Quiz" : "Start Quiz"}
                                         >
                                             <Play className="w-4 h-4" />
-                                            {isQuizStarted(quiz) ? "Resume" : "Start"}
+                                            {isQuizFinished(quiz) ? "View Results" : isQuizStarted(quiz) ? "Resume" : "Start"}
                                         </button>
                                         <button
                                             onClick={(e) => handleDelete(quiz.id, e)}
