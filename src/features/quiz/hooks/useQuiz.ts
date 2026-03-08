@@ -1,4 +1,4 @@
-import { useReducer, useCallback, useEffect } from 'react';
+import { useReducer, useCallback, useEffect, useState } from 'react';
 import { logEvent } from '../services/analyticsService';
 import { APP_CONFIG } from '../../../constants/config';
 import { quizReducer, initialState, loadState } from '../stores/quizReducer';
@@ -20,6 +20,7 @@ import { v4 as uuidv4 } from 'uuid';
  */
 export const useQuiz = () => {
   const [state, dispatch] = useReducer(quizReducer, initialState, loadState);
+  const [isReviewMode, setIsReviewMode] = useState(false);
 
   // Persistence Effect 1: LocalStorage (Active Session)
   // Saves the state whenever it changes, if we are in an active session.
@@ -208,6 +209,8 @@ export const useQuiz = () => {
   const loadSavedQuiz = useCallback((savedState: QuizState) => dispatch({ type: 'LOAD_SAVED_QUIZ', payload: savedState }), []);
 
   return {
+    isReviewMode,
+    setIsReviewMode,
     state,
     currentQuestion,
     totalQuestions,
