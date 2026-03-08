@@ -7,6 +7,7 @@ import { MobileDemoCard } from './Landing/MobileDemoCard';
 import { usePWAInstall } from '../../../hooks/usePWAInstall';
 import InstallPwaModal from '../../../components/common/InstallPwaModal';
 import { User } from '@supabase/supabase-js';
+import founderImage from '../../../assets/aalok.jpg';
 
 interface LandingPageProps {
   onGetStarted: () => void;
@@ -35,6 +36,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLoginC
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showToast, setShowToast] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+  const [isFounderImageOpen, setIsFounderImageOpen] = useState(false);
 
   // Handlers
   const handleInstallClick = () => {
@@ -299,6 +301,29 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLoginC
         </div>
       </div>
 
+      {/* --- Meet the Founder Section --- */}
+      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 flex flex-col items-center justify-center animate-fade-in delay-300">
+        <h2 className="text-2xl sm:text-3xl font-bold text-slate-800 mb-8 text-center">Meet the Founder</h2>
+        <div className="flex flex-col items-center group">
+          <div
+            className="w-40 h-40 sm:w-48 sm:h-48 rounded-full border-4 border-indigo-100 shadow-xl overflow-hidden cursor-pointer transform transition-transform duration-300 group-hover:scale-105 group-hover:border-indigo-300 group-hover:shadow-2xl"
+            onClick={() => setIsFounderImageOpen(true)}
+            role="button"
+            aria-label="View Aalok Kumar Sharma full size"
+          >
+            <img
+              src={founderImage}
+              alt="Aalok Kumar Sharma, Founder"
+              className="w-full h-full object-cover"
+            />
+          </div>
+          <div className="mt-4 text-center">
+            <h3 className="text-lg sm:text-xl font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">Aalok Kumar Sharma</h3>
+            <p className="text-sm font-medium text-indigo-600 mt-1 uppercase tracking-wide">Founder</p>
+          </div>
+        </div>
+      </div>
+
       {/* Footer Strip / Feature Ticker */}
       <div className="w-full border-t border-white/50 bg-white/30 backdrop-blur-lg py-6 mt-auto pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
         <div className="max-w-7xl mx-auto px-4 flex flex-wrap justify-center md:justify-between gap-8 text-slate-400 text-xs md:text-sm font-bold uppercase tracking-widest mb-4">
@@ -327,6 +352,31 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLoginC
       {showToast && (
         <div className="fixed bottom-8 left-1/2 -translate-x-1/2 bg-gray-900 text-white px-6 py-3 rounded-full text-sm font-semibold shadow-lg z-50 animate-fade-in-up">
           Installation started! Check your device's home screen for the MindFlow icon.
+        </div>
+      )}
+
+      {/* Founder Image Modal */}
+      {isFounderImageOpen && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/80 backdrop-blur-sm p-4 animate-fade-in"
+          onClick={() => setIsFounderImageOpen(false)}
+        >
+          <div className="relative max-w-3xl w-full max-h-[90vh] flex flex-col items-center" onClick={(e) => e.stopPropagation()}>
+            <button
+              onClick={() => setIsFounderImageOpen(false)}
+              className="absolute -top-12 right-0 p-2 text-white hover:text-indigo-300 transition-colors"
+              aria-label="Close modal"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+            <img
+              src={founderImage}
+              alt="Aalok Kumar Sharma, Founder"
+              className="w-auto h-auto max-w-full max-h-[85vh] rounded-lg shadow-2xl object-contain border-4 border-white/10"
+            />
+          </div>
         </div>
       )}
 
