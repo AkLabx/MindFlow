@@ -1,10 +1,11 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { ArrowLeft, Home, CheckCircle2, XCircle, Bookmark, Filter, CircleDashed } from 'lucide-react';
+import { ArrowLeft, Home, CheckCircle2, XCircle, Bookmark, Filter, CircleDashed, Menu } from 'lucide-react';
 import { Question } from '../types';
 import { Button } from '../../../components/Button/Button';
 import { SegmentedControl } from './ui/SegmentedControl';
 import { QuizQuestionDisplay } from './QuizQuestionDisplay';
 import { QuizExplanation } from './QuizExplanation';
+import { QuizNavigationPanel } from './QuizNavigationPanel';
 import { cn } from '../../../utils/cn';
 
 interface QuizReviewProps {
@@ -40,6 +41,7 @@ export const QuizReview: React.FC<QuizReviewProps> = ({
 }) => {
   const [filter, setFilter] = useState<string>(initialFilter);
   const [reviewIndex, setReviewIndex] = useState(0);
+  const [isNavOpen, setIsNavOpen] = useState(false);
 
   // Calculate dynamic counts for filter tabs
   const counts = useMemo(() => {
@@ -110,15 +112,43 @@ export const QuizReview: React.FC<QuizReviewProps> = ({
                 />
             </div>
 
-            <Button variant="outline" size="sm" onClick={onGoHome} className="w-full md:w-auto justify-center">
-                <Home className="w-4 h-4 mr-2" /> Home
-            </Button>
+            <div className="flex items-center gap-2 w-full md:w-auto justify-end">
+                <Button variant="outline" size="sm" onClick={onGoHome} className="flex-1 md:flex-none justify-center">
+                    <Home className="w-4 h-4 mr-2" /> Home
+                </Button>
+                <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsNavOpen(true)}
+                    className="flex-none px-2 text-gray-500 hover:text-indigo-600"
+                    title="Open Question Map"
+                >
+                    <Menu className="w-5 h-5" />
+                </Button>
+            </div>
         </div>
       </div>
 
+      {/* Navigation Panel for Review Mode */}
+      <QuizNavigationPanel
+          isOpen={isNavOpen}
+          onClose={() => setIsNavOpen(false)}
+          questions={filteredQuestions}
+          userAnswers={userAnswers}
+          currentQuestionIndex={reviewIndex}
+          onJumpToQuestion={(idx) => {
+              setReviewIndex(idx);
+              setIsNavOpen(false);
+          }}
+          markedForReview={[]}
+          bookmarks={bookmarkedQuestions}
+          onSubmitAndReview={() => setIsNavOpen(false)}
+          mode="learning"
+      />
+
       {/* Main Review Content */}
       {currentQuestion ? (
-        <div className="space-y-6 pb-20">
+        <div className="space-y-6 pb-32 md:pb-20">
             {/* Question Card */}
             <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 md:p-8 relative overflow-hidden">
                 
@@ -166,8 +196,11 @@ export const QuizReview: React.FC<QuizReviewProps> = ({
             {/* Explanation Section */}
             <QuizExplanation explanation={currentQuestion.explanation} />
 
-            {/* Fixed Navigation Footer */}
-            <div className="fixed bottom-0 left-0 w-full bg-white border-t border-gray-200 p-4 shadow-lg z-40">
+            {/* Fixed Navigation Footer
+                Positioned above the MainLayout's bottom tab bar on mobile (bottom-16)
+                and normal bottom-0 on desktop where tab bar isn't sticky/fixed in the same way.
+            */}
+            <div className="fixed bottom-16 md:bottom-0 left-0 w-full bg-white border-t border-gray-200 p-3 sm:p-4 shadow-[0_-4px_10px_rgba(0,0,0,0.05)] z-40">
                 <div className="max-w-4xl mx-auto flex justify-between items-center">
                     <Button 
                         onClick={() => setReviewIndex(i => Math.max(0, i - 1))}
