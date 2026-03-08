@@ -1,23 +1,23 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Trash2, Play, Clock, BookOpen, Edit2, Check, X, Save } from 'lucide-react';
+import { Trash2, Play, Clock, BookOpen, Edit2, Check, X, ArrowLeft, BarChart2 } from 'lucide-react';
 import { db } from '../../../lib/db';
 import { SavedQuiz } from '../types';
 import { useQuizContext } from '../context/QuizContext';
 
 /**
- * Screen for managing saved quizzes.
+ * Screen for managing attempted (completed) quizzes.
  *
  * Features:
- * - Lists all quizzes stored in IndexedDB.
- * - Allows resuming a quiz from where the user left off.
- * - Supports renaming saved quizzes.
+ * - Lists all quizzes stored in IndexedDB that have been completed.
+ * - Allows viewing results of a completed quiz.
+ * - Supports renaming completed quizzes.
  * - Allows deleting quizzes.
  * - Sorts by creation date (newest first).
  *
- * @returns {JSX.Element} The rendered Saved Quizzes screen.
+ * @returns {JSX.Element} The rendered Attempted Quizzes screen.
  */
-export const SavedQuizzes: React.FC = () => {
+export const AttemptedQuizzes: React.FC = () => {
     const navigate = useNavigate();
     const { loadSavedQuiz } = useQuizContext();
     const [quizzes, setQuizzes] = useState<SavedQuiz[]>([]);
@@ -32,8 +32,8 @@ export const SavedQuizzes: React.FC = () => {
     const loadQuizzes = async () => {
         try {
             const data = await db.getQuizzes();
-            // Sort by createdAt descending (newest first)
-            setQuizzes(data.filter(q => q.state.status !== 'result').sort((a, b) => b.createdAt - a.createdAt));
+            // Filter only completed quizzes and sort by createdAt descending (newest first)
+            setQuizzes(data.filter(q => q.state.status === 'result').sort((a, b) => b.createdAt - a.createdAt));
         } catch (error) {
             console.error("Failed to load quizzes:", error);
         } finally {
@@ -41,22 +41,11 @@ export const SavedQuizzes: React.FC = () => {
         }
     };
 
-    /** Resumes a selected quiz session or views results if completed. */
-    const handleResume = (quiz: SavedQuiz) => {
+    /** Views results for completed quiz. */
+    const handleViewResults = (quiz: SavedQuiz) => {
         // Hydrate the global context state with the saved session data
         loadSavedQuiz({ ...quiz.state, isPaused: false });
-
-        // Navigate based on completion status
-        if (quiz.state.status === 'result') {
-            navigate('/result');
-        } else {
-            // Navigate to the appropriate active session view
-            if (quiz.mode === 'mock') {
-                navigate('/quiz/session/mock');
-            } else {
-                navigate('/quiz/session/learning');
-            }
-        }
+        navigate('/result');
     };
 
     /** Deletes a quiz from storage. */
@@ -100,16 +89,6 @@ export const SavedQuizzes: React.FC = () => {
         setEditName('');
     };
 
-    /** Helper to determine if the quiz is finished. */
-    const isQuizFinished = (quiz: SavedQuiz) => {
-        return quiz.state.status === 'result';
-    };
-
-    /** Helper to determine if "Start" or "Resume" label should be shown. */
-    const isQuizStarted = (quiz: SavedQuiz) => {
-        return quiz.state.currentQuestionIndex > 0 || Object.keys(quiz.state.answers).length > 0;
-    };
-
     if (loading) {
         return (
             <div className="flex items-center justify-center min-h-screen bg-gray-50">
@@ -121,29 +100,26 @@ export const SavedQuizzes: React.FC = () => {
     return (
         <div className="min-h-screen bg-gray-50 p-4 md:p-8">
             <div className="max-w-4xl mx-auto">
+                <div className="mb-6">
+                    <button
+                        onClick={() => navigate('/quiz/saved')}
+                        className="flex items-center gap-2 text-indigo-600 hover:text-indigo-800 transition-colors font-medium"
+                    >
+                        <ArrowLeft className="w-5 h-5" /> Back to Created Quizzes
+                    </button>
+                </div>
                 <div className="flex items-center justify-between mb-8">
-                    <h1 className="text-2xl font-bold text-gray-900">Created Quizzes</h1>
-                    <div className="flex gap-4">
-                        <button
-                            onClick={() => navigate('/quiz/config')}
-                            className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
-                        >
-                            Create New Quiz
-                        </button>
-                        <button
-                            onClick={() => navigate('/quiz/attempted')}
-                            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-                        >
-                            Attempted Quizzes
-                        </button>
-                    </div>
+                    <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                        <BarChart2 className="w-6 h-6 text-indigo-600" />
+                        Attempted Quizzes
+                    </h1>
                 </div>
 
                 {quizzes.length === 0 ? (
                     <div className="text-center py-12 bg-white rounded-xl shadow-sm border border-gray-100">
                         <BookOpen className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                        <h3 className="text-lg font-medium text-gray-900 mb-2">No Created Quizzes</h3>
-                        <p className="text-gray-500 mb-6">Start a new quiz to see it here!</p>
+                        <h3 className="text-lg font-medium text-gray-900 mb-2">No Attempted Quizzes</h3>
+                        <p className="text-gray-500 mb-6">Complete a quiz to see your results here!</p>
                         <button
                             onClick={() => navigate('/quiz/config')}
                             className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
@@ -156,7 +132,7 @@ export const SavedQuizzes: React.FC = () => {
                         {quizzes.map(quiz => (
                             <div
                                 key={quiz.id}
-                                onClick={() => handleResume(quiz)}
+                                onClick={() => handleViewResults(quiz)}
                                 className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow cursor-pointer group"
                             >
                                 <div className="flex items-start justify-between">
@@ -210,8 +186,8 @@ export const SavedQuizzes: React.FC = () => {
                                                 </span>
                                             </div>
                                             <div className="flex items-center gap-1">
-                                                <span className="font-medium text-gray-700">
-                                                    {quiz.state.currentQuestionIndex + 1} / {quiz.questions.length}
+                                                <span className="font-medium text-green-600">
+                                                    Score: {quiz.state.score} / {quiz.questions.length}
                                                 </span>
                                             </div>
                                         </div>
@@ -220,12 +196,12 @@ export const SavedQuizzes: React.FC = () => {
                                     {/* Action Buttons */}
                                     <div className="flex items-center gap-2">
                                         <button
-                                            onClick={(e) => handleResume(quiz)}
+                                            onClick={(e) => handleViewResults(quiz)}
                                             className="flex items-center gap-1 px-3 py-2 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-lg transition-colors font-medium text-sm"
-                                            title={isQuizFinished(quiz) ? "View Results" : isQuizStarted(quiz) ? "Resume Quiz" : "Start Quiz"}
+                                            title="View Results"
                                         >
                                             <Play className="w-4 h-4" />
-                                            {isQuizFinished(quiz) ? "View Results" : isQuizStarted(quiz) ? "Resume" : "Start"}
+                                            View Results
                                         </button>
                                         <button
                                             onClick={(e) => handleDelete(quiz.id, e)}

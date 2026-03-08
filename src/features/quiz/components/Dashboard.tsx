@@ -76,7 +76,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onStartQuiz, onEnglish, on
                         </p>
                     </div>
 
-                    {/* Card 2 - Saved Quizzes */}
+                    {/* Card 2 - Created Quizzes */}
                     <div
                         onClick={onSavedQuizzes}
                         className="bg-white p-6 rounded-2xl border border-gray-200 cursor-pointer group relative z-20 transition-all duration-200 active:scale-[0.98] shadow-sm hover:shadow-md hover:border-green-300"
@@ -84,9 +84,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ onStartQuiz, onEnglish, on
                         <div className="w-10 h-10 bg-green-50 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                             <Save className="w-5 h-5 text-green-600" />
                         </div>
-                        <h3 className="text-lg font-bold text-gray-900 mb-1">My Quizzes</h3>
+                        <h3 className="text-lg font-bold text-gray-900 mb-1">Created Quizzes</h3>
                         <p className="text-gray-500 text-xs font-medium">
-                            Resume saved quizzes and view history.
+                            Resume paused quizzes or view completed ones.
                         </p>
                     </div>
 
