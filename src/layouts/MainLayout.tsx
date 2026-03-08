@@ -2,6 +2,7 @@ import React from 'react';
 import { BrainCircuit, Home, Compass, PlusCircle, User, Settings, LogIn } from 'lucide-react';
 import { cn } from '../utils/cn';
 import { useAuth } from '../features/auth/context/AuthContext';
+import { useQuizContext } from '../features/quiz/context/QuizContext';
 
 /**
  * Unique identifiers for the main navigation tabs.
@@ -41,6 +42,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
   onOpenSettings 
 }) => {
   const { user } = useAuth();
+  const { isReviewMode } = useQuizContext();
 
   const handleProfileClick = () => {
     if (user) {
@@ -83,12 +85,12 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
       </header>
 
       {/* --- Main Scrollable Content --- */}
-      <main className="flex-1 w-full max-w-3xl mx-auto px-4 pt-4 pb-24 relative z-0">
+      <main className={cn("flex-1 w-full max-w-3xl mx-auto px-4 pt-4 relative z-0", isReviewMode ? "pb-4" : "pb-24")}>
         {children}
       </main>
 
       {/* --- Sticky Bottom Tab Bar --- */}
-      <nav className="fixed bottom-0 left-0 w-full bg-white border-t border-gray-200 z-50 pb-[env(safe-area-inset-bottom)]">
+      <nav className={cn("fixed bottom-0 left-0 w-full bg-white border-t border-gray-200 z-50 pb-[env(safe-area-inset-bottom)]", isReviewMode ? "hidden" : "block")}>
         <div className="max-w-3xl mx-auto px-2 h-16 flex items-center justify-around">
           
           <NavTab 
