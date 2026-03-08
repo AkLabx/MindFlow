@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { ArrowLeft, Home, CheckCircle2, XCircle, Bookmark, Filter, CircleDashed, Menu } from 'lucide-react';
+import { ArrowLeft, Home, CheckCircle2, XCircle, Bookmark, Filter, CircleDashed, Menu, Maximize2, Minimize2 } from 'lucide-react';
 import { Question } from '../types';
 import { Button } from '../../../components/Button/Button';
 import { SegmentedControl } from './ui/SegmentedControl';
@@ -42,6 +42,9 @@ export const QuizReview: React.FC<QuizReviewProps> = ({
   const [filter, setFilter] = useState<string>(initialFilter);
   const [reviewIndex, setReviewIndex] = useState(0);
   const [isNavOpen, setIsNavOpen] = useState(false);
+  const [isHeaderVisible, setIsHeaderVisible] = useState(true);
+  const [lastScrollY, setLastScrollY] = useState(0);
+  const [isFullScreen, setIsFullScreen] = useState(false);
 
   // Calculate dynamic counts for filter tabs
   const counts = useMemo(() => {
@@ -89,11 +92,50 @@ export const QuizReview: React.FC<QuizReviewProps> = ({
   const isSkipped = currentQuestion && !currentAns;
   const userTime = currentQuestion ? timeTaken[currentQuestion.id] : 0;
 
+  // Handle header visibility on scroll
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+
+      if (currentScrollY > lastScrollY && currentScrollY > 50) {
+        setIsHeaderVisible(false); // Scrolling down, hide
+      } else if (currentScrollY < lastScrollY) {
+        setIsHeaderVisible(true); // Scrolling up, show
+      }
+
+      setLastScrollY(currentScrollY);
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [lastScrollY]);
+
+  const toggleFullScreen = () => {
+      if (!document.fullscreenElement) {
+          document.documentElement.requestFullscreen().catch(err => {
+              console.error(`Error attempting to enable full-screen mode: ${err.message}`);
+          });
+          setIsFullScreen(true);
+      } else {
+          if (document.exitFullscreen) {
+              document.exitFullscreen();
+              setIsFullScreen(false);
+          }
+      }
+  };
+
+  // Listen for fullscreen change events to sync state
+  useEffect(() => {
+      const handleFullscreenChange = () => setIsFullScreen(!!document.fullscreenElement);
+      document.addEventListener('fullscreenchange', handleFullscreenChange);
+      return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, []);
+
   return (
     <div className="max-w-4xl mx-auto animate-fade-in">
       
       {/* Header & Controls */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-4 mb-6 sticky top-0 z-50">
+      <div className={cn("bg-white rounded-2xl shadow-sm border border-gray-200 p-4 mb-6 sticky top-0 z-50 transition-all duration-300", !isHeaderVisible && "-translate-y-full opacity-0 pointer-events-none")}>
         <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-3 w-full md:w-auto">
                 <Button variant="ghost" size="sm" onClick={onBackToScore} className="text-gray-500">
@@ -113,8 +155,17 @@ export const QuizReview: React.FC<QuizReviewProps> = ({
             </div>
 
             <div className="flex items-center gap-2 w-full md:w-auto justify-end">
-                <Button variant="outline" size="sm" onClick={onGoHome} className="flex-1 md:flex-none justify-center">
-                    <Home className="w-4 h-4 mr-2" /> Home
+                <Button variant="outline" size="sm" onClick={onGoHome} className="flex-none px-2 justify-center text-gray-500 hover:text-indigo-600" title="Go Home">
+                    <Home className="w-5 h-5" />
+                </Button>
+                <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={toggleFullScreen}
+                    className="flex-none px-2 text-gray-500 hover:text-indigo-600"
+                    title={isFullScreen ? "Exit Full Screen" : "Enter Full Screen"}
+                >
+                    {isFullScreen ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}
                 </Button>
                 <Button
                     variant="outline"
@@ -145,6 +196,18 @@ export const QuizReview: React.FC<QuizReviewProps> = ({
           onSubmitAndReview={() => setIsNavOpen(false)}
           mode="learning"
       />
+
+      {/* Floating Exit Full Screen Button */}
+      {isFullScreen && (
+          <div className="fixed top-4 right-4 z-[60]">
+              <button
+                  onClick={toggleFullScreen}
+                  className="bg-black/50 hover:bg-black/70 text-white px-4 py-2 rounded-full text-sm font-bold backdrop-blur-sm flex items-center gap-2 transition-all shadow-lg"
+              >
+                  <Minimize2 className="w-4 h-4" /> Exit Full Screen
+              </button>
+          </div>
+      )}
 
       {/* Main Review Content */}
       {currentQuestion ? (
