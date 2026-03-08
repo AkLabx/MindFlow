@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import { BrainCircuit, Home, Compass, PlusCircle, User, Settings, LogIn } from 'lucide-react';
 import { cn } from '../utils/cn';
 import { useAuth } from '../features/auth/context/AuthContext';
@@ -7,6 +7,28 @@ import { useAuth } from '../features/auth/context/AuthContext';
  * Unique identifiers for the main navigation tabs.
  */
 export type TabID = 'home' | 'explore' | 'create' | 'profile' | 'login';
+
+interface LayoutContextType {
+
+  isBottomNavHidden: boolean;
+
+  setBottomNavHidden: (hidden: boolean) => void;
+
+}
+
+
+
+export const LayoutContext = createContext<LayoutContextType>({
+
+  isBottomNavHidden: false,
+
+  setBottomNavHidden: () => {},
+
+});
+
+
+
+export const useLayout = () => useContext(LayoutContext);
 
 /**
  * Props for the MainLayout component.

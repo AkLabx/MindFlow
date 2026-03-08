@@ -8,6 +8,7 @@ import { QuizExplanation } from './QuizExplanation';
 import { QuizNavigationPanel } from './QuizNavigationPanel';
 import { cn } from '../../../utils/cn';
 
+import { useLayout } from "../../../layouts/MainLayout";
 interface QuizReviewProps {
   questions: Question[];
   userAnswers: { [key: string]: string };
@@ -42,6 +43,14 @@ export const QuizReview: React.FC<QuizReviewProps> = ({
   const [filter, setFilter] = useState<string>(initialFilter);
   const [reviewIndex, setReviewIndex] = useState(0);
   const [isNavOpen, setIsNavOpen] = useState(false);
+  const { setBottomNavHidden } = useLayout();
+
+  // Hide bottom nav when Review Mode is active
+  useEffect(() => {
+    setBottomNavHidden(true);
+    return () => setBottomNavHidden(false);
+  }, [setBottomNavHidden]);
+
   const [isHeaderVisible, setIsHeaderVisible] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
   const [isFullScreen, setIsFullScreen] = useState(false);
@@ -211,7 +220,7 @@ export const QuizReview: React.FC<QuizReviewProps> = ({
 
       {/* Main Review Content */}
       {currentQuestion ? (
-        <div className="space-y-6 pb-32 md:pb-20">
+        <div className="space-y-6 pb-20 md:pb-20">
             {/* Question Card */}
             <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 md:p-8 relative overflow-hidden">
                 
@@ -263,7 +272,7 @@ export const QuizReview: React.FC<QuizReviewProps> = ({
                 Positioned above the MainLayout's bottom tab bar on mobile (bottom-16)
                 and normal bottom-0 on desktop where tab bar isn't sticky/fixed in the same way.
             */}
-            <div className="fixed bottom-16 md:bottom-0 left-0 w-full bg-white border-t border-gray-200 p-3 sm:p-4 shadow-[0_-4px_10px_rgba(0,0,0,0.05)] z-40">
+            <div className="fixed bottom-0 left-0 w-full bg-white border-t border-gray-200 p-3 sm:p-4 shadow-[0_-4px_10px_rgba(0,0,0,0.05)] z-40">
                 <div className="max-w-4xl mx-auto flex justify-between items-center">
                     <Button 
                         onClick={() => setReviewIndex(i => Math.max(0, i - 1))}
