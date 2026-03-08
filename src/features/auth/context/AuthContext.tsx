@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '../../../lib/supabase';
 import defaultAvatar from '../../../assets/default-avatar.svg';
+import { syncService } from '../../../lib/syncService';
 
 /**
  * Interface for the Auth Context value.
@@ -59,6 +60,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       const { data: { session } } = await supabase.auth.getSession();
       setSession(session);
       setUser(session?.user ?? null);
+      if (session?.user) {
+         // Run sync on load if user is logged in
+         syncService.syncOnLogin(session.user.id);
+      }
       setLoading(false);
     };
 
@@ -86,6 +91,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           if (error) console.error('Error updating user metadata:', error);
         }
         setUser(finalUser);
+
+        // Run sync on successful sign-in
+        syncService.syncOnLogin(finalUser.id);
       } else {
         setUser(null);
       }

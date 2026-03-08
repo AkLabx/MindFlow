@@ -1,6 +1,10 @@
 import { Question, InitialFilters, QuizMode, SavedQuiz, QuizHistoryRecord } from '../features/quiz/types';
 import { QuizState } from '../features/quiz/types/store';
 
+import { supabase } from './supabase';
+import { syncService } from './syncService';
+
+
 const DB_NAME = 'MindFlowDB';
 const DB_VERSION = 2;
 const STORE_NAME = 'saved_quizzes';
@@ -49,6 +53,31 @@ const openDB = (): Promise<IDBDatabase> => {
  * in the user's browser, allowing for offline persistence of quiz sessions.
  */
 export const db = {
+    /** Background push helper to sync to Supabase if logged in */
+    _pushToSupabase: async (type: 'quiz' | 'history' | 'bookmark', data: any) => {
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session?.user) return;
+            if (type === 'quiz') await syncService.pushSavedQuiz(session.user.id, data);
+            else if (type === 'history') await syncService.pushQuizHistory(session.user.id, data);
+            else if (type === 'bookmark') await syncService.pushBookmark(session.user.id, data);
+        } catch (e) {
+            console.error('Background push error:', e);
+        }
+    },
+
+    /** Background delete helper to sync deletion to Supabase if logged in */
+    _deleteFromSupabase: async (type: 'quiz' | 'bookmark', id: string) => {
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session?.user) return;
+            if (type === 'quiz') await syncService.deleteSavedQuiz(session.user.id, id);
+            else if (type === 'bookmark') await syncService.removeBookmark(session.user.id, id);
+        } catch (e) {
+            console.error('Background delete error:', e);
+        }
+    },
+
     /**
      * Saves a new quiz to the database.
      *
@@ -56,13 +85,16 @@ export const db = {
      * @returns {Promise<void>} A promise that resolves when the quiz is successfully saved.
      */
     saveQuiz: async (quiz: SavedQuiz): Promise<void> => {
-        const db = await openDB();
+        const dbInstance = await openDB();
         return new Promise((resolve, reject) => {
-            const transaction = db.transaction(STORE_NAME, 'readwrite');
+            const transaction = dbInstance.transaction(STORE_NAME, 'readwrite');
             const store = transaction.objectStore(STORE_NAME);
             const request = store.put(quiz);
 
-            request.onsuccess = () => resolve();
+            request.onsuccess = () => {
+                db._pushToSupabase('quiz', quiz);
+                resolve();
+            };
             request.onerror = () => reject(request.error);
         });
     },
@@ -109,13 +141,16 @@ export const db = {
      * @returns {Promise<void>} A promise that resolves when the quiz is successfully deleted.
      */
     deleteQuiz: async (id: string): Promise<void> => {
-        const db = await openDB();
+        const dbInstance = await openDB();
         return new Promise((resolve, reject) => {
-            const transaction = db.transaction(STORE_NAME, 'readwrite');
+            const transaction = dbInstance.transaction(STORE_NAME, 'readwrite');
             const store = transaction.objectStore(STORE_NAME);
             const request = store.delete(id);
 
-            request.onsuccess = () => resolve();
+            request.onsuccess = () => {
+                db._deleteFromSupabase('quiz', id);
+                resolve();
+            };
             request.onerror = () => reject(request.error);
         });
     },
@@ -142,7 +177,10 @@ export const db = {
                     // Update state
                     quiz.state = state;
                     const putRequest = store.put(quiz);
-                    putRequest.onsuccess = () => resolve();
+                    putRequest.onsuccess = () => {
+                        db._pushToSupabase('quiz', quiz);
+                        resolve();
+                    };
                     putRequest.onerror = () => reject(putRequest.error);
                 } else {
                     reject(new Error(`Quiz with id ${id} not found`));
@@ -173,7 +211,10 @@ export const db = {
                 if (quiz) {
                     quiz.name = name;
                     const putRequest = store.put(quiz);
-                    putRequest.onsuccess = () => resolve();
+                    putRequest.onsuccess = () => {
+                        db._pushToSupabase('quiz', quiz);
+                        resolve();
+                    };
                     putRequest.onerror = () => reject(putRequest.error);
                 } else {
                     reject(new Error(`Quiz with id ${id} not found`));
@@ -191,13 +232,16 @@ export const db = {
      * @returns {Promise<void>}
      */
     saveQuizHistory: async (record: QuizHistoryRecord): Promise<void> => {
-        const db = await openDB();
+        const dbInstance = await openDB();
         return new Promise((resolve, reject) => {
-            const transaction = db.transaction(HISTORY_STORE_NAME, 'readwrite');
+            const transaction = dbInstance.transaction(HISTORY_STORE_NAME, 'readwrite');
             const store = transaction.objectStore(HISTORY_STORE_NAME);
             const request = store.put(record);
 
-            request.onsuccess = () => resolve();
+            request.onsuccess = () => {
+                db._pushToSupabase('history', record);
+                resolve();
+            };
             request.onerror = () => reject(request.error);
         });
     },
@@ -251,13 +295,16 @@ export const db = {
      * @returns {Promise<void>}
      */
     saveBookmark: async (question: Question): Promise<void> => {
-        const db = await openDB();
+        const dbInstance = await openDB();
         return new Promise((resolve, reject) => {
-            const transaction = db.transaction(BOOKMARKS_STORE_NAME, 'readwrite');
+            const transaction = dbInstance.transaction(BOOKMARKS_STORE_NAME, 'readwrite');
             const store = transaction.objectStore(BOOKMARKS_STORE_NAME);
             const request = store.put(question);
 
-            request.onsuccess = () => resolve();
+            request.onsuccess = () => {
+                db._pushToSupabase('bookmark', question);
+                resolve();
+            };
             request.onerror = () => reject(request.error);
         });
     },
@@ -269,13 +316,16 @@ export const db = {
      * @returns {Promise<void>}
      */
     removeBookmark: async (id: string): Promise<void> => {
-        const db = await openDB();
+        const dbInstance = await openDB();
         return new Promise((resolve, reject) => {
-            const transaction = db.transaction(BOOKMARKS_STORE_NAME, 'readwrite');
+            const transaction = dbInstance.transaction(BOOKMARKS_STORE_NAME, 'readwrite');
             const store = transaction.objectStore(BOOKMARKS_STORE_NAME);
             const request = store.delete(id);
 
-            request.onsuccess = () => resolve();
+            request.onsuccess = () => {
+                db._deleteFromSupabase('bookmark', id);
+                resolve();
+            };
             request.onerror = () => reject(request.error);
         });
     },
