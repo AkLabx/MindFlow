@@ -8,6 +8,8 @@ import { usePDFGenerator } from '../../../hooks/usePDFGenerator';
 import { useJSONDownloader } from '../../../hooks/useJSONDownloader';
 import { generateIdiomsPDF } from '../utils/pdfGenerator';
 import { DownloadOptionsModal } from '../../../components/ui/DownloadOptionsModal';
+import { DownloadReadyModal } from '../../../components/ui/DownloadReadyModal';
+import { DownloadResult } from '../../../hooks/useJSONDownloader';
 
 /**
  * Props for the FlashcardNavigationPanel component.
@@ -56,6 +58,9 @@ export const FlashcardNavigationPanel: React.FC<FlashcardNavigationPanelProps> =
     start: number;
     end: number;
   } | null>(null);
+
+  // State for the post-download success modal
+  const [downloadReadyInfo, setDownloadReadyInfo] = useState<(DownloadResult & { type: 'pdf' | 'json' }) | null>(null);
 
   // Initialize batch size from local storage or default to 50
   const [chunkSize, setChunkSize] = useState<number>(() => {
@@ -112,9 +117,12 @@ export const FlashcardNavigationPanel: React.FC<FlashcardNavigationPanelProps> =
     const chunkData = idioms.slice(start, end);
     const fileName = `Idioms_Flashcards_Part_${chunkIndex + 1}_(${start + 1}-${end}).pdf`;
 
-    await generatePDF(chunkData, { fileName });
+    const result = await generatePDF(chunkData, { fileName });
     setDownloadingChunk(null);
     setDownloadModalState(null);
+    if (result) {
+      setDownloadReadyInfo({ ...result, type: 'pdf' });
+    }
   };
 
   /** Handles JSON download */
@@ -126,9 +134,19 @@ export const FlashcardNavigationPanel: React.FC<FlashcardNavigationPanelProps> =
     const chunkData = idioms.slice(start, end);
     const fileName = `Idioms_Flashcards_Part_${chunkIndex + 1}_(${start + 1}-${end}).json`;
 
-    await downloadJSON(chunkData, fileName);
+    const result = await downloadJSON(chunkData, fileName);
     setDownloadingChunk(null);
     setDownloadModalState(null);
+    if (result) {
+      setDownloadReadyInfo({ ...result, type: 'json' });
+    }
+  };
+
+  const handleCloseDownloadReady = () => {
+    if (downloadReadyInfo?.url) {
+      URL.revokeObjectURL(downloadReadyInfo.url);
+    }
+    setDownloadReadyInfo(null);
   };
 
   return createPortal(
@@ -268,6 +286,15 @@ export const FlashcardNavigationPanel: React.FC<FlashcardNavigationPanelProps> =
         onDownloadJSON={handleDownloadJSON}
         isGeneratingPDF={isGeneratingPDF}
         isGeneratingJSON={isGeneratingJSON}
+      />
+
+      <DownloadReadyModal
+        isOpen={!!downloadReadyInfo}
+        onClose={handleCloseDownloadReady}
+        fileUrl={downloadReadyInfo?.url || ''}
+        fileName={downloadReadyInfo?.fileName || ''}
+        blob={downloadReadyInfo?.blob}
+        fileType={downloadReadyInfo?.type}
       />
     </>,
     document.body

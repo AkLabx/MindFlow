@@ -43,7 +43,7 @@ const renderHindiToImage = async (text: string): Promise<string> => {
 /**
  * Generates the Idioms PDF.
  */
-export const generateIdiomsPDF = async (data: Idiom[], config: PDFGenerationConfig) => {
+export const generateIdiomsPDF = async (data: Idiom[], config: PDFGenerationConfig): Promise<Blob> => {
   const doc = new jsPDF({
     orientation: 'portrait',
     unit: 'mm',
@@ -145,5 +145,5 @@ export const generateIdiomsPDF = async (data: Idiom[], config: PDFGenerationConf
     }
   }
 
-  doc.save(config.fileName || 'idioms-flashcards.pdf');
+  return doc.output('blob');
 };

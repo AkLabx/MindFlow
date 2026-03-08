@@ -44,7 +44,7 @@ const renderHindiToImage = async (text: string): Promise<string> => {
 /**
  * Generates the OWS PDF.
  */
-export const generateOWSPDF = async (data: OneWord[], config: PDFGenerationConfig) => {
+export const generateOWSPDF = async (data: OneWord[], config: PDFGenerationConfig): Promise<Blob> => {
   const doc = new jsPDF({
     orientation: 'portrait',
     unit: 'mm',
@@ -178,5 +178,5 @@ export const generateOWSPDF = async (data: OneWord[], config: PDFGenerationConfi
     }
   }
 
-  doc.save(config.fileName || 'ows-flashcards.pdf');
+  return doc.output('blob');
 };

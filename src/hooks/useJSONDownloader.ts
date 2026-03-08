@@ -1,19 +1,25 @@
 import { useState, useCallback } from 'react';
 
+export interface DownloadResult {
+  blob: Blob;
+  fileName: string;
+  url: string;
+}
+
 interface UseJSONDownloaderReturn<T> {
-  downloadJSON: (data: T[], fileName: string) => Promise<void>;
+  downloadJSON: (data: T[], fileName: string) => Promise<DownloadResult | undefined>;
   isGenerating: boolean;
   error: Error | null;
 }
 
 /**
- * A hook for downloading data as a JSON file with a simulated delay.
+ * A hook for generating a JSON file blob/URL with a simulated delay.
  */
 export function useJSONDownloader<T>(): UseJSONDownloaderReturn<T> {
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
-  const downloadJSON = useCallback(async (data: T[], fileName: string) => {
+  const downloadJSON = useCallback(async (data: T[], fileName: string): Promise<DownloadResult | undefined> => {
     setIsGenerating(true);
     setError(null);
 
@@ -25,17 +31,11 @@ export function useJSONDownloader<T>(): UseJSONDownloaderReturn<T> {
       const blob = new Blob([jsonString], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
 
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = fileName;
-      document.body.appendChild(link);
-      link.click();
-
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
+      return { blob, fileName, url };
     } catch (err) {
       console.error('JSON Download failed:', err);
       setError(err instanceof Error ? err : new Error('Unknown error during JSON download'));
+      return undefined;
     } finally {
       setIsGenerating(false);
     }

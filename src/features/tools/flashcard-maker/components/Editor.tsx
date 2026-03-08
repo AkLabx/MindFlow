@@ -6,6 +6,7 @@ import JSZip from 'jszip';
 import { EditorProps, FlashcardData, CardTemplate, Orientation } from '../types';
 import { drawCard } from '../utils/canvasDrawing';
 import { Button } from '../../../../components/Button/Button';
+import { DownloadReadyModal } from '../../../../components/ui/DownloadReadyModal';
 
 // Helper to chunk array
 const chunkArray = <T,>(array: T[], size: number): T[][] => {
@@ -96,6 +97,10 @@ export const Editor: React.FC<EditorProps> = ({
   const [batchProgress, setBatchProgress] = useState<{current: number, total: number} | null>(null);
   const [exportOrientation, setExportOrientation] = useState<Orientation>('landscape');
 
+  // --- State for Download Ready Modal ---
+  const [downloadReadyInfo, setDownloadReadyInfo] = useState<{url: string, fileName: string, blob: Blob, type: 'json' | 'zip'} | null>(null);
+  const batchResolveRef = useRef<(() => void) | null>(null);
+
   // Sync default export orientation with current view when opening modal
   useEffect(() => {
     if (showBatchModal) {
@@ -155,12 +160,25 @@ export const Editor: React.FC<EditorProps> = ({
     const jsonString = JSON.stringify(data, null, 2);
     const blob = new Blob([jsonString], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `${data.idiom.replace(/\s+/g, '_').toLowerCase()}_flashcard.json`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    setDownloadReadyInfo({
+      url,
+      fileName: `${data.idiom.replace(/\s+/g, '_').toLowerCase()}_flashcard.json`,
+      blob,
+      type: 'json'
+    });
+  };
+
+  const handleCloseDownloadReady = () => {
+    if (downloadReadyInfo?.url) {
+      URL.revokeObjectURL(downloadReadyInfo.url);
+    }
+    setDownloadReadyInfo(null);
+
+    // If a batch export is waiting, resolve it to continue
+    if (batchResolveRef.current) {
+      batchResolveRef.current();
+      batchResolveRef.current = null;
+    }
   };
 
   // --- Batch Processing Logic ---
@@ -207,14 +225,16 @@ export const Editor: React.FC<EditorProps> = ({
       const content = await zip.generateAsync({ type: 'blob' });
       const url = URL.createObjectURL(content);
 
-      // 7. Download
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `artisan_batch_${index + 1}_of_${batches.length}_${exportOrientation}.zip`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
+      // 7. Download Ready UI (Pause loop until user closes the modal)
+      await new Promise<void>(resolve => {
+        batchResolveRef.current = resolve;
+        setDownloadReadyInfo({
+          url,
+          fileName: `artisan_batch_${index + 1}_of_${batches.length}_${exportOrientation}.zip`,
+          blob: content,
+          type: 'zip'
+        });
+      });
 
     } catch (err) {
       console.error("Batch processing failed", err);
@@ -655,6 +675,16 @@ export const Editor: React.FC<EditorProps> = ({
            </div>
         </div>
       )}
+
+      {/* DOWNLOAD READY MODAL */}
+      <DownloadReadyModal
+        isOpen={!!downloadReadyInfo}
+        onClose={handleCloseDownloadReady}
+        fileUrl={downloadReadyInfo?.url || ''}
+        fileName={downloadReadyInfo?.fileName || ''}
+        blob={downloadReadyInfo?.blob}
+        fileType={downloadReadyInfo?.type}
+      />
     </div>
   );
 };

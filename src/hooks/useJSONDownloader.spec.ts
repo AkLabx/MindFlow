@@ -46,7 +46,7 @@ describe('useJSONDownloader', () => {
     const fileName = 'test.json';
 
     // Start download
-    let promise: Promise<void>;
+    let promise: Promise<any>;
     act(() => {
       promise = result.current.downloadJSON(data, fileName);
     });
@@ -61,23 +61,27 @@ describe('useJSONDownloader', () => {
     });
 
     // Wait for the promise to resolve
+    let downloadResult: any;
     await act(async () => {
-      await promise!;
+      downloadResult = await promise!;
     });
 
     // Should be finished
     expect(result.current.isGenerating).toBe(false);
     expect(result.current.error).toBeNull();
 
-    // Verify DOM interactions
+    // Verify DOM interactions (now removed in favor of returning info)
     expect(mockCreateObjectURL).toHaveBeenCalled();
-    expect(document.createElement).toHaveBeenCalledWith('a');
-    expect(mockAnchor.href).toBe('mock-url');
-    expect(mockAnchor.download).toBe(fileName);
-    expect(document.body.appendChild).toHaveBeenCalledWith(mockAnchor);
-    expect(mockClick).toHaveBeenCalled();
-    expect(document.body.removeChild).toHaveBeenCalledWith(mockAnchor);
-    expect(mockRevokeObjectURL).toHaveBeenCalledWith('mock-url');
+
+    expect(downloadResult).toBeDefined();
+    expect(downloadResult.url).toBe('mock-url');
+    expect(downloadResult.fileName).toBe(fileName);
+    expect(downloadResult.blob).toBeDefined();
+
+    expect(document.createElement).not.toHaveBeenCalled();
+    expect(document.body.appendChild).not.toHaveBeenCalled();
+    expect(mockClick).not.toHaveBeenCalled();
+    expect(document.body.removeChild).not.toHaveBeenCalled();
   });
 
   it('should handle errors during download', async () => {
@@ -88,7 +92,7 @@ describe('useJSONDownloader', () => {
       throw new Error('Blob error');
     });
 
-    let promise: Promise<void>;
+    let promise: Promise<any>;
     act(() => {
       promise = result.current.downloadJSON([], 'fail.json');
     });
@@ -98,11 +102,13 @@ describe('useJSONDownloader', () => {
       vi.advanceTimersByTime(1000);
     });
 
+    let downloadResult: any;
     await act(async () => {
-      await promise!;
+      downloadResult = await promise!;
     });
 
     expect(result.current.isGenerating).toBe(false);
     expect(result.current.error).toEqual(new Error('Blob error'));
+    expect(downloadResult).toBeUndefined();
   });
 });
