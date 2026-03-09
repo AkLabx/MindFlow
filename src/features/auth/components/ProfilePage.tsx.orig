@@ -148,21 +148,12 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onSignOut, onNavigateToSettin
         setUploading(false);
     }
   };
-  
+
   const avatarUrl = user?.user_metadata?.avatar_url || defaultAvatar;
   const targetExam = user?.user_metadata?.target_exam || 'Not Set';
   const fullName = user?.user_metadata?.full_name || 'Student';
 
   const { stats: userStats, loading: statsLoading } = useProfileStats();
-
-  // Format time spent (seconds to hours/minutes)
-  const formatTime = (seconds: number) => {
-      if (seconds < 60) return `${seconds}s`;
-      const minutes = Math.floor(seconds / 60);
-      const hours = Math.floor(minutes / 60);
-      if (hours > 0) return `${hours}h ${minutes % 60}m`;
-      return `${minutes}m`;
-  };
 
   const handleSignOut = async () => {
     await signOut();
@@ -198,10 +189,10 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onSignOut, onNavigateToSettin
               />
           </div>
           <div className="mt-4 w-full max-w-sm">
-              <input 
-                type="range" 
-                min={1} max={3} step={0.1} 
-                value={zoom} 
+              <input
+                type="range"
+                min={1} max={3} step={0.1}
+                value={zoom}
                 onChange={(e) => setZoom(parseFloat(e.target.value))}
                 className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
               />
@@ -219,12 +210,12 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onSignOut, onNavigateToSettin
 
       <div className="min-h-full bg-slate-50 p-4 sm:p-6 lg:p-8 pb-32 md:pb-20">
         <div className="max-w-2xl mx-auto space-y-6">
-          
+
           {/* --- Top Information Card --- */}
           <div className="bg-white rounded-3xl border border-slate-200/80 shadow-lg shadow-slate-200/30 overflow-hidden">
             <div className="relative h-24 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"></div>
             <div className="p-6 pb-6 text-center relative">
-              
+
               <div className="relative w-28 h-28 mx-auto -mt-20">
                   <img src={avatarUrl} alt="User Avatar" className="w-28 h-28 rounded-full border-4 border-white shadow-lg object-cover" />
                   <input type="file" ref={avatarInputRef} className="hidden" onChange={handleFileSelect} accept="image/png, image/jpeg" />
@@ -291,26 +282,13 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onSignOut, onNavigateToSettin
               <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
                   <p className="text-xs text-slate-500 font-bold uppercase tracking-wider mb-1">Time Spent</p>
                   <p className="text-xl font-black text-slate-800 flex items-center gap-1">
-                      <Clock className="w-4 h-4 text-slate-400" /> {statsLoading ? '-' : formatTime(userStats.totalTimeSpent)}
+                      <Clock className="w-4 h-4 text-slate-400" /> -
                   </p>
               </div>
             </div>
 
             <div className="mt-4 pt-4 border-t border-slate-100">
-                 <p className="text-sm font-medium text-slate-600 flex items-center gap-2">
-                     <span className="font-bold text-slate-800">Weak Topics:</span>
-                     {statsLoading ? (
-                         <span className="text-slate-400 text-xs">Loading...</span>
-                     ) : userStats.weakTopics.length > 0 ? (
-                         <span className="flex gap-1 flex-wrap">
-                            {userStats.weakTopics.map(topic => (
-                                <span key={topic} className="px-2 py-0.5 bg-red-50 text-red-600 rounded text-xs border border-red-100">{topic}</span>
-                            ))}
-                         </span>
-                     ) : (
-                         <span className="text-green-600 text-xs font-bold px-2 py-0.5 bg-green-50 rounded border border-green-100">Looking Good!</span>
-                     )}
-                 </p>
+                 <p className="text-sm font-medium text-slate-600"><span className="font-bold text-slate-800">Weak Topics:</span> <span className="px-2 py-0.5 bg-red-50 text-red-600 rounded text-xs ml-1 border border-red-100">Needs more data</span></p>
             </div>
           </div>
 
