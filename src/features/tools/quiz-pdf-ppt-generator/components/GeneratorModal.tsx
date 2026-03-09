@@ -4,7 +4,7 @@ import { Loader2 } from 'lucide-react';
 
 interface GeneratorModalProps {
   isOpen: boolean;
-  type: 'PDF' | 'PPT' | null;
+  type: 'PDF' | 'PPT' | 'JSON' | null;
   progress: number;
   details: string;
 }
