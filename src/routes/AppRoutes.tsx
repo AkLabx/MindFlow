@@ -32,6 +32,8 @@ const OWSSession = lazy(() => import('../features/ows/components/OWSSession').th
 const AuthPage = lazy(() => import('../features/auth/components/AuthPage'));
 const ProfilePage = lazy(() => import('../features/auth/components/ProfilePage'));
 const SettingsPage = lazy(() => import('../features/auth/components/SettingsPage'));
+const SubscriptionPage = lazy(() => import('../features/auth/components/SubscriptionPage'));
+const SupportPage = lazy(() => import('../features/auth/components/SupportPage'));
 
 /**
  * The inner routing logic wrapped in the QuizContext context.
@@ -141,6 +143,14 @@ const AppRoutesContent: React.FC = () => {
 
                     <Route path="/settings" element={
                         <SettingsPage onBack={() => navTo('/profile')} />
+                    } />
+
+                    <Route path="/profile/subscription" element={
+                        <SubscriptionPage onBack={() => navTo('/profile')} />
+                    } />
+
+                    <Route path="/profile/support" element={
+                        <SupportPage onBack={() => navTo('/profile')} />
                     } />
 
                     <Route path="/login" element={

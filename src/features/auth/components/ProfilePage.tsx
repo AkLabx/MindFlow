@@ -2,22 +2,17 @@ import React, { useState, useRef, useCallback } from 'react';
 import Cropper from 'react-easy-crop';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../../../lib/supabase';
-import { Settings, LogOut, Award, CheckCircle, BarChart, ChevronRight, Pencil, Loader2, AlertTriangle, X } from 'lucide-react';
+import {
+    LogOut, Settings, ChevronRight, Award, CheckCircle, BarChart,
+    Pencil, AlertTriangle, Loader2, X, Clock, Target,
+    FileText, Bookmark, Grid, CreditCard, Shield, HelpCircle
+} from 'lucide-react';
 import { useProfileStats } from '../hooks/useProfileStats';
-import defaultAvatar from '../../../assets/default-avatar.svg';
+import { useNavigate } from 'react-router-dom';
 
-interface ProfilePageProps {
-  onSignOut?: () => void;
-  onNavigateToSettings: () => void;
-}
+const defaultAvatar = 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix&backgroundColor=e2e8f0';
 
-/**
- * Helper function to create an HTMLImageElement from a URL.
- * Required for the canvas drawing operation.
- *
- * @param {string} url - The URL of the image.
- * @returns {Promise<HTMLImageElement>} A promise resolving to the loaded image element.
- */
+// --- Image Cropping Utility ---
 const createImage = (url: string): Promise<HTMLImageElement> =>
   new Promise((resolve, reject) => {
     const image = new Image();
@@ -28,15 +23,15 @@ const createImage = (url: string): Promise<HTMLImageElement> =>
   });
 
 /**
- * Generates a cropped image blob from a source image and crop pixel coordinates.
+ * Extracts the cropped region from an image and returns a Blob.
  *
- * @param {string} imageSrc - The source image URL.
- * @param {object} pixelCrop - The crop area coordinates (x, y, width, height).
- * @returns {Promise<Blob | null>} A promise resolving to the cropped image Blob.
+ * @param {string} imageSrc - The source URL/Data URI of the original image.
+ * @param {object} pixelCrop - The pixel coordinates and dimensions of the crop box.
+ * @returns {Promise<Blob | null>} A Promise resolving to the cropped image Blob.
  */
 async function getCroppedImg(
   imageSrc: string,
-  pixelCrop: { x: number; y: number; width: number; height: number; }
+  pixelCrop: { x: number; y: number; width: number; height: number }
 ): Promise<Blob | null> {
   const image = await createImage(imageSrc);
   const canvas = document.createElement('canvas');
@@ -46,9 +41,11 @@ async function getCroppedImg(
     return null;
   }
 
-  canvas.width = 256;
-  canvas.height = 256;
-  
+  // Set canvas dimensions to the crop size
+  canvas.width = pixelCrop.width;
+  canvas.height = pixelCrop.height;
+
+  // Draw the cropped portion onto the canvas
   ctx.drawImage(
     image,
     pixelCrop.x,
@@ -57,10 +54,11 @@ async function getCroppedImg(
     pixelCrop.height,
     0,
     0,
-    256,
-    256
+    pixelCrop.width,
+    pixelCrop.height
   );
 
+  // Asynchronously convert the canvas to a Blob
   return new Promise((resolve, reject) => {
     canvas.toBlob((blob) => {
       if (!blob) {
@@ -68,25 +66,18 @@ async function getCroppedImg(
         return;
       }
       resolve(blob);
-    }, 'image/jpeg', 0.9);
+    }, 'image/jpeg', 0.95); // High quality JPEG
   });
 }
 
-/**
- * User Profile Page Component.
- *
- * Displays user information, avatar, and statistics.
- * Provides functionality to:
- * - View profile details.
- * - Upload and crop a new avatar image.
- * - Navigate to settings.
- * - Sign out.
- *
- * @param {ProfilePageProps} props - The component props.
- * @returns {JSX.Element} The rendered Profile Page.
- */
-const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigateToSettings, onSignOut }) => {
+interface ProfilePageProps {
+  onSignOut?: () => void;
+  onNavigateToSettings: () => void;
+}
+
+const ProfilePage: React.FC<ProfilePageProps> = ({ onSignOut, onNavigateToSettings }) => {
   const { user, signOut, refreshUser } = useAuth();
+  const navigate = useNavigate();
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const avatarInputRef = useRef<HTMLInputElement>(null);
@@ -159,14 +150,17 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigateToSettings, onSignO
   };
   
   const avatarUrl = user?.user_metadata?.avatar_url || defaultAvatar;
+  const targetExam = user?.user_metadata?.target_exam || 'Not Set';
+  const fullName = user?.user_metadata?.full_name || 'Student';
 
   const { stats: userStats, loading: statsLoading } = useProfileStats();
 
-  const stats = [
-    { name: 'Quizzes Completed', value: statsLoading ? '-' : userStats.quizzesCompleted.toLocaleString(), icon: Award },
-    { name: 'Correct Answers', value: statsLoading ? '-' : userStats.correctAnswers.toLocaleString(), icon: CheckCircle },
-    { name: 'Average Score', value: statsLoading ? '-' : `${userStats.averageScore}%`, icon: BarChart },
-  ];
+  const handleSignOut = async () => {
+    await signOut();
+    if (onSignOut) {
+      onSignOut();
+    }
+  };
 
   if (!user) {
     return (
@@ -214,30 +208,37 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigateToSettings, onSignO
         </div>
       )}
 
-      <div className="min-h-full bg-slate-50 p-4 sm:p-6 lg:p-8">
-        <div className="max-w-2xl mx-auto">
+      <div className="min-h-full bg-slate-50 p-4 sm:p-6 lg:p-8 pb-32 md:pb-20">
+        <div className="max-w-2xl mx-auto space-y-6">
           
+          {/* --- Top Information Card --- */}
           <div className="bg-white rounded-3xl border border-slate-200/80 shadow-lg shadow-slate-200/30 overflow-hidden">
             <div className="relative h-24 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"></div>
-            <div className="p-6 pb-8 text-center relative">
+            <div className="p-6 pb-6 text-center relative">
               
               <div className="relative w-28 h-28 mx-auto -mt-20">
-                  <img src={avatarUrl} alt="User Avatar" className="w-28 h-28 rounded-full border-4 border-white shadow-lg" />
+                  <img src={avatarUrl} alt="User Avatar" className="w-28 h-28 rounded-full border-4 border-white shadow-lg object-cover" />
                   <input type="file" ref={avatarInputRef} className="hidden" onChange={handleFileSelect} accept="image/png, image/jpeg" />
                   <button
                       onClick={handleAvatarClick}
                       className="absolute bottom-1 right-1 w-9 h-9 bg-indigo-600 rounded-full flex items-center justify-center text-white border-2 border-white hover:bg-indigo-700 transition-all duration-300 shadow-md group"
                       aria-label="Change profile picture"
                   >
-                      <Pencil className="w-5 h-5 transition-transform group-hover:scale-110" />
+                      <Pencil className="w-4 h-4 transition-transform group-hover:scale-110" />
                   </button>
               </div>
 
-              <div className="mt-4 flex items-center justify-center gap-2">
-                  <h1 className="text-3xl font-black text-slate-800">{user.user_metadata?.full_name || user.email}</h1>
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-gradient-to-r from-amber-400 to-orange-500 text-white shadow-md">PRO</span>
+              <div className="mt-4">
+                  <h1 className="text-2xl font-black text-slate-800">{fullName}</h1>
+                  <p className="text-slate-500 font-medium text-sm mt-0.5">{user.email}</p>
               </div>
-              <p className="text-slate-500 font-medium mt-1">{user.email}</p>
+
+              <div className="mt-3 flex items-center justify-center gap-2">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-100">
+                      <Target className="w-3.5 h-3.5" />
+                      Preparing for: {targetExam}
+                  </span>
+              </div>
 
               {error && (
                   <div className="mt-4 bg-red-100 border border-red-200 text-red-700 px-4 py-2 rounded-xl flex items-center justify-center gap-2 text-sm">
@@ -245,54 +246,115 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigateToSettings, onSignO
                       <span>{error}</span>
                   </div>
               )}
+
+              <button
+                  onClick={onNavigateToSettings}
+                  className="mt-5 w-full sm:w-auto px-6 py-2.5 bg-slate-100 text-slate-700 font-bold rounded-xl hover:bg-slate-200 transition-colors border border-slate-200"
+              >
+                  Edit Profile Info
+              </button>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6">
-            {stats.map((stat, index) => (
-              <div key={index} className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm hover:shadow-md transition-shadow duration-300 flex items-start gap-4">
-                <div className="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-500">
-                  <stat.icon className="w-5 h-5" />
-                </div>
-                <div>
-                  <p className="text-sm font-bold text-slate-800">{stat.value}</p>
-                  <p className="text-xs text-slate-500 font-medium">{stat.name}</p>
-                </div>
+          {/* --- Performance Stats --- */}
+          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-6 relative overflow-hidden group hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigate('/quiz/analytics')}>
+            <div className="flex items-center justify-between mb-4">
+               <h2 className="text-lg font-black text-slate-800 flex items-center gap-2">
+                   <BarChart className="w-5 h-5 text-indigo-500" />
+                   Performance
+               </h2>
+               <ChevronRight className="w-5 h-5 text-slate-400 group-hover:text-indigo-600 transition-colors" />
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div className="bg-indigo-50/50 p-3 rounded-xl border border-indigo-100/50">
+                  <p className="text-xs text-indigo-600/70 font-bold uppercase tracking-wider mb-1">Accuracy</p>
+                  <p className="text-xl font-black text-indigo-700">{statsLoading ? '-' : `${userStats.averageScore}%`}</p>
               </div>
-            ))}
+              <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                  <p className="text-xs text-slate-500 font-bold uppercase tracking-wider mb-1">Tests</p>
+                  <p className="text-xl font-black text-slate-800">{statsLoading ? '-' : userStats.quizzesCompleted.toLocaleString()}</p>
+              </div>
+              <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                  <p className="text-xs text-slate-500 font-bold uppercase tracking-wider mb-1">Correct</p>
+                  <p className="text-xl font-black text-slate-800">{statsLoading ? '-' : userStats.correctAnswers.toLocaleString()}</p>
+              </div>
+              <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                  <p className="text-xs text-slate-500 font-bold uppercase tracking-wider mb-1">Time Spent</p>
+                  <p className="text-xl font-black text-slate-800 flex items-center gap-1">
+                      <Clock className="w-4 h-4 text-slate-400" /> -
+                  </p>
+              </div>
+            </div>
+
+            <div className="mt-4 pt-4 border-t border-slate-100">
+                 <p className="text-sm font-medium text-slate-600"><span className="font-bold text-slate-800">Weak Topics:</span> <span className="px-2 py-0.5 bg-red-50 text-red-600 rounded text-xs ml-1 border border-red-100">Needs more data</span></p>
+            </div>
           </div>
 
-          <div className="mt-6 space-y-3">
-              <button onClick={onNavigateToSettings} className="w-full flex items-center justify-between p-4 bg-white rounded-xl border border-slate-200/80 shadow-sm hover:shadow-md hover:border-indigo-300 transition-all duration-300 group">
-                  <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center text-slate-600"><Settings className="w-5 h-5" /></div>
-                      <div>
-                          <h3 className="font-bold text-slate-800 text-left">Profile Settings</h3>
-                          <p className="text-xs text-slate-500 font-medium">Update your name, email, and password</p>
+          {/* 3. My Activity */}
+          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-4">
+              <h2 className="text-base font-bold text-slate-800 mb-3 px-2">My Activity</h2>
+              <div className="space-y-2">
+                  <button onClick={() => navigate('/quiz/analytics')} className="w-full flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 transition-colors group">
+                      <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 bg-purple-50 rounded-lg flex items-center justify-center text-purple-600"><FileText className="w-4 h-4" /></div>
+                          <span className="font-bold text-slate-700">Attempted Tests</span>
                       </div>
-                  </div>
-                  <ChevronRight className="w-5 h-5 text-slate-400 group-hover:text-indigo-600 transition-colors" />
-              </button>
-
-              <button
-                onClick={async () => {
-                  await signOut();
-                  if (onSignOut) {
-                    onSignOut();
-                  }
-                }}
-                className="w-full flex items-center justify-between p-4 bg-white rounded-xl border border-slate-200/80 shadow-sm hover:shadow-md hover:border-red-300 transition-all duration-300 group"
-              >
-                  <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 bg-red-50 rounded-lg flex items-center justify-center text-red-600"><LogOut className="w-5 h-5" /></div>
-                       <div>
-                          <h3 className="font-bold text-red-700 text-left">Sign Out</h3>
-                          <p className="text-xs text-slate-500 font-medium">You will be returned to the login screen</p>
+                      <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-purple-600 transition-colors" />
+                  </button>
+                  <button onClick={() => navigate('/quiz/bookmarks')} className="w-full flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 transition-colors group">
+                      <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 bg-amber-50 rounded-lg flex items-center justify-center text-amber-500"><Bookmark className="w-4 h-4" /></div>
+                          <span className="font-bold text-slate-700">Saved Questions</span>
                       </div>
-                  </div>
-                  <ChevronRight className="w-5 h-5 text-slate-400 group-hover:text-red-600 transition-colors" />
-              </button>
+                      <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-amber-500 transition-colors" />
+                  </button>
+                  <button onClick={() => navigate('/quiz/saved')} className="w-full flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 transition-colors group">
+                      <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 bg-blue-50 rounded-lg flex items-center justify-center text-blue-500"><Grid className="w-4 h-4" /></div>
+                          <span className="font-bold text-slate-700">Created Quizzes</span>
+                      </div>
+                      <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-blue-500 transition-colors" />
+                  </button>
+              </div>
           </div>
+
+          {/* 4. Settings & More */}
+          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-4">
+              <div className="space-y-2">
+                  <button onClick={() => navigate('/profile/subscription')} className="w-full flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 transition-colors group">
+                      <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 bg-emerald-50 rounded-lg flex items-center justify-center text-emerald-600"><CreditCard className="w-4 h-4" /></div>
+                          <span className="font-bold text-slate-700">Subscription & Rewards</span>
+                      </div>
+                      <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-emerald-600 transition-colors" />
+                  </button>
+                  <button onClick={onNavigateToSettings} className="w-full flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 transition-colors group">
+                      <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 bg-slate-100 rounded-lg flex items-center justify-center text-slate-600"><Shield className="w-4 h-4" /></div>
+                          <span className="font-bold text-slate-700">Settings & Security</span>
+                      </div>
+                      <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-slate-600 transition-colors" />
+                  </button>
+                  <button onClick={() => navigate('/profile/support')} className="w-full flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 transition-colors group">
+                      <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 bg-sky-50 rounded-lg flex items-center justify-center text-sky-500"><HelpCircle className="w-4 h-4" /></div>
+                          <span className="font-bold text-slate-700">Help & Support</span>
+                      </div>
+                      <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-sky-500 transition-colors" />
+                  </button>
+              </div>
+          </div>
+
+          {/* 5. Logout */}
+          <button
+            onClick={handleSignOut}
+            className="w-full flex items-center justify-center gap-2 p-4 bg-white rounded-2xl border border-slate-200/80 shadow-sm hover:bg-red-50 hover:border-red-200 hover:text-red-600 text-slate-600 font-bold transition-all duration-300"
+          >
+              <LogOut className="w-5 h-5" />
+              Sign Out
+          </button>
 
         </div>
       </div>
