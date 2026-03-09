@@ -239,11 +239,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLoginC
                   "https://i.pravatar.cc/100?img=59",
                   "https://i.pravatar.cc/100?img=5"
                 ].map((src, i) => (
-                   <div key={i} className="relative w-12 h-12 rounded-full border-[3px] border-white shadow-sm overflow-hidden hover:scale-110 hover:z-10 transition-transform duration-200 cursor-pointer">
+                   <div key={i} className="relative w-12 h-12 rounded-full border-[3px] border-white dark:border-slate-800 shadow-sm overflow-hidden hover:scale-110 hover:z-10 transition-transform duration-200 cursor-pointer">
                       <img src={src} alt={`User ${i+1}`} className="w-full h-full object-cover" />
                    </div>
                 ))}
-                <div className="relative w-12 h-12 rounded-full border-[3px] border-white bg-slate-100 flex items-center justify-center text-xs font-bold text-slate-600 dark:text-slate-400 dark:text-slate-500 shadow-sm">
+                <div className="relative w-12 h-12 rounded-full border-[3px] border-white dark:border-slate-800 bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-xs font-bold text-slate-600 dark:text-slate-400 dark:text-slate-500 shadow-sm">
                   2k+
                 </div>
              </div>
@@ -283,7 +283,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLoginC
             
             <div className="absolute -bottom-6 -left-8 p-[1px] rounded-2xl bg-gradient-to-br from-white/80 via-white/20 to-transparent animate-float animation-delay-2000 z-30 shadow-[0_20px_40px_-10px_rgba(0,0,0,0.15)]">
                <div className="bg-white dark:bg-slate-900/80 dark:bg-slate-900/80 backdrop-blur-md p-4 pr-6 rounded-2xl flex items-center gap-4 h-full w-full">
-                  <div className="bg-emerald-100 p-2.5 rounded-xl text-emerald-600">
+                  <div className="bg-emerald-100 dark:bg-emerald-900/40 p-2.5 rounded-xl text-emerald-600 dark:text-emerald-400">
                     <Target className="w-6 h-6" />
                   </div>
                   <div>
@@ -325,7 +325,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLoginC
       </div>
 
       {/* Footer Strip / Feature Ticker */}
-      <div className="w-full border-t border-white/50 bg-white dark:bg-slate-900/30 backdrop-blur-lg py-6 mt-auto pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
+      <div className="w-full border-t border-white/50 dark:border-slate-800/50 bg-white dark:bg-slate-900/30 backdrop-blur-lg py-6 mt-auto pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
         <div className="max-w-7xl mx-auto px-4 flex flex-wrap justify-center md:justify-between gap-8 text-slate-400 dark:text-slate-500 text-xs md:text-sm font-bold uppercase tracking-widest mb-4">
           <div className="flex items-center gap-2 hover:text-indigo-500 transition-colors cursor-default"><Zap className="w-4 h-4" /> Instant Evaluation</div>
           <div className="hidden md:block w-1 h-1 rounded-full bg-slate-300"></div>

@@ -1,8 +1,9 @@
-import React from 'react';
-import { BrainCircuit, Home, Compass, PlusCircle, User, Settings, LogIn } from 'lucide-react';
+import React, { useContext } from 'react';
+import { BrainCircuit, Home, Compass, PlusCircle, User, Settings, LogIn, Sun, Moon } from 'lucide-react';
 import { cn } from '../utils/cn';
 import { useAuth } from '../features/auth/context/AuthContext';
 import { useQuizContext } from '../features/quiz/context/QuizContext';
+import { SettingsContext } from '../context/SettingsContext';
 
 /**
  * Unique identifiers for the main navigation tabs.
@@ -43,6 +44,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
 }) => {
   const { user } = useAuth();
   const { isReviewMode } = useQuizContext();
+  const { isDarkMode, toggleDarkMode } = useContext(SettingsContext);
 
   const handleProfileClick = () => {
     if (user) {
@@ -66,22 +68,31 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
             <span className="text-lg font-black tracking-tight text-gray-900 dark:text-slate-100 transition-colors duration-300">MindFlow</span>
           </div>
           
-          {user ? (
-            <button onClick={() => onTabChange('profile')} className="rounded-full transition-opacity duration-200 hover:opacity-80">
-              <img
-                src={user.user_metadata?.avatar_url || `https://api.dicebear.com/6.x/initials/svg?seed=${user.user_metadata?.full_name || user.email}`}
-                alt="User Avatar"
-                className="w-8 h-8 rounded-full"
-              />
-            </button>
-          ) : (
-             <button
-              onClick={onOpenSettings}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={toggleDarkMode}
               className="p-2 text-gray-500 hover:bg-gray-100 dark:text-slate-400 dark:hover:bg-slate-800 rounded-full transition-colors"
+              aria-label="Toggle Dark Mode"
             >
-              <Settings className="w-5 h-5" />
+              {isDarkMode ? <Sun className="w-5 h-5 text-amber-500" /> : <Moon className="w-5 h-5" />}
             </button>
-          )}
+            {user ? (
+              <button onClick={() => onTabChange('profile')} className="rounded-full transition-opacity duration-200 hover:opacity-80">
+                <img
+                  src={user.user_metadata?.avatar_url || `https://api.dicebear.com/6.x/initials/svg?seed=${user.user_metadata?.full_name || user.email}`}
+                  alt="User Avatar"
+                  className="w-8 h-8 rounded-full"
+                />
+              </button>
+            ) : (
+               <button
+                onClick={onOpenSettings}
+                className="p-2 text-gray-500 hover:bg-gray-100 dark:text-slate-400 dark:hover:bg-slate-800 rounded-full transition-colors"
+              >
+                <Settings className="w-5 h-5" />
+              </button>
+            )}
+          </div>
         </div>
       </header>
       )}

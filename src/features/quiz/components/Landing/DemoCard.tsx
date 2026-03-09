@@ -178,7 +178,7 @@ export const DemoCard: React.FC = () => {
       }}
     >
       {/* Inner Content Container with Glass Background */}
-      <div className="relative w-full h-full bg-white/40 backdrop-blur-xl rounded-[2rem] p-6 md:p-8 overflow-hidden flex flex-col">
+      <div className="relative w-full h-full bg-white/40 dark:bg-slate-900/40 backdrop-blur-xl rounded-[2rem] p-6 md:p-8 overflow-hidden flex flex-col border border-white/20 dark:border-slate-800/50">
         
         {/* Glossy Shine Effect (Static Base) */}
         <div className="absolute inset-0 rounded-[2rem] bg-gradient-to-tr from-white/40 to-transparent pointer-events-none z-0" />
@@ -201,7 +201,7 @@ export const DemoCard: React.FC = () => {
             <div className="w-2.5 h-2.5 md:w-3 md:h-3 rounded-full bg-amber-400/80 shadow-sm"></div>
             <div className="w-2.5 h-2.5 md:w-3 md:h-3 rounded-full bg-emerald-400/80 shadow-sm"></div>
           </div>
-          <div className={`px-2.5 py-0.5 md:px-3 md:py-1 rounded-lg text-[10px] font-bold border flex items-center gap-2 transition-colors duration-300 ${currentContent.theme.badge}`}>
+          <div className={`px-2.5 py-0.5 md:px-3 md:py-1 rounded-lg text-[10px] font-bold border flex items-center gap-2 transition-colors duration-300 ${currentContent.theme.badge} dark:bg-opacity-20`}>
             {phase === 'RESULT' ? 'COMPLETE' : currentContent.category.toUpperCase()}
           </div>
         </div>
@@ -212,13 +212,13 @@ export const DemoCard: React.FC = () => {
           {/* 1. Start View */}
           {(phase === 'START' || phase === 'CLICK_START') && (
             <div className="flex flex-col items-center justify-center h-full animate-fade-in">
-              <div className={`w-10 h-10 md:w-12 md:h-12 rounded-2xl flex items-center justify-center mb-4 transition-colors duration-300 ${currentContent.theme.startIconBg} ${currentContent.theme.startIconText}`}>
+              <div className={`w-10 h-10 md:w-12 md:h-12 rounded-2xl flex items-center justify-center mb-4 transition-colors duration-300 ${currentContent.theme.startIconBg} dark:bg-opacity-20 ${currentContent.theme.startIconText}`}>
                 <Sparkles className="w-5 h-5 md:w-6 md:h-6" />
               </div>
-              <h3 className="text-base md:text-lg font-bold text-slate-800 mb-1">Ready to Learn?</h3>
-              <p className="text-xs text-slate-500 mb-6">Topic: {currentContent.category}</p>
+              <h3 className="text-base md:text-lg font-bold text-slate-800 dark:text-slate-100 mb-1">Ready to Learn?</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mb-6">Topic: {currentContent.category}</p>
               <button className={`
-                  bg-slate-900 text-white px-5 py-2 md:px-6 md:py-2 rounded-xl text-xs md:text-sm font-semibold shadow-lg transition-transform duration-100
+                  bg-slate-900 dark:bg-indigo-600 text-white px-5 py-2 md:px-6 md:py-2 rounded-xl text-xs md:text-sm font-semibold shadow-lg transition-transform duration-100
                   ${phase === 'CLICK_START' ? 'scale-95' : 'scale-100'}
               `}>
                 Start Gk Quiz
@@ -243,11 +243,11 @@ export const DemoCard: React.FC = () => {
           {(phase === 'QUESTION' || phase === 'SELECT_OPTION' || phase === 'CLICK_SUBMIT') && (
             <div className="animate-fade-in w-full flex flex-col h-full">
               <div className="flex justify-between items-center mb-4">
-                <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
                   <div className={`h-full w-1/3 transition-colors duration-300 ${currentContent.theme.progress}`}></div>
                 </div>
               </div>
-              <h4 className="font-bold text-slate-800 text-sm mb-4 leading-tight">
+              <h4 className="font-bold text-slate-800 dark:text-slate-100 text-sm mb-4 leading-tight">
                 {currentContent.question}
               </h4>
               
@@ -257,34 +257,34 @@ export const DemoCard: React.FC = () => {
                   p-3 rounded-xl border flex items-center gap-3 transition-all duration-300
                   ${(phase === 'SELECT_OPTION' || phase === 'CLICK_SUBMIT') 
                       ? `${currentContent.theme.selectedBg} ${currentContent.theme.selectedBorder} shadow-sm` 
-                      : 'bg-white/40 border-white/60'}
+                      : 'bg-white/40 dark:bg-slate-800/40 border-white/60 dark:border-slate-700/50'}
                 `}>
                   <div className={`
                     w-4 h-4 md:w-5 md:h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors duration-300
-                    ${(phase === 'SELECT_OPTION' || phase === 'CLICK_SUBMIT') ? currentContent.theme.borderDot : 'border-slate-300'}
+                    ${(phase === 'SELECT_OPTION' || phase === 'CLICK_SUBMIT') ? currentContent.theme.borderDot : 'border-slate-300 dark:border-slate-600'}
                   `}>
                     {(phase === 'SELECT_OPTION' || phase === 'CLICK_SUBMIT') && <div className={`w-2 md:w-2.5 h-2 md:h-2.5 rounded-full ${currentContent.theme.dot}`} />}
                   </div>
-                  <div className="text-xs font-medium text-slate-700">{currentContent.options[0]}</div>
+                  <div className="text-xs font-medium text-slate-700 dark:text-slate-300">{currentContent.options[0]}</div>
                 </div>
 
                 {/* Option 2 */}
-                <div className="p-3 rounded-xl border border-white/60 bg-white/40 flex items-center gap-3 opacity-60">
-                  <div className="w-4 h-4 md:w-5 md:h-5 rounded-full border-2 border-slate-300 flex-shrink-0" />
-                  <div className="text-xs font-medium text-slate-600">{currentContent.options[1]}</div>
+                <div className="p-3 rounded-xl border border-white/60 dark:border-slate-700/50 bg-white/40 dark:bg-slate-800/40 flex items-center gap-3 opacity-60">
+                  <div className="w-4 h-4 md:w-5 md:h-5 rounded-full border-2 border-slate-300 dark:border-slate-600 flex-shrink-0" />
+                  <div className="text-xs font-medium text-slate-600 dark:text-slate-400">{currentContent.options[1]}</div>
                 </div>
 
                 {/* Option 3 */}
-                <div className="p-3 rounded-xl border border-white/60 bg-white/40 flex items-center gap-3 opacity-60">
-                  <div className="w-4 h-4 md:w-5 md:h-5 rounded-full border-2 border-slate-300 flex-shrink-0" />
-                  <div className="text-xs font-medium text-slate-600">{currentContent.options[2]}</div>
+                <div className="p-3 rounded-xl border border-white/60 dark:border-slate-700/50 bg-white/40 dark:bg-slate-800/40 flex items-center gap-3 opacity-60">
+                  <div className="w-4 h-4 md:w-5 md:h-5 rounded-full border-2 border-slate-300 dark:border-slate-600 flex-shrink-0" />
+                  <div className="text-xs font-medium text-slate-600 dark:text-slate-400">{currentContent.options[2]}</div>
                 </div>
               </div>
 
               {/* Next Button */}
               <div className="mt-auto pt-2 flex justify-end">
                 <div className={`
-                  bg-slate-900 text-white text-[10px] font-bold px-4 py-2 rounded-lg transition-transform duration-100
+                  bg-slate-900 dark:bg-slate-700 text-white text-[10px] font-bold px-4 py-2 rounded-lg transition-transform duration-100
                   ${phase === 'CLICK_SUBMIT' ? 'scale-90' : 'scale-100'}
                 `}>
                   Next
@@ -299,7 +299,7 @@ export const DemoCard: React.FC = () => {
               <div className="w-12 h-12 md:w-14 md:h-14 bg-yellow-100 rounded-full flex items-center justify-center text-yellow-600 mb-3 animate-bounce">
                 <Trophy className="w-6 h-6 md:w-7 md:h-7" />
               </div>
-              <div className="text-xl md:text-2xl font-black text-slate-800 mb-1">Correct!</div>
+              <div className="text-xl md:text-2xl font-black text-slate-800 dark:text-slate-100 mb-1">Correct!</div>
               <p className="text-xs text-slate-500">You nailed {currentContent.category}.</p>
               <div className="mt-4 flex gap-1">
                 {[1,2,3].map(i => <div key={i} className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />)}
