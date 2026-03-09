@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import { Trophy, RotateCcw, Home, Target, Clock, CheckCircle2, XCircle, List, ChevronRight, Award, Zap, CircleDashed } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Trophy, RotateCcw, Home, Target, Clock, CheckCircle2, XCircle, List, ChevronRight, Award, Zap, CircleDashed, ArrowLeft } from 'lucide-react';
 import { Button } from '../../../components/Button/Button';
 import { Card } from '../../../components/ui/Card';
 import { ProgressBar } from '../../../components/ui/ProgressBar';
@@ -44,6 +45,7 @@ export const QuizResult: React.FC<QuizResultProps> = ({
 }) => {
   const [view, setView] = useState<'score' | 'review'>('score');
   const [reviewFilter, setReviewFilter] = useState<'All' | 'Correct' | 'Incorrect' | 'Bookmarked' | 'Skipped'>('All');
+  const navigate = useNavigate();
 
   // --- Statistics Calculations ---
 
@@ -139,11 +141,20 @@ export const QuizResult: React.FC<QuizResultProps> = ({
       );
   }
 
+
   // --- Main View: Score Dashboard ---
   return (
     <div className="max-w-5xl mx-auto p-4 md:p-8 animate-in fade-in duration-500">
       
+      {/* Top Controls */}
+      <div className="flex items-center gap-4 mb-6">
+          <Button variant="ghost" size="sm" onClick={() => navigate(-1)} className="text-gray-500 hover:text-gray-900">
+              <ArrowLeft className="w-4 h-4 mr-2" /> Back
+          </Button>
+      </div>
+
       {/* Hero Section: Grade & Chart */}
+
       <Card noPadding className="mb-8 border-0 shadow-2xl overflow-hidden">
           <div className={cn("p-8 md:p-10 text-white relative transition-all duration-1000", grade.bg)}>
               

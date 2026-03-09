@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Trash2, Play, Clock, BookOpen, Edit2, Check, X, Save } from 'lucide-react';
+import { Trash2, Play, Clock, BookOpen, Edit2, Check, X, Save, Home } from 'lucide-react';
 import { db } from '../../../lib/db';
 import { SavedQuiz } from '../types';
 import { useQuizContext } from '../context/QuizContext';
@@ -118,10 +118,20 @@ export const SavedQuizzes: React.FC = () => {
         );
     }
 
+
     return (
         <div className="min-h-screen bg-gray-50 p-4 md:p-8">
             <div className="max-w-4xl mx-auto">
+                <div className="mb-6">
+                    <button
+                        onClick={() => navigate('/dashboard')}
+                        className="flex items-center gap-2 text-indigo-600 hover:text-indigo-800 transition-colors font-medium"
+                    >
+                        <Home className="w-5 h-5" /> Back to Home
+                    </button>
+                </div>
                 <div className="flex items-center justify-between mb-8">
+
                     <h1 className="text-2xl font-bold text-gray-900">Created Quizzes</h1>
                     <div className="flex gap-4">
                         <button
