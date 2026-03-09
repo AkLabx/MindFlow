@@ -7,6 +7,7 @@ import { useProfileStats } from '../hooks/useProfileStats';
 import defaultAvatar from '../../../assets/default-avatar.svg';
 
 interface ProfilePageProps {
+  onSignOut?: () => void;
   onNavigateToSettings: () => void;
 }
 
@@ -84,7 +85,7 @@ async function getCroppedImg(
  * @param {ProfilePageProps} props - The component props.
  * @returns {JSX.Element} The rendered Profile Page.
  */
-const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigateToSettings }) => {
+const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigateToSettings, onSignOut }) => {
   const { user, signOut, refreshUser } = useAuth();
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -273,7 +274,15 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigateToSettings }) => {
                   <ChevronRight className="w-5 h-5 text-slate-400 group-hover:text-indigo-600 transition-colors" />
               </button>
 
-              <button onClick={signOut} className="w-full flex items-center justify-between p-4 bg-white rounded-xl border border-slate-200/80 shadow-sm hover:shadow-md hover:border-red-300 transition-all duration-300 group">
+              <button
+                onClick={async () => {
+                  await signOut();
+                  if (onSignOut) {
+                    onSignOut();
+                  }
+                }}
+                className="w-full flex items-center justify-between p-4 bg-white rounded-xl border border-slate-200/80 shadow-sm hover:shadow-md hover:border-red-300 transition-all duration-300 group"
+              >
                   <div className="flex items-center gap-4">
                       <div className="w-10 h-10 bg-red-50 rounded-lg flex items-center justify-center text-red-600"><LogOut className="w-5 h-5" /></div>
                        <div>

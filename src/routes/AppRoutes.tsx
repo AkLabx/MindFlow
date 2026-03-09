@@ -133,7 +133,10 @@ const AppRoutesContent: React.FC = () => {
                     } />
 
                     <Route path="/profile" element={
-                        <ProfilePage onNavigateToSettings={() => navTo('/settings')} />
+                        <ProfilePage
+                            onNavigateToSettings={() => navTo('/settings')}
+                            onSignOut={() => { goToIntro(); navTo('/'); }}
+                        />
                     } />
 
                     <Route path="/settings" element={
