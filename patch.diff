@@ -1,19 +1,18 @@
---- src/features/quiz/components/QuizReview.tsx
-+++ src/features/quiz/components/QuizReview.tsx
-@@ -210,14 +210,10 @@
-       {/* Floating Exit Full Screen Button */}
-       {isFullScreen && (
--          <div className="fixed top-4 right-4 z-[60] pt-[env(safe-area-inset-top)] pr-[env(safe-area-inset-right)]">
-+          <div className="fixed top-4 right-4 z-[60]">
-               <button
-                   onClick={toggleFullScreen}
--                  className="bg-black/50 hover:bg-black/70 text-white w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-sm transition-all shadow-lg"
--                  aria-label="Exit Full Screen"
--                  title="Exit Full Screen"
-+                  className="bg-black/50 hover:bg-black/70 text-white px-4 py-2 rounded-full text-sm font-bold backdrop-blur-sm flex items-center gap-2 transition-all shadow-lg"
-               >
--                  <Minimize2 className="w-5 h-5" />
-+                  <Minimize2 className="w-4 h-4" /> Exit Full Screen
-               </button>
-           </div>
-       )}
+--- src/layouts/MainLayout.tsx
++++ src/layouts/MainLayout.tsx
+@@ -52,6 +52,7 @@
+     <div className="min-h-screen flex flex-col bg-gray-50/50 relative">
+
+       {/* --- Sticky Top Header --- */}
++      {!isReviewMode && (
+       <header className="sticky top-0 z-40 w-full bg-white/80 backdrop-blur-md border-b border-gray-200/50 transition-all duration-200">
+         <div className="max-w-3xl mx-auto px-4 h-14 flex items-center justify-between">
+           <div className="flex items-center gap-2 cursor-pointer" onClick={() => onTabChange('home')}>
+@@ -83,6 +84,7 @@
+           )}
+         </div>
+       </header>
++      )}
+
+       {/* --- Main Scrollable Content --- */}
+       <main className={cn("flex-1 w-full max-w-3xl mx-auto px-4 pt-4 relative z-0", isReviewMode ? "pb-4" : "pb-24")}>
