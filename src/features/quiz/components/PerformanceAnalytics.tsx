@@ -64,6 +64,20 @@ export const PerformanceAnalytics: React.FC = () => {
         });
     });
 
+    // Calculate Weak Topics
+    const weakTopicsList: { subject: string; accuracy: number; attempted: number }[] = [];
+    Object.entries(subjectTotals).forEach(([subject, stats]) => {
+        const attempts = stats.attempted; // Assuming attempted includes correct + incorrect
+        if (attempts >= 5) {
+            const accuracy = (stats.correct / attempts) * 100;
+            weakTopicsList.push({ subject, accuracy, attempted: attempts });
+        }
+    });
+
+    // Sort by lowest accuracy first, then take top ones for a dedicated section
+    weakTopicsList.sort((a, b) => a.accuracy - b.accuracy);
+    const weakTopics = weakTopicsList.filter(t => t.accuracy < 70); // Show topics below 70% as weak, or just top 3
+
     const formatTime = (seconds: number) => {
         const h = Math.floor(seconds / 3600);
         const m = Math.floor((seconds % 3600) / 60);

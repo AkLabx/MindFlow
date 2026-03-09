@@ -288,7 +288,22 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onSignOut, onNavigateToSettin
             </div>
 
             <div className="mt-4 pt-4 border-t border-slate-100">
-                 <p className="text-sm font-medium text-slate-600"><span className="font-bold text-slate-800">Weak Topics:</span> <span className="px-2 py-0.5 bg-red-50 text-red-600 rounded text-xs ml-1 border border-red-100">Needs more data</span></p>
+                 <p className="text-sm font-medium text-slate-600 flex flex-wrap items-center gap-1 mt-1">
+                      <span className="font-bold text-slate-800 mr-1">Weak Topics:</span>
+                      {statsLoading ? (
+                          <span className="px-2 py-0.5 bg-slate-50 text-slate-500 rounded text-xs border border-slate-100 animate-pulse">Loading...</span>
+                      ) : userStats.weakTopics.length > 0 ? (
+                          userStats.weakTopics.map(topic => (
+                              <span key={topic} className="px-2 py-0.5 bg-red-50 text-red-600 rounded text-xs border border-red-100 truncate max-w-[150px]" title={topic}>
+                                  {topic}
+                              </span>
+                          ))
+                      ) : userStats.quizzesCompleted > 0 ? (
+                          <span className="px-2 py-0.5 bg-green-50 text-green-600 rounded text-xs border border-green-100">Looking good!</span>
+                      ) : (
+                          <span className="px-2 py-0.5 bg-slate-50 text-slate-500 rounded text-xs border border-slate-100">Needs more data</span>
+                      )}
+                 </p>
             </div>
           </div>
 
