@@ -3,6 +3,8 @@ import { createPortal } from 'react-dom';
 import { X, Volume2, Moon, Smartphone, Sparkles } from 'lucide-react';
 import { SettingsContext } from '../../../../context/SettingsContext';
 import { SettingsToggle } from './SettingsToggle';
+import { ClaymorphismSwitch } from './ClaymorphismSwitch';
+
 import { InstallPWA } from './InstallPWA';
 
 /**
@@ -82,12 +84,15 @@ export function SettingsModal({ isOpen, onClose }: { isOpen: boolean, onClose: (
                         onChange={toggleBgAnimations} 
                         icon={<Sparkles className="w-4 h-4" />}
                     />
-                    <SettingsToggle 
-                        label="Dark Mode" 
-                        checked={isDarkMode} 
-                        onChange={toggleDarkMode} 
-                        icon={<Moon className="w-4 h-4" />}
-                    />
+                    <div className="flex items-center justify-between py-2">
+                        <div className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-200 dark:text-slate-300">
+                           <span className="text-gray-400"><Moon className="w-4 h-4" /></span>
+                           <label className="cursor-pointer select-none">Dark Mode</label>
+                        </div>
+                        <div className="scale-[0.25] origin-right w-[50px]">
+                           <ClaymorphismSwitch checked={isDarkMode} onChange={toggleDarkMode} />
+                        </div>
+                    </div>
                 </div>
             </div>
 

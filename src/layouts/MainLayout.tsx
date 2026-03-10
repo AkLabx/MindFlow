@@ -4,6 +4,8 @@ import { cn } from '../utils/cn';
 import { useAuth } from '../features/auth/context/AuthContext';
 import { useQuizContext } from '../features/quiz/context/QuizContext';
 import { SettingsContext } from '../context/SettingsContext';
+import { ClaymorphismSwitch } from '../features/quiz/components/ui/ClaymorphismSwitch';
+
 
 /**
  * Unique identifiers for the main navigation tabs.
@@ -69,13 +71,9 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
           </div>
           
           <div className="flex items-center gap-2">
-            <button
-              onClick={toggleDarkMode}
-              className="p-2 text-gray-500 dark:text-gray-400 dark:text-gray-400 hover:bg-gray-100 dark:bg-gray-800 dark:text-slate-400 dark:hover:bg-slate-800 rounded-full transition-colors"
-              aria-label="Toggle Dark Mode"
-            >
-              {isDarkMode ? <Sun className="w-5 h-5 text-amber-500" /> : <Moon className="w-5 h-5" />}
-            </button>
+            <div className="scale-[0.25] origin-right w-[50px] mr-2 flex-shrink-0 relative overflow-visible">
+              <ClaymorphismSwitch checked={isDarkMode} onChange={toggleDarkMode} />
+            </div>
             {user ? (
               <button onClick={() => onTabChange('profile')} className="rounded-full transition-opacity duration-200 hover:opacity-80">
                 <img
