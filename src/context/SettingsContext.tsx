@@ -1,7 +1,6 @@
 import React, { createContext, useEffect } from 'react';
 import { useLocalStorageState } from '../hooks/useLocalStorageState';
 import { SettingsContextType } from '../features/quiz/types';
-
 /**
  * Context for managing global application settings.
  *
@@ -18,7 +17,6 @@ export const SettingsContext = createContext<SettingsContextType>({
   areBgAnimationsEnabled: true,
   toggleBgAnimations: () => {},
 });
-
 /**
  * Provider component for the SettingsContext.
  *
@@ -35,7 +33,6 @@ export const SettingsProvider = ({ children }: { children?: React.ReactNode }) =
   const [isSoundEnabled, setIsSoundEnabled] = useLocalStorageState('soundEnabled', true);
   const [isHapticEnabled, setIsHapticEnabled] = useLocalStorageState('hapticsEnabled', true);
   const [areBgAnimationsEnabled, setAreBgAnimationsEnabled] = useLocalStorageState('bgAnimationsEnabled', true);
-
   useEffect(() => {
     // Apply Dark Mode class to the HTML element
     if (isDarkMode) {
@@ -43,7 +40,6 @@ export const SettingsProvider = ({ children }: { children?: React.ReactNode }) =
     } else {
       document.documentElement.classList.remove('dark');
     }
-
     // Apply Background Animation class to the body
     if (areBgAnimationsEnabled) {
       document.body.classList.add('background-animated');
@@ -51,21 +47,17 @@ export const SettingsProvider = ({ children }: { children?: React.ReactNode }) =
       document.body.classList.remove('background-animated');
     }
   }, [isDarkMode, areBgAnimationsEnabled]);
-
   /** Toggles the Dark Mode setting with a View Transition splash effect. */
   const toggleDarkMode = (event?: any) => {
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
     // Fallback for browsers without View Transitions or users who prefer reduced motion
     if (!document.startViewTransition || prefersReducedMotion || !event) {
       setIsDarkMode(prev => !prev);
       return;
     }
-
     // Get click coordinates
     let x = 0;
     let y = 0;
-
     if (event.clientX !== undefined && event.clientY !== undefined) {
       x = event.clientX;
       y = event.clientY;
@@ -79,12 +71,10 @@ export const SettingsProvider = ({ children }: { children?: React.ReactNode }) =
        x = window.innerWidth / 2;
        y = window.innerHeight / 2;
     }
-
     const endRadius = Math.hypot(
       Math.max(x, window.innerWidth - x),
       Math.max(y, window.innerHeight - y)
     );
-
     const willBeDark = !isDarkMode;
     const transition = document.startViewTransition(() => {
       if (willBeDark) {
@@ -94,33 +84,25 @@ export const SettingsProvider = ({ children }: { children?: React.ReactNode }) =
       }
       setIsDarkMode(willBeDark);
     });
-
     transition.ready.then(() => {
       const clipPath = [
         `circle(0px at ${x}px ${y}px)`,
         `circle(${endRadius}px at ${x}px ${y}px)`,
       ];
-
-      const switchingToDark = !isDarkMode;
-
       document.documentElement.animate(
         {
-          clipPath: switchingToDark ? clipPath : [...clipPath].reverse(),
+          clipPath: clipPath,
         },
         {
           duration: 500,
           easing: 'ease-in-out',
-          pseudoElement: switchingToDark
-            ? '::view-transition-new(root)'
-            : '::view-transition-old(root)',
+          pseudoElement: '::view-transition-new(root)',
         }
       );
     });
   };
-
   /** Toggles the Sound Enabled setting. */
   const toggleSound = () => setIsSoundEnabled(prev => !prev);
-  
   /**
    * Toggles the Haptic Feedback setting.
    * If enabled, triggers a short vibration as confirmation.
@@ -131,10 +113,8 @@ export const SettingsProvider = ({ children }: { children?: React.ReactNode }) =
       navigator.vibrate(50);
     }
   };
-  
   /** Toggles the Background Animations setting. */
   const toggleBgAnimations = () => setAreBgAnimationsEnabled(prev => !prev);
-
   return (
     <SettingsContext.Provider value={{ 
       isDarkMode, toggleDarkMode,

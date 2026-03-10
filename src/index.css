@@ -56,9 +56,9 @@ input, textarea, [contenteditable] {
 }
 
 /* Ensure the 'new' state is on top during the reveal */
-.dark::view-transition-old(root) {
+::view-transition-old(root) {
   z-index: 1;
 }
-.dark::view-transition-new(root) {
+::view-transition-new(root) {
   z-index: 999;
 }
