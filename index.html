@@ -86,21 +86,78 @@
 </head>
 
 <body>
-  <div id="desktop-mode-warning" class="hidden-overlay" style="display: none; position: fixed; inset: 0; background-color: rgba(0, 0, 0, 0.9); z-index: 9999; justify-content: center; align-items: center; padding: 20px;">
-    <div class="warning-content" style="background-color: white; color: black; padding: 30px; border-radius: 16px; max-width: 400px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.5);">
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 64px; height: 64px; margin: 0 auto 16px; color: #4f46e5;">
-        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
-      </svg>
-      <h2 style="font-size: 24px; font-weight: bold; margin-bottom: 16px; font-family: 'Inter', sans-serif;">App Experience Paused</h2>
-      <p style="margin-bottom: 24px; color: #4b5563; font-family: 'Inter', sans-serif;">It looks like you have "Desktop site" enabled in your browser settings. To enjoy MINDFLOW as a native app, please follow these steps:</p>
-      <ol style="text-align: left; margin-bottom: 24px; color: #374151; padding: 16px; background-color: #f3f4f6; border-radius: 8px; font-family: 'Inter', sans-serif; line-height: 1.5; list-style-position: inside;">
-        <li>Open your regular Chrome browser app.</li>
-        <li>Tap the three-dot menu in the top right.</li>
-        <li>Uncheck <strong>Desktop site</strong>.</li>
-        <li>Restart this app.</li>
-      </ol>
-      <button onclick="window.location.reload()" style="width: 100%; background-color: #4f46e5; color: white; font-weight: bold; padding: 12px 16px; border-radius: 12px; border: none; cursor: pointer; font-family: 'Inter', sans-serif; font-size: 16px;">Reload App</button>
-    </div>
+  <div id="desktop-mode-warning" class="hidden-overlay" style="display: none; position: fixed; inset: 0; background-color: #f3f4f6; z-index: 9999; justify-content: center; align-items: center; padding: 1rem; font-family: 'Inter', sans-serif;">
+    <main class="app-card bg-white rounded-[2.5rem] shadow-2xl p-8 flex flex-col items-center text-center" style="max-width: 450px; width: 90%;">
+      <div class="mb-8" data-purpose="app-logo-container">
+        <!-- SVG Brain Icon from MindFlow replaced here, size adjusted as requested -->
+        <svg class="w-20 h-20" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#6366f1;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#4338ca;stop-opacity:1" />
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="10" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+  </defs>
+
+  <rect width="512" height="512" rx="128" fill="url(#grad1)" />
+
+  <g transform="translate(106, 106) scale(0.6)" fill="none" stroke="white" stroke-width="40" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M125 200c0-50 30-90 80-90s80 40 80 90c0 20-10 40-25 55" />
+    <path d="M100 280c-30 0-60-20-60-70 0-40 30-80 70-80" />
+    <path d="M120 350c-40 0-70-30-70-70" />
+    <path d="M205 380c-50 0-85-30-85-80" />
+    <path d="M375 200c0-50-30-90-80-90s-80 40-80 90c0 20 10 40 25 55" />
+    <path d="M400 280c30 0 60-20 60-70 0-40-30-80-70-80" />
+    <path d="M380 350c40 0 70-30 70-70" />
+    <path d="M295 380c50 0 85-30 85-80" />
+    <circle cx="250" cy="150" r="20" fill="white" stroke="none" />
+    <circle cx="250" cy="250" r="20" fill="white" stroke="none" />
+    <circle cx="250" cy="350" r="20" fill="white" stroke="none" />
+    <path d="M250 150 L250 100" stroke-width="30" />
+    <path d="M250 380 L250 420" stroke-width="30" />
+  </g>
+</svg>
+      </div>
+
+      <section class="mb-6">
+        <h1 class="text-3xl font-bold text-gray-900 mb-4 tracking-tight">
+          App Experience Paused
+        </h1>
+        <p class="text-gray-700 text-lg leading-relaxed px-2">
+          It looks like you have 'Desktop site' enabled in your browser settings. To enjoy <span class="font-semibold">MINDFLOW</span> as a native app, please follow these steps:
+        </p>
+      </section>
+
+      <section class="w-full bg-gray-50 rounded-2xl p-6 mb-10 text-left" data-purpose="instruction-steps">
+        <ol class="space-y-3 text-gray-800 text-lg">
+          <li class="flex gap-3">
+            <span class="font-medium text-gray-500">1.</span>
+            <span>Open your regular Chrome browser app.</span>
+          </li>
+          <li class="flex gap-3">
+            <span class="font-medium text-gray-500">2.</span>
+            <span>Tap the three-dot menu in the top right.</span>
+          </li>
+          <li class="flex gap-3">
+            <span class="font-medium text-gray-500">3.</span>
+            <span>Uncheck <span class="font-bold">Desktop site.</span></span>
+          </li>
+          <li class="flex gap-3">
+            <span class="font-medium text-gray-500">4.</span>
+            <span>Restart this app.</span>
+          </li>
+        </ol>
+      </section>
+
+      <footer class="w-full">
+        <button onclick="window.location.reload()" class="w-full bg-[#5a4ae3] hover:bg-[#4a3bc7] active:scale-[0.98] transition-all text-white font-bold py-5 rounded-2xl text-xl shadow-md" data-purpose="primary-action">
+          Reload App
+        </button>
+      </footer>
+    </main>
   </div>
 
   <script>
