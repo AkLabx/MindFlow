@@ -31,7 +31,7 @@ export const SettingsContext = createContext<SettingsContextType>({
  * @returns {JSX.Element} The Provider component wrapping its children.
  */
 export const SettingsProvider = ({ children }: { children?: React.ReactNode }) => {
-  const [isDarkMode, setIsDarkMode] = useLocalStorageState('darkMode', false);
+  const [isDarkMode, setIsDarkMode] = useLocalStorageState('mindflow_settings_v1_darkMode', false);
   const [isSoundEnabled, setIsSoundEnabled] = useLocalStorageState('soundEnabled', true);
   const [isHapticEnabled, setIsHapticEnabled] = useLocalStorageState('hapticsEnabled', true);
   const [areBgAnimationsEnabled, setAreBgAnimationsEnabled] = useLocalStorageState('bgAnimationsEnabled', true);

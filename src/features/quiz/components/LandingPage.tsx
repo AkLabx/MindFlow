@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { ArrowRight, Brain, Zap, Layers, Star, Play, Github, Download, Target, User as UserIcon, LogOut, ChevronDown } from 'lucide-react';
+import React, { useState, useEffect, useContext } from 'react';
+import { SettingsContext } from '../../../context/SettingsContext';
+import { ArrowRight, Brain, Zap, Layers, Star, Play, Github, Download, Target, User as UserIcon, LogOut, ChevronDown, Moon, Sun } from 'lucide-react';
 import { Button } from '../../../components/Button/Button';
 import { Typewriter } from './Landing/Typewriter';
 import { DemoCard } from './Landing/DemoCard';
@@ -33,6 +34,7 @@ interface LandingPageProps {
  */
 export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLoginClick, user, onProfileClick, onSignOut }) => {
   const { canInstall, triggerInstall, installStatus } = usePWAInstall();
+  const { isDarkMode, toggleDarkMode } = useContext(SettingsContext);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showToast, setShowToast] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
@@ -111,6 +113,15 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLoginC
                  <Github className="w-5 h-5" />
               </a>
               
+
+              <button
+                onClick={toggleDarkMode}
+                className="p-2 rounded-full text-slate-600 dark:text-slate-400 dark:text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-slate-800 transition-colors mr-2"
+                aria-label="Toggle Dark Mode"
+              >
+                {isDarkMode ? <Sun className="w-5 h-5 text-amber-500" /> : <Moon className="w-5 h-5" />}
+              </button>
+
               {user ? (
                 <div className="relative">
                   <button onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)} className="flex items-center gap-2 cursor-pointer">
