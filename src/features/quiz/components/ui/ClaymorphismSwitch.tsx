@@ -22,7 +22,7 @@ export function ClaymorphismSwitch({ checked, onChange, className }: Claymorphis
                 }
             }}
             aria-label="Toggle between light and dark theme"
-            className={cn("clay-switch focus:outline-none focus:ring-4 focus:ring-blue-400/50 rounded-full", className)}
+            className={cn("clay-switch focus:outline-none focus:ring-2 focus:ring-blue-400/50", className)}
         >
             {/* Background Rings */}
             <div className="sky-layer layer-2"></div>

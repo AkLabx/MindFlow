@@ -71,7 +71,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
           </div>
           
           <div className="flex items-center gap-2">
-            <div className="scale-[0.25] origin-right w-[50px] mr-2 flex-shrink-0 relative overflow-visible">
+            <div className="mr-2 flex-shrink-0 flex items-center justify-center">
               <ClaymorphismSwitch checked={isDarkMode} onChange={toggleDarkMode} />
             </div>
             {user ? (

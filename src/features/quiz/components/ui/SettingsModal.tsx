@@ -89,7 +89,7 @@ export function SettingsModal({ isOpen, onClose }: { isOpen: boolean, onClose: (
                            <span className="text-gray-400"><Moon className="w-4 h-4" /></span>
                            <label className="cursor-pointer select-none">Dark Mode</label>
                         </div>
-                        <div className="scale-[0.25] origin-right w-[50px]">
+                        <div>
                            <ClaymorphismSwitch checked={isDarkMode} onChange={toggleDarkMode} />
                         </div>
                     </div>

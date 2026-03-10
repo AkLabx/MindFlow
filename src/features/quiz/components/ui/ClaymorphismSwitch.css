@@ -1,7 +1,7 @@
 :root {
     /* Track (Container) Shadows - Deep cutout effect */
-    --track-shadow-light: inset 6px 6px 12px rgba(0, 0, 0, 0.15), inset -6px -6px 12px rgba(255, 255, 255, 0.9);
-    --track-shadow-dark: inset 6px 6px 12px rgba(0, 0, 0, 0.8), inset -6px -6px 12px rgba(255, 255, 255, 0.05);
+    --track-shadow-light: inset 0.03em 0.03em 0.06em rgba(0, 0, 0, 0.15), inset -0.03em -0.03em 0.06em rgba(255, 255, 255, 0.9);
+    --track-shadow-dark: inset 0.03em 0.03em 0.06em rgba(0, 0, 0, 0.8), inset -0.03em -0.03em 0.06em rgba(255, 255, 255, 0.05);
 
     /* Sky Layers (Concentric Circles) */
     --layer1-light: #a4dffc; --layer1-dark: #484b51; /* Inner-most */
@@ -13,9 +13,12 @@
 .clay-switch {
     z-index: 1;
 
-    width: 200px;
-    height: 90px;
-    border-radius: 90px;
+    /* Base size: 1em is the width of the switch. Default is 50px in most uses. */
+    font-size: 50px; /* Can be overridden by class/style */
+
+    width: 1em;
+    height: 0.45em; /* 90/200 */
+    border-radius: 0.45em;
     position: relative;
     overflow: hidden;
     cursor: pointer;
@@ -23,6 +26,10 @@
     background-color: var(--layer3-light);
     transition: box-shadow 0.6s ease, background-color 0.6s ease;
     -webkit-tap-highlight-color: transparent;
+
+    /* Ensure it behaves like a block/inline-block and doesn't collapse */
+    display: inline-block;
+    flex-shrink: 0;
 }
 html.dark .clay-switch {
     box-shadow: var(--track-shadow-dark);
@@ -39,20 +46,20 @@ html.dark .clay-switch {
     transition: background-color 0.6s ease;
     pointer-events: none;
 }
-.layer-1 { width: 90px; height: 90px; background-color: var(--layer1-light); z-index: 1; }
-.layer-2 { width: 150px; height: 150px; background-color: var(--layer2-light); z-index: 0; }
+.layer-1 { width: 0.45em; height: 0.45em; background-color: var(--layer1-light); z-index: 1; }
+.layer-2 { width: 0.75em; height: 0.75em; background-color: var(--layer2-light); z-index: 0; }
 
 html.dark .layer-1 { background-color: var(--layer1-dark); }
 html.dark .layer-2 { background-color: var(--layer2-dark); }
 
 /* --- THE THUMB (SUN / MOON) --- */
 .clay-thumb {
-    width: 74px;
-    height: 74px;
+    width: 0.37em; /* 74/200 */
+    height: 0.37em;
     border-radius: 50%;
     position: absolute;
-    top: 8px;
-    left: 8px;
+    top: 0.04em; /* 8/200 */
+    left: 0.04em;
     z-index: 1;
 
     /* Smooth Warm Yellow for Sun */
@@ -60,10 +67,10 @@ html.dark .layer-2 { background-color: var(--layer2-dark); }
 
     /* Volumetric 3D lighting + Outer Glow for Shine */
     box-shadow:
-        -4px -4px 8px rgba(210, 140, 0, 0.4) inset, /* Warm inner shadow for sun */
-        4px 4px 8px rgba(255, 255, 255, 0.9) inset, /* Bright specular highlight */
-        4px 8px 12px rgba(0, 0, 0, 0.15),           /* Soft physical drop shadow */
-        0 0 20px rgba(255, 210, 63, 0.6);           /* Volumetric Shine / Corona */
+        -0.02em -0.02em 0.04em rgba(210, 140, 0, 0.4) inset, /* Warm inner shadow for sun */
+        0.02em 0.02em 0.04em rgba(255, 255, 255, 0.9) inset, /* Bright specular highlight */
+        0.02em 0.04em 0.06em rgba(0, 0, 0, 0.15),           /* Soft physical drop shadow */
+        0 0 0.1em rgba(255, 210, 63, 0.6);           /* Volumetric Shine / Corona */
 
     /* Physical bounce physics and smooth glow transition */
     transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1),
@@ -76,15 +83,15 @@ html.dark .layer-2 { background-color: var(--layer2-dark); }
 }
 
 html.dark .clay-thumb {
-    transform: translateX(110px); /* 200 - 74 - 8 - 8 = 110 */
+    transform: translateX(0.55em); /* 1em - 0.37em - 0.04em - 0.04em = 0.55em */
     background-color: #d5d8dc; /* Moon color */
 
     /* Cold lighting for Moon and removal of outer glow */
     box-shadow:
-        -4px -4px 8px rgba(0, 0, 0, 0.3) inset,
-        4px 4px 8px rgba(255, 255, 255, 0.9) inset,
-        -4px 8px 12px rgba(0, 0, 0, 0.4),
-        0 0 0px rgba(255, 210, 63, 0); /* Glow goes away */
+        -0.02em -0.02em 0.04em rgba(0, 0, 0, 0.3) inset,
+        0.02em 0.02em 0.04em rgba(255, 255, 255, 0.9) inset,
+        -0.02em 0.04em 0.06em rgba(0, 0, 0, 0.4),
+        0 0 0 rgba(255, 210, 63, 0); /* Glow goes away */
 }
 
 /* --- MOON CRATERS --- */
@@ -92,13 +99,13 @@ html.dark .clay-thumb {
     position: absolute;
     border-radius: 50%;
     background-color: #b5b8bc;
-    box-shadow: inset 2px 2px 4px rgba(0,0,0,0.3), inset -1px -1px 2px rgba(255,255,255,0.8);
+    box-shadow: inset 0.01em 0.01em 0.02em rgba(0,0,0,0.3), inset -0.005em -0.005em 0.01em rgba(255,255,255,0.8);
     opacity: 0;
     transition: opacity 0.4s ease;
 }
-.crater-1 { width: 18px; height: 18px; top: 16px; right: 18px; }
-.crater-2 { width: 12px; height: 12px; bottom: 20px; right: 26px; }
-.crater-3 { width: 8px; height: 8px; bottom: 16px; right: 12px; }
+.crater-1 { width: 0.09em; height: 0.09em; top: 0.08em; right: 0.09em; }
+.crater-2 { width: 0.06em; height: 0.06em; bottom: 0.10em; right: 0.13em; }
+.crater-3 { width: 0.04em; height: 0.04em; bottom: 0.08em; right: 0.06em; }
 
 html.dark .crater {
     opacity: 1; /* Craters appear in dark mode */
@@ -115,14 +122,14 @@ html.dark .crater {
 /* Light Mode: Clouds visible, Stars hidden down */
 .stars-container {
     opacity: 0;
-    transform: translateY(-30px);
+    transform: translateY(-0.15em);
     z-index: 2;
 }
 .clouds-container {
     opacity: 1;
     transform: translateY(0);
     z-index: 5;
-    filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1)); /* Soft Clay depth for clouds */
+    filter: drop-shadow(0 0.02em 0.03em rgba(0,0,0,0.1)); /* Soft Clay depth for clouds */
 }
 
 /* Dark Mode: Stars visible, Clouds hidden down */
@@ -132,7 +139,7 @@ html.dark .stars-container {
 }
 html.dark .clouds-container {
     opacity: 0;
-    transform: translateY(40px);
+    transform: translateY(0.2em);
 }
 
 /* Twinkle animation for stars */
