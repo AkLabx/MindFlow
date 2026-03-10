@@ -269,21 +269,37 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onSignOut, onNavigateToSettin
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               <div className="bg-indigo-50 dark:bg-indigo-900/20/50 p-3 rounded-xl border border-indigo-100/50">
                   <p className="text-xs text-indigo-600 dark:text-indigo-400/70 font-bold uppercase tracking-wider mb-1">Accuracy</p>
-                  <p className="text-xl font-black text-indigo-700">{statsLoading ? '-' : `${userStats.averageScore}%`}</p>
+                  {statsLoading ? (
+                      <div className="h-7 w-16 bg-indigo-200 dark:bg-indigo-800/50 rounded-md animate-pulse mt-1"></div>
+                  ) : (
+                      <p className="text-xl font-black text-indigo-700">{userStats.averageScore}%</p>
+                  )}
               </div>
               <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-100 dark:border-slate-700/50">
                   <p className="text-xs text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider mb-1">Tests</p>
-                  <p className="text-xl font-black text-slate-800 dark:text-slate-100">{statsLoading ? '-' : userStats.quizzesCompleted.toLocaleString()}</p>
+                  {statsLoading ? (
+                      <div className="h-7 w-16 bg-slate-200 dark:bg-slate-700 rounded-md animate-pulse mt-1"></div>
+                  ) : (
+                      <p className="text-xl font-black text-slate-800 dark:text-slate-100">{userStats.quizzesCompleted.toLocaleString()}</p>
+                  )}
               </div>
               <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-100 dark:border-slate-700/50">
                   <p className="text-xs text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider mb-1">Correct</p>
-                  <p className="text-xl font-black text-slate-800 dark:text-slate-100">{statsLoading ? '-' : userStats.correctAnswers.toLocaleString()}</p>
+                  {statsLoading ? (
+                      <div className="h-7 w-16 bg-slate-200 dark:bg-slate-700 rounded-md animate-pulse mt-1"></div>
+                  ) : (
+                      <p className="text-xl font-black text-slate-800 dark:text-slate-100">{userStats.correctAnswers.toLocaleString()}</p>
+                  )}
               </div>
               <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-100 dark:border-slate-700/50">
                   <p className="text-xs text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider mb-1">Time Spent</p>
-                  <p className="text-xl font-black text-slate-800 dark:text-slate-100 flex items-center gap-1">
-                      <Clock className="w-4 h-4 text-slate-400" /> -
-                  </p>
+                  {statsLoading ? (
+                      <div className="h-7 w-20 bg-slate-200 dark:bg-slate-700 rounded-md animate-pulse mt-1"></div>
+                  ) : (
+                      <p className="text-xl font-black text-slate-800 dark:text-slate-100 flex items-center gap-1">
+                          <Clock className="w-4 h-4 text-slate-400" /> {userStats.totalTimeSpentFormatted || '0s'}
+                      </p>
+                  )}
               </div>
             </div>
 

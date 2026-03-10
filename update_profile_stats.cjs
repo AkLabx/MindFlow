@@ -1,4 +1,10 @@
-import { useState, useEffect } from 'react';
+const fs = require('fs');
+const path = require('path');
+
+const targetFile = path.join(__dirname, 'src', 'features', 'auth', 'hooks', 'useProfileStats.ts');
+let content = fs.readFileSync(targetFile, 'utf8');
+
+const updatedContent = `import { useState, useEffect } from 'react';
 import { db } from '../../../lib/db';
 import { useAuth } from '../context/AuthContext';
 
@@ -16,9 +22,9 @@ const formatTime = (seconds: number): string => {
   const m = Math.floor((seconds % 3600) / 60);
   const s = Math.floor(seconds % 60);
 
-  if (h > 0) return `${h}h ${m}m`;
-  if (m > 0) return `${m}m ${s}s`;
-  return `${s}s`;
+  if (h > 0) return \`\${h}h \${m}m\`;
+  if (m > 0) return \`\${m}m \${s}s\`;
+  return \`\${s}s\`;
 };
 
 export const useProfileStats = () => {
@@ -53,12 +59,12 @@ export const useProfileStats = () => {
 
         if (localHistory && localHistory.length > 0) {
           quizzesCompleted = localHistory.length;
-          localHistory.forEach((record: any) => {
+          localHistory.forEach((record) => {
             // handle both camelCase (local) and snake_case (synced from remote) if needed
-            const recordCorrect = record.totalCorrect ?? record.total_correct ?? 0;
-            const recordIncorrect = record.totalIncorrect ?? record.total_incorrect ?? 0;
-            const recordTime = record.totalTimeSpent ?? record.total_time_spent ?? 0;
-            const recordStats = record.subjectStats ?? record.subject_stats;
+            const recordCorrect = record.totalCorrect ?? (record as any).total_correct ?? 0;
+            const recordIncorrect = record.totalIncorrect ?? (record as any).total_incorrect ?? 0;
+            const recordTime = record.totalTimeSpent ?? (record as any).total_time_spent ?? 0;
+            const recordStats = record.subjectStats ?? (record as any).subject_stats;
 
             correctAnswers += recordCorrect;
             totalQuestionsAnswered += recordCorrect + recordIncorrect;
@@ -124,3 +130,7 @@ export const useProfileStats = () => {
 
   return { stats, loading, error };
 };
+\`;
+
+fs.writeFileSync(targetFile, updatedContent, 'utf8');
+console.log('Successfully updated useProfileStats.ts');
