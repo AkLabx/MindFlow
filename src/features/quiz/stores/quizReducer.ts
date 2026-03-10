@@ -122,12 +122,22 @@ export function quizReducer(state: QuizState, action: QuizAction): QuizState {
       };
     }
 
-    case 'START_OWS_FLASHCARDS': {
+        case 'START_OWS_FLASHCARDS': {
       const { data, filters } = action.payload;
       return {
         ...initialState,
         status: 'ows-flashcards',
         activeOWS: data,
+        filters: filters,
+        currentQuestionIndex: 0
+      };
+    }
+    case 'START_SYNONYM_FLASHCARDS': {
+      const { data, filters } = action.payload;
+      return {
+        ...initialState,
+        status: 'synonym-flashcards',
+        activeSynonyms: data,
         filters: filters,
         currentQuestionIndex: 0
       };
