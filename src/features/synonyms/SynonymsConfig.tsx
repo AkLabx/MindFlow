@@ -141,7 +141,10 @@ export const SynonymsConfig: React.FC<SynonymsConfigProps> = ({ onBack, onStart 
 
                     {/* Mode 2: Cluster List */}
                     <div
-                        onClick={() => window.location.hash = '#/synonyms/list'}
+                        onClick={() => {
+                            onStart(data, { mode: 'list' });
+                            window.location.hash = '#/synonyms/list';
+                        }}
                         className="bg-emerald-50 dark:bg-emerald-950/30 p-6 rounded-2xl cursor-pointer group relative z-20 transition-all duration-200 shadow-sm active:translate-y-1 active:border-b flex items-center justify-between border border-emerald-100 dark:border-emerald-900/40 border-b-4 border-b-emerald-200 dark:border-b-emerald-700 hover:border-emerald-300 dark:hover:border-emerald-500"
                     >
                         <div className="flex items-center gap-4 flex-1">
