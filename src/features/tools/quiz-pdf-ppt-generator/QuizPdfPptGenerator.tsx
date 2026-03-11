@@ -299,26 +299,26 @@ export const QuizPdfPptGenerator: React.FC = () => {
   if (isLoadingMetadata) {
     const percentage = progress.total > 0 ? Math.round((progress.current / progress.total) * 100) : 0;
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center space-y-6 bg-gray-50 dark:bg-gray-900 dark:bg-gray-900 dark:bg-slate-800/50 dark:bg-slate-800/50/50 p-8">
+      <div className="min-h-screen flex flex-col items-center justify-center space-y-6 bg-gray-50 dark:bg-gray-900/50 p-8">
         <div className="relative">
           <div className="p-4 bg-indigo-50 rounded-full">
             <Database className="w-8 h-8 text-indigo-600 animate-pulse" />
           </div>
-          <div className="absolute -bottom-1 -right-1 bg-white dark:bg-gray-800 dark:bg-slate-900 dark:bg-slate-900 rounded-full p-1">
+          <div className="absolute -bottom-1 -right-1 bg-white dark:bg-gray-800 rounded-full p-1">
             <Loader2 className="w-4 h-4 text-indigo-600 animate-spin" />
           </div>
         </div>
         <div className="text-center space-y-2 max-w-xs w-full">
-          <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100 dark:text-gray-100 dark:text-slate-200 dark:text-slate-200">Syncing Question Bank</h2>
-          <p className="text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-slate-400 dark:text-slate-500 dark:text-slate-400 dark:text-slate-500 dark:text-slate-500 dark:text-slate-400 dark:text-slate-500 text-sm">
+          <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100">Syncing Question Bank</h2>
+          <p className="text-gray-500 dark:text-gray-400 text-sm">
             {progress.total > 0
               ? `Indexed ${progress.current.toLocaleString()} of ${progress.total.toLocaleString()} items`
               : 'Connecting to Database...'}
           </p>
-          <div className="h-2 w-full bg-gray-100 dark:bg-gray-800 dark:bg-gray-800 rounded-full overflow-hidden mt-4">
+          <div className="h-2 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden mt-4">
             <div className="h-full bg-indigo-600 transition-all duration-500 ease-out rounded-full" style={{ width: `${percentage}%` }} />
           </div>
-          <p className="text-xs text-gray-400 dark:text-slate-500 dark:text-slate-500 dark:text-slate-400 dark:text-slate-500 font-medium text-right mt-1">{percentage}%</p>
+          <p className="text-xs text-gray-400 dark:text-slate-500 font-medium text-right mt-1">{percentage}%</p>
         </div>
       </div>
     );
@@ -327,12 +327,12 @@ export const QuizPdfPptGenerator: React.FC = () => {
   // --- Error State Render ---
   if (error) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center space-y-4 bg-gray-50 dark:bg-gray-900 dark:bg-gray-900 dark:bg-slate-800/50 dark:bg-slate-800/50/50 p-8 text-center animate-fade-in">
+      <div className="min-h-screen flex flex-col items-center justify-center space-y-4 bg-gray-50 dark:bg-gray-900/50 p-8 text-center animate-fade-in">
         <div className="p-4 bg-red-50 rounded-full">
           <AlertCircle className="w-10 h-10 text-red-500" />
         </div>
-        <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100 dark:text-gray-100 dark:text-slate-200 dark:text-slate-200">Connection Error</h2>
-        <p className="text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-slate-400 dark:text-slate-500 dark:text-slate-400 dark:text-slate-500 dark:text-slate-500 dark:text-slate-400 dark:text-slate-500 max-w-md">{error}</p>
+        <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100">Connection Error</h2>
+        <p className="text-gray-500 dark:text-gray-400 max-w-md">{error}</p>
         <div className="flex gap-4 mt-4">
           <Button variant="outline" onClick={() => navigate('/tools')}>Go Back</Button>
           <Button onClick={loadMetadata}>Retry</Button>
@@ -342,7 +342,7 @@ export const QuizPdfPptGenerator: React.FC = () => {
   }
 
   return (
-    <div className="bg-gray-50 dark:bg-gray-900 dark:bg-gray-900 dark:bg-slate-800/50 dark:bg-slate-800/50/50 min-h-screen flex flex-col">
+    <div className="bg-gray-50 dark:bg-gray-900/50 min-h-screen flex flex-col">
        <GeneratorModal
           isOpen={isGenerating}
           type={genType}
@@ -351,25 +351,25 @@ export const QuizPdfPptGenerator: React.FC = () => {
        />
 
       {/* Header */}
-      <div className="bg-white dark:bg-gray-800 dark:bg-slate-900 dark:bg-slate-900 border-b border-gray-200 dark:border-gray-700 dark:border-gray-700 dark:border-slate-800 dark:border-slate-800 px-6 py-4 flex items-center gap-4 sticky top-0 z-10 shadow-sm">
+      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex items-center gap-4 sticky top-0 z-10 shadow-sm">
         <button
             onClick={() => navigate('/tools')}
-            className="p-2 hover:bg-gray-100 dark:bg-gray-800 dark:hover:bg-slate-800 dark:hover:bg-slate-800 rounded-xl text-gray-600 dark:text-gray-300 dark:text-gray-300 dark:text-slate-400 dark:text-slate-500 dark:text-slate-400 dark:text-slate-500 dark:text-slate-500 dark:text-slate-400 dark:text-slate-500 transition-colors"
+            className="p-2 hover:bg-gray-100 dark:bg-gray-800 dark:hover:bg-slate-800 rounded-xl text-gray-600 dark:text-gray-300 transition-colors"
         >
             <ArrowLeft className="w-6 h-6" />
         </button>
         <div>
-            <h1 className="text-2xl font-black text-gray-900 dark:text-white dark:text-white dark:text-slate-100 dark:text-slate-100 flex items-center gap-2">
+            <h1 className="text-2xl font-black text-gray-900 dark:text-white flex items-center gap-2">
                 GK PDF/PPT Generator
             </h1>
-            <p className="text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-slate-400 dark:text-slate-500 dark:text-slate-400 dark:text-slate-500 dark:text-slate-500 dark:text-slate-400 dark:text-slate-500 text-sm font-medium">Select questions to generate PDF worksheets or PPT presentations.</p>
+            <p className="text-gray-500 dark:text-gray-400 text-sm font-medium">Select questions to generate PDF worksheets or PPT presentations.</p>
         </div>
       </div>
 
       {/* Scrollable Config Content */}
       <div className="p-6 md:p-10 space-y-6 max-w-7xl mx-auto w-full flex-1 overflow-y-auto">
         <div className="flex justify-between items-center mb-6">
-            <div className="text-sm md:text-base text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-slate-400 dark:text-slate-500 dark:text-slate-400 dark:text-slate-500 dark:text-slate-500 dark:text-slate-400 dark:text-slate-500 font-medium">
+            <div className="text-sm md:text-base text-gray-500 dark:text-gray-400 font-medium">
                 Question Bank Size: <span className="font-bold text-indigo-600">{metadata.length.toLocaleString()}</span>
             </div>
         </div>
@@ -481,7 +481,7 @@ export const QuizPdfPptGenerator: React.FC = () => {
       </div>
 
       {/* Footer */}
-      <div className="border-t border-gray-200 dark:border-gray-700 dark:border-gray-700 dark:border-slate-800 dark:border-slate-800 bg-white dark:bg-gray-800 dark:bg-slate-900 dark:bg-slate-900 p-6 sticky bottom-0 z-10">
+      <div className="border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-6 sticky bottom-0 z-10">
         <div className="max-w-7xl mx-auto w-full flex flex-col gap-4">
           <div className="flex flex-col-reverse sm:flex-row justify-between items-center gap-4">
             <Button variant="outline" onClick={() => setFilters(emptyFilters)} className="flex items-center gap-2 w-full sm:w-auto">

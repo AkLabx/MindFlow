@@ -31,10 +31,10 @@ const InstallPwaModal: React.FC<InstallPwaModalProps> = ({ onConfirm, onCancel }
         </div>
         <div className="-mt-4">
           <h2 className="text-xl font-bold text-gray-900 dark:text-white dark:text-white">Install MindFlow</h2>
-          <p className="mt-2 text-sm text-gray-600 dark:text-gray-300 dark:text-gray-300">
+          <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
             For quick access and the best experience, add MindFlow to your home screen.
           </p>
-          <p className="mt-4 text-xs text-gray-500 dark:text-gray-400 dark:text-gray-400 bg-gray-50 dark:bg-gray-900 dark:bg-gray-900 p-3 rounded-lg">
+          <p className="mt-4 text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-900 p-3 rounded-lg">
             Tap 'Install' below, then confirm the prompt. The app icon will appear on your home screen shortly.
           </p>
         </div>
@@ -47,7 +47,7 @@ const InstallPwaModal: React.FC<InstallPwaModalProps> = ({ onConfirm, onCancel }
           </button>
           <button
             onClick={onCancel}
-            className="w-full bg-transparent text-gray-600 dark:text-gray-300 dark:text-gray-300 font-semibold py-2 px-4 rounded-lg hover:bg-gray-100 dark:bg-gray-800 focus:outline-none transition-all"
+            className="w-full bg-transparent text-gray-600 dark:text-gray-300 font-semibold py-2 px-4 rounded-lg hover:bg-gray-100 dark:bg-gray-800 focus:outline-none transition-all"
           >
             Not Now
           </button>

@@ -97,6 +97,6 @@ describe('QuizOption', () => {
 
     // Should be faded out
     expect(button.className).toContain('opacity-50');
-    expect(button.className).toContain('bg-gray-50 dark:bg-gray-900 dark:bg-gray-900');
+    expect(button.className).toContain('bg-gray-50 dark:bg-gray-900');
   });
 });

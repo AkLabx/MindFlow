@@ -148,7 +148,7 @@ export const QuizResult: React.FC<QuizResultProps> = ({
       
       {/* Top Controls */}
       <div className="flex items-center gap-4 mb-6">
-          <Button variant="ghost" onClick={() => navigate('/quiz/attempted')} className="text-gray-600 dark:text-gray-300 dark:text-gray-300 dark:text-slate-400 dark:text-slate-500 hover:bg-gray-100 dark:bg-gray-800 dark:hover:bg-slate-800 pl-0 hover:text-gray-900 dark:text-white dark:text-slate-100">
+          <Button variant="ghost" onClick={() => navigate('/quiz/attempted')} className="text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:bg-gray-800 dark:hover:bg-slate-800 pl-0 hover:text-gray-900 dark:text-white">
               <ArrowLeft className="w-4 h-4 mr-2" /> Back
           </Button>
       </div>
@@ -166,7 +166,7 @@ export const QuizResult: React.FC<QuizResultProps> = ({
                   {/* Left: Text Summary */}
                   <div className="flex flex-col items-center md:items-start text-center md:text-left">
                       <div className="flex items-center gap-3 mb-2">
-                           <div className="p-2 bg-white dark:bg-gray-800 dark:bg-slate-900/10 rounded-lg backdrop-blur-sm">
+                           <div className="p-2 bg-white dark:bg-gray-800 rounded-lg backdrop-blur-sm">
                                <Award className={cn("w-6 h-6", grade.color)} />
                            </div>
                            <span className="text-sm font-bold uppercase tracking-widest text-white/80">Result Summary</span>
@@ -208,7 +208,7 @@ export const QuizResult: React.FC<QuizResultProps> = ({
           </div>
 
           {/* KPI Grid */}
-          <div className="bg-white dark:bg-gray-800 dark:bg-slate-900 p-6 border-t border-gray-100 dark:border-gray-800 dark:border-gray-800 dark:border-slate-800">
+          <div className="bg-white dark:bg-gray-800 p-6 border-t border-gray-100 dark:border-gray-800">
               <div className="grid grid-cols-2 md:grid-cols-5 gap-6">
                   <StatBox label="Total Score" value={score} suffix={`/ ${total}`} icon={<Trophy className="w-4 h-4 text-amber-500" />} />
                   <StatBox label="Attempted" value={attempted} suffix={`/ ${total}`} icon={<Target className="w-4 h-4 text-indigo-500" />} />
@@ -223,14 +223,14 @@ export const QuizResult: React.FC<QuizResultProps> = ({
           
           {/* Column 1: Review Actions */}
           <div className="space-y-5 order-2 lg:order-1">
-             <h3 className="font-bold text-gray-900 dark:text-white dark:text-white dark:text-slate-100 text-lg flex items-center gap-2">
+             <h3 className="font-bold text-gray-900 dark:text-white text-lg flex items-center gap-2">
                  <List className="w-5 h-5 text-indigo-600 dark:text-indigo-400" /> Review & Analysis
              </h3>
              
              <Card onClick={() => { setReviewFilter('All'); setView('review'); }} className="flex items-center justify-between group border-l-4 border-l-indigo-500 hover:shadow-lg cursor-pointer transition-all">
                  <div>
-                    <span className="font-bold text-gray-800 dark:text-gray-100 dark:text-gray-100 dark:text-slate-200 block">All Questions</span>
-                    <span className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-slate-400 dark:text-slate-500">View solutions & explanations</span>
+                    <span className="font-bold text-gray-800 dark:text-gray-100 block">All Questions</span>
+                    <span className="text-xs text-gray-500 dark:text-gray-400">View solutions & explanations</span>
                  </div>
                  <div className="bg-indigo-50 dark:bg-indigo-900/20 p-2 rounded-full group-hover:bg-indigo-100 dark:bg-indigo-900/40 transition-colors">
                     <ChevronRight className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
@@ -245,8 +245,8 @@ export const QuizResult: React.FC<QuizResultProps> = ({
                 )}
              >
                  <div>
-                    <span className="font-bold text-gray-800 dark:text-gray-100 dark:text-gray-100 dark:text-slate-200 block">Incorrect Only</span>
-                    <span className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-slate-400 dark:text-slate-500">{incorrect} mistakes to fix</span>
+                    <span className="font-bold text-gray-800 dark:text-gray-100 block">Incorrect Only</span>
+                    <span className="text-xs text-gray-500 dark:text-gray-400">{incorrect} mistakes to fix</span>
                  </div>
                  <div className="bg-rose-50 p-2 rounded-full group-hover:bg-rose-100 transition-colors">
                     <ChevronRight className="w-5 h-5 text-rose-600" />
@@ -261,11 +261,11 @@ export const QuizResult: React.FC<QuizResultProps> = ({
                 )}
              >
                  <div>
-                    <span className="font-bold text-gray-800 dark:text-gray-100 dark:text-gray-100 dark:text-slate-200 block">Skipped Only</span>
-                    <span className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-slate-400 dark:text-slate-500">{unanswered} unanswered questions</span>
+                    <span className="font-bold text-gray-800 dark:text-gray-100 block">Skipped Only</span>
+                    <span className="text-xs text-gray-500 dark:text-gray-400">{unanswered} unanswered questions</span>
                  </div>
-                 <div className="bg-gray-100 dark:bg-gray-800 dark:bg-gray-800 p-2 rounded-full group-hover:bg-gray-200 dark:bg-gray-700 transition-colors">
-                    <ChevronRight className="w-5 h-5 text-gray-600 dark:text-gray-300 dark:text-gray-300 dark:text-slate-400 dark:text-slate-500" />
+                 <div className="bg-gray-100 dark:bg-gray-800 p-2 rounded-full group-hover:bg-gray-200 dark:bg-gray-700 transition-colors">
+                    <ChevronRight className="w-5 h-5 text-gray-600 dark:text-gray-300" />
                  </div>
              </Card>
 
@@ -281,14 +281,14 @@ export const QuizResult: React.FC<QuizResultProps> = ({
 
           {/* Column 2: Subject Performance List */}
           <div className="lg:col-span-2 order-1 lg:order-2">
-              <h3 className="font-bold text-gray-900 dark:text-white dark:text-white dark:text-slate-100 text-lg mb-5 flex items-center gap-2">
+              <h3 className="font-bold text-gray-900 dark:text-white text-lg mb-5 flex items-center gap-2">
                   <Target className="w-5 h-5 text-indigo-600 dark:text-indigo-400" /> Performance Breakdown
               </h3>
               <div className="space-y-4">
                   {subjectPerformance.map((sub, idx) => (
-                      <div key={sub.name} className="bg-white dark:bg-gray-800 dark:bg-slate-900 p-4 rounded-xl border border-gray-200 dark:border-gray-700 dark:border-gray-700 dark:border-slate-800 shadow-sm hover:border-indigo-300 transition-colors animate-in slide-in-from-right-4 duration-500" style={{ animationDelay: `${idx * 100}ms` }}>
+                      <div key={sub.name} className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm hover:border-indigo-300 transition-colors animate-in slide-in-from-right-4 duration-500" style={{ animationDelay: `${idx * 100}ms` }}>
                           <div className="flex justify-between items-center mb-2">
-                              <span className="font-bold text-gray-700 dark:text-gray-200 dark:text-gray-200 dark:text-slate-300">{sub.name}</span>
+                              <span className="font-bold text-gray-700 dark:text-gray-200">{sub.name}</span>
                               <div className="flex items-center gap-2">
                                   <span className="text-xs font-semibold text-gray-400 dark:text-slate-500">{sub.correct}/{sub.total}</span>
                                   <span className={cn(
@@ -321,10 +321,10 @@ export const QuizResult: React.FC<QuizResultProps> = ({
 // Helper Component for KPI Grid Item
 const StatBox = ({ label, value, suffix, icon }: { label: string, value: number, suffix?: string, icon: React.ReactNode }) => (
     <div className="flex flex-col items-start p-3 rounded-lg hover:bg-gray-50 dark:bg-gray-900 dark:hover:bg-slate-800 dark:bg-slate-800/50 transition-colors">
-        <div className="flex items-center gap-2 mb-1 text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-slate-400 dark:text-slate-500 text-xs font-bold uppercase tracking-wide">
+        <div className="flex items-center gap-2 mb-1 text-gray-500 dark:text-gray-400 text-xs font-bold uppercase tracking-wide">
             {icon} {label}
         </div>
-        <div className="text-2xl font-black text-gray-900 dark:text-white dark:text-white dark:text-slate-100">
+        <div className="text-2xl font-black text-gray-900 dark:text-white">
             <AnimatedCounter value={value} duration={1000} />
             <span className="text-sm text-gray-400 dark:text-slate-500 font-medium ml-1">{suffix}</span>
         </div>

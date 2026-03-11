@@ -237,7 +237,7 @@ export const LearningSession: React.FC<LearningSessionProps> = ({
 
                     {/* Mobile Home Button */}
                     <div className="sm:hidden">
-                        <Button variant="ghost" size="sm" onClick={onGoHome} className="p-0 text-gray-500 dark:text-gray-400 dark:text-gray-400 hover:bg-transparent">
+                        <Button variant="ghost" size="sm" onClick={onGoHome} className="p-0 text-gray-500 dark:text-gray-400 hover:bg-transparent">
                             <Home className="w-5 h-5" />
                         </Button>
                     </div>
@@ -251,7 +251,7 @@ export const LearningSession: React.FC<LearningSessionProps> = ({
                             icon={<Clock className="w-3.5 h-3.5" />}
                             className={cn(
                                 "font-mono font-bold tabular-nums min-w-[4rem] justify-center transition-colors",
-                                timeLeft <= 10 ? "bg-red-50 text-red-600 border-red-200 animate-pulse" : "bg-gray-50 dark:bg-gray-900 dark:bg-gray-900"
+                                timeLeft <= 10 ? "bg-red-50 text-red-600 border-red-200 animate-pulse" : "bg-gray-50 dark:bg-gray-900"
                             )}
                         >
                             {formatTime(timeLeft)}
@@ -264,7 +264,7 @@ export const LearningSession: React.FC<LearningSessionProps> = ({
                             className={cn(
                                 "p-1.5 rounded-lg border transition-colors",
                                 isFiftyFiftyUsed
-                                    ? "bg-gray-100 dark:bg-gray-800 dark:bg-gray-800 text-gray-400 border-gray-200 dark:border-gray-700 dark:border-gray-700 cursor-not-allowed"
+                                    ? "bg-gray-100 dark:bg-gray-800 text-gray-400 border-gray-200 dark:border-gray-700 cursor-not-allowed"
                                     : "bg-indigo-50 text-indigo-600 border-indigo-100 hover:bg-indigo-100"
                             )}
                             title="50:50 Lifeline"
@@ -275,7 +275,7 @@ export const LearningSession: React.FC<LearningSessionProps> = ({
                         {/* Pause Button */}
                         <button
                             onClick={handlePause}
-                            className="p-1.5 rounded-lg bg-gray-50 dark:bg-gray-900 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 dark:border-gray-700 hover:bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 dark:text-gray-400"
+                            className="p-1.5 rounded-lg bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400"
                             title="Pause Quiz"
                             data-testid="pause-button"
                         >
@@ -283,14 +283,14 @@ export const LearningSession: React.FC<LearningSessionProps> = ({
                         </button>
 
                         {/* Zoom Controls */}
-                        <div className="flex items-center border border-gray-200 dark:border-gray-700 dark:border-gray-700 rounded-lg overflow-hidden bg-gray-50 dark:bg-gray-900 dark:bg-gray-900">
-                            <button onClick={() => setZoomLevel(z => Math.max(0.8, z - 0.1))} className="p-1.5 hover:bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 dark:text-gray-400 active:bg-gray-300"><ZoomOut className="w-4 h-4" /></button>
-                            <div className="w-px h-4 bg-gray-200 dark:bg-gray-700 dark:bg-gray-700"></div>
-                            <button onClick={() => setZoomLevel(z => Math.min(1.6, z + 0.1))} className="p-1.5 hover:bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 dark:text-gray-400 active:bg-gray-300"><ZoomIn className="w-4 h-4" /></button>
+                        <div className="flex items-center border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden bg-gray-50 dark:bg-gray-900">
+                            <button onClick={() => setZoomLevel(z => Math.max(0.8, z - 0.1))} className="p-1.5 hover:bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 active:bg-gray-300"><ZoomOut className="w-4 h-4" /></button>
+                            <div className="w-px h-4 bg-gray-200 dark:bg-gray-700"></div>
+                            <button onClick={() => setZoomLevel(z => Math.min(1.6, z + 0.1))} className="p-1.5 hover:bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 active:bg-gray-300"><ZoomIn className="w-4 h-4" /></button>
                         </div>
 
                         {/* Fullscreen Toggle */}
-                        <button onClick={toggleFullScreen} className="p-1.5 rounded-lg hover:bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 dark:text-gray-400 border border-gray-200 dark:border-gray-700 dark:border-gray-700 flex">
+                        <button onClick={toggleFullScreen} className="p-1.5 rounded-lg hover:bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-700 flex">
                             {isFullScreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
                         </button>
                     </div>
@@ -298,11 +298,11 @@ export const LearningSession: React.FC<LearningSessionProps> = ({
 
                 {/* Progress Bar Row */}
                 <div className="flex items-center gap-3">
-                    <button onClick={() => setIsNavOpen(true)} className="p-1.5 hover:bg-gray-100 dark:bg-gray-800 rounded-lg text-gray-600 dark:text-gray-300 dark:text-gray-300 border border-gray-200 dark:border-gray-700 dark:border-gray-700">
+                    <button onClick={() => setIsNavOpen(true)} className="p-1.5 hover:bg-gray-100 dark:bg-gray-800 rounded-lg text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700">
                         <Menu className="w-5 h-5" />
                     </button>
 
-                    <div className="flex-1 h-2.5 bg-gray-100 dark:bg-gray-800 dark:bg-gray-800 rounded-full overflow-hidden">
+                    <div className="flex-1 h-2.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
                         <div
                             className={cn(
                                 "h-full transition-all duration-1000 ease-linear",
@@ -313,16 +313,16 @@ export const LearningSession: React.FC<LearningSessionProps> = ({
                             style={{ width: `${(timeLeft / APP_CONFIG.TIMERS.LEARNING_MODE_DEFAULT) * 100}%` }}
                         />
                     </div>
-                    <span className="text-xs font-bold text-gray-500 dark:text-gray-400 dark:text-gray-400 min-w-[3rem] text-right">{currentIndex + 1} / {questions.length}</span>
+                    <span className="text-xs font-bold text-gray-500 dark:text-gray-400 min-w-[3rem] text-right">{currentIndex + 1} / {questions.length}</span>
                 </div>
             </div>
 
             {/* Right Actions */}
-            <div className="flex items-center gap-2 pl-3 border-l border-gray-100 dark:border-gray-800 dark:border-gray-800 ml-3">
-                <button onClick={() => onToggleBookmark(currentQuestion.id)} className={cn("p-2 rounded-full transition-colors", bookmarks.includes(currentQuestion.id) ? "bg-amber-100 text-amber-500" : "bg-gray-50 dark:bg-gray-900 dark:bg-gray-900 text-gray-400 hover:bg-gray-100 dark:bg-gray-800")}>
+            <div className="flex items-center gap-2 pl-3 border-l border-gray-100 dark:border-gray-800 ml-3">
+                <button onClick={() => onToggleBookmark(currentQuestion.id)} className={cn("p-2 rounded-full transition-colors", bookmarks.includes(currentQuestion.id) ? "bg-amber-100 text-amber-500" : "bg-gray-50 dark:bg-gray-900 text-gray-400 hover:bg-gray-100 dark:bg-gray-800")}>
                     <Star className={cn("w-5 h-5", bookmarks.includes(currentQuestion.id) && "fill-current")} />
                 </button>
-                <button onClick={() => setIsSettingsOpen(true)} className="p-2 rounded-full bg-gray-50 dark:bg-gray-900 dark:bg-gray-900 text-gray-500 dark:text-gray-400 dark:text-gray-400 hover:bg-gray-100 dark:bg-gray-800 transition-colors">
+                <button onClick={() => setIsSettingsOpen(true)} className="p-2 rounded-full bg-gray-50 dark:bg-gray-900 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:bg-gray-800 transition-colors">
                     <Settings className="w-5 h-5" />
                 </button>
             </div>
@@ -330,12 +330,12 @@ export const LearningSession: React.FC<LearningSessionProps> = ({
     );
 
     const footer = (
-        <div className="p-4 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 dark:border-gray-700 flex justify-between items-center gap-4">
+        <div className="p-4 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 flex justify-between items-center gap-4">
             <Button
                 variant="ghost"
                 onClick={handlePrevClick}
                 disabled={currentIndex === 0}
-                className="text-gray-500 dark:text-gray-400 dark:text-gray-400 hover:text-indigo-600"
+                className="text-gray-500 dark:text-gray-400 hover:text-indigo-600"
             >
                 <ChevronLeft className="w-4 h-4 mr-2" /> Previous
             </Button>
@@ -391,7 +391,7 @@ export const LearningSession: React.FC<LearningSessionProps> = ({
                         </div>
                         <div>
                             <h3 className="font-bold text-gray-900 dark:text-white dark:text-white">Time's Up!</h3>
-                            <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-400">Revealing answer & explanation.</p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">Revealing answer & explanation.</p>
                         </div>
                         <button
                             onClick={() => setShowTimeUpModal(false)}
@@ -409,12 +409,12 @@ export const LearningSession: React.FC<LearningSessionProps> = ({
                     className="fixed inset-0 z-[70] flex flex-col items-center justify-center p-4 bg-black/10 backdrop-blur-md animate-in fade-in duration-300"
                     data-testid="session-paused-overlay"
                 >
-                    <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-800 dark:border-gray-800 max-w-sm w-full text-center transform scale-100 animate-in zoom-in-95 duration-200">
+                    <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-800 max-w-sm w-full text-center transform scale-100 animate-in zoom-in-95 duration-200">
                         <div className="w-16 h-16 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center mx-auto mb-4">
                             <Pause className="w-8 h-8 fill-current" />
                         </div>
                         <h2 className="text-2xl font-bold text-gray-900 dark:text-white dark:text-white mb-2">Quiz Paused</h2>
-                        <p className="text-gray-500 dark:text-gray-400 dark:text-gray-400 mb-6">Take a break! Your progress is saved.</p>
+                        <p className="text-gray-500 dark:text-gray-400 mb-6">Take a break! Your progress is saved.</p>
 
                         <Button
                             onClick={handleResume}

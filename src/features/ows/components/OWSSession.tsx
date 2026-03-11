@@ -196,7 +196,7 @@ export const OWSSession: React.FC<OWSSessionProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 h-[100dvh] w-full bg-gray-100 dark:bg-gray-800 dark:bg-gray-800 flex flex-col overflow-hidden">
+    <div className="fixed inset-0 h-[100dvh] w-full bg-gray-100 dark:bg-gray-800 flex flex-col overflow-hidden">
 
       <OWSNavigationPanel
         isOpen={isNavOpen}
@@ -208,15 +208,15 @@ export const OWSSession: React.FC<OWSSessionProps> = ({
 
       {/* Header */}
       {!isFullScreen && (
-        <div className="flex-none z-30 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 dark:border-gray-700 shadow-sm">
+        <div className="flex-none z-30 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm">
           <div className="px-6 py-4 flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <button onClick={onExit} className="p-2 hover:bg-gray-100 dark:bg-gray-800 rounded-full text-gray-500 dark:text-gray-400 dark:text-gray-400 transition-colors">
+              <button onClick={onExit} className="p-2 hover:bg-gray-100 dark:bg-gray-800 rounded-full text-gray-500 dark:text-gray-400 transition-colors">
                 <Home className="w-5 h-5" />
               </button>
               <div>
                 <h1 className="font-bold text-gray-900 dark:text-white dark:text-white text-lg leading-tight">One Word Substitution</h1>
-                <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-400">
+                <p className="text-xs text-gray-500 dark:text-gray-400">
                   {filters.examName?.[0] || 'Mixed Set'} • {data.length} Cards
                 </p>
               </div>
@@ -229,12 +229,12 @@ export const OWSSession: React.FC<OWSSessionProps> = ({
               <button onClick={() => setIsNavOpen(true)} className="p-2 bg-teal-50 hover:bg-teal-100 text-teal-600 rounded-lg transition-colors" aria-label="Open Map">
                 <Menu className="w-5 h-5" />
               </button>
-              <button onClick={toggleFullScreen} className="p-2 bg-gray-100 dark:bg-gray-800 dark:bg-gray-800 hover:bg-gray-200 dark:bg-gray-700 rounded-lg text-gray-600 dark:text-gray-300 dark:text-gray-300">
+              <button onClick={toggleFullScreen} className="p-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:bg-gray-700 rounded-lg text-gray-600 dark:text-gray-300">
                 <Maximize2 className="w-5 h-5" />
               </button>
             </div>
           </div>
-          <div className="h-1 w-full bg-gray-200 dark:bg-gray-700 dark:bg-gray-700">
+          <div className="h-1 w-full bg-gray-200 dark:bg-gray-700">
             <div className="h-full bg-teal-500 transition-all duration-300" style={{ width: `${progress}%` }} />
           </div>
         </div>
@@ -244,7 +244,7 @@ export const OWSSession: React.FC<OWSSessionProps> = ({
       <div className="flex-1 relative flex flex-col items-center justify-center p-4 md:p-8 overflow-hidden">
 
         {isFullScreen && (
-          <button onClick={toggleFullScreen} className="absolute top-4 right-4 z-30 p-3 bg-white dark:bg-gray-800/20 backdrop-blur-md rounded-full text-gray-800 dark:text-gray-100 dark:text-gray-100 shadow-lg hover:bg-white dark:bg-gray-800/40 transition-colors">
+          <button onClick={toggleFullScreen} className="absolute top-4 right-4 z-30 p-3 bg-white dark:bg-gray-800/20 backdrop-blur-md rounded-full text-gray-800 dark:text-gray-100 shadow-lg hover:bg-white dark:bg-gray-800/40 transition-colors">
             <Minimize2 className="w-6 h-6" />
           </button>
         )}
@@ -289,7 +289,7 @@ export const OWSSession: React.FC<OWSSessionProps> = ({
       </div>
 
       {/* Footer Controls */}
-      <div className="flex-none z-30 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 dark:border-gray-700 p-4 md:p-6 pb-safe">
+      <div className="flex-none z-30 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 p-4 md:p-6 pb-safe">
         <div className="max-w-md mx-auto flex items-center justify-between gap-4">
           <Button
             variant="outline"
@@ -302,7 +302,7 @@ export const OWSSession: React.FC<OWSSessionProps> = ({
 
           <div
             onClick={() => !isAnimating && setIsFlipped(!isFlipped)}
-            className="p-3 bg-gray-50 dark:bg-gray-900 dark:bg-gray-900 rounded-full text-gray-400 hover:bg-gray-100 dark:bg-gray-800 cursor-pointer active:scale-95 transition-transform"
+            className="p-3 bg-gray-50 dark:bg-gray-900 rounded-full text-gray-400 hover:bg-gray-100 dark:bg-gray-800 cursor-pointer active:scale-95 transition-transform"
           >
             <RotateCw className={cn("w-6 h-6", isAnimating && "opacity-50")} />
           </div>

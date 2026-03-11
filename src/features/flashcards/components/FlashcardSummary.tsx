@@ -47,7 +47,7 @@ export const FlashcardSummary: React.FC<FlashcardSummaryProps> = ({
           initial: { opacity: 0, scale: 0.9 },
           animate: { opacity: 1, scale: 1 }
         } as any)}
-        className="bg-white dark:bg-gray-800 dark:bg-slate-900 rounded-3xl shadow-xl border border-amber-100 p-8 max-w-md w-full text-center relative overflow-hidden"
+        className="bg-white dark:bg-gray-800 rounded-3xl shadow-xl border border-amber-100 p-8 max-w-md w-full text-center relative overflow-hidden"
       >
         {/* Decorative Background Elements */}
         <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-amber-400 to-orange-500" />
@@ -66,21 +66,21 @@ export const FlashcardSummary: React.FC<FlashcardSummaryProps> = ({
             <Trophy className="w-10 h-10 text-amber-600 dark:text-amber-400" />
           </div>
 
-          <h1 className="text-3xl font-black text-gray-900 dark:text-white dark:text-white dark:text-slate-100 mb-2">Session Complete!</h1>
-          <p className="text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-slate-400 dark:text-slate-500 font-medium mb-8">You've just reviewed an entire deck.</p>
+          <h1 className="text-3xl font-black text-gray-900 dark:text-white mb-2">Session Complete!</h1>
+          <p className="text-gray-500 dark:text-gray-400 font-medium mb-8">You've just reviewed an entire deck.</p>
 
           {/* Stats Grid */}
           <div className="grid grid-cols-2 gap-4 mb-8">
-            <div className="bg-gray-50 dark:bg-gray-900 dark:bg-gray-900 dark:bg-slate-800/50 p-4 rounded-xl border border-gray-100 dark:border-gray-800 dark:border-gray-800 dark:border-slate-800">
+            <div className="bg-gray-50 dark:bg-gray-900 p-4 rounded-xl border border-gray-100 dark:border-gray-800">
               <div className="flex flex-col items-center gap-1">
                 <BookOpen className="w-5 h-5 text-amber-500 mb-1" />
-                <span className="text-2xl font-black text-gray-800 dark:text-gray-100 dark:text-gray-100 dark:text-slate-200">{totalCards}</span>
+                <span className="text-2xl font-black text-gray-800 dark:text-gray-100">{totalCards}</span>
                 <span className="text-xs font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider">Cards</span>
               </div>
             </div>
-            <div className="bg-gray-50 dark:bg-gray-900 dark:bg-gray-900 dark:bg-slate-800/50 p-4 rounded-xl border border-gray-100 dark:border-gray-800 dark:border-gray-800 dark:border-slate-800 flex flex-col justify-center items-center gap-1">
+            <div className="bg-gray-50 dark:bg-gray-900 p-4 rounded-xl border border-gray-100 dark:border-gray-800 flex flex-col justify-center items-center gap-1">
               <CheckCircle2 className="w-5 h-5 text-green-500 mb-1" />
-              <span className="text-sm font-bold text-gray-800 dark:text-gray-100 dark:text-gray-100 dark:text-slate-200 mt-1 truncate max-w-full px-2">{difficulty}</span>
+              <span className="text-sm font-bold text-gray-800 dark:text-gray-100 mt-1 truncate max-w-full px-2">{difficulty}</span>
               <span className="text-xs font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider">Level</span>
             </div>
           </div>
@@ -102,7 +102,7 @@ export const FlashcardSummary: React.FC<FlashcardSummaryProps> = ({
               fullWidth
               variant="ghost"
               onClick={onHome}
-              className="text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-slate-400 dark:text-slate-500 hover:text-gray-800 dark:text-gray-100 dark:text-slate-200 hover:bg-gray-100 dark:bg-gray-800 dark:hover:bg-slate-800"
+              className="text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:text-gray-100 hover:bg-gray-100 dark:bg-gray-800 dark:hover:bg-slate-800"
             >
               <Home className="w-4 h-4 mr-2" /> Dashboard
             </Button>

@@ -34,12 +34,12 @@ export const DownloadOptionsModal: React.FC<DownloadOptionsModalProps> = ({
       />
 
       {/* Modal */}
-      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-sm bg-white dark:bg-gray-800 dark:bg-slate-900 rounded-xl shadow-2xl z-[90] p-6 animate-in zoom-in-95 duration-200 border border-gray-100 dark:border-gray-800 dark:border-gray-800 dark:border-slate-800">
+      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-sm bg-white dark:bg-gray-800 rounded-xl shadow-2xl z-[90] p-6 animate-in zoom-in-95 duration-200 border border-gray-100 dark:border-gray-800">
         <div className="flex justify-between items-center mb-6">
-          <h3 className="text-lg font-bold text-gray-900 dark:text-white dark:text-white dark:text-slate-100">Download Options</h3>
+          <h3 className="text-lg font-bold text-gray-900 dark:text-white">Download Options</h3>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-gray-100 dark:bg-gray-800 dark:hover:bg-slate-800 rounded-full text-gray-500 dark:text-gray-400 dark:text-gray-400 hover:text-gray-700 dark:text-gray-200 dark:text-slate-400 dark:hover:text-slate-200 transition-colors"
+            className="p-2 hover:bg-gray-100 dark:bg-gray-800 dark:hover:bg-slate-800 rounded-full text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:text-gray-200 dark:hover:text-slate-200 transition-colors"
             disabled={isGeneratingPDF || isGeneratingJSON}
           >
             <X className="w-5 h-5" />

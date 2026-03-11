@@ -20,7 +20,7 @@ export const ActiveQuizLayout: React.FC<ActiveQuizLayoutProps> = ({
       <main className="flex-1 overflow-y-auto bg-white dark:bg-gray-800 relative scroll-smooth">
         {/* Header rendered here to scroll with content */}
         {header && (
-          <div className="border-b border-gray-200 dark:border-gray-700 dark:border-gray-700 shadow-sm bg-white dark:bg-gray-800">
+          <div className="border-b border-gray-200 dark:border-gray-700 shadow-sm bg-white dark:bg-gray-800">
             {header}
           </div>
         )}
@@ -31,7 +31,7 @@ export const ActiveQuizLayout: React.FC<ActiveQuizLayoutProps> = ({
       </main>
 
       {/* Footer Slot - Remains fixed/sticky at bottom */}
-      <footer className="flex-none bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 dark:border-gray-700 z-30 relative shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+      <footer className="flex-none bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 z-30 relative shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
         {footer}
       </footer>
 

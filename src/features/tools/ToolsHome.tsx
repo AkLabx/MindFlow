@@ -45,10 +45,10 @@ const ToolsHome: React.FC = () => {
     return (
         <div className="flex flex-col min-h-full bg-gray-50 dark:bg-slate-900">
              {/* Header */}
-             <div className="bg-white dark:bg-gray-800 dark:bg-slate-900 border-b border-gray-200 dark:border-slate-800 px-6 py-4 flex items-center gap-4 sticky top-0 z-10 shadow-sm">
+             <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-slate-800 px-6 py-4 flex items-center gap-4 sticky top-0 z-10 shadow-sm">
                 <button
                     onClick={() => navigate('/dashboard')}
-                    className="p-2 hover:bg-gray-100 dark:bg-gray-800 dark:hover:bg-slate-800 dark:hover:bg-slate-800 rounded-xl text-gray-600 dark:text-gray-400 transition-colors"
+                    className="p-2 hover:bg-gray-100 dark:bg-gray-800 dark:hover:bg-slate-800 rounded-xl text-gray-600 dark:text-gray-400 transition-colors"
                 >
                     <ArrowLeft className="w-6 h-6" />
                 </button>
@@ -57,7 +57,7 @@ const ToolsHome: React.FC = () => {
                         <Wrench className="w-6 h-6 text-amber-500" />
                         Tools & Utilities
                     </h1>
-                    <p className="text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-slate-400 dark:text-slate-500 dark:text-slate-400 dark:text-slate-500 dark:text-slate-500 dark:text-slate-400 dark:text-slate-500 text-sm font-medium">Helper tools to enhance your content creation.</p>
+                    <p className="text-gray-500 dark:text-gray-400 text-sm font-medium">Helper tools to enhance your content creation.</p>
                 </div>
             </div>
 

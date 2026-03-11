@@ -275,23 +275,23 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
   if (isLoadingMetadata) {
     const percentage = progress.total > 0 ? Math.round((progress.current / progress.total) * 100) : 0;
     return (
-      <div className="min-h-[60vh] flex flex-col items-center justify-center space-y-6 bg-white dark:bg-gray-800 dark:bg-slate-900 md:rounded-3xl w-full max-w-6xl mx-auto md:border border-gray-200 dark:border-gray-700 dark:border-gray-700 dark:border-slate-800 shadow-sm animate-fade-in p-8">
+      <div className="min-h-[60vh] flex flex-col items-center justify-center space-y-6 bg-white dark:bg-gray-800 md:rounded-3xl w-full max-w-6xl mx-auto md:border border-gray-200 dark:border-gray-700 shadow-sm animate-fade-in p-8">
         <div className="relative">
           <div className="p-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-full">
             <Database className="w-8 h-8 text-indigo-600 dark:text-indigo-400 animate-pulse" />
           </div>
-          <div className="absolute -bottom-1 -right-1 bg-white dark:bg-gray-800 dark:bg-slate-900 rounded-full p-1">
+          <div className="absolute -bottom-1 -right-1 bg-white dark:bg-gray-800 rounded-full p-1">
             <Loader2 className="w-4 h-4 text-indigo-600 dark:text-indigo-400 animate-spin" />
           </div>
         </div>
         <div className="text-center space-y-2 max-w-xs w-full">
-          <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100 dark:text-gray-100 dark:text-slate-200">Syncing Question Bank</h2>
-          <p className="text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-slate-400 dark:text-slate-500 text-sm">
+          <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100">Syncing Question Bank</h2>
+          <p className="text-gray-500 dark:text-gray-400 text-sm">
             {progress.total > 0
               ? `Indexed ${progress.current.toLocaleString()} of ${progress.total.toLocaleString()} items`
               : 'Connecting to Database...'}
           </p>
-          <div className="h-2 w-full bg-gray-100 dark:bg-gray-800 dark:bg-gray-800 rounded-full overflow-hidden mt-4">
+          <div className="h-2 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden mt-4">
             <div className="h-full bg-indigo-600 transition-all duration-500 ease-out rounded-full" style={{ width: `${percentage}%` }} />
           </div>
           <p className="text-xs text-gray-400 dark:text-slate-500 font-medium text-right mt-1">{percentage}%</p>
@@ -303,12 +303,12 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
   // --- Error State Render ---
   if (error) {
     return (
-      <div className="min-h-[60vh] flex flex-col items-center justify-center space-y-4 bg-white dark:bg-gray-800 dark:bg-slate-900 md:rounded-3xl w-full max-w-6xl mx-auto md:border border-gray-200 dark:border-gray-700 dark:border-gray-700 dark:border-slate-800 shadow-sm p-8 text-center animate-fade-in">
+      <div className="min-h-[60vh] flex flex-col items-center justify-center space-y-4 bg-white dark:bg-gray-800 md:rounded-3xl w-full max-w-6xl mx-auto md:border border-gray-200 dark:border-gray-700 shadow-sm p-8 text-center animate-fade-in">
         <div className="p-4 bg-red-50 dark:bg-red-900/20 rounded-full">
           <AlertCircle className="w-10 h-10 text-red-500" />
         </div>
-        <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100 dark:text-gray-100 dark:text-slate-200">Connection Error</h2>
-        <p className="text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-slate-400 dark:text-slate-500 max-w-md">{error}</p>
+        <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100">Connection Error</h2>
+        <p className="text-gray-500 dark:text-gray-400 max-w-md">{error}</p>
         <div className="flex gap-4 mt-4">
           <Button variant="outline" onClick={onBack}>Go Back</Button>
           <Button onClick={loadMetadata}>Retry</Button>
@@ -318,32 +318,32 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
   }
 
   return (
-    <div className="bg-white dark:bg-gray-800 dark:bg-slate-900 min-h-screen md:min-h-0 md:h-auto md:rounded-3xl shadow-sm border border-gray-200 dark:border-gray-700 dark:border-gray-700 dark:border-slate-800 flex flex-col max-w-6xl mx-auto animate-fade-in overflow-hidden relative">
+    <div className="bg-white dark:bg-gray-800 min-h-screen md:min-h-0 md:h-auto md:rounded-3xl shadow-sm border border-gray-200 dark:border-gray-700 flex flex-col max-w-6xl mx-auto animate-fade-in overflow-hidden relative">
 
       {/* Overlay for "Starting Quiz" blocking interaction */}
       {isStartingQuiz && (
-        <div className="absolute inset-0 z-50 bg-white dark:bg-gray-800 dark:bg-slate-900/80 backdrop-blur-sm flex flex-col items-center justify-center animate-in fade-in duration-300">
+        <div className="absolute inset-0 z-50 bg-white dark:bg-gray-800 backdrop-blur-sm flex flex-col items-center justify-center animate-in fade-in duration-300">
           <Loader2 className="w-12 h-12 text-indigo-600 dark:text-indigo-400 animate-spin mb-4" />
           <h3 className="text-xl font-bold text-indigo-900">Creating Your Quiz</h3>
-          <p className="text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-slate-400 dark:text-slate-500">Saving questions to database...</p>
+          <p className="text-gray-500 dark:text-gray-400">Saving questions to database...</p>
         </div>
       )}
 
       {/* Header */}
       <div className="px-6 pt-6 pb-2">
-        <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-slate-400 dark:text-slate-500 mb-4 cursor-pointer hover:text-indigo-600 dark:text-indigo-400 w-fit" onClick={onBack}>
+        <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-4 cursor-pointer hover:text-indigo-600 dark:text-indigo-400 w-fit" onClick={onBack}>
           <ArrowLeft className="w-4 h-4" />
           <span className="font-medium">HOME</span>
         </div>
 
         <div className="text-center mb-4">
           <h1 className="text-2xl md:text-3xl font-bold text-indigo-900 mb-1">Create New Quiz</h1>
-          <p className="text-sm md:text-base text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-slate-400 dark:text-slate-500">Select from <span className="font-bold text-indigo-600 dark:text-indigo-400">{metadata.length.toLocaleString()}</span> available questions.</p>
+          <p className="text-sm md:text-base text-gray-500 dark:text-gray-400">Select from <span className="font-bold text-indigo-600 dark:text-indigo-400">{metadata.length.toLocaleString()}</span> available questions.</p>
         </div>
       </div>
 
       {/* Scrollable Config Content */}
-      <div className="p-6 space-y-6 bg-gray-50 dark:bg-gray-900 dark:bg-gray-900 dark:bg-slate-800/50/50 flex-1 overflow-y-auto">
+      <div className="p-6 space-y-6 bg-gray-50 dark:bg-gray-900/50 flex-1 overflow-y-auto">
 
         {/* Mode Selection - Responsive Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -352,8 +352,8 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
             className={cn(
               "relative flex flex-col items-center justify-center p-6 rounded-2xl transition-all border-2 group",
               mode === 'learning'
-                ? "bg-white dark:bg-gray-800 dark:bg-slate-900 border-indigo-600 shadow-lg"
-                : "bg-white dark:bg-gray-800 dark:bg-slate-900 border-gray-200 dark:border-gray-700 dark:border-gray-700 dark:border-slate-800 hover:border-indigo-300 shadow-sm hover:shadow-md"
+                ? "bg-white dark:bg-gray-800 border-indigo-600 shadow-lg"
+                : "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:border-indigo-300 shadow-sm hover:shadow-md"
             )}
           >
             {mode === 'learning' && (
@@ -363,12 +363,12 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
             )}
             <div className={cn(
               "p-3 rounded-full mb-3",
-              mode === 'learning' ? "bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400" : "bg-gray-100 dark:bg-gray-800 dark:bg-gray-800 text-gray-400 dark:text-slate-500 group-hover:bg-indigo-50 dark:bg-indigo-900/20 group-hover:text-indigo-500"
+              mode === 'learning' ? "bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400" : "bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-slate-500 group-hover:bg-indigo-50 dark:bg-indigo-900/20 group-hover:text-indigo-500"
             )}>
               <BookOpen className="w-6 h-6" />
             </div>
-            <div className="text-base font-bold text-gray-900 dark:text-white dark:text-white dark:text-slate-100">Learning Mode</div>
-            <div className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-slate-400 dark:text-slate-500 mt-1">Instant feedback & Explanations</div>
+            <div className="text-base font-bold text-gray-900 dark:text-white">Learning Mode</div>
+            <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">Instant feedback & Explanations</div>
           </button>
 
           <button
@@ -376,8 +376,8 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
             className={cn(
               "relative flex flex-col items-center justify-center p-6 rounded-2xl transition-all border-2 group",
               mode === 'mock'
-                ? "bg-white dark:bg-gray-800 dark:bg-slate-900 border-indigo-600 shadow-lg"
-                : "bg-white dark:bg-gray-800 dark:bg-slate-900 border-gray-200 dark:border-gray-700 dark:border-gray-700 dark:border-slate-800 hover:border-indigo-300 shadow-sm hover:shadow-md"
+                ? "bg-white dark:bg-gray-800 border-indigo-600 shadow-lg"
+                : "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:border-indigo-300 shadow-sm hover:shadow-md"
             )}
           >
             {mode === 'mock' && (
@@ -387,12 +387,12 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
             )}
             <div className={cn(
               "p-3 rounded-full mb-3",
-              mode === 'mock' ? "bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400" : "bg-gray-100 dark:bg-gray-800 dark:bg-gray-800 text-gray-400 dark:text-slate-500 group-hover:bg-indigo-50 dark:bg-indigo-900/20 group-hover:text-indigo-500"
+              mode === 'mock' ? "bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400" : "bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-slate-500 group-hover:bg-indigo-50 dark:bg-indigo-900/20 group-hover:text-indigo-500"
             )}>
               <Timer className="w-6 h-6" />
             </div>
-            <div className="text-base font-bold text-gray-900 dark:text-white dark:text-white dark:text-slate-100">Mock Mode</div>
-            <div className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-slate-400 dark:text-slate-500 mt-1">Exam Sim (30s/Q), No hints</div>
+            <div className="text-base font-bold text-gray-900 dark:text-white">Mock Mode</div>
+            <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">Exam Sim (30s/Q), No hints</div>
           </button>
         </div>
 
@@ -507,17 +507,17 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
       </div>
 
       {/* Footer */}
-      <div className="border-t border-gray-200 dark:border-gray-700 dark:border-gray-700 dark:border-slate-800 bg-white dark:bg-gray-800 dark:bg-slate-900 p-6">
+      <div className="border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-6">
         <div className="flex flex-col gap-4">
           {/* Quiz Name Input */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 dark:text-gray-200 dark:text-slate-300 mb-1">Quiz Name (Optional)</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Quiz Name (Optional)</label>
             <input
               type="text"
               value={quizName}
               onChange={(e) => setQuizName(e.target.value)}
               placeholder="e.g. Biology Mock Test 1"
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
+              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
             />
           </div>
 

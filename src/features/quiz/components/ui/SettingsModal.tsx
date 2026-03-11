@@ -37,15 +37,15 @@ export function SettingsModal({ isOpen, onClose }: { isOpen: boolean, onClose: (
   return createPortal(
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200" onClick={onClose}>
       <div 
-        className="bg-white dark:bg-gray-800 dark:bg-slate-900 rounded-2xl shadow-2xl border dark:border-slate-800 w-full max-w-md overflow-hidden transform transition-all scale-100 animate-in zoom-in-95 duration-200"
+        className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border dark:border-slate-800 w-full max-w-md overflow-hidden transform transition-all scale-100 animate-in zoom-in-95 duration-200"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="p-5 border-b border-gray-100 dark:border-gray-800 dark:border-gray-800 dark:border-slate-800 flex justify-between items-center bg-gray-50 dark:bg-gray-900 dark:bg-gray-900/50 dark:bg-slate-900">
-          <h2 className="text-lg font-bold text-gray-900 dark:text-white dark:text-white dark:text-slate-100">Settings</h2>
+        <div className="p-5 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center bg-gray-50 dark:bg-gray-900/50 dark:bg-slate-900">
+          <h2 className="text-lg font-bold text-gray-900 dark:text-white">Settings</h2>
           <button 
             onClick={onClose} 
-            className="p-2 rounded-full hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-slate-800 text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-slate-400 transition-colors"
+            className="p-2 rounded-full hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-slate-800 text-gray-500 dark:text-gray-400 transition-colors"
             aria-label="Close settings"
           >
             <X className="w-5 h-5" />
@@ -85,7 +85,7 @@ export function SettingsModal({ isOpen, onClose }: { isOpen: boolean, onClose: (
                         icon={<Sparkles className="w-4 h-4" />}
                     />
                     <div className="flex items-center justify-between py-2">
-                        <div className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-200 dark:text-slate-300">
+                        <div className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-200">
                            <span className="text-gray-400"><Moon className="w-4 h-4" /></span>
                            <label className="cursor-pointer select-none">Dark Mode</label>
                         </div>
@@ -102,7 +102,7 @@ export function SettingsModal({ isOpen, onClose }: { isOpen: boolean, onClose: (
         </div>
         
         {/* Footer */}
-        <div className="p-4 bg-gray-50 dark:bg-gray-900 dark:bg-gray-900 dark:bg-slate-900/50 border-t border-gray-100 dark:border-gray-800 dark:border-gray-800 dark:border-slate-800 text-center">
+        <div className="p-4 bg-gray-50 dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800 text-center">
             <p className="text-xs text-gray-400">MindFlow Quiz App v2.0.0</p>
         </div>
       </div>

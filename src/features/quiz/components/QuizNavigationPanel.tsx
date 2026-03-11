@@ -92,7 +92,7 @@ export function QuizNavigationPanel({
       const baseStyles = "h-10 w-full rounded-lg border text-sm font-bold flex items-center justify-center relative transition-all shadow-sm";
       
       // 1. Base Status Color
-      let statusColor = "bg-slate-50 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 dark:text-slate-500 hover:bg-slate-100"; // Unanswered
+      let statusColor = "bg-slate-50 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-100"; // Unanswered
       
       if (isAnswered) {
           if (mode === 'mock') {
@@ -128,21 +128,21 @@ export function QuizNavigationPanel({
       
       {/* Sliding Drawer */}
       <div className={cn(
-          "fixed top-0 right-0 h-full w-80 bg-white dark:bg-gray-800 dark:bg-slate-900 shadow-2xl z-[80] transform transition-transform duration-300 ease-in-out flex flex-col border-l border-gray-200 dark:border-gray-700 dark:border-gray-700 dark:border-slate-800 animate-in slide-in-from-right"
+          "fixed top-0 right-0 h-full w-80 bg-white dark:bg-gray-800 shadow-2xl z-[80] transform transition-transform duration-300 ease-in-out flex flex-col border-l border-gray-200 dark:border-gray-700 animate-in slide-in-from-right"
       )}>
         {/* Header */}
-        <div className="px-5 py-4 border-b border-gray-200 dark:border-gray-700 dark:border-gray-700 dark:border-slate-800 bg-gray-50 dark:bg-gray-900 dark:bg-gray-900 dark:bg-slate-800/50/50 flex justify-between items-center">
+        <div className="px-5 py-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 flex justify-between items-center">
             <div>
-                <h3 className="font-bold text-gray-900 dark:text-white dark:text-white dark:text-slate-100 text-lg">Question Map</h3>
-                <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-slate-400 dark:text-slate-500 font-medium mt-0.5">Overview of your progress</p>
+                <h3 className="font-bold text-gray-900 dark:text-white text-lg">Question Map</h3>
+                <p className="text-xs text-gray-500 dark:text-gray-400 font-medium mt-0.5">Overview of your progress</p>
             </div>
-            <button onClick={onClose} className="p-1.5 rounded-full hover:bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-slate-400 dark:text-slate-500 transition-colors">
+            <button onClick={onClose} className="p-1.5 rounded-full hover:bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 transition-colors">
                 <X className="w-5 h-5" />
             </button>
         </div>
 
         {/* Stats Summary Panel */}
-        <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-800 dark:border-gray-800 dark:border-slate-800 bg-white dark:bg-gray-800 dark:bg-slate-900">
+        <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-800">
             <div className="flex justify-between items-center mb-3">
                 <span className="text-xs font-bold uppercase text-gray-400 dark:text-slate-500 tracking-wider">Progress</span>
                 <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400">{stats.answered}/{stats.total} Attempted</span>
@@ -155,9 +155,9 @@ export function QuizNavigationPanel({
                         <div className="text-lg font-black text-indigo-600 dark:text-indigo-400 leading-none">{stats.answered}</div>
                         <div className="text-[10px] font-bold text-indigo-800 dark:text-indigo-300/70 uppercase">Done</div>
                     </div>
-                    <div className="bg-gray-50 dark:bg-gray-900 dark:bg-gray-900 dark:bg-slate-800/50 border border-gray-200 dark:border-gray-700 dark:border-gray-700 dark:border-slate-800 rounded-lg p-2 text-center">
-                        <div className="text-lg font-black text-gray-600 dark:text-gray-300 dark:text-gray-300 dark:text-slate-400 dark:text-slate-500 leading-none">{stats.remaining}</div>
-                        <div className="text-[10px] font-bold text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-slate-400 dark:text-slate-500 uppercase">Left</div>
+                    <div className="bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-2 text-center">
+                        <div className="text-lg font-black text-gray-600 dark:text-gray-300 leading-none">{stats.remaining}</div>
+                        <div className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase">Left</div>
                     </div>
                 </div>
             ) : (
@@ -171,22 +171,22 @@ export function QuizNavigationPanel({
                         <div className="text-lg font-black text-rose-600 leading-none">{stats.incorrect}</div>
                         <div className="text-[10px] font-bold text-rose-800/70 uppercase">Wrong</div>
                     </div>
-                    <div className="bg-gray-50 dark:bg-gray-900 dark:bg-gray-900 dark:bg-slate-800/50 border border-gray-200 dark:border-gray-700 dark:border-gray-700 dark:border-slate-800 rounded-lg p-2 text-center">
-                        <div className="text-lg font-black text-gray-600 dark:text-gray-300 dark:text-gray-300 dark:text-slate-400 dark:text-slate-500 leading-none">{stats.remaining}</div>
-                        <div className="text-[10px] font-bold text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-slate-400 dark:text-slate-500 uppercase">Left</div>
+                    <div className="bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-2 text-center">
+                        <div className="text-lg font-black text-gray-600 dark:text-gray-300 leading-none">{stats.remaining}</div>
+                        <div className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase">Left</div>
                     </div>
                 </div>
             )}
         </div>
 
         {/* Scrollable Question Grid */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 dark:bg-gray-900 dark:bg-gray-900 dark:bg-slate-800/50/30">
+        <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 dark:bg-gray-900/30">
             {/* Visual Legend */}
-            <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-[10px] font-bold text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-slate-400 dark:text-slate-500 uppercase tracking-wide bg-white dark:bg-gray-800 dark:bg-slate-900 p-3 rounded-xl border border-gray-100 dark:border-gray-800 dark:border-gray-800 dark:border-slate-800 shadow-sm mb-2">
+            <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide bg-white dark:bg-gray-800 p-3 rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm mb-2">
                 {mode === 'mock' ? (
                     <>
                         <div className="flex items-center gap-2"><div className="w-2.5 h-2.5 bg-indigo-100 dark:bg-indigo-900/40 border border-indigo-300 rounded-full"></div> Attempted</div>
-                        <div className="flex items-center gap-2"><div className="w-2.5 h-2.5 bg-slate-50 border border-gray-300 dark:border-gray-600 dark:border-gray-600 rounded-full"></div> Unanswered</div>
+                        <div className="flex items-center gap-2"><div className="w-2.5 h-2.5 bg-slate-50 border border-gray-300 dark:border-gray-600 rounded-full"></div> Unanswered</div>
                     </>
                 ) : (
                     <>
@@ -194,7 +194,7 @@ export function QuizNavigationPanel({
                         <div className="flex items-center gap-2"><div className="w-2.5 h-2.5 bg-rose-100 border border-rose-300 rounded-full"></div> Wrong</div>
                     </>
                 )}
-                <div className="flex items-center gap-2"><div className="w-2.5 h-2.5 bg-white dark:bg-gray-800 dark:bg-slate-900 border-2 border-indigo-600 rounded-full"></div> Current</div>
+                <div className="flex items-center gap-2"><div className="w-2.5 h-2.5 bg-white dark:bg-gray-800 border-2 border-indigo-600 rounded-full"></div> Current</div>
                 <div className="flex items-center gap-2"><Flag className="w-3 h-3 text-purple-500 fill-current" /> Review</div>
             </div>
 
@@ -205,17 +205,17 @@ export function QuizNavigationPanel({
                 const isOpenGroup = openGroups.has(i);
 
                 return (
-                    <div key={i} className="bg-white dark:bg-gray-800 dark:bg-slate-900 border border-gray-200 dark:border-gray-700 dark:border-gray-700 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm">
+                    <div key={i} className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden shadow-sm">
                         <button 
                             onClick={() => toggleGroup(i)}
-                            className="w-full flex justify-between items-center p-3 bg-white dark:bg-gray-800 dark:bg-slate-900 hover:bg-gray-50 dark:bg-gray-900 dark:hover:bg-slate-800 dark:bg-slate-800/50 transition-colors text-sm font-bold text-gray-700 dark:text-gray-200 dark:text-gray-200 dark:text-slate-300"
+                            className="w-full flex justify-between items-center p-3 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:bg-gray-900 dark:hover:bg-slate-800 dark:bg-slate-800/50 transition-colors text-sm font-bold text-gray-700 dark:text-gray-200"
                         >
                             <span>Questions {start}-{end}</span>
                             <ChevronDown className={cn("w-4 h-4 text-gray-400 dark:text-slate-500 transition-transform", isOpenGroup ? "rotate-180" : "")} />
                         </button>
                         
                         {isOpenGroup && (
-                            <div className="p-3 pt-0 grid grid-cols-5 gap-2 bg-white dark:bg-gray-800 dark:bg-slate-900">
+                            <div className="p-3 pt-0 grid grid-cols-5 gap-2 bg-white dark:bg-gray-800">
                                 {group.map((q) => {
                                     const overallIdx = questions.findIndex(qu => qu.id === q.id);
                                     const isReview = markedForReview.includes(q.id);
@@ -234,10 +234,10 @@ export function QuizNavigationPanel({
                                             
                                             {/* Badges for Review/Bookmark */}
                                             {isReview && (
-                                                <Flag className="absolute -top-1.5 -right-1.5 w-3.5 h-3.5 text-purple-600 fill-purple-100 bg-white dark:bg-gray-800 dark:bg-slate-900 rounded-full shadow-sm ring-1 ring-white dark:ring-gray-800 dark:ring-gray-800" />
+                                                <Flag className="absolute -top-1.5 -right-1.5 w-3.5 h-3.5 text-purple-600 fill-purple-100 bg-white dark:bg-gray-800 rounded-full shadow-sm ring-1 ring-white dark:ring-gray-800" />
                                             )}
                                             {isBookmarked && (
-                                                <Star className="absolute -top-1.5 -left-1.5 w-3.5 h-3.5 text-amber-400 fill-amber-400 bg-white dark:bg-gray-800 dark:bg-slate-900 rounded-full shadow-sm ring-1 ring-white dark:ring-gray-800 dark:ring-gray-800" />
+                                                <Star className="absolute -top-1.5 -left-1.5 w-3.5 h-3.5 text-amber-400 fill-amber-400 bg-white dark:bg-gray-800 rounded-full shadow-sm ring-1 ring-white dark:ring-gray-800" />
                                             )}
                                         </button>
                                     );
@@ -250,7 +250,7 @@ export function QuizNavigationPanel({
         </div>
 
         {/* Footer: Submit Action / Close */}
-        <div className="p-4 border-t border-gray-200 dark:border-gray-700 dark:border-gray-700 dark:border-slate-800 bg-white dark:bg-gray-800 dark:bg-slate-900">
+        <div className="p-4 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
             <button 
                 onClick={() => {
                     onClose();

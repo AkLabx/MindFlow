@@ -79,8 +79,8 @@ export const BookmarksPage: React.FC = () => {
                     <div className="w-24 h-24 bg-amber-50 dark:bg-amber-900/20 rounded-full flex items-center justify-center mb-6">
                         <Star className="w-12 h-12 text-amber-400" />
                     </div>
-                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white dark:text-white dark:text-slate-100 dark:text-slate-100 mb-2">No Bookmarks Yet</h2>
-                    <p className="text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-slate-400 dark:text-slate-500 dark:text-slate-400 dark:text-slate-500 dark:text-slate-500 dark:text-slate-400 dark:text-slate-500 max-w-md mb-8">
+                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">No Bookmarks Yet</h2>
+                    <p className="text-gray-500 dark:text-gray-400 max-w-md mb-8">
                         Tap the star icon during a quiz to save questions here for later review.
                     </p>
                     <Button onClick={() => navigate('/dashboard')} className="bg-indigo-600 hover:bg-indigo-700">
@@ -107,13 +107,13 @@ export const BookmarksPage: React.FC = () => {
                 <div className="flex items-center space-x-4">
                     <button
                         onClick={() => navigate('/dashboard')}
-                        className="p-2 -ml-2 rounded-full hover:bg-gray-100 dark:bg-gray-800 dark:hover:bg-slate-800 dark:hover:bg-slate-800 transition-colors"
+                        className="p-2 -ml-2 rounded-full hover:bg-gray-100 dark:bg-gray-800 dark:hover:bg-slate-800 transition-colors"
                     >
-                        <ChevronLeft className="w-6 h-6 text-gray-600 dark:text-gray-300 dark:text-gray-300 dark:text-slate-400 dark:text-slate-500 dark:text-slate-400 dark:text-slate-500 dark:text-slate-500 dark:text-slate-400 dark:text-slate-500" />
+                        <ChevronLeft className="w-6 h-6 text-gray-600 dark:text-gray-300" />
                     </button>
                     <div>
-                        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white dark:text-white dark:text-slate-100 dark:text-slate-100">Your Bookmarks</h1>
-                        <p className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-slate-400 dark:text-slate-500 dark:text-slate-400 dark:text-slate-500 dark:text-slate-500 dark:text-slate-400 dark:text-slate-500 mt-1">Review saved questions sorted by subject.</p>
+                        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Your Bookmarks</h1>
+                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Review saved questions sorted by subject.</p>
                     </div>
                 </div>
                 <button
@@ -146,7 +146,7 @@ export const BookmarksPage: React.FC = () => {
                             "whitespace-nowrap px-4 py-2 rounded-full text-sm font-semibold transition-colors duration-200 border",
                             selectedSubject === subject
                                 ? "bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-200"
-                                : "bg-white dark:bg-gray-800 dark:bg-slate-900 dark:bg-slate-900 text-gray-700 dark:text-gray-200 dark:text-gray-200 dark:text-slate-300 dark:text-slate-300 border-gray-200 dark:border-gray-700 dark:border-gray-700 dark:border-slate-800 dark:border-slate-800 hover:bg-gray-50 dark:bg-gray-900 dark:hover:bg-slate-800 dark:bg-slate-800/50 dark:hover:bg-slate-800 dark:bg-slate-800/50 hover:border-gray-300 dark:border-gray-600"
+                                : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:bg-gray-900 dark:hover:bg-slate-800 dark:bg-slate-800/50 dark:hover:bg-slate-800 dark:bg-slate-800/50 hover:border-gray-300 dark:border-gray-600"
                         )}
                     >
                         {subject}
@@ -173,7 +173,7 @@ export const BookmarksPage: React.FC = () => {
                                 </span>
                             </div>
 
-                            <h3 className="text-gray-900 dark:text-white dark:text-white dark:text-slate-100 dark:text-slate-100 font-medium mb-3">
+                            <h3 className="text-gray-900 dark:text-white font-medium mb-3">
                                 {index + 1}. {question.question}
                             </h3>
 
@@ -183,13 +183,13 @@ export const BookmarksPage: React.FC = () => {
                                         "p-3 rounded-lg border text-sm flex items-center gap-3",
                                         opt === question.correct
                                             ? "bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 text-emerald-900 font-medium"
-                                            : "bg-white dark:bg-gray-800 dark:bg-slate-900 dark:bg-slate-900 border-gray-100 dark:border-gray-800 dark:border-gray-800 dark:border-slate-800 dark:border-slate-800 text-gray-600 dark:text-gray-300 dark:text-gray-300 dark:text-slate-400 dark:text-slate-500 dark:text-slate-400 dark:text-slate-500 dark:text-slate-500 dark:text-slate-400 dark:text-slate-500"
+                                            : "bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-800 text-gray-600 dark:text-gray-300"
                                     )}>
                                         <div className={cn(
                                             "w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0",
                                             opt === question.correct
                                                 ? "bg-emerald-200 text-emerald-800"
-                                                : "bg-gray-100 dark:bg-gray-800 dark:bg-gray-800 text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-slate-400 dark:text-slate-500 dark:text-slate-400 dark:text-slate-500 dark:text-slate-500 dark:text-slate-400 dark:text-slate-500"
+                                                : "bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400"
                                         )}>
                                             {String.fromCharCode(65 + i)}
                                         </div>
@@ -213,7 +213,7 @@ export const BookmarksPage: React.FC = () => {
                         <div className="flex sm:flex-col justify-end sm:justify-start gap-2">
                             <button
                                 onClick={() => handleRemoveBookmark(question.id)}
-                                className="p-2 text-gray-400 dark:text-slate-500 dark:text-slate-500 dark:text-slate-400 dark:text-slate-500 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-colors flex items-center gap-2 sm:w-full justify-center"
+                                className="p-2 text-gray-400 dark:text-slate-500 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-colors flex items-center gap-2 sm:w-full justify-center"
                                 title="Remove Bookmark"
                             >
                                 <Trash2 className="w-5 h-5" />

@@ -25,7 +25,7 @@ export const Preview: React.FC<PreviewProps> = ({ data }) => {
   };
 
   return (
-    <div className="h-full bg-gray-100 dark:bg-gray-800 dark:bg-gray-800 flex flex-col items-center justify-center p-4 md:p-8 overflow-auto">
+    <div className="h-full bg-gray-100 dark:bg-gray-800 flex flex-col items-center justify-center p-4 md:p-8 overflow-auto">
       <div className="max-w-full w-full flex flex-col items-center gap-6">
         {/* Canvas Container with Shadow */}
         <div className="relative shadow-2xl rounded-sm overflow-hidden bg-[#F9F1E5]">

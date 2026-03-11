@@ -26,8 +26,8 @@ const variantStyles: Record<BadgeVariant, string> = {
   success: "bg-emerald-100 text-emerald-700 border-transparent",
   warning: "bg-amber-100 text-amber-700 border-transparent",
   danger: "bg-rose-100 text-rose-700 border-transparent",
-  neutral: "bg-gray-100 dark:bg-gray-800 dark:bg-gray-800 text-gray-700 dark:text-gray-200 dark:text-gray-200 border-gray-200 dark:border-gray-700 dark:border-gray-700",
-  outline: "bg-transparent text-gray-600 dark:text-gray-300 dark:text-gray-300 border-gray-200 dark:border-gray-700 dark:border-gray-700",
+  neutral: "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 border-gray-200 dark:border-gray-700",
+  outline: "bg-transparent text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700",
 };
 
 /**

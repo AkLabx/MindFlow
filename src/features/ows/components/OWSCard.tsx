@@ -34,7 +34,7 @@ export const OWSCard: React.FC<OWSCardProps> = ({ data, serialNumber, isFlipped 
         )}
       >
         {/* --- FRONT FACE --- */}
-        <div className="absolute inset-0 w-full h-full backface-hidden rounded-3xl overflow-hidden bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 dark:border-gray-700 shadow-sm flex flex-col">
+        <div className="absolute inset-0 w-full h-full backface-hidden rounded-3xl overflow-hidden bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm flex flex-col">
 
           {/* Header Decoration */}
           <div className="h-2 w-full bg-gradient-to-r from-teal-400 to-cyan-500"></div>
@@ -57,15 +57,15 @@ export const OWSCard: React.FC<OWSCardProps> = ({ data, serialNumber, isFlipped 
           </div>
 
           {/* Footer Tags */}
-          <div className="p-4 bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-800 dark:border-gray-800 flex justify-between items-center text-xs text-gray-500 dark:text-gray-400 dark:text-gray-400">
-            <span className="bg-gray-100 dark:bg-gray-800 dark:bg-gray-800 px-2 py-1 rounded-md">{data.properties.difficulty}</span>
+          <div className="p-4 bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-800 flex justify-between items-center text-xs text-gray-500 dark:text-gray-400">
+            <span className="bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded-md">{data.properties.difficulty}</span>
             <span>#{serialNumber}</span>
             <span>{data.sourceInfo.pdfName} | {data.sourceInfo.examYear}</span>
           </div>
         </div>
 
         {/* --- BACK FACE --- */}
-        <div className="absolute inset-0 w-full h-full backface-hidden rotate-y-180 rounded-3xl overflow-hidden bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 dark:border-gray-700 shadow-sm flex flex-col">
+        <div className="absolute inset-0 w-full h-full backface-hidden rotate-y-180 rounded-3xl overflow-hidden bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm flex flex-col">
           {/* Header */}
           <div className="bg-teal-50 p-4 border-b border-teal-100 flex justify-between items-center">
             <div className="flex items-center gap-2">
@@ -86,11 +86,11 @@ export const OWSCard: React.FC<OWSCardProps> = ({ data, serialNumber, isFlipped 
             <div className="space-y-3">
               <div className="bg-white dark:bg-gray-800 p-4 rounded-xl border-l-4 border-teal-500 shadow-sm ring-1 ring-gray-100">
                 <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Meaning</p>
-                <p className="text-gray-800 dark:text-gray-100 dark:text-gray-100 font-medium leading-relaxed text-lg">{data.content.meaning_en}</p>
+                <p className="text-gray-800 dark:text-gray-100 font-medium leading-relaxed text-lg">{data.content.meaning_en}</p>
               </div>
               <div className="bg-white dark:bg-gray-800 p-4 rounded-xl border-l-4 border-cyan-400 shadow-sm ring-1 ring-gray-100">
                 <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Hindi Meaning</p>
-                <p className="text-gray-800 dark:text-gray-100 dark:text-gray-100 font-hindi font-medium text-lg">{data.content.meaning_hi}</p>
+                <p className="text-gray-800 dark:text-gray-100 font-hindi font-medium text-lg">{data.content.meaning_hi}</p>
               </div>
             </div>
 
@@ -98,7 +98,7 @@ export const OWSCard: React.FC<OWSCardProps> = ({ data, serialNumber, isFlipped 
             {data.content.usage_sentences && data.content.usage_sentences.length > 0 && (
               <div className="space-y-2">
                 <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Examples</p>
-                <ul className="list-disc list-outside pl-4 space-y-1 text-gray-600 dark:text-gray-300 dark:text-gray-300 italic text-sm leading-relaxed">
+                <ul className="list-disc list-outside pl-4 space-y-1 text-gray-600 dark:text-gray-300 italic text-sm leading-relaxed">
                   {data.content.usage_sentences.map((sentence, idx) => (
                     <li key={idx}>{sentence}</li>
                   ))}

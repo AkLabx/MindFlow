@@ -91,14 +91,14 @@ export const AttemptedQuizzes: React.FC = () => {
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900 dark:bg-gray-900">
+            <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 dark:bg-gray-900 p-4 md:p-8">
+        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 md:p-8">
             <div className="max-w-4xl mx-auto">
                 <div className="mb-6">
                     <button
@@ -116,10 +116,10 @@ export const AttemptedQuizzes: React.FC = () => {
                 </div>
 
                 {quizzes.length === 0 ? (
-                    <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 dark:border-gray-800">
+                    <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800">
                         <BookOpen className="w-12 h-12 text-gray-300 mx-auto mb-4" />
                         <h3 className="text-lg font-medium text-gray-900 dark:text-white dark:text-white mb-2">No Attempted Quizzes</h3>
-                        <p className="text-gray-500 dark:text-gray-400 dark:text-gray-400 mb-6">Complete a quiz to see your results here!</p>
+                        <p className="text-gray-500 dark:text-gray-400 mb-6">Complete a quiz to see your results here!</p>
                         <button
                             onClick={() => navigate('/quiz/config')}
                             className="px-6 py-3 bg-indigo-50 dark:bg-indigo-950/30 text-indigo-700 dark:text-indigo-400 font-bold rounded-xl border border-indigo-200 dark:border-indigo-900/40 border-b-4 border-b-indigo-300 dark:border-b-indigo-700 hover:border-indigo-400 dark:hover:border-indigo-500 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 active:translate-y-1 active:border-b transition-all shadow-sm flex items-center gap-2 mx-auto"
@@ -134,7 +134,7 @@ export const AttemptedQuizzes: React.FC = () => {
                             <div
                                 key={quiz.id}
                                 onClick={() => handleViewResults(quiz)}
-                                className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 dark:border-gray-800 hover:shadow-md transition-shadow cursor-pointer group"
+                                className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 hover:shadow-md transition-shadow cursor-pointer group"
                             >
                                 <div className="flex items-start justify-between">
                                     <div className="flex-1 mr-4">
@@ -171,7 +171,7 @@ export const AttemptedQuizzes: React.FC = () => {
                                         )}
 
                                         {/* Metadata */}
-                                        <div className="flex flex-wrap gap-4 text-sm text-gray-500 dark:text-gray-400 dark:text-gray-400">
+                                        <div className="flex flex-wrap gap-4 text-sm text-gray-500 dark:text-gray-400">
                                             <div className="flex items-center gap-1">
                                                 <BookOpen className="w-4 h-4" />
                                                 <span>{quiz.filters.subject}</span>

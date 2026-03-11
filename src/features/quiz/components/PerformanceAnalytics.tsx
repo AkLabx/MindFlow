@@ -102,14 +102,14 @@ export const PerformanceAnalytics: React.FC = () => {
                     <div className="w-24 h-24 bg-indigo-50 dark:bg-indigo-900/20 rounded-full flex items-center justify-center mb-6">
                         <BarChart2 className="w-12 h-12 text-indigo-400" />
                     </div>
-                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white dark:text-white dark:text-slate-100 mb-2">No Data Yet</h2>
-                    <p className="text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-slate-400 dark:text-slate-500 max-w-md mb-8">
+                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">No Data Yet</h2>
+                    <p className="text-gray-500 dark:text-gray-400 max-w-md mb-8">
                         Complete your first quiz to start seeing your performance analytics and detailed report cards.
                     </p>
                     <Button onClick={() => navigate('/quiz/config')} className="bg-indigo-600 hover:bg-indigo-700">
                         Start a Quiz
                     </Button>
-                    <button onClick={() => navigate('/dashboard')} className="mt-4 text-sm text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-slate-400 dark:text-slate-500 hover:text-indigo-600 dark:text-indigo-400 font-medium">
+                    <button onClick={() => navigate('/dashboard')} className="mt-4 text-sm text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:text-indigo-400 font-medium">
                         Back to Dashboard
                     </button>
                 </div>
@@ -135,11 +135,11 @@ export const PerformanceAnalytics: React.FC = () => {
                     onClick={() => navigate('/dashboard')}
                     className="p-2 -ml-2 rounded-full hover:bg-gray-100 dark:bg-gray-800 dark:hover:bg-slate-800 transition-colors"
                 >
-                    <ChevronLeft className="w-6 h-6 text-gray-600 dark:text-gray-300 dark:text-gray-300 dark:text-slate-400 dark:text-slate-500" />
+                    <ChevronLeft className="w-6 h-6 text-gray-600 dark:text-gray-300" />
                 </button>
                 <div>
-                    <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white dark:text-white dark:text-slate-100">Performance Analytics</h1>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-slate-400 dark:text-slate-500 mt-1">Your detailed learning report card.</p>
+                    <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Performance Analytics</h1>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Your detailed learning report card.</p>
                 </div>
             </div>
             <button
@@ -188,7 +188,7 @@ export const PerformanceAnalytics: React.FC = () => {
 
             {/* Subject-wise Performance */}
             <div>
-                <h2 className="text-xl font-bold text-gray-900 dark:text-white dark:text-white dark:text-slate-100 mb-4 flex items-center gap-2">
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                     <BarChart2 className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
                     Subject Mastery
                 </h2>
@@ -198,7 +198,7 @@ export const PerformanceAnalytics: React.FC = () => {
                         return (
                             <Card key={subject} className="p-5">
                                 <div className="flex justify-between items-center mb-3">
-                                    <h3 className="font-bold text-gray-900 dark:text-white dark:text-white dark:text-slate-100 text-lg">{subject}</h3>
+                                    <h3 className="font-bold text-gray-900 dark:text-white text-lg">{subject}</h3>
                                     <span className={cn(
                                         "px-2.5 py-1 rounded-full text-xs font-bold",
                                         subjAccuracy >= 80 ? "bg-emerald-100 text-emerald-800" :
@@ -211,9 +211,9 @@ export const PerformanceAnalytics: React.FC = () => {
                                 <ProgressBar value={subjAccuracy} variant={subjAccuracy >= 80 ? 'success' : subjAccuracy >= 60 ? 'warning' : 'danger'} className="mb-4" />
 
                                 <div className="grid grid-cols-4 gap-2 text-center text-sm">
-                                    <div className="bg-gray-50 dark:bg-gray-900 dark:bg-gray-900 dark:bg-slate-800/50 rounded-lg p-2">
-                                        <div className="font-bold text-gray-900 dark:text-white dark:text-white dark:text-slate-100">{stats.attempted}</div>
-                                        <div className="text-[10px] text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-slate-400 dark:text-slate-500 uppercase">Attempt</div>
+                                    <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-2">
+                                        <div className="font-bold text-gray-900 dark:text-white">{stats.attempted}</div>
+                                        <div className="text-[10px] text-gray-500 dark:text-gray-400 uppercase">Attempt</div>
                                     </div>
                                     <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded-lg p-2">
                                         <div className="font-bold text-emerald-700 dark:text-emerald-400">{stats.correct}</div>
@@ -223,8 +223,8 @@ export const PerformanceAnalytics: React.FC = () => {
                                         <div className="font-bold text-rose-700">{stats.incorrect}</div>
                                         <div className="text-[10px] text-rose-600/80 uppercase">Wrong</div>
                                     </div>
-                                    <div className="bg-gray-50 dark:bg-gray-900 dark:bg-gray-900 dark:bg-slate-800/50 rounded-lg p-2">
-                                        <div className="font-bold text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-slate-400 dark:text-slate-500">{stats.skipped}</div>
+                                    <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-2">
+                                        <div className="font-bold text-gray-500 dark:text-gray-400">{stats.skipped}</div>
                                         <div className="text-[10px] text-gray-400 dark:text-slate-500 uppercase">Skip</div>
                                     </div>
                                 </div>
@@ -236,20 +236,20 @@ export const PerformanceAnalytics: React.FC = () => {
 
             {/* Recent Sessions */}
             <div>
-                <h2 className="text-xl font-bold text-gray-900 dark:text-white dark:text-white dark:text-slate-100 mb-4 flex items-center gap-2">
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                     <Clock className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
                     Recent Activity
                 </h2>
                 <Card className="overflow-hidden">
-                    <div className="divide-y divide-gray-100 dark:divide-gray-800 dark:divide-gray-800 max-h-[400px] overflow-y-auto">
+                    <div className="divide-y divide-gray-100 dark:divide-gray-800 max-h-[400px] overflow-y-auto">
                         {history.slice(0, 10).map((record) => (
                             <div key={record.id} className="p-4 hover:bg-gray-50 dark:bg-gray-900 dark:hover:bg-slate-800 dark:bg-slate-800/50 transition-colors flex items-center justify-between">
                                 <div>
-                                    <div className="font-semibold text-gray-900 dark:text-white dark:text-white dark:text-slate-100">
+                                    <div className="font-semibold text-gray-900 dark:text-white">
                                         {new Date(record.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
                                     </div>
-                                    <div className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-slate-400 dark:text-slate-500 flex items-center gap-2 mt-1">
-                                        <span className="px-2 py-0.5 bg-gray-100 dark:bg-gray-800 dark:bg-gray-800 rounded text-xs">{record.difficulty}</span>
+                                    <div className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-2 mt-1">
+                                        <span className="px-2 py-0.5 bg-gray-100 dark:bg-gray-800 rounded text-xs">{record.difficulty}</span>
                                         <span>•</span>
                                         <span>{formatTime(record.totalTimeSpent)}</span>
                                     </div>
@@ -262,7 +262,7 @@ export const PerformanceAnalytics: React.FC = () => {
                                     )}>
                                         {record.overallAccuracy}%
                                     </div>
-                                    <div className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-slate-400 dark:text-slate-500">
+                                    <div className="text-xs text-gray-500 dark:text-gray-400">
                                         {record.totalCorrect} / {record.totalQuestions}
                                     </div>
                                 </div>

@@ -86,7 +86,7 @@ export const DownloadReadyModal: React.FC<DownloadReadyModalProps> = ({
         onClick={onClose}
       />
 
-      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-sm bg-white dark:bg-gray-800 rounded-xl shadow-2xl z-[110] p-6 animate-in zoom-in-95 duration-200 border border-gray-100 dark:border-gray-800 dark:border-gray-800">
+      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-sm bg-white dark:bg-gray-800 rounded-xl shadow-2xl z-[110] p-6 animate-in zoom-in-95 duration-200 border border-gray-100 dark:border-gray-800">
 
         <div className="flex flex-col items-center text-center space-y-4">
             <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-2">
@@ -94,8 +94,8 @@ export const DownloadReadyModal: React.FC<DownloadReadyModalProps> = ({
             </div>
 
             <div>
-                <h3 className="text-xl font-bold text-gray-900 dark:text-white dark:text-white dark:text-slate-100 mb-1">Download Ready</h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-400 max-w-[250px] mx-auto break-all">
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-1">Download Ready</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400 max-w-[250px] mx-auto break-all">
                     {fileName}
                 </p>
             </div>
@@ -129,7 +129,7 @@ export const DownloadReadyModal: React.FC<DownloadReadyModalProps> = ({
                 <button
                     onClick={onClose}
                     disabled={isSharing}
-                    className="w-full py-3 px-4 text-gray-600 dark:text-gray-300 dark:text-gray-300 font-semibold hover:bg-gray-100 dark:bg-gray-800 rounded-xl transition-colors disabled:opacity-50"
+                    className="w-full py-3 px-4 text-gray-600 dark:text-gray-300 font-semibold hover:bg-gray-100 dark:bg-gray-800 rounded-xl transition-colors disabled:opacity-50"
                 >
                     Close
                 </button>

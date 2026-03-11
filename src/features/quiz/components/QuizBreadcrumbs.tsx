@@ -25,7 +25,7 @@ export function QuizBreadcrumbs({ filters, onGoHome }: { filters: InitialFilters
                 Home
             </button>
             <span className="mr-2">/</span>
-            <span className="text-gray-600 dark:text-gray-300 dark:text-gray-300 mr-2 truncate max-w-[100px]">{activeSubjects}</span>
+            <span className="text-gray-600 dark:text-gray-300 mr-2 truncate max-w-[100px]">{activeSubjects}</span>
             {activeTopics && (
                 <>
                     <span className="mr-2">/</span>

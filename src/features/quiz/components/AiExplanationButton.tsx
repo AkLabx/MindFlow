@@ -140,17 +140,17 @@ JSON Schema:
                 <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
                     <div
                         ref={overlayRef}
-                        className="bg-white dark:bg-gray-800 dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-lg max-h-[85vh] overflow-hidden flex flex-col animate-in slide-in-from-bottom-10 zoom-in-95 duration-300"
+                        className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-lg max-h-[85vh] overflow-hidden flex flex-col animate-in slide-in-from-bottom-10 zoom-in-95 duration-300"
                     >
                         {/* Header */}
-                        <div className="flex items-center justify-between p-4 border-b border-gray-100 dark:border-gray-800 dark:border-gray-800 dark:border-slate-800 bg-gradient-to-r from-indigo-50 to-purple-50">
+                        <div className="flex items-center justify-between p-4 border-b border-gray-100 dark:border-gray-800 bg-gradient-to-r from-indigo-50 to-purple-50">
                             <div className="flex items-center gap-2 text-indigo-700 dark:text-indigo-400">
                                 <Sparkles className="w-5 h-5" />
                                 <h3 className="font-bold text-lg">AI Explanation</h3>
                             </div>
                             <button
                                 onClick={() => setIsOpen(false)}
-                                className="p-1 rounded-full hover:bg-white dark:bg-gray-800 dark:bg-slate-900/50 text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-slate-400 dark:text-slate-500 hover:text-gray-700 dark:text-gray-200 dark:text-slate-300 transition-colors"
+                                className="p-1 rounded-full hover:bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:text-gray-200 transition-colors"
                             >
                                 <X className="w-5 h-5" />
                             </button>
@@ -161,7 +161,7 @@ JSON Schema:
                             {isLoading ? (
                                 <div className="flex flex-col items-center justify-center py-12 text-center">
                                     <Loader2 className="w-10 h-10 text-indigo-500 animate-spin mb-4" />
-                                    <p className="text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-slate-400 dark:text-slate-500 font-medium">Consulting the AI Tutor...</p>
+                                    <p className="text-gray-500 dark:text-gray-400 font-medium">Consulting the AI Tutor...</p>
                                 </div>
                             ) : error ? (
                                 <div className="flex flex-col items-center justify-center py-8 text-center text-red-500">
@@ -181,7 +181,7 @@ JSON Schema:
                                     <div>
                                         <h4 className="text-sm uppercase tracking-wider text-gray-400 dark:text-slate-500 font-bold mb-2">Analysis</h4>
                                         <div
-                                            className="text-gray-800 dark:text-gray-100 dark:text-gray-100 dark:text-slate-200 leading-relaxed text-[0.95rem] space-y-2 [&_strong]:text-indigo-700 dark:text-indigo-400 [&_strong]:font-bold"
+                                            className="text-gray-800 dark:text-gray-100 leading-relaxed text-[0.95rem] space-y-2 [&_strong]:text-indigo-700 dark:text-indigo-400 [&_strong]:font-bold"
                                             dangerouslySetInnerHTML={{ __html: data.explanation.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') }} // Simple regex markdown bold parser
                                         />
                                     </div>

@@ -57,17 +57,17 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900 dark:bg-gray-900/50 dark:bg-slate-950 transition-colors duration-300 relative">
+    <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900/50 dark:bg-slate-950 transition-colors duration-300 relative">
       
       {/* --- Sticky Top Header --- */}
       {!isReviewMode && (
-      <header className="sticky top-0 z-40 w-full bg-white dark:bg-gray-800 dark:bg-gray-800/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-gray-200 dark:border-gray-700 dark:border-gray-700/50 dark:border-slate-800 transition-all duration-300">
+      <header className="sticky top-0 z-40 w-full bg-white dark:bg-gray-800/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-gray-200 dark:border-gray-700/50 dark:border-slate-800 transition-all duration-300">
         <div className="max-w-3xl mx-auto px-4 h-14 flex items-center justify-between">
           <div className="flex items-center gap-2 cursor-pointer" onClick={() => onTabChange('home')}>
             <div className="bg-indigo-600 p-1.5 rounded-lg">
               <BrainCircuit className="h-5 w-5 text-white" />
             </div>
-            <span className="text-lg font-black tracking-tight text-gray-900 dark:text-white dark:text-white dark:text-slate-100 transition-colors duration-300">MindFlow</span>
+            <span className="text-lg font-black tracking-tight text-gray-900 dark:text-white transition-colors duration-300">MindFlow</span>
           </div>
           
           <div className="flex items-center gap-2">
@@ -85,7 +85,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
             ) : (
                <button
                 onClick={onOpenSettings}
-                className="p-2 text-gray-500 dark:text-gray-400 dark:text-gray-400 hover:bg-gray-100 dark:bg-gray-800 dark:text-slate-400 dark:hover:bg-slate-800 rounded-full transition-colors"
+                className="p-2 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:bg-gray-800 dark:text-slate-400 dark:hover:bg-slate-800 rounded-full transition-colors"
               >
                 <Settings className="w-5 h-5" />
               </button>
@@ -101,7 +101,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
       </main>
 
       {/* --- Sticky Bottom Tab Bar --- */}
-      <nav className={cn("fixed bottom-0 left-0 w-full bg-white dark:bg-gray-800 dark:bg-gray-800 dark:bg-slate-900 border-t border-gray-200 dark:border-gray-700 dark:border-gray-700 dark:border-slate-800 z-50 transition-colors duration-300 pb-[env(safe-area-inset-bottom)]", isReviewMode ? "hidden" : "block")}>
+      <nav className={cn("fixed bottom-0 left-0 w-full bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 z-50 transition-colors duration-300 pb-[env(safe-area-inset-bottom)]", isReviewMode ? "hidden" : "block")}>
         <div className="max-w-3xl mx-auto px-2 h-16 flex items-center justify-around">
           
           <NavTab 
@@ -169,7 +169,7 @@ const NavTab = ({ id, label, icon, isActive, onClick }: { id: string, label: str
     onClick={onClick}
     className={cn(
       "flex flex-col items-center justify-center w-16 py-1 transition-all duration-200 active:scale-95",
-      isActive ? "text-indigo-600 dark:text-indigo-400" : "text-gray-400 hover:text-gray-600 dark:text-gray-300 dark:text-slate-500 dark:hover:text-slate-300"
+      isActive ? "text-indigo-600 dark:text-indigo-400" : "text-gray-400 hover:text-gray-600 dark:text-gray-300 dark:hover:text-slate-300"
     )}
   >
     <div className={cn("transition-transform duration-200", isActive && "-translate-y-0.5")}>

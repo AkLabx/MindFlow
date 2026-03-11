@@ -146,7 +146,7 @@ export const OWSConfig: React.FC<OWSConfigProps> = ({ onStart, onBack }) => {
                             <Target className="w-8 h-8" />
                         </div>
                         <div>
-                            <h1 className="text-3xl font-black text-gray-900 dark:text-white dark:text-white dark:text-slate-100">One Word Substitution</h1>
+                            <h1 className="text-3xl font-black text-gray-900 dark:text-white">One Word Substitution</h1>
                             <p className="text-teal-700/80 font-medium">Master Your Vocabulary</p>
                         </div>
                     </div>
@@ -155,7 +155,7 @@ export const OWSConfig: React.FC<OWSConfigProps> = ({ onStart, onBack }) => {
                 <div className="flex-1 space-y-6">
 
                     {/* Alphabetical Filter Card */}
-                    <div className="bg-white dark:bg-gray-800 dark:bg-slate-900 p-6 rounded-2xl border border-teal-100 border-l-4 border-l-teal-400 shadow-sm relative">
+                    <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-teal-100 border-l-4 border-l-teal-400 shadow-sm relative">
                         <div className="flex items-center gap-2 mb-4 text-teal-800 font-bold text-sm uppercase tracking-wider">
                             <Type className="w-4 h-4" /> Alphabetical Order
                         </div>
@@ -166,7 +166,7 @@ export const OWSConfig: React.FC<OWSConfigProps> = ({ onStart, onBack }) => {
                                     "px-3 py-2 rounded-lg text-xs font-bold transition-all border shadow-sm",
                                     !selectedLetter
                                         ? "bg-teal-500 text-white border-teal-500 ring-2 ring-teal-200"
-                                        : "bg-white dark:bg-gray-800 dark:bg-slate-900 text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-slate-400 dark:text-slate-500 border-gray-200 dark:border-gray-700 dark:border-gray-700 dark:border-slate-800 hover:border-teal-300 hover:text-teal-600"
+                                        : "bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 border-gray-200 dark:border-gray-700 hover:border-teal-300 hover:text-teal-600"
                                 )}
                             >
                                 ALL
@@ -184,8 +184,8 @@ export const OWSConfig: React.FC<OWSConfigProps> = ({ onStart, onBack }) => {
                                             "w-8 h-8 flex items-center justify-center rounded-lg text-xs font-bold transition-all border",
                                             isSelected
                                                 ? "bg-teal-100 text-teal-900 border-teal-300 ring-1 ring-teal-300"
-                                                : "bg-white dark:bg-gray-800 dark:bg-slate-900 text-gray-600 dark:text-gray-300 dark:text-gray-300 dark:text-slate-400 dark:text-slate-500 border-gray-200 dark:border-gray-700 dark:border-gray-700 dark:border-slate-800 hover:border-teal-300 hover:text-teal-700",
-                                            isDisabled && "opacity-30 cursor-not-allowed bg-gray-50 dark:bg-gray-900 dark:bg-gray-900 dark:bg-slate-800/50 text-gray-300 border-gray-100 dark:border-gray-800 dark:border-gray-800 dark:border-slate-800"
+                                                : "bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:border-teal-300 hover:text-teal-700",
+                                            isDisabled && "opacity-30 cursor-not-allowed bg-gray-50 dark:bg-gray-900 text-gray-300 border-gray-100 dark:border-gray-800"
                                         )}
                                     >
                                         {letter}
@@ -199,7 +199,7 @@ export const OWSConfig: React.FC<OWSConfigProps> = ({ onStart, onBack }) => {
                     </div>
 
                     {/* Source Name Card */}
-                    <div className="bg-white dark:bg-gray-800 dark:bg-slate-900 p-6 rounded-2xl border border-teal-100 border-l-4 border-l-teal-400 shadow-sm relative">
+                    <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-teal-100 border-l-4 border-l-teal-400 shadow-sm relative">
                         <div className="flex items-center gap-2 mb-4 text-teal-800 font-bold text-sm uppercase tracking-wider">
                             <FileText className="w-4 h-4" /> Source Material
                         </div>
@@ -215,7 +215,7 @@ export const OWSConfig: React.FC<OWSConfigProps> = ({ onStart, onBack }) => {
                     </div>
 
                     {/* Exam Year Card */}
-                    <div className="bg-white dark:bg-gray-800 dark:bg-slate-900 p-6 rounded-2xl border border-teal-100 border-l-4 border-l-teal-400 shadow-sm relative">
+                    <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-teal-100 border-l-4 border-l-teal-400 shadow-sm relative">
                         <div className="flex items-center gap-2 mb-4 text-teal-800 font-bold text-sm uppercase tracking-wider">
                             <Calendar className="w-4 h-4" /> Exam Year
                         </div>
@@ -238,14 +238,14 @@ export const OWSConfig: React.FC<OWSConfigProps> = ({ onStart, onBack }) => {
                                             "px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 border select-none",
                                             isSelected
                                                 ? "bg-teal-100 text-teal-900 border-teal-300 ring-1 ring-teal-300"
-                                                : "bg-gray-50 dark:bg-gray-900 dark:bg-gray-900 dark:bg-slate-800/50 text-gray-600 dark:text-gray-300 dark:text-gray-300 dark:text-slate-400 dark:text-slate-500 border-gray-200 dark:border-gray-700 dark:border-gray-700 dark:border-slate-800 hover:bg-gray-100 dark:bg-gray-800 dark:hover:bg-slate-800 hover:border-gray-300 dark:border-gray-600",
-                                            isDisabled && "opacity-40 cursor-not-allowed bg-gray-50 dark:bg-gray-900 dark:bg-gray-900 dark:bg-slate-800/50"
+                                                : "bg-gray-50 dark:bg-gray-900 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:bg-gray-800 dark:hover:bg-slate-800 hover:border-gray-300 dark:border-gray-600",
+                                            isDisabled && "opacity-40 cursor-not-allowed bg-gray-50 dark:bg-gray-900"
                                         )}
                                     >
                                         {year}
                                         <span className={cn(
                                             "text-[10px] px-1.5 py-0.5 rounded-full min-w-[20px] text-center",
-                                            isSelected ? "bg-teal-200 text-teal-800" : "bg-gray-200 dark:bg-gray-700 dark:bg-gray-700 text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-slate-400 dark:text-slate-500"
+                                            isSelected ? "bg-teal-200 text-teal-800" : "bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400"
                                         )}>
                                             {count}
                                         </span>
@@ -256,7 +256,7 @@ export const OWSConfig: React.FC<OWSConfigProps> = ({ onStart, onBack }) => {
                     </div>
 
                     {/* Difficulty Card */}
-                    <div className="bg-white dark:bg-gray-800 dark:bg-slate-900 p-6 rounded-2xl border border-teal-100 border-l-4 border-l-teal-400 shadow-sm relative">
+                    <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-teal-100 border-l-4 border-l-teal-400 shadow-sm relative">
                         <div className="flex items-center gap-2 mb-4 text-teal-800 font-bold text-sm uppercase tracking-wider">
                             <Settings className="w-4 h-4" /> Difficulty Level
                         </div>
@@ -276,7 +276,7 @@ export const OWSConfig: React.FC<OWSConfigProps> = ({ onStart, onBack }) => {
 
                 {/* Footer Action */}
                 <div className="mt-8 sticky bottom-4 z-10">
-                    <div className="bg-white dark:bg-gray-800 dark:bg-slate-900/90 backdrop-blur-md border border-teal-200 shadow-xl rounded-2xl p-4">
+                    <div className="bg-white dark:bg-gray-800 backdrop-blur-md border border-teal-200 shadow-xl rounded-2xl p-4">
 
                         <div className="mb-4">
                             <ActiveFiltersBar filters={filters} onRemoveFilter={handleRemoveFilter} />

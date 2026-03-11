@@ -46,7 +46,7 @@ export function QuizQuestionHeader({
   };
 
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 pb-4 border-b border-gray-100 dark:border-gray-800 dark:border-gray-800">
+    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 pb-4 border-b border-gray-100 dark:border-gray-800">
       
       <div className="flex items-center gap-3 flex-wrap">
         <Badge variant="primary" className="text-sm">
@@ -65,7 +65,7 @@ export function QuizQuestionHeader({
                 "p-1.5 rounded-md transition-colors flex items-center gap-1.5 text-xs font-medium border",
                 isBookmarked 
                     ? "bg-amber-50 text-amber-600 border-amber-200 hover:bg-amber-100" 
-                    : "bg-white dark:bg-gray-800 text-gray-400 border-gray-200 dark:border-gray-700 dark:border-gray-700 hover:bg-gray-50 dark:bg-gray-900 hover:text-gray-600 dark:text-gray-300"
+                    : "bg-white dark:bg-gray-800 text-gray-400 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:bg-gray-900 hover:text-gray-600 dark:text-gray-300"
             )}
         >
             <Star className={cn("w-3.5 h-3.5", isBookmarked ? "fill-current" : "")} />
@@ -79,7 +79,7 @@ export function QuizQuestionHeader({
 
       <div className="flex flex-wrap gap-2 text-xs items-center justify-end">
         {question.sourceInfo?.examName && (
-             <Badge variant="neutral" className="font-normal bg-gray-50 dark:bg-gray-900 dark:bg-gray-900">
+             <Badge variant="neutral" className="font-normal bg-gray-50 dark:bg-gray-900">
                {question.sourceInfo.examName} <span className="text-gray-400 mx-1">|</span> {question.sourceInfo.examYear}
              </Badge>
         )}

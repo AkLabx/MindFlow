@@ -34,7 +34,7 @@ export const Card: React.FC<CardProps> = ({
     <div 
       onClick={onClick}
       className={cn(
-        "bg-white dark:bg-gray-800 dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-gray-700 dark:border-gray-700 dark:border-slate-800 shadow-sm overflow-hidden transition-all",
+        "bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden transition-all",
         !noPadding && "p-4 md:p-6",
         onClick && "cursor-pointer hover:shadow-md hover:border-indigo-300 dark:hover:border-indigo-500",
         className

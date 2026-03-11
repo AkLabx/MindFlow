@@ -37,12 +37,12 @@ export function QuizBottomNav({
     const isMock = mode === 'mock';
 
     return (
-        <div className="flex items-center justify-between pt-4 pb-4 md:pb-6 px-6 bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-800 dark:border-gray-800 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-10">
+        <div className="flex items-center justify-between pt-4 pb-4 md:pb-6 px-6 bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-800 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-10">
             <Button 
                 variant="ghost" 
                 onClick={onPrevious} 
                 disabled={isFirst}
-                className="text-gray-500 dark:text-gray-400 dark:text-gray-400 hover:text-indigo-600"
+                className="text-gray-500 dark:text-gray-400 hover:text-indigo-600"
             >
                 <ArrowLeft className="w-4 h-4 mr-2" /> Prev
             </Button>
@@ -53,7 +53,7 @@ export function QuizBottomNav({
                     "flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all",
                     isMarked 
                         ? "bg-purple-100 text-purple-700 border border-purple-200" 
-                        : "bg-gray-50 dark:bg-gray-900 dark:bg-gray-900 text-gray-500 dark:text-gray-400 dark:text-gray-400 hover:bg-gray-100 dark:bg-gray-800 border border-transparent"
+                        : "bg-gray-50 dark:bg-gray-900 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:bg-gray-800 border border-transparent"
                 )}
             >
                 <Flag className={cn("w-4 h-4", isMarked ? "fill-current" : "")} />

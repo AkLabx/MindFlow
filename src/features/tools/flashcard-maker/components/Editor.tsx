@@ -294,27 +294,27 @@ export const Editor: React.FC<EditorProps> = ({
   const labelEtymology = isOws ? 'Origin / Etymology' : 'Etymology / Origin';
 
   return (
-    <div className="h-full flex flex-col bg-white dark:bg-gray-800 overflow-y-auto relative text-gray-800 dark:text-gray-100 dark:text-gray-100">
+    <div className="h-full flex flex-col bg-white dark:bg-gray-800 overflow-y-auto relative text-gray-800 dark:text-gray-100">
       {/* Header */}
-      <div className="p-6 border-b border-gray-200 dark:border-gray-700 dark:border-gray-700 bg-white dark:bg-gray-800 sticky top-0 z-10 flex justify-between items-center">
+      <div className="p-6 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 sticky top-0 z-10 flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white dark:text-white flex items-center gap-2">
             <span className="text-3xl">✒️</span> Flashcard Editor
           </h2>
-          <p className="text-gray-500 dark:text-gray-400 dark:text-gray-400 text-sm mt-1">Craft your custom flashcard.</p>
+          <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Craft your custom flashcard.</p>
         </div>
 
         {/* Deck Navigation */}
         {deckSize > 1 && (
-          <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-900 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 dark:border-gray-700 rounded-lg px-2 py-1 shadow-sm">
+          <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg px-2 py-1 shadow-sm">
              <button onClick={() => onNavigateDeck('prev')} className="p-1 hover:bg-gray-200 dark:bg-gray-700 rounded disabled:opacity-30" disabled={currentDeckIndex === 0}>
-               <ChevronLeft className="w-5 h-5 text-gray-700 dark:text-gray-200 dark:text-gray-200" />
+               <ChevronLeft className="w-5 h-5 text-gray-700 dark:text-gray-200" />
              </button>
              <span className="text-sm font-bold text-gray-900 dark:text-white dark:text-white min-w-[3rem] text-center">
                {currentDeckIndex + 1} / {deckSize}
              </span>
              <button onClick={() => onNavigateDeck('next')} className="p-1 hover:bg-gray-200 dark:bg-gray-700 rounded disabled:opacity-30" disabled={currentDeckIndex === deckSize - 1}>
-               <ChevronRight className="w-5 h-5 text-gray-700 dark:text-gray-200 dark:text-gray-200" />
+               <ChevronRight className="w-5 h-5 text-gray-700 dark:text-gray-200" />
              </button>
           </div>
         )}
@@ -326,23 +326,23 @@ export const Editor: React.FC<EditorProps> = ({
         {/* Orientation & Template Toggle */}
         <div className="flex gap-4">
            {/* Orientation */}
-           <div className="bg-gray-50 dark:bg-gray-900 dark:bg-gray-900 p-1 rounded-lg border border-gray-200 dark:border-gray-700 dark:border-gray-700 flex gap-1 flex-1">
+           <div className="bg-gray-50 dark:bg-gray-900 p-1 rounded-lg border border-gray-200 dark:border-gray-700 flex gap-1 flex-1">
              <button
                onClick={() => onChange({ ...data, orientation: 'landscape' })}
-               className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-md transition-colors text-xs font-bold uppercase tracking-wider ${data.orientation === 'landscape' ? 'bg-indigo-600 text-white' : 'text-gray-600 dark:text-gray-300 dark:text-gray-300 hover:bg-gray-200 dark:bg-gray-700'}`}
+               className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-md transition-colors text-xs font-bold uppercase tracking-wider ${data.orientation === 'landscape' ? 'bg-indigo-600 text-white' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:bg-gray-700'}`}
              >
                <RectangleHorizontal className="w-4 h-4" /> Land
              </button>
              <button
                onClick={() => onChange({ ...data, orientation: 'portrait' })}
-               className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-md transition-colors text-xs font-bold uppercase tracking-wider ${data.orientation === 'portrait' ? 'bg-indigo-600 text-white' : 'text-gray-600 dark:text-gray-300 dark:text-gray-300 hover:bg-gray-200 dark:bg-gray-700'}`}
+               className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-md transition-colors text-xs font-bold uppercase tracking-wider ${data.orientation === 'portrait' ? 'bg-indigo-600 text-white' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:bg-gray-700'}`}
              >
                <RectangleVertical className="w-4 h-4" /> Port
              </button>
            </div>
 
            {/* Template Selector */}
-           <div className="bg-gray-50 dark:bg-gray-900 dark:bg-gray-900 p-1 rounded-lg border border-gray-200 dark:border-gray-700 dark:border-gray-700 flex-1">
+           <div className="bg-gray-50 dark:bg-gray-900 p-1 rounded-lg border border-gray-200 dark:border-gray-700 flex-1">
               <select
                 name="template"
                 value={data.template}
@@ -358,25 +358,25 @@ export const Editor: React.FC<EditorProps> = ({
         {/* ID and Word/Idiom Input */}
         <div className="flex gap-4">
           <div className="w-20 space-y-2">
-             <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 dark:text-gray-400 uppercase tracking-wider">ID</label>
+             <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">ID</label>
              <input
               type="text"
               name="id"
               value={data.id || ''}
               onChange={handleInputChange}
-              className="w-full p-3 bg-gray-50 dark:bg-gray-900 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-center font-bold text-gray-900 dark:text-white dark:text-white"
+              className="w-full p-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-center font-bold text-gray-900 dark:text-white dark:text-white"
               placeholder="#"
             />
           </div>
           <div className="flex-1 space-y-2">
-            <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 dark:text-gray-400 uppercase tracking-wider">{labelWord}</label>
+            <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{labelWord}</label>
             <div className="flex gap-2">
               <input
                 type="text"
                 name="idiom"
                 value={data.idiom}
                 onChange={handleInputChange}
-                className="flex-1 p-3 bg-gray-50 dark:bg-gray-900 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none text-lg font-medium placeholder-gray-400"
+                className="flex-1 p-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none text-lg font-medium placeholder-gray-400"
                 placeholder={isOws ? "e.g. Abbreviation" : "e.g. Break the ice"}
               />
             </div>
@@ -392,7 +392,7 @@ export const Editor: React.FC<EditorProps> = ({
               name="partOfSpeech"
               value={data.partOfSpeech || ''}
               onChange={handleInputChange}
-              className="w-full p-3 bg-gray-50 dark:bg-gray-900 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-teal-500 outline-none italic"
+              className="w-full p-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-teal-500 outline-none italic"
               placeholder="e.g. Noun, Verb"
             />
           </div>
@@ -400,72 +400,72 @@ export const Editor: React.FC<EditorProps> = ({
 
         {/* Meaning English */}
         <div className="space-y-2">
-          <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 dark:text-gray-400 uppercase tracking-wider">Meaning (English)</label>
+          <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Meaning (English)</label>
           <textarea
             name="meaningEng"
             value={data.meaningEng}
             onChange={handleInputChange}
             rows={3}
-            className="w-full p-3 bg-gray-50 dark:bg-gray-900 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-lg"
+            className="w-full p-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-lg"
           />
         </div>
 
         {/* Meaning Hindi */}
         <div className="space-y-2">
-          <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 dark:text-gray-400 uppercase tracking-wider">Meaning (Hindi)</label>
+          <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Meaning (Hindi)</label>
           <input
             type="text"
             name="meaningHindi"
             value={data.meaningHindi}
             onChange={handleInputChange}
-            className="w-full p-3 bg-gray-50 dark:bg-gray-900 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+            className="w-full p-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
             placeholder="e.g. चुप्पी तोड़ना"
           />
         </div>
 
         {/* Usage */}
         <div className="space-y-2">
-          <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 dark:text-gray-400 uppercase tracking-wider">Usage Sentence</label>
+          <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Usage Sentence</label>
           <textarea
             name="usage"
             value={data.usage}
             onChange={handleInputChange}
             rows={3}
-            className="w-full p-3 bg-gray-50 dark:bg-gray-900 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none italic text-lg"
+            className="w-full p-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none italic text-lg"
           />
         </div>
 
         {/* Etymology */}
         <div className="space-y-2">
-          <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 dark:text-gray-400 uppercase tracking-wider">{labelEtymology}</label>
+          <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{labelEtymology}</label>
           <textarea
             name="etymology"
             value={data.etymology}
             onChange={handleInputChange}
             rows={2}
-            className="w-full p-3 bg-gray-50 dark:bg-gray-900 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+            className="w-full p-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
           />
         </div>
 
         {/* Mnemonic / Note */}
         <div className="space-y-2">
-          <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 dark:text-gray-400 uppercase tracking-wider">{labelMnemonic}</label>
+          <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{labelMnemonic}</label>
           <textarea
             name="mnemonic"
             value={data.mnemonic}
             onChange={handleInputChange}
             rows={2}
-            className="w-full p-3 bg-gray-50 dark:bg-gray-900 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+            className="w-full p-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
           />
         </div>
 
         {/* Image Upload */}
         <div className="space-y-2">
-           <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 dark:text-gray-400 uppercase tracking-wider">Illustration (Optional)</label>
+           <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Illustration (Optional)</label>
            <div className="flex items-center gap-4">
               <button
                 onClick={() => fileInputRef.current?.click()}
-                className="flex items-center gap-2 px-4 py-2 border border-gray-200 dark:border-gray-700 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 dark:bg-gray-900 hover:bg-gray-100 dark:bg-gray-800 transition-colors rounded-lg text-gray-700 dark:text-gray-200 dark:text-gray-200"
+                className="flex items-center gap-2 px-4 py-2 border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 hover:bg-gray-100 dark:bg-gray-800 transition-colors rounded-lg text-gray-700 dark:text-gray-200"
               >
                 <ImageIcon className="w-4 h-4" />
                 {data.image ? "Change Image" : "Upload Image"}
@@ -490,10 +490,10 @@ export const Editor: React.FC<EditorProps> = ({
       </div>
 
       {/* Footer Actions */}
-      <div className="p-6 border-t border-gray-200 dark:border-gray-700 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 dark:bg-gray-900 flex gap-2">
+      <div className="p-6 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 flex gap-2">
         <button
           onClick={() => jsonInputRef.current?.click()}
-          className="flex-1 flex flex-col md:flex-row items-center justify-center gap-2 py-3 border border-gray-300 dark:border-gray-600 dark:border-gray-600 text-gray-700 dark:text-gray-200 dark:text-gray-200 hover:bg-gray-100 dark:bg-gray-800 transition-colors rounded-lg font-bold text-xs md:text-sm"
+          className="flex-1 flex flex-col md:flex-row items-center justify-center gap-2 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:bg-gray-800 transition-colors rounded-lg font-bold text-xs md:text-sm"
         >
           <Upload className="w-4 h-4" /> Import
         </button>
@@ -501,7 +501,7 @@ export const Editor: React.FC<EditorProps> = ({
 
         <button
           onClick={() => setShowPasteModal(true)}
-          className="flex-1 flex flex-col md:flex-row items-center justify-center gap-2 py-3 border border-gray-300 dark:border-gray-600 dark:border-gray-600 text-gray-700 dark:text-gray-200 dark:text-gray-200 hover:bg-gray-100 dark:bg-gray-800 transition-colors rounded-lg font-bold text-xs md:text-sm"
+          className="flex-1 flex flex-col md:flex-row items-center justify-center gap-2 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:bg-gray-800 transition-colors rounded-lg font-bold text-xs md:text-sm"
         >
           <ClipboardPaste className="w-4 h-4" /> Paste
         </button>
@@ -527,26 +527,26 @@ export const Editor: React.FC<EditorProps> = ({
       {/* PASTE MODAL */}
       {showPasteModal && (
         <div className="absolute inset-0 z-50 bg-gray-900/50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-gray-800 w-full max-w-lg rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 dark:border-gray-700 flex flex-col max-h-[90%]">
-            <div className="p-4 border-b border-gray-200 dark:border-gray-700 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-900 dark:bg-gray-900 rounded-t-xl">
+          <div className="bg-white dark:bg-gray-800 w-full max-w-lg rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 flex flex-col max-h-[90%]">
+            <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-900 rounded-t-xl">
               <h3 className="text-xl font-bold text-gray-900 dark:text-white dark:text-white">Paste JSON Data</h3>
-              <button onClick={() => setShowPasteModal(false)} className="text-gray-500 dark:text-gray-400 dark:text-gray-400 hover:text-gray-700 dark:text-gray-200">
+              <button onClick={() => setShowPasteModal(false)} className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:text-gray-200">
                 <X className="w-6 h-6" />
               </button>
             </div>
 
             <div className="p-4 flex-1 flex flex-col gap-4">
-              <p className="text-sm text-gray-600 dark:text-gray-300 dark:text-gray-300">Paste your JSON object or array of objects below.</p>
+              <p className="text-sm text-gray-600 dark:text-gray-300">Paste your JSON object or array of objects below.</p>
               <textarea
                 value={pasteContent}
                 onChange={handlePasteChange}
-                className="w-full flex-1 min-h-[200px] p-3 border border-gray-200 dark:border-gray-700 dark:border-gray-700 bg-white dark:bg-gray-800 font-mono text-sm resize-none focus:ring-2 focus:ring-indigo-500 rounded-lg outline-none"
+                className="w-full flex-1 min-h-[200px] p-3 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 font-mono text-sm resize-none focus:ring-2 focus:ring-indigo-500 rounded-lg outline-none"
                 placeholder='[{"content": {"word": "Abbreviation", ...}}]'
               />
 
               {/* Validation Status */}
               <div className={`p-3 rounded-lg border flex items-center gap-2 ${
-                !pasteContent ? 'bg-gray-100 dark:bg-gray-800 dark:bg-gray-800 border-gray-300 dark:border-gray-600 dark:border-gray-600 text-gray-500 dark:text-gray-400 dark:text-gray-400' :
+                !pasteContent ? 'bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400' :
                 pasteStatus?.valid ? 'bg-green-50 border-green-200 text-green-800' :
                 'bg-red-50 border-red-200 text-red-800'
               }`}>
@@ -559,10 +559,10 @@ export const Editor: React.FC<EditorProps> = ({
               </div>
             </div>
 
-            <div className="p-4 border-t border-gray-200 dark:border-gray-700 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 dark:bg-gray-900 flex justify-end gap-3 rounded-b-xl">
+            <div className="p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 flex justify-end gap-3 rounded-b-xl">
               <button
                 onClick={() => setShowPasteModal(false)}
-                className="px-4 py-2 text-gray-700 dark:text-gray-200 dark:text-gray-200 hover:bg-gray-200 dark:bg-gray-700 rounded-lg font-bold transition-colors"
+                className="px-4 py-2 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:bg-gray-700 rounded-lg font-bold transition-colors"
               >
                 Cancel
               </button>
@@ -581,32 +581,32 @@ export const Editor: React.FC<EditorProps> = ({
       {/* BATCH EXPORT MODAL */}
       {showBatchModal && (
         <div className="absolute inset-0 z-50 bg-gray-900/50 flex items-center justify-center p-4">
-           <div className="bg-white dark:bg-gray-800 w-full max-w-2xl rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 dark:border-gray-700 flex flex-col max-h-[90%]">
-             <div className="p-4 border-b border-gray-200 dark:border-gray-700 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-900 dark:bg-gray-900 rounded-t-xl">
+           <div className="bg-white dark:bg-gray-800 w-full max-w-2xl rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 flex flex-col max-h-[90%]">
+             <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-900 rounded-t-xl">
                <div className="flex items-center gap-3">
                  <Package className="w-6 h-6 text-amber-600" />
                  <h3 className="text-xl font-bold text-gray-900 dark:text-white dark:text-white">Batch Processor</h3>
                </div>
-               <button onClick={() => !processingBatchIndex && setShowBatchModal(false)} className="text-gray-500 dark:text-gray-400 dark:text-gray-400 hover:text-gray-700 dark:text-gray-200 disabled:opacity-30" disabled={processingBatchIndex !== null}>
+               <button onClick={() => !processingBatchIndex && setShowBatchModal(false)} className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:text-gray-200 disabled:opacity-30" disabled={processingBatchIndex !== null}>
                  <X className="w-6 h-6" />
                </button>
              </div>
 
              {/* ORIENTATION CONFIGURATION */}
-             <div className="px-4 pt-4 pb-2 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 dark:border-gray-700">
-                <h4 className="font-bold text-gray-500 dark:text-gray-400 dark:text-gray-400 text-xs uppercase tracking-wider mb-2">Export Configuration</h4>
+             <div className="px-4 pt-4 pb-2 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+                <h4 className="font-bold text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wider mb-2">Export Configuration</h4>
                 <div className="flex gap-4">
                    <button
                      onClick={() => setExportOrientation('landscape')}
                      disabled={processingBatchIndex !== null}
-                     className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg border transition-colors text-xs font-bold uppercase tracking-wider ${exportOrientation === 'landscape' ? 'bg-indigo-600 text-white border-indigo-600' : 'text-gray-700 dark:text-gray-200 dark:text-gray-200 border-gray-200 dark:border-gray-700 dark:border-gray-700 hover:bg-gray-50 dark:bg-gray-900'} disabled:opacity-50`}
+                     className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg border transition-colors text-xs font-bold uppercase tracking-wider ${exportOrientation === 'landscape' ? 'bg-indigo-600 text-white border-indigo-600' : 'text-gray-700 dark:text-gray-200 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:bg-gray-900'} disabled:opacity-50`}
                    >
                      <RectangleHorizontal className="w-4 h-4" /> Landscape (1200x800)
                    </button>
                    <button
                      onClick={() => setExportOrientation('portrait')}
                      disabled={processingBatchIndex !== null}
-                     className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg border transition-colors text-xs font-bold uppercase tracking-wider ${exportOrientation === 'portrait' ? 'bg-indigo-600 text-white border-indigo-600' : 'text-gray-700 dark:text-gray-200 dark:text-gray-200 border-gray-200 dark:border-gray-700 dark:border-gray-700 hover:bg-gray-50 dark:bg-gray-900'} disabled:opacity-50`}
+                     className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg border transition-colors text-xs font-bold uppercase tracking-wider ${exportOrientation === 'portrait' ? 'bg-indigo-600 text-white border-indigo-600' : 'text-gray-700 dark:text-gray-200 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:bg-gray-900'} disabled:opacity-50`}
                    >
                      <RectangleVertical className="w-4 h-4" /> Portrait (800x1200)
                    </button>
@@ -627,12 +627,12 @@ export const Editor: React.FC<EditorProps> = ({
 
                     return (
                       <div key={index} className={`p-4 border rounded-lg flex items-center justify-between transition-colors ${
-                        isProcessing ? 'bg-white dark:bg-gray-800 border-indigo-500 shadow-md' : 'bg-gray-50 dark:bg-gray-900 dark:bg-gray-900 border-gray-200 dark:border-gray-700 dark:border-gray-700'
+                        isProcessing ? 'bg-white dark:bg-gray-800 border-indigo-500 shadow-md' : 'bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-700'
                       } ${isOtherProcessing ? 'opacity-50' : ''}`}>
 
                          <div>
                            <h4 className="font-bold text-gray-900 dark:text-white dark:text-white">Part {index + 1}</h4>
-                           <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-400 mt-1">Items {startNum} - {endNum} ({batch.length} cards)</p>
+                           <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Items {startNum} - {endNum} ({batch.length} cards)</p>
                          </div>
 
                          <div className="flex items-center gap-4">
@@ -642,7 +642,7 @@ export const Editor: React.FC<EditorProps> = ({
                                  <Loader2 className="w-4 h-4 animate-spin" />
                                  {batchProgress.current} / {batchProgress.total}
                                </div>
-                               <div className="w-24 h-1 bg-gray-200 dark:bg-gray-700 dark:bg-gray-700 mt-1 rounded-full overflow-hidden">
+                               <div className="w-24 h-1 bg-gray-200 dark:bg-gray-700 mt-1 rounded-full overflow-hidden">
                                  <div
                                    className="h-full bg-indigo-600 transition-all duration-300"
                                    style={{ width: `${(batchProgress.current / batchProgress.total) * 100}%` }}
@@ -669,7 +669,7 @@ export const Editor: React.FC<EditorProps> = ({
                </div>
              </div>
 
-             <div className="p-4 border-t border-gray-200 dark:border-gray-700 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 dark:bg-gray-900 text-center text-xs text-gray-500 dark:text-gray-400 dark:text-gray-400 rounded-b-xl">
+             <div className="p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-center text-xs text-gray-500 dark:text-gray-400 rounded-b-xl">
                Files are generated client-side. Large batches may take a few moments.
              </div>
            </div>

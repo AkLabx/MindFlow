@@ -16,7 +16,7 @@ import { cn } from '../../../../utils/cn';
 export function SettingsToggle({ label, checked, onChange, icon }: { label: string, checked: boolean, onChange: () => void, icon?: React.ReactNode }) {
   return (
     <div className="flex items-center justify-between py-2">
-       <div className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-200 dark:text-gray-200 dark:text-slate-300">
+       <div className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-200">
           {icon && <span className="text-gray-400">{icon}</span>}
           <label htmlFor={`setting-${label}`} className="cursor-pointer select-none">{label}</label>
        </div>
@@ -26,7 +26,7 @@ export function SettingsToggle({ label, checked, onChange, icon }: { label: stri
           onClick={onChange}
           className={cn(
               "w-11 h-6 rounded-full relative transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500",
-              checked ? "bg-indigo-600 dark:bg-indigo-500" : "bg-gray-200 dark:bg-gray-700 dark:bg-gray-700"
+              checked ? "bg-indigo-600 dark:bg-indigo-500" : "bg-gray-200 dark:bg-gray-700"
           )}
        >
           <span className={cn(

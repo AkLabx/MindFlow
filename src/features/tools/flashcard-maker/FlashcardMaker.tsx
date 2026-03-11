@@ -57,20 +57,20 @@ const FlashcardMaker: React.FC = () => {
   return (
     <div className="flex flex-col h-[calc(100vh-64px)] w-full overflow-hidden font-sans">
         {/* Back Button Header */}
-        <div className="bg-white dark:bg-gray-800 dark:bg-slate-900 dark:bg-slate-900 border-b border-gray-200 dark:border-gray-700 dark:border-gray-700 dark:border-slate-800 dark:border-slate-800 px-4 py-2 flex items-center gap-2">
+        <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 py-2 flex items-center gap-2">
             <button
                 onClick={() => navigate('/tools')}
-                className="p-2 hover:bg-gray-100 dark:bg-gray-800 dark:hover:bg-slate-800 dark:hover:bg-slate-800 rounded-lg text-gray-600 dark:text-gray-300 dark:text-gray-300 dark:text-slate-400 dark:text-slate-500 dark:text-slate-400 dark:text-slate-500 dark:text-slate-500 dark:text-slate-400 dark:text-slate-500 transition-colors"
+                className="p-2 hover:bg-gray-100 dark:bg-gray-800 dark:hover:bg-slate-800 rounded-lg text-gray-600 dark:text-gray-300 transition-colors"
                 title="Back to Tools"
             >
                 <ArrowLeft className="w-5 h-5" />
             </button>
-            <h1 className="text-lg font-bold text-gray-900 dark:text-white dark:text-white dark:text-slate-100 dark:text-slate-100">Flashcard Image Maker</h1>
+            <h1 className="text-lg font-bold text-gray-900 dark:text-white">Flashcard Image Maker</h1>
         </div>
 
       {/* Desktop Layout: Split Pane */}
       <div className="hidden md:flex w-full flex-1 overflow-hidden">
-        <div className="w-[450px] lg:w-[500px] flex-shrink-0 h-full border-r border-gray-200 dark:border-gray-700 dark:border-gray-700 dark:border-slate-800 dark:border-slate-800">
+        <div className="w-[450px] lg:w-[500px] flex-shrink-0 h-full border-r border-gray-200 dark:border-gray-700">
           <Editor
             data={data}
             onChange={handleDataChange}
@@ -81,7 +81,7 @@ const FlashcardMaker: React.FC = () => {
             onImportBatch={handleImportBatch}
           />
         </div>
-        <div className="flex-1 h-full bg-gray-100 dark:bg-gray-800 dark:bg-gray-800 relative">
+        <div className="flex-1 h-full bg-gray-100 dark:bg-gray-800 relative">
           <Preview data={data} />
         </div>
       </div>
@@ -105,7 +105,7 @@ const FlashcardMaker: React.FC = () => {
         </div>
 
         {/* Mobile Tab Bar */}
-        <div className="h-16 bg-white dark:bg-gray-800 dark:bg-slate-900 dark:bg-slate-900 border-t border-gray-200 dark:border-gray-700 dark:border-gray-700 dark:border-slate-800 dark:border-slate-800 flex text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-slate-400 dark:text-slate-500 dark:text-slate-400 dark:text-slate-500 dark:text-slate-500 dark:text-slate-400 dark:text-slate-500">
+        <div className="h-16 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 flex text-gray-500 dark:text-gray-400">
           <button
             onClick={() => setActiveTab('editor')}
             className={`flex-1 flex flex-col items-center justify-center gap-1 ${activeTab === 'editor' ? 'text-indigo-600 bg-indigo-50' : ''}`}

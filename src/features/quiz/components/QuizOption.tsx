@@ -47,9 +47,9 @@ export const QuizOption: React.FC<QuizOptionProps> = ({
     onClick
 }) => {
     // Default base styles
-    let containerClass = "bg-white dark:bg-gray-800 dark:bg-slate-900 border-gray-200 dark:border-gray-700 dark:border-gray-700 dark:border-slate-800 hover:border-indigo-300 hover:bg-gray-50 dark:bg-gray-900 dark:hover:bg-slate-800 dark:bg-slate-800/50 cursor-pointer relative";
-    let icon: React.ReactNode = <div className="w-5 h-5 rounded-full border-2 border-gray-300 dark:border-gray-600 dark:border-gray-600 transition-colors group-hover:border-indigo-400 flex-shrink-0" />;
-    let textClass = "text-gray-700 dark:text-gray-200 dark:text-gray-200 dark:text-slate-300";
+    let containerClass = "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:border-indigo-300 hover:bg-gray-50 dark:bg-gray-900 dark:hover:bg-slate-800 dark:bg-slate-800/50 cursor-pointer relative";
+    let icon: React.ReactNode = <div className="w-5 h-5 rounded-full border-2 border-gray-300 dark:border-gray-600 transition-colors group-hover:border-indigo-400 flex-shrink-0" />;
+    let textClass = "text-gray-700 dark:text-gray-200";
     let animationClass = "";
 
     // --- MOCK MODE LOGIC ---
@@ -69,7 +69,7 @@ export const QuizOption: React.FC<QuizOptionProps> = ({
         icon = null;
 
         if (isHidden) {
-             containerClass = "bg-gray-50 dark:bg-gray-900 dark:bg-gray-900 dark:bg-slate-800/50 border-gray-100 dark:border-gray-800 dark:border-gray-800 dark:border-slate-800 opacity-60 cursor-not-allowed shadow-none relative";
+             containerClass = "bg-gray-50 dark:bg-gray-900 border-gray-100 dark:border-gray-800 opacity-60 cursor-not-allowed shadow-none relative";
              textClass = "text-gray-400 dark:text-slate-500 line-through decoration-gray-300 decoration-2 select-none";
              // EyeOff icon indicates this option was removed by a lifeline
              icon = <div className="absolute right-4"><EyeOff className="w-5 h-5 text-gray-300" /></div>;
@@ -110,7 +110,7 @@ export const QuizOption: React.FC<QuizOptionProps> = ({
                  );
             } else {
                  // Scenario: Irrelevant options fade out to focus attention
-                 containerClass = "opacity-50 bg-gray-50 dark:bg-gray-900 dark:bg-gray-900 dark:bg-slate-800/50 border-gray-200 dark:border-gray-700 dark:border-gray-700 dark:border-slate-800 relative";
+                 containerClass = "opacity-50 bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-700 relative";
             }
         } else if (isSelected) {
             // Fallback for immediate selection before processing (rare in sync mode)

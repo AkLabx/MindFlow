@@ -112,7 +112,7 @@ export function QuizExplanation({ explanation, zoomLevel }: { explanation: Expla
             style={{ fontSize: zoomLevel ? `${zoomLevel}rem` : undefined }}
         >
             {englishSummary && (
-                <div className="p-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 dark:border-gray-700 rounded-xl shadow-sm border-l-4 border-l-indigo-500">
+                <div className="p-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm border-l-4 border-l-indigo-500">
                     <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Answer</h3>
                     <p className="font-bold text-indigo-700 text-[1em] whitespace-pre-line">
                         {englishSummary}
@@ -126,7 +126,7 @@ export function QuizExplanation({ explanation, zoomLevel }: { explanation: Expla
                     <CheckCircle2 className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
                     <div className="text-[0.95em]">
                         <h4 className="font-bold text-green-800 mb-1.5">Why this is correct</h4>
-                        <div className="text-gray-700 dark:text-gray-200 dark:text-gray-200 leading-relaxed">{formatContent(cleanText(explanation.analysis_correct))}</div>
+                        <div className="text-gray-700 dark:text-gray-200 leading-relaxed">{formatContent(cleanText(explanation.analysis_correct))}</div>
                     </div>
                 </div>
             )}
@@ -137,7 +137,7 @@ export function QuizExplanation({ explanation, zoomLevel }: { explanation: Expla
                     <XCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
                     <div className="text-[0.95em]">
                         <h4 className="font-bold text-red-800 mb-1.5">Why other options are incorrect</h4>
-                        <div className="text-gray-700 dark:text-gray-200 dark:text-gray-200 leading-relaxed">{formatContent(cleanText(explanation.analysis_incorrect))}</div>
+                        <div className="text-gray-700 dark:text-gray-200 leading-relaxed">{formatContent(cleanText(explanation.analysis_incorrect))}</div>
                     </div>
                 </div>
             )}
@@ -148,7 +148,7 @@ export function QuizExplanation({ explanation, zoomLevel }: { explanation: Expla
                     <FileText className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
                     <div className="text-[0.95em]">
                         <h4 className="font-bold text-blue-800 mb-1.5">Key Takeaway</h4>
-                        <div className="text-gray-700 dark:text-gray-200 dark:text-gray-200 leading-relaxed">{formatContent(cleanText(explanation.conclusion))}</div>
+                        <div className="text-gray-700 dark:text-gray-200 leading-relaxed">{formatContent(cleanText(explanation.conclusion))}</div>
                     </div>
                 </div>
             )}

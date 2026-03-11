@@ -25,9 +25,9 @@ export const ActiveFiltersBar: React.FC<ActiveFiltersBarProps> = ({ filters, onR
   const hasFilters = Object.values(filters).some((arr: string[]) => arr.length > 0);
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 dark:border-gray-700 p-4 shadow-sm transition-all">
+    <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 shadow-sm transition-all">
       <div className="flex items-center justify-between mb-3">
-          <h4 className="text-sm font-bold text-gray-700 dark:text-gray-200 dark:text-gray-200 flex items-center gap-2">
+          <h4 className="text-sm font-bold text-gray-700 dark:text-gray-200 flex items-center gap-2">
             <Filter className="w-4 h-4" /> Active Filters
           </h4>
           {hasFilters && (

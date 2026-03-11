@@ -194,7 +194,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onSignOut, onNavigateToSettin
                 min={1} max={3} step={0.1} 
                 value={zoom} 
                 onChange={(e) => setZoom(parseFloat(e.target.value))}
-                className="w-full h-2 bg-gray-200 dark:bg-gray-700 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer"
+                className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer"
               />
           </div>
           <div className="flex gap-4 mt-6">
@@ -212,7 +212,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onSignOut, onNavigateToSettin
         <div className="max-w-2xl mx-auto space-y-6">
           
           {/* --- Top Information Card --- */}
-          <div className="bg-white dark:bg-gray-800 dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-lg shadow-slate-200/30 dark:shadow-slate-900/50 overflow-hidden transition-colors duration-300">
+          <div className="bg-white dark:bg-gray-800 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-lg shadow-slate-200/30 dark:shadow-slate-900/50 overflow-hidden transition-colors duration-300">
             <div className="relative h-24 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"></div>
             <div className="p-6 pb-6 text-center relative">
               
@@ -257,7 +257,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onSignOut, onNavigateToSettin
           </div>
 
           {/* --- Performance Stats --- */}
-          <div className="bg-white dark:bg-gray-800 dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm p-6 relative overflow-hidden group hover:shadow-md transition-all duration-300 cursor-pointer" onClick={() => navigate('/quiz/attempted')}>
+          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm p-6 relative overflow-hidden group hover:shadow-md transition-all duration-300 cursor-pointer" onClick={() => navigate('/quiz/attempted')}>
             <div className="flex items-center justify-between mb-4">
                <h2 className="text-lg font-black text-slate-800 dark:text-slate-100 flex items-center gap-2">
                    <BarChart className="w-5 h-5 text-indigo-500" />
@@ -324,7 +324,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onSignOut, onNavigateToSettin
           </div>
 
           {/* 3. My Activity */}
-          <div className="bg-white dark:bg-gray-800 dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm p-4 transition-colors duration-300">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm p-4 transition-colors duration-300">
               <h2 className="text-base font-bold text-slate-800 dark:text-slate-100 mb-3 px-2">My Activity</h2>
               <div className="space-y-2">
                   <button onClick={() => navigate('/quiz/attempted')} className="w-full flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
@@ -352,7 +352,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onSignOut, onNavigateToSettin
           </div>
 
           {/* 4. Settings & More */}
-          <div className="bg-white dark:bg-gray-800 dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm p-4 transition-colors duration-300">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm p-4 transition-colors duration-300">
               <div className="space-y-2">
                   <button onClick={() => navigate('/profile/subscription')} className="w-full flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
                       <div className="flex items-center gap-3">
@@ -381,7 +381,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onSignOut, onNavigateToSettin
           {/* 5. Logout */}
           <button
             onClick={handleSignOut}
-            className="w-full flex items-center justify-center gap-2 p-4 bg-white dark:bg-gray-800 dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm hover:bg-red-50 dark:hover:bg-red-900/20 hover:border-red-200 dark:hover:border-red-800/50 hover:text-red-600 dark:hover:text-red-400 text-slate-600 dark:text-slate-400 font-bold transition-all duration-300"
+            className="w-full flex items-center justify-center gap-2 p-4 bg-white dark:bg-gray-800 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm hover:bg-red-50 dark:hover:bg-red-900/20 hover:border-red-200 dark:hover:border-red-800/50 hover:text-red-600 dark:hover:text-red-400 text-slate-600 dark:text-slate-400 font-bold transition-all duration-300"
           >
               <LogOut className="w-5 h-5" />
               Sign Out

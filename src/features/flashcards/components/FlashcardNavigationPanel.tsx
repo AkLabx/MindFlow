@@ -158,7 +158,7 @@ export const FlashcardNavigationPanel: React.FC<FlashcardNavigationPanelProps> =
       />
 
       {/* Drawer Container */}
-      <div className="fixed top-0 right-0 h-full w-80 bg-white dark:bg-gray-800 dark:bg-slate-900 shadow-2xl z-[70] flex flex-col border-l border-gray-200 dark:border-gray-700 dark:border-gray-700 dark:border-slate-800 animate-in slide-in-from-right duration-300">
+      <div className="fixed top-0 right-0 h-full w-80 bg-white dark:bg-gray-800 shadow-2xl z-[70] flex flex-col border-l border-gray-200 dark:border-gray-700 animate-in slide-in-from-right duration-300">
         {/* Header */}
         <div className="p-5 border-b border-amber-100 bg-amber-50 dark:bg-amber-900/20 space-y-3">
           <div className="flex justify-between items-center">
@@ -178,7 +178,7 @@ export const FlashcardNavigationPanel: React.FC<FlashcardNavigationPanelProps> =
           </div>
 
           {/* Batch Size Selector */}
-          <div className="flex items-center justify-between bg-white dark:bg-gray-800 dark:bg-slate-900 p-2 rounded-lg border border-amber-200">
+          <div className="flex items-center justify-between bg-white dark:bg-gray-800 p-2 rounded-lg border border-amber-200">
             <label htmlFor="batch-size" className="text-xs font-semibold text-amber-800 pl-1">
               Group Size:
             </label>
@@ -203,7 +203,7 @@ export const FlashcardNavigationPanel: React.FC<FlashcardNavigationPanelProps> =
         </div>
 
         {/* Content List - Grouped Idioms */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50 dark:bg-gray-900 dark:bg-gray-900 dark:bg-slate-800/50/50 scrollbar-thin scrollbar-thumb-amber-200">
+        <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50 dark:bg-gray-900/50 scrollbar-thin scrollbar-thumb-amber-200">
           {Array.from({ length: totalChunks }).map((_, chunkIndex) => {
             const start = chunkIndex * chunkSize;
             const end = Math.min(start + chunkSize, idioms.length);
@@ -218,13 +218,13 @@ export const FlashcardNavigationPanel: React.FC<FlashcardNavigationPanelProps> =
             return (
               <div key={chunkIndex} className={cn(
                 "border rounded-xl overflow-hidden transition-all duration-200",
-                containsCurrent ? "border-amber-300 shadow-sm bg-white dark:bg-gray-800 dark:bg-slate-900" : "border-gray-200 dark:border-gray-700 dark:border-gray-700 dark:border-slate-800 bg-white dark:bg-gray-800 dark:bg-slate-900"
+                containsCurrent ? "border-amber-300 shadow-sm bg-white dark:bg-gray-800" : "border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800"
               )}>
                 <div
                   onClick={() => toggleGroup(chunkIndex)}
                   className={cn(
                     "w-full flex items-center justify-between p-3.5 text-sm font-bold transition-colors cursor-pointer",
-                    containsCurrent ? "bg-amber-50 dark:bg-amber-900/20 text-amber-800" : "hover:bg-gray-50 dark:bg-gray-900 dark:hover:bg-slate-800 dark:bg-slate-800/50 text-gray-700 dark:text-gray-200 dark:text-gray-200 dark:text-slate-300"
+                    containsCurrent ? "bg-amber-50 dark:bg-amber-900/20 text-amber-800" : "hover:bg-gray-50 dark:bg-gray-900 dark:hover:bg-slate-800 dark:bg-slate-800/50 text-gray-700 dark:text-gray-200"
                   )}
                 >
                   <span>Idioms {start + 1} - {end}</span>
@@ -246,7 +246,7 @@ export const FlashcardNavigationPanel: React.FC<FlashcardNavigationPanelProps> =
                 </div>
 
                 {isOpen && (
-                  <div className="p-3 grid grid-cols-5 gap-2 bg-white dark:bg-gray-800 dark:bg-slate-900 border-t border-gray-100 dark:border-gray-800 dark:border-gray-800 dark:border-slate-800 animate-in slide-in-from-top-2 fade-in duration-200">
+                  <div className="p-3 grid grid-cols-5 gap-2 bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-800 animate-in slide-in-from-top-2 fade-in duration-200">
                     {idioms.slice(start, end).map((idiom, localIdx) => {
                       const globalIdx = start + localIdx;
                       const isCurrent = globalIdx === currentIndex;
@@ -263,7 +263,7 @@ export const FlashcardNavigationPanel: React.FC<FlashcardNavigationPanelProps> =
                             "aspect-square rounded-lg flex items-center justify-center text-xs font-bold transition-all relative overflow-hidden",
                             isCurrent
                               ? "bg-amber-50 dark:bg-amber-900/200 text-white shadow-md ring-2 ring-amber-300 ring-offset-1 scale-105 z-10"
-                              : "bg-gray-50 dark:bg-gray-900 dark:bg-gray-900 dark:bg-slate-800/50 border border-gray-200 dark:border-gray-700 dark:border-gray-700 dark:border-slate-800 hover:border-amber-300 hover:bg-amber-50 dark:bg-amber-900/20 text-gray-600 dark:text-gray-300 dark:text-gray-300 dark:text-slate-400 dark:text-slate-500 hover:text-amber-900"
+                              : "bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 hover:border-amber-300 hover:bg-amber-50 dark:bg-amber-900/20 text-gray-600 dark:text-gray-300 hover:text-amber-900"
                           )}
                         >
                           {globalIdx + 1}

@@ -38,7 +38,7 @@ export function SegmentedControl({
     <div>
       {label && (
         <div className="flex items-center gap-1.5 mb-2">
-          <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 dark:text-gray-400 uppercase tracking-wider">{label}</label>
+          <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{label}</label>
           {tooltip && (
             <div className="group relative flex items-center">
               <Info className="w-3.5 h-3.5 text-gray-400 cursor-help hover:text-indigo-500 transition-colors" />
@@ -50,7 +50,7 @@ export function SegmentedControl({
           )}
         </div>
       )}
-      <div className="flex p-1 bg-gray-100 dark:bg-gray-800 dark:bg-gray-800 rounded-xl gap-1">
+      <div className="flex p-1 bg-gray-100 dark:bg-gray-800 rounded-xl gap-1">
         {options.map(option => {
             const count = counts?.[option] || 0;
             const isSelected = selectedOptions.includes(option);
@@ -65,14 +65,14 @@ export function SegmentedControl({
                     "flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-1.5",
                     isSelected 
                         ? "bg-white dark:bg-gray-800 text-indigo-600 shadow-sm ring-1 ring-black/5"
-                        : "text-gray-500 dark:text-gray-400 dark:text-gray-400 hover:text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:bg-gray-700/50",
+                        : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:bg-gray-700/50",
                     isDisabled && "opacity-40 cursor-not-allowed hover:bg-transparent hover:text-gray-500 dark:text-gray-400"
                 )}
             >
                 {option} 
                 <span className={cn(
                     "text-[10px] px-1.5 py-0.5 rounded-full transition-colors",
-                    isSelected ? "bg-indigo-100 text-indigo-700" : "bg-gray-200 dark:bg-gray-700 dark:bg-gray-700 text-gray-500 dark:text-gray-400 dark:text-gray-400"
+                    isSelected ? "bg-indigo-100 text-indigo-700" : "bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400"
                 )}>
                     {count}
                 </span>
