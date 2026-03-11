@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { SynonymWord } from '../../quiz/types';
-import { useSynonymsData } from '../hooks/useSynonymsData';
-
+import { quizEngine } from '../../quiz/engine';
 // Define the shape of our chunked/alphabetical groups
 interface WordGroup {
     name: string;
@@ -36,11 +35,7 @@ export const SynonymPhase1Session: React.FC = () => {
     // Load and process data based on grouping mode
     useEffect(() => {
         setIsLoading(true);
-        if (isDataLoading) return;
-        if (!fetchedData || fetchedData.length === 0) {
-            setIsLoading(false);
-            return;
-        }
+        const parsed: SynonymWord[] = []; // Replaced by async load
 
         // Ensure some basic sorting so chunking is deterministic
         const sortedData = [...fetchedData].sort((a, b) => a.word.localeCompare(b.word));

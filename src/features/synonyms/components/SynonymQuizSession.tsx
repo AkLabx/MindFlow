@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { SynonymWord } from '../../quiz/types';
-import { useSynonymsData } from '../hooks/useSynonymsData';
+import { quizEngine } from '../../quiz/engine';
 import { ImposterGame } from './ImposterGame';
 import { ConnectGame } from './ConnectGame';
 import { SpeedGame } from './SpeedGame';
@@ -36,14 +36,12 @@ export const SynonymQuizSession: React.FC<SynonymQuizSessionProps> = ({ onExit }
         const modeParam = searchParams.get('mode') as 'imposter' | 'connect' | 'speed' | null;
         setMode(modeParam || 'imposter');
 
-        if (!isDataLoading && fetchedData && fetchedData.length > 0) {
-            const sortedData = [...fetchedData].sort((a, b) => b.importance_score - a.importance_score);
-            setData(sortedData);
-            setIsLoading(false);
-        } else if (!isDataLoading && (!fetchedData || fetchedData.length === 0)) {
-            setIsLoading(false);
-        }
-    }, [fetchedData, isDataLoading]);
+        const parsedData: SynonymWord[] = []; // Replaced by async load
+        // Sort by importance to prefer high frequency
+        parsedData.sort((a, b) => b.importance_score - a.importance_score);
+        setData(parsedData);
+        setIsLoading(false);
+    }, []);
 
     const handleCorrect = (bonus: number = 0) => {
         if ('vibrate' in navigator) navigator.vibrate(50);

@@ -1,21 +1,32 @@
 import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { SynonymWord } from '../quiz/types';
-import { useSynonymsData } from './hooks/useSynonymsData';
-
+import { quizEngine } from '../quiz/engine';
 interface SynonymsConfigProps {
     onBack: () => void;
     onStart: (data: SynonymWord[], filters: any) => void;
 }
 
 export const SynonymsConfig: React.FC<SynonymsConfigProps> = ({ onBack, onStart }) => {
-    const navigate = useNavigate();
-    const { data: fetchedData, isLoading: isDataLoading, error } = useSynonymsData();
+    const [data, setData] = useState<SynonymWord[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
 
-    const sortedData = useMemo(() => {
-        if (!fetchedData) return [];
-        return [...fetchedData].sort((a, b) => b.importance_score - a.importance_score);
-    }, [fetchedData]);
+    useEffect(() => {
+        // Load and sort data
+        const load = async () => {
+            try {
+                // In a real scenario, this might be a fetch or complex parse
+                const parsed = await quizEngine.getPlugin<SynonymWord, string>('synonym').loadQuestions();
+                parsed.sort((a, b) => (a.word || '').localeCompare(b.word || ''));
+                setData(parsed);
+            } catch(e) {
+                console.error("Failed to load synonyms data", e);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        load();
+    }, []);
 
     const handleStartLearning = () => {
         onStart(sortedData, { mode: 'learning' });
