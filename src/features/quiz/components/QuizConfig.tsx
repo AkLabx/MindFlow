@@ -25,6 +25,7 @@ import { APP_CONFIG } from '../../../constants/config';
 import { initialState } from '../stores/quizReducer';
 
 // UI Components
+import { CookingLoader } from './CookingLoader';
 import { FilterGroup } from './ui/FilterGroup';
 import { MultiSelectDropdown } from './ui/MultiSelectDropdown';
 import { SegmentedControl } from './ui/SegmentedControl';
@@ -241,30 +242,13 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
 
   // --- Loading State Render ---
   if (isLoadingMetadata) {
-    const percentage = progress.total > 0 ? Math.round((progress.current / progress.total) * 100) : 0;
+    const percentage = progress.total > 0 ? (progress.current / progress.total) * 100 : 0;
     return (
-      <div className="min-h-[60vh] flex flex-col items-center justify-center space-y-6 bg-white dark:bg-gray-800 md:rounded-3xl w-full max-w-6xl mx-auto md:border border-gray-200 dark:border-gray-700 shadow-sm animate-fade-in p-8">
-        <div className="relative">
-          <div className="p-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-full">
-            <Database className="w-8 h-8 text-indigo-600 dark:text-indigo-400 animate-pulse" />
-          </div>
-          <div className="absolute -bottom-1 -right-1 bg-white dark:bg-gray-800 rounded-full p-1">
-            <Loader2 className="w-4 h-4 text-indigo-600 dark:text-indigo-400 animate-spin" />
-          </div>
-        </div>
-        <div className="text-center space-y-2 max-w-xs w-full">
-          <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100">Syncing Question Bank</h2>
-          <p className="text-gray-500 dark:text-gray-400 text-sm">
-            {progress.total > 0
-              ? `Indexed ${progress.current.toLocaleString()} of ${progress.total.toLocaleString()} items`
-              : 'Connecting to Database...'}
-          </p>
-          <div className="h-2 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden mt-4">
-            <div className="h-full bg-indigo-600 transition-all duration-500 ease-out rounded-full" style={{ width: `${percentage}%` }} />
-          </div>
-          <p className="text-xs text-gray-400 dark:text-slate-500 font-medium text-right mt-1">{percentage}%</p>
-        </div>
-      </div>
+      <CookingLoader
+        progress={percentage}
+        syncedItems={progress.current}
+        totalItems={progress.total}
+      />
     );
   }
 
