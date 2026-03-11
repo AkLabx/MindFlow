@@ -477,6 +477,7 @@ export const QuizPdfPptGenerator: React.FC = () => {
         <ActiveFiltersBar
           filters={filters}
           onRemoveFilter={removeFilter}
+          onClearAll={() => setFilters(emptyFilters)}
         />
       </div>
 

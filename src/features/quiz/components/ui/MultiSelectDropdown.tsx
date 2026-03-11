@@ -69,11 +69,25 @@ export function MultiSelectDropdown({
     };
   }, [isOpen]);
 
-  // Filter options based on search term
+  // Filter options based on search term and sort by availability
   const filteredOptions = useMemo(() => {
-      if (!searchTerm) return options;
-      return options.filter(opt => opt.toLowerCase().includes(searchTerm.toLowerCase()));
-  }, [options, searchTerm]);
+      let result = options;
+      if (searchTerm) {
+          result = options.filter(opt => opt.toLowerCase().includes(searchTerm.toLowerCase()));
+      }
+
+      // Sort options: available (count > 0) first, alphabetically within groups
+      return [...result].sort((a, b) => {
+          const countA = counts?.[a] || 0;
+          const countB = counts?.[b] || 0;
+
+          if (countA > 0 && countB === 0) return -1;
+          if (countA === 0 && countB > 0) return 1;
+
+          // If both have counts > 0 or both have counts === 0, sort alphabetically
+          return a.localeCompare(b);
+      });
+  }, [options, searchTerm, counts]);
 
   const handleOptionToggle = (option: string) => {
     const newSelection = selectedOptions.includes(option)

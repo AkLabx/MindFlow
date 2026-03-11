@@ -503,11 +503,12 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
         <ActiveFiltersBar
           filters={filters}
           onRemoveFilter={removeFilter}
+          onClearAll={() => setFilters(emptyFilters)}
         />
       </div>
 
       {/* Footer */}
-      <div className="border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-6">
+      <div className="border-t border-gray-200 dark:border-gray-700 dark:border-gray-700 dark:border-slate-800 bg-white dark:bg-gray-800 dark:bg-slate-900 p-6 pb-24 md:pb-6">
         <div className="flex flex-col gap-4">
           {/* Quiz Name Input */}
           <div>

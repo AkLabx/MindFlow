@@ -279,7 +279,7 @@ export const OWSConfig: React.FC<OWSConfigProps> = ({ onStart, onBack }) => {
                     <div className="bg-white dark:bg-gray-800 backdrop-blur-md border border-teal-200 shadow-xl rounded-2xl p-4">
 
                         <div className="mb-4">
-                            <ActiveFiltersBar filters={filters} onRemoveFilter={handleRemoveFilter} />
+                            <ActiveFiltersBar filters={filters} onRemoveFilter={handleRemoveFilter} onClearAll={() => setFilters(emptyFilters)} />
                         </div>
 
                         <Button
