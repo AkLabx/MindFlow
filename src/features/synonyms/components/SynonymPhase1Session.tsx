@@ -377,7 +377,7 @@ export const SynonymPhase1Session: React.FC = () => {
 
             {/* --- Main Content Area --- */}
             {currentWordObj ? (
-                <div className="flex-1 flex flex-col items-center pt-24 pb-12 px-4 md:px-8 z-10 w-full max-w-4xl mx-auto animate-[containerFadeIn_0.8s_ease-out]">
+                <div className="flex-1 flex flex-col items-center pt-16 md:pt-24 pb-20 px-4 md:px-8 z-10 w-full max-w-4xl mx-auto animate-[containerFadeIn_0.8s_ease-out]">
 
                     <div className="w-full bg-white/20 dark:bg-slate-900/40 backdrop-blur-xl border border-white/20 rounded-3xl p-6 md:p-10 shadow-2xl relative overflow-hidden">
                         {/* Inner Gradient Decor */}
@@ -404,7 +404,7 @@ export const SynonymPhase1Session: React.FC = () => {
                         <div className="flex flex-col md:flex-row items-center justify-center gap-6 my-8">
                             <h1
                                 ref={wordDisplayRef}
-                                className="text-6xl md:text-8xl font-extrabold text-white text-center break-words drop-shadow-xl"
+                                className="text-5xl md:text-8xl font-extrabold text-white text-center break-all sm:break-words drop-shadow-xl flex-wrap"
                             >
                                 {currentWordObj.word}
                             </h1>
@@ -420,7 +420,7 @@ export const SynonymPhase1Session: React.FC = () => {
                         {/* POS & Tags */}
                         <div className="text-center mb-8">
                             {currentWordObj.pos && (
-                                <span className="text-xl italic text-white/90 font-medium mr-3">({currentWordObj.pos})</span>
+                                <span className="text-lg md:text-xl italic text-white/90 font-medium mr-3">({currentWordObj.pos})</span>
                             )}
                             {currentWordObj.repetition_raw && (
                                 <span className="bg-gradient-to-r from-pink-400 to-yellow-400 text-white font-bold px-3 py-1 rounded text-sm shadow-sm inline-block">
@@ -538,14 +538,14 @@ const ExpandableListItem: React.FC<{item: any, isHindi?: boolean, accentColor: s
                         </span>
                     )}
                 </div>
-                <span className="font-bold text-lg flex-1 text-white">{item.text}</span>
+                <span className="font-bold text-base md:text-lg flex-1 text-white break-words">{item.text}</span>
             </div>
 
             {expanded && hasDetails && (
                 <div className="p-4 pt-0 pl-10 bg-black/10 border-t border-white/10 text-sm animate-[detailsSlideDown_0.2s_ease-out] text-white">
                     {item.pos && (
                         <div className="mb-3">
-                            <span className="bg-white/20 px-2 py-1 rounded font-semibold text-white/90">
+                            <span className="bg-white/20 px-2 py-1 rounded font-semibold text-white/90 text-xs md:text-sm">
                                 [{item.pos}]
                             </span>
                         </div>
