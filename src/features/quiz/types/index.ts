@@ -49,7 +49,7 @@ export interface SavedQuiz {
   /** The list of questions included in this quiz. */
   questions: Question[];
   /** The current progress state of the quiz. */
-  state: QuizState;
+  state: QuizState & { score?: number, timeTaken?: Record<string, number>, bookmarks?: string[] };
 }
 
 /**

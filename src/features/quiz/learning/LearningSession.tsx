@@ -1,6 +1,8 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAnalyticsStore } from '../stores/useAnalyticsStore';
+import { useBookmarkStore } from '../stores/useBookmarkStore';
 import { ArrowRight, Star, Settings, Menu, ZoomIn, ZoomOut, Maximize2, Minimize2, Clock, ChevronLeft, Home, AlertCircle, X, Pause, Play, Percent } from 'lucide-react';
 import { Question, InitialFilters } from '../types';
 import { QuizQuestionDisplay } from '../components/QuizQuestionDisplay';
@@ -67,6 +69,8 @@ export const LearningSession: React.FC<LearningSessionProps> = ({
     onSaveTimer
 }) => {
     const navigate = useNavigate();
+    const analyticsStore = useAnalyticsStore();
+    const bookmarkStore = useBookmarkStore();
     // UI State (Local)
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [isNavOpen, setIsNavOpen] = useState(false);
