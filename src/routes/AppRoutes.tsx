@@ -270,7 +270,18 @@ const AppRoutesContent: React.FC = () => {
                     />
                 } />
 
-
+                <Route path="/synonyms/session" element={
+                    <SynonymFlashcardSession
+                        data={state.activeSynonyms || []}
+                        currentIndex={state.currentQuestionIndex}
+                        onNext={nextQuestion}
+                        onPrev={prevQuestion}
+                        onExit={() => navTo('/synonyms/config')}
+                        onFinish={() => navTo('/flashcards/summary')}
+                        filters={state.filters || {} as any}
+                        onJump={jumpToQuestion}
+                    />
+                } />
 
                 <Route path="/synonyms/session" element={
                     <SynonymFlashcardSession
@@ -278,7 +289,7 @@ const AppRoutesContent: React.FC = () => {
                         currentIndex={state.currentQuestionIndex}
                         onNext={nextQuestion}
                         onPrev={prevQuestion}
-                        onExit={navHome}
+                        onExit={() => navTo('/synonyms/config')}
                         onFinish={() => navTo('/flashcards/summary')}
                         filters={state.filters || {} as any}
                         onJump={jumpToQuestion}
