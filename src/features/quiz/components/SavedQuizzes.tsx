@@ -134,19 +134,13 @@ export const SavedQuizzes: React.FC = () => {
 
                     <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Created Quizzes</h1>
                     <div className="flex gap-4">
-                        <button
-                            onClick={() => navigate('/quiz/config')}
-                            className="px-4 py-2.5 bg-indigo-50 dark:bg-indigo-950/30 text-indigo-700 dark:text-indigo-400 font-bold rounded-xl border border-indigo-200 dark:border-indigo-900/40 border-b-4 border-b-indigo-300 dark:border-b-indigo-700 hover:border-indigo-400 dark:hover:border-indigo-500 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 active:translate-y-1 active:border-b transition-all shadow-sm flex items-center gap-2"
-                        >
-                            <PlusCircle className="w-5 h-5" />
-                            Create New Quiz
-                        </button>
+
                         <button
                             onClick={() => navigate('/quiz/attempted')}
                             className="px-4 py-2.5 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 font-bold rounded-xl border border-emerald-200 dark:border-emerald-900/40 border-b-4 border-b-emerald-300 dark:border-b-emerald-700 hover:border-emerald-400 dark:hover:border-emerald-500 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 active:translate-y-1 active:border-b transition-all shadow-sm flex items-center gap-2"
                         >
                             <CheckCircle className="w-5 h-5" />
-                            Attempted Quizzes
+                            View Attempted quizzes
                         </button>
                     </div>
                 </div>
@@ -161,7 +155,7 @@ export const SavedQuizzes: React.FC = () => {
                             className="px-6 py-3 bg-indigo-50 dark:bg-indigo-950/30 text-indigo-700 dark:text-indigo-400 font-bold rounded-xl border border-indigo-200 dark:border-indigo-900/40 border-b-4 border-b-indigo-300 dark:border-b-indigo-700 hover:border-indigo-400 dark:hover:border-indigo-500 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 active:translate-y-1 active:border-b transition-all shadow-sm flex items-center gap-2 mx-auto"
                         >
                             <PlusCircle className="w-5 h-5" />
-                            Create Quiz
+                            Create New Quiz
                         </button>
                     </div>
                 ) : (
