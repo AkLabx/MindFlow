@@ -7,17 +7,8 @@ import { cn } from '../../../../utils/cn';
  *
  * Allows users to select one or more options from a linear group.
  * Displays counts for each option and handles disabled states.
- *
- * @param {object} props - The component props.
- * @param {string} [props.label] - Optional label for the control.
- * @param {string[]} props.options - List of options to display.
- * @param {string[]} props.selectedOptions - List of currently selected values.
- * @param {function} props.onOptionToggle - Callback when an option is toggled.
- * @param {{ [key: string]: number }} [props.counts] - Map of counts for each option.
- * @param {boolean} [props.allowMultiple=true] - Whether multiple selections are allowed (styling context).
- * @param {string} [props.tooltip] - Optional tooltip text.
  */
-export function SegmentedControl({ 
+export const SegmentedControl = React.memo(function SegmentedControl({
   label,
   options, 
   selectedOptions, 
@@ -50,7 +41,7 @@ export function SegmentedControl({
           )}
         </div>
       )}
-      <div className="flex p-1 bg-gray-100 dark:bg-gray-800 rounded-xl gap-1">
+      <div className="flex p-1 bg-gray-100 dark:bg-gray-800 rounded-xl gap-1" role="group" aria-label={label || "Segmented Control"}>
         {options.map(option => {
             const count = counts?.[option] || 0;
             const isSelected = selectedOptions.includes(option);
@@ -61,18 +52,21 @@ export function SegmentedControl({
                 key={option} 
                 onClick={() => !isDisabled && onOptionToggle(option)}
                 disabled={isDisabled}
+                aria-pressed={isSelected}
                 className={cn(
                     "flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-1.5",
                     isSelected 
-                        ? "bg-white dark:bg-gray-800 text-indigo-600 shadow-sm ring-1 ring-black/5"
-                        : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:bg-gray-700/50",
-                    isDisabled && "opacity-40 cursor-not-allowed hover:bg-transparent hover:text-gray-500 dark:text-gray-400"
+                        ? "bg-white dark:bg-gray-700 text-indigo-700 dark:text-indigo-300 shadow-sm ring-1 ring-black/5"
+                        : "text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:text-gray-100 hover:bg-gray-200 dark:bg-gray-700/50",
+                    isDisabled && "opacity-40 cursor-not-allowed hover:bg-transparent hover:text-gray-600 dark:text-gray-300"
                 )}
             >
                 {option} 
                 <span className={cn(
-                    "text-[10px] px-1.5 py-0.5 rounded-full transition-colors",
-                    isSelected ? "bg-indigo-100 text-indigo-700" : "bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400"
+                    "text-[10px] px-1.5 py-0.5 rounded-full transition-colors font-bold",
+                    isSelected
+                      ? "bg-indigo-100 text-indigo-800 dark:bg-indigo-900/50 dark:text-indigo-200"
+                      : "bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300"
                 )}>
                     {count}
                 </span>
@@ -82,4 +76,4 @@ export function SegmentedControl({
       </div>
     </div>
   );
-}
+});

@@ -1,28 +1,11 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useMemo, KeyboardEvent } from 'react';
 import { ChevronDown, Check, X, Search, Info } from 'lucide-react';
 import { cn } from '../../../../utils/cn';
 
 /**
  * A custom multi-select dropdown component with search, filtering, and count display.
- *
- * Features:
- * - Searchable options.
- * - Displays active selection count.
- * - Shows item counts (number of available questions) for each option.
- * - Disables options with zero count.
- * - Tooltip support.
- *
- * @param {object} props - The component props.
- * @param {string} [props.label] - Optional label above the dropdown.
- * @param {string[]} props.options - List of all available options.
- * @param {string[]} props.selectedOptions - List of currently selected values.
- * @param {function} props.onSelectionChange - Callback when selection changes.
- * @param {string} [props.placeholder='Select Options'] - Placeholder text.
- * @param {boolean} [props.disabled=false] - Whether the dropdown is disabled.
- * @param {{ [key: string]: number }} [props.counts] - Map of option values to their available counts.
- * @param {string} [props.tooltip] - Optional tooltip text for the label.
  */
-export function MultiSelectDropdown({ 
+export const MultiSelectDropdown = React.memo(function MultiSelectDropdown({
   label,
   options, 
   selectedOptions, 
@@ -43,10 +26,13 @@ export function MultiSelectDropdown({
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [focusedIndex, setFocusedIndex] = useState(-1);
+  const [menuPosition, setMenuPosition] = useState<'bottom' | 'top'>('bottom');
+
   const dropdownRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const listRef = useRef<HTMLUListElement>(null);
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -56,12 +42,24 @@ export function MultiSelectDropdown({
     
     if (isOpen) {
       document.addEventListener('mousedown', handleClickOutside);
-      // Auto-focus search input for better UX
+      // Auto-focus search input
       setTimeout(() => {
           searchInputRef.current?.focus();
       }, 50);
+
+      // Check collision with bottom of window
+      if (dropdownRef.current) {
+        const rect = dropdownRef.current.getBoundingClientRect();
+        const spaceBelow = window.innerHeight - rect.bottom;
+        if (spaceBelow < 320 && rect.top > 320) { // 320px is max-h-80 (320px) roughly
+          setMenuPosition('top');
+        } else {
+          setMenuPosition('bottom');
+        }
+      }
     } else {
-        setSearchTerm(''); // Reset search when closed
+        setSearchTerm('');
+        setFocusedIndex(-1);
     }
 
     return () => {
@@ -69,22 +67,16 @@ export function MultiSelectDropdown({
     };
   }, [isOpen]);
 
-  // Filter options based on search term and sort by availability
   const filteredOptions = useMemo(() => {
       let result = options;
       if (searchTerm) {
           result = options.filter(opt => opt.toLowerCase().includes(searchTerm.toLowerCase()));
       }
-
-      // Sort options: available (count > 0) first, alphabetically within groups
       return [...result].sort((a, b) => {
           const countA = counts?.[a] || 0;
           const countB = counts?.[b] || 0;
-
           if (countA > 0 && countB === 0) return -1;
           if (countA === 0 && countB > 0) return 1;
-
-          // If both have counts > 0 or both have counts === 0, sort alphabetically
           return a.localeCompare(b);
       });
   }, [options, searchTerm, counts]);
@@ -101,11 +93,40 @@ export function MultiSelectDropdown({
       onSelectionChange([]);
   };
 
-  const getDisplayText = () => {
-      if (selectedOptions.length === 0) return placeholder;
-      if (selectedOptions.length === 1) return selectedOptions[0];
-      return `${selectedOptions.length} selected`;
+  const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (!isOpen) return;
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setFocusedIndex(prev => (prev < filteredOptions.length - 1 ? prev + 1 : prev));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setFocusedIndex(prev => (prev > 0 ? prev - 1 : prev));
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (focusedIndex >= 0 && focusedIndex < filteredOptions.length) {
+        const option = filteredOptions[focusedIndex];
+        const isSelected = selectedOptions.includes(option);
+        const count = counts?.[option] || 0;
+        if (isSelected || count > 0) {
+          handleOptionToggle(option);
+        }
+      }
+    } else if (e.key === 'Escape') {
+      setIsOpen(false);
+    }
   };
+
+  // Scroll focused item into view
+  useEffect(() => {
+    if (focusedIndex >= 0 && listRef.current) {
+      const liElement = listRef.current.children[focusedIndex] as HTMLElement;
+      if (liElement) {
+        liElement.scrollIntoView({ block: 'nearest' });
+      }
+    }
+  }, [focusedIndex]);
+
 
   return (
     <div className="relative" ref={dropdownRef}>
@@ -125,23 +146,28 @@ export function MultiSelectDropdown({
       )}
       
       <button 
+        type="button"
         onClick={() => !disabled && setIsOpen(!isOpen)} 
         disabled={disabled}
+        aria-haspopup="listbox"
+        aria-expanded={isOpen}
         className={cn(
             "w-full flex items-center justify-between p-3 bg-white dark:bg-gray-800 border rounded-lg text-sm transition-all",
             disabled ? "bg-gray-50 dark:bg-gray-900 text-gray-400 cursor-not-allowed border-gray-200 dark:border-gray-700" : "hover:border-indigo-300 focus:ring-2 focus:ring-indigo-100 cursor-pointer border-gray-300 dark:border-gray-600",
-            isOpen ? "border-indigo-500 ring-2 ring-indigo-100" : ""
+            isOpen ? "border-indigo-500 ring-2 ring-indigo-100 dark:ring-indigo-900/50" : ""
         )}
       >
-        <span className={cn("truncate", selectedOptions.length === 0 ? "text-gray-400" : "text-gray-900 dark:text-white dark:text-white font-medium")}>
-            {getDisplayText()}
+        <span className={cn("truncate", selectedOptions.length === 0 ? "text-gray-400" : "text-gray-900 dark:text-white font-medium")}>
+            {selectedOptions.length === 0 ? placeholder : selectedOptions.length === 1 ? selectedOptions[0] : `${selectedOptions.length} selected`}
         </span>
         
         <div className="flex items-center gap-1">
             {selectedOptions.length > 0 && !disabled && (
                 <div 
                     onClick={clearSelection}
-                    className="p-0.5 rounded-full hover:bg-gray-100 dark:bg-gray-800 text-gray-400 hover:text-gray-600 dark:text-gray-300 mr-1 transition-colors"
+                    className="p-0.5 rounded-full hover:bg-gray-100 dark:bg-gray-700 text-gray-400 hover:text-gray-600 dark:text-gray-300 mr-1 transition-colors"
+                    aria-label="Clear selection"
+                    role="button"
                 >
                     <X className="w-3.5 h-3.5" />
                 </div>
@@ -151,18 +177,25 @@ export function MultiSelectDropdown({
       </button>
 
       {isOpen && (
-        <div className="absolute z-50 w-full mt-2 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-100 dark:border-gray-800 overflow-hidden animate-in fade-in zoom-in-95 duration-100 flex flex-col max-h-80">
+        <div className={cn(
+          "absolute z-[60] w-full bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden animate-in fade-in zoom-in-95 duration-100 flex flex-col max-h-80",
+          menuPosition === 'top' ? "bottom-full mb-2" : "top-full mt-2"
+        )}>
           {/* Search Bar */}
-          <div className="p-2 border-b border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 sticky top-0 z-10">
+          <div className="p-2 border-b border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 sticky top-0 z-10">
               <div className="relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
                   <input 
                       ref={searchInputRef}
                       type="text"
                       value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
+                      onChange={(e) => {
+                        setSearchTerm(e.target.value);
+                        setFocusedIndex(-1);
+                      }}
+                      onKeyDown={handleKeyDown}
                       placeholder="Search..."
-                      className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-md focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-200 bg-white dark:bg-gray-800 placeholder:text-gray-400"
+                      className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-md focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-200 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder:text-gray-400"
                       onClick={(e) => e.stopPropagation()}
                   />
               </div>
@@ -175,22 +208,25 @@ export function MultiSelectDropdown({
                     {options.length === 0 ? "No options available" : "No matches found"}
                  </div>
               ) : (
-                <ul>
-                    {filteredOptions.map(option => {
+                <ul ref={listRef} role="listbox" aria-multiselectable="true">
+                    {filteredOptions.map((option, index) => {
                     const count = counts?.[option] || 0;
                     const isSelected = selectedOptions.includes(option);
-                    // Disable if count is 0 AND it's not currently selected (so you can deselect it if data changed)
                     const isOptionDisabled = !isSelected && count === 0;
+                    const isFocused = index === focusedIndex;
 
                     return (
-                        <li key={option}>
+                        <li key={option} role="option" aria-selected={isSelected}>
                         <button 
+                            type="button"
                             onClick={() => !isOptionDisabled && handleOptionToggle(option)} 
                             disabled={isOptionDisabled}
                             className={cn(
                                 "w-full flex items-center justify-between px-3 py-2.5 text-sm text-left transition-colors rounded-md",
-                                isSelected ? "bg-indigo-50 text-indigo-700" : "text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:bg-gray-900",
-                                isOptionDisabled && "opacity-50 cursor-not-allowed hover:bg-transparent"
+                                isSelected ? "bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300" : "text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700",
+                                isFocused && !isSelected && "bg-gray-100 dark:bg-gray-700",
+                                isFocused && isSelected && "ring-2 ring-indigo-500 inset-0",
+                                isOptionDisabled && "opacity-50 cursor-not-allowed hover:bg-transparent dark:hover:bg-transparent"
                             )}
                         >
                             <div className="flex items-center gap-3 overflow-hidden">
@@ -203,7 +239,7 @@ export function MultiSelectDropdown({
                                 </div>
                                 <span className="truncate">{option}</span>
                             </div>
-                            <span className={cn("text-xs ml-2 flex-shrink-0", isSelected ? "text-indigo-500" : "text-gray-400")}>
+                            <span className={cn("text-xs ml-2 flex-shrink-0", isSelected ? "text-indigo-500 dark:text-indigo-400" : "text-gray-400")}>
                                 ({count})
                             </span>
                         </button>
@@ -217,4 +253,4 @@ export function MultiSelectDropdown({
       )}
     </div>
   );
-}
+});
