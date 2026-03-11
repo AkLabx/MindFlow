@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Trash2, Play, Clock, BookOpen, Edit2, Check, X, ArrowLeft, BarChart2 } from 'lucide-react';
+import { Trash2, Play, Clock, BookOpen, Edit2, Check, X, ArrowLeft, BarChart2, PlusCircle } from 'lucide-react';
 import { db } from '../../../lib/db';
 import { SavedQuiz } from '../types';
 import { useQuizContext } from '../context/QuizContext';
@@ -122,9 +122,10 @@ export const AttemptedQuizzes: React.FC = () => {
                         <p className="text-gray-500 dark:text-gray-400 dark:text-gray-400 mb-6">Complete a quiz to see your results here!</p>
                         <button
                             onClick={() => navigate('/quiz/config')}
-                            className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                            className="px-6 py-3 bg-indigo-50 dark:bg-indigo-950/30 text-indigo-700 dark:text-indigo-400 font-bold rounded-xl border border-indigo-200 dark:border-indigo-900/40 border-b-4 border-b-indigo-300 dark:border-b-indigo-700 hover:border-indigo-400 dark:hover:border-indigo-500 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 active:translate-y-1 active:border-b transition-all shadow-sm flex items-center gap-2 mx-auto"
                         >
-                            Create Quiz
+                            <PlusCircle className="w-5 h-5" />
+                            Create New Quiz
                         </button>
                     </div>
                 ) : (
