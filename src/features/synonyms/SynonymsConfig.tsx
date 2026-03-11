@@ -57,25 +57,28 @@ export const SynonymsConfig: React.FC<SynonymsConfigProps> = ({ onBack, onStart 
 
 
                 {/* Daily Challenge */}
-                <div className="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-200 dark:border-slate-700 shadow-sm mb-8 flex items-center justify-between">
-                    <div>
-                        <h3 className="text-lg font-bold flex items-center gap-2 text-slate-800 dark:text-slate-200">
-                            🎯 Daily 20 Words Challenge
-                        </h3>
-                        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Master 20 important words every day.</p>
-                        <div className="flex items-center gap-3 mt-3">
-                            <div className="w-48 h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
-                                <div className="h-full bg-blue-500 w-[0%]" />
+                <div
+                    onClick={() => window.location.hash = '#/synonyms/quiz?mode=speed'}
+                    className="bg-sky-50 dark:bg-sky-950/30 p-6 rounded-2xl cursor-pointer group relative z-20 transition-all duration-200 shadow-sm active:translate-y-1 active:border-b flex items-center justify-between border border-sky-100 dark:border-sky-900/40 border-b-4 border-b-sky-200 dark:border-b-sky-700 hover:border-sky-300 dark:hover:border-sky-500 mb-8"
+                >
+                    <div className="flex items-center gap-4 flex-1">
+                        <div className="w-12 h-12 bg-white dark:bg-gray-800 ring-1 ring-black/5 dark:ring-white/10 rounded-xl flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform flex-shrink-0 text-2xl">
+                            🎯
+                        </div>
+                        <div className="flex-1 pr-2">
+                            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">Daily 20 Words Challenge</h3>
+                            <p className="text-gray-600 dark:text-gray-400 text-xs font-medium mb-2">Master 20 important words every day.</p>
+                            <div className="flex items-center gap-3">
+                                <div className="w-48 h-2 bg-sky-200 dark:bg-sky-900/50 rounded-full overflow-hidden">
+                                    <div className="h-full bg-sky-500 w-[0%]" />
+                                </div>
+                                <span className="text-xs font-bold text-sky-600 dark:text-sky-400">0 / 20</span>
                             </div>
-                            <span className="text-xs font-bold text-slate-500 dark:text-slate-400">0 / 20</span>
                         </div>
                     </div>
-                    <button
-                        onClick={() => window.location.hash = '#/synonyms/quiz?mode=speed'}
-                        className="px-4 py-2 bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400 font-bold rounded-xl hover:bg-blue-200 dark:hover:bg-blue-800/60 transition-colors"
-                    >
-                        Start Daily
-                    </button>
+                    <div className="px-4 py-2 bg-sky-600 text-white font-bold rounded-xl shadow-sm flex-shrink-0 group-hover:bg-sky-700 transition-colors">
+                        Start
+                    </div>
                 </div>
 
                 {/* Stats / Welcome Card */}
@@ -97,95 +100,129 @@ export const SynonymsConfig: React.FC<SynonymsConfigProps> = ({ onBack, onStart 
                                 <h3 className="text-lg font-bold mb-4 text-slate-800 dark:text-slate-200">Phase 1: Foundation</h3>
                 <div className="grid grid-cols-1 gap-4 mb-8">
                     {/* Phase 1: Guided Learning */}
-                    <button
+                    <div
                         onClick={() => window.location.hash = '#/synonyms/phase1'}
-                        className="flex flex-col text-left bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 hover:border-amber-500 dark:hover:border-amber-500 hover:shadow-md transition-all group"
+                        className="bg-amber-50 dark:bg-amber-950/30 p-6 rounded-2xl cursor-pointer group relative z-20 transition-all duration-200 shadow-sm active:translate-y-1 active:border-b flex items-center justify-between border border-amber-100 dark:border-amber-900/40 border-b-4 border-b-amber-200 dark:border-b-amber-700 hover:border-amber-300 dark:hover:border-amber-500"
                     >
-                        <div className="w-12 h-12 bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400 rounded-xl flex items-center justify-center text-2xl mb-4 group-hover:scale-110 transition-transform">
-                            📖
+                        <div className="flex items-center gap-4 flex-1">
+                            <div className="w-12 h-12 bg-white dark:bg-gray-800 ring-1 ring-black/5 dark:ring-white/10 rounded-xl flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform flex-shrink-0 text-3xl">
+                                📖
+                            </div>
+                            <div className="flex-1 pr-2">
+                                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">Guided Word Exploration</h3>
+                                <p className="text-gray-600 dark:text-gray-400 text-xs font-medium">
+                                    Discover words with deep meanings, Hindi translations, and audio pronunciation. Perfect for building a strong foundation.
+                                </p>
+                            </div>
                         </div>
-                        <h4 className="text-lg font-bold mb-1">Guided Word Exploration</h4>
-                        <p className="text-sm text-slate-500 dark:text-slate-400">Discover words with deep meanings, Hindi translations, and audio pronunciation. Perfect for building a strong foundation.</p>
-                    </button>
+                    </div>
                 </div>
 
                 <h3 className="text-lg font-bold mb-4 text-slate-800 dark:text-slate-200">Phase 2: Learn & Master</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
 
                     {/* Mode 1: Swipe Flashcards */}
-                    <button
+                    <div
                         onClick={handleStartLearning}
-                        className="flex flex-col text-left bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 hover:border-blue-500 dark:hover:border-blue-500 hover:shadow-md transition-all group"
+                        className="bg-blue-50 dark:bg-blue-950/30 p-6 rounded-2xl cursor-pointer group relative z-20 transition-all duration-200 shadow-sm active:translate-y-1 active:border-b flex items-center justify-between border border-blue-100 dark:border-blue-900/40 border-b-4 border-b-blue-200 dark:border-b-blue-700 hover:border-blue-300 dark:hover:border-blue-500"
                     >
-                        <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 rounded-xl flex items-center justify-center text-2xl mb-4 group-hover:scale-110 transition-transform">
-                            🃏
+                        <div className="flex items-center gap-4 flex-1">
+                            <div className="w-12 h-12 bg-white dark:bg-gray-800 ring-1 ring-black/5 dark:ring-white/10 rounded-xl flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform flex-shrink-0 text-3xl">
+                                🃏
+                            </div>
+                            <div className="flex-1 pr-2">
+                                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">Smart Flashcards</h3>
+                                <p className="text-gray-600 dark:text-gray-400 text-xs font-medium">
+                                    Swipe through High-Frequency words first. Tap to reveal meanings and Mark as Mastered.
+                                </p>
+                            </div>
                         </div>
-                        <h4 className="text-lg font-bold mb-1">Smart Flashcards</h4>
-                        <p className="text-sm text-slate-500 dark:text-slate-400">Swipe through High-Frequency words first. Tap to reveal meanings and Mark as Mastered.</p>
-                    </button>
+                    </div>
 
                     {/* Mode 2: Cluster List */}
-                    <button
+                    <div
                         onClick={() => window.location.hash = '#/synonyms/list'}
-                        className="flex flex-col text-left bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 hover:border-emerald-500 dark:hover:border-emerald-500 hover:shadow-md transition-all group"
+                        className="bg-emerald-50 dark:bg-emerald-950/30 p-6 rounded-2xl cursor-pointer group relative z-20 transition-all duration-200 shadow-sm active:translate-y-1 active:border-b flex items-center justify-between border border-emerald-100 dark:border-emerald-900/40 border-b-4 border-b-emerald-200 dark:border-b-emerald-700 hover:border-emerald-300 dark:hover:border-emerald-500"
                     >
-                        <div className="w-12 h-12 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 rounded-xl flex items-center justify-center text-2xl mb-4 group-hover:scale-110 transition-transform">
-                            📋
+                        <div className="flex items-center gap-4 flex-1">
+                            <div className="w-12 h-12 bg-white dark:bg-gray-800 ring-1 ring-black/5 dark:ring-white/10 rounded-xl flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform flex-shrink-0 text-3xl">
+                                📋
+                            </div>
+                            <div className="flex-1 pr-2">
+                                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">Word Families (List)</h3>
+                                <p className="text-gray-600 dark:text-gray-400 text-xs font-medium">
+                                    View words grouped by meaning. See which words are hot (🔥) and review your Mastery spectrum.
+                                </p>
+                            </div>
                         </div>
-                        <h4 className="text-lg font-bold mb-1">Word Families (List)</h4>
-                        <p className="text-sm text-slate-500 dark:text-slate-400">View words grouped by meaning. See which words are hot (🔥) and review your Mastery spectrum.</p>
-                    </button>
+                    </div>
                 </div>
 
                 {/* Phase 3 Placeholder */}
                 <h3 className="text-lg font-bold mb-4 text-slate-800 dark:text-slate-200 mt-8">Phase 3: Gamified Practice</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
-                    {/* Game 1 */}
-                    <button
+                    {/* Game 1: The Imposter Trap */}
+                    <div
                         onClick={() => window.location.hash = '#/synonyms/quiz?mode=imposter'}
-                        className="flex flex-col text-left bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 hover:border-purple-500 dark:hover:border-purple-500 hover:shadow-md transition-all group"
+                        className="bg-violet-50 dark:bg-violet-950/30 p-6 rounded-2xl cursor-pointer group relative z-20 transition-all duration-200 shadow-sm active:translate-y-1 active:border-b flex items-center justify-between border border-violet-100 dark:border-violet-900/40 border-b-4 border-b-violet-200 dark:border-b-violet-700 hover:border-violet-300 dark:hover:border-violet-500"
                     >
-                        <div className="flex items-center justify-between mb-4">
-                            <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/40 text-purple-600 dark:text-purple-400 rounded-xl flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">
+                        <div className="flex items-center gap-4 flex-1">
+                            <div className="w-12 h-12 bg-white dark:bg-gray-800 ring-1 ring-black/5 dark:ring-white/10 rounded-xl flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform flex-shrink-0 text-3xl">
                                 🕵️‍♂️
                             </div>
-
+                            <div className="flex-1 pr-2">
+                                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">The Imposter Trap</h3>
+                                <p className="text-gray-600 dark:text-gray-400 text-xs font-medium">
+                                    Spot the Antonym hiding among Synonyms before the 10-second timer runs out.
+                                </p>
+                            </div>
                         </div>
-                        <h4 className="text-lg font-bold mb-1">The Imposter Trap</h4>
-                        <p className="text-sm text-slate-500 dark:text-slate-400">Spot the Antonym hiding among Synonyms before the 10-second timer runs out.</p>
-                    </button>
+                    </div>
 
-                    {/* Game 2 */}
-                    <button
+                    {/* Game 2: Tap & Connect */}
+                    <div
                         onClick={() => window.location.hash = '#/synonyms/quiz?mode=connect'}
-                        className="flex flex-col text-left bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 hover:border-pink-500 dark:hover:border-pink-500 hover:shadow-md transition-all group"
+                        className="bg-rose-50 dark:bg-rose-950/30 p-6 rounded-2xl cursor-pointer group relative z-20 transition-all duration-200 shadow-sm active:translate-y-1 active:border-b flex items-center justify-between border border-rose-100 dark:border-rose-900/40 border-b-4 border-b-rose-200 dark:border-b-rose-700 hover:border-rose-300 dark:hover:border-rose-500"
                     >
-                        <div className="flex items-center justify-between mb-4">
-                            <div className="w-12 h-12 bg-pink-100 dark:bg-pink-900/40 text-pink-600 dark:text-pink-400 rounded-xl flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">
+                        <div className="flex items-center gap-4 flex-1">
+                            <div className="w-12 h-12 bg-white dark:bg-gray-800 ring-1 ring-black/5 dark:ring-white/10 rounded-xl flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform flex-shrink-0 text-3xl">
                                 🔗
                             </div>
-
+                            <div className="flex-1 pr-2">
+                                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">Tap & Connect</h3>
+                                <p className="text-gray-600 dark:text-gray-400 text-xs font-medium">
+                                    Match the main word with its synonym in a fast-paced dual-column challenge.
+                                </p>
+                            </div>
                         </div>
-                        <h4 className="text-lg font-bold mb-1">Tap & Connect</h4>
-                        <p className="text-sm text-slate-500 dark:text-slate-400">Match the main word with its synonym in a fast-paced dual-column challenge.</p>
-                    </button>
+                    </div>
 
 
                     {/* Game 3: Speed Mode */}
-                    <button
+                    <div
                         onClick={() => window.location.hash = '#/synonyms/quiz?mode=speed'}
-                        className="flex flex-col text-left bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 hover:border-amber-500 dark:hover:border-amber-500 hover:shadow-md transition-all group md:col-span-2 lg:col-span-1"
+                        className="bg-indigo-50 dark:bg-indigo-950/30 p-6 rounded-2xl cursor-pointer group relative z-20 transition-all duration-200 shadow-sm active:translate-y-1 active:border-b flex items-center justify-between border border-indigo-100 dark:border-indigo-900/40 border-b-4 border-b-indigo-200 dark:border-b-indigo-700 hover:border-indigo-300 dark:hover:border-indigo-500 md:col-span-2 lg:col-span-1"
                     >
-                        <div className="flex items-center justify-between mb-4">
-                            <div className="w-12 h-12 bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400 rounded-xl flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">
+                        <div className="flex items-center gap-4 flex-1">
+                            <div className="w-12 h-12 bg-white dark:bg-gray-800 ring-1 ring-black/5 dark:ring-white/10 rounded-xl flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform flex-shrink-0 text-3xl relative">
                                 ⚡
+                                <span className="absolute -top-2 -right-2 flex h-3 w-3">
+                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+                                  <span className="relative inline-flex rounded-full h-3 w-3 bg-indigo-500"></span>
+                                </span>
                             </div>
-                            <span className="text-xs font-bold px-2 py-1 bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300 rounded-md">Quick Revision</span>
+                            <div className="flex-1 pr-2">
+                                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1 flex items-center gap-2">
+                                    Lightning Review
+                                    <span className="text-[10px] font-bold px-2 py-0.5 bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300 rounded-full border border-indigo-200 dark:border-indigo-700">Quick</span>
+                                </h3>
+                                <p className="text-gray-600 dark:text-gray-400 text-xs font-medium">
+                                    Swipe through words with a 5-second timer. Perfect for rapid revision.
+                                </p>
+                            </div>
                         </div>
-                        <h4 className="text-lg font-bold mb-1">Lightning Review</h4>
-                        <p className="text-sm text-slate-500 dark:text-slate-400">Swipe through words with a 5-second timer. Perfect for rapid revision.</p>
-                    </button>
+                    </div>
                 </div>
 
             </div>
