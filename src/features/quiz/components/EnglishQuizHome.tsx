@@ -103,7 +103,6 @@ export const EnglishQuizHome: React.FC<EnglishQuizHomeProps> = ({ onBack, onVoca
           </div>
         </div>
       </div>
-      </div>
     </div>
   );
 };
