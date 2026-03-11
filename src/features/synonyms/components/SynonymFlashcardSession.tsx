@@ -1,6 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
+import { ArrowLeft, ArrowRight, Home, RotateCcw, Maximize2, Minimize2, RotateCw, Menu } from 'lucide-react';
+import { motion, useMotionValue, useTransform, useAnimation } from 'framer-motion';
+import { Button } from '../../../components/Button/Button';
+import { SynonymCard } from './SynonymCard';
+import { SynonymNavigationPanel } from './SynonymNavigationPanel';
 import { SynonymWord } from '../../quiz/types';
-import { useSynonymProgress } from '../hooks/useSynonymProgress';
+import { cn } from '../../../utils/cn';
+
+interface PanInfo {
+  point: { x: number; y: number };
+  delta: { x: number; y: number };
+  offset: { x: number; y: number };
+  velocity: { x: number; y: number };
+}
 
 interface SynonymFlashcardSessionProps {
   data: SynonymWord[];
@@ -21,213 +33,263 @@ export const SynonymFlashcardSession: React.FC<SynonymFlashcardSessionProps> = (
   onExit,
   onFinish,
   onJump,
+  filters
 }) => {
+  const [isFullScreen, setIsFullScreen] = useState(false);
   const [isFlipped, setIsFlipped] = useState(false);
-    const [touchStart, setTouchStart] = useState<number | null>(null);
-  const [touchEnd, setTouchEnd] = useState<number | null>(null);
+  const [isAnimating, setIsAnimating] = useState(false);
+  const [isNavOpen, setIsNavOpen] = useState(false);
 
-  // Minimum swipe distance (in px)
-  const minSwipeDistance = 50;
+  // Motion Values for Physics
+  const x = useMotionValue(0);
+  const controls = useAnimation();
 
-  const onTouchStart = (e: React.TouchEvent) => {
-    setTouchEnd(null);
-    setTouchStart(e.touches[0].clientX);
-  };
+  // Tilt card based on horizontal drag
+  const rotate = useTransform(x, [-200, 200], [-15, 15]);
+  // Fade out opacity near edges
+  const opacity = useTransform(x, [-300, -150, 0, 150, 300], [0, 1, 1, 1, 0]);
 
-  const onTouchMove = (e: React.TouchEvent) => {
-    setTouchEnd(e.touches[0].clientX);
-  };
-
-  const onTouchEndEvent = (e: React.TouchEvent) => {
-    if (!touchStart) return;
-
-    // Use changedTouches for the end position as touches might be empty.
-    const end = e.changedTouches[0].clientX;
-
-    const distance = touchStart - end;
-
-    const isLeftSwipe = distance > minSwipeDistance;
-    const isRightSwipe = distance < -minSwipeDistance;
-
-    if (isLeftSwipe && !isLast) {
-      handleNext();
-    } else if (isRightSwipe && !isFirst) {
-      onPrev();
-    }
-
-    // reset
-    setTouchStart(null);
-    setTouchEnd(null);
-  };
-
-
-  const { progress, markMastered, getStatus } = useSynonymProgress();
-
-  const currentWord = data[currentIndex];
-  const isLast = currentIndex === data.length - 1;
+  const currentItem = data[currentIndex];
+  const progress = ((currentIndex + 1) / data.length) * 100;
   const isFirst = currentIndex === 0;
+  const isLast = currentIndex === data.length - 1;
 
+  // Reset card position on index change
   useEffect(() => {
-    setIsFlipped(false);
-  }, [currentIndex]);
+    x.set(0);
+  }, [currentIndex, x]);
 
-  if (!currentWord) return null;
+  // Keyboard navigation
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (isAnimating) return;
+      if (e.key === 'ArrowRight') handleManualNavigation('next');
+      if (e.key === 'ArrowLeft') handleManualNavigation('prev');
+      if (e.key === ' ' || e.key === 'Enter') setIsFlipped(prev => !prev);
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [currentIndex, isLast, isFirst, isAnimating]);
 
-  const status = getStatus(currentWord);
+  const handleManualNavigation = async (direction: 'next' | 'prev') => {
+    if (isAnimating) return;
+    setIsAnimating(true);
 
-  const handleNext = () => {
-    if (isLast) onFinish();
-    else onNext();
+    try {
+      if (direction === 'next') {
+        if (isLast) {
+          onFinish();
+        } else {
+          // Animate out left
+          await controls.start({ x: -500, opacity: 0, transition: { duration: 0.2 } });
+          setIsFlipped(false);
+          onNext();
+          // Reset right
+          x.set(500);
+          await controls.start({ x: 0, opacity: 1, transition: { type: "spring", stiffness: 300, damping: 30 } });
+        }
+      } else {
+        if (!isFirst) {
+          // Animate out right
+          await controls.start({ x: 500, opacity: 0, transition: { duration: 0.2 } });
+          setIsFlipped(false);
+          onPrev();
+          // Reset left
+          x.set(-500);
+          await controls.start({ x: 0, opacity: 1, transition: { type: "spring", stiffness: 300, damping: 30 } });
+        }
+      }
+    } finally {
+      setIsAnimating(false);
+    }
   };
 
-  const getHeatmapColor = (score: number) => {
-    if (score > 10) return 'text-red-500 bg-red-100 dark:bg-red-900/30 dark:text-red-400 border-red-200 dark:border-red-800';
-    if (score >= 5) return 'text-amber-600 bg-amber-100 dark:bg-amber-900/30 dark:text-amber-400 border-amber-200 dark:border-amber-800';
-    return 'text-slate-600 bg-slate-100 dark:bg-slate-800 dark:text-slate-300 border-slate-200 dark:border-slate-700';
+  const handleDragEnd = async (event: any, info: PanInfo) => {
+    const threshold = 100;
+    const swipePower = Math.abs(info.offset.x) * info.velocity.x;
+
+    const isIntentionalSwipe = Math.abs(info.offset.x) > threshold || Math.abs(swipePower) > 10000;
+
+    if (isIntentionalSwipe) {
+      const isRightSwipe = info.offset.x > 0;
+      const isLeftSwipe = info.offset.x < 0;
+
+      if (isLeftSwipe) {
+        if (!isLast) {
+          setIsAnimating(true);
+          await controls.start({ x: -1000, opacity: 0, transition: { duration: 0.2 } });
+          setIsFlipped(false);
+          onNext();
+          x.set(1000);
+          await controls.start({ x: 0, opacity: 1 });
+          setIsAnimating(false);
+        } else {
+          await controls.start({ x: -1000, opacity: 0 });
+          onFinish();
+        }
+      } else if (isRightSwipe) {
+        if (!isFirst) {
+          setIsAnimating(true);
+          await controls.start({ x: 1000, opacity: 0, transition: { duration: 0.2 } });
+          setIsFlipped(false);
+          onPrev();
+          x.set(-1000);
+          await controls.start({ x: 0, opacity: 1 });
+          setIsAnimating(false);
+        } else {
+          controls.start({ x: 0, transition: { type: "spring", stiffness: 500, damping: 30 } });
+        }
+      }
+    } else {
+      controls.start({ x: 0, transition: { type: "spring", stiffness: 500, damping: 30 } });
+    }
+  };
+
+  const toggleFullScreen = () => {
+    if (!isFullScreen) {
+      setIsFullScreen(true);
+      document.documentElement.requestFullscreen?.().catch(console.warn);
+    } else {
+      setIsFullScreen(false);
+      if (document.fullscreenElement) document.exitFullscreen?.().catch(console.warn);
+    }
+  };
+
+  const handleJump = (index: number) => {
+    setIsFlipped(false);
+    onJump(index);
   };
 
   return (
-    <div className="flex flex-col h-screen bg-slate-50 dark:bg-slate-900 w-full overflow-hidden font-sans">
+    <div className="fixed inset-0 h-[100dvh] w-full bg-gray-100 dark:bg-gray-800 flex flex-col overflow-hidden">
+
+      <SynonymNavigationPanel
+        isOpen={isNavOpen}
+        onClose={() => setIsNavOpen(false)}
+        data={data}
+        currentIndex={currentIndex}
+        onJump={handleJump}
+      />
+
       {/* Header */}
-      <div className="flex items-center justify-between p-4 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 shadow-sm z-10">
-        <button onClick={onExit} className="text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 transition-colors p-2">
-          ← Exit
-        </button>
-        <div className="font-medium text-slate-800 dark:text-slate-200">
-          {currentIndex + 1} / {data.length}
-        </div>
-        <div className="w-12" /> {/* Spacer */}
-      </div>
-
-      {/* Main Content */}
-      <div className="flex-1 overflow-hidden relative p-4 flex flex-col items-center justify-center" onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEndEvent}>
-
-        {/* Progress Bar */}
-        <div className="absolute top-0 left-0 h-1 bg-blue-500 transition-all duration-300" style={{ width: `${((currentIndex + 1) / data.length) * 100}%` }} />
-
-        {/* Card Container */}
-        <div
-          className="relative w-full max-w-lg aspect-[3/4] cursor-pointer group perspective-1000"
-          onClick={() => setIsFlipped(!isFlipped)}
-        >
-          <div className={`relative w-full h-full transition-transform duration-500 transform-style-3d ${isFlipped ? 'rotate-y-180' : ''}`}>
-
-            {/* FRONT OF CARD */}
-            <div className={`absolute w-full h-full backface-hidden rounded-2xl shadow-xl flex flex-col items-center justify-center p-8 text-center
-              ${status === 'mastered' ? 'bg-green-50 dark:bg-green-900/20 border-2 border-green-200 dark:border-green-800' : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700'}`}>
-
-              <div className="absolute top-4 right-4 flex items-center gap-2">
-                {currentWord.importance_score > 10 && <span className="text-2xl" title="High Frequency">🔥</span>}
-                {currentWord.importance_score >= 5 && currentWord.importance_score <= 10 && <span className="text-xl" title="Medium Frequency">⭐</span>}
-              </div>
-
-              {status === 'familiar' && (
-                <div className="absolute top-4 left-4 flex items-center gap-1 text-amber-500 font-medium bg-amber-50 dark:bg-amber-900/30 px-2 py-1 rounded-md text-sm">
-                  🟡 Familiar
-                </div>
-              )}
-              {status === 'mastered' && (
-                <div className="absolute top-4 left-4 flex items-center gap-1 text-green-600 font-medium bg-green-50 dark:bg-green-900/30 px-2 py-1 rounded-md text-sm">
-                  🟢 Mastered
-                </div>
-              )}
-
-              <h2 className="text-5xl md:text-6xl font-serif font-bold text-slate-900 dark:text-white mb-6">
-                {currentWord.word}
-              </h2>
-
-              {currentWord.pos && (
-                <span className="text-lg text-slate-500 dark:text-slate-400 italic mb-4">
-                  {currentWord.pos}
-                </span>
-              )}
-
-              <div className="text-sm text-slate-400 mt-auto">
-                Tap to flip
+      {!isFullScreen && (
+        <div className="flex-none z-30 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm">
+          <div className="px-6 py-4 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <button onClick={onExit} className="p-2 hover:bg-gray-100 dark:bg-gray-700 rounded-full text-gray-500 dark:text-gray-400 transition-colors">
+                <Home className="w-5 h-5" />
+              </button>
+              <div>
+                <h1 className="font-bold text-gray-900 dark:text-white text-lg leading-tight">Synonym Master</h1>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  {filters?.phase ? `Phase ${filters.phase}` : 'Mixed Set'} • {data.length} Cards
+                </p>
               </div>
             </div>
 
-            {/* BACK OF CARD */}
-            <div className="absolute w-full h-full backface-hidden rounded-2xl shadow-xl p-6 md:p-8 flex flex-col bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rotate-y-180 overflow-y-auto">
-
-               <div className="mb-6 pb-6 border-b border-slate-100 dark:border-slate-700">
-                 <h3 className="text-2xl font-serif font-bold text-slate-900 dark:text-white mb-2">{currentWord.word}</h3>
-                 <p className="text-xl text-blue-600 dark:text-blue-400 font-medium mb-3">{currentWord.hindiMeaning}</p>
-                 <p className="text-slate-600 dark:text-slate-300 text-lg leading-relaxed">{currentWord.meaning}</p>
-               </div>
-
-               <div className="flex-1">
-                 <h4 className="text-sm font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-3">Top Synonyms</h4>
-                 <ul className="space-y-3">
-                   {currentWord.synonyms?.map((syn, idx) => (
-                     <li key={idx} className="bg-slate-50 dark:bg-slate-700/50 p-3 rounded-lg border border-slate-100 dark:border-slate-600">
-                       <span className="font-bold text-slate-800 dark:text-slate-200 mr-2">{syn.text}</span>
-                       <span className="text-slate-500 dark:text-slate-400 text-sm">({syn.hindiMeaning})</span>
-                     </li>
-                   ))}
-                 </ul>
-
-                 {currentWord.confusable_with?.length > 0 && (
-                   <div className="mt-6 p-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg border border-orange-200 dark:border-orange-800/50">
-                     <span className="text-orange-800 dark:text-orange-300 text-sm font-medium">
-                       ⚠️ Confusable with: <strong>{currentWord.confusable_with.join(', ')}</strong>
-                     </span>
-                   </div>
-                 )}
-               </div>
-
-               {/* Action Buttons on Back */}
-               <div className="mt-6 flex justify-center pt-4 border-t border-slate-100 dark:border-slate-700" onClick={(e) => e.stopPropagation()}>
-                 {status !== 'mastered' ? (
-                   <button
-                     onClick={() => {
-                        markMastered(currentWord);
-                        // automatically move to next card after a tiny delay
-                        setTimeout(() => handleNext(), 400);
-                     }}
-                     className="bg-green-600 hover:bg-green-700 text-white py-3 px-8 rounded-full font-bold shadow-lg transition-transform active:scale-95 flex items-center gap-2 w-full justify-center"
-                   >
-                     ✓ Mark as Mastered
-                   </button>
-                 ) : (
-                   <div className="text-green-600 dark:text-green-400 font-bold flex items-center justify-center gap-2 py-3 w-full border-2 border-green-200 dark:border-green-800 rounded-full">
-                     🟢 Mastered
-                   </div>
-                 )}
-               </div>
+            <div className="flex items-center gap-2">
+              <div className="font-mono font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-3 py-1 rounded-lg text-sm hidden sm:block">
+                {currentIndex + 1} / {data.length}
+              </div>
+              <button onClick={() => setIsNavOpen(true)} className="p-2 bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 text-blue-600 dark:text-blue-400 rounded-lg transition-colors" aria-label="Open Map">
+                <Menu className="w-5 h-5" />
+              </button>
+              <button onClick={toggleFullScreen} className="p-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg text-gray-600 dark:text-gray-300">
+                <Maximize2 className="w-5 h-5" />
+              </button>
             </div>
           </div>
+          <div className="h-1 w-full bg-gray-200 dark:bg-gray-700">
+            <div className="h-full bg-blue-500 transition-all duration-300" style={{ width: `${progress}%` }} />
+          </div>
+        </div>
+      )}
+
+      {/* Card Arena */}
+      <div className="flex-1 relative flex flex-col items-center justify-center p-4 md:p-8 overflow-hidden">
+
+        {isFullScreen && (
+          <button onClick={toggleFullScreen} className="absolute top-4 right-4 z-30 p-3 bg-white dark:bg-gray-800/20 backdrop-blur-md rounded-full text-gray-800 dark:text-gray-100 shadow-lg hover:bg-white dark:hover:bg-gray-800/40 transition-colors">
+            <Minimize2 className="w-6 h-6" />
+          </button>
+        )}
+
+        <div className={cn(
+          "relative w-full max-w-md transition-all duration-300 perspective-1000 z-10",
+          isFullScreen ? "h-[80vh] md:h-[70vh] max-w-lg" : "h-[60vh] max-h-[600px]"
+        )}
+        >
+          {currentItem ? (
+            <motion.div
+              key={currentItem.word} // Use word as key since synonym data might not have unique ID
+              style={{
+                x,
+                rotate,
+                opacity,
+                touchAction: 'pan-y',
+                cursor: isAnimating ? 'default' : 'grab'
+              } as any}
+              animate={controls}
+              drag={isAnimating ? false : "x"}
+              dragDirectionLock={false}
+              dragConstraints={{ left: 0, right: 0 }}
+              dragElastic={0.7}
+              onDragEnd={handleDragEnd as any}
+              onTap={() => !isAnimating && setIsFlipped(!isFlipped)}
+              className="absolute w-full h-full select-none touch-callout-none active:cursor-grabbing"
+            >
+              <SynonymCard data={currentItem} serialNumber={currentIndex + 1} isFlipped={isFlipped} />
+            </motion.div>
+          ) : (
+            <div className="h-full w-full flex items-center justify-center bg-white dark:bg-gray-800 rounded-3xl shadow-sm">
+              <p className="text-gray-400">No cards available.</p>
+            </div>
+          )}
         </div>
 
+        {/* Hint */}
+        <div className="absolute bottom-8 text-gray-400 text-xs font-medium uppercase tracking-widest animate-pulse pointer-events-none select-none z-0">
+          {isFlipped ? "Scroll to read • Swipe to Next" : "Tap to flip"}
+        </div>
       </div>
 
-      {/* Navigation Footer */}
-      <div className="flex items-center justify-between p-6 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 z-10 pb-10 md:pb-6">
-        {isFirst ? (
-          <div className="px-6 py-3 w-[120px]"></div> /* Placeholder to keep spacing */
-        ) : (
-          <button
-            onClick={onPrev}
-            className="px-6 py-3 rounded-xl font-bold transition-colors bg-slate-200 text-slate-700 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600 w-[120px]"
+      {/* Footer Controls */}
+      <div className="flex-none z-30 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 p-4 md:p-6 pb-safe">
+        <div className="max-w-md mx-auto flex items-center justify-between gap-4">
+          <Button
+            variant="outline"
+            onClick={() => handleManualNavigation('prev')}
+            disabled={isFirst || isAnimating}
+            className="flex-1 justify-center"
           >
-            Previous
-          </button>
-        )}
-        {isLast ? (
-          <div className="px-8 py-3 w-[120px]"></div> /* Placeholder to keep spacing */
-        ) : (
-          <button
-            onClick={handleNext}
-            className="px-8 py-3 rounded-xl font-bold bg-blue-600 hover:bg-blue-700 text-white transition-colors shadow-md shadow-blue-500/30 w-[120px]"
+            <ArrowLeft className="w-4 h-4 mr-2" /> Previous
+          </Button>
+
+          <div
+            onClick={() => !isAnimating && setIsFlipped(!isFlipped)}
+            className="p-3 bg-gray-50 dark:bg-gray-900 rounded-full text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer active:scale-95 transition-transform"
           >
-            Next
-          </button>
-        )}
+            <RotateCw className={cn("w-6 h-6", isAnimating && "opacity-50")} />
+          </div>
+
+          <Button
+            onClick={() => handleManualNavigation('next')}
+            disabled={isAnimating}
+            className="flex-1 justify-center bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-200 dark:shadow-blue-900/20"
+          >
+            {isLast ? (
+              <>Finish <RotateCcw className="w-4 h-4 ml-2" /></>
+            ) : (
+              <>Next <ArrowRight className="w-4 h-4 ml-2" /></>
+            )}
+          </Button>
+        </div>
       </div>
 
-      {/* Custom CSS for 3D flip (if tailwind plugins missing) */}
       <style>{`
         .perspective-1000 { perspective: 1000px; }
+        .touch-callout-none { -webkit-touch-callout: none; }
+        .pb-safe { padding-bottom: env(safe-area-inset-bottom, 1.5rem); }
         .transform-style-3d { transform-style: preserve-3d; }
         .backface-hidden { backface-visibility: hidden; }
         .rotate-y-180 { transform: rotateY(180deg); }
