@@ -9,6 +9,7 @@ import { ActiveQuizLayout } from '../layouts/ActiveQuizLayout';
 import { cn } from '../../../utils/cn';
 import { APP_CONFIG } from '../../../constants/config';
 import { useMockTimer } from '../hooks/useMockTimer';
+import { quizEngine } from '../engine';
 
 interface MockSessionProps {
     questions: Question[];
@@ -85,6 +86,9 @@ export const MockSession: React.FC<MockSessionProps> = ({ questions, initialTime
     };
 
     const handleAnswer = (option: string) => {
+        // Here we could validate via engine, but MockMode validation usually happens at the end
+        // If we want real-time analytics tracking, we'd do it here:
+        // const isCorrect = quizEngine.getPlugin('mcq').validateAnswer(questions[currentIndex], option);
         setAnswers(prev => ({ ...prev, [questions[currentIndex].id]: option }));
     };
 

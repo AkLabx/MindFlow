@@ -1,4 +1,6 @@
 import { useReducer, useCallback, useEffect, useState } from 'react';
+import { useSyncStore } from '../stores/useSyncStore';
+import { useAnalyticsStore } from '../stores/useAnalyticsStore';
 import { logEvent } from '../services/analyticsService';
 import { APP_CONFIG } from '../../../constants/config';
 import { quizReducer, initialState, loadState } from '../stores/quizReducer';
@@ -135,7 +137,7 @@ export const useQuiz = () => {
       }
 
       const answer = results.answers[q.id];
-      const time = results.timeTaken[q.id] || 0;
+      const time = useAnalyticsStore.getState().timeTaken[q.id] || 0;
       totalTimeSpent += time;
 
       if (!answer) {
@@ -181,6 +183,11 @@ export const useQuiz = () => {
 
     // Save history to IndexedDB
     db.saveQuizHistory(historyRecord).catch(err => console.error("Failed to save quiz history", err));
+
+    useSyncStore.getState().addEvent({
+      type: 'quiz_completed',
+      payload: { history: historyRecord, attempts: [] }
+    });
 
     dispatch({ type: 'SUBMIT_SESSION_RESULTS', payload: results });
   }, [state.activeQuestions, state.mode, state.filters?.difficulty]);

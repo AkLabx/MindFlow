@@ -6,6 +6,8 @@ import { Question, SavedQuiz, QuizHistoryRecord } from '../features/quiz/types';
 /**
  * Service responsible for synchronizing local IndexedDB data with the Supabase backend.
  */
+import { useSyncStore } from '../features/quiz/stores/useSyncStore';
+
 export const syncService = {
   /**
    * Pushes a single saved quiz to Supabase.
@@ -119,7 +121,50 @@ export const syncService = {
    * Runs an initial bidirectional sync after login.
    * Pulls remote data down and pushes any local-only data up.
    */
+
+  /**
+   * Processes the offline event queue from Zustand and dispatches them to Supabase.
+   */
+  processEventQueue: async (userId: string) => {
+    const { queue, removeEvents } = useSyncStore.getState();
+    if (queue.length === 0) return;
+
+    const processedIds: string[] = [];
+
+    for (const event of queue) {
+      try {
+        switch (event.type) {
+          case 'flashcard_reviewed':
+            // The payload is assumed to be a SynonymInteraction or similar
+            await syncService.pushSynonymInteraction(userId, event.payload);
+            break;
+          case 'quiz_completed':
+            await syncService.pushQuizHistory(userId, event.payload.history, event.payload.attempts);
+            break;
+          case 'bookmark_toggled':
+            if (event.payload.isBookmarked) {
+               await syncService.pushBookmark(userId, event.payload.question);
+            } else {
+               await syncService.removeBookmark(userId, event.payload.questionId);
+            }
+            break;
+        }
+        processedIds.push(event.id);
+      } catch (err) {
+        console.error('Failed to sync event:', event, err);
+        // Break early if network fails, keep remaining in queue
+        break;
+      }
+    }
+
+    if (processedIds.length > 0) {
+      removeEvents(processedIds);
+    }
+  },
+
   syncOnLogin: async (userId: string) => {
+    await syncService.processEventQueue(userId);
+
     try {
       // 1. Pull from Supabase
       const [

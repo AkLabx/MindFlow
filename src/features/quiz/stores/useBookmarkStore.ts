@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { Question } from '../types';
+import { useSyncStore } from './useSyncStore';
 
 interface BookmarkState {
   bookmarks: string[];
@@ -18,6 +19,10 @@ export const useBookmarkStore = create<BookmarkState>((set, get) => ({
     if (isBookmarked) {
       // Remove from global bookmarks db
       import('../../../lib/db').then(({ db }) => db.removeBookmark(question.id).catch(console.error));
+      useSyncStore.getState().addEvent({
+        type: 'bookmark_toggled',
+        payload: { questionId: question.id, isBookmarked: false }
+      });
 
       return {
         bookmarks: state.bookmarks.filter(id => id !== question.id)
@@ -25,6 +30,10 @@ export const useBookmarkStore = create<BookmarkState>((set, get) => ({
     } else {
       // Add to global bookmarks db
       import('../../../lib/db').then(({ db }) => db.saveBookmark(question).catch(console.error));
+      useSyncStore.getState().addEvent({
+        type: 'bookmark_toggled',
+        payload: { questionId: question.id, question, isBookmarked: true }
+      });
 
       return {
         bookmarks: [...state.bookmarks, question.id]

@@ -8,6 +8,7 @@ import { QuizExplanation } from './QuizExplanation';
 import { QuizNavigationPanel } from './QuizNavigationPanel';
 import { cn } from '../../../utils/cn';
 import { useQuizContext } from '../context/QuizContext';
+import { quizEngine } from '../engine';
 
 interface QuizReviewProps {
   questions: Question[];
@@ -95,7 +96,7 @@ export const QuizReview: React.FC<QuizReviewProps> = ({
 
   const currentQuestion = filteredQuestions[reviewIndex];
   const currentAns = currentQuestion ? userAnswers[currentQuestion.id] : undefined;
-  const isCorrect = currentQuestion && currentAns === currentQuestion.correct;
+  const isCorrect = currentQuestion && currentAns && quizEngine.getPlugin('mcq').validateAnswer(currentQuestion, currentAns);
   const isSkipped = currentQuestion && !currentAns;
   const userTime = currentQuestion ? timeTaken[currentQuestion.id] : 0;
 

@@ -169,6 +169,8 @@ export function quizReducer(state: QuizState, action: QuizAction): QuizState {
     case 'NEXT_QUESTION': {
       const maxIndex = state.activeQuestions.length;
 
+      // In a fully decoupled state, we'd use quizEngine.getPlugin(state.type).getNextQuestionIndex(...)
+      // But we maintain the linear index for now since the reducer state holds MCQ standard flow.
       const nextIndex = state.currentQuestionIndex + 1;
 
       if (nextIndex >= maxIndex) {
