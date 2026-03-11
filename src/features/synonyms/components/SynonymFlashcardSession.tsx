@@ -23,6 +23,44 @@ export const SynonymFlashcardSession: React.FC<SynonymFlashcardSessionProps> = (
   onJump,
 }) => {
   const [isFlipped, setIsFlipped] = useState(false);
+    const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchEnd, setTouchEnd] = useState<number | null>(null);
+
+  // Minimum swipe distance (in px)
+  const minSwipeDistance = 50;
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(null);
+    setTouchStart(e.touches[0].clientX);
+  };
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.touches[0].clientX);
+  };
+
+  const onTouchEndEvent = (e: React.TouchEvent) => {
+    if (!touchStart) return;
+
+    // Use changedTouches for the end position as touches might be empty.
+    const end = e.changedTouches[0].clientX;
+
+    const distance = touchStart - end;
+
+    const isLeftSwipe = distance > minSwipeDistance;
+    const isRightSwipe = distance < -minSwipeDistance;
+
+    if (isLeftSwipe && !isLast) {
+      handleNext();
+    } else if (isRightSwipe && !isFirst) {
+      onPrev();
+    }
+
+    // reset
+    setTouchStart(null);
+    setTouchEnd(null);
+  };
+
+
   const { progress, markMastered, getStatus } = useSynonymProgress();
 
   const currentWord = data[currentIndex];
@@ -62,7 +100,7 @@ export const SynonymFlashcardSession: React.FC<SynonymFlashcardSessionProps> = (
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 overflow-hidden relative p-4 flex flex-col items-center justify-center">
+      <div className="flex-1 overflow-hidden relative p-4 flex flex-col items-center justify-center" onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEndEvent}>
 
         {/* Progress Bar */}
         <div className="absolute top-0 left-0 h-1 bg-blue-500 transition-all duration-300" style={{ width: `${((currentIndex + 1) / data.length) * 100}%` }} />
@@ -121,7 +159,7 @@ export const SynonymFlashcardSession: React.FC<SynonymFlashcardSessionProps> = (
                <div className="flex-1">
                  <h4 className="text-sm font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-3">Top Synonyms</h4>
                  <ul className="space-y-3">
-                   {currentWord.synonyms?.slice(0, 3).map((syn, idx) => (
+                   {currentWord.synonyms?.map((syn, idx) => (
                      <li key={idx} className="bg-slate-50 dark:bg-slate-700/50 p-3 rounded-lg border border-slate-100 dark:border-slate-600">
                        <span className="font-bold text-slate-800 dark:text-slate-200 mr-2">{syn.text}</span>
                        <span className="text-slate-500 dark:text-slate-400 text-sm">({syn.hindiMeaning})</span>
@@ -165,23 +203,26 @@ export const SynonymFlashcardSession: React.FC<SynonymFlashcardSessionProps> = (
 
       {/* Navigation Footer */}
       <div className="flex items-center justify-between p-6 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 z-10 pb-10 md:pb-6">
-        <button
-          onClick={onPrev}
-          disabled={isFirst}
-          className={`px-6 py-3 rounded-xl font-bold transition-colors ${
-            isFirst
-              ? 'bg-slate-100 text-slate-400 cursor-not-allowed dark:bg-slate-800 dark:text-slate-600'
-              : 'bg-slate-200 text-slate-700 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600'
-          }`}
-        >
-          Previous
-        </button>
-        <button
-          onClick={handleNext}
-          className="px-8 py-3 rounded-xl font-bold bg-blue-600 hover:bg-blue-700 text-white transition-colors shadow-md shadow-blue-500/30"
-        >
-          {isLast ? 'Finish Set' : 'Next'}
-        </button>
+        {isFirst ? (
+          <div className="px-6 py-3 w-[120px]"></div> /* Placeholder to keep spacing */
+        ) : (
+          <button
+            onClick={onPrev}
+            className="px-6 py-3 rounded-xl font-bold transition-colors bg-slate-200 text-slate-700 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600 w-[120px]"
+          >
+            Previous
+          </button>
+        )}
+        {isLast ? (
+          <div className="px-8 py-3 w-[120px]"></div> /* Placeholder to keep spacing */
+        ) : (
+          <button
+            onClick={handleNext}
+            className="px-8 py-3 rounded-xl font-bold bg-blue-600 hover:bg-blue-700 text-white transition-colors shadow-md shadow-blue-500/30 w-[120px]"
+          >
+            Next
+          </button>
+        )}
       </div>
 
       {/* Custom CSS for 3D flip (if tailwind plugins missing) */}

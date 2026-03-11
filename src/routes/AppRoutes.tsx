@@ -289,7 +289,7 @@ const AppRoutesContent: React.FC = () => {
                         currentIndex={state.currentQuestionIndex}
                         onNext={nextQuestion}
                         onPrev={prevQuestion}
-                        onExit={navHome}
+                        onExit={() => navTo('/synonyms/config')}
                         onFinish={() => navTo('/flashcards/summary')}
                         filters={state.filters || {} as any}
                         onJump={jumpToQuestion}
@@ -302,7 +302,7 @@ const AppRoutesContent: React.FC = () => {
                         currentIndex={state.currentQuestionIndex}
                         onNext={nextQuestion}
                         onPrev={prevQuestion}
-                        onExit={navHome}
+                        onExit={() => navTo('/synonyms/config')}
                         onFinish={() => navTo('/flashcards/summary')}
                         filters={state.filters || {} as any}
                         onJump={jumpToQuestion}
