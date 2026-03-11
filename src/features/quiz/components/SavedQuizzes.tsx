@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Trash2, Play, Clock, BookOpen, Edit2, Check, X, Save, Home } from 'lucide-react';
+import { Trash2, Play, Clock, BookOpen, Edit2, Check, X, Save, Home, PlusCircle, CheckCircle } from 'lucide-react';
 import { db } from '../../../lib/db';
 import { SavedQuiz } from '../types';
 import { useQuizContext } from '../context/QuizContext';
