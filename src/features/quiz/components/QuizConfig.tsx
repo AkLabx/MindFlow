@@ -461,20 +461,19 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
             </FilterGroup>
           </div>
         </Accordion>
-      </div>
 
-      {/* Sticky Action Footer */}
-      <div className="sticky bottom-0 left-0 w-full z-[40] border-t border-gray-200 dark:border-gray-700 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md px-4 py-3 pb-safe md:px-6 md:py-4 shadow-[0_-4px_15px_-5px_rgba(0,0,0,0.1)] dark:shadow-none">
-
-        {/* Active Filters display inside the footer to save space */}
-        <div className="mb-3 hidden sm:block">
+        {/* Active Filters Displayed above sticky footer area */}
+        <div className="pb-8">
            <ActiveFiltersBar
             filters={filters}
             onRemoveFilter={removeFilter}
             onClearAll={() => setFilters(emptyFilters)}
           />
         </div>
+      </div>
 
+      {/* Sticky Action Footer */}
+      <div className="sticky bottom-0 left-0 w-full z-[40] border-t border-gray-200 dark:border-gray-700 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md px-4 py-3 pb-safe md:px-6 md:py-4 shadow-[0_-4px_15px_-5px_rgba(0,0,0,0.1)] dark:shadow-none">
         <div className="flex flex-col sm:flex-row justify-between items-center gap-3 w-full">
            {/* Quiz Name Input - Compact for footer */}
            <div className="w-full sm:w-64 flex-shrink-0">
