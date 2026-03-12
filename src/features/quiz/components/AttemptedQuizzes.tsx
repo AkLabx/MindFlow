@@ -4,6 +4,7 @@ import { Trash2, Play, Clock, BookOpen, Edit2, Check, X, ArrowLeft, BarChart2, P
 import { db } from '../../../lib/db';
 import { SavedQuiz } from '../types';
 import { useQuizContext } from '../context/QuizContext';
+import { SynapticLoader } from '../../../components/ui/SynapticLoader';
 
 /**
  * Screen for managing attempted (completed) quizzes.
@@ -92,7 +93,7 @@ export const AttemptedQuizzes: React.FC = () => {
     if (loading) {
         return (
             <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+                <SynapticLoader size="lg" />
             </div>
         );
     }

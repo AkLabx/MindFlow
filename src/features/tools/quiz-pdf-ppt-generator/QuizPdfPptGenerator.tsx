@@ -29,6 +29,7 @@ import { ActiveFiltersBar } from '../../quiz/components/ui/ActiveFiltersBar';
 import { GeneratorModal } from './components/GeneratorModal';
 import { generatePDF } from './utils/pdfGenerator';
 import { generatePowerPoint } from './utils/pptGenerator';
+import { SynapticLoader } from '../../../components/ui/SynapticLoader';
 
 const emptyFilters: InitialFilters = {
   subject: [],
@@ -300,14 +301,7 @@ export const QuizPdfPptGenerator: React.FC = () => {
     const percentage = progress.total > 0 ? Math.round((progress.current / progress.total) * 100) : 0;
     return (
       <div className="min-h-screen flex flex-col items-center justify-center space-y-6 bg-gray-50 dark:bg-gray-900/50 p-8">
-        <div className="relative">
-          <div className="p-4 bg-indigo-50 rounded-full">
-            <Database className="w-8 h-8 text-indigo-600 animate-pulse" />
-          </div>
-          <div className="absolute -bottom-1 -right-1 bg-white dark:bg-gray-800 rounded-full p-1">
-            <Loader2 className="w-4 h-4 text-indigo-600 animate-spin" />
-          </div>
-        </div>
+        <SynapticLoader size="xl" />
         <div className="text-center space-y-2 max-w-xs w-full">
           <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100">Syncing Question Bank</h2>
           <p className="text-gray-500 dark:text-gray-400 text-sm">

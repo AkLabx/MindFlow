@@ -6,6 +6,7 @@ import { Question } from '../types';
 import { Button } from '../../../components/Button/Button';
 import { Card } from '../../../components/ui/Card';
 import { cn } from '../../../utils/cn';
+import { SynapticLoader } from '../../../components/ui/SynapticLoader';
 
 export const BookmarksPage: React.FC = () => {
     const navigate = useNavigate();
@@ -67,7 +68,7 @@ export const BookmarksPage: React.FC = () => {
     if (isLoading) {
         return (
             <div className="flex justify-center items-center h-full min-h-[50vh]">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+                <SynapticLoader size="lg" />
             </div>
         );
     }
