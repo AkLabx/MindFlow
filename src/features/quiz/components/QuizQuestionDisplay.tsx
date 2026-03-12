@@ -4,6 +4,7 @@ import { QuizOption } from './QuizOption';
 import { AiExplanationButton } from './AiExplanationButton';
 import { Clock, Hash, Calendar, FileText, Volume2, Square, Loader2 } from 'lucide-react';
 import { useTextToSpeech } from '../hooks/useTextToSpeech';
+import { SynapticLoader } from '../../../components/ui/SynapticLoader';
 
 // --- Client-Side Sanitizer ---
 /**
@@ -170,7 +171,7 @@ export function QuizQuestionDisplay({
                             title={isPlaying ? "Stop reading" : "Read question in Hindi"}
                         >
                             {isLoading ? (
-                                <Loader2 className="w-5 h-5 animate-spin" />
+                                <SynapticLoader size="sm" />
                             ) : isPlaying ? (
                                 <Square className="w-5 h-5 fill-current" />
                             ) : (

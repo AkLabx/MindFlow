@@ -4,6 +4,7 @@ import { Trash2, Play, Clock, BookOpen, Edit2, Check, X, Save, Home, PlusCircle,
 import { db } from '../../../lib/db';
 import { SavedQuiz } from '../types';
 import { useQuizContext } from '../context/QuizContext';
+import { SynapticLoader } from '../../../components/ui/SynapticLoader';
 
 /**
  * Screen for managing saved quizzes.
@@ -113,7 +114,7 @@ export const SavedQuizzes: React.FC = () => {
     if (loading) {
         return (
             <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-slate-900">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+                <SynapticLoader size="lg" />
             </div>
         );
     }

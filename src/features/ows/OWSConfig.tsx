@@ -8,6 +8,7 @@ import { MultiSelectDropdown } from '../quiz/components/ui/MultiSelectDropdown';
 import { SegmentedControl } from '../quiz/components/ui/SegmentedControl';
 import { ActiveFiltersBar } from '../quiz/components/ui/ActiveFiltersBar';
 import { cn } from '../../utils/cn';
+import { SynapticLoader } from '../../components/ui/SynapticLoader';
 
 interface OWSConfigProps {
     onStart: (data: OneWord[], filters?: InitialFilters) => void;
@@ -135,7 +136,7 @@ export const OWSConfig: React.FC<OWSConfigProps> = ({ onStart, onBack }) => {
     if (isLoading) {
         return (
             <div className="flex items-center justify-center min-h-[60vh]">
-                <Loader2 className="w-8 h-8 text-teal-500 animate-spin" />
+                <SynapticLoader size="lg" />
             </div>
         );
     }
