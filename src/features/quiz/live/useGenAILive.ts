@@ -36,10 +36,10 @@ export const useGenAILive = ({ quiz, voice, onStateChange, onError }: UseGenAILi
             // Generate the prompt from the quiz
             const questionsJson = JSON.stringify(quiz.questions.map((q, i) => ({
                 id: i + 1,
-                question: q.text,
+                question: q.question,
                 options: q.options,
-                answer: q.correctAnswer,
-                explanation: q.explanation
+                answer: q.correct,
+                explanation: q.explanation.summary || q.explanation.analysis_correct || "No explanation available"
             })));
 
             const systemInstruction = `You are a lively, encouraging, and highly intelligent Quiz Master running a live audio quiz game.
@@ -71,6 +71,26 @@ INSTRUCTIONS:
                     },
                     systemInstruction: {
                         parts: [{ text: systemInstruction }]
+                    }
+                },
+                callbacks: {
+                    onopen: () => console.log("Live AI Session Opened"),
+                    onmessage: (message: LiveServerMessage) => {
+                        if (message.serverContent?.modelTurn?.parts) {
+                            for (const part of message.serverContent.modelTurn.parts) {
+                                if (part.inlineData && part.inlineData.data) {
+                                    handleIncomingAudio(part.inlineData.data, audioContext);
+                                }
+                            }
+                        }
+                    },
+                    onclose: (e) => {
+                        console.log("Live AI Session Closed", e);
+                        handleDisconnect();
+                    },
+                    onerror: (err) => {
+                        console.error("Live AI Session Error", err);
+                        handleDisconnect();
                     }
                 }
             });
@@ -142,23 +162,7 @@ INSTRUCTIONS:
             source.connect(workletNode);
             // Worklet node is NOT connected to destination to avoid feedback loop
 
-            // Receive messages
-            (async () => {
-                try {
-                    for await (const message of session.receive()) {
-                        if (message.serverContent?.modelTurn?.parts) {
-                            for (const part of message.serverContent.modelTurn.parts) {
-                                if (part.inlineData && part.inlineData.data) {
-                                    handleIncomingAudio(part.inlineData.data, audioContext);
-                                }
-                            }
-                        }
-                    }
-                } catch (e) {
-                    console.error("Session receive error", e);
-                    handleDisconnect();
-                }
-            })();
+            // Messages are now handled entirely by the onmessage callback.
 
             onStateChange?.('connected');
 
