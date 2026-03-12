@@ -35,6 +35,7 @@ export const SynonymPhase1Session: React.FC = () => {
 
     // Load and process data based on grouping mode
     useEffect(() => {
+        if (isDataLoading) return;
         setIsLoading(true);
         const parsed: SynonymWord[] = []; // Replaced by async load
 
@@ -85,7 +86,7 @@ export const SynonymPhase1Session: React.FC = () => {
         }
 
         setIsLoading(false);
-    }, [groupingMode]);
+    }, [groupingMode, fetchedData, isDataLoading]);
 
     // Handle Word Display Animation restart
     useEffect(() => {
