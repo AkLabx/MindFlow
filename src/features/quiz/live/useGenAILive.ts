@@ -20,10 +20,10 @@ export const useGenAILive = ({ quiz, voice, onStateChange, onError }: UseGenAILi
     const connect = useCallback(async () => {
         try {
             onStateChange?.('connecting');
-            const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+            const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY || import.meta.env.VITE_GEMINI_API_KEY;
 
             if (!apiKey) {
-                throw new Error("Missing VITE_GEMINI_API_KEY environment variable. Please check your .env file.");
+                throw new Error("Missing API Key. Please check your .env file or environment variables.");
             }
 
             const ai = new GoogleGenAI({ apiKey });
