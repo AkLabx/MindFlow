@@ -6,7 +6,6 @@ import { cn } from '../../../../utils/cn';
 import { APP_CONFIG } from '../../../constants/config';
 import { usePDFGenerator } from '../../../hooks/usePDFGenerator';
 import { useJSONDownloader } from '../../../hooks/useJSONDownloader';
-import { generateOWSPDF } from '../utils/pdfGenerator';
 import { DownloadOptionsModal } from '../../../components/ui/DownloadOptionsModal';
 import { DownloadReadyModal } from '../../../components/ui/DownloadReadyModal';
 import { DownloadResult } from '../../../hooks/useJSONDownloader';
@@ -42,7 +41,7 @@ export const OWSNavigationPanel: React.FC<OWSNavigationPanelProps> = ({
   const [openGroups, setOpenGroups] = useState<Set<number>>(new Set());
 
   // Generators
-  const { generatePDF, isGenerating: isGeneratingPDF, error: pdfError } = usePDFGenerator(generateOWSPDF);
+  const { generatePDF, isGenerating: isGeneratingPDF, error: pdfError } = usePDFGenerator(() => import('../utils/pdfGenerator').then(m => m.generateOWSPDF));
   const { downloadJSON, isGenerating: isGeneratingJSON, error: jsonError } = useJSONDownloader<OneWord>();
 
   // State to track which chunk is currently being downloaded (to show spinner in list)

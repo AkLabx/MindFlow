@@ -22,7 +22,7 @@ export interface UsePDFGeneratorReturn<T> {
  * @param generatorFn The function that performs the actual PDF generation and returns a Blob.
  */
 export function usePDFGenerator<T>(
-  generatorFn: (data: T[], config: PDFGenerationConfig) => Promise<Blob>
+  generatorFnFactory: () => Promise<(data: T[], config: PDFGenerationConfig) => Promise<Blob>>
 ): UsePDFGeneratorReturn<T> {
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<Error | null>(null);
@@ -31,6 +31,7 @@ export function usePDFGenerator<T>(
     setIsGenerating(true);
     setError(null);
     try {
+      const generatorFn = await generatorFnFactory();
       const blob = await generatorFn(data, config);
       const url = URL.createObjectURL(blob);
       return { blob, fileName: config.fileName, url };
@@ -41,7 +42,7 @@ export function usePDFGenerator<T>(
     } finally {
       setIsGenerating(false);
     }
-  }, [generatorFn]);
+  }, [generatorFnFactory]);
 
   return { generatePDF, isGenerating, error };
 }

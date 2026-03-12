@@ -1,5 +1,4 @@
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
+import type { jsPDF } from 'jspdf';
 import { OneWord } from '../../../types/models';
 import { PDFGenerationConfig } from '../../../hooks/usePDFGenerator';
 
@@ -30,6 +29,8 @@ const renderHindiToImage = async (text: string): Promise<string> => {
   document.body.appendChild(container);
 
   try {
+    const html2canvasModule = await import('html2canvas');
+    const html2canvas = html2canvasModule.default;
     const canvas = await html2canvas(container, {
       backgroundColor: PDF_BG_COLOR,
       scale: 2, // Higher scale for better quality, then we display it smaller
@@ -45,6 +46,8 @@ const renderHindiToImage = async (text: string): Promise<string> => {
  * Generates the OWS PDF.
  */
 export const generateOWSPDF = async (data: OneWord[], config: PDFGenerationConfig): Promise<Blob> => {
+  const { jsPDF } = await import('jspdf');
+
   const doc = new jsPDF({
     orientation: 'portrait',
     unit: 'mm',
