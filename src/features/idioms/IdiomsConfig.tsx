@@ -172,7 +172,7 @@ export const IdiomsConfig: React.FC<IdiomsConfigProps> = ({ onStart, onBack }) =
                                 className={cn(
                                     "px-3 py-2 rounded-lg text-xs font-bold transition-all border shadow-sm",
                                     !selectedLetter
-                                        ? "bg-amber-50 dark:bg-amber-900/200 text-white border-amber-500 ring-2 ring-amber-200"
+                                        ? "bg-amber-500 dark:bg-amber-600 text-white border-amber-500 ring-2 ring-amber-200"
                                         : "bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 border-gray-200 dark:border-gray-700 hover:border-amber-300 hover:text-amber-600 dark:text-amber-400"
                                 )}
                             >
@@ -190,7 +190,7 @@ export const IdiomsConfig: React.FC<IdiomsConfigProps> = ({ onStart, onBack }) =
                                         className={cn(
                                             "w-8 h-8 flex items-center justify-center rounded-lg text-xs font-bold transition-all border",
                                             isSelected
-                                                ? "bg-amber-100 text-amber-900 border-amber-300 ring-1 ring-amber-300"
+                                                ? "bg-amber-500 text-white border-amber-500 ring-1 ring-amber-500"
                                                 : "bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:border-amber-300 hover:text-amber-700 dark:text-amber-400",
                                             isDisabled && "opacity-30 cursor-not-allowed bg-gray-50 dark:bg-gray-900 text-gray-300 border-gray-100 dark:border-gray-800"
                                         )}
@@ -245,7 +245,7 @@ export const IdiomsConfig: React.FC<IdiomsConfigProps> = ({ onStart, onBack }) =
                                         className={cn(
                                             "px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 border select-none",
                                             isSelected
-                                                ? "bg-amber-100 text-amber-900 border-amber-300 ring-1 ring-amber-300"
+                                                ? "bg-amber-500 text-white border-amber-500 ring-1 ring-amber-500"
                                                 : "bg-gray-50 dark:bg-gray-900 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:bg-gray-800 dark:hover:bg-slate-800 hover:border-gray-300 dark:border-gray-600",
                                             isDisabled && "opacity-40 cursor-not-allowed bg-gray-50 dark:bg-gray-900"
                                         )}
@@ -295,7 +295,7 @@ export const IdiomsConfig: React.FC<IdiomsConfigProps> = ({ onStart, onBack }) =
                             size="lg"
                             onClick={handleStart}
                             disabled={filteredIdioms.length === 0}
-                            className="bg-amber-50 dark:bg-amber-900/200 hover:bg-amber-600 text-white border-none shadow-lg shadow-amber-200"
+                            className="bg-amber-500 dark:bg-amber-600 hover:bg-amber-600 text-white border-none shadow-lg shadow-amber-200"
                         >
                             <Play className="w-5 h-5 mr-2 fill-current" /> Start Flashcards ({filteredIdioms.length})
                         </Button>
