@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { SynonymWord } from '../quiz/types';
 import { quizEngine } from '../quiz/engine';
+import { SynapticLoader } from './SynapticLoader';
 interface SynonymsConfigProps {
     onBack: () => void;
     onStart: (data: SynonymWord[], filters: any) => void;
@@ -36,19 +37,7 @@ export const SynonymsConfig: React.FC<SynonymsConfigProps> = ({ onBack, onStart 
     };
 
     if (isDataLoading) {
-        return (
-            <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-200 p-4 md:p-8 space-y-4 max-w-5xl mx-auto w-full">
-                <div className="h-10 bg-slate-200 dark:bg-slate-700 rounded w-1/4 animate-pulse mb-8"></div>
-                <div className="h-32 bg-slate-200 dark:bg-slate-700 rounded-2xl animate-pulse"></div>
-                <div className="h-8 bg-slate-200 dark:bg-slate-700 rounded w-1/3 animate-pulse mt-8 mb-4"></div>
-                <div className="h-24 bg-slate-200 dark:bg-slate-700 rounded-2xl animate-pulse"></div>
-                <div className="h-8 bg-slate-200 dark:bg-slate-700 rounded w-1/3 animate-pulse mt-8 mb-4"></div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="h-24 bg-slate-200 dark:bg-slate-700 rounded-2xl animate-pulse"></div>
-                    <div className="h-24 bg-slate-200 dark:bg-slate-700 rounded-2xl animate-pulse"></div>
-                </div>
-            </div>
-        );
+        return <SynapticLoader />;
     }
 
     if (error) {
