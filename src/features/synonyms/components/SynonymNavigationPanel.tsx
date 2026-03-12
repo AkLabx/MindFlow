@@ -6,7 +6,6 @@ import { cn } from '../../../utils/cn';
 import { APP_CONFIG } from '../../../constants/config';
 import { usePDFGenerator } from '../../../hooks/usePDFGenerator';
 import { useJSONDownloader } from '../../../hooks/useJSONDownloader';
-import { generateSynonymPDF } from '../utils/pdfGenerator';
 import { DownloadOptionsModal } from '../../../components/ui/DownloadOptionsModal';
 import { DownloadReadyModal } from '../../../components/ui/DownloadReadyModal';
 import { DownloadResult } from '../../../hooks/useJSONDownloader';
@@ -24,7 +23,7 @@ export const SynonymNavigationPanel: React.FC<SynonymNavigationPanelProps> = ({
 }) => {
   const [openGroups, setOpenGroups] = useState<Set<number>>(new Set());
 
-  const { generatePDF, isGenerating: isGeneratingPDF, error: pdfError } = usePDFGenerator(generateSynonymPDF);
+  const { generatePDF, isGenerating: isGeneratingPDF, error: pdfError } = usePDFGenerator(() => import('../utils/pdfGenerator').then(m => m.generateSynonymPDF));
   const { downloadJSON, isGenerating: isGeneratingJSON, error: jsonError } = useJSONDownloader<SynonymWord>();
 
   const [downloadingChunk, setDownloadingChunk] = useState<number | null>(null);
