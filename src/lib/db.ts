@@ -18,11 +18,12 @@ export interface SynonymInteraction {
 
 
 const DB_NAME = 'MindFlowDB';
-const DB_VERSION = 3;
+const DB_VERSION = 4;
 const STORE_NAME = 'saved_quizzes';
 const HISTORY_STORE_NAME = 'quiz_history';
 const BOOKMARKS_STORE_NAME = 'global_bookmarks';
 const SYNONYM_STORE_NAME = 'synonym_interactions';
+const ACTIVE_SESSION_STORE = 'active_test_session';
 
 /**
  * Opens a connection to the IndexedDB database.
@@ -69,6 +70,51 @@ const openDB = (): Promise<IDBDatabase> => {
  * in the user's browser, allowing for offline persistence of quiz sessions.
  */
 export const db = {
+    /**
+     * Enterprise: Saves active test session state for offline resilience
+     */
+    saveActiveSession: async (sessionId: string, state: any): Promise<void> => {
+        const dbInstance = await openDB();
+        return new Promise((resolve, reject) => {
+            const transaction = dbInstance.transaction(ACTIVE_SESSION_STORE, 'readwrite');
+            const store = transaction.objectStore(ACTIVE_SESSION_STORE);
+            const request = store.put({ sessionId, state, updatedAt: new Date().toISOString() });
+
+            request.onsuccess = () => resolve();
+            request.onerror = () => reject(request.error);
+        });
+    },
+
+    /**
+     * Enterprise: Retrieves active test session
+     */
+    getActiveSession: async (sessionId: string): Promise<any> => {
+        const dbInstance = await openDB();
+        return new Promise((resolve, reject) => {
+            const transaction = dbInstance.transaction(ACTIVE_SESSION_STORE, 'readonly');
+            const store = transaction.objectStore(ACTIVE_SESSION_STORE);
+            const request = store.get(sessionId);
+
+            request.onsuccess = () => resolve(request.result?.state || null);
+            request.onerror = () => reject(request.error);
+        });
+    },
+
+    /**
+     * Enterprise: Clears active session upon successful submit
+     */
+    clearActiveSession: async (sessionId: string): Promise<void> => {
+         const dbInstance = await openDB();
+         return new Promise((resolve, reject) => {
+            const transaction = dbInstance.transaction(ACTIVE_SESSION_STORE, 'readwrite');
+            const store = transaction.objectStore(ACTIVE_SESSION_STORE);
+            const request = store.delete(sessionId);
+
+            request.onsuccess = () => resolve();
+            request.onerror = () => reject(request.error);
+        });
+    },
+
     /** Background push helper to sync to Supabase if logged in */
     _pushToSupabase: async (type: 'quiz' | 'history' | 'bookmark' | 'synonym_interaction', data: any) => {
         try {

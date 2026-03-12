@@ -15,8 +15,7 @@ interface UseMockTimerProps {
 /**
  * Custom hook for managing a global session countdown timer (Mock Mode).
  *
- * Unlike the Learning Timer, this one does not reset per question.
- * It counts down continuously for the entire duration of the exam.
+ * UPGRADED: Now uses a Web Worker to prevent browser throttling when the tab is inactive!
  *
  * @param {UseMockTimerProps} props - The hook configuration.
  * @returns {object} Timer state and helper functions.
@@ -28,6 +27,7 @@ export function useMockTimer({
 }: UseMockTimerProps) {
   const [timeLeft, setTimeLeft] = useState(totalTime);
   const timeLeftRef = useRef(totalTime);
+  const workerRef = useRef<Worker | null>(null);
 
   useEffect(() => {
     // If we start with 0 or less, finish immediately
@@ -37,29 +37,39 @@ export function useMockTimer({
     }
     setTimeLeft(totalTime);
     timeLeftRef.current = totalTime;
-  }, [totalTime]); // Only reset if totalTime prop changes significantly (usually init)
+  }, [totalTime]);
 
   useEffect(() => {
-    const intervalId = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev <= 0) {
-          clearInterval(intervalId);
-          onTimeUp();
-          return 0;
-        }
-        const newTime = prev - 1;
-        timeLeftRef.current = newTime;
-        onTick?.(newTime);
-        return newTime;
-      });
-    }, 1000);
+    // Initialize Web Worker
+    workerRef.current = new Worker(new URL('../engine/timerWorker.ts', import.meta.url), { type: 'module' });
 
-    return () => clearInterval(intervalId);
+    workerRef.current.onmessage = (e) => {
+        if (e.data === 'TICK') {
+            setTimeLeft((prev) => {
+                if (prev <= 0) {
+                    workerRef.current?.postMessage('STOP');
+                    onTimeUp();
+                    return 0;
+                }
+                const newTime = prev - 1;
+                timeLeftRef.current = newTime;
+                onTick?.(newTime);
+                return newTime;
+            });
+        }
+    };
+
+    // Start Worker Timer
+    workerRef.current.postMessage('START');
+
+    return () => {
+        workerRef.current?.postMessage('STOP');
+        workerRef.current?.terminate();
+    };
   }, [onTimeUp, onTick]);
 
   /**
    * Formats seconds into M:SS string.
-   * Note: Does not zero-pad minutes, standard for longer durations.
    */
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);

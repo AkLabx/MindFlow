@@ -9,6 +9,8 @@ import { ActiveQuizLayout } from '../layouts/ActiveQuizLayout';
 import { cn } from '../../../utils/cn';
 import { APP_CONFIG } from '../../../constants/config';
 import { useMockTimer } from '../hooks/useMockTimer';
+import { useAutoSave } from '../hooks/useAutoSave';
+import { useAntiCheat } from '../hooks/useAntiCheat';
 import { quizEngine } from '../engine';
 
 interface MockSessionProps {
@@ -38,7 +40,36 @@ export const MockSession: React.FC<MockSessionProps> = ({ questions, initialTime
         ? initialTime
         : questions.length * APP_CONFIG.TIMERS.MOCK_MODE_DEFAULT_PER_QUESTION;
 
-    const finishSession = () => {
+    const { timeLeft, formatTime } = useMockTimer({
+        totalTime: totalExamTime,
+        onTimeUp: () => finishSession()
+    });
+
+
+
+    // ENTERPRISE: Web Worker Timer (Replaces standard hook)
+
+
+    // ENTERPRISE: Offline Auto-Save (IndexedDB Resilience)
+    const { clearSavedSession } = useAutoSave({
+        sessionId: 'mock_test_active',
+        state: { answers, currentIndex, markedForReview, timeSpentPerQuestion }
+    });
+
+    // ENTERPRISE: Anti-Cheating System (Visibility change detection)
+    useAntiCheat({
+        isEnabled: true,
+        maxViolations: 3,
+        onViolation: (count) => {
+            alert(`⚠️ Warning! Tab switching or minimizing is not allowed during Mock Test. Violation ${count}/3`);
+        },
+        onMaxViolationsReached: () => {
+            alert('❌ Maximum violations reached. The test is being auto-submitted.');
+            finishSession();
+        }
+    });
+
+        const finishSession = () => {
         saveCurrentQuestionTime(); // Save last question time
 
         // Calculate score
@@ -51,6 +82,7 @@ export const MockSession: React.FC<MockSessionProps> = ({ questions, initialTime
             document.exitFullscreen().catch(() => { });
         }
 
+        clearSavedSession();
         onComplete({
             answers,
             timeTaken: timeSpentPerQuestion,
@@ -59,14 +91,7 @@ export const MockSession: React.FC<MockSessionProps> = ({ questions, initialTime
         });
     };
 
-    const { timeLeft, formatTime } = useMockTimer({
-        totalTime: totalExamTime,
-        onTimeUp: finishSession,
-        onTick: () => {
-            // Increment internal tracking for current question
-            currentQTimer.current += 1;
-        }
-    });
+
 
     // Record time when switching questions
     const saveCurrentQuestionTime = () => {
