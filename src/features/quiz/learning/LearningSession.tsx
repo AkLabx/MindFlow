@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAnalyticsStore } from '../stores/useAnalyticsStore';
 import { useBookmarkStore } from '../stores/useBookmarkStore';
@@ -11,6 +11,8 @@ import { QuizExplanation } from '../components/QuizExplanation';
 import { QuizBreadcrumbs } from '../components/QuizBreadcrumbs';
 import { Button } from '../../../components/Button/Button';
 import { Badge } from '../../../components/ui/Badge';
+import { SettingsContext } from '../../../context/SettingsContext';
+import { SettingsContextType } from '../types';
 import { useQuizSounds } from '../../../hooks/useQuizSounds';
 import { ActiveQuizLayout } from '../layouts/ActiveQuizLayout';
 import { SettingsModal } from '../components/ui/SettingsModal';
@@ -93,6 +95,8 @@ export const LearningSession: React.FC<LearningSessionProps> = ({
 
     // New Synthesized Sounds
     const { playCorrect, playWrong, playTick } = useQuizSounds();
+    const { isHapticEnabled } = useContext(SettingsContext) as SettingsContextType;
+
 
     const finishSession = () => {
         let score = 0;
@@ -120,7 +124,10 @@ export const LearningSession: React.FC<LearningSessionProps> = ({
         // We call onAnswer with a special marker.
         onAnswer(currentQuestion.id, 'TIME_UP', 0);
         playWrong();
-    }, [currentQuestion.id, playWrong, onAnswer]);
+        if (isHapticEnabled && 'vibrate' in navigator) {
+            navigator.vibrate([100, 50, 100]);
+        }
+    }, [currentQuestion.id, playWrong, onAnswer, isHapticEnabled]);
 
     // Auto-close Time Up Modal after 2 seconds
     useEffect(() => {
@@ -196,8 +203,14 @@ export const LearningSession: React.FC<LearningSessionProps> = ({
 
         if (option === currentQuestion.correct) {
             playCorrect();
+            if (isHapticEnabled && 'vibrate' in navigator) {
+                navigator.vibrate(50);
+            }
         } else {
             playWrong();
+            if (isHapticEnabled && 'vibrate' in navigator) {
+                navigator.vibrate([100, 50, 100]);
+            }
         }
     };
 
