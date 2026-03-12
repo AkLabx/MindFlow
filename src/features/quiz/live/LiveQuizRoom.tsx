@@ -58,7 +58,6 @@ export const LiveQuizRoom: React.FC = () => {
 
     const handleConnect = async () => {
         if (!quiz) return;
-        setState('connecting');
         setErrorMsg(null);
         await connect();
     };

@@ -18,9 +18,10 @@ export const useGenAILive = ({ quiz, voice, onStateChange, onError }: UseGenAILi
     const nextStartTimeRef = useRef<number>(0);
 
     const connect = useCallback(async () => {
+        onStateChange?.('connecting');
         try {
-            onStateChange?.('connecting');
-            const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY || import.meta.env.VITE_GEMINI_API_KEY;
+            // @ts-ignore
+            let apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY || import.meta.env.VITE_GEMINI_API_KEY;
 
             if (!apiKey) {
                 throw new Error("Missing API Key. Please check your .env file or environment variables.");
@@ -29,7 +30,10 @@ export const useGenAILive = ({ quiz, voice, onStateChange, onError }: UseGenAILi
             const ai = new GoogleGenAI({ apiKey });
 
             // Initialize Audio Context immediately for correct user gesture bindings
-            const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
+            const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+            if (!AudioContextClass) throw new Error("AudioContext is not supported in your browser.");
+            const audioContext = new AudioContextClass({ sampleRate: 24000 });
+            await audioContext.resume();
             audioContextRef.current = audioContext;
             nextStartTimeRef.current = 0;
 
@@ -98,13 +102,18 @@ INSTRUCTIONS:
             sessionRef.current = session;
 
             // Setup audio input (Microphone)
-            const stream = await navigator.mediaDevices.getUserMedia({
-                audio: {
-                    channelCount: 1,
-                    sampleRate: 16000,
-                }
-            });
-            mediaStreamRef.current = stream;
+            let stream;
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({
+                    audio: {
+                        channelCount: 1,
+                        sampleRate: 16000,
+                    }
+                });
+                mediaStreamRef.current = stream;
+            } catch (mediaErr) {
+                throw new Error("Microphone access denied or unavailable. Please allow microphone permissions to use the Live Quiz Master.");
+            }
 
             // We need a custom AudioWorklet to capture raw PCM audio chunks.
             // Since we can't easily load external files in a generic way, we create a blob URL inline.
@@ -129,7 +138,7 @@ INSTRUCTIONS:
             const workletUrl = URL.createObjectURL(blob);
 
             // To process mic at exactly 16000, we create a separate context just for input
-            const inputAudioContext = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
+            const inputAudioContext = new AudioContextClass({ sampleRate: 16000 });
             await inputAudioContext.audioWorklet.addModule(workletUrl);
 
             const source = inputAudioContext.createMediaStreamSource(stream);
