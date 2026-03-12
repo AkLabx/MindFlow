@@ -11,7 +11,7 @@ const PAGE_MARGIN_Y = 15;
 /**
  * Helper to render Hindi text to an image.
  */
-const renderHindiToImage = async (text: string): Promise<string> => {
+const renderHindiToImage = async (text: string, html2canvas: any): Promise<string> => {
   const container = document.createElement('div');
   container.style.position = 'absolute';
   container.style.top = '-9999px';
@@ -28,8 +28,6 @@ const renderHindiToImage = async (text: string): Promise<string> => {
   document.body.appendChild(container);
 
   try {
-    const html2canvasModule = await import('html2canvas');
-    const html2canvas = html2canvasModule.default;
     const canvas = await html2canvas(container, {
       backgroundColor: PDF_BG_COLOR,
       scale: 2,
@@ -46,6 +44,8 @@ const renderHindiToImage = async (text: string): Promise<string> => {
  */
 export const generateSynonymPDF = async (data: SynonymWord[], config: PDFGenerationConfig): Promise<Blob> => {
   const { jsPDF } = await import('jspdf');
+  const html2canvasModule = await import('html2canvas');
+  const html2canvas = html2canvasModule.default;
 
   const doc = new jsPDF({
     orientation: 'portrait',
@@ -64,6 +64,8 @@ export const generateSynonymPDF = async (data: SynonymWord[], config: PDFGenerat
 
   for (let i = 0; i < data.length; i++) {
     const item = data[i];
+
+    await new Promise(resolve => setTimeout(resolve, 0)); // Yield to main thread to prevent UI freeze
     const isTop = i % 2 === 0;
 
     if (i > 0 && isTop) {
@@ -122,7 +124,7 @@ export const generateSynonymPDF = async (data: SynonymWord[], config: PDFGenerat
       doc.text('HINDI MEANING', PAGE_MARGIN_X, currentY);
       currentY += 4;
 
-      const hindiImgData = await renderHindiToImage(item.hindiMeaning);
+      const hindiImgData = await renderHindiToImage(item.hindiMeaning, html2canvas);
 
       const imgProps = doc.getImageProperties(hindiImgData);
       const finalImgWidth = 100;

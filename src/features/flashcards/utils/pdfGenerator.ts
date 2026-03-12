@@ -11,7 +11,7 @@ const CARD_PADDING = 10;
 /**
  * Helper to render Hindi text to an image.
  */
-const renderHindiToImage = async (text: string): Promise<string> => {
+const renderHindiToImage = async (text: string, html2canvas: any): Promise<string> => {
   const container = document.createElement('div');
   container.style.position = 'absolute';
   container.style.top = '-9999px';
@@ -28,8 +28,6 @@ const renderHindiToImage = async (text: string): Promise<string> => {
   document.body.appendChild(container);
 
   try {
-    const html2canvasModule = await import('html2canvas');
-    const html2canvas = html2canvasModule.default;
     const canvas = await html2canvas(container, {
       backgroundColor: PDF_BG_COLOR,
       scale: 2,
@@ -46,6 +44,8 @@ const renderHindiToImage = async (text: string): Promise<string> => {
  */
 export const generateIdiomsPDF = async (data: Idiom[], config: PDFGenerationConfig): Promise<Blob> => {
   const { jsPDF } = await import('jspdf');
+  const html2canvasModule = await import('html2canvas');
+  const html2canvas = html2canvasModule.default;
 
   const doc = new jsPDF({
     orientation: 'portrait',
@@ -62,6 +62,8 @@ export const generateIdiomsPDF = async (data: Idiom[], config: PDFGenerationConf
 
   for (let i = 0; i < data.length; i++) {
     const item = data[i];
+
+    await new Promise(resolve => setTimeout(resolve, 0)); // Yield to main thread to prevent UI freeze
     const isTop = i % 2 === 0;
 
     if (i > 0 && isTop) {
@@ -122,7 +124,7 @@ export const generateIdiomsPDF = async (data: Idiom[], config: PDFGenerationConf
         doc.text('HINDI MEANING', currentX, currentY);
         currentY += 4;
 
-        const hindiImgData = await renderHindiToImage(item.content.meanings.hindi);
+        const hindiImgData = await renderHindiToImage(item.content.meanings.hindi, html2canvas);
 
         const imgProps = doc.getImageProperties(hindiImgData);
         const finalImgWidth = 80;

@@ -24,8 +24,6 @@ export function useJSONDownloader<T>(): UseJSONDownloaderReturn<T> {
     setError(null);
 
     try {
-      // Artificial delay to allow spinner to be seen
-      await new Promise(resolve => setTimeout(resolve, 1000));
 
       const jsonString = JSON.stringify(data, null, 2);
       const blob = new Blob([jsonString], { type: 'application/json' });

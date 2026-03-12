@@ -11,7 +11,7 @@ const PAGE_MARGIN_Y = 15;
 /**
  * Helper to render Hindi text to an image.
  */
-const renderHindiToImage = async (text: string): Promise<string> => {
+const renderHindiToImage = async (text: string, html2canvas: any): Promise<string> => {
   // Create a container for the text
   const container = document.createElement('div');
   container.style.position = 'absolute';
@@ -29,8 +29,6 @@ const renderHindiToImage = async (text: string): Promise<string> => {
   document.body.appendChild(container);
 
   try {
-    const html2canvasModule = await import('html2canvas');
-    const html2canvas = html2canvasModule.default;
     const canvas = await html2canvas(container, {
       backgroundColor: PDF_BG_COLOR,
       scale: 2, // Higher scale for better quality, then we display it smaller
@@ -47,6 +45,8 @@ const renderHindiToImage = async (text: string): Promise<string> => {
  */
 export const generateOWSPDF = async (data: OneWord[], config: PDFGenerationConfig): Promise<Blob> => {
   const { jsPDF } = await import('jspdf');
+  const html2canvasModule = await import('html2canvas');
+  const html2canvas = html2canvasModule.default;
 
   const doc = new jsPDF({
     orientation: 'portrait',
@@ -65,6 +65,8 @@ export const generateOWSPDF = async (data: OneWord[], config: PDFGenerationConfi
 
   for (let i = 0; i < data.length; i++) {
     const item = data[i];
+
+    await new Promise(resolve => setTimeout(resolve, 0)); // Yield to main thread to prevent UI freeze
     const isTop = i % 2 === 0;
 
     // Add new page if we are starting an odd index (which goes to top) and it's not the first item
@@ -135,7 +137,7 @@ export const generateOWSPDF = async (data: OneWord[], config: PDFGenerationConfi
     currentY += 4;
 
     // Render Image
-    const hindiImgData = await renderHindiToImage(item.content.meaning_hi);
+    const hindiImgData = await renderHindiToImage(item.content.meaning_hi, html2canvas);
 
     // Calculate dimensions to fit width but keep aspect ratio
     // We generated it at 500px width.
