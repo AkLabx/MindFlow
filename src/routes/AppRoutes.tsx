@@ -4,6 +4,7 @@ import { QuizProvider, useQuizContext } from '../features/quiz/context/QuizConte
 import { useFlashcardStore } from '../features/quiz/stores/useFlashcardStore';
 import { QuizLayout } from '../features/quiz/QuizLayout';
 import { useAuth } from '../features/auth/context/AuthContext';
+import { SynapticLoader } from '../components/ui/SynapticLoader';
 
 // Lazy Loaded Components for Code Splitting
 // Groups: Main UI, Quiz Flow, Flashcard Flow, Auth Flow
@@ -72,7 +73,7 @@ const AppRoutesContent: React.FC = () => {
     const navHome = () => { goHome(); navigate('/dashboard'); };
 
     return (
-        <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
+        <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><SynapticLoader size="xl" /></div>}>
             <Routes>
                 {/* --- Public / Landing Route --- */}
                 <Route path="/" element={

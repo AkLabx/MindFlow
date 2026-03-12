@@ -3,6 +3,7 @@ import { HashRouter } from 'react-router-dom';
 import { AppProvider } from './providers/AppProvider';
 import { AppRoutes } from './routes/AppRoutes';
 import { supabase } from './lib/supabase';
+import { SynapticLoader } from './components/ui/SynapticLoader';
 
 /**
  * Root Application Component.
@@ -33,7 +34,7 @@ const App: React.FC = () => {
 
   if (!isReady) {
     // Show a loading spinner while Supabase initializes
-    return <div className="h-screen flex items-center justify-center">Loading...</div>;
+    return <div className="h-screen flex items-center justify-center"><SynapticLoader size="xl" /></div>;
   }
 
   return (

@@ -1,6 +1,7 @@
 import React from 'react';
 import { useAuth } from './context/AuthContext';
 import AuthPage from './components/AuthPage';
+import { SynapticLoader } from '../../components/ui/SynapticLoader';
 
 interface AuthGuardProps {
   children: React.ReactNode;
@@ -22,7 +23,7 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
   const { session, loading } = useAuth();
 
   if (loading) {
-    return <div>Loading...</div>;
+    return <div className="min-h-screen flex items-center justify-center"><SynapticLoader size="lg" /></div>;
   }
 
   if (!session) {

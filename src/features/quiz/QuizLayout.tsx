@@ -6,6 +6,7 @@ import { Fireballs } from '../../components/Background/Fireballs';
 import { SettingsModal } from './components/ui/SettingsModal';
 import { useAuth } from '../auth/context/AuthContext';
 import { useQuizContext } from './context/QuizContext';
+import { SynapticLoader } from '../../components/ui/SynapticLoader';
 
 export const QuizLayout: React.FC = () => {
     const { areBgAnimationsEnabled } = useContext(SettingsContext);
@@ -61,7 +62,7 @@ export const QuizLayout: React.FC = () => {
             onTabChange={handleTabChange}
             onOpenSettings={() => setIsSettingsOpen(true)}
         >
-            <Suspense fallback={<div>Loading...</div>}>
+            <Suspense fallback={<div className="flex justify-center py-12"><SynapticLoader size="lg" /></div>}>
                 {areBgAnimationsEnabled && <Fireballs />}
                 <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
                 <Outlet />
