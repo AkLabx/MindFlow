@@ -36,13 +36,17 @@ export const SynonymQuizSession: React.FC<SynonymQuizSessionProps> = ({ onExit }
         const searchParams = new URLSearchParams(hash.split('?')[1] || '');
         const modeParam = searchParams.get('mode') as 'imposter' | 'connect' | 'speed' | null;
         setMode(modeParam || 'imposter');
-
-        const parsedData: SynonymWord[] = []; // Replaced by async load
-        // Sort by importance to prefer high frequency
-        parsedData.sort((a, b) => b.importance_score - a.importance_score);
-        setData(parsedData);
-        setIsLoading(false);
     }, []);
+
+    useEffect(() => {
+        if (!isDataLoading && fetchedData) {
+            const parsedData = [...fetchedData];
+            // Sort by importance to prefer high frequency
+            parsedData.sort((a, b) => b.importance_score - a.importance_score);
+            setData(parsedData);
+            setIsLoading(false);
+        }
+    }, [isDataLoading, fetchedData]);
 
     const handleCorrect = (bonus: number = 0) => {
         if ('vibrate' in navigator) navigator.vibrate(50);
