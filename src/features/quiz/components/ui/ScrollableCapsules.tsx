@@ -22,7 +22,7 @@ export const ScrollableCapsules = React.memo(function ScrollableCapsules({
   tooltip
 }: ScrollableCapsulesProps) {
   return (
-    <div>
+    <div className="w-full min-w-0">
       {label && (
         <div className="flex items-center gap-1.5 mb-2">
           <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{label}</label>
@@ -40,7 +40,8 @@ export const ScrollableCapsules = React.memo(function ScrollableCapsules({
 
       {/* Scrollable Container */}
       <div
-        className="flex overflow-x-auto py-1 -mx-1 px-1 scrollbar-hide space-x-2"
+        className="flex overflow-x-auto py-2 -mx-2 px-2 scrollbar-hide space-x-2 w-full snap-x snap-mandatory"
+        style={{ WebkitOverflowScrolling: 'touch' }}
         role="group"
         aria-label={label || "Capsule Filter Group"}
       >
@@ -57,7 +58,7 @@ export const ScrollableCapsules = React.memo(function ScrollableCapsules({
                   disabled={isDisabled}
                   aria-pressed={isSelected}
                   className={cn(
-                      "flex-shrink-0 whitespace-nowrap py-2 px-4 rounded-full text-sm font-semibold transition-all duration-200 border flex items-center gap-2",
+                      "snap-center flex-shrink-0 whitespace-nowrap py-2 px-4 rounded-full text-sm font-semibold transition-all duration-200 border flex items-center gap-2",
                       isSelected
                           ? "bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-200 dark:shadow-none"
                           : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-gray-300 dark:hover:border-gray-600",
