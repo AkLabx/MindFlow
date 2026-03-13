@@ -170,7 +170,12 @@ INSTRUCTIONS:
                                 sessionPromise.then(session => {
                                     if (!isConnectedRef.current || !session) return;
                                     try {
-                                        session.sendRealtimeInput({ media: { mimeType: "audio/pcm;rate=16000", data: base64Data } });
+                                        session.sendRealtimeInput({
+                                            media: {
+                                                mimeType: "audio/pcm;rate=16000",
+                                                data: base64Data
+                                            }
+                                        });
                                     } catch (err) {
                                         if (isConnectedRef.current) console.warn("Socket send error:", err);
                                     }
@@ -230,6 +235,7 @@ INSTRUCTIONS:
                 floatData[i] = pcmData[i] / 32768.0;
             }
 
+            // Output must be 24000 to match the API response. We can configure the destination to handle it.
             const audioBuffer = audioContext.createBuffer(1, floatData.length, 24000);
             audioBuffer.copyToChannel(floatData, 0);
 
