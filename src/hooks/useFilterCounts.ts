@@ -1,5 +1,5 @@
-import { useMemo } from 'react';
-import { Question, InitialFilters, filterKeys, getQuestionValue } from '../features/quiz/types';
+import { useState, useEffect, useRef } from 'react';
+import { Question, InitialFilters } from '../features/quiz/types';
 
 /**
  * Custom hook to calculate the count of available questions for each filter option.
@@ -8,6 +8,8 @@ import { Question, InitialFilters, filterKeys, getQuestionValue } from '../featu
  * allowing the UI to display counts next to filter options (e.g., "History (50)").
  * It intelligently calculates counts contextually, meaning selecting a Subject will update
  * the counts for Topics, but not for the Subject list itself (to show what else is available).
+ *
+ * It uses a Web Worker to offload heavy calculations and keep the UI thread unblocked.
  *
  * @param {object} props - The hook properties.
  * @param {Question[]} props.allQuestions - The complete list of available questions.
@@ -18,48 +20,43 @@ export function useFilterCounts({ allQuestions, selectedFilters }: {
   allQuestions: Question[];
   selectedFilters: InitialFilters;
 }) {
-  return useMemo(() => {
-    const allCounts: { [key: string]: { [key: string]: number } } = {};
+  const [counts, setCounts] = useState<{ [key: string]: { [key: string]: number } }>({});
+  const workerRef = useRef<Worker | null>(null);
 
-    for (const keyToCount of filterKeys) {
-        // Temporarily clear the filter for the category we are counting
-        // This ensures we see counts for all options in this category, given the *other* selections.
-        const contextualFilters = { ...selectedFilters, [keyToCount]: [] as string[] };
-        
-        // Filter questions based on all *other* active filters
-        const tempFilteredQuestions = allQuestions.filter(q => {
-            return filterKeys.every(key => {
-                // Skip the current category being counted
-                if (key === keyToCount) return true;
+  // Initialize the worker on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      workerRef.current = new Worker(new URL('../workers/filterWorker.ts', import.meta.url), { type: 'module' });
 
-                const selected = contextualFilters[key as keyof InitialFilters];
-                if (selected.length === 0) return true;
-
-                const value = getQuestionValue(q, key as keyof InitialFilters);
-                if (key === 'tags' && Array.isArray(value)) {
-                    return selected.some(tag => value.includes(tag));
-                }
-                if (typeof value === 'string') {
-                    return selected.includes(value);
-                }
-                return false;
-            });
-        });
-
-        // Count occurrences of each value for the current category in the filtered set
-        const counts: { [key: string]: number } = {};
-        for (const question of tempFilteredQuestions) {
-            const value = getQuestionValue(question, keyToCount as keyof InitialFilters);
-            if (Array.isArray(value)) {
-                value.forEach(tag => {
-                    counts[tag] = (counts[tag] || 0) + 1;
-                });
-            } else if (value) {
-                counts[value] = (counts[value] || 0) + 1;
-            }
-        }
-        allCounts[keyToCount] = counts;
+      workerRef.current.onmessage = (e: MessageEvent<{ [key: string]: { [key: string]: number } }>) => {
+        setCounts(e.data);
+      };
     }
-    return allCounts;
-  }, [selectedFilters, allQuestions]);
+
+    return () => {
+      if (workerRef.current) {
+        workerRef.current.terminate();
+      }
+    };
+  }, []);
+
+  // Send the large `allQuestions` array ONLY when it changes (initial load/fetch)
+  // This avoids passing a massive array through structuredClone on every UI click.
+  useEffect(() => {
+    if (workerRef.current && allQuestions.length > 0) {
+      workerRef.current.postMessage({ type: 'INIT', allQuestions });
+
+      // Immediately calculate based on current filters after init
+      workerRef.current.postMessage({ type: 'CALCULATE', selectedFilters });
+    }
+  }, [allQuestions]);
+
+  // Send ONLY the tiny `selectedFilters` object when the user changes a filter
+  useEffect(() => {
+    if (workerRef.current && allQuestions.length > 0) {
+      workerRef.current.postMessage({ type: 'CALCULATE', selectedFilters });
+    }
+  }, [selectedFilters, allQuestions.length]);
+
+  return counts;
 }
