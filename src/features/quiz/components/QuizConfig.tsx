@@ -32,6 +32,7 @@ import { SegmentedControl } from './ui/SegmentedControl';
 import { QuickStartButtons } from './ui/QuickStartButtons';
 import { ActiveFiltersBar } from './ui/ActiveFiltersBar';
 import { Accordion } from './ui/Accordion';
+import { ScrollableCapsules } from './ui/ScrollableCapsules';
 
 // Optimization Hooks
 import { useQuestionIndex, filterQuestionsByIndex } from '../hooks/useQuestionIndex';
@@ -352,13 +353,17 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <FilterGroup title="Classification" icon={<Layers className="w-5 h-5" />}>
-            <MultiSelectDropdown
+            <ScrollableCapsules
               label="Subject"
               tooltip="Filter questions by broad academic discipline"
               options={allSubjects}
               selectedOptions={filters.subject}
-              onSelectionChange={(sel) => handleFilterChange('subject', sel)}
-              placeholder="Select Subjects"
+              onOptionToggle={(opt) => {
+                const newSelection = filters.subject.includes(opt)
+                  ? filters.subject.filter(item => item !== opt)
+                  : [...filters.subject, opt];
+                handleFilterChange('subject', newSelection);
+              }}
               counts={filterCounts.subject}
             />
             <MultiSelectDropdown
