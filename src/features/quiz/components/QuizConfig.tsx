@@ -298,58 +298,43 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
       {/* Scrollable Config Content */}
       <div className="p-6 pb-32 space-y-6 bg-gray-50 dark:bg-gray-900/50 flex-1 overflow-y-auto">
 
-        {/* Mode Selection */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <button
-            onClick={() => setMode('learning')}
-            className={cn(
-              "relative flex flex-col items-center justify-center p-6 rounded-2xl transition-all border-2 group",
-              mode === 'learning'
-                ? "bg-white dark:bg-gray-800 border-indigo-600 dark:border-indigo-500 shadow-lg"
-                : "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:border-indigo-300 dark:hover:border-indigo-700 shadow-sm hover:shadow-md"
-            )}
-          >
-            {mode === 'learning' && (
-              <div className="absolute top-3 right-3 bg-indigo-600 rounded-full p-1">
-                <Check className="w-3 h-3 text-white" />
-              </div>
-            )}
-            <div className={cn(
-              "p-3 rounded-full mb-3",
-              mode === 'learning' ? "bg-indigo-50 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400" : "bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-300 group-hover:bg-indigo-50 dark:group-hover:bg-indigo-900/40 group-hover:text-indigo-500"
-            )}>
-              <BookOpen className="w-6 h-6" />
-            </div>
-            <div className="text-base font-bold text-gray-900 dark:text-white">Learning Mode</div>
-            <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">Instant feedback & Explanations</div>
-          </button>
+        {/* Header actions (Mode & Quick Start) inline */}
+        <div className="flex flex-row items-center justify-between gap-3 mb-4 bg-white dark:bg-gray-800 p-2 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm relative z-20">
 
-          <button
-            onClick={() => setMode('mock')}
-            className={cn(
-              "relative flex flex-col items-center justify-center p-6 rounded-2xl transition-all border-2 group",
-              mode === 'mock'
-                ? "bg-white dark:bg-gray-800 border-indigo-600 dark:border-indigo-500 shadow-lg"
-                : "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:border-indigo-300 dark:hover:border-indigo-700 shadow-sm hover:shadow-md"
-            )}
-          >
-            {mode === 'mock' && (
-              <div className="absolute top-3 right-3 bg-indigo-600 rounded-full p-1">
-                <Check className="w-3 h-3 text-white" />
-              </div>
-            )}
-            <div className={cn(
-              "p-3 rounded-full mb-3",
-              mode === 'mock' ? "bg-indigo-50 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400" : "bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-300 group-hover:bg-indigo-50 dark:group-hover:bg-indigo-900/40 group-hover:text-indigo-500"
-            )}>
-              <Timer className="w-6 h-6" />
-            </div>
-            <div className="text-base font-bold text-gray-900 dark:text-white">Mock Mode</div>
-            <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">Exam Sim (30s/Q), No hints</div>
-          </button>
+          {/* Segmented Control for Mode Switch */}
+          <div className="flex bg-gray-100 dark:bg-gray-900/50 p-1 rounded-xl flex-1 max-w-[280px]">
+            <button
+              onClick={() => setMode('learning')}
+              className={cn(
+                "flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-sm font-semibold transition-all duration-200",
+                mode === 'learning'
+                  ? "bg-white dark:bg-gray-700 text-indigo-600 dark:text-indigo-400 shadow-sm border border-gray-200 dark:border-gray-600"
+                  : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 border border-transparent"
+              )}
+            >
+              <BookOpen className="w-4 h-4" />
+              <span>Learning</span>
+            </button>
+            <button
+              onClick={() => setMode('mock')}
+              className={cn(
+                "flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-sm font-semibold transition-all duration-200",
+                mode === 'mock'
+                  ? "bg-white dark:bg-gray-700 text-indigo-600 dark:text-indigo-400 shadow-sm border border-gray-200 dark:border-gray-600"
+                  : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 border border-transparent"
+              )}
+            >
+              <Timer className="w-4 h-4" />
+              <span>Mock</span>
+            </button>
+          </div>
+
+          {/* Quick Quiz Button */}
+          <div className="relative z-50">
+            <QuickStartButtons onQuickStart={handleQuickStart} />
+          </div>
         </div>
 
-        <QuickStartButtons onQuickStart={handleQuickStart} />
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <FilterGroup title="Classification" icon={<Layers className="w-5 h-5" />}>
