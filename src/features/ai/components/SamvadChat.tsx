@@ -353,7 +353,7 @@ export const SamvadChat: React.FC<SamvadChatProps> = ({ isOpen, onClose, figureI
     if (!figure) return;
 
     // @ts-ignore
-    const apiKey = process.env.API_KEY || process.env.GEMINI_API_KEY || import.meta.env.VITE_GEMINI_API_KEY;
+    const apiKey = process.env.API_KEY || process.env.GEMINI_API_KEY || process.env.Gemini_API_KEY || import.meta.env.VITE_GEMINI_API_KEY;
 
     if (!apiKey) {
       console.error("API Key missing");
@@ -383,6 +383,7 @@ export const SamvadChat: React.FC<SamvadChatProps> = ({ isOpen, onClose, figureI
 
       // 2. Initialize Gemini Client
       const ai = new GoogleGenAI({ apiKey });
+
 
       // 3. Prepare System Instruction
       const contextContent = figure.content?.replace(/<[^>]*>?/gm, ' ') || "Historical figure.";
@@ -507,7 +508,7 @@ export const SamvadChat: React.FC<SamvadChatProps> = ({ isOpen, onClose, figureI
                     } else {
                         setStatus('disconnected');
                     }
-                    console.log("Session closed:", e);
+                    console.log("Session closed:", e.code, e.reason);
                 }
             }
           },
