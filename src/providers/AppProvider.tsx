@@ -1,6 +1,9 @@
 import React from 'react';
 import { SettingsProvider } from '../context/SettingsContext';
 import { AuthProvider } from '../features/auth/context/AuthContext';
+import { NotificationProvider } from '../contexts/NotificationContext';
+import { ToastContainer } from '../components/ui/Notification/ToastContainer';
+import { Popup } from '../components/ui/Notification/Popup';
 
 interface AppProviderProps {
   children: React.ReactNode;
@@ -20,9 +23,13 @@ interface AppProviderProps {
 export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   return (
     <SettingsProvider>
-      <AuthProvider>
-        {children}
-      </AuthProvider>
+      <NotificationProvider>
+        <AuthProvider>
+          {children}
+          <ToastContainer />
+          <Popup />
+        </AuthProvider>
+      </NotificationProvider>
     </SettingsProvider>
   );
 };
