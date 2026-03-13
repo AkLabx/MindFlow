@@ -466,7 +466,7 @@ export const SamvadChat: React.FC<SamvadChatProps> = ({ isOpen, onClose, figureI
               sessionPromise.then(session => {
                   if (session && isConnectedRef.current && connectionIdRef.current === currentConnectionId) {
                       try {
-                          session.send({ parts: [{ text: "Hello" }] } as any);
+                          session.sendClientContent({ turns: "Hello" } as any);
                       } catch (err) {
                           console.warn("Failed to send initial greeting:", err);
                       }
