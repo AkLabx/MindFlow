@@ -472,11 +472,15 @@ export const SamvadChat: React.FC<SamvadChatProps> = ({ isOpen, onClose, figureI
           onmessage: async (message: LiveServerMessage) => {
             if (!isConnectedRef.current) return;
 
-            const audioData = message.serverContent?.modelTurn?.parts?.[0]?.inlineData?.data;
-            if (audioData) {
-              setAiSpeaking(true);
-              playAudioChunk(audioData);
+            if (message.serverContent?.modelTurn?.parts) {
+                for (const part of message.serverContent.modelTurn.parts) {
+                    if (part.inlineData && part.inlineData.data) {
+                        setAiSpeaking(true);
+                        playAudioChunk(part.inlineData.data);
+                    }
+                }
             }
+
             if (message.serverContent?.turnComplete) {
                setTimeout(() => setAiSpeaking(false), 1000);
             }
