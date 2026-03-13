@@ -142,9 +142,7 @@ INSTRUCTIONS:
                             }
                         }
                     },
-                    systemInstruction: {
-                        parts: [{ text: systemInstruction }]
-                    }
+                    systemInstruction: systemInstruction
                 },
                 callbacks: {
                     onopen: async () => {
