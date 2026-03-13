@@ -462,6 +462,17 @@ export const SamvadChat: React.FC<SamvadChatProps> = ({ isOpen, onClose, figureI
               // Connect worklet to destination to keep it active (it returns true in process but doesn't output audio data to avoid feedback loop)
               workletNodeRef.current.connect(audioContextRef.current.destination);
 
+              // Send an initial greeting to trigger the AI to start speaking immediately
+              sessionPromise.then(session => {
+                  if (session && isConnectedRef.current && connectionIdRef.current === currentConnectionId) {
+                      try {
+                          session.send({ parts: [{ text: "Hello" }] } as any);
+                      } catch (err) {
+                          console.warn("Failed to send initial greeting:", err);
+                      }
+                  }
+              });
+
             } catch (micError) {
               console.error("Microphone access denied", micError);
               hasErrorRef.current = true;
