@@ -13,9 +13,13 @@ test.describe('Live Quiz Master Talk', () => {
                 const request = window.indexedDB.open('MindFlowDB', 3);
                 request.onupgradeneeded = (event: any) => {
                     const db = event.target.result;
-                    if (!db.objectStoreNames.contains('saved_quizzes')) {
-                        db.createObjectStore('saved_quizzes', { keyPath: 'id' });
-                    }
+
+                    if (!db.objectStoreNames.contains('saved_quizzes')) db.createObjectStore('saved_quizzes', { keyPath: 'id' });
+                    if (!db.objectStoreNames.contains('quiz_history')) db.createObjectStore('quiz_history', { keyPath: 'id' });
+                    if (!db.objectStoreNames.contains('global_bookmarks')) db.createObjectStore('global_bookmarks', { keyPath: 'id' });
+                    if (!db.objectStoreNames.contains('synonym_interactions')) db.createObjectStore('synonym_interactions', { keyPath: 'id' });
+                    if (!db.objectStoreNames.contains('synonym_progress')) db.createObjectStore('synonym_progress', { keyPath: 'id' });
+
                 };
                 request.onsuccess = (event: any) => {
                     const db = event.target.result;
