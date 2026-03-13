@@ -121,22 +121,22 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
           />
           
           <button 
-            onClick={() => onTabChange('create')}
+            onClick={() => onTabChange('ai')}
             className="relative -top-5 group"
           >
             <div className={cn(
               "w-14 h-14 rounded-full flex items-center justify-center shadow-lg transition-all duration-300 border-4 border-gray-50 dark:border-slate-950 transition-colors",
-              activeTab === 'create' 
+              activeTab === 'ai'
                 ? "bg-indigo-600 text-white shadow-indigo-200 translate-y-1" 
                 : "bg-indigo-600 text-white hover:bg-indigo-700 hover:scale-105"
             )}>
-              <PlusCircle className="w-7 h-7" />
+              <Brain className="w-7 h-7" />
             </div>
             <span className={cn(
               "absolute -bottom-5 left-1/2 -translate-x-1/2 text-[10px] font-bold transition-colors",
-              activeTab === 'create' ? "text-indigo-600 dark:text-indigo-400" : "text-gray-400 dark:text-slate-500"
+              activeTab === 'ai' ? "text-indigo-600 dark:text-indigo-400" : "text-gray-400 dark:text-slate-500"
             )}>
-              Create
+              AI
             </span>
           </button>
 
