@@ -109,7 +109,7 @@ export const AttemptedQuizzes: React.FC = () => {
                         <ArrowLeft className="w-5 h-5" /> Back to Created Quizzes
                     </button>
                 </div>
-                <div className="flex items-center justify-between mb-8">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
                     <h1 className="text-2xl font-bold text-gray-900 dark:text-white dark:text-white flex items-center gap-2">
                         <BarChart2 className="w-6 h-6 text-indigo-600" />
                         Attempted Quizzes
