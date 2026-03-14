@@ -117,6 +117,9 @@ const AuthPage: React.FC<AuthPageProps> = ({ onBack }) => {
         ? 'https://aklabx.github.io/MindFlow/?'
         : 'http://localhost:3000';
 
+      if (isSignUp) {
+        localStorage.setItem('mindflow_is_signup', 'true');
+      }
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {

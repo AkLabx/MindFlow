@@ -8,6 +8,8 @@ import { Question, SavedQuiz, QuizHistoryRecord } from '../features/quiz/types';
  */
 import { useSyncStore } from '../features/quiz/stores/useSyncStore';
 
+let isSyncing = false;
+
 export const syncService = {
   pushAIChatConversation: async (userId: string, conv: AIChatConversation) => {
     const { error } = await supabase.from('ai_chat_conversations').upsert({
@@ -202,7 +204,10 @@ export const syncService = {
     }
   },
 
-  syncOnLogin: async (userId: string) => {
+  syncOnLogin: async (userId: string, isSignup: boolean = false) => {
+    if (isSyncing) return;
+    isSyncing = true;
+
     await syncService.processEventQueue(userId);
 
     try {
@@ -225,35 +230,44 @@ export const syncService = {
       const localBookmarks = await db.getAllBookmarks();
       const localSynonyms = await db.getAllSynonymInteractions();
 
-      // 3. Push Local Data that doesn't exist remotely (Data Migration for Guests -> Logged In)
-      const remoteQuizIds = new Set((remoteQuizzes || []).map(q => q.id));
-      const remoteHistoryIds = new Set((remoteHistory || []).map(h => h.id));
-      const remoteBookmarkIds = new Set((remoteBookmarks || []).map(b => b.question_id));
-      const remoteSynonymIds = new Set((remoteSynonyms || []).map(s => s.word_id));
+      if (isSignup) {
+        // --- NEW SIGNUP FLOW ---
+        // 3. Push all Local Data up to the Server to merge guest progress
+        const remoteQuizIds = new Set((remoteQuizzes || []).map(q => q.id));
+        const remoteHistoryIds = new Set((remoteHistory || []).map(h => h.id));
+        const remoteBookmarkIds = new Set((remoteBookmarks || []).map(b => b.question_id));
+        const remoteSynonymIds = new Set((remoteSynonyms || []).map(s => s.word_id));
 
-      for (const quiz of localQuizzes) {
-        if (!remoteQuizIds.has(quiz.id)) {
-          await syncService.pushSavedQuiz(userId, quiz);
+        for (const quiz of localQuizzes) {
+          if (!remoteQuizIds.has(quiz.id)) {
+            await syncService.pushSavedQuiz(userId, quiz);
+          }
         }
-      }
-      for (const hist of localHistory) {
-        if (!remoteHistoryIds.has(hist.id)) {
-          // Note: Local history doesn't currently store attempts, so we only push the history record
-          await syncService.pushQuizHistory(userId, hist);
+        for (const hist of localHistory) {
+          if (!remoteHistoryIds.has(hist.id)) {
+            await syncService.pushQuizHistory(userId, hist);
+          }
         }
-      }
-      for (const bm of localBookmarks) {
-        if (!remoteBookmarkIds.has(bm.id)) {
-          await syncService.pushBookmark(userId, bm);
+        for (const bm of localBookmarks) {
+          if (!remoteBookmarkIds.has(bm.id)) {
+            await syncService.pushBookmark(userId, bm);
+          }
         }
-      }
-      for (const syn of localSynonyms) {
-        if (!remoteSynonymIds.has(syn.wordId)) {
-          await syncService.pushSynonymInteraction(userId, syn);
+        for (const syn of localSynonyms) {
+          if (!remoteSynonymIds.has(syn.wordId)) {
+            await syncService.pushSynonymInteraction(userId, syn);
+          }
         }
+
+        // After merging up, clear local to prep for a fresh pull
+        await db.clearAllUserData();
+      } else {
+        // --- EXISTING LOGIN FLOW ---
+        // 3. Clear local IndexedDB immediately to avoid mixing guest data into existing account
+        await db.clearAllUserData();
       }
 
-      // 4. Merge Remote Data into Local
+      // 4. Pull fresh data from Server to Local (Hydration)
       if (remoteQuizzes) {
         for (const remote of remoteQuizzes) {
           await db.saveQuiz({
@@ -318,6 +332,8 @@ export const syncService = {
 
     } catch (error) {
       console.error('Error during initial sync:', error);
+    } finally {
+      isSyncing = false;
     }
   }
 };

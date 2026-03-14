@@ -62,7 +62,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setUser(session?.user ?? null);
       if (session?.user) {
          // Run sync on load if user is logged in
-         syncService.syncOnLogin(session.user.id);
+         syncService.syncOnLogin(session.user.id, false);
       }
       setLoading(false);
     };
@@ -92,8 +92,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
         setUser(finalUser);
 
-        // Run sync on successful sign-in
-        syncService.syncOnLogin(finalUser.id);
+        // Check if this is a sign up event (either from explicit event or local flag)
+        const isSignup = (event as string) === 'SIGNED_UP' || localStorage.getItem('mindflow_is_signup') === 'true';
+
+        // Run sync on successful sign-in or sign-up
+        syncService.syncOnLogin(finalUser.id, isSignup).then(() => {
+            if (isSignup) {
+                localStorage.removeItem('mindflow_is_signup');
+            }
+        });
       } else {
         setUser(null);
       }

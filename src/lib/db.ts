@@ -80,6 +80,18 @@ const openDB = (): Promise<IDBDatabase> => {
  */
 export const db = {
     /**
+     * Clears all user-related data (Quizzes, History, Bookmarks, Synonyms) from IndexedDB.
+     */
+    clearAllUserData: async (): Promise<void> => {
+        await Promise.all([
+            db.clearQuizzes(),
+            db.clearQuizHistory(),
+            db.clearBookmarks(),
+            db.clearSynonymInteractions()
+        ]);
+    },
+
+    /**
      * Enterprise: Saves active test session state for offline resilience
      */
     saveActiveSession: async (sessionId: string, state: any): Promise<void> => {
@@ -176,6 +188,18 @@ export const db = {
      *
      * @returns {Promise<SavedQuiz[]>} A promise that resolves to an array of saved quizzes.
      */
+    clearQuizzes: async (): Promise<void> => {
+        const dbInstance = await openDB();
+        return new Promise((resolve, reject) => {
+            const transaction = dbInstance.transaction(STORE_NAME, 'readwrite');
+            const store = transaction.objectStore(STORE_NAME);
+            const request = store.clear();
+
+            request.onsuccess = () => resolve();
+            request.onerror = () => reject(request.error);
+        });
+    },
+
     getQuizzes: async (): Promise<SavedQuiz[]> => {
         const dbInstance = await openDB();
         return new Promise((resolve, reject) => {
