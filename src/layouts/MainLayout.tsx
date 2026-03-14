@@ -102,12 +102,17 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
       )}
 
       {/* --- Main Scrollable Content --- */}
-      <main className={cn("flex-1 w-full max-w-3xl mx-auto px-4 pt-4 relative z-0", (isReviewMode || isAIChat) ? "pb-4" : "pb-24")}>
+      <main className={cn(
+        "flex-1 w-full relative z-0",
+        isAIChat
+            ? "max-w-none p-0 overflow-hidden h-full"
+            : cn("max-w-3xl mx-auto px-4 pt-4", isReviewMode ? "pb-4" : "pb-24")
+      )}>
         {children}
       </main>
 
       {/* --- Sticky Bottom Tab Bar --- */}
-      <nav className={cn("fixed bottom-0 left-0 w-full bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 z-50 transition-colors duration-300 pb-[env(safe-area-inset-bottom)]", (isReviewMode || isAIChat) ? "hidden" : "block")}>
+      <nav className={cn("fixed bottom-0 left-0 w-full bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 z-50 transition-colors duration-300 pb-[env(safe-area-inset-bottom)]", isReviewMode || isAIChat ? "hidden" : "block")}>
         <div className="max-w-3xl mx-auto px-2 h-16 flex items-center justify-around">
           
           <NavTab 

@@ -182,7 +182,7 @@ export const AIChatPage: React.FC = () => {
     };
 
     return (
-        <div className="flex h-[100dvh] w-full flex-col bg-white dark:bg-slate-950 md:flex-row">
+        <div className="absolute inset-0 z-50 flex h-[100dvh] w-[100vw] flex-col bg-white dark:bg-slate-950 md:flex-row overflow-hidden">
 
             {/* Sidebar (Desktop & Mobile Slide-in) */}
             <div className={cn(
