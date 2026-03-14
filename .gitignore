@@ -22,3 +22,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+scripts/data/all_questions.json
+scripts/data/processed_embeddings.json
+scripts/data/embeddings_batch_1.json
