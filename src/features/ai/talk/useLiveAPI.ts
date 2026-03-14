@@ -1,3 +1,13 @@
+/**
+ * useLiveAPI Hook
+ *
+ * Core integration for the Gemini Multimodal Live API using `@google/genai`.
+ * This hook encapsulates:
+ * 1. Web Audio Context initialization (16kHz Mic, 24kHz Speaker)
+ * 2. Real-time AudioWorklet microphone capture
+ * 3. Gemini Live websocket connection via GoogleGenAI SDK
+ * 4. Audio buffering and seamless continuous playback of model turns.
+ */
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { GoogleGenAI, LiveServerMessage, Modality } from "@google/genai";
 import { AudioRecorderWorkletCode, arrayBufferToBase64, floatTo16BitPCM, base64ToUint8Array } from './audio-helpers';
