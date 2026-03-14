@@ -123,14 +123,14 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                 </div>
             )}
 
-            <div className="relative flex w-full flex-col gap-2 rounded-xl border border-gray-200 bg-white p-2 shadow-sm dark:border-gray-800 dark:bg-slate-900 focus-within:ring-2 focus-within:ring-indigo-500">
+            <div className="relative flex w-full flex-col gap-2 rounded-xl border border-gray-200 bg-white p-2 shadow-sm dark:border-gray-800 dark:bg-slate-900 focus-within:ring-0 focus-within:border-indigo-500/50">
                 <textarea
                     ref={textareaRef}
                     value={value}
                     onChange={(e) => onChange(e.target.value)}
                     onKeyDown={handleKeyDown}
                     placeholder="Ask MindFlow AI anything..."
-                    className="max-h-[200px] min-h-[44px] w-full resize-none border-0 bg-transparent p-3 py-3 text-gray-900 placeholder:text-gray-500 focus:ring-0 dark:text-white dark:placeholder:text-gray-400 sm:text-sm"
+                    className="max-h-[200px] min-h-[44px] w-full resize-none border-0 bg-transparent p-3 py-3 text-gray-900 placeholder:text-gray-500 focus:ring-0 outline-none focus:outline-none dark:text-white dark:placeholder:text-gray-400 sm:text-sm"
                     rows={1}
                     disabled={isLoading || disabled}
                 />

@@ -249,7 +249,7 @@ export const AIChatPage: React.FC = () => {
             {/* Main Chat Area */}
             <div className="flex flex-1 flex-col h-full min-w-0">
                 {/* Header */}
-                <header className="flex h-14 items-center gap-4 border-b border-gray-200 dark:border-gray-800 bg-white/80 dark:bg-slate-950/80 px-4 backdrop-blur-sm shrink-0">
+                <header className="flex h-14 items-center gap-2 border-b border-gray-200 dark:border-gray-800 bg-white/80 dark:bg-slate-950/80 px-2 sm:px-4 backdrop-blur-sm shrink-0 overflow-x-auto overflow-y-hidden no-scrollbar">
                     <button
                         onClick={() => navigate(-1)}
                         className="rounded-full p-2 text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white transition-colors"
@@ -263,7 +263,7 @@ export const AIChatPage: React.FC = () => {
                     >
                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
                     </button>
-                    <div className="flex flex-1 items-center justify-between">
+                    <div className="flex flex-1 items-center justify-between min-w-max gap-4">
                         <div className="flex items-center gap-2">
                             <Brain className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
                             <select
@@ -279,7 +279,7 @@ export const AIChatPage: React.FC = () => {
                             </select>
                         </div>
 
-                        <div className="hidden md:flex items-center gap-2">
+                        <div className="flex items-center gap-2">
                             <div className="w-px h-4 bg-gray-300 dark:bg-gray-700 mx-2"></div>
 
                             <div className="flex items-center gap-2 mr-2">
@@ -366,6 +366,7 @@ export const AIChatPage: React.FC = () => {
                                     key={message.id}
                                     message={message}
                                     onRegenerate={handleRegenerate}
+                                    isGenerating={isLoading && message.id === messages[messages.length - 1].id && message.role === 'assistant'}
                                 />
                             ))}
                             {isLoading && messages.length > 0 && messages[messages.length - 1].role === 'user' && (

@@ -11,11 +11,12 @@ import { cn } from '../../../utils/cn';
 import { AIChatMessage } from '../../../lib/db';
 
 interface ChatMessageProps {
+    isGenerating?: boolean;
     message: AIChatMessage;
     onRegenerate?: () => void;
 }
 
-export const ChatMessage: React.FC<ChatMessageProps> = ({ message, onRegenerate }) => {
+export const ChatMessage: React.FC<ChatMessageProps> = ({ message, onRegenerate, isGenerating }) => {
     const isUser = message.role === 'user';
     const [isCopied, setIsCopied] = useState(false);
     const [isPlaying, setIsPlaying] = useState(false);
@@ -96,7 +97,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message, onRegenerate 
                             }
                         }}
                     >
-                        {message.content}
+                        {message.content + (isGenerating ? " ●" : "")}
                     </ReactMarkdown>
 
                     {/* Action Bar for AI Messages */}
