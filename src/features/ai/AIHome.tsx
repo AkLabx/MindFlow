@@ -52,9 +52,15 @@ export const AIHome: React.FC = () => {
     const navigate = useNavigate();
     const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-    const handleFeatureClick = (featureName: string) => {
-        setToastMessage(`"${featureName}" is coming soon!`);
-        setTimeout(() => setToastMessage(null), 3000);
+    const handleFeatureClick = (featureId: string, featureName: string) => {
+        if (featureId === 'chat') {
+            navigate('/ai/chat');
+        } else if (featureId === 'talk') {
+            navigate('/ai/talk');
+        } else {
+            setToastMessage(`"${featureName}" is coming soon!`);
+            setTimeout(() => setToastMessage(null), 3000);
+        }
     };
 
     const aiFeatures = [

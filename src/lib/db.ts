@@ -18,11 +18,13 @@ export interface SynonymInteraction {
 
 
 const DB_NAME = 'MindFlowDB';
-const DB_VERSION = 4;
+const DB_VERSION = 5;
 const STORE_NAME = 'saved_quizzes';
 const HISTORY_STORE_NAME = 'quiz_history';
 const BOOKMARKS_STORE_NAME = 'global_bookmarks';
 const SYNONYM_STORE_NAME = 'synonym_interactions';
+const CHAT_CONVERSATIONS_STORE = 'chat_conversations';
+const CHAT_MESSAGES_STORE = 'chat_messages';
 const ACTIVE_SESSION_STORE = 'active_test_session';
 
 /**
@@ -50,6 +52,13 @@ const openDB = (): Promise<IDBDatabase> => {
             }
             if (!db.objectStoreNames.contains(SYNONYM_STORE_NAME)) {
                 db.createObjectStore(SYNONYM_STORE_NAME, { keyPath: 'wordId' });
+            }
+            if (!db.objectStoreNames.contains(CHAT_CONVERSATIONS_STORE)) {
+                db.createObjectStore(CHAT_CONVERSATIONS_STORE, { keyPath: 'id' });
+            }
+            if (!db.objectStoreNames.contains(CHAT_MESSAGES_STORE)) {
+                const messageStore = db.createObjectStore(CHAT_MESSAGES_STORE, { keyPath: 'id' });
+                messageStore.createIndex('conversation_id', 'conversation_id', { unique: false });
             }
         };
 
@@ -483,4 +492,108 @@ export const db = {
             request.onerror = () => reject(request.error);
         });
     }
+};
+
+// --- AI Chat ---
+export interface AIChatConversation {
+  id: string; // UUID
+  title: string;
+  created_at: string; // ISO string
+  updated_at: string;
+}
+
+export interface AIChatMessage {
+  id: string; // UUID
+  conversation_id: string;
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+  created_at: string;
+}
+
+export const saveChatConversation = async (conversation: AIChatConversation): Promise<void> => {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+        const transaction = db.transaction([CHAT_CONVERSATIONS_STORE], 'readwrite');
+        const store = transaction.objectStore(CHAT_CONVERSATIONS_STORE);
+        const request = store.put(conversation);
+
+        request.onsuccess = () => resolve();
+        request.onerror = () => reject(request.error);
+    });
+};
+
+export const getChatConversations = async (): Promise<AIChatConversation[]> => {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+        const transaction = db.transaction([CHAT_CONVERSATIONS_STORE], 'readonly');
+        const store = transaction.objectStore(CHAT_CONVERSATIONS_STORE);
+        const request = store.getAll();
+
+        request.onsuccess = () => {
+             // Sort by updated_at descending
+             const conversations = (request.result as AIChatConversation[]).sort((a, b) =>
+                new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+             );
+             resolve(conversations);
+        };
+        request.onerror = () => reject(request.error);
+    });
+};
+
+export const deleteChatConversation = async (id: string): Promise<void> => {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+        const transaction = db.transaction([CHAT_CONVERSATIONS_STORE, CHAT_MESSAGES_STORE], 'readwrite');
+
+        // Delete conversation
+        const convStore = transaction.objectStore(CHAT_CONVERSATIONS_STORE);
+        convStore.delete(id);
+
+        // Delete associated messages using the index
+        const msgStore = transaction.objectStore(CHAT_MESSAGES_STORE);
+        const index = msgStore.index('conversation_id');
+        const request = index.openCursor(IDBKeyRange.only(id));
+
+        request.onsuccess = (event) => {
+            const cursor = (event.target as IDBRequest).result;
+            if (cursor) {
+                cursor.delete();
+                cursor.continue();
+            }
+        };
+
+        transaction.oncomplete = () => resolve();
+        transaction.onerror = () => reject(transaction.error);
+    });
+};
+
+export const saveChatMessage = async (message: AIChatMessage): Promise<void> => {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+        const transaction = db.transaction([CHAT_MESSAGES_STORE], 'readwrite');
+        const store = transaction.objectStore(CHAT_MESSAGES_STORE);
+        const request = store.put(message);
+
+        request.onsuccess = () => resolve();
+        request.onerror = () => reject(request.error);
+    });
+};
+
+export const getChatMessages = async (conversationId: string): Promise<AIChatMessage[]> => {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+        const transaction = db.transaction([CHAT_MESSAGES_STORE], 'readonly');
+        const store = transaction.objectStore(CHAT_MESSAGES_STORE);
+        const index = store.index('conversation_id');
+        const request = index.getAll(conversationId);
+
+        request.onsuccess = () => {
+             // Sort by created_at ascending
+             const messages = (request.result as AIChatMessage[]).sort((a, b) =>
+                new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+             );
+             resolve(messages);
+        };
+        request.onerror = () => reject(request.error);
+    });
 };

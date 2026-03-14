@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import { db, SynonymInteraction } from './db';
+import { db, SynonymInteraction, AIChatConversation, AIChatMessage, getChatConversations, getChatMessages } from './db';
 import { fetchQuestionsByIds } from '../features/quiz/services/questionService';
 import { Question, SavedQuiz, QuizHistoryRecord } from '../features/quiz/types';
 
@@ -9,6 +9,46 @@ import { Question, SavedQuiz, QuizHistoryRecord } from '../features/quiz/types';
 import { useSyncStore } from '../features/quiz/stores/useSyncStore';
 
 export const syncService = {
+  pushAIChatConversation: async (userId: string, conv: AIChatConversation) => {
+    const { error } = await supabase.from('ai_chat_conversations').upsert({
+      id: conv.id,
+      user_id: userId,
+      title: conv.title,
+      created_at: conv.created_at,
+      updated_at: conv.updated_at
+    }, { onConflict: 'id' });
+    if (error) console.error('Error pushing chat conversation:', error);
+  },
+
+  pushAIChatMessage: async (msg: AIChatMessage) => {
+    const { error } = await supabase.from('ai_chat_messages').upsert({
+      id: msg.id,
+      conversation_id: msg.conversation_id,
+      role: msg.role,
+      content: msg.content,
+      created_at: msg.created_at
+    }, { onConflict: 'id' });
+    if (error) console.error('Error pushing chat message:', error);
+  },
+
+  syncAIChats: async (userId: string) => {
+    try {
+      // 1. Fetch Local Data
+      const localConvs = await getChatConversations();
+
+      // 2. Push to Supabase
+      for (const conv of localConvs) {
+        await syncService.pushAIChatConversation(userId, conv);
+        const msgs = await getChatMessages(conv.id);
+        for (const msg of msgs) {
+            await syncService.pushAIChatMessage(msg);
+        }
+      }
+    } catch (err) {
+      console.error('Error syncing AI Chats:', err);
+    }
+  },
+
   /**
    * Pushes a single saved quiz to Supabase.
    */
