@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Brain, ArrowLeft, MessageSquare, Mic, Wand2, Calendar, ChevronRight } from 'lucide-react';
+import { Brain, ArrowLeft, MessageSquare, Mic, Wand2, Calendar, ChevronRight, Search } from 'lucide-react';
 import { cn } from '../../utils/cn';
 
 interface AICardProps {
@@ -64,6 +64,16 @@ export const AIHome: React.FC = () => {
     };
 
     const aiFeatures = [
+        {
+            id: 'semantic-search',
+            title: "Semantic Search",
+            description: "Search the question bank by meaning, concepts, or related ideas.",
+            icon: <Search className="w-6 h-6 text-rose-600" />,
+            bgClass: "bg-rose-50 dark:bg-rose-950/30",
+            borderClass: "border-rose-100 dark:border-rose-900/40 border-b-4 border-b-rose-200 dark:border-b-rose-700 hover:border-rose-300 dark:hover:border-rose-500",
+            badgeText: "New",
+            onClick: () => navigate('/ai/semantic-search')
+        },
         {
             id: 'chat',
             title: "Chat with AI",
@@ -134,7 +144,7 @@ export const AIHome: React.FC = () => {
                             description={feature.description}
                             icon={feature.icon}
                             colorClass={cn("border", feature.bgClass, feature.borderClass)}
-                            onClick={() => handleFeatureClick(feature.id, feature.title)}
+                            onClick={feature.onClick ? feature.onClick : () => handleFeatureClick(feature.title)}
                             badgeText={feature.badgeText}
                         />
                     ))}
