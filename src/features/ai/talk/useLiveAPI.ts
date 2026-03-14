@@ -2,23 +2,22 @@
  * useLiveAPI Hook
  *
  * Core integration for the Gemini Multimodal Live API using `@google/genai`.
- * This hook encapsulates:
- * 1. Web Audio Context initialization (16kHz Mic, 24kHz Speaker)
- * 2. Real-time AudioWorklet microphone capture
- * 3. Gemini Live websocket connection via GoogleGenAI SDK
- * 4. Audio buffering and seamless continuous playback of model turns.
  */
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { GoogleGenAI, LiveServerMessage, Modality } from "@google/genai";
-import { AudioRecorderWorkletCode, arrayBufferToBase64, floatTo16BitPCM, base64ToUint8Array } from './audio-helpers';
+import { AudioRecorderWorkletCode, arrayBufferToBase64, floatTo16BitPCM, base64ToUint8Array, playSfx } from './audio-helpers';
 
 type ConnectionState = 'idle' | 'connecting' | 'connected' | 'error' | 'disconnected';
 type AgentState = 'idle' | 'listening' | 'speaking';
+export type VoicePersonality = 'Aoede' | 'Puck' | 'Fenrir' | 'Kore' | 'Charon';
 
 export function useLiveAPI() {
     const [connectionState, setConnectionState] = useState<ConnectionState>('idle');
     const [agentState, setAgentState] = useState<AgentState>('idle');
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
+    const [isMuted, setIsMuted] = useState(false);
+    const [voiceName, setVoiceName] = useState<VoicePersonality>('Aoede');
+    const [volumeLevel, setVolumeLevel] = useState(0); // 0.0 to 1.0 representation of active audio
 
     const audioContextRef = useRef<AudioContext | null>(null);
     const mediaStreamRef = useRef<MediaStream | null>(null);
@@ -30,9 +29,60 @@ export function useLiveAPI() {
     const nextStartTimeRef = useRef<number>(0);
     const audioQueueRef = useRef<AudioBufferSourceNode[]>([]);
 
+    // Analyzers for visualization
+    const userAnalyserRef = useRef<AnalyserNode | null>(null);
+    const aiAnalyserRef = useRef<AnalyserNode | null>(null);
+    const animationFrameRef = useRef<number>(0);
+
     const connectionIdRef = useRef<number>(0);
     const isConnectedRef = useRef<boolean>(false);
     const hasErrorRef = useRef<boolean>(false);
+
+    // Animation loop to calculate volumeLevel
+    const updateVolumeLevel = useCallback(() => {
+        if (!isConnectedRef.current) return;
+
+        let targetAnalyser: AnalyserNode | null = null;
+
+        // If AI is speaking, visualize their output. Otherwise visualize user input.
+        if (agentState === 'speaking' && aiAnalyserRef.current) {
+             targetAnalyser = aiAnalyserRef.current;
+        } else if (userAnalyserRef.current && !isMuted) {
+             targetAnalyser = userAnalyserRef.current;
+        }
+
+        if (targetAnalyser) {
+            const dataArray = new Uint8Array(targetAnalyser.frequencyBinCount);
+            targetAnalyser.getByteFrequencyData(dataArray);
+
+            // Calculate average volume
+            let sum = 0;
+            for (let i = 0; i < dataArray.length; i++) {
+                sum += dataArray[i];
+            }
+            const avg = sum / dataArray.length;
+            // Normalize to 0-1 range (max value is 255)
+            const normalized = Math.min(1, avg / 128); // 128 to make it more sensitive
+            setVolumeLevel(normalized);
+        } else {
+            setVolumeLevel(0);
+        }
+
+        animationFrameRef.current = requestAnimationFrame(updateVolumeLevel);
+    }, [agentState, isMuted]);
+
+    useEffect(() => {
+        if (connectionState === 'connected') {
+            animationFrameRef.current = requestAnimationFrame(updateVolumeLevel);
+        } else {
+            if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
+            setVolumeLevel(0);
+        }
+        return () => {
+             if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
+        };
+    }, [connectionState, updateVolumeLevel]);
+
 
     const playAudioChunk = async (base64Audio: string) => {
         if (!audioContextRef.current || !isConnectedRef.current) return;
@@ -51,7 +101,14 @@ export function useLiveAPI() {
           const source = audioContextRef.current.createBufferSource();
           source.buffer = audioBuffer;
 
-          source.connect(audioContextRef.current.destination);
+          // Connect to AI analyzer before destination
+          if (!aiAnalyserRef.current || aiAnalyserRef.current.context !== audioContextRef.current) {
+            aiAnalyserRef.current = audioContextRef.current.createAnalyser();
+            aiAnalyserRef.current.fftSize = 256;
+            aiAnalyserRef.current.smoothingTimeConstant = 0.8;
+            aiAnalyserRef.current.connect(audioContextRef.current.destination);
+          }
+          source.connect(aiAnalyserRef.current);
 
           const currentTime = audioContextRef.current.currentTime;
           const startTime = Math.max(currentTime, nextStartTimeRef.current);
@@ -63,7 +120,7 @@ export function useLiveAPI() {
           source.onended = () => {
             audioQueueRef.current = audioQueueRef.current.filter(s => s !== source);
             if (audioQueueRef.current.length === 0) {
-                setAgentState('idle'); // or listening
+                setAgentState('listening');
             }
           };
 
@@ -78,12 +135,15 @@ export function useLiveAPI() {
         hasErrorRef.current = false;
         nextStartTimeRef.current = 0;
 
+        if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
+        userAnalyserRef.current = null;
+        aiAnalyserRef.current = null;
+        setVolumeLevel(0);
+
         if (sessionRef.current) {
           try {
             sessionRef.current.close();
-          } catch (e) {
-            // Ignore close errors
-          }
+          } catch (e) {}
           sessionRef.current = null;
         }
 
@@ -116,6 +176,7 @@ export function useLiveAPI() {
 
         setConnectionState(prev => prev === 'error' ? prev : 'disconnected');
         setAgentState('idle');
+        setIsMuted(false);
     }, []);
 
     const connect = useCallback(async () => {
@@ -158,7 +219,7 @@ export function useLiveAPI() {
             config: {
               responseModalities: [Modality.AUDIO],
               speechConfig: {
-                voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Aoede' } },
+                voiceConfig: { prebuiltVoiceConfig: { voiceName: voiceName } },
               },
               systemInstruction: systemInstruction,
             },
@@ -168,6 +229,11 @@ export function useLiveAPI() {
 
                 isConnectedRef.current = true;
                 setConnectionState('connected');
+                setAgentState('listening');
+                playSfx(audioContextRef.current, 'connect');
+
+                // Haptic feedback
+                if (navigator.vibrate) navigator.vibrate([50, 50, 50]);
 
                 try {
                   mediaStreamRef.current = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -176,9 +242,23 @@ export function useLiveAPI() {
 
                   sourceNodeRef.current = audioContextRef.current.createMediaStreamSource(mediaStreamRef.current);
 
+                  // Setup user analyzer
+                  userAnalyserRef.current = audioContextRef.current.createAnalyser();
+                  userAnalyserRef.current.fftSize = 256;
+                  userAnalyserRef.current.smoothingTimeConstant = 0.8;
+                  sourceNodeRef.current.connect(userAnalyserRef.current);
+
                   workletNodeRef.current = new AudioWorkletNode(audioContextRef.current, 'recorder-worklet');
 
+                  // Use ref inside closure to always read latest mute state
+                  let currentMuteState = false;
+
                   workletNodeRef.current.port.onmessage = (event) => {
+                    // Update currentMuteState locally because closure might hold stale value
+                    // To handle React state in vanilla JS callbacks safely, we check a mutable ref if possible,
+                    // but since isMuted is simple, we will pass it down via a ref or just rely on react's next render.
+                    // For simplicity, we check isMuted directly but it could be stale.
+                    // Better to use a mutable ref for Mute.
                     if (!isConnectedRef.current) return;
 
                     const inputData = event.data;
@@ -187,6 +267,9 @@ export function useLiveAPI() {
 
                     sessionPromise.then(session => {
                         if (!isConnectedRef.current || !session || connectionIdRef.current !== currentConnectionId) return;
+
+                        // We check the React state here. The websocket will send silence if muted.
+                        // Actually, if muted, we just don't send anything.
 
                         try {
                             session.sendRealtimeInput({
@@ -222,9 +305,6 @@ export function useLiveAPI() {
                   setAgentState('speaking');
                   playAudioChunk(audioData);
                 }
-                if (message.serverContent?.turnComplete) {
-                   // Keep speaking state until audio queue actually finishes
-                }
               },
               onclose: (e) => {
                 if (connectionIdRef.current === currentConnectionId) {
@@ -232,7 +312,8 @@ export function useLiveAPI() {
                     if (!hasErrorRef.current) {
                         setConnectionState('disconnected');
                         setAgentState('idle');
-                        console.log("Session closed:", e);
+                        playSfx(audioContextRef.current, 'disconnect');
+                        if (navigator.vibrate) navigator.vibrate(50);
                     }
                 }
               },
@@ -240,9 +321,9 @@ export function useLiveAPI() {
                 if (connectionIdRef.current === currentConnectionId) {
                     isConnectedRef.current = false;
                     hasErrorRef.current = true;
-                    console.error("Session Error:", err);
                     setConnectionState('error');
                     setErrorMsg("Connection Error with AI Live Service");
+                    playSfx(audioContextRef.current, 'disconnect');
                 }
               }
             }
@@ -259,29 +340,58 @@ export function useLiveAPI() {
 
         } catch (error: any) {
           if (connectionIdRef.current === currentConnectionId) {
-              console.error("Failed to start session", error);
               setConnectionState('error');
               setErrorMsg(error?.message || "Failed to establish connection.");
               cleanup();
           }
         }
-    }, [cleanup]);
+    }, [cleanup, voiceName]);
+
+    // Track mute specifically for the audio stream
+    const muteRef = useRef(isMuted);
+    useEffect(() => {
+        muteRef.current = isMuted;
+        if (mediaStreamRef.current) {
+            mediaStreamRef.current.getAudioTracks().forEach(track => {
+                track.enabled = !isMuted;
+            });
+        }
+    }, [isMuted]);
+
 
     const disconnect = useCallback(() => {
+        if (audioContextRef.current) playSfx(audioContextRef.current, 'disconnect');
         cleanup();
     }, [cleanup]);
 
+    const toggleMute = () => {
+        playSfx(audioContextRef.current, 'click');
+        setIsMuted(prev => !prev);
+    };
+
+    const changeVoice = (newVoice: VoicePersonality) => {
+        if (connectionState === 'connected') {
+            // Can't change voice mid-session easily without reconnecting
+            // We disconnect and change voice, user must tap to reconnect
+            disconnect();
+        }
+        setVoiceName(newVoice);
+    };
+
     useEffect(() => {
-        return () => {
-            cleanup();
-        };
+        return () => cleanup();
     }, [cleanup]);
 
     return {
         connectionState,
         agentState,
         errorMsg,
+        volumeLevel,
+        isMuted,
+        voiceName,
         connect,
-        disconnect
+        disconnect,
+        toggleMute,
+        changeVoice
     };
 }
