@@ -6,6 +6,7 @@ import html2canvas from 'html2canvas';
 import { ChatMessage } from './ChatMessage';
 import { ChatInput } from './ChatInput';
 import { useAIChat, AI_PERSONAS } from './useAIChat';
+import { MODEL_CONFIGS } from './useQuota';
 import { cn } from '../../../utils/cn';
 import { AIChatConversation } from '../../../lib/db';
 
@@ -24,7 +25,10 @@ export const AIChatPage: React.FC = () => {
         activePersona,
         setActivePersona,
         includeAppData,
-        setIncludeAppData
+        setIncludeAppData,
+        activeModel,
+        setActiveModel,
+        quota
     } = useAIChat();
 
     const [inputValue, setInputValue] = useState('');
@@ -260,12 +264,13 @@ export const AIChatPage: React.FC = () => {
                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
                     </button>
                     <div className="flex flex-1 items-center justify-between">
+
                         <div className="flex items-center gap-2">
                             <Brain className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
                             <select
                                 value={activePersona}
                                 onChange={(e) => setActivePersona(e.target.value as any)}
-                                className="bg-transparent font-semibold text-gray-900 dark:text-white border-0 outline-none focus:ring-0 p-0 text-base"
+                                className="bg-transparent font-semibold text-gray-900 dark:text-white border-0 outline-none focus:ring-0 p-0 text-base min-w-[120px]"
                             >
                                 {Object.values(AI_PERSONAS).map(p => (
                                     <option key={p.id} value={p.id} className="text-gray-900 dark:text-white bg-white dark:bg-slate-900">
@@ -273,7 +278,27 @@ export const AIChatPage: React.FC = () => {
                                     </option>
                                 ))}
                             </select>
+
+                            <div className="w-px h-4 bg-gray-300 dark:bg-gray-700 mx-2 hidden sm:block"></div>
+
+                            <div className="hidden sm:flex items-center gap-1">
+                                <select
+                                    value={activeModel}
+                                    onChange={(e) => setActiveModel(e.target.value as any)}
+                                    className="bg-transparent font-medium text-sm text-indigo-600 dark:text-indigo-400 border-0 outline-none focus:ring-0 p-0"
+                                >
+                                    {Object.values(MODEL_CONFIGS).map(m => (
+                                        <option key={m.id} value={m.id} className="text-gray-900 dark:text-white bg-white dark:bg-slate-900">
+                                            {m.displayName}
+                                        </option>
+                                    ))}
+                                </select>
+                                <span className="text-[10px] bg-indigo-100 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-200 px-1.5 py-0.5 rounded-full whitespace-nowrap">
+                                    {quota?.getRemainingUses()} left
+                                </span>
+                            </div>
                         </div>
+
 
                         <div className="hidden md:flex items-center gap-2">
                             <span className="text-xs font-medium text-gray-500 dark:text-gray-400">App Context</span>

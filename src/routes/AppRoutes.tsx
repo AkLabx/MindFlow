@@ -30,7 +30,6 @@ const QuizResult = lazy(() => import('../features/quiz/components/QuizResult').t
 const FlashcardSummary = lazy(() => import('../features/flashcards/components/FlashcardSummary').then(m => ({ default: m.FlashcardSummary })));
 const ToolsHome = lazy(() => import('../features/tools/ToolsHome'));
 const AIHome = lazy(() => import('../features/ai/AIHome').then(m => ({ default: m.AIHome })));
-const AITalkPage = lazy(() => import('../features/ai/talk/AITalkPage').then(m => ({ default: m.AITalkPage })));
 const AIChatPage = lazy(() => import('../features/ai/chat').then(m => ({ default: m.AIChatPage })));
 const QuizPdfPptGenerator = lazy(() => import('../features/tools/quiz-pdf-ppt-generator/QuizPdfPptGenerator').then(module => ({ default: module.QuizPdfPptGenerator })));
 const FlashcardMaker = lazy(() => import('../features/tools/flashcard-maker/FlashcardMaker'));
@@ -216,7 +215,6 @@ const AppRoutesContent: React.FC = () => {
                     <Route path="/tools" element={<ToolsHome />} />
                                         <Route path="/ai" element={<AIHome />} />
                     <Route path="/ai/chat" element={<AIChatPage />} />
-                    <Route path="/ai/talk" element={<AITalkPage />} />
                     <Route path="/tools/flashcard-maker" element={<FlashcardMaker />} />
                     <Route path="/tools/bilingual-pdf-maker" element={<BilingualPdfMaker />} />
                     <Route path="/tools/quiz-pdf-ppt-generator" element={<QuizPdfPptGenerator />} />

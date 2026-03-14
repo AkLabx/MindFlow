@@ -1,3 +1,4 @@
+import { useQuota, MODEL_CONFIGS, ModelId } from './useQuota';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useProfileStats } from '../../auth/hooks/useProfileStats';
 import { v4 as uuidv4 } from 'uuid';
@@ -60,6 +61,8 @@ type PersonaId = keyof typeof AI_PERSONAS;
 export const useAIChat = () => {
     const [messages, setMessages] = useState<AIChatMessage[]>([]);
     const [activePersona, setActivePersona] = useState<PersonaId>('general');
+    const [activeModel, setActiveModel] = useState<ModelId>('gemini-2.5-flash');
+    const quota = useQuota(activeModel);
     const [includeAppData, setIncludeAppData] = useState(false);
     const { stats } = useProfileStats();
     const [conversations, setConversations] = useState<AIChatConversation[]>([]);
@@ -166,6 +169,20 @@ export const useAIChat = () => {
 
     const sendMessage = useCallback(async (content: string, imageBase64?: string) => {
         if (!content.trim() && !imageBase64) return;
+
+
+        const quotaCheck = quota.checkCanRequest();
+        if (!quotaCheck.allowed) {
+            setMessages(prev => [...prev, {
+                id: uuidv4(),
+                conversation_id: activeConvId || uuidv4(),
+                role: 'assistant',
+                content: `**Quota Alert:** ${quotaCheck.reason}`,
+                created_at: new Date().toISOString()
+            }]);
+            return;
+        }
+        quota.trackRequest();
 
         // Cancel previous request if any
         if (abortControllerRef.current) {
@@ -289,7 +306,7 @@ export const useAIChat = () => {
             };
 
             const response = await fetch(
-                `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?key=${apiKey}&alt=sse`,
+                `https://generativelanguage.googleapis.com/v1beta/models/${String(activeModel).startsWith('gemini') ? activeModel : 'gemini-2.5-flash'}:streamGenerateContent?key=${apiKey}&alt=sse`,
                 {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -376,6 +393,9 @@ export const useAIChat = () => {
         activePersona,
         setActivePersona,
         includeAppData,
-        setIncludeAppData
+        setIncludeAppData,
+        activeModel,
+        setActiveModel,
+        quota
     };
 };

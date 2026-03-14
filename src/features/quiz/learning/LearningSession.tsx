@@ -122,9 +122,11 @@ export const LearningSession: React.FC<LearningSessionProps> = ({
         // Mark as time up (0 time taken for this attempt effectively, or max?)
         // Ideally we pass 0 or current time?
         // We call onAnswer with a special marker.
-        if (isHapticEnabled && window.navigator && window.navigator.vibrate) window.navigator.vibrate(50);
         onAnswer(currentQuestion.id, 'TIME_UP', 0);
         playWrong();
+        if (isHapticEnabled && 'vibrate' in navigator) {
+            navigator.vibrate([100, 50, 100]);
+        }
     }, [currentQuestion.id, playWrong, onAnswer, isHapticEnabled]);
 
     // Auto-close Time Up Modal after 2 seconds
@@ -191,7 +193,6 @@ export const LearningSession: React.FC<LearningSessionProps> = ({
 
     const handleAnswerSelect = (option: string) => {
         if (isAnswered) return;
-        if (isHapticEnabled && window.navigator && window.navigator.vibrate) window.navigator.vibrate(50);
 
         // Calculate time spent on this question
         // Total allowed - remaining = spent
@@ -202,10 +203,14 @@ export const LearningSession: React.FC<LearningSessionProps> = ({
 
         if (option === currentQuestion.correct) {
             playCorrect();
-
+            if (isHapticEnabled && 'vibrate' in navigator) {
+                navigator.vibrate(50);
+            }
         } else {
             playWrong();
-
+            if (isHapticEnabled && 'vibrate' in navigator) {
+                navigator.vibrate([100, 50, 100]);
+            }
         }
     };
 
