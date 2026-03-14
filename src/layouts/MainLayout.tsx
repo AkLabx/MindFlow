@@ -1,4 +1,5 @@
 import React, { useContext } from 'react';
+import { useLocation } from 'react-router-dom';
 import { BrainCircuit, Home, Compass, PlusCircle, User, Settings, LogIn, Sun, Moon, Brain } from 'lucide-react';
 import { cn } from '../utils/cn';
 import { useAuth } from '../features/auth/context/AuthContext';
@@ -47,6 +48,8 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
   const { user } = useAuth();
   const { isReviewMode } = useQuizContext();
   const { isDarkMode, toggleDarkMode } = useContext(SettingsContext);
+  const location = useLocation();
+  const isAIChat = location.pathname.startsWith('/ai/chat');
 
   const handleProfileClick = () => {
     if (user) {
@@ -57,10 +60,13 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900/50 dark:bg-slate-950 transition-colors duration-300 relative">
+    <div className={cn(
+        "flex flex-col bg-gray-50 dark:bg-gray-900/50 dark:bg-slate-950 transition-colors duration-300 relative",
+        isAIChat ? "h-[100dvh] w-screen overflow-hidden fixed inset-0" : "min-h-screen"
+    )}>
       
       {/* --- Sticky Top Header --- */}
-      {!isReviewMode && (
+      {!isReviewMode && !isAIChat && (
       <header className="sticky top-0 z-40 w-full bg-white dark:bg-gray-800/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-gray-200 dark:border-gray-700/50 dark:border-slate-800 transition-all duration-300">
         <div className="max-w-3xl mx-auto px-4 h-14 flex items-center justify-between">
           <div className="flex items-center gap-2 cursor-pointer" onClick={() => onTabChange('home')}>

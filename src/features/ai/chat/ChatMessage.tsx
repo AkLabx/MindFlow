@@ -1,6 +1,8 @@
 import React from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
 import { Bot, User, Copy, Check, Volume2, RotateCcw } from 'lucide-react';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
@@ -64,9 +66,16 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message, onRegenerate 
 
                 <div className="min-w-0 flex-1 space-y-2 overflow-hidden prose dark:prose-invert prose-sm md:prose-base max-w-none">
                     <ReactMarkdown
-                        remarkPlugins={[remarkGfm]}
+                        remarkPlugins={[remarkGfm, remarkMath]}
+                        rehypePlugins={[rehypeKatex]}
                         components={{
                             a: ({ node, ...props }) => <a {...props} className="text-indigo-600 hover:text-indigo-500 dark:text-indigo-400" target="_blank" rel="noopener noreferrer" />,
+                            table: ({ node, ...props }) => <div className="overflow-x-auto my-4"><table className="min-w-full divide-y divide-gray-300 dark:divide-gray-700 border border-gray-200 dark:border-gray-800 rounded-lg" {...props} /></div>,
+                            thead: ({ node, ...props }) => <thead className="bg-gray-50 dark:bg-gray-800/80" {...props} />,
+                            tbody: ({ node, ...props }) => <tbody className="divide-y divide-gray-200 dark:divide-gray-800 bg-white dark:bg-slate-900" {...props} />,
+                            tr: ({ node, ...props }) => <tr className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors" {...props} />,
+                            th: ({ node, ...props }) => <th className="px-3 py-3 text-left text-xs font-semibold text-gray-900 dark:text-gray-100 uppercase tracking-wider" {...props} />,
+                            td: ({ node, ...props }) => <td className="px-3 py-4 text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap" {...props} />,
                             code({ node, className, children, ...props }: any) {
                                 const match = /language-(\w+)/.exec(className || '');
                                 return match ? (

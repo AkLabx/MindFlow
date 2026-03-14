@@ -10,14 +10,55 @@ import {
     deleteChatConversation as dbDeleteConversation
 } from '../../../lib/db';
 
-const SYSTEM_PROMPT = `You are MindFlow AI, a helpful, encouraging, and highly knowledgeable educational assistant.
-Your goal is to help the user learn, practice vocabulary, understand complex topics, and prepare for exams (like SSC, UPSC, or general knowledge).
+export const AI_PERSONAS = {
+    general: {
+        id: 'general',
+        name: 'General Learning',
+        icon: 'Brain',
+        prompt: `You are MindFlow AI, a helpful, encouraging, and highly knowledgeable educational assistant.
+Your goal is to help the user learn, practice vocabulary, understand complex topics, and prepare for exams.
 - Keep answers concise but informative.
-- Use markdown formatting for readability (bolding, lists, code blocks if necessary).
-- Always maintain a supportive and motivating tone.`;
+- Use markdown formatting for readability (bolding, lists, code blocks, tables if necessary).
+- Always maintain a supportive and motivating tone.`
+    },
+    grammar: {
+        id: 'grammar',
+        name: 'Grammar & Writing',
+        icon: 'PenTool',
+        prompt: `You are MindFlow AI, an expert English grammar and writing coach.
+Your goal is to review the user's text, correct grammatical mistakes, explain WHY the correction was made, and suggest style improvements.
+- Be precise and strict about grammar.
+- Suggest vocabulary enhancements where appropriate.
+- Use markdown to highlight changes.`
+    },
+    interview: {
+        id: 'interview',
+        name: 'Interview Prep',
+        icon: 'UserCheck',
+        prompt: `You are MindFlow AI, a tough but fair Interviewer for competitive exams (like UPSC, SSC, or corporate jobs).
+Your goal is to conduct mock interviews, ask challenging follow-up questions, and provide critical feedback.
+- Ask one question at a time.
+- Critically evaluate the user's response before moving to the next question.
+- Point out weak areas in their argument or knowledge.`
+    },
+    vocab: {
+        id: 'vocab',
+        name: 'Vocabulary Builder',
+        icon: 'BookOpen',
+        prompt: `You are MindFlow AI, a master linguist and vocabulary coach.
+Your goal is to help the user expand their English vocabulary, master synonyms, idioms, and one-word substitutions.
+- Provide etymology, usage examples, and related words.
+- Give a quick mini-quiz if asked.
+- Be highly engaging and focus on practical usage.`
+    }
+};
+
+type PersonaId = keyof typeof AI_PERSONAS;
+
 
 export const useAIChat = () => {
     const [messages, setMessages] = useState<AIChatMessage[]>([]);
+    const [activePersona, setActivePersona] = useState<PersonaId>('general');
     const [conversations, setConversations] = useState<AIChatConversation[]>([]);
     const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
@@ -65,6 +106,12 @@ export const useAIChat = () => {
         setMessages([]);
     };
 
+    const stopGenerating = () => {
+        if (abortControllerRef.current) {
+            abortControllerRef.current.abort();
+        }
+    };
+
     const deleteConversation = async (id: string) => {
         try {
             await dbDeleteConversation(id);
@@ -77,8 +124,8 @@ export const useAIChat = () => {
         }
     };
 
-    const sendMessage = useCallback(async (content: string) => {
-        if (!content.trim()) return;
+    const sendMessage = useCallback(async (content: string, imageBase64?: string) => {
+        if (!content.trim() && !imageBase64) return;
 
         // Cancel previous request if any
         if (abortControllerRef.current) {
@@ -116,7 +163,7 @@ export const useAIChat = () => {
             id: uuidv4(),
             conversation_id: activeConvId,
             role: 'user',
-            content: content,
+            content: imageBase64 ? `[Image attached]\n\n${content}` : content,
             created_at: new Date().toISOString()
         };
 
@@ -161,14 +208,25 @@ export const useAIChat = () => {
             }));
 
             // Add the new user message
+            const userParts: any[] = [{ text: content }];
+            if (imageBase64) {
+                const base64Data = imageBase64.split(',')[1];
+                const mimeType = imageBase64.split(';')[0].split(':')[1];
+                userParts.push({
+                    inlineData: {
+                        mimeType,
+                        data: base64Data
+                    }
+                });
+            }
             historyToSent.push({
                 role: 'user',
-                parts: [{ text: content }]
+                parts: userParts
             });
 
             const requestBody = {
                 systemInstruction: {
-                    parts: [{ text: SYSTEM_PROMPT }]
+                    parts: [{ text: AI_PERSONAS[activePersona].prompt }]
                 },
                 contents: historyToSent,
                 generationConfig: {
@@ -259,6 +317,9 @@ export const useAIChat = () => {
         sendMessage,
         startNewConversation,
         loadConversation,
-        deleteConversation
+        deleteConversation,
+        stopGenerating,
+        activePersona,
+        setActivePersona
     };
 };

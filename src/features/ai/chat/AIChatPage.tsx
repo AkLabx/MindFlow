@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Brain, Plus, Trash2, MessageSquare, Loader2 } from 'lucide-react';
 import { ChatMessage } from './ChatMessage';
 import { ChatInput } from './ChatInput';
-import { useAIChat } from './useAIChat';
+import { useAIChat, AI_PERSONAS } from './useAIChat';
 import { cn } from '../../../utils/cn';
 import { AIChatConversation } from '../../../lib/db';
 
@@ -17,7 +17,10 @@ export const AIChatPage: React.FC = () => {
         sendMessage,
         startNewConversation,
         loadConversation,
-        deleteConversation
+        deleteConversation,
+        stopGenerating,
+        activePersona,
+        setActivePersona
     } = useAIChat();
 
     const [inputValue, setInputValue] = useState('');
@@ -31,6 +34,73 @@ export const AIChatPage: React.FC = () => {
     ];
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
+
+    const groupConversations = () => {
+        const today: AIChatConversation[] = [];
+        const last7Days: AIChatConversation[] = [];
+        const last30Days: AIChatConversation[] = [];
+
+        const now = new Date();
+        now.setHours(0, 0, 0, 0);
+
+        conversations.forEach(c => {
+            const date = new Date(c.updated_at);
+            date.setHours(0, 0, 0, 0);
+            const diffTime = Math.abs(now.getTime() - date.getTime());
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+            if (diffDays === 0) {
+                today.push(c);
+            } else if (diffDays <= 7) {
+                last7Days.push(c);
+            } else {
+                last30Days.push(c);
+            }
+        });
+
+        return { today, last7Days, last30Days };
+    };
+
+    const groupedHistory = groupConversations();
+
+    const SidebarGroup = ({ title, items }: { title: string, items: AIChatConversation[] }) => {
+        if (items.length === 0) return null;
+        return (
+            <div className="mb-6">
+                <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2 px-2">{title}</h3>
+                <div className="space-y-1">
+                    {items.map((conv) => (
+                        <div
+                            key={conv.id}
+                            className={cn(
+                                "group relative flex items-center justify-between gap-2 rounded-lg p-2.5 text-sm transition-colors cursor-pointer",
+                                currentConversationId === conv.id
+                                    ? "bg-indigo-50 dark:bg-indigo-900/30 text-indigo-900 dark:text-indigo-300 font-medium"
+                                    : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-800"
+                            )}
+                            onClick={() => {
+                                loadConversation(conv.id);
+                                setIsSidebarOpen(false);
+                            }}
+                        >
+                            <span className="truncate flex-1">{conv.title}</span>
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    deleteConversation(conv.id);
+                                }}
+                                className="opacity-0 group-hover:opacity-100 p-1.5 rounded text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all shrink-0"
+                                title="Delete chat"
+                            >
+                                <Trash2 className="h-4 w-4" />
+                            </button>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        );
+    };
+
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -49,9 +119,9 @@ export const AIChatPage: React.FC = () => {
         }
     };
 
-    const handleSubmit = () => {
-        if (!inputValue.trim() || isLoading) return;
-        sendMessage(inputValue);
+    const handleSubmit = (image?: string) => {
+        if ((!inputValue.trim() && !image) || isLoading) return;
+        sendMessage(inputValue, image);
         setInputValue('');
     };
 
@@ -79,36 +149,16 @@ export const AIChatPage: React.FC = () => {
                     </button>
                 </div>
 
-                <div className="flex-1 overflow-y-auto p-4 space-y-2">
-                    <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">Recent Chats</h3>
-                    {conversations.map((conv) => (
-                        <div
-                            key={conv.id}
-                            className={cn(
-                                "group relative flex items-center gap-2 rounded-lg p-3 text-sm transition-colors cursor-pointer",
-                                currentConversationId === conv.id
-                                    ? "bg-indigo-50 dark:bg-indigo-900/30 text-indigo-900 dark:text-indigo-300"
-                                    : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-800"
-                            )}
-                            onClick={() => {
-                                loadConversation(conv.id);
-                                setIsSidebarOpen(false);
-                            }}
-                        >
-                            <span className="truncate flex-1">{conv.title}</span>
-                            <button
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    deleteConversation(conv.id);
-                                }}
-                                className="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-red-500 transition-opacity"
-                            >
-                                <Trash2 className="h-4 w-4" />
-                            </button>
-                        </div>
-                    ))}
+                <div className="flex-1 overflow-y-auto p-2">
+                    <SidebarGroup title="Today" items={groupedHistory.today} />
+                    <SidebarGroup title="Previous 7 Days" items={groupedHistory.last7Days} />
+                    <SidebarGroup title="Previous 30 Days" items={groupedHistory.last30Days} />
+
                     {conversations.length === 0 && (
-                        <p className="text-sm text-gray-500 dark:text-gray-500 text-center py-4">No recent chats.</p>
+                        <div className="flex flex-col items-center justify-center h-40 text-gray-500 dark:text-gray-500">
+                            <MessageSquare className="h-8 w-8 mb-2 opacity-20" />
+                            <p className="text-sm">No recent chats</p>
+                        </div>
                     )}
                 </div>
             </div>
@@ -140,7 +190,17 @@ export const AIChatPage: React.FC = () => {
                     </button>
                     <div className="flex items-center gap-2">
                         <Brain className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
-                        <h1 className="font-semibold text-gray-900 dark:text-white">MindFlow AI</h1>
+                        <select
+                            value={activePersona}
+                            onChange={(e) => setActivePersona(e.target.value as any)}
+                            className="bg-transparent font-semibold text-gray-900 dark:text-white border-0 outline-none focus:ring-0 p-0 text-base"
+                        >
+                            {Object.values(AI_PERSONAS).map(p => (
+                                <option key={p.id} value={p.id} className="text-gray-900 dark:text-white bg-white dark:bg-slate-900">
+                                    {p.name}
+                                </option>
+                            ))}
+                        </select>
                     </div>
                 </header>
 
@@ -213,6 +273,7 @@ export const AIChatPage: React.FC = () => {
                         onChange={setInputValue}
                         onSubmit={handleSubmit}
                         isLoading={isLoading}
+                        onStopGenerating={stopGenerating}
                     />
                 </div>
             </div>
