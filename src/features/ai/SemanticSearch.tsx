@@ -36,7 +36,7 @@ export const SemanticSearch: React.FC = () => {
             }
 
             // Must use the exact same model we used to generate the database embeddings
-            const modelName = 'models/gemini-embedding-2-preview';
+            const modelName = 'models/text-embedding-004';
             const url = `https://generativelanguage.googleapis.com/v1beta/${modelName}:embedContent?key=${apiKey}`;
 
             const embedResponse = await fetch(url, {
