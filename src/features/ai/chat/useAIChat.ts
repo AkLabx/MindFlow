@@ -126,7 +126,7 @@ export const useAIChat = () => {
 
         try {
             const response = await fetch(
-                `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+                `https://generativelanguage.googleapis.com/v1beta/models/${String(activeModel).startsWith('gemini') ? activeModel : 'gemini-2.5-flash'}:generateContent?key=${apiKey}`,
                 {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -377,7 +377,7 @@ export const useAIChat = () => {
             abortControllerRef.current = null;
         }
 
-    }, [messages, currentConversationId, conversations]);
+    }, [messages, currentConversationId, conversations, activeModel, activePersona, includeAppData, stats, quota]);
 
     return {
         messages,
