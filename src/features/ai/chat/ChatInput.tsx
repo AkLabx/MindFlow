@@ -3,6 +3,7 @@ import { Send, Loader2, Mic, Image as ImageIcon, X, StopCircle, ChevronUp } from
 import { MODEL_CONFIGS } from './useQuota';
 import { useState } from 'react';
 import { cn } from '../../../utils/cn';
+import { motion, AnimatePresence } from "framer-motion";
 
 interface ChatInputProps {
     activeModel?: string;
@@ -208,13 +209,23 @@ export const ChatInput: React.FC<ChatInputProps> = ({
             </div>
 
             {/* Bottom Sheet Model Switcher */}
-            {isModelSheetOpen && activeModel && setActiveModel && (
-                <>
-                    <div
-                        className="fixed inset-0 z-[60] bg-black/50 transition-opacity"
-                        onClick={() => setIsModelSheetOpen(false)}
-                    />
-                    <div className="fixed inset-x-0 bottom-0 z-[70] transform bg-white dark:bg-slate-900 rounded-t-3xl shadow-2xl transition-transform duration-300 ease-out max-h-[80vh] flex flex-col">
+            <AnimatePresence>
+                {isModelSheetOpen && activeModel && setActiveModel && (
+                    <>
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="fixed inset-0 z-[60] bg-black/50"
+                            onClick={() => setIsModelSheetOpen(false)}
+                        />
+                        <motion.div
+                            initial={{ y: "100%" }}
+                            animate={{ y: 0 }}
+                            exit={{ y: "100%" }}
+                            transition={{ type: "spring", damping: 25, stiffness: 200 }}
+                            className="fixed inset-x-0 bottom-0 z-[70] bg-white dark:bg-slate-900 rounded-t-3xl shadow-2xl max-h-[80vh] flex flex-col"
+                        >
                         <div className="p-4 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center shrink-0">
                             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Select AI Model</h3>
                             <button
@@ -249,9 +260,10 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                                 </button>
                             ))}
                         </div>
-                    </div>
-                </>
-            )}
+                        </motion.div>
+                    </>
+                )}
+            </AnimatePresence>
             <div className="mt-2 text-center text-xs text-gray-500 dark:text-gray-400">
                 AI can make mistakes. Verify important information.
             </div>
