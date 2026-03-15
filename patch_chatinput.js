@@ -1,146 +1,48 @@
-import React, { useRef, useEffect } from 'react';
-import { Send, Loader2, Mic, Image as ImageIcon, X, StopCircle, ChevronUp } from 'lucide-react';
-import { MODEL_CONFIGS } from './useQuota';
-import { useState } from 'react';
-import { cn } from '../../../utils/cn';
+const fs = require('fs');
+const path = './src/features/ai/chat/ChatInput.tsx';
 
-interface ChatInputProps {
-    activeModel?: string;
-    setActiveModel?: (modelId: any) => void;
-    value: string;
-    onChange: (val: string) => void;
-    onSubmit: (image?: string) => void;
-    isLoading: boolean;
-    disabled?: boolean;
-    onStopGenerating?: () => void;
-}
+let content = fs.readFileSync(path, 'utf8');
 
-export const ChatInput: React.FC<ChatInputProps> = ({
-    activeModel,
-    setActiveModel,
-    value,
-    onChange,
-    onSubmit,
-    isLoading,
-    disabled,
-    onStopGenerating
-}) => {
-    const textareaRef = useRef<HTMLTextAreaElement>(null);
-    const [isListening, setIsListening] = useState(false);
-    const [imagePreview, setImagePreview] = useState<string | null>(null);
-    const [isModelSheetOpen, setIsModelSheetOpen] = useState(false);
+// 1. Add new props
+content = content.replace(
+    /interface ChatInputProps \{/,
+    `interface ChatInputProps {\n    activeModel?: string;\n    setActiveModel?: (modelId: string) => void;`
+);
 
-    const handleMicClick = () => {
-        if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-            alert('Speech recognition is not supported in this browser.');
-            return;
-        }
+// 2. Add imports
+content = content.replace(
+    /import \{ Send, Loader2, Mic, MicOff, Image as ImageIcon, X, StopCircle \} from 'lucide-react';/,
+    `import { Send, Loader2, Mic, Image as ImageIcon, X, StopCircle, ChevronUp } from 'lucide-react';\nimport { MODEL_CONFIGS } from './useQuota';`
+);
 
-        const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-        const recognition = new SpeechRecognition();
+// 3. Update component signature
+content = content.replace(
+    /export const ChatInput: React\.FC<ChatInputProps> = \(\{/,
+    `export const ChatInput: React.FC<ChatInputProps> = ({\n    activeModel,\n    setActiveModel,`
+);
 
-        if (isListening) {
-            recognition.stop();
-            setIsListening(false);
-            return;
-        }
+// 4. Add state for bottom sheet
+content = content.replace(
+    /const \[imagePreview, setImagePreview\] = useState<string \| null>\(null\);/,
+    `const [imagePreview, setImagePreview] = useState<string | null>(null);\n    const [isModelSheetOpen, setIsModelSheetOpen] = useState(false);`
+);
 
-        recognition.continuous = false;
-        recognition.interimResults = true;
+// 5. Update placeholder
+content = content.replace(
+    /placeholder="Ask MindFlow AI anything..."/,
+    `placeholder="Ask Mindflow"`
+);
 
-        recognition.onstart = () => setIsListening(true);
-        recognition.onresult = (event: any) => {
-            let finalTranscript = '';
-            for (let i = event.resultIndex; i < event.results.length; ++i) {
-                if (event.results[i].isFinal) {
-                    finalTranscript += event.results[i][0].transcript;
-                }
-            }
-            if (finalTranscript) {
-                onChange(value ? value + ' ' + finalTranscript : finalTranscript);
-            }
-        };
-        recognition.onerror = () => setIsListening(false);
-        recognition.onend = () => setIsListening(false);
+// 6. Remove the top Stop Generating button block
+content = content.replace(
+    /\{\s*isLoading\s*&&\s*onStopGenerating\s*&&\s*\([\s\S]*?\}\s*\)\s*\}/,
+    ``
+);
 
-        recognition.start();
-    };
+// 7. Rebuild the bottom bar UI
+const bottomBarRegex = /<div className="flex items-center justify-between w-full pt-2 border-t border-gray-100 dark:border-gray-800\/50 mt-1">[\s\S]*?<\/div>(\s*<\/div>\s*<div className="mt-2 text-center text-xs text-gray-500)/;
 
-    const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-
-        const reader = new FileReader();
-        reader.onloadend = () => {
-            setImagePreview(reader.result as string);
-        };
-        reader.readAsDataURL(file);
-    };
-
-    const handleSend = () => {
-        if (!value.trim() && !imagePreview) return;
-        onSubmit(imagePreview || undefined);
-        setImagePreview(null);
-    };
-
-    useEffect(() => {
-        if (textareaRef.current) {
-            textareaRef.current.style.height = 'auto';
-            const scrollHeight = textareaRef.current.scrollHeight;
-            textareaRef.current.style.height = `${Math.min(scrollHeight, 200)}px`;
-            textareaRef.current.style.overflowY = scrollHeight > 200 ? 'auto' : 'hidden';
-        }
-    }, [value]);
-
-    const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            if (value.trim() && !isLoading && !disabled) {
-                handleSend();
-            }
-        }
-    };
-
-    return (
-        <div className="mx-auto w-full max-w-3xl px-4 py-4">
-            {isLoading && onStopGenerating && (
-                <div className="flex justify-center mb-4">
-                    <button
-                        onClick={onStopGenerating}
-                        className="flex items-center gap-2 px-4 py-2 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-full hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors text-sm font-medium border border-red-200 dark:border-red-800/50 shadow-sm"
-                    >
-                        <StopCircle className="h-4 w-4" />
-                        Stop Generating
-                    </button>
-                </div>
-            )}
-
-            {imagePreview && (
-                <div className="relative inline-block mb-3">
-                    <div className="relative w-24 h-24 rounded-lg overflow-hidden border-2 border-indigo-500 shadow-md">
-                        <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
-                    </div>
-                    <button
-                        onClick={() => setImagePreview(null)}
-                        className="absolute -top-2 -right-2 bg-gray-900 text-white rounded-full p-1 shadow-sm hover:bg-red-500 transition-colors z-10"
-                    >
-                        <X className="h-3 w-3" />
-                    </button>
-                </div>
-            )}
-
-            <div className="relative flex w-full flex-col gap-1 rounded-[24px] bg-gray-100 dark:bg-slate-800/80 px-4 py-2 focus-within:ring-2 focus-within:ring-indigo-500/50">
-                <textarea
-                    ref={textareaRef}
-                    value={value}
-                    onChange={(e) => onChange(e.target.value)}
-                    onKeyDown={handleKeyDown}
-                    placeholder="Ask Mindflow"
-                    className="max-h-[200px] min-h-[44px] w-full resize-none border-0 bg-transparent py-2 text-gray-900 placeholder:text-gray-500 focus:ring-0 outline-none focus:outline-none dark:text-white dark:placeholder:text-gray-400 sm:text-base leading-relaxed"
-                    rows={1}
-                    disabled={isLoading || disabled}
-                />
-                <div className="flex items-center justify-between w-full mt-1">
+const newBottomBar = `<div className="flex items-center justify-between w-full mt-1">
                     {/* Left: Image Upload */}
                     <div className="flex items-center text-gray-400">
                         <label className="p-2 hover:text-indigo-600 dark:hover:text-indigo-400 cursor-pointer rounded-full transition-colors">
@@ -224,7 +126,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                                 <X className="h-5 w-5" />
                             </button>
                         </div>
-                        <div className="p-4 overflow-y-auto space-y-2 pb-8">
+                        <div className="p-4 overflow-y-auto space-y-2">
                             {Object.values(MODEL_CONFIGS).map(m => (
                                 <button
                                     key={m.id}
@@ -251,10 +153,22 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                         </div>
                     </div>
                 </>
-            )}
-            <div className="mt-2 text-center text-xs text-gray-500 dark:text-gray-400">
-                AI can make mistakes. Verify important information.
-            </div>
-        </div>
-    );
-};
+            )}$1`;
+
+content = content.replace(bottomBarRegex, newBottomBar);
+
+// 8. Fix the container style
+content = content.replace(
+    /<div className="relative flex w-full flex-col gap-2 rounded-xl border border-gray-200 bg-white p-2 shadow-sm dark:border-gray-800 dark:bg-slate-900 focus-within:ring-0 focus-within:border-indigo-500\/50">/,
+    `<div className="relative flex w-full flex-col gap-1 rounded-[24px] bg-gray-100 dark:bg-slate-800/80 px-4 py-2 focus-within:ring-2 focus-within:ring-indigo-500/50">`
+);
+
+// 9. Remove top/bottom borders from textarea wrapper items and make the structure cleaner
+content = content.replace(
+    /className="max-h-\[200px\] min-h-\[44px\] w-full resize-none border-0 bg-transparent p-3 py-3 text-gray-900 placeholder:text-gray-500 focus:ring-0 outline-none focus:outline-none dark:text-white dark:placeholder:text-gray-400 sm:text-sm"/,
+    `className="max-h-[200px] min-h-[44px] w-full resize-none border-0 bg-transparent py-2 text-gray-900 placeholder:text-gray-500 focus:ring-0 outline-none focus:outline-none dark:text-white dark:placeholder:text-gray-400 sm:text-base leading-relaxed"`
+);
+
+
+fs.writeFileSync(path, content, 'utf8');
+console.log('Patched ChatInput.tsx successfully.');

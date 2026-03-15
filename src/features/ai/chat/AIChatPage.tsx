@@ -364,6 +364,8 @@ export const AIChatPage: React.FC = () => {
                         onSubmit={handleSubmit}
                         isLoading={isLoading}
                         onStopGenerating={stopGenerating}
+                        activeModel={activeModel}
+                        setActiveModel={setActiveModel}
                     />
                 </div>
                 </div>
