@@ -30,7 +30,6 @@ const QuizResult = lazy(() => import('../features/quiz/components/QuizResult').t
 const FlashcardSummary = lazy(() => import('../features/flashcards/components/FlashcardSummary').then(m => ({ default: m.FlashcardSummary })));
 const ToolsHome = lazy(() => import('../features/tools/ToolsHome'));
 const AIHome = lazy(() => import('../features/ai/AIHome').then(m => ({ default: m.AIHome })));
-const SemanticSearch = lazy(() => import('../features/ai/SemanticSearch').then(m => ({ default: m.SemanticSearch })));
 
 const AIChatPage = lazy(() => import('../features/ai/chat/AIChatPage').then(m => ({ default: m.AIChatPage })));
 const AITalkPage = lazy(() => import('../features/ai/talk/AITalkPage').then(m => ({ default: m.AITalkPage })));
@@ -218,7 +217,6 @@ const AppRoutesContent: React.FC = () => {
 
                     <Route path="/tools" element={<ToolsHome />} />
                     <Route path="/ai" element={<AIHome />} />
-                    <Route path="/ai/semantic-search" element={<SemanticSearch />} />
 
                     <Route path="/ai/chat" element={<AIChatPage />} />
                     <Route path="/ai/talk" element={<AITalkPage />} />
