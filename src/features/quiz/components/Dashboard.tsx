@@ -2,6 +2,7 @@ import React from 'react';
 import { ListChecks, FileText, BookOpen, Languages, Save, Wrench, BarChart2, Star, ChevronRight } from 'lucide-react';
 import { Button } from '../../../components/Button/Button';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../auth/context/AuthContext';
 import { useNavSpinner } from '../../../hooks/useNavSpinner';
 import { Loader2 } from 'lucide-react';
 
@@ -35,6 +36,15 @@ interface DashboardProps {
 export const Dashboard: React.FC<DashboardProps> = ({ onStartQuiz, onEnglish, onBackToIntro, onSavedQuizzes }) => {
     const navigate = useNavigate();
     const { loadingId, handleNavigation } = useNavSpinner();
+    const { user } = useAuth();
+
+    const getGreeting = () => {
+        const hour = new Date().getHours();
+        if (hour < 12) return 'Good Morning';
+        if (hour < 18) return 'Good Afternoon';
+        return 'Good Evening';
+    };
+
 
     return (
         <div className="flex flex-col">
@@ -42,29 +52,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ onStartQuiz, onEnglish, on
                 {/* Hero Section */}
                 <div className="relative text-center max-w-4xl mx-auto mt-6">
                     <h1 className="text-4xl sm:text-6xl font-black text-gray-900 dark:text-white leading-tight mb-4 drop-shadow-sm">
-                        Master Your <br />
-                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-500">
-                            Knowledge.
-                        </span>
+                        Dashboard
                     </h1>
 
-                    <p className="text-base text-gray-600 dark:text-gray-300 mb-8 max-w-md mx-auto leading-relaxed font-medium">
-                        Adaptive quizzes, detailed analytics, and instant feedback to help you learn faster.
+                    <p className="text-lg text-gray-600 dark:text-gray-300 mb-8 max-w-md mx-auto leading-relaxed font-medium">
+                        {getGreeting()}, {user?.user_metadata?.first_name || user?.user_metadata?.full_name?.split(' ')[0] || 'buddy'}!
                     </p>
-
-                    <div className="flex items-center justify-center gap-3 relative z-20">
-                        <Button
-                            size="lg"
-                            onClick={() => handleNavigation('create-btn', onStartQuiz)}
-                            className="bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-3 rounded-xl shadow-xl shadow-indigo-200 transition-all transform active:scale-95 relative"
-                        >
-                            {loadingId === 'create-btn' ? (
-                                <Loader2 className="w-5 h-5 animate-spin" />
-                            ) : (
-                                "Create Quiz"
-                            )}
-                        </Button>
-                    </div>
                 </div>
 
                 {/* Cards Grid */}
