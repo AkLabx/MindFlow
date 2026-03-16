@@ -6,7 +6,10 @@ export function Accordion({ title, children }: { title: string; children: React.
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <div className="border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 shadow-sm overflow-hidden mt-6 mb-24">
+    <div className={cn(
+      "border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 shadow-sm mt-6 mb-24",
+      !isOpen && "overflow-hidden"
+    )}>
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="w-full flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
@@ -16,7 +19,7 @@ export function Accordion({ title, children }: { title: string; children: React.
       </button>
       <div
         className={cn(
-          "transition-all duration-300 ease-in-out",
+          "transition-all duration-300 ease-in-out relative",
           isOpen ? "max-h-[2000px] opacity-100" : "max-h-0 opacity-0 overflow-hidden"
         )}
       >

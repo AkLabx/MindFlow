@@ -129,7 +129,7 @@ export const MultiSelectDropdown = React.memo(function MultiSelectDropdown({
 
 
   return (
-    <div className="relative" ref={dropdownRef}>
+    <div className={cn("relative", isOpen && "z-50")} ref={dropdownRef}>
       {label && (
         <div className="flex items-center gap-1.5 mb-1.5">
           <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{label}</label>
