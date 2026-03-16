@@ -20,21 +20,21 @@ export const AITalkSummary: React.FC<AITalkSummaryProps> = ({ duration, transcri
     };
 
     return (
-        <div className="min-h-[100dvh] bg-stone-900 flex flex-col p-6 animate-in slide-in-from-bottom-8 duration-500 relative overflow-hidden text-stone-200">
+        <div className="h-[100dvh] bg-stone-900 flex flex-col p-4 sm:p-6 animate-in slide-in-from-bottom-8 duration-500 relative overflow-hidden text-stone-200">
             {/* Background elements */}
             <div className="absolute top-[-100px] left-[-100px] w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
             <div className="absolute bottom-[-100px] right-[-100px] w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
 
-            <header className="text-center mt-8 mb-10 z-10">
-                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-stone-800 border-2 border-emerald-500/30 mb-4 shadow-lg shadow-emerald-900/20">
-                    <MessageSquare className="w-8 h-8 text-emerald-400" />
+            <header className="text-center mt-4 sm:mt-8 mb-6 sm:mb-10 z-10 shrink-0">
+                <div className="inline-flex items-center justify-center w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-stone-800 border-2 border-emerald-500/30 mb-2 sm:mb-4 shadow-lg shadow-emerald-900/20">
+                    <MessageSquare className="w-6 h-6 sm:w-8 sm:h-8 text-emerald-400" />
                 </div>
-                <h1 className="text-3xl font-bold text-white mb-2">Session Complete</h1>
+                <h1 className="text-2xl sm:text-3xl font-bold text-white mb-1 sm:mb-2">Session Complete</h1>
                 <p className="text-stone-400">Topic: {topic}</p>
             </header>
 
             {/* Stats Cards */}
-            <div className="grid grid-cols-2 gap-4 mb-8 z-10">
+            <div className="grid grid-cols-2 gap-3 sm:gap-4 mb-4 sm:mb-8 z-10 shrink-0">
                 <div className="bg-stone-800/80 backdrop-blur border border-stone-700 p-4 rounded-2xl flex flex-col items-center justify-center text-center">
                     <Clock className="w-6 h-6 text-indigo-400 mb-2" />
                     <span className="text-2xl font-mono font-bold text-white">{formatTime(duration)}</span>
@@ -48,8 +48,8 @@ export const AITalkSummary: React.FC<AITalkSummaryProps> = ({ duration, transcri
             </div>
 
             {/* AI Transcript Highlights */}
-            <div className="flex-1 bg-stone-800/50 border border-stone-700 rounded-3xl p-6 overflow-hidden flex flex-col z-10 max-h-[40vh]">
-                <h3 className="text-sm font-bold text-stone-300 uppercase tracking-wider mb-4 border-b border-stone-700 pb-2">AI Transcript Highlights</h3>
+            <div className="flex-1 min-h-0 bg-stone-800/50 border border-stone-700 rounded-3xl p-4 sm:p-6 overflow-hidden flex flex-col z-10">
+                <h3 className="text-xs sm:text-sm font-bold text-stone-300 uppercase tracking-wider mb-2 sm:mb-4 border-b border-stone-700 pb-2 shrink-0">AI Transcript Highlights</h3>
                 <div className="flex-1 overflow-y-auto pr-2 space-y-4 scrollbar-thin scrollbar-thumb-stone-600">
                     {transcript.length === 0 ? (
                         <div className="h-full flex items-center justify-center text-stone-500 text-sm italic">
@@ -72,7 +72,7 @@ export const AITalkSummary: React.FC<AITalkSummaryProps> = ({ duration, transcri
             </div>
 
             {/* Action Buttons */}
-            <div className="mt-8 mb-4 flex gap-4 z-10 w-full max-w-md mx-auto">
+            <div className="mt-4 sm:mt-8 mb-2 sm:mb-4 flex gap-3 sm:gap-4 z-10 w-full max-w-md mx-auto shrink-0">
                 <button
                     onClick={onRestart}
                     className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-4 rounded-2xl shadow-lg transition-transform hover:-translate-y-1 active:translate-y-0 flex items-center justify-center gap-2"
