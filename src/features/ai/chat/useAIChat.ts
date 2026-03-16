@@ -221,7 +221,8 @@ export const useAIChat = () => {
             id: uuidv4(),
             conversation_id: activeConvId,
             role: 'user',
-            content: imageBase64 ? `[Image attached]\n\n${content}` : content,
+            content: content,
+            ...(imageBase64 && { image: imageBase64 }),
             created_at: new Date().toISOString()
         };
 

@@ -95,6 +95,11 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message, onRegenerate,
                         ? "bg-indigo-50 dark:bg-indigo-900/40 text-gray-900 dark:text-gray-100 rounded-[20px] rounded-br-[4px] px-4 shadow-sm" // User Bubble
                         : "bg-transparent text-gray-900 dark:text-gray-100" // AI Borderless
                 )}>
+                    {message.image && (
+                        <div className="mb-3 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 max-w-sm">
+                            <img src={message.image} alt="Attached" className="w-full h-auto max-h-64 object-cover" />
+                        </div>
+                    )}
                     <div className={cn(
                         "prose prose-sm md:prose-base max-w-none break-words",
                         "dark:prose-invert"

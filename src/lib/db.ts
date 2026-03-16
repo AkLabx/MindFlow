@@ -531,6 +531,7 @@ export interface AIChatMessage {
   conversation_id: string;
   role: 'user' | 'assistant' | 'system';
   content: string;
+  image?: string;
   created_at: string;
 }
 
