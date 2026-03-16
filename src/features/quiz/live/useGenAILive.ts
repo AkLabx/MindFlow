@@ -1,6 +1,7 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { GoogleGenAI, Modality, LiveServerMessage } from '@google/genai';
 import { SavedQuiz } from '../types';
+import { AudioRecorderWorkletCode, arrayBufferToBase64, floatTo16BitPCM, base64ToUint8Array } from '../../ai/talk/audio-helpers';
 
 interface UseGenAILiveOptions {
     quiz: SavedQuiz;
@@ -9,239 +10,90 @@ interface UseGenAILiveOptions {
     onError?: (error: Error) => void;
 }
 
-// --- Audio Helper Functions ---
-
-function floatTo16BitPCM(float32Array: Float32Array): ArrayBuffer {
-    const buffer = new ArrayBuffer(float32Array.length * 2);
-    const view = new DataView(buffer);
-    for (let i = 0; i < float32Array.length; i++) {
-        let s = Math.max(-1, Math.min(1, float32Array[i]));
-        view.setInt16(i * 2, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
-    }
-    return buffer;
-}
-
-function arrayBufferToBase64(buffer: ArrayBuffer): string {
-    let binary = '';
-    const bytes = new Uint8Array(buffer);
-    const len = bytes.byteLength;
-    for (let i = 0; i < len; i++) {
-        binary += String.fromCharCode(bytes[i]);
-    }
-    return btoa(binary);
-}
-
-function base64ToUint8Array(base64: string): Uint8Array {
-    const binaryString = atob(base64);
-    const len = binaryString.length;
-    const bytes = new Uint8Array(len);
-    for (let i = 0; i < len; i++) {
-        bytes[i] = binaryString.charCodeAt(i);
-    }
-    return bytes;
-}
-
-const AudioRecorderWorkletCode = `
-class RecorderProcessor extends AudioWorkletProcessor {
-    constructor() {
-        super();
-        this.bufferSize = 2048; // Send chunks of ~2048 samples
-        this.buffer = new Float32Array(this.bufferSize);
-        this.index = 0;
-    }
-
-    process(inputs, outputs, parameters) {
-        const input = inputs[0];
-        if (input.length > 0) {
-            const channelData = input[0];
-            for (let i = 0; i < channelData.length; i++) {
-                this.buffer[this.index++] = channelData[i];
-                if (this.index >= this.bufferSize) {
-                    // Post buffer to main thread
-                    this.port.postMessage(this.buffer);
-                    this.index = 0;
-                }
-            }
-        }
-        return true;
-    }
-}
-
-registerProcessor('recorder-worklet', RecorderProcessor);
-`;
-
 export const useGenAILive = ({ quiz, voice, onStateChange, onError }: UseGenAILiveOptions) => {
     const [isMuted, setIsMuted] = useState(false);
-    const sessionRef = useRef<any>(null);
+
     const audioContextRef = useRef<AudioContext | null>(null);
     const mediaStreamRef = useRef<MediaStream | null>(null);
-    const sourceNodeRef = useRef<MediaStreamAudioSourceNode | null>(null);
     const workletNodeRef = useRef<AudioWorkletNode | null>(null);
+    const sourceNodeRef = useRef<MediaStreamAudioSourceNode | null>(null);
+    const sessionRef = useRef<any>(null);
+
+    // Playback state
     const nextStartTimeRef = useRef<number>(0);
+    const audioQueueRef = useRef<AudioBufferSourceNode[]>([]);
 
+    const connectionIdRef = useRef<number>(0);
     const isConnectedRef = useRef<boolean>(false);
+    const hasErrorRef = useRef<boolean>(false);
 
-    const connect = useCallback(async () => {
-        onStateChange?.('connecting');
-        isConnectedRef.current = false;
-        try {
-            // @ts-ignore
-            let apiKey = process.env.GOOGLE_AI_KEY || process.env.GEMINI_API_KEY || process.env.API_KEY;
-
-            if (!apiKey) {
-                throw new Error("Missing API Key. Please check your .env file or environment variables.");
-            }
-
-            const ai = new GoogleGenAI({ apiKey, httpOptions: { baseUrl: 'https://generativelanguage.googleapis.com' } });
-
-            // Initialize Audio Context immediately for correct user gesture bindings
-            const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
-            if (!AudioContextClass) throw new Error("AudioContext is not supported in your browser.");
-            const audioContext = new AudioContextClass({ sampleRate: 16000 });
-            await audioContext.resume();
-            audioContextRef.current = audioContext;
-            nextStartTimeRef.current = 0;
-
-            const blob = new Blob([AudioRecorderWorkletCode], { type: "application/javascript" });
-            const workletUrl = URL.createObjectURL(blob);
-            await audioContext.audioWorklet.addModule(workletUrl);
-
-            // Generate the prompt from the quiz
-
-
-            const systemInstruction = "You are a lively Quiz Master running an audio game. Keep it short and friendly.";
-
-            const sessionPromise = ai.live.connect({
-                model: 'gemini-2.5-flash-native-audio-preview-09-2025',
-                config: {
-                    responseModalities: [Modality.AUDIO],
-                    speechConfig: {
-                        voiceConfig: {
-                            prebuiltVoiceConfig: {
-                                voiceName: voice
-                            }
-                        }
-                    },
-                    systemInstruction: systemInstruction
-                },
-                callbacks: {
-                    onopen: async () => {
-                        console.log("Live AI Session Opened");
-                        isConnectedRef.current = true;
-                        onStateChange?.('connected');
-
-                        try {
-                            mediaStreamRef.current = await navigator.mediaDevices.getUserMedia({ audio: true });
-
-                            if (!audioContextRef.current) return;
-
-                            sourceNodeRef.current = audioContextRef.current.createMediaStreamSource(mediaStreamRef.current);
-                            workletNodeRef.current = new AudioWorkletNode(audioContextRef.current, 'recorder-worklet');
-
-                            workletNodeRef.current.port.onmessage = (event) => {
-                                if (isMuted || !isConnectedRef.current) return;
-
-                                const inputData = event.data;
-                                const pcm16 = floatTo16BitPCM(inputData);
-                                const base64Data = arrayBufferToBase64(pcm16);
-
-                                sessionPromise.then(session => {
-                                    if (!isConnectedRef.current || !session) return;
-                                    try {
-                                        // Using the exact object from the working code
-                                        session.sendRealtimeInput({
-                                            media: {
-                                                mimeType: "audio/pcm;rate=16000",
-                                                data: base64Data
-                                            }
-                                        } as any); // Cast as any to bypass Google SDK typings if they conflict locally
-
-                                    } catch (err) {
-                                        if (isConnectedRef.current) console.warn("Socket send error:", err);
-                                    }
-                                });
-                            };
-
-                            sourceNodeRef.current.connect(workletNodeRef.current);
-                            // Connect worklet to destination to keep it active.
-                            // To prevent feedback loop, the worklet itself returns 'true' but doesn't output audio data to the next node by default.
-                            workletNodeRef.current.connect(audioContextRef.current.destination);
-
-                        } catch (micError) {
-                            console.error("Microphone access denied", micError);
-                            isConnectedRef.current = false;
-                            onStateChange?.('error');
-                            onError?.(new Error("Microphone access denied or unavailable. Please allow microphone permissions to use the Live Quiz Master."));
-                        }
-                    },
-                    onmessage: (message: LiveServerMessage) => {
-                        if (!isConnectedRef.current) return;
-                        if (message.serverContent?.modelTurn?.parts) {
-                            for (const part of message.serverContent.modelTurn.parts) {
-                                if (part.inlineData && part.inlineData.data) {
-                                    handleIncomingAudio(part.inlineData.data, audioContextRef.current!);
-                                }
-                            }
-                        }
-                    },
-                    onclose: (e) => {
-                        console.log("Live AI Session Closed", e);
-                        handleDisconnect();
-                    },
-                    onerror: (err) => {
-                        console.error("Live AI Session Error", err);
-                        handleDisconnect();
-                    }
-                }
+    const initMic = useCallback(async () => {
+        if (!audioContextRef.current || audioContextRef.current.state === 'closed') {
+            audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({
+                sampleRate: 16000,
             });
-
-            const session = await sessionPromise;
-            sessionRef.current = session;
-
-        } catch (error: any) {
-            console.error("Connection failed:", error);
-            isConnectedRef.current = false;
-            onError?.(error);
-            onStateChange?.('error');
-            handleDisconnect();
         }
-    }, [quiz, voice, isMuted, onStateChange, onError]);
+        if (audioContextRef.current.state === 'suspended') {
+            await audioContextRef.current.resume();
+        }
 
-    const handleIncomingAudio = useCallback((base64Data: string, audioContext: AudioContext) => {
-        try {
-            const audioBytes = base64ToUint8Array(base64Data);
-            const pcmData = new Int16Array(audioBytes.buffer);
-            const floatData = new Float32Array(pcmData.length);
-            for (let i = 0; i < pcmData.length; i++) {
-                floatData[i] = pcmData[i] / 32768.0;
-            }
+        if (!mediaStreamRef.current) {
+            mediaStreamRef.current = await navigator.mediaDevices.getUserMedia({ audio: true });
+        }
 
-            // Output must be 24000 to match the API response. We can configure the destination to handle it.
-            const audioBuffer = audioContext.createBuffer(1, floatData.length, 24000);
-            audioBuffer.copyToChannel(floatData, 0);
-
-            const source = audioContext.createBufferSource();
-            source.buffer = audioBuffer;
-            source.connect(audioContext.destination);
-
-            const currentTime = audioContext.currentTime;
-            const startTime = Math.max(currentTime, nextStartTimeRef.current);
-
-            source.start(startTime);
-            nextStartTimeRef.current = startTime + audioBuffer.duration;
-
-        } catch (e) {
-            console.error("Error decoding audio", e);
+        if (!sourceNodeRef.current || sourceNodeRef.current.context !== audioContextRef.current) {
+             sourceNodeRef.current = audioContextRef.current.createMediaStreamSource(mediaStreamRef.current);
         }
     }, []);
 
-    const handleDisconnect = useCallback(() => {
+    const playAudioChunk = async (base64Audio: string) => {
+        if (!audioContextRef.current || !isConnectedRef.current) return;
+
+        try {
+          const audioBytes = base64ToUint8Array(base64Audio);
+          const pcmData = new Int16Array(audioBytes.buffer);
+          const floatData = new Float32Array(pcmData.length);
+          for (let i = 0; i < pcmData.length; i++) {
+            floatData[i] = pcmData[i] / 32768.0;
+          }
+
+          const audioBuffer = audioContextRef.current.createBuffer(1, floatData.length, 24000);
+          audioBuffer.copyToChannel(floatData, 0);
+
+          const source = audioContextRef.current.createBufferSource();
+          source.buffer = audioBuffer;
+
+          source.connect(audioContextRef.current.destination);
+
+          const currentTime = audioContextRef.current.currentTime;
+          const startTime = Math.max(currentTime, nextStartTimeRef.current);
+
+          source.start(startTime);
+          nextStartTimeRef.current = startTime + audioBuffer.duration;
+
+          audioQueueRef.current.push(source);
+          source.onended = () => {
+            audioQueueRef.current = audioQueueRef.current.filter(s => s !== source);
+          };
+
+        } catch (e) {
+          console.error("Error playing audio chunk", e);
+        }
+    };
+
+    const cleanup = useCallback(() => {
+        connectionIdRef.current++;
         isConnectedRef.current = false;
+        hasErrorRef.current = false;
+        nextStartTimeRef.current = 0;
 
         if (sessionRef.current) {
-            try { sessionRef.current.close(); } catch (e) {}
-            sessionRef.current = null;
+          try {
+            sessionRef.current.close();
+          } catch (e) {}
+          sessionRef.current = null;
         }
+
         if (workletNodeRef.current) {
             try {
                 workletNodeRef.current.port.postMessage("stop");
@@ -249,24 +101,189 @@ export const useGenAILive = ({ quiz, voice, onStateChange, onError }: UseGenAILi
             } catch (e) {}
             workletNodeRef.current = null;
         }
+
         if (sourceNodeRef.current) {
-            try { sourceNodeRef.current.disconnect(); } catch (e) {}
-            sourceNodeRef.current = null;
+          try { sourceNodeRef.current.disconnect(); } catch (e) {}
+          sourceNodeRef.current = null;
         }
-        if (mediaStreamRef.current) {
-            mediaStreamRef.current.getTracks().forEach(track => track.stop());
-            mediaStreamRef.current = null;
-        }
+
         if (audioContextRef.current) {
-            try { audioContextRef.current.close(); } catch (e) {}
-            audioContextRef.current = null;
+          try { audioContextRef.current.suspend(); } catch (e) {}
         }
+
+        audioQueueRef.current.forEach(node => {
+          try { node.stop(); } catch (e) {}
+        });
+        audioQueueRef.current = [];
+
         onStateChange?.('disconnected');
+        setIsMuted(false);
     }, [onStateChange]);
+
+
+    const connect = useCallback(async () => {
+        const apiKey = (process as any).env.API_KEY || (process as any).env.GEMINI_API_KEY || (import.meta as any).env.VITE_GEMINI_API_KEY;
+
+        if (!apiKey) {
+          onStateChange?.('error');
+          onError?.(new Error("Missing API Key"));
+          return;
+        }
+
+        const currentConnectionId = ++connectionIdRef.current;
+        onStateChange?.('connecting');
+        hasErrorRef.current = false;
+
+        try {
+          await initMic();
+          if (!audioContextRef.current) throw new Error("Audio Context not initialized");
+
+          const blob = new Blob([AudioRecorderWorkletCode], { type: "application/javascript" });
+          const workletUrl = URL.createObjectURL(blob);
+          await audioContextRef.current.audioWorklet.addModule(workletUrl);
+
+          const ai = new GoogleGenAI({ apiKey: apiKey });
+
+          const systemInstruction = `You are a lively Quiz Master running an interactive audio quiz game.
+          The user has created a quiz named "${quiz.name || 'Untitled Quiz'}" about ${quiz.filters.subject}.
+          It consists of ${quiz.questions.length} questions.
+          Keep your responses short, friendly, and energetic. Guide the user through the quiz enthusiastically.`;
+
+          const sessionPromise = ai.live.connect({
+            model: 'gemini-2.5-flash-native-audio-preview-09-2025',
+            config: {
+              responseModalities: [Modality.AUDIO],
+              speechConfig: {
+                voiceConfig: { prebuiltVoiceConfig: { voiceName: voice } },
+              },
+              systemInstruction: systemInstruction,
+            },
+            callbacks: {
+              onopen: async () => {
+                if (connectionIdRef.current !== currentConnectionId) return;
+
+                isConnectedRef.current = true;
+                onStateChange?.('connected');
+
+                try {
+                  if (!audioContextRef.current || !mediaStreamRef.current || !sourceNodeRef.current) return;
+
+                  workletNodeRef.current = new AudioWorkletNode(audioContextRef.current, 'recorder-worklet');
+
+                  workletNodeRef.current.port.onmessage = (event) => {
+                    if (isMuted || !isConnectedRef.current) return;
+
+                    const inputData = event.data;
+                    const pcm16 = floatTo16BitPCM(inputData);
+                    const base64Data = arrayBufferToBase64(pcm16);
+
+                    sessionPromise.then(session => {
+                        if (!isConnectedRef.current || !session || connectionIdRef.current !== currentConnectionId) return;
+
+                        try {
+                            session.sendRealtimeInput({
+                                media: {
+                                    mimeType: "audio/pcm;rate=16000",
+                                    data: base64Data
+                                }
+                            } as any);
+                        } catch (err) {
+                            if (isConnectedRef.current) console.warn("Socket send error:", err);
+                        }
+                    });
+                  };
+
+                  sourceNodeRef.current.connect(workletNodeRef.current);
+                  workletNodeRef.current.connect(audioContextRef.current.destination);
+
+                } catch (micError: any) {
+                  if (connectionIdRef.current === currentConnectionId) {
+                      onStateChange?.('error');
+                      onError?.(new Error("Microphone Access Denied. Please check permissions."));
+                      hasErrorRef.current = true;
+                      cleanup();
+                  }
+                }
+              },
+              onmessage: async (message: LiveServerMessage) => {
+                if (!isConnectedRef.current) return;
+
+                const parts = message.serverContent?.modelTurn?.parts;
+                if (parts) {
+                    for (const part of parts) {
+                        if (part.inlineData?.data) {
+                            playAudioChunk(part.inlineData.data);
+                        }
+                    }
+                }
+              },
+              onclose: (e) => {
+                if (connectionIdRef.current === currentConnectionId) {
+                    isConnectedRef.current = false;
+                    if (!hasErrorRef.current) {
+                        onStateChange?.('disconnected');
+                    }
+                }
+              },
+              onerror: (err) => {
+                if (connectionIdRef.current === currentConnectionId) {
+                    isConnectedRef.current = false;
+                    hasErrorRef.current = true;
+                    onStateChange?.('error');
+                    onError?.(new Error("Connection Error with AI Live Service"));
+                }
+              }
+            }
+          });
+
+          const session = await sessionPromise;
+
+          if (connectionIdRef.current !== currentConnectionId) {
+            session.close();
+            return;
+          }
+
+          sessionRef.current = session;
+
+        } catch (error: any) {
+          if (connectionIdRef.current === currentConnectionId) {
+              onStateChange?.('error');
+              onError?.(new Error(error?.message || "Failed to establish connection."));
+              cleanup();
+          }
+        }
+    }, [cleanup, quiz, voice, initMic, onStateChange, onError, isMuted]);
+
+    const muteRef = useRef(isMuted);
+    useEffect(() => {
+        muteRef.current = isMuted;
+        if (mediaStreamRef.current) {
+            mediaStreamRef.current.getAudioTracks().forEach(track => {
+                track.enabled = !isMuted;
+            });
+        }
+    }, [isMuted]);
+
+    const handleDisconnect = useCallback(() => {
+        cleanup();
+    }, [cleanup]);
 
     const toggleMute = useCallback(() => {
         setIsMuted(prev => !prev);
     }, []);
+
+    // Full Unmount Cleanup
+    useEffect(() => {
+        return () => {
+            cleanup();
+            if (mediaStreamRef.current) {
+                mediaStreamRef.current.getTracks().forEach(track => track.stop());
+            }
+            if (audioContextRef.current) {
+                try { audioContextRef.current.close(); } catch (e) {}
+            }
+        };
+    }, [cleanup]);
 
     return {
         connect,
