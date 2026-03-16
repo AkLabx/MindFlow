@@ -64,3 +64,17 @@ input, textarea, [contenteditable] {
 ::view-transition-new(root) {
   z-index: 999;
 }
+
+/* Custom Math Styling for AI Chat ("Code-box" style) */
+.katex-display {
+  @apply bg-white dark:bg-gray-800 rounded-lg p-4 my-4 shadow-sm border border-gray-200 dark:border-gray-700 overflow-x-auto text-center w-full !important;
+}
+
+.katex-display .katex {
+  @apply text-base text-gray-900 dark:text-gray-100 !important;
+}
+
+/* Inline math contrast optimization */
+.katex {
+  @apply text-indigo-700 dark:text-indigo-400 font-semibold mx-0.5 !important;
+}

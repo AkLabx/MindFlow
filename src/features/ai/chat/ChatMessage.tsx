@@ -2,6 +2,7 @@ import React from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
+import remarkBreaks from 'remark-breaks';
 import rehypeKatex from 'rehype-katex';
 import { Bot, User, Copy, Check, Volume2, RotateCcw, Brain } from 'lucide-react';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
@@ -105,7 +106,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message, onRegenerate,
                         "dark:prose-invert"
                     )}>
                         <ReactMarkdown
-                            remarkPlugins={[remarkGfm, remarkMath]}
+                            remarkPlugins={[remarkGfm, remarkMath, remarkBreaks]}
                             rehypePlugins={[rehypeKatex]}
                             components={{
                                 a: ({ node, ...props }) => <a {...props} className={cn(isUser ? "text-blue-600 hover:text-blue-500" : "text-indigo-600 hover:text-indigo-500 dark:text-indigo-400")} target="_blank" rel="noopener noreferrer" />,
