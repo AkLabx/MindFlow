@@ -12,55 +12,18 @@ import {
     deleteChatConversation as dbDeleteConversation
 } from '../../../lib/db';
 
-export const AI_PERSONAS = {
-    general: {
-        id: 'general',
-        name: 'General Learning',
-        icon: 'Brain',
-        prompt: `You are MindFlow AI, a helpful, encouraging, and highly knowledgeable educational assistant.
-Your goal is to help the user learn, practice vocabulary, understand complex topics, and prepare for exams.
+
+const SYSTEM_PROMPT = `You are MindFlow AI, a highly adaptive, knowledgeable, and helpful assistant.
+Your goal is to assist the user by automatically adapting your tone, expertise, and teaching style based on their query and the conversation history.
+If they ask about grammar, act as a strict grammar coach.
+If they want to practice for an interview, act as a tough but fair interviewer.
+If they ask about general topics, be an encouraging educational assistant.
 - Keep answers concise but informative.
-- Use markdown formatting for readability (bolding, lists, code blocks, tables if necessary).
-- Always maintain a supportive and motivating tone.`
-    },
-    grammar: {
-        id: 'grammar',
-        name: 'Grammar & Writing',
-        icon: 'PenTool',
-        prompt: `You are MindFlow AI, an expert English grammar and writing coach.
-Your goal is to review the user's text, correct grammatical mistakes, explain WHY the correction was made, and suggest style improvements.
-- Be precise and strict about grammar.
-- Suggest vocabulary enhancements where appropriate.
-- Use markdown to highlight changes.`
-    },
-    interview: {
-        id: 'interview',
-        name: 'Interview Prep',
-        icon: 'UserCheck',
-        prompt: `You are MindFlow AI, a tough but fair Interviewer for competitive exams (like UPSC, SSC, or corporate jobs).
-Your goal is to conduct mock interviews, ask challenging follow-up questions, and provide critical feedback.
-- Ask one question at a time.
-- Critically evaluate the user's response before moving to the next question.
-- Point out weak areas in their argument or knowledge.`
-    },
-    vocab: {
-        id: 'vocab',
-        name: 'Vocabulary Builder',
-        icon: 'BookOpen',
-        prompt: `You are MindFlow AI, a master linguist and vocabulary coach.
-Your goal is to help the user expand their English vocabulary, master synonyms, idioms, and one-word substitutions.
-- Provide etymology, usage examples, and related words.
-- Give a quick mini-quiz if asked.
-- Be highly engaging and focus on practical usage.`
-    }
-};
-
-type PersonaId = keyof typeof AI_PERSONAS;
-
+- Use markdown formatting for readability.
+- Maintain context of the conversation to provide the best possible response.`;
 
 export const useAIChat = () => {
     const [messages, setMessages] = useState<AIChatMessage[]>([]);
-    const [activePersona, setActivePersona] = useState<PersonaId>('general');
     const [activeModel, setActiveModel] = useState<ModelId>('gemini-2.5-flash');
     const quota = useQuota(activeModel);
     const [includeAppData, setIncludeAppData] = useState(false);
@@ -124,9 +87,13 @@ export const useAIChat = () => {
         const apiKey = process.env.GOOGLE_AI_KEY || process.env.GEMINI_API_KEY || process.env.API_KEY;
         if (!apiKey) return;
 
+        // Find a model that is different from the active model to save quota
+        const availableModels = Object.values(MODEL_CONFIGS).map(m => m.id);
+        let titleModel = availableModels.find(id => id !== activeModel) || 'gemini-2.5-flash';
+
         try {
             const response = await fetch(
-                `https://generativelanguage.googleapis.com/v1beta/models/${String(activeModel).startsWith('gemini') ? activeModel : 'gemini-2.5-flash'}:generateContent?key=${apiKey}`,
+                `https://generativelanguage.googleapis.com/v1beta/models/${titleModel}:generateContent?key=${apiKey}`,
                 {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -287,7 +254,7 @@ export const useAIChat = () => {
                 parts: userParts
             });
 
-            let finalSystemPrompt = AI_PERSONAS[activePersona].prompt;
+            let finalSystemPrompt = SYSTEM_PROMPT;
 
             if (includeAppData && stats) {
                 const contextStr = `\n\nUSER PROFILE CONTEXT:\nThe user has completed ${stats.quizzesCompleted} quizzes.\nTotal Correct: ${stats.correctAnswers}\nAverage Score: ${Math.round(stats.averageScore)}%\nWeak Topics: ${stats.weakTopics.join(', ')}\nUse this context to personalize your advice and point out areas of improvement if relevant.`;
@@ -377,7 +344,7 @@ export const useAIChat = () => {
             abortControllerRef.current = null;
         }
 
-    }, [messages, currentConversationId, conversations, activeModel, activePersona, includeAppData, stats, quota]);
+    }, [messages, currentConversationId, conversations, activeModel, includeAppData, stats, quota]);
 
     return {
         messages,
@@ -389,8 +356,6 @@ export const useAIChat = () => {
         loadConversation,
         deleteConversation,
         stopGenerating,
-        activePersona,
-        setActivePersona,
         includeAppData,
         setIncludeAppData,
         activeModel,

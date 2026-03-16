@@ -5,7 +5,7 @@ import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { ChatMessage } from './ChatMessage';
 import { ChatInput } from './ChatInput';
-import { useAIChat, AI_PERSONAS } from './useAIChat';
+import { useAIChat } from './useAIChat';
 import { MODEL_CONFIGS } from './useQuota';
 import { cn } from '../../../utils/cn';
 import { AIChatConversation } from '../../../lib/db';
@@ -22,8 +22,6 @@ export const AIChatPage: React.FC = () => {
         loadConversation,
         deleteConversation,
         stopGenerating,
-        activePersona,
-        setActivePersona,
         includeAppData,
         setIncludeAppData,
         activeModel,
@@ -44,6 +42,12 @@ export const AIChatPage: React.FC = () => {
     ];
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
+
+    const activeConversationTitle = useMemo(() => {
+        if (!currentConversationId || messages.length === 0) return "MindFlow AI";
+        const conv = conversations.find(c => c.id === currentConversationId);
+        return conv?.title || "MindFlow AI";
+    }, [currentConversationId, conversations, messages.length]);
 
     const groupedHistory = useMemo(() => {
         const today: AIChatConversation[] = [];
@@ -265,19 +269,11 @@ export const AIChatPage: React.FC = () => {
                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
                     </button>
 
-                    <div className="flex items-center gap-2 shrink-0">
-                        <Brain className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
-                        <select
-                            value={activePersona}
-                            onChange={(e) => setActivePersona(e.target.value as any)}
-                            className="bg-transparent font-semibold text-gray-900 dark:text-white border-0 outline-none focus:ring-0 p-0 text-base min-w-[120px]"
-                        >
-                            {Object.values(AI_PERSONAS).map(p => (
-                                <option key={p.id} value={p.id} className="text-gray-900 dark:text-white bg-white dark:bg-slate-900">
-                                    {p.name}
-                                </option>
-                            ))}
-                        </select>
+                    <div className="flex items-center gap-2 shrink-0 overflow-hidden">
+                        <Brain className="h-5 w-5 text-indigo-600 dark:text-indigo-400 shrink-0" />
+                        <span className="font-semibold text-gray-900 dark:text-white truncate max-w-[200px] sm:max-w-md">
+                            {activeConversationTitle}
+                        </span>
                     </div>
 
                     <div className="flex-1"></div>
