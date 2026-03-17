@@ -1,7 +1,7 @@
 import React, { useContext } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Volume2, Moon, Smartphone, Sparkles } from 'lucide-react';
-import { SettingsContext } from '../../../../context/SettingsContext';
+import { useSettingsStore } from '../../../../stores/useSettingsStore';
 import { SettingsToggle } from './SettingsToggle';
 import { ClaymorphismSwitch } from './ClaymorphismSwitch';
 
@@ -30,7 +30,7 @@ export function SettingsModal({ isOpen, onClose }: { isOpen: boolean, onClose: (
     isHapticEnabled, toggleHaptics,
     areBgAnimationsEnabled, toggleBgAnimations,
     isDarkMode, toggleDarkMode
-  } = useContext(SettingsContext);
+  } = useSettingsStore();
   
   if (!isOpen) return null;
 

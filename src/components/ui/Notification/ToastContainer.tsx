@@ -1,7 +1,7 @@
 import React from 'react';
 import { AnimatePresence } from 'framer-motion';
 import { Toast } from './Toast';
-import { useNotification } from '../../../contexts/NotificationContext';
+import { useNotification } from '../../../stores/useNotificationStore';
 
 export const ToastContainer: React.FC = () => {
   const { toasts, removeToast } = useNotification();

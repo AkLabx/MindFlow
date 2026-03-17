@@ -1,6 +1,5 @@
 import { useCallback, useContext, useRef, useEffect } from 'react';
-import { SettingsContext } from '../context/SettingsContext';
-import { SettingsContextType } from '../features/quiz/types';
+import { useSettingsStore } from '../stores/useSettingsStore';
 
 /**
  * Custom hook to generate synthesized sound effects for quiz interactions.
@@ -15,7 +14,7 @@ import { SettingsContextType } from '../features/quiz/types';
  * - `playTick` {() => void}: Plays a sharp "tick" sound (useful for timers).
  */
 export const useQuizSounds = () => {
-  const { isSoundEnabled } = useContext(SettingsContext) as SettingsContextType;
+  const isSoundEnabled = useSettingsStore(state => state.isSoundEnabled);
   const audioCtxRef = useRef<AudioContext | null>(null);
 
   // Initialize AudioContext lazily to comply with browser autoplay policies
