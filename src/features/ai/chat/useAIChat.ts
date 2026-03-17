@@ -9,7 +9,8 @@ import {
     getChatMessages,
     saveChatConversation,
     saveChatMessage,
-    deleteChatConversation as dbDeleteConversation
+    deleteChatConversation as dbDeleteConversation,
+    deleteChatMessagesAfter
 } from '../../../lib/db';
 
 const SYSTEM_PROMPT = `You are MindFlow AI, a highly adaptive, knowledgeable, and helpful assistant.
@@ -185,7 +186,7 @@ export const useAIChat = () => {
         }
     };
 
-    const sendMessage = useCallback(async (content: string, imageBase64?: string, audioData?: { data: string, mimeType: string }) => {
+    const sendMessage = useCallback(async (content: string, imageBase64?: string, audioData?: { data: string, mimeType: string }, customHistory?: AIChatMessage[]) => {
         if (!content.trim() && !imageBase64 && !audioData) return;
 
         const quotaCheck = quota.checkCanRequest();
@@ -284,7 +285,8 @@ export const useAIChat = () => {
 
         try {
             // Format history for Gemini (Exclude the empty one we just pushed)
-            const historyToSent = messages.map(m => ({
+            const baseMessages = customHistory || messages;
+            const historyToSent = baseMessages.map(m => ({
                 role: m.role === 'user' ? 'user' : 'model',
                 parts: [{ text: m.content }]
             }));
@@ -440,9 +442,34 @@ export const useAIChat = () => {
         }
 
     }, [messages, currentConversationId, conversations, activeModel, includeAppData, stats, quota, groundingState]);
+    const editMessage = async (messageId: string, newContent: string) => {
+        const messageIndex = messages.findIndex(m => m.id === messageId);
+        if (messageIndex === -1) return;
+
+        const originalMessage = messages[messageIndex];
+
+        // Stop current generation if any
+        if (abortControllerRef.current) {
+            abortControllerRef.current.abort();
+            setIsLoading(false);
+        }
+
+        // Delete all messages after the edited message from the database
+        await deleteChatMessagesAfter(originalMessage.conversation_id, originalMessage.created_at);
+
+        // Keep messages up to the edited message, but excluding the edited message itself
+        // because we will resend it
+        const preservedMessages = messages.slice(0, messageIndex);
+        setMessages(preservedMessages);
+
+        // Use the original message's properties, but update the text. We will resend this.
+        // Pass preservedMessages so sendMessage doesn't use the stale messages array.
+        await sendMessage(newContent, originalMessage.image, undefined, preservedMessages);
+    };
 
     return {
         messages,
+        editMessage,
         conversations,
         currentConversationId,
         isLoading,

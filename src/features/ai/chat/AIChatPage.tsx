@@ -22,6 +22,7 @@ export const AIChatPage: React.FC = () => {
         currentConversationId,
         isLoading,
         sendMessage,
+        editMessage,
         startNewConversation,
         loadConversation,
         deleteConversation,
@@ -482,6 +483,7 @@ export const AIChatPage: React.FC = () => {
                                     key={message.id}
                                     message={message}
                                     onRegenerate={handleRegenerate}
+                                    onEdit={editMessage}
                                     isGenerating={isLoading && message.id === messages[messages.length - 1].id && message.role === 'assistant'}
                                 />
                             ))}

@@ -4,7 +4,7 @@ import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import remarkBreaks from 'remark-breaks';
 import rehypeKatex from 'rehype-katex';
-import { Bot, User, Copy, Check, Volume2, RotateCcw, Brain } from 'lucide-react';
+import { Bot, User, Copy, Check, Volume2, RotateCcw, Brain, Edit2 } from 'lucide-react';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { useState } from 'react';
@@ -15,12 +15,15 @@ interface ChatMessageProps {
     isGenerating?: boolean;
     message: AIChatMessage;
     onRegenerate?: () => void;
+    onEdit?: (messageId: string, newContent: string) => void;
 }
 
-export const ChatMessage: React.FC<ChatMessageProps> = ({ message, onRegenerate, isGenerating }) => {
+export const ChatMessage: React.FC<ChatMessageProps> = ({ message, onRegenerate, isGenerating, onEdit }) => {
     const isUser = message.role === 'user';
     const [isCopied, setIsCopied] = useState(false);
     const [isPlaying, setIsPlaying] = useState(false);
+    const [isEditing, setIsEditing] = useState(false);
+    const [editValue, setEditValue] = useState(message.content);
 
     const handleCopy = () => {
         navigator.clipboard.writeText(message.content);
@@ -91,7 +94,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message, onRegenerate,
                 </div>
 
                 <div className={cn(
-                    "relative flex flex-col min-w-0 py-2",
+                    "group relative flex flex-col min-w-0 py-2",
                     isUser
                         ? "bg-indigo-50 dark:bg-indigo-900/40 text-gray-900 dark:text-gray-100 rounded-[20px] rounded-br-[4px] px-4 shadow-sm" // User Bubble
                         : "bg-transparent text-gray-900 dark:text-gray-100" // AI Borderless
@@ -101,50 +104,97 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message, onRegenerate,
                             <img src={message.image} alt="Attached" className="w-full h-auto max-h-64 object-cover" />
                         </div>
                     )}
-                    <div className={cn(
-                        "prose prose-sm md:prose-base max-w-none break-words",
-                        "dark:prose-invert"
-                    )}>
-                        <ReactMarkdown
-                            remarkPlugins={[remarkGfm, remarkMath, remarkBreaks]}
-                            rehypePlugins={[rehypeKatex]}
-                            components={{
-                                a: ({ node, ...props }) => <a {...props} className={cn(isUser ? "text-blue-600 hover:text-blue-500" : "text-indigo-600 hover:text-indigo-500 dark:text-indigo-400")} target="_blank" rel="noopener noreferrer" />,
-                                table: ({ node, ...props }) => <div className="overflow-x-auto my-4"><table className={cn("min-w-full divide-y rounded-lg border", isUser ? "divide-gray-400 border-gray-400" : "divide-gray-300 dark:divide-gray-700 border-gray-200 dark:border-gray-800")} {...props} /></div>,
-                                thead: ({ node, ...props }) => <thead className={isUser ? "bg-black/5" : "bg-gray-50 dark:bg-gray-800/80"} {...props} />,
-                                tbody: ({ node, ...props }) => <tbody className={cn("divide-y", isUser ? "divide-gray-400 bg-transparent" : "divide-gray-200 dark:divide-gray-800 bg-white dark:bg-slate-900")} {...props} />,
-                                tr: ({ node, ...props }) => <tr className={cn("transition-colors", isUser ? "hover:bg-black/5" : "hover:bg-gray-50 dark:hover:bg-gray-800/50")} {...props} />,
-                                th: ({ node, ...props }) => <th className={cn("px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider", isUser ? "text-gray-800 dark:text-gray-200" : "text-gray-900 dark:text-gray-100")} {...props} />,
-                                td: ({ node, ...props }) => <td className={cn("px-3 py-4 text-sm whitespace-pre-wrap", isUser ? "text-gray-800 dark:text-gray-200" : "text-gray-700 dark:text-gray-300")} {...props} />,
-                                code({ node, className, children, ...props }: any) {
-                                    const match = /language-(w+)/.exec(className || '');
-                                    return match ? (
-                                        <SyntaxHighlighter
-                                            {...props}
-                                            style={vscDarkPlus}
-                                            language={match[1]}
-                                            PreTag="div"
-                                            className="rounded-md my-4 shadow-sm"
-                                        >
-                                            {String(children).replace(/\n$/, '')}
-                                        </SyntaxHighlighter>
-                                    ) : (
-                                        <code {...props} className={cn("px-1.5 py-0.5 rounded-md text-sm", isUser ? "bg-black/10 text-gray-900 dark:text-gray-100" : "bg-gray-100 dark:bg-gray-800 text-indigo-600 dark:text-indigo-400", className)}>
-                                            {children}
-                                        </code>
-                                    );
-                                },
-                                p: ({ node, ...props }) => <p className="mb-1 last:mb-0" {...props} />
-                            }}
-                        >
-                            {message.content + (isGenerating ? " ●" : "")}
-                        </ReactMarkdown>
-                    </div>
+
+                    {isEditing ? (
+                        <div className="flex flex-col gap-2 w-full mt-2 min-w-[200px] sm:min-w-[300px]">
+                            <textarea
+                                value={editValue}
+                                onChange={(e) => setEditValue(e.target.value)}
+                                className="w-full resize-none rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-800 p-2 text-sm text-gray-900 dark:text-gray-100 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                                rows={Math.max(3, editValue.split('\n').length)}
+                                autoFocus
+                            />
+                            <div className="flex justify-end gap-2">
+                                <button
+                                    onClick={() => {
+                                        setIsEditing(false);
+                                        setEditValue(message.content);
+                                    }}
+                                    className="px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-md transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        if (editValue.trim() !== message.content && onEdit) {
+                                            onEdit(message.id, editValue.trim());
+                                        }
+                                        setIsEditing(false);
+                                    }}
+                                    className="px-3 py-1.5 text-xs font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md transition-colors"
+                                >
+                                    Save & Submit
+                                </button>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className={cn(
+                            "prose prose-sm md:prose-base max-w-none break-words",
+                            "dark:prose-invert"
+                        )}>
+                            <ReactMarkdown
+                                remarkPlugins={[remarkGfm, remarkMath, remarkBreaks]}
+                                rehypePlugins={[rehypeKatex]}
+                                components={{
+                                    a: ({ node, ...props }) => <a {...props} className={cn(isUser ? "text-blue-600 hover:text-blue-500" : "text-indigo-600 hover:text-indigo-500 dark:text-indigo-400")} target="_blank" rel="noopener noreferrer" />,
+                                    table: ({ node, ...props }) => <div className="overflow-x-auto my-4"><table className={cn("min-w-full divide-y rounded-lg border", isUser ? "divide-gray-400 border-gray-400" : "divide-gray-300 dark:divide-gray-700 border-gray-200 dark:border-gray-800")} {...props} /></div>,
+                                    thead: ({ node, ...props }) => <thead className={isUser ? "bg-black/5" : "bg-gray-50 dark:bg-gray-800/80"} {...props} />,
+                                    tbody: ({ node, ...props }) => <tbody className={cn("divide-y", isUser ? "divide-gray-400 bg-transparent" : "divide-gray-200 dark:divide-gray-800 bg-white dark:bg-slate-900")} {...props} />,
+                                    tr: ({ node, ...props }) => <tr className={cn("transition-colors", isUser ? "hover:bg-black/5" : "hover:bg-gray-50 dark:hover:bg-gray-800/50")} {...props} />,
+                                    th: ({ node, ...props }) => <th className={cn("px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider", isUser ? "text-gray-800 dark:text-gray-200" : "text-gray-900 dark:text-gray-100")} {...props} />,
+                                    td: ({ node, ...props }) => <td className={cn("px-3 py-4 text-sm whitespace-pre-wrap", isUser ? "text-gray-800 dark:text-gray-200" : "text-gray-700 dark:text-gray-300")} {...props} />,
+                                    code({ node, className, children, ...props }: any) {
+                                        const match = /language-(w+)/.exec(className || '');
+                                        return match ? (
+                                            <SyntaxHighlighter
+                                                {...props}
+                                                style={vscDarkPlus}
+                                                language={match[1]}
+                                                PreTag="div"
+                                                className="rounded-md my-4 shadow-sm"
+                                            >
+                                                {String(children).replace(/\n$/, '')}
+                                            </SyntaxHighlighter>
+                                        ) : (
+                                            <code {...props} className={cn("px-1.5 py-0.5 rounded-md text-sm", isUser ? "bg-black/10 text-gray-900 dark:text-gray-100" : "bg-gray-100 dark:bg-gray-800 text-indigo-600 dark:text-indigo-400", className)}>
+                                                {children}
+                                            </code>
+                                        );
+                                    },
+                                    p: ({ node, ...props }) => <p className="mb-1 last:mb-0" {...props} />
+                                }}
+                            >
+                                {message.content + (isGenerating ? " ●" : "")}
+                            </ReactMarkdown>
+                        </div>
+                    )}
 
                     <div className={cn(
                         "flex items-center mt-1 space-x-2 text-[10px]",
                         isUser ? "justify-end text-gray-500 dark:text-gray-400" : "justify-between text-gray-500 dark:text-gray-400"
                     )}>
+                        {/* Action Bar for User Messages */}
+                        {isUser && onEdit && !isEditing && (
+                            <div className="flex items-center gap-1">
+                                <button
+                                    onClick={() => setIsEditing(true)}
+                                    className="rounded p-1 hover:bg-indigo-100 dark:hover:bg-indigo-800/50 transition-colors opacity-0 group-hover:opacity-100"
+                                    title="Edit message"
+                                >
+                                    <Edit2 className="h-3 w-3" />
+                                </button>
+                            </div>
+                        )}
                         {/* Action Bar for AI Messages */}
                         {!isUser && message.content && (
                             <div className="flex items-center gap-1">
