@@ -526,12 +526,20 @@ export interface AIChatConversation {
   updated_at: string;
 }
 
+export interface AIChatDocument {
+  name: string;
+  mimeType: string;
+  data: string;
+  isText: boolean;
+}
+
 export interface AIChatMessage {
   id: string; // UUID
   conversation_id: string;
   role: 'user' | 'assistant' | 'system';
   content: string;
   image?: string;
+  documents?: AIChatDocument[];
   created_at: string;
 }
 

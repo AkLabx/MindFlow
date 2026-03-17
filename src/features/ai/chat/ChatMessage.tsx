@@ -4,7 +4,7 @@ import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import remarkBreaks from 'remark-breaks';
 import rehypeKatex from 'rehype-katex';
-import { Bot, User, Copy, Check, Volume2, RotateCcw, Brain, Edit2 } from 'lucide-react';
+import { Bot, User, Copy, Check, Volume2, RotateCcw, Brain, Edit2, FileText } from 'lucide-react';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { useState } from 'react';
@@ -99,6 +99,22 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message, onRegenerate,
                         ? "bg-indigo-50 dark:bg-indigo-900/40 text-gray-900 dark:text-gray-100 rounded-[20px] rounded-br-[4px] px-4 shadow-sm" // User Bubble
                         : "bg-transparent text-gray-900 dark:text-gray-100" // AI Borderless
                 )}>
+                    {message.documents && message.documents.length > 0 && (
+                        <div className="flex flex-wrap gap-2 mb-3">
+                            {message.documents.map((doc: any, idx: number) => (
+                                <div key={idx} className={cn(
+                                    "flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium border shadow-sm",
+                                    isUser
+                                        ? "bg-white/20 text-gray-900 border-white/30"
+                                        : "bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800/50"
+                                )}>
+                                    <FileText className="h-4 w-4" />
+                                    <span className="max-w-[150px] truncate">{doc.name}</span>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+
                     {message.image && (
                         <div className="mb-3 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 max-w-sm">
                             <img src={message.image} alt="Attached" className="w-full h-auto max-h-64 object-cover" />

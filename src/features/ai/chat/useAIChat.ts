@@ -1,3 +1,4 @@
+import { ProcessedDocument } from './utils/fileProcessing';
 import { useQuota, MODEL_CONFIGS, ModelId } from './useQuota';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useProfileStats } from '../../auth/hooks/useProfileStats';
@@ -186,8 +187,8 @@ export const useAIChat = () => {
         }
     };
 
-    const sendMessage = useCallback(async (content: string, imageBase64?: string, audioData?: { data: string, mimeType: string }, customHistory?: AIChatMessage[]) => {
-        if (!content.trim() && !imageBase64 && !audioData) return;
+    const sendMessage = useCallback(async (content: string, imageBase64?: string, audioData?: { data: string, mimeType: string }, documents?: ProcessedDocument[], customHistory?: AIChatMessage[]) => {
+        if (!content.trim() && !imageBase64 && !audioData && (!documents || documents.length === 0)) return;
 
         const quotaCheck = quota.checkCanRequest();
         if (!quotaCheck.allowed) {
@@ -250,7 +251,7 @@ export const useAIChat = () => {
 
         if (isNewConv) {
             // Fire and forget auto-titling in background
-            generateTitle(activeConvId, content);
+            generateTitle(activeConvId, content || 'Document Chat');
         }
 
         // 3. Prepare AI request (Streaming)
@@ -286,13 +287,50 @@ export const useAIChat = () => {
         try {
             // Format history for Gemini (Exclude the empty one we just pushed)
             const baseMessages = customHistory || messages;
-            const historyToSent = baseMessages.map(m => ({
-                role: m.role === 'user' ? 'user' : 'model',
-                parts: [{ text: m.content }]
-            }));
+            const historyToSent = baseMessages.map(m => {
+                const parts: any[] = [{ text: m.content || "Attached media" }];
+
+                // Reconstruct history with historical documents
+                if (m.documents && m.documents.length > 0) {
+                    m.documents.forEach(doc => {
+                        if (doc.isText) {
+                            parts.push({ text: `\n[Document Content: ${doc.name}]\n${doc.data}\n` });
+                        } else if (doc.mimeType === 'application/pdf') {
+                            parts.push({
+                                inlineData: {
+                                    mimeType: doc.mimeType,
+                                    data: doc.data
+                                }
+                            });
+                        }
+                    });
+                }
+
+                return {
+                    role: m.role === 'user' ? 'user' : 'model',
+                    parts
+                };
+            });
 
             // Add the new user message
-            const userParts: any[] = [{ text: content }];
+            const userParts: any[] = [{ text: content || "Can you analyze this file?" }];
+
+            // Handle current documents
+            if (documents && documents.length > 0) {
+                documents.forEach(doc => {
+                    if (doc.isText) {
+                        userParts.push({ text: `\n[Document Content: ${doc.name}]\n${doc.data}\n` });
+                    } else if (doc.mimeType === 'application/pdf') {
+                        userParts.push({
+                            inlineData: {
+                                mimeType: doc.mimeType,
+                                data: doc.data
+                            }
+                        });
+                    }
+                });
+            }
+
             if (imageBase64) {
                 const base64Data = imageBase64.split(',')[1];
                 const mimeType = imageBase64.split(';')[0].split(':')[1];
@@ -464,7 +502,7 @@ export const useAIChat = () => {
 
         // Use the original message's properties, but update the text. We will resend this.
         // Pass preservedMessages so sendMessage doesn't use the stale messages array.
-        await sendMessage(newContent, originalMessage.image, undefined, preservedMessages);
+        await sendMessage(newContent, originalMessage.image, undefined, originalMessage.documents, preservedMessages);
     };
 
     return {
