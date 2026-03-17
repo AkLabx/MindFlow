@@ -4,7 +4,7 @@
  * Modified version of useLiveAPI.ts specifically for the Quiz Master feature.
  */
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { GoogleGenAI, LiveServerMessage, Modality } from "@google/genai";
+import { GoogleGenAI, LiveServerMessage, Modality, EndSensitivity } from "@google/genai";
 import { AudioRecorderWorkletCode, arrayBufferToBase64, floatTo16BitPCM, base64ToUint8Array, playSfx } from '../../ai/talk/audio-helpers';
 import { SavedQuiz } from '../types';
 
@@ -217,6 +217,12 @@ export function useGenAILive({ quiz }: UseGenAILiveOptions) {
             config: {
               responseModalities: [Modality.AUDIO],
               outputAudioTranscription: {},
+              realtimeInputConfig: {
+                automaticActivityDetection: {
+                  endOfSpeechSensitivity: EndSensitivity.END_SENSITIVITY_HIGH,
+                  silenceDurationMs: 600
+                }
+              },
               speechConfig: {
                 voiceConfig: { prebuiltVoiceConfig: { voiceName: voiceName } },
               },
