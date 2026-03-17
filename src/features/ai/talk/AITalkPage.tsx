@@ -16,14 +16,12 @@ export const AITalkPage: React.FC = () => {
         aiAnalyser,
         isMuted,
         voiceName,
-        topic,
         currentSubtitle,
         transcript,
         connect,
         disconnect,
         toggleMute,
         changeVoice,
-        changeTopic
     } = useLiveAPI();
 
     // UI States
@@ -88,14 +86,6 @@ export const AITalkPage: React.FC = () => {
 
     const isActiveSpeaking = agentState === 'speaking';
 
-    const topics = [
-        'Casual Conversation',
-        'Job Interview Practice',
-        'IELTS Speaking Test',
-        'Debate Mode',
-        'Vocabulary Building'
-    ];
-
     const voices: VoicePersonality[] = ['Aoede', 'Puck', 'Fenrir', 'Kore'];
 
     if (sessionEnded) {
@@ -103,7 +93,6 @@ export const AITalkPage: React.FC = () => {
             <AITalkSummary
                 duration={finalDurationRef.current}
                 transcript={transcript}
-                topic={topic}
                 onRestart={handleRestart}
             />
         );
@@ -148,19 +137,7 @@ export const AITalkPage: React.FC = () => {
                         {isMenuOpen && (
                             <div className="absolute top-12 left-1/2 -translate-x-1/2 w-64 bg-stone-800 border border-stone-700 rounded-xl shadow-2xl p-4 flex flex-col gap-4 animate-in fade-in slide-in-from-top-2">
                                 {/* Topic Select */}
-                                <div>
-                                    <label className="text-xs font-bold text-stone-500 uppercase tracking-wider mb-2 block">Topic Mode</label>
-                                    <div className="relative">
-                                        <select
-                                            value={topic}
-                                            onChange={(e) => changeTopic(e.target.value)}
-                                            className="w-full appearance-none bg-stone-900 border border-stone-700 text-stone-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
-                                        >
-                                            {topics.map(t => <option key={t} value={t}>{t}</option>)}
-                                        </select>
-                                        <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-500 pointer-events-none" />
-                                    </div>
-                                </div>
+
 
                                 {/* Voice Select */}
                                 <div>
@@ -205,7 +182,7 @@ export const AITalkPage: React.FC = () => {
                     </div>
                 ) : (
                     <div className="text-stone-400 text-sm tracking-widest uppercase font-bold text-center">
-                         {topic}
+                         MindFlow AI
                     </div>
                 )}
 

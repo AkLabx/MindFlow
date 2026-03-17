@@ -23,7 +23,6 @@ export function useLiveAPI() {
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
     const [isMuted, setIsMuted] = useState(false);
     const [voiceName, setVoiceName] = useState<VoicePersonality>('Aoede');
-    const [topic, setTopic] = useState<string>('Casual Conversation');
 
     // Subtitles and Transcript
     const [currentSubtitle, setCurrentSubtitle] = useState<string>('');
@@ -276,9 +275,10 @@ await initMic();
 
           const ai = new GoogleGenAI({ apiKey: apiKey });
 
-          let systemInstruction = `You are MindFlow AI, a helpful, conversational English tutor.
-          Current Topic: ${topic}.
-          Respond concisely and energetically. Keep answers to 1-2 sentences max. Speak naturally. Adapt your vocabulary to the topic selected.`;
+          let systemInstruction = `You are MindFlow AI, an advanced and highly adaptable AI assistant with deep knowledge across all subjects, capable of reasoning, teaching, solving problems, and adjusting your expertise, tone, and personality based on the user's intent to provide the most helpful response.
+
+          When the user discusses an academic subject or a General Knowledge (GK) question, provide longer, structured, and detailed responses. Use the *P-E-S-T-L-E* Framework (Political, Economic, Social, Technological, Legal, and Environmental impacts) where applicable to help structure your answer quickly.
+          For general or casual conversations, respond concisely and energetically. Keep general answers short and speak naturally.`;
 
           if (initialContext && initialContext.length > 0) {
               const formattedContext = initialContext.map(m => `${m.role.toUpperCase()}: ${m.text}`).join('\n');
@@ -440,7 +440,7 @@ await initMic();
               cleanup();
           }
         }
-    }, [cleanup, voiceName, topic, initMic, currentSubtitle]);
+    }, [cleanup, voiceName, initMic, currentSubtitle]);
 
     const muteRef = useRef(isMuted);
     useEffect(() => {
@@ -469,10 +469,7 @@ await initMic();
         setVoiceName(newVoice);
     };
 
-    const changeTopic = (newTopic: string) => {
-        if (connectionState === 'connected') disconnect();
-        setTopic(newTopic);
-    };
+
 
     // Full Unmount Cleanup
     useEffect(() => {
@@ -496,13 +493,11 @@ await initMic();
         aiAnalyser: aiAnalyserRef.current,
         isMuted,
         voiceName,
-        topic,
-        currentSubtitle,
+                currentSubtitle,
         transcript,
         connect,
         disconnect,
         toggleMute,
         changeVoice,
-        changeTopic
-    };
+            };
 }

@@ -6,11 +6,10 @@ import { useNavigate } from 'react-router-dom';
 interface AITalkSummaryProps {
     duration: number;
     transcript: ChatMessage[];
-    topic: string;
     onRestart: () => void;
 }
 
-export const AITalkSummary: React.FC<AITalkSummaryProps> = ({ duration, transcript, topic, onRestart }) => {
+export const AITalkSummary: React.FC<AITalkSummaryProps> = ({ duration, transcript, onRestart }) => {
     const navigate = useNavigate();
 
     const formatTime = (seconds: number) => {
@@ -30,7 +29,6 @@ export const AITalkSummary: React.FC<AITalkSummaryProps> = ({ duration, transcri
                     <MessageSquare className="w-6 h-6 sm:w-8 sm:h-8 text-emerald-400" />
                 </div>
                 <h1 className="text-2xl sm:text-3xl font-bold text-white mb-1 sm:mb-2">Session Complete</h1>
-                <p className="text-stone-400">Topic: {topic}</p>
             </header>
 
             {/* Stats Cards */}
