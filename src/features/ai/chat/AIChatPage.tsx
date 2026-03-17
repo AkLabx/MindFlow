@@ -43,6 +43,9 @@ export const AIChatPage: React.FC = () => {
     const [isLiveTalkActive, setIsLiveTalkActive] = useState(false);
     const [showSubtitles, setShowSubtitles] = useState(true);
     const [isVoiceMenuOpen, setIsVoiceMenuOpen] = useState(false);
+    const [autoScrollEnabled, setAutoScrollEnabled] = useState(true);
+    const [showScrollButton, setShowScrollButton] = useState(false);
+    const chatScrollContainerRef = useRef<HTMLDivElement>(null);
 
     const {
         connectionState,
@@ -209,13 +212,33 @@ export const AIChatPage: React.FC = () => {
     };
 
 
-    const scrollToBottom = () => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+
+    const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+        const target = e.target as HTMLDivElement;
+        const { scrollTop, scrollHeight, clientHeight } = target;
+        // Check if user is near the bottom (within 100px)
+        const isNearBottom = scrollHeight - scrollTop - clientHeight < 100;
+
+        setAutoScrollEnabled(isNearBottom);
+        setShowScrollButton(!isNearBottom);
     };
 
+    const scrollToBottom = () => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        setAutoScrollEnabled(true);
+        setShowScrollButton(false);
+    };
+
+    // Auto-scroll logic when new messages arrive or loading state changes
     useEffect(() => {
-        scrollToBottom();
-    }, [messages, isLoading]);
+        if (autoScrollEnabled) {
+            // Using a slight delay ensures DOM has updated with new content before scrolling
+            setTimeout(() => {
+                messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+            }, 50);
+        }
+    }, [messages, isLoading, autoScrollEnabled]);
+
 
 
 
@@ -285,10 +308,15 @@ export const AIChatPage: React.FC = () => {
         <div className="absolute inset-0 z-50 flex h-[100dvh] w-[100vw] flex-col bg-white dark:bg-slate-950 md:flex-row overflow-hidden">
 
             {/* Sidebar (Desktop & Mobile Slide-in) */}
-            <div className={cn(
-                "fixed inset-y-0 left-0 z-50 w-72 transform bg-gray-50 dark:bg-slate-900 border-r border-gray-200 dark:border-gray-800 transition-transform duration-300 ease-in-out md:relative md:translate-x-0 flex flex-col",
-                isSidebarOpen ? "translate-x-0" : "-translate-x-full"
-            )}>
+            <motion.div
+                initial={false}
+                animate={{ x: isSidebarOpen ? 0 : "-100%" }}
+                transition={{ type: "spring", damping: 25, stiffness: 200 }}
+                className={cn(
+                    "fixed inset-y-0 left-0 z-50 w-72 bg-gray-50 dark:bg-slate-900 border-r border-gray-200 dark:border-gray-800 flex flex-col shadow-xl md:shadow-none",
+                    "md:relative md:translate-x-0 md:!transform-none"
+                )}
+            >
                 <div className="p-4 flex gap-2">
                      <button
                         onClick={startNewConversation}
@@ -332,15 +360,20 @@ export const AIChatPage: React.FC = () => {
                     )}
                     </div>
                 </div>
-            </div>
+            </motion.div>
 
             {/* Mobile Sidebar Overlay */}
-            {isSidebarOpen && (
-                <div
-                    className="fixed inset-0 z-40 bg-black/50 md:hidden transition-opacity"
-                    onClick={() => setIsSidebarOpen(false)}
-                />
-            )}
+            <AnimatePresence>
+                {isSidebarOpen && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-40 bg-black/50 md:hidden backdrop-blur-sm"
+                        onClick={() => setIsSidebarOpen(false)}
+                    />
+                )}
+            </AnimatePresence>
 
             {/* Main Chat Area */}
             <div className="flex flex-1 flex-col h-full min-w-0">
@@ -379,28 +412,57 @@ export const AIChatPage: React.FC = () => {
                 </header>
 
                 {/* Messages Scroll Area */}
-                <div className="flex-1 overflow-y-auto overflow-x-hidden">
+                <div ref={chatScrollContainerRef} onScroll={handleScroll} className="flex-1 overflow-y-auto overflow-x-hidden relative scroll-smooth">
                     <div ref={chatContainerRef} className="flex flex-col min-h-full">
                     {messages.length === 0 ? (
-                        <div className="flex h-full flex-col items-center justify-center p-8 text-center animate-fade-in">
-                            <div className="mb-4 rounded-full bg-indigo-50 dark:bg-indigo-900/30 p-4 ring-1 ring-indigo-100 dark:ring-indigo-800">
-                                <Brain className="h-10 w-10 text-indigo-600 dark:text-indigo-400" />
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.5, ease: "easeOut" }}
+                            className="flex h-full flex-col items-center justify-center p-8 text-center"
+                        >
+                            <div className="relative mb-6">
+                                <motion.div
+                                    animate={{ scale: [1, 1.2, 1], opacity: [0.5, 0.8, 0.5] }}
+                                    transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                                    className="absolute inset-0 bg-indigo-400/30 dark:bg-indigo-600/30 blur-2xl rounded-full"
+                                />
+                                <div className="relative rounded-full bg-indigo-50 dark:bg-indigo-900/30 p-5 ring-1 ring-indigo-100 dark:ring-indigo-800/50 shadow-xl shadow-indigo-500/10 dark:shadow-indigo-900/20">
+                                    <Brain className="h-10 w-10 text-indigo-600 dark:text-indigo-400" />
+                                </div>
                             </div>
                             <h2 className="mb-2 text-2xl font-bold text-gray-900 dark:text-white">How can I help you learn today?</h2>
                             <p className="max-w-md text-gray-500 dark:text-gray-400 mb-8">
                                 Ask a question, request an explanation, or practice your vocabulary with MindFlow AI.
                             </p>
 
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-2xl px-4 md:px-0">
+                            <motion.div
+                                className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-2xl px-4 md:px-0"
+                                initial="hidden"
+                                animate="visible"
+                                variants={{
+                                    hidden: { opacity: 0 },
+                                    visible: {
+                                        opacity: 1,
+                                        transition: { staggerChildren: 0.1 }
+                                    }
+                                }}
+                            >
                                 {quickStarters.map((starter, index) => (
-                                    <button
+                                    <motion.button
+                                        variants={{
+                                            hidden: { opacity: 0, y: 20 },
+                                            visible: { opacity: 1, y: 0 }
+                                        }}
+                                        whileHover={{ scale: 1.02, translateY: -2 }}
+                                        whileTap={{ scale: 0.98 }}
                                         key={index}
                                         onClick={() => {
                                             if (!isLoading) {
                                                 sendMessage(starter);
                                             }
                                         }}
-                                        className="flex items-start text-left gap-3 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-slate-900 p-4 hover:border-indigo-300 dark:hover:border-indigo-700 hover:bg-indigo-50/50 dark:hover:bg-indigo-900/20 transition-all duration-200 group"
+                                        className="flex items-start text-left gap-3 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-slate-900/80 p-4 hover:border-indigo-300 dark:hover:border-indigo-700 hover:bg-indigo-50/50 dark:hover:bg-indigo-900/30 transition-colors group shadow-sm hover:shadow-md"
                                     >
                                         <div className="mt-0.5 rounded-lg bg-indigo-100 dark:bg-indigo-900/50 p-2 text-indigo-600 dark:text-indigo-400 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
                                             <MessageSquare className="h-4 w-4" />
@@ -408,10 +470,10 @@ export const AIChatPage: React.FC = () => {
                                         <span className="text-sm font-medium text-gray-700 dark:text-gray-300 group-hover:text-indigo-900 dark:group-hover:text-indigo-300">
                                             {starter}
                                         </span>
-                                    </button>
+                                    </motion.button>
                                 ))}
-                            </div>
-                        </div>
+                            </motion.div>
+                        </motion.div>
                     ) : (
                         <div className="flex flex-col pb-4">
                             {messages.map((message) => (
@@ -423,19 +485,26 @@ export const AIChatPage: React.FC = () => {
                                 />
                             ))}
                             {isLoading && messages.length > 0 && messages[messages.length - 1].role === 'user' && (
-                                <div className="flex w-full px-4 py-6 bg-gray-50 dark:bg-gray-800/50 animate-fade-in">
+                                <motion.div
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    className="flex w-full px-4 py-6 bg-gray-50 dark:bg-gray-800/30"
+                                >
                                     <div className="mx-auto flex w-full max-w-3xl gap-4 items-start">
                                         <div className="flex-shrink-0">
-                                            <div className="flex h-8 w-8 items-center justify-center rounded-sm bg-indigo-600/20 dark:bg-indigo-500/20">
-                                                <Brain className="h-5 w-5 text-indigo-600 dark:text-indigo-400 animate-pulse" />
+                                            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-indigo-100 dark:bg-indigo-900/50 shadow-sm border border-indigo-200/50 dark:border-indigo-800/50">
+                                                <Brain className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
                                             </div>
                                         </div>
-                                        <div className="flex items-center gap-2 h-8 text-sm text-gray-500 dark:text-gray-400 italic">
-                                            <Loader2 className="h-4 w-4 animate-spin" />
-                                            MindFlow AI is thinking...
+                                        <div className="flex items-center h-8">
+                                            <div className="flex items-center gap-1.5 bg-white dark:bg-slate-800 px-4 py-2 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
+                                                <motion.div animate={{ y: [0, -5, 0] }} transition={{ duration: 0.6, repeat: Infinity, ease: "easeInOut" }} className="w-2 h-2 rounded-full bg-indigo-400" />
+                                                <motion.div animate={{ y: [0, -5, 0] }} transition={{ duration: 0.6, repeat: Infinity, ease: "easeInOut", delay: 0.2 }} className="w-2 h-2 rounded-full bg-indigo-400" />
+                                                <motion.div animate={{ y: [0, -5, 0] }} transition={{ duration: 0.6, repeat: Infinity, ease: "easeInOut", delay: 0.4 }} className="w-2 h-2 rounded-full bg-indigo-400" />
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
+                                </motion.div>
                             )}
                             <div ref={messagesEndRef} className="h-4" />
                         </div>
@@ -443,7 +512,29 @@ export const AIChatPage: React.FC = () => {
                     </div>
                 </div>
 
+
+                {/* Scroll to Bottom Button */}
+                <AnimatePresence>
+                    {showScrollButton && messages.length > 0 && (
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: 20 }}
+                            className="absolute bottom-24 left-1/2 -translate-x-1/2 z-40 pointer-events-none"
+                        >
+                            <button
+                                onClick={scrollToBottom}
+                                className="pointer-events-auto flex items-center gap-2 bg-white/90 dark:bg-slate-800/90 backdrop-blur-md border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-full shadow-lg hover:bg-gray-50 dark:hover:bg-slate-700 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors text-sm font-medium"
+                            >
+                                <ArrowLeft className="w-4 h-4 -rotate-90 animate-bounce" />
+                                Jump to Bottom
+                            </button>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+
                 {/* Input Area */}
+
                 <div className="bg-gradient-to-t from-white via-white to-transparent pt-4 pb-2 dark:from-slate-950 dark:via-slate-950 px-2 shrink-0">
                     <ChatInput
                         value={inputValue}
@@ -663,10 +754,15 @@ export const AIChatPage: React.FC = () => {
             </AnimatePresence>
 
             {/* Settings Right Sidebar */}
-            <div className={cn(
-                "fixed inset-y-0 right-0 z-[60] w-72 transform bg-white dark:bg-slate-900 border-l border-gray-200 dark:border-gray-800 transition-transform duration-300 ease-in-out flex flex-col shadow-xl",
-                isSettingsOpen ? "translate-x-0" : "translate-x-full"
-            )}>
+            <AnimatePresence>
+                {isSettingsOpen && (
+                    <motion.div
+                        initial={{ x: "100%" }}
+                        animate={{ x: 0 }}
+                        exit={{ x: "100%" }}
+                        transition={{ type: "spring", damping: 25, stiffness: 200 }}
+                        className="fixed inset-y-0 right-0 z-[60] w-72 bg-white dark:bg-slate-900 border-l border-gray-200 dark:border-gray-800 flex flex-col shadow-2xl"
+                    >
                 <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-800">
                     <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Settings</h2>
                     <button
@@ -685,21 +781,37 @@ export const AIChatPage: React.FC = () => {
                             <Zap className="h-4 w-4 text-amber-500" />
                             AI Model
                         </label>
-                        <div className="relative">
-                            <select
-                                value={activeModel}
-                                onChange={(e) => setActiveModel(e.target.value as any)}
-                                className="w-full appearance-none rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-slate-800 py-2.5 pl-3 pr-10 text-sm text-gray-900 dark:text-white focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                            >
-                                {Object.values(MODEL_CONFIGS).map(m => (
-                                    <option key={m.id} value={m.id} className="text-gray-900 dark:text-white bg-white dark:bg-slate-900">
-                                        {m.displayName}
-                                    </option>
-                                ))}
-                            </select>
-                            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
-                                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
-                            </div>
+                        <div className="flex flex-col gap-2">
+                            {Object.values(MODEL_CONFIGS).map(m => (
+                                <button
+                                    key={m.id}
+                                    onClick={() => setActiveModel(m.id as any)}
+                                    className={cn(
+                                        "flex items-center justify-between p-3 rounded-xl border transition-all duration-200",
+                                        activeModel === m.id
+                                            ? "bg-indigo-50 border-indigo-200 dark:bg-indigo-900/30 dark:border-indigo-800/50"
+                                            : "bg-white border-gray-200 dark:bg-slate-800 dark:border-gray-700 hover:border-indigo-300 dark:hover:border-indigo-700 hover:bg-gray-50 dark:hover:bg-slate-700/50"
+                                    )}
+                                >
+                                    <div className="flex flex-col items-start">
+                                        <span className={cn(
+                                            "text-sm font-medium",
+                                            activeModel === m.id ? "text-indigo-700 dark:text-indigo-300" : "text-gray-700 dark:text-gray-300"
+                                        )}>
+                                            {m.displayName}
+                                        </span>
+                                        <span className="text-xs text-gray-500 dark:text-gray-500 mt-0.5">
+                                            {m.rpd} req/day limit
+                                        </span>
+                                    </div>
+                                    <div className={cn(
+                                        "h-4 w-4 rounded-full border-2 flex items-center justify-center",
+                                        activeModel === m.id ? "border-indigo-500" : "border-gray-300 dark:border-gray-600"
+                                    )}>
+                                        {activeModel === m.id && <div className="h-2 w-2 rounded-full bg-indigo-500" />}
+                                    </div>
+                                </button>
+                            ))}
                         </div>
                     </div>
 
@@ -709,19 +821,21 @@ export const AIChatPage: React.FC = () => {
                             <Globe className="h-4 w-4 text-blue-500" />
                             Grounding with Google (Search)
                         </label>
-                        <div className="relative">
-                            <select
-                                value={groundingState}
-                                onChange={(e) => setGroundingState(e.target.value as any)}
-                                className="block w-full appearance-none rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-slate-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 transition-colors"
-                            >
-                                <option value="auto">Auto (Default)</option>
-                                <option value="always">Always On</option>
-                                <option value="off">Off</option>
-                            </select>
-                            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
-                                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
-                            </div>
+                        <div className="flex rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-slate-800 p-1">
+                            {['auto', 'always', 'off'].map((opt) => (
+                                <button
+                                    key={opt}
+                                    onClick={() => setGroundingState(opt as any)}
+                                    className={cn(
+                                        "flex-1 rounded-md px-3 py-1.5 text-xs font-medium capitalize transition-all duration-200",
+                                        groundingState === opt
+                                            ? "bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm ring-1 ring-gray-200 dark:ring-gray-700"
+                                            : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
+                                    )}
+                                >
+                                    {opt === 'auto' ? 'Auto' : opt === 'always' ? 'Always' : 'Off'}
+                                </button>
+                            ))}
                         </div>
                     </div>
 
@@ -762,15 +876,22 @@ export const AIChatPage: React.FC = () => {
                         </button>
                     </div>
                 </div>
-            </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
             {/* Settings Overlay */}
-            {isSettingsOpen && (
-                <div
-                    className="fixed inset-0 z-50 bg-black/50 transition-opacity"
-                    onClick={() => setIsSettingsOpen(false)}
-                />
-            )}
+            <AnimatePresence>
+                {isSettingsOpen && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[55] bg-black/50 backdrop-blur-sm"
+                        onClick={() => setIsSettingsOpen(false)}
+                    />
+                )}
+            </AnimatePresence>
         </div>
     );
 };
