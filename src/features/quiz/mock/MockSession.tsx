@@ -6,8 +6,7 @@ import { QuizQuestionDisplay } from '../components/QuizQuestionDisplay';
 import { QuizNavigationPanel } from '../components/QuizNavigationPanel';
 import { Button } from '../../../components/Button/Button';
 import { ActiveQuizLayout } from '../layouts/ActiveQuizLayout';
-import { SettingsContext } from '../../../context/SettingsContext';
-import { SettingsContextType } from '../types';
+import { useSettingsStore } from '../../../stores/useSettingsStore';
 import { cn } from '../../../utils/cn';
 import { APP_CONFIG } from '../../../constants/config';
 import { useMockTimer } from '../hooks/useMockTimer';
@@ -170,7 +169,7 @@ export const MockSession: React.FC<MockSessionProps> = ({ questions, initialTime
         }
     };
 
-    const { isHapticEnabled } = useContext(SettingsContext) as SettingsContextType;
+    const isHapticEnabled = useSettingsStore(state => state.isHapticEnabled);
 
     const attemptedCount = Object.keys(answers).length;
     const activeQuestion = questions[currentIndex];

@@ -11,8 +11,7 @@ import { QuizExplanation } from '../components/QuizExplanation';
 import { QuizBreadcrumbs } from '../components/QuizBreadcrumbs';
 import { Button } from '../../../components/Button/Button';
 import { Badge } from '../../../components/ui/Badge';
-import { SettingsContext } from '../../../context/SettingsContext';
-import { SettingsContextType } from '../types';
+import { useSettingsStore } from '../../../stores/useSettingsStore';
 import { useQuizSounds } from '../../../hooks/useQuizSounds';
 import { ActiveQuizLayout } from '../layouts/ActiveQuizLayout';
 import { SettingsModal } from '../components/ui/SettingsModal';
@@ -95,7 +94,7 @@ export const LearningSession: React.FC<LearningSessionProps> = ({
 
     // New Synthesized Sounds
     const { playCorrect, playWrong, playTick } = useQuizSounds();
-    const { isHapticEnabled } = useContext(SettingsContext) as SettingsContextType;
+    const isHapticEnabled = useSettingsStore(state => state.isHapticEnabled);
 
 
     const finishSession = () => {

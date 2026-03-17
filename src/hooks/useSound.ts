@@ -1,6 +1,5 @@
 import { useMemo, useContext, useEffect } from 'react';
-import { SettingsContext } from '../context/SettingsContext';
-import { SettingsContextType } from '../features/quiz/types';
+import { useSettingsStore } from '../stores/useSettingsStore';
 
 /**
  * Custom hook to play a sound effect.
@@ -13,7 +12,7 @@ import { SettingsContextType } from '../features/quiz/types';
  * @returns {() => void} A function that plays the sound when called.
  */
 export const useSound = (url: string) => {
-    const { isSoundEnabled } = useContext(SettingsContext) as SettingsContextType;
+    const isSoundEnabled = useSettingsStore(state => state.isSoundEnabled);
     
     // Create the audio element only when the URL changes
     const audio = useMemo(() => {

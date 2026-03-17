@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { SettingsContext } from '../../../context/SettingsContext';
+import { useSettingsStore } from '../../../stores/useSettingsStore';
 import { ArrowRight, Brain, Zap, Layers, Star, Play, Github, Download, Target, User as UserIcon, LogOut, ChevronDown, Moon, Sun } from 'lucide-react';
 import { ClaymorphismSwitch } from './ui/ClaymorphismSwitch';
 import { Button } from '../../../components/Button/Button';
@@ -36,7 +36,7 @@ interface LandingPageProps {
  */
 export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLoginClick, user, onProfileClick, onSignOut }) => {
   const { canInstall, triggerInstall, installStatus } = usePWAInstall();
-  const { isDarkMode, toggleDarkMode } = useContext(SettingsContext);
+  const { isDarkMode, toggleDarkMode } = useSettingsStore();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showToast, setShowToast] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);

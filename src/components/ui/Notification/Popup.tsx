@@ -8,7 +8,7 @@ import {
   Gift,
   X
 } from 'lucide-react';
-import { useNotification, PopupVariant } from '../../../contexts/NotificationContext';
+import { useNotification, PopupVariant } from '../../../stores/useNotificationStore';
 
 const variantStyles = {
   success: {

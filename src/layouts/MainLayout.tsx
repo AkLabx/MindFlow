@@ -4,7 +4,7 @@ import { BrainCircuit, Home, Compass, PlusCircle, User, Settings, LogIn, Sun, Mo
 import { cn } from '../utils/cn';
 import { useAuth } from '../features/auth/context/AuthContext';
 import { useQuizContext } from '../features/quiz/context/QuizContext';
-import { SettingsContext } from '../context/SettingsContext';
+import { useSettingsStore } from '../stores/useSettingsStore';
 import { ClaymorphismSwitch } from '../features/quiz/components/ui/ClaymorphismSwitch';
 
 
@@ -47,7 +47,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
 }) => {
   const { user } = useAuth();
   const { isReviewMode } = useQuizContext();
-  const { isDarkMode, toggleDarkMode } = useContext(SettingsContext);
+  const { isDarkMode, toggleDarkMode } = useSettingsStore();
   const location = useLocation();
   const isAIFullScreen = location.pathname.startsWith('/ai/chat') || location.pathname.startsWith('/ai/talk');
 

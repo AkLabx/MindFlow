@@ -1,7 +1,7 @@
 import React, { useState, useContext, Suspense } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { MainLayout, TabID } from '../../layouts/MainLayout';
-import { SettingsContext } from '../../context/SettingsContext';
+import { useSettingsStore } from '../../stores/useSettingsStore';
 import { Fireballs } from '../../components/Background/Fireballs';
 import { SettingsModal } from './components/ui/SettingsModal';
 import { useAuth } from '../auth/context/AuthContext';
@@ -9,7 +9,7 @@ import { useQuizContext } from './context/QuizContext';
 import { SynapticLoader } from '../../components/ui/SynapticLoader';
 
 export const QuizLayout: React.FC = () => {
-    const { areBgAnimationsEnabled } = useContext(SettingsContext);
+    const areBgAnimationsEnabled = useSettingsStore(state => state.areBgAnimationsEnabled);
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const { user } = useAuth();
     const navigate = useNavigate();

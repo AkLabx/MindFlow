@@ -11,7 +11,7 @@ import {
   Gift,
   X
 } from 'lucide-react';
-import { ToastOptions, useNotification } from '../../../contexts/NotificationContext';
+import { ToastOptions, useNotification } from '../../../stores/useNotificationStore';
 
 export interface ToastProps extends ToastOptions {
   onRemove: (id: string) => void;
