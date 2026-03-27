@@ -1,5 +1,5 @@
 import React from 'react';
-import { ListChecks, FileText, BookOpen, Languages, Save, Wrench, BarChart2, Star, ChevronRight } from 'lucide-react';
+import { ListChecks, FileText, BookOpen, Languages, Save, Wrench, BarChart2, Star, ChevronRight, Info } from 'lucide-react';
 import { Button } from '../../../components/Button/Button';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../auth/context/AuthContext';
@@ -199,6 +199,30 @@ export const Dashboard: React.FC<DashboardProps> = ({ onStartQuiz, onEnglish, on
                             </div>
                         </div>
                         <ChevronRight className={`w-5 h-5 text-violet-400 dark:text-violet-500 flex-shrink-0 group-hover:translate-x-1 transition-transform ${loadingId === 'card-6' ? 'opacity-0' : 'opacity-100'}`} />
+                    </div>
+
+                    {/* Card 7 - About Us */}
+                    <div
+                        onClick={() => handleNavigation('card-7', () => navigate('/about'))}
+                        className="bg-slate-50 dark:bg-slate-950/30 p-6 rounded-2xl cursor-pointer group relative z-20 transition-all duration-200 shadow-sm active:translate-y-1 active:border-b flex items-center justify-between border border-slate-100 dark:border-slate-800/40 border-b-4 border-b-slate-200 dark:border-b-slate-700 hover:border-slate-300 dark:hover:border-slate-600 sm:col-span-2 lg:col-span-1"
+                    >
+                        {loadingId === 'card-7' ? (
+                            <div className="absolute inset-0 flex items-center justify-center">
+                                <Loader2 className="w-8 h-8 text-slate-500 animate-spin" />
+                            </div>
+                        ) : null}
+                        <div className={`flex items-center gap-4 flex-1 transition-opacity ${loadingId === 'card-7' ? 'opacity-0' : 'opacity-100'}`}>
+                            <div className="w-12 h-12 bg-white dark:bg-gray-800 ring-1 ring-black/5 dark:ring-white/10 rounded-xl flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform flex-shrink-0">
+                                <Info className="w-6 h-6 text-slate-600 dark:text-slate-400" />
+                            </div>
+                            <div className="flex-1 pr-2">
+                                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">About Us</h3>
+                                <p className="text-gray-600 dark:text-gray-400 text-xs font-medium">
+                                    Developer info, Privacy Policy & Terms.
+                                </p>
+                            </div>
+                        </div>
+                        <ChevronRight className={`w-5 h-5 text-slate-400 dark:text-slate-500 flex-shrink-0 group-hover:translate-x-1 transition-transform ${loadingId === 'card-7' ? 'opacity-0' : 'opacity-100'}`} />
                     </div>
                 </div>
 

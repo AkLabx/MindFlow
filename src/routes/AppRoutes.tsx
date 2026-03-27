@@ -28,6 +28,7 @@ const SynonymPhase1Session = lazy(() => import('../features/synonyms/components/
 
 const QuizResult = lazy(() => import('../features/quiz/components/QuizResult').then(m => ({ default: m.QuizResult })));
 const FlashcardSummary = lazy(() => import('../features/flashcards/components/FlashcardSummary').then(m => ({ default: m.FlashcardSummary })));
+const AboutUs = lazy(() => import('../features/about/components/AboutUs').then(m => ({ default: m.AboutUs })));
 const ToolsHome = lazy(() => import('../features/tools/ToolsHome'));
 const AIHome = lazy(() => import('../features/ai/AIHome').then(m => ({ default: m.AIHome })));
 
@@ -107,6 +108,12 @@ const AppRoutesContent: React.FC = () => {
                             onSavedQuizzes={() => navTo('/quiz/saved')}
                         />
                     } />
+                    <Route path="/about" element={
+                        <Suspense fallback={<SynapticLoader />}>
+                            <AboutUs />
+                        </Suspense>
+                    } />
+
 
                     <Route path="/english" element={
                         <EnglishQuizHome
