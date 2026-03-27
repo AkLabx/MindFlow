@@ -10,7 +10,12 @@ export const CinematicIntro: React.FC<CinematicIntroProps> = ({ onReveal }) => {
 
   useEffect(() => {
     // Check if intro was already played this session
-    if (sessionStorage.getItem('mindflow_intro_seen')) {
+    const hasSeenOnboarding = localStorage.getItem('mindflow_onboarding_seen');
+    const isMobile = window.innerWidth < 768;
+    const needsOnboarding = isMobile && !hasSeenOnboarding;
+
+    // If they need onboarding, we MUST show the intro first to keep the flow smooth.
+    if (sessionStorage.getItem('mindflow_intro_seen') && !needsOnboarding) {
       onReveal();
       setPhase('done');
       return;
