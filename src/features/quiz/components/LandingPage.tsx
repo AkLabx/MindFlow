@@ -11,6 +11,7 @@ import InstallPwaModal from '../../../components/common/InstallPwaModal';
 import { User } from '@supabase/supabase-js';
 import founderImage from '../../../assets/aalok.jpg';
 import { CinematicIntro } from './Landing/CinematicIntro';
+import { MobileOnboarding } from './Landing/MobileOnboarding';
 
 interface LandingPageProps {
   onGetStarted: () => void;
@@ -42,6 +43,15 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLoginC
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isFounderImageOpen, setIsFounderImageOpen] = useState(false);
   const [showMainContent, setShowMainContent] = useState(false);
+  const [showMobileOnboarding, setShowMobileOnboarding] = useState(false);
+
+  useEffect(() => {
+    const hasSeenOnboarding = localStorage.getItem('mindflow_onboarding_seen');
+    const isMobile = window.innerWidth < 768; // Standard md breakpoint in Tailwind
+    if (isMobile && !hasSeenOnboarding) {
+      setShowMobileOnboarding(true);
+    }
+  }, []);
 
   // Handlers
   const handleInstallClick = () => {
@@ -69,6 +79,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLoginC
 
   const shouldShowInstallButton = canInstall && installStatus !== 'success';
 
+  const handleOnboardingComplete = () => {
+    localStorage.setItem('mindflow_onboarding_seen', 'true');
+    setShowMobileOnboarding(false);
+    onGetStarted(); // Redirect straight to dashboard
+  };
+
   return (
     <>
       {/* Intro Animation Layer */}
@@ -76,6 +92,14 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLoginC
 
       {/* Main Content Layer - mount/render when intro allows it */}
       {showMainContent && (
+        <>
+          {showMobileOnboarding ? (
+            <MobileOnboarding
+              onComplete={handleOnboardingComplete}
+              onInstallClick={handleInstallClick}
+              shouldShowInstallButton={shouldShowInstallButton}
+            />
+          ) : (
         <div className="relative min-h-screen flex flex-col items-center justify-start pb-0 overflow-x-hidden bg-slate-50 dark:bg-slate-800/50 selection:bg-indigo-100 selection:text-indigo-900 font-sans pt-[env(safe-area-inset-top)]">
       
       {/* --- 0. Noise Texture Overlay (Visual Polish) --- */}
@@ -483,6 +507,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLoginC
         }
       `}</style>
       </div>
+          )}
+        </>
       )}
     </>
   );
