@@ -1,8 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useTargetAudience } from '../hooks/useTargetAudience';
 import { supabase } from '../../../lib/supabase';
 import { Button } from '../../../components/Button/Button';
-import { ArrowLeft, User, Mail, Lock, Loader2, Check, AlertTriangle, Pencil, X, Phone, Calendar, Target, FileText, Trash2 } from 'lucide-react';
+import { ArrowLeft, User, Mail, Lock, Loader2, Check, AlertTriangle, Pencil, X, Phone, Calendar, Target, FileText, Trash2, Repeat } from 'lucide-react';
 
 interface SettingsPageProps {
   onBack: () => void;

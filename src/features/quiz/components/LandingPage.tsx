@@ -12,6 +12,8 @@ import { User } from '@supabase/supabase-js';
 import founderImage from '../../../assets/aalok.jpg';
 import { CinematicIntro } from './Landing/CinematicIntro';
 import { MobileOnboarding } from './Landing/MobileOnboarding';
+import { TargetAudienceSelector } from './Landing/TargetAudienceSelector';
+import { useTargetAudience } from '../../auth/hooks/useTargetAudience';
 
 interface LandingPageProps {
   onGetStarted: () => void;
@@ -44,6 +46,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLoginC
   const [isFounderImageOpen, setIsFounderImageOpen] = useState(false);
   const [showMainContent, setShowMainContent] = useState(false);
   const [showMobileOnboarding, setShowMobileOnboarding] = useState(false);
+  const { targetAudience, setTargetAudience } = useTargetAudience();
 
   useEffect(() => {
     const hasSeenOnboarding = localStorage.getItem('mindflow_onboarding_seen');
@@ -93,7 +96,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLoginC
       {/* Main Content Layer - mount/render when intro allows it */}
       {showMainContent && (
         <>
-          {showMobileOnboarding ? (
+          {!targetAudience ? (
+            <TargetAudienceSelector onSelect={setTargetAudience} />
+          ) : showMobileOnboarding ? (
             <MobileOnboarding
               onComplete={handleOnboardingComplete}
               onInstallClick={handleInstallClick}
