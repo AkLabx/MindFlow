@@ -25,6 +25,9 @@ export const SchoolAuth: React.FC<SchoolAuthProps> = ({ onAuthSuccess }) => {
     setMessage(null);
 
     try {
+      // Set intent for email login/signup
+      localStorage.setItem('mindflow_target_audience_intent', 'school');
+
       if (isSignUp) {
         if (password !== confirmPassword) {
           throw new Error('Passwords do not match');

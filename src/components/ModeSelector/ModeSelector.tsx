@@ -29,30 +29,35 @@ export const ModeSelector: React.FC = () => {
   const confirmSwitch = async () => {
     if (!pendingMode) return;
 
-    // Update local state
-    setTargetAudience(pendingMode);
+    setShowConfirm(false);
 
-    // Update remote state if authenticated
+    // We delay the state update and navigation slightly to allow the modal to close
+    // and to orchestrate a smoother route transition without an abrupt UI flash.
+    const modeToSwitchTo = pendingMode;
+    setPendingMode(null);
+
+    // Update remote state in background if authenticated
     if (user) {
       try {
         await supabase
           .from('profiles')
-          .update({ target_audience: pendingMode })
+          .update({ target_audience: modeToSwitchTo })
           .eq('id', user.id);
       } catch (error) {
         console.error('Failed to update target audience in DB:', error);
       }
     }
 
-    setShowConfirm(false);
-    setPendingMode(null);
-
-    // Redirect
-    if (pendingMode === 'school') {
-      navigate('/school/dashboard');
+    // First navigate, then change state to allow smooth routing unmount/mount
+    if (modeToSwitchTo === 'school') {
+      navigate('/school/dashboard', { replace: true });
     } else {
-      navigate('/dashboard');
+      navigate('/dashboard', { replace: true });
     }
+
+    setTimeout(() => {
+        setTargetAudience(modeToSwitchTo);
+    }, 50); // tiny delay lets the router start pushing before state snaps out the tree
   };
 
   return (

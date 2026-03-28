@@ -80,6 +80,9 @@ const AuthPage: React.FC<AuthPageProps> = ({ onBack }) => {
     setError(null);
     setMessage(null);
     try {
+      // Ensure intent is competitive when using the main Auth page
+      localStorage.setItem('mindflow_target_audience_intent', 'competitive');
+
       if (isSignUp) {
         const { error } = await supabase.auth.signUp({
           email,
@@ -122,6 +125,8 @@ const AuthPage: React.FC<AuthPageProps> = ({ onBack }) => {
       if (isSignUp) {
         localStorage.setItem('mindflow_is_signup', 'true');
       }
+      // Since this is the main competitive AuthPage, set intent to competitive
+      localStorage.setItem('mindflow_target_audience_intent', 'competitive');
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
