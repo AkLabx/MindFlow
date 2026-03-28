@@ -1,9 +1,6 @@
-import { ModeSelector } from "../../../components/ModeSelector";
 import React, { useState, useRef, useCallback } from 'react';
 import Cropper from 'react-easy-crop';
 import { useAuth } from '../context/AuthContext';
-import { useSettingsStore } from '../../../stores/useSettingsStore';
-
 import { supabase } from '../../../lib/supabase';
 import {
     LogOut, Settings, ChevronRight, Award, CheckCircle, BarChart, Megaphone,
@@ -80,7 +77,6 @@ interface ProfilePageProps {
 
 const ProfilePage: React.FC<ProfilePageProps> = ({ onSignOut, onNavigateToSettings }) => {
   const { user, signOut, refreshUser } = useAuth();
-  const { targetAudience } = useSettingsStore();
   const navigate = useNavigate();
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -331,18 +327,6 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onSignOut, onNavigateToSettin
           <div className="bg-white dark:bg-gray-800 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm p-4 transition-colors duration-300">
               <h2 className="text-base font-bold text-slate-800 dark:text-slate-100 mb-3 px-2">My Activity</h2>
               <div className="space-y-2">
-                  <div className="w-full flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group mb-2 border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30">
-                      <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg flex items-center justify-center text-indigo-600 dark:text-indigo-400">
-                              <Target className="w-4 h-4" />
-                          </div>
-                          <div className="text-left">
-                              <span className="font-bold text-slate-700 dark:text-slate-300 block leading-tight">Switch Mode</span>
-                              <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider">{targetAudience === 'school' ? 'School' : 'Competitive'} Active</span>
-                          </div>
-                      </div>
-                      <ModeSelector />
-                  </div>
                   <button onClick={() => navigate('/quiz/attempted')} className="w-full flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
                       <div className="flex items-center gap-3">
                           <div className="w-9 h-9 bg-purple-50 dark:bg-purple-900/20 rounded-lg flex items-center justify-center text-purple-600 dark:text-purple-400"><FileText className="w-4 h-4" /></div>
