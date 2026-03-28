@@ -1,6 +1,4 @@
 import React from 'react';
-import { ModeSelector } from '../../../components/ModeSelector';
-
 import { ListChecks, FileText, BookOpen, Languages, Save, Wrench, BarChart2, Star, ChevronRight, Info } from 'lucide-react';
 import { Button } from '../../../components/Button/Button';
 import { useNavigate } from 'react-router-dom';
@@ -53,12 +51,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ onStartQuiz, onEnglish, on
             <div className="flex-1 flex flex-col items-center justify-center space-y-10 py-6 relative z-10 animate-fade-in">
                 {/* Hero Section */}
                 <div className="relative text-center max-w-4xl mx-auto mt-6">
-                    <div className="absolute left-0 top-0 hidden sm:block">
-                        <ModeSelector />
-                    </div>
-                    <div className="flex justify-center mb-6 sm:hidden">
-                        <ModeSelector />
-                    </div>
                     <h1 className="text-4xl sm:text-6xl font-black text-gray-900 dark:text-white leading-tight mb-4 drop-shadow-sm">
                         Dashboard
                     </h1>
