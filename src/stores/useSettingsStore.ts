@@ -14,6 +14,13 @@ export interface SettingsState {
   // Target Audience Setting (Competitive vs School)
   targetAudience: 'competitive' | 'school' | null;
   setTargetAudience: (audience: 'competitive' | 'school') => void;
+
+  schoolOnboardingSeen: boolean;
+  setSchoolOnboardingSeen: (seen: boolean) => void;
+  schoolBoard: string | null;
+  setSchoolBoard: (board: string) => void;
+  schoolClass: string | null;
+  setSchoolClass: (cls: string) => void;
 }
 
 export const useSettingsStore = create<SettingsState>()(
@@ -25,6 +32,9 @@ export const useSettingsStore = create<SettingsState>()(
       isHapticEnabled: true,
       areBgAnimationsEnabled: true,
       targetAudience: null,
+      schoolOnboardingSeen: false,
+      schoolBoard: null,
+      schoolClass: null,
 
       toggleDarkMode: (event?: any) => {
         const { isDarkMode } = get();
@@ -118,7 +128,11 @@ export const useSettingsStore = create<SettingsState>()(
         // When setting audience, we also want to optionally sync to DB if user is logged in
         // However, Zustand should mostly handle client-side. We will trigger the DB sync
         // from the component/hook that calls this to avoid cyclic dependencies with Supabase.
-      }
+      },
+
+      setSchoolOnboardingSeen: (seen) => set({ schoolOnboardingSeen: seen }),
+      setSchoolBoard: (board) => set({ schoolBoard: board }),
+      setSchoolClass: (cls) => set({ schoolClass: cls })
     }),
     {
       name: 'mindflow-settings',

@@ -7,6 +7,7 @@ import { useAuth } from '../features/auth/context/AuthContext';
 import { useTargetAudience } from '../features/auth/hooks/useTargetAudience';
 import { SchoolLayout } from '../features/school/components/SchoolLayout';
 const SchoolDashboard = lazy(() => import('../features/school/components/SchoolDashboard').then(m => ({ default: m.SchoolDashboard })));
+const SchoolProfile = lazy(() => import('../features/school/components/SchoolProfile').then(m => ({ default: m.SchoolProfile })));
 const ClassModulePlaceholder = lazy(() => import('../features/school/components/ClassModulePlaceholder').then(m => ({ default: m.ClassModulePlaceholder })));
 
 import { SynapticLoader } from '../components/ui/SynapticLoader';
@@ -98,9 +99,14 @@ const AppRoutesContent: React.FC = () => {
                 {/* --- School Module Routes --- */}
                 {targetAudience === 'school' ? (
                     <Route path="/school" element={<SchoolLayout />}>
-                        <Route path="dashboard" element={
+                                                <Route path="dashboard" element={
                             <Suspense fallback={<SynapticLoader />}>
                                 <SchoolDashboard />
+                            </Suspense>
+                        } />
+                        <Route path="profile" element={
+                            <Suspense fallback={<SynapticLoader />}>
+                                <SchoolProfile />
                             </Suspense>
                         } />
                         <Route path="class/:classId" element={
