@@ -34,6 +34,8 @@ const AuthPage: React.FC<AuthPageProps> = ({ onBack }) => {
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [ageConfirmed, setAgeConfirmed] = useState(false);
+  const [privacyConfirmed, setPrivacyConfirmed] = useState(false);
   const navigate = useNavigate();
   const { user } = useAuth();
 
@@ -59,6 +61,10 @@ const AuthPage: React.FC<AuthPageProps> = ({ onBack }) => {
       }
       if (password !== confirmPassword) {
         setError("Passwords do not match.");
+        return false;
+      }
+      if (!ageConfirmed || !privacyConfirmed) {
+        setError("Please confirm age and privacy policy to sign up.");
         return false;
       }
     }
@@ -139,10 +145,10 @@ const AuthPage: React.FC<AuthPageProps> = ({ onBack }) => {
       <div className="flex-1 flex items-center justify-center p-4 relative">
         <button
          onClick={onBack}
-         className="absolute top-4 left-4 md:top-8 md:left-8 z-20 flex items-center gap-2 text-sm font-semibold text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:text-gray-100 transition-colors"
+         className="absolute top-4 left-4 md:top-8 md:left-8 z-20 flex items-center justify-center p-2 rounded-full bg-white/50 dark:bg-gray-800/50 hover:bg-white/80 dark:hover:bg-gray-700/80 text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-100 transition-all shadow-sm backdrop-blur-sm border border-white/20 dark:border-gray-700/30"
+         title="Back to Home"
        >
-         <ArrowLeft className="w-4 h-4" />
-         Back to Home
+         <ArrowLeft className="w-5 h-5" />
        </button>
        <div className="w-full max-w-md">
          <div className="bg-white dark:bg-gray-800/70 backdrop-blur-xl rounded-xl shadow-form p-6 md:p-10 border border-white/30">
@@ -221,6 +227,46 @@ const AuthPage: React.FC<AuthPageProps> = ({ onBack }) => {
                  />
                </div>
              )}
+
+             {isSignUp && (
+               <div className="bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg p-4 mt-2">
+                 <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-3">
+                   To create an account, please confirm the following:
+                 </p>
+                 <div className="space-y-3">
+                   <label className="flex items-start gap-3 cursor-pointer group">
+                     <div className="flex items-center h-5 mt-0.5">
+                       <input
+                         type="checkbox"
+                         checked={ageConfirmed}
+                         onChange={(e) => setAgeConfirmed(e.target.checked)}
+                         className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-600 dark:focus:ring-indigo-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+                       />
+                     </div>
+                     <span className="text-sm text-gray-600 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-gray-100 transition-colors">
+                       I am 18 years of age or older.
+                     </span>
+                   </label>
+
+                   <label className="flex items-start gap-3 cursor-pointer group">
+                     <div className="flex items-center h-5 mt-0.5">
+                       <input
+                         type="checkbox"
+                         checked={privacyConfirmed}
+                         onChange={(e) => setPrivacyConfirmed(e.target.checked)}
+                         className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-600 dark:focus:ring-indigo-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+                       />
+                     </div>
+                     <span className="text-sm text-gray-600 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-gray-100 transition-colors">
+                       I agree to the{" "}
+                       <a href="/#/privacy-policy" target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:text-indigo-500 hover:underline dark:text-indigo-400 dark:hover:text-indigo-300 font-medium">
+                         Privacy Policy
+                       </a>.
+                     </span>
+                   </label>
+                 </div>
+               </div>
+             )}
              {error && <p className="text-sm text-red-500 text-center">{error}</p>}
              {message && <p className="text-sm text-green-500 text-center">{message}</p>}
              <div>
@@ -252,6 +298,19 @@ const AuthPage: React.FC<AuthPageProps> = ({ onBack }) => {
                    Sign in with Google
                  </>
                )}
+             </button>
+           </div>
+           <div className="mt-6 text-center text-sm text-text-secondary">
+             Are you Admin?{" "}
+             <button
+               type="button"
+               onClick={() => {
+                 setEmail("admin@mindflow.com");
+                 setPassword("");
+               }}
+               className="font-semibold text-indigo-600 hover:text-indigo-500 hover:underline focus:outline-none dark:text-indigo-400 dark:hover:text-indigo-300"
+             >
+               Click here
              </button>
            </div>
          </div>
