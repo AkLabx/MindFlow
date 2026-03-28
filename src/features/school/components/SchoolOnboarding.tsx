@@ -34,7 +34,6 @@ export const SchoolOnboarding: React.FC<{ onComplete: () => void }> = ({ onCompl
   const [currentSlide, setCurrentSlide] = useState(0);
   const [selectedBoard, setSelectedBoard] = useState<string | null>(null);
   const [selectedClass, setSelectedClass] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
   const { user } = useAuth();
 
   const { setSchoolBoard, setSchoolClass, setSchoolOnboardingSeen } = useSettingsStore();
@@ -55,18 +54,12 @@ export const SchoolOnboarding: React.FC<{ onComplete: () => void }> = ({ onCompl
 
   const handleFinish = async () => {
     if (selectedBoard && selectedClass) {
-      setIsLoading(true);
       setSchoolBoard(selectedBoard);
       setSchoolClass(selectedClass);
       setSchoolOnboardingSeen(true);
       if (user) {
-         try {
-           await supabase.auth.updateUser({ data: { school_board: selectedBoard, school_class: selectedClass } });
-         } catch (error) {
-           console.error("Failed to update user profile:", error);
-         }
+         await supabase.auth.updateUser({ data: { school_board: selectedBoard, school_class: selectedClass } });
       }
-      setIsLoading(false);
       onComplete();
     }
   };
@@ -202,14 +195,14 @@ export const SchoolOnboarding: React.FC<{ onComplete: () => void }> = ({ onCompl
         ) : currentSlide === 4 ? (
           <button
             onClick={handleFinish}
-            disabled={!selectedBoard || !selectedClass || isLoading}
+            disabled={!selectedBoard || !selectedClass}
             className={`w-full py-4 rounded-2xl font-bold text-lg shadow-lg transition-all flex items-center justify-center gap-2 ${
               selectedBoard && selectedClass
-                ? isLoading ? 'bg-emerald-400 text-white cursor-wait' : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/30 active:scale-95'
+                ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/30 active:scale-95'
                 : 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-600 cursor-not-allowed'
             }`}
           >
-            {isLoading ? 'Processing...' : <><span className="mr-1">Start Learning</span> <GraduationCap className="w-5 h-5" /></>}
+            Start Learning <GraduationCap className="w-5 h-5" />
           </button>
         ) : (
             <div className="h-[60px]" />
