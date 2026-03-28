@@ -101,25 +101,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 localStorage.removeItem('mindflow_is_signup');
             }
         });
-
-        // Check for pending target audience intent from pre-OAuth
-        const audienceIntent = localStorage.getItem('mindflow_target_audience_intent');
-        if (audienceIntent && finalUser.user_metadata?.target_audience !== audienceIntent) {
-           await supabase.auth.updateUser({ data: { target_audience: audienceIntent } });
-           localStorage.removeItem('mindflow_target_audience_intent');
-           // Set the zustand store via a small window event to avoid circular deps
-           window.dispatchEvent(new CustomEvent('mindflow-target-audience-update', { detail: audienceIntent }));
-        }
-
-        // Handle OAuth Redirect Path
-        const redirectPath = localStorage.getItem('mindflow_auth_redirect');
-        if (redirectPath) {
-            localStorage.removeItem('mindflow_auth_redirect');
-            // We use window.location.hash for HashRouter
-            if (window.location.hash !== `#${redirectPath}`) {
-                window.location.hash = redirectPath;
-            }
-        }
       } else {
         setUser(null);
       }

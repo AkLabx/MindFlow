@@ -10,18 +10,6 @@ export const useTargetAudience = () => {
 
   // Sync from DB to local store on login
   useEffect(() => {
-    // Listener for auth redirects updating target audience
-    const handleIntentUpdate = (e: any) => {
-      if (e.detail) {
-        handleSetAudience(e.detail);
-      }
-    };
-    window.addEventListener('mindflow-target-audience-update', handleIntentUpdate);
-
-    return () => window.removeEventListener('mindflow-target-audience-update', handleIntentUpdate);
-  }, [user]);
-
-  useEffect(() => {
     const fetchAudiencePreference = async () => {
       if (user?.id) {
         try {

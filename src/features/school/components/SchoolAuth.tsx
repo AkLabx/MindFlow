@@ -72,9 +72,6 @@ export const SchoolAuth: React.FC<SchoolAuthProps> = ({ onAuthSuccess }) => {
       if (isSignUp) {
         localStorage.setItem('mindflow_is_signup', 'true');
       }
-      // Force redirect back to school module after OAuth
-      localStorage.setItem('mindflow_auth_redirect', '/school/dashboard');
-      localStorage.setItem('mindflow_target_audience_intent', 'school');
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
