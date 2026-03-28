@@ -1,6 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BookOpen, GraduationCap, ChevronRight, Calculator, FlaskConical, PlayCircle, Trophy, CheckCircle2 } from 'lucide-react';
+import { useAuth } from '../../auth/context/AuthContext';
+import { supabase } from '../../../lib/supabase';
+import { SchoolAuth } from './SchoolAuth';
 import { useSettingsStore } from '../../../stores/useSettingsStore';
 
 const slides = [
@@ -31,41 +34,60 @@ export const SchoolOnboarding: React.FC<{ onComplete: () => void }> = ({ onCompl
   const [currentSlide, setCurrentSlide] = useState(0);
   const [selectedBoard, setSelectedBoard] = useState<string | null>(null);
   const [selectedClass, setSelectedClass] = useState<string | null>(null);
+  const { user } = useAuth();
 
   const { setSchoolBoard, setSchoolClass, setSchoolOnboardingSeen } = useSettingsStore();
 
+  useEffect(() => {
+    if (user && currentSlide < 4) {
+      setCurrentSlide(4);
+    }
+  }, [user, currentSlide]);
+
   const handleNext = () => {
-    if (currentSlide < slides.length) {
+    if (currentSlide === 2) {
+      setCurrentSlide(user ? 4 : 3);
+    } else if (currentSlide < 4) {
       setCurrentSlide(currentSlide + 1);
     }
   };
 
-  const handleFinish = () => {
+  const handleFinish = async () => {
     if (selectedBoard && selectedClass) {
       setSchoolBoard(selectedBoard);
       setSchoolClass(selectedClass);
       setSchoolOnboardingSeen(true);
+      if (user) {
+         await supabase.auth.updateUser({ data: { school_board: selectedBoard, school_class: selectedClass } });
+      }
       onComplete();
     }
   };
 
+  const totalDots = 4;
+
   return (
     <div className="fixed inset-0 bg-slate-50 dark:bg-slate-950 z-[100] flex flex-col font-outfit">
       {/* Progress Dots */}
-      <div className="absolute top-8 left-0 right-0 flex justify-center gap-2 z-10">
-        {[...Array(slides.length + 1)].map((_, i) => (
-          <div
-            key={i}
-            className={`h-2 rounded-full transition-all duration-300 ${
-              i === currentSlide
-                ? 'w-8 bg-emerald-500'
-                : i < currentSlide
-                  ? 'w-2 bg-emerald-500/50'
-                  : 'w-2 bg-slate-300 dark:bg-slate-700'
-            }`}
-          />
-        ))}
-      </div>
+      {(currentSlide < 3 || currentSlide === 4) && (
+        <div className="absolute top-8 left-0 right-0 flex justify-center gap-2 z-10">
+          {[...Array(totalDots)].map((_, i) => {
+            const activeIndex = currentSlide === 4 ? 3 : currentSlide;
+            return (
+              <div
+                key={i}
+                className={`h-2 rounded-full transition-all duration-300 ${
+                  i === activeIndex
+                    ? 'w-8 bg-emerald-500'
+                    : i < activeIndex
+                      ? 'w-2 bg-emerald-500/50'
+                      : 'w-2 bg-slate-300 dark:bg-slate-700'
+                }`}
+              />
+            );
+          })}
+        </div>
+      )}
 
       <div className="flex-1 flex items-center justify-center p-6 relative overflow-hidden">
         <AnimatePresence mode="wait">
@@ -89,6 +111,15 @@ export const SchoolOnboarding: React.FC<{ onComplete: () => void }> = ({ onCompl
               <p className="text-lg text-slate-500 dark:text-slate-400">
                 {slides[currentSlide].description}
               </p>
+            </motion.div>
+          ) : currentSlide === 3 && !user ? (
+            <motion.div
+               key="auth"
+               initial={{ opacity: 0, scale: 0.95 }}
+               animate={{ opacity: 1, scale: 1 }}
+               className="flex flex-col w-full h-full justify-center"
+            >
+               <SchoolAuth onAuthSuccess={() => setCurrentSlide(4)} />
             </motion.div>
           ) : (
             <motion.div
@@ -154,14 +185,14 @@ export const SchoolOnboarding: React.FC<{ onComplete: () => void }> = ({ onCompl
       </div>
 
       <div className="p-6 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 pb-[calc(env(safe-area-inset-bottom)+24px)]">
-        {currentSlide < slides.length ? (
+        {currentSlide < 3 ? (
           <button
             onClick={handleNext}
             className="w-full py-4 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-lg shadow-lg shadow-emerald-500/30 transition-transform active:scale-95 flex items-center justify-center gap-2"
           >
             Continue <ChevronRight className="w-5 h-5" />
           </button>
-        ) : (
+        ) : currentSlide === 4 ? (
           <button
             onClick={handleFinish}
             disabled={!selectedBoard || !selectedClass}
@@ -173,6 +204,8 @@ export const SchoolOnboarding: React.FC<{ onComplete: () => void }> = ({ onCompl
           >
             Start Learning <GraduationCap className="w-5 h-5" />
           </button>
+        ) : (
+            <div className="h-[60px]" />
         )}
       </div>
     </div>
