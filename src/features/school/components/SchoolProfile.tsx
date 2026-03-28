@@ -30,11 +30,8 @@ export const SchoolProfile: React.FC = () => {
   };
 
   const handleSwitchToCompetitive = () => {
-    // Navigate first, update state slightly after to allow smooth transition
-    navigate('/dashboard', { replace: true });
-    setTimeout(() => {
-        setTargetAudience('competitive');
-    }, 50);
+    setTargetAudience('competitive');
+    navigate('/dashboard');
   };
 
   const menuGroups = [

@@ -23,12 +23,8 @@ export const useTargetAudience = () => {
   }, [user, setTargetAudience]);
 
   useEffect(() => {
-    // Only fetch from DB if there is NO explicit intent currently in progress.
-    // This prevents a race condition where the explicit portal login intent tries to set
-    // the mode to 'school', but this DB fetch rapidly overrides it back to 'competitive'
-    // before the explicit intent completes its database update.
     const fetchAudiencePreference = async () => {
-      if (user?.id && !localStorage.getItem('mindflow_target_audience_intent')) {
+      if (user?.id) {
         try {
           const { data, error } = await supabase
             .from('profiles')
@@ -39,7 +35,7 @@ export const useTargetAudience = () => {
           if (error) throw error;
 
           if (data && data.target_audience) {
-             // If DB has a preference and no login intent is active, use it locally (DB wins)
+             // If DB has a preference, use it locally (DB wins)
              setTargetAudience(data.target_audience as 'competitive' | 'school');
           }
         } catch (error) {
