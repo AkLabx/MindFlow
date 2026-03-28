@@ -13,13 +13,14 @@ export const useTargetAudience = () => {
     // Listener for auth redirects updating target audience
     const handleIntentUpdate = (e: any) => {
       if (e.detail) {
-        handleSetAudience(e.detail);
+        // Only update local state, AuthContext handles the DB update for intents
+        setTargetAudience(e.detail);
       }
     };
     window.addEventListener('mindflow-target-audience-update', handleIntentUpdate);
 
     return () => window.removeEventListener('mindflow-target-audience-update', handleIntentUpdate);
-  }, [user]);
+  }, [user, setTargetAudience]);
 
   useEffect(() => {
     const fetchAudiencePreference = async () => {

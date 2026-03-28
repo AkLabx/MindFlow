@@ -92,8 +92,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
         setUser(finalUser);
 
+        // Check if the user account is new (created within the last 10 minutes)
+        const isNewUser = new Date().getTime() - new Date(finalUser.created_at).getTime() < 10 * 60 * 1000;
+
         // Check if this is a sign up event (either from explicit event or local flag)
-        const isSignup = (event as string) === 'SIGNED_UP' || localStorage.getItem('mindflow_is_signup') === 'true';
+        const isSignup = (event as string) === 'SIGNED_UP' || localStorage.getItem('mindflow_is_signup') === 'true' || isNewUser;
 
         // Run sync on successful sign-in or sign-up
         syncService.syncOnLogin(finalUser.id, isSignup).then(() => {
@@ -104,11 +107,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
         // Check for pending target audience intent from pre-OAuth
         const audienceIntent = localStorage.getItem('mindflow_target_audience_intent');
-        if (audienceIntent && finalUser.user_metadata?.target_audience !== audienceIntent) {
-           await supabase.auth.updateUser({ data: { target_audience: audienceIntent } });
-           localStorage.removeItem('mindflow_target_audience_intent');
-           // Set the zustand store via a small window event to avoid circular deps
-           window.dispatchEvent(new CustomEvent('mindflow-target-audience-update', { detail: audienceIntent }));
+
+        if (audienceIntent) {
+           if (isNewUser) {
+             // For New Users: Respect the intent and overwrite the DB default ('competitive')
+             await supabase.auth.updateUser({ data: { target_audience: audienceIntent } });
+             await supabase.from('profiles').update({ target_audience: audienceIntent }).eq('id', finalUser.id);
+
+             localStorage.removeItem('mindflow_target_audience_intent');
+             // Set the zustand store via a small window event to avoid circular deps
+             window.dispatchEvent(new CustomEvent('mindflow-target-audience-update', { detail: audienceIntent }));
+           } else {
+             // For Existing Users: 'DB wins' to prevent overwriting their past settings and data
+             localStorage.removeItem('mindflow_target_audience_intent');
+           }
         }
 
 
