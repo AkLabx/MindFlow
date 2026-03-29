@@ -1,6 +1,6 @@
 import React from 'react';
 import { ChevronLeft, User, Shield, FileText } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 
 export const AboutUs: React.FC = () => {
     const navigate = useNavigate();
@@ -44,7 +44,16 @@ export const AboutUs: React.FC = () => {
                         <div className="p-2 bg-emerald-100 dark:bg-emerald-900/50 rounded-lg">
                             <Shield className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
                         </div>
-                        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Privacy Policy</h2>
+                        <div className="flex-1">
+                            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Privacy Policy</h2>
+                        </div>
+                        <Link
+                            to="/privacy-policy"
+                            className="text-sm font-medium text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 underline underline-offset-2 flex items-center gap-1"
+                            aria-label="Read full Privacy Policy"
+                        >
+                            Read Full Policy
+                        </Link>
                     </div>
                     <div className="text-gray-600 dark:text-gray-300 space-y-4 leading-relaxed text-sm">
                         <p className="font-semibold italic">Last updated: {new Date().toLocaleDateString()}</p>

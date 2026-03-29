@@ -31,6 +31,7 @@ const SynonymPhase1Session = lazy(() => import('../features/synonyms/components/
 const QuizResult = lazy(() => import('../features/quiz/components/QuizResult').then(m => ({ default: m.QuizResult })));
 const FlashcardSummary = lazy(() => import('../features/flashcards/components/FlashcardSummary').then(m => ({ default: m.FlashcardSummary })));
 const AboutUs = lazy(() => import('../features/about/components/AboutUs').then(m => ({ default: m.AboutUs })));
+const PrivacyPolicy = lazy(() => import('../pages/PrivacyPolicy').then(m => ({ default: m.PrivacyPolicy })));
 const ToolsHome = lazy(() => import('../features/tools/ToolsHome'));
 const AIHome = lazy(() => import('../features/ai/AIHome').then(m => ({ default: m.AIHome })));
 
@@ -115,6 +116,12 @@ const AppRoutesContent: React.FC = () => {
                             <AboutUs />
                         </Suspense>
                     } />
+                    <Route path="/privacy-policy" element={
+                        <Suspense fallback={<SynapticLoader />}>
+                            <PrivacyPolicy />
+                        </Suspense>
+                    } />
+
 
 
                     <Route path="/english" element={
