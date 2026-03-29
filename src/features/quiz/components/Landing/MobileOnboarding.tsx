@@ -185,10 +185,10 @@ const RocketTakeoffSVG = () => (
 
 const slideVariants = {
   enter: (direction: number) => ({
-    x: direction > 0 ? '100%' : '-100%',
+    x: direction === 0 ? 0 : (direction > 0 ? '100%' : '-100%'),
     opacity: 0,
     scale: 0.9,
-    rotateY: direction > 0 ? 15 : -15
+    rotateY: direction === 0 ? 0 : (direction > 0 ? 15 : -15)
   }),
   center: {
     zIndex: 1,
@@ -376,7 +376,7 @@ export const MobileOnboarding: React.FC<MobileOnboardingProps> = ({
         onTouchEnd={handleTouchEnd}
         style={{ perspective: '1000px' }} // Enhances 3D feel during swipe
       >
-        <AnimatePresence initial={false} custom={direction} mode="wait">
+        <AnimatePresence custom={direction} mode="wait">
           <motion.div
             key={page}
             custom={direction}
