@@ -1,4 +1,6 @@
-import React from 'react';
+import React, { useEffect } from 'react';
+import { motion } from 'framer-motion';
+import { CreateQuizSVG, SavedQuizzesSVG, EnglishZoneSVG, ToolsSVG, AnalyticsSVG, BookmarksSVG, AboutSVG } from './DashboardSVGs';
 import { ListChecks, FileText, BookOpen, Languages, Save, Wrench, BarChart2, Star, ChevronRight, Info } from 'lucide-react';
 import { Button } from '../../../components/Button/Button';
 import { useNavigate } from 'react-router-dom';
@@ -38,6 +40,47 @@ export const Dashboard: React.FC<DashboardProps> = ({ onStartQuiz, onEnglish, on
     const { loadingId, handleNavigation } = useNavSpinner();
     const { user } = useAuth();
 
+
+    useEffect(() => {
+        // Injecting simple keyframes for mesh gradient moving if not exists
+        if (!document.getElementById('mesh-keyframes')) {
+            const style = document.createElement('style');
+            style.id = 'mesh-keyframes';
+            style.innerHTML = `
+                @keyframes flow {
+                    0% { background-position: 0% 50%; }
+                    50% { background-position: 100% 50%; }
+                    100% { background-position: 0% 50%; }
+                }
+                .animate-flow {
+                    background-size: 200% 200%;
+                    animation: flow 15s ease infinite;
+                }
+            `;
+            document.head.appendChild(style);
+        }
+    }, []);
+
+
+    const containerVariants = {
+        hidden: { opacity: 0 },
+        visible: {
+            opacity: 1,
+            transition: {
+                staggerChildren: 0.1
+            }
+        }
+    };
+
+    const itemVariants = {
+        hidden: { y: 20, opacity: 0 },
+        visible: {
+            y: 0,
+            opacity: 1,
+            transition: { type: 'spring' as const, stiffness: 300, damping: 24 }
+        }
+    };
+
     const getGreeting = () => {
         const hour = new Date().getHours();
         if (hour < 12) return 'Good Morning';
@@ -47,7 +90,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onStartQuiz, onEnglish, on
 
 
     return (
-        <div className="flex flex-col">
+        <div className="flex flex-col min-h-screen -m-4 sm:-m-6 lg:-m-8 p-4 sm:p-6 lg:p-8 bg-gradient-to-br from-indigo-50 via-purple-50 to-white dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 animate-flow transition-colors duration-700 relative overflow-hidden">
             <div className="flex-1 flex flex-col space-y-6 py-4 relative z-10 animate-fade-in w-full">
                 {/* Hero Section */}
                 <div className="relative text-left w-full mt-2">
@@ -61,147 +104,284 @@ export const Dashboard: React.FC<DashboardProps> = ({ onStartQuiz, onEnglish, on
                 </div>
 
                 {/* Cards Grid */}
-                <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-4 w-full">
-                    {/* Card 1 - Custom Quiz */}
-                    <div
+                <motion.div variants={containerVariants} initial="hidden" animate="visible" className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 w-full max-w-7xl mx-auto z-20">
+
+                    {/* Card card-1 */}
+                    <motion.div
+                        variants={itemVariants}
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
                         onClick={() => handleNavigation('card-1', onStartQuiz)}
-                        className="bg-indigo-50 dark:bg-indigo-950/30 p-4 sm:p-6 rounded-2xl cursor-pointer group relative z-20 transition-all duration-200 shadow-sm active:translate-y-1 active:border-b flex flex-col items-start justify-between aspect-square border border-indigo-100 dark:border-indigo-900/40 border-b-4 border-b-indigo-200 dark:border-b-indigo-700 hover:border-indigo-300 dark:hover:border-indigo-500"
+                        className="relative group cursor-pointer aspect-square rounded-[32px] sm:rounded-[40px] p-[1px] overflow-hidden"
                     >
+                        {/* Glow Background Layer */}
+                        <div className="absolute inset-0 bg-white/40 dark:bg-slate-900/40 backdrop-blur-2xl transition-colors duration-300 z-0"></div>
+                        <div className="absolute inset-0 bg-gradient-to-br from-white/60 to-white/10 dark:from-white/10 dark:to-transparent z-0"></div>
+
+                        {/* Interactive Inner Shadow / Border */}
+                        <div className="absolute inset-0 rounded-[32px] sm:rounded-[40px] border border-white/60 dark:border-white/10 shadow-[0_8px_32px_0_rgba(31,38,135,0.07)] dark:shadow-[0_8px_32px_0_rgba(0,0,0,0.3)] z-10 transition-all duration-300 group-active:border-b-0 border-b-[4px] border-b-indigo-200/50 dark:border-b-indigo-700/50 group-hover:border-indigo-300 dark:group-hover:border-indigo-500"></div>
+
+                        {/* Centered Subtle Glow */}
+                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full rounded-full blur-[60px] opacity-40 group-hover:opacity-60 transition-opacity duration-500 z-0 bg-indigo-500"></div>
+
                         {loadingId === 'card-1' ? (
-                            <div className="absolute inset-0 flex items-center justify-center">
-                                <Loader2 className="w-8 h-8 text-indigo-500 animate-spin" />
+                            <div className="absolute inset-0 flex items-center justify-center z-20 bg-white/20 dark:bg-black/20 backdrop-blur-sm rounded-[32px] sm:rounded-[40px]">
+                                <Loader2 className="w-8 h-8 text-indigo-500 animate-spin drop-shadow-md" />
                             </div>
                         ) : null}
-                        <div className={`flex flex-col items-start gap-3 flex-1 h-full w-full transition-opacity ${loadingId === 'card-1' ? 'opacity-0' : 'opacity-100'}`}>
-                            <div className="w-12 h-12 bg-white dark:bg-gray-800 ring-1 ring-black/5 dark:ring-white/10 rounded-xl flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform flex-shrink-0">
-                                <ListChecks className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
-                            </div>
-                            <div className="flex-1 w-full text-left mt-auto flex flex-col justify-end pb-1">
-                                <h3 className="text-base sm:text-lg font-bold leading-tight text-gray-900 dark:text-white mb-1">Create Quiz</h3>
-                                <p className="text-gray-600 dark:text-gray-400 text-[10px] sm:text-xs font-medium leading-tight mt-1 line-clamp-2">
+
+                        <div className={`relative z-20 flex flex-col items-center justify-between h-full w-full p-4 sm:p-6 transition-opacity duration-300 ${loadingId === 'card-1' ? 'opacity-0' : 'opacity-100'}`}>
+
+                            {/* SVG Container */}
+                            <motion.div
+                                className="w-16 h-16 sm:w-24 sm:h-24 md:w-28 md:h-28 mt-2 relative drop-shadow-xl"
+                                initial={{ scale: 0.9, opacity: 0.8 }}
+                                animate={{ scale: 1, opacity: 1 }}
+                                transition={{ type: "spring", stiffness: 200, damping: 20 }}
+                            >
+                                <CreateQuizSVG />
+                            </motion.div>
+
+                            {/* Text Area */}
+                            <div className="flex flex-col items-center justify-end w-full text-center pb-2">
+                                <h3 className="text-sm sm:text-lg font-black leading-tight bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-indigo-900 dark:from-indigo-300 dark:to-indigo-100 mb-1 sm:mb-2">Create Quiz</h3>
+                                <p className="text-slate-500 dark:text-slate-400 text-[10px] sm:text-xs font-semibold leading-tight line-clamp-2 max-w-[90%]">
                                     Filter by subject, topic, and difficulty.
                                 </p>
                             </div>
                         </div>
+                    </motion.div>
 
-                    </div>
-                    {/* Card 2 - Created Quizzes */}
-                    <div
+                    {/* Card card-2 */}
+                    <motion.div
+                        variants={itemVariants}
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
                         onClick={() => handleNavigation('card-2', onSavedQuizzes)}
-                        className="bg-emerald-50 dark:bg-emerald-950/30 p-4 sm:p-6 rounded-2xl cursor-pointer group relative z-20 transition-all duration-200 shadow-sm active:translate-y-1 active:border-b flex flex-col items-start justify-between aspect-square border border-emerald-100 dark:border-emerald-900/40 border-b-4 border-b-emerald-200 dark:border-b-emerald-700 hover:border-emerald-300 dark:hover:border-emerald-500"
+                        className="relative group cursor-pointer aspect-square rounded-[32px] sm:rounded-[40px] p-[1px] overflow-hidden"
                     >
+                        {/* Glow Background Layer */}
+                        <div className="absolute inset-0 bg-white/40 dark:bg-slate-900/40 backdrop-blur-2xl transition-colors duration-300 z-0"></div>
+                        <div className="absolute inset-0 bg-gradient-to-br from-white/60 to-white/10 dark:from-white/10 dark:to-transparent z-0"></div>
+
+                        {/* Interactive Inner Shadow / Border */}
+                        <div className="absolute inset-0 rounded-[32px] sm:rounded-[40px] border border-white/60 dark:border-white/10 shadow-[0_8px_32px_0_rgba(31,38,135,0.07)] dark:shadow-[0_8px_32px_0_rgba(0,0,0,0.3)] z-10 transition-all duration-300 group-active:border-b-0 border-b-[4px] border-b-emerald-200/50 dark:border-b-emerald-700/50 group-hover:border-emerald-300 dark:group-hover:border-emerald-500"></div>
+
+                        {/* Centered Subtle Glow */}
+                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full rounded-full blur-[60px] opacity-40 group-hover:opacity-60 transition-opacity duration-500 z-0 bg-emerald-500"></div>
+
                         {loadingId === 'card-2' ? (
-                            <div className="absolute inset-0 flex items-center justify-center">
-                                <Loader2 className="w-8 h-8 text-emerald-500 animate-spin" />
+                            <div className="absolute inset-0 flex items-center justify-center z-20 bg-white/20 dark:bg-black/20 backdrop-blur-sm rounded-[32px] sm:rounded-[40px]">
+                                <Loader2 className="w-8 h-8 text-emerald-500 animate-spin drop-shadow-md" />
                             </div>
                         ) : null}
-                        <div className={`flex flex-col items-start gap-3 flex-1 h-full w-full transition-opacity ${loadingId === 'card-2' ? 'opacity-0' : 'opacity-100'}`}>
-                            <div className="w-12 h-12 bg-white dark:bg-gray-800 ring-1 ring-black/5 dark:ring-white/10 rounded-xl flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform flex-shrink-0">
-                                <Save className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
-                            </div>
-                            <div className="flex-1 w-full text-left mt-auto flex flex-col justify-end pb-1">
-                                <h3 className="text-base sm:text-lg font-bold leading-tight text-gray-900 dark:text-white mb-1">Created Quizzes</h3>
-                                <p className="text-gray-600 dark:text-gray-400 text-[10px] sm:text-xs font-medium leading-tight mt-1 line-clamp-2">
+
+                        <div className={`relative z-20 flex flex-col items-center justify-between h-full w-full p-4 sm:p-6 transition-opacity duration-300 ${loadingId === 'card-2' ? 'opacity-0' : 'opacity-100'}`}>
+
+                            {/* SVG Container */}
+                            <motion.div
+                                className="w-16 h-16 sm:w-24 sm:h-24 md:w-28 md:h-28 mt-2 relative drop-shadow-xl"
+                                initial={{ scale: 0.9, opacity: 0.8 }}
+                                animate={{ scale: 1, opacity: 1 }}
+                                transition={{ type: "spring", stiffness: 200, damping: 20 }}
+                            >
+                                <SavedQuizzesSVG />
+                            </motion.div>
+
+                            {/* Text Area */}
+                            <div className="flex flex-col items-center justify-end w-full text-center pb-2">
+                                <h3 className="text-sm sm:text-lg font-black leading-tight bg-clip-text text-transparent bg-gradient-to-r from-emerald-600 to-emerald-900 dark:from-emerald-300 dark:to-emerald-100 mb-1 sm:mb-2">Created Quizzes</h3>
+                                <p className="text-slate-500 dark:text-slate-400 text-[10px] sm:text-xs font-semibold leading-tight line-clamp-2 max-w-[90%]">
                                     Resume paused quizzes or view completed ones.
                                 </p>
                             </div>
                         </div>
+                    </motion.div>
 
-                    </div>
-                    {/* Card 3 - English */}
-                    <div
+                    {/* Card card-3 */}
+                    <motion.div
+                        variants={itemVariants}
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
                         onClick={() => handleNavigation('card-3', onEnglish)}
-                        className="bg-rose-50 dark:bg-rose-950/30 p-4 sm:p-6 rounded-2xl cursor-pointer group relative z-20 transition-all duration-200 shadow-sm active:translate-y-1 active:border-b flex flex-col items-start justify-between aspect-square border border-rose-100 dark:border-rose-900/40 border-b-4 border-b-rose-200 dark:border-b-rose-700 hover:border-rose-300 dark:hover:border-rose-500"
+                        className="relative group cursor-pointer aspect-square rounded-[32px] sm:rounded-[40px] p-[1px] overflow-hidden"
                     >
+                        {/* Glow Background Layer */}
+                        <div className="absolute inset-0 bg-white/40 dark:bg-slate-900/40 backdrop-blur-2xl transition-colors duration-300 z-0"></div>
+                        <div className="absolute inset-0 bg-gradient-to-br from-white/60 to-white/10 dark:from-white/10 dark:to-transparent z-0"></div>
+
+                        {/* Interactive Inner Shadow / Border */}
+                        <div className="absolute inset-0 rounded-[32px] sm:rounded-[40px] border border-white/60 dark:border-white/10 shadow-[0_8px_32px_0_rgba(31,38,135,0.07)] dark:shadow-[0_8px_32px_0_rgba(0,0,0,0.3)] z-10 transition-all duration-300 group-active:border-b-0 border-b-[4px] border-b-rose-200/50 dark:border-b-rose-700/50 group-hover:border-rose-300 dark:group-hover:border-rose-500"></div>
+
+                        {/* Centered Subtle Glow */}
+                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full rounded-full blur-[60px] opacity-40 group-hover:opacity-60 transition-opacity duration-500 z-0 bg-rose-500"></div>
+
                         {loadingId === 'card-3' ? (
-                            <div className="absolute inset-0 flex items-center justify-center">
-                                <Loader2 className="w-8 h-8 text-rose-500 animate-spin" />
+                            <div className="absolute inset-0 flex items-center justify-center z-20 bg-white/20 dark:bg-black/20 backdrop-blur-sm rounded-[32px] sm:rounded-[40px]">
+                                <Loader2 className="w-8 h-8 text-rose-500 animate-spin drop-shadow-md" />
                             </div>
                         ) : null}
-                        <div className={`flex flex-col items-start gap-3 flex-1 h-full w-full transition-opacity ${loadingId === 'card-3' ? 'opacity-0' : 'opacity-100'}`}>
-                            <div className="w-12 h-12 bg-white dark:bg-gray-800 ring-1 ring-black/5 dark:ring-white/10 rounded-xl flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform flex-shrink-0">
-                                <Languages className="w-6 h-6 text-rose-600 dark:text-rose-400" />
-                            </div>
-                            <div className="flex-1 w-full text-left mt-auto flex flex-col justify-end pb-1">
-                                <h3 className="text-base sm:text-lg font-bold leading-tight text-gray-900 dark:text-white mb-1">English Zone</h3>
-                                <p className="text-gray-600 dark:text-gray-400 text-[10px] sm:text-xs font-medium leading-tight mt-1 line-clamp-2">
+
+                        <div className={`relative z-20 flex flex-col items-center justify-between h-full w-full p-4 sm:p-6 transition-opacity duration-300 ${loadingId === 'card-3' ? 'opacity-0' : 'opacity-100'}`}>
+
+                            {/* SVG Container */}
+                            <motion.div
+                                className="w-16 h-16 sm:w-24 sm:h-24 md:w-28 md:h-28 mt-2 relative drop-shadow-xl"
+                                initial={{ scale: 0.9, opacity: 0.8 }}
+                                animate={{ scale: 1, opacity: 1 }}
+                                transition={{ type: "spring", stiffness: 200, damping: 20 }}
+                            >
+                                <EnglishZoneSVG />
+                            </motion.div>
+
+                            {/* Text Area */}
+                            <div className="flex flex-col items-center justify-end w-full text-center pb-2">
+                                <h3 className="text-sm sm:text-lg font-black leading-tight bg-clip-text text-transparent bg-gradient-to-r from-rose-600 to-rose-900 dark:from-rose-300 dark:to-rose-100 mb-1 sm:mb-2">English Zone</h3>
+                                <p className="text-slate-500 dark:text-slate-400 text-[10px] sm:text-xs font-semibold leading-tight line-clamp-2 max-w-[90%]">
                                     Vocab, Grammar & Mock Tests.
                                 </p>
                             </div>
                         </div>
+                    </motion.div>
 
-                    </div>
-                    {/* Card 4 - Tools */}
-                    <div
+                    {/* Card card-4 */}
+                    <motion.div
+                        variants={itemVariants}
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
                         onClick={() => handleNavigation('card-4', () => navigate('/tools'))}
-                        className="bg-amber-50 dark:bg-amber-950/30 p-4 sm:p-6 rounded-2xl cursor-pointer group relative z-20 transition-all duration-200 shadow-sm active:translate-y-1 active:border-b flex flex-col items-start justify-between aspect-square border border-amber-100 dark:border-amber-900/40 border-b-4 border-b-amber-200 dark:border-b-amber-700 hover:border-amber-300 dark:hover:border-amber-500"
+                        className="relative group cursor-pointer aspect-square rounded-[32px] sm:rounded-[40px] p-[1px] overflow-hidden"
                     >
+                        {/* Glow Background Layer */}
+                        <div className="absolute inset-0 bg-white/40 dark:bg-slate-900/40 backdrop-blur-2xl transition-colors duration-300 z-0"></div>
+                        <div className="absolute inset-0 bg-gradient-to-br from-white/60 to-white/10 dark:from-white/10 dark:to-transparent z-0"></div>
+
+                        {/* Interactive Inner Shadow / Border */}
+                        <div className="absolute inset-0 rounded-[32px] sm:rounded-[40px] border border-white/60 dark:border-white/10 shadow-[0_8px_32px_0_rgba(31,38,135,0.07)] dark:shadow-[0_8px_32px_0_rgba(0,0,0,0.3)] z-10 transition-all duration-300 group-active:border-b-0 border-b-[4px] border-b-amber-200/50 dark:border-b-amber-700/50 group-hover:border-amber-300 dark:group-hover:border-amber-500"></div>
+
+                        {/* Centered Subtle Glow */}
+                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full rounded-full blur-[60px] opacity-40 group-hover:opacity-60 transition-opacity duration-500 z-0 bg-amber-500"></div>
+
                         {loadingId === 'card-4' ? (
-                            <div className="absolute inset-0 flex items-center justify-center">
-                                <Loader2 className="w-8 h-8 text-amber-500 animate-spin" />
+                            <div className="absolute inset-0 flex items-center justify-center z-20 bg-white/20 dark:bg-black/20 backdrop-blur-sm rounded-[32px] sm:rounded-[40px]">
+                                <Loader2 className="w-8 h-8 text-amber-500 animate-spin drop-shadow-md" />
                             </div>
                         ) : null}
-                        <div className={`flex flex-col items-start gap-3 flex-1 h-full w-full transition-opacity ${loadingId === 'card-4' ? 'opacity-0' : 'opacity-100'}`}>
-                            <div className="w-12 h-12 bg-white dark:bg-gray-800 ring-1 ring-black/5 dark:ring-white/10 rounded-xl flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform flex-shrink-0">
-                                <Wrench className="w-6 h-6 text-amber-600 dark:text-amber-400" />
-                            </div>
-                            <div className="flex-1 w-full text-left mt-auto flex flex-col justify-end pb-1">
-                                <h3 className="text-base sm:text-lg font-bold leading-tight text-gray-900 dark:text-white mb-1">Tools</h3>
-                                <p className="text-gray-600 dark:text-gray-400 text-[10px] sm:text-xs font-medium leading-tight mt-1 line-clamp-2">
+
+                        <div className={`relative z-20 flex flex-col items-center justify-between h-full w-full p-4 sm:p-6 transition-opacity duration-300 ${loadingId === 'card-4' ? 'opacity-0' : 'opacity-100'}`}>
+
+                            {/* SVG Container */}
+                            <motion.div
+                                className="w-16 h-16 sm:w-24 sm:h-24 md:w-28 md:h-28 mt-2 relative drop-shadow-xl"
+                                initial={{ scale: 0.9, opacity: 0.8 }}
+                                animate={{ scale: 1, opacity: 1 }}
+                                transition={{ type: "spring", stiffness: 200, damping: 20 }}
+                            >
+                                <ToolsSVG />
+                            </motion.div>
+
+                            {/* Text Area */}
+                            <div className="flex flex-col items-center justify-end w-full text-center pb-2">
+                                <h3 className="text-sm sm:text-lg font-black leading-tight bg-clip-text text-transparent bg-gradient-to-r from-amber-600 to-amber-900 dark:from-amber-300 dark:to-amber-100 mb-1 sm:mb-2">Tools</h3>
+                                <p className="text-slate-500 dark:text-slate-400 text-[10px] sm:text-xs font-semibold leading-tight line-clamp-2 max-w-[90%]">
                                     Flashcard Maker & Utilities.
                                 </p>
                             </div>
                         </div>
+                    </motion.div>
 
-                    </div>
-                    {/* Card 5 - Analytics */}
-                    <div
+                    {/* Card card-5 */}
+                    <motion.div
+                        variants={itemVariants}
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
                         onClick={() => handleNavigation('card-5', () => navigate('/quiz/analytics'))}
-                        className="bg-blue-50 dark:bg-blue-950/30 p-4 sm:p-6 rounded-2xl cursor-pointer group relative z-20 transition-all duration-200 shadow-sm active:translate-y-1 active:border-b flex flex-col items-start justify-between aspect-square border border-blue-100 dark:border-blue-900/40 border-b-4 border-b-blue-200 dark:border-b-blue-700 hover:border-blue-300 dark:hover:border-blue-500"
+                        className="relative group cursor-pointer aspect-square rounded-[32px] sm:rounded-[40px] p-[1px] overflow-hidden"
                     >
+                        {/* Glow Background Layer */}
+                        <div className="absolute inset-0 bg-white/40 dark:bg-slate-900/40 backdrop-blur-2xl transition-colors duration-300 z-0"></div>
+                        <div className="absolute inset-0 bg-gradient-to-br from-white/60 to-white/10 dark:from-white/10 dark:to-transparent z-0"></div>
+
+                        {/* Interactive Inner Shadow / Border */}
+                        <div className="absolute inset-0 rounded-[32px] sm:rounded-[40px] border border-white/60 dark:border-white/10 shadow-[0_8px_32px_0_rgba(31,38,135,0.07)] dark:shadow-[0_8px_32px_0_rgba(0,0,0,0.3)] z-10 transition-all duration-300 group-active:border-b-0 border-b-[4px] border-b-blue-200/50 dark:border-b-blue-700/50 group-hover:border-blue-300 dark:group-hover:border-blue-500"></div>
+
+                        {/* Centered Subtle Glow */}
+                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full rounded-full blur-[60px] opacity-40 group-hover:opacity-60 transition-opacity duration-500 z-0 bg-blue-500"></div>
+
                         {loadingId === 'card-5' ? (
-                            <div className="absolute inset-0 flex items-center justify-center">
-                                <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
+                            <div className="absolute inset-0 flex items-center justify-center z-20 bg-white/20 dark:bg-black/20 backdrop-blur-sm rounded-[32px] sm:rounded-[40px]">
+                                <Loader2 className="w-8 h-8 text-blue-500 animate-spin drop-shadow-md" />
                             </div>
                         ) : null}
-                        <div className={`flex flex-col items-start gap-3 flex-1 h-full w-full transition-opacity ${loadingId === 'card-5' ? 'opacity-0' : 'opacity-100'}`}>
-                            <div className="w-12 h-12 bg-white dark:bg-gray-800 ring-1 ring-black/5 dark:ring-white/10 rounded-xl flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform flex-shrink-0">
-                                <BarChart2 className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-                            </div>
-                            <div className="flex-1 w-full text-left mt-auto flex flex-col justify-end pb-1">
-                                <h3 className="text-base sm:text-lg font-bold leading-tight text-gray-900 dark:text-white mb-1">Analytics</h3>
-                                <p className="text-gray-600 dark:text-gray-400 text-[10px] sm:text-xs font-medium leading-tight mt-1 line-clamp-2">
+
+                        <div className={`relative z-20 flex flex-col items-center justify-between h-full w-full p-4 sm:p-6 transition-opacity duration-300 ${loadingId === 'card-5' ? 'opacity-0' : 'opacity-100'}`}>
+
+                            {/* SVG Container */}
+                            <motion.div
+                                className="w-16 h-16 sm:w-24 sm:h-24 md:w-28 md:h-28 mt-2 relative drop-shadow-xl"
+                                initial={{ scale: 0.9, opacity: 0.8 }}
+                                animate={{ scale: 1, opacity: 1 }}
+                                transition={{ type: "spring", stiffness: 200, damping: 20 }}
+                            >
+                                <AnalyticsSVG />
+                            </motion.div>
+
+                            {/* Text Area */}
+                            <div className="flex flex-col items-center justify-end w-full text-center pb-2">
+                                <h3 className="text-sm sm:text-lg font-black leading-tight bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-blue-900 dark:from-blue-300 dark:to-blue-100 mb-1 sm:mb-2">Analytics</h3>
+                                <p className="text-slate-500 dark:text-slate-400 text-[10px] sm:text-xs font-semibold leading-tight line-clamp-2 max-w-[90%]">
                                     Detailed report cards & stats.
                                 </p>
                             </div>
                         </div>
+                    </motion.div>
 
-                    </div>
-                    {/* Card 6 - Bookmarks */}
-                    <div
+                    {/* Card card-6 */}
+                    <motion.div
+                        variants={itemVariants}
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
                         onClick={() => handleNavigation('card-6', () => navigate('/quiz/bookmarks'))}
-                        className="bg-violet-50 dark:bg-violet-950/30 p-4 sm:p-6 rounded-2xl cursor-pointer group relative z-20 transition-all duration-200 shadow-sm active:translate-y-1 active:border-b flex flex-col items-start justify-between aspect-square border border-violet-100 dark:border-violet-900/40 border-b-4 border-b-violet-200 dark:border-b-violet-700 hover:border-violet-300 dark:hover:border-violet-500 "
+                        className="relative group cursor-pointer aspect-square rounded-[32px] sm:rounded-[40px] p-[1px] overflow-hidden"
                     >
+                        {/* Glow Background Layer */}
+                        <div className="absolute inset-0 bg-white/40 dark:bg-slate-900/40 backdrop-blur-2xl transition-colors duration-300 z-0"></div>
+                        <div className="absolute inset-0 bg-gradient-to-br from-white/60 to-white/10 dark:from-white/10 dark:to-transparent z-0"></div>
+
+                        {/* Interactive Inner Shadow / Border */}
+                        <div className="absolute inset-0 rounded-[32px] sm:rounded-[40px] border border-white/60 dark:border-white/10 shadow-[0_8px_32px_0_rgba(31,38,135,0.07)] dark:shadow-[0_8px_32px_0_rgba(0,0,0,0.3)] z-10 transition-all duration-300 group-active:border-b-0 border-b-[4px] border-b-violet-200/50 dark:border-b-violet-700/50 group-hover:border-violet-300 dark:group-hover:border-violet-500"></div>
+
+                        {/* Centered Subtle Glow */}
+                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full rounded-full blur-[60px] opacity-40 group-hover:opacity-60 transition-opacity duration-500 z-0 bg-violet-500"></div>
+
                         {loadingId === 'card-6' ? (
-                            <div className="absolute inset-0 flex items-center justify-center">
-                                <Loader2 className="w-8 h-8 text-violet-500 animate-spin" />
+                            <div className="absolute inset-0 flex items-center justify-center z-20 bg-white/20 dark:bg-black/20 backdrop-blur-sm rounded-[32px] sm:rounded-[40px]">
+                                <Loader2 className="w-8 h-8 text-violet-500 animate-spin drop-shadow-md" />
                             </div>
                         ) : null}
-                        <div className={`flex flex-col items-start gap-3 flex-1 h-full w-full transition-opacity ${loadingId === 'card-6' ? 'opacity-0' : 'opacity-100'}`}>
-                            <div className="w-12 h-12 bg-white dark:bg-gray-800 ring-1 ring-black/5 dark:ring-white/10 rounded-xl flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform flex-shrink-0">
-                                <Star className="w-6 h-6 text-violet-600 dark:text-violet-400" />
-                            </div>
-                            <div className="flex-1 w-full text-left mt-auto flex flex-col justify-end pb-1">
-                                <h3 className="text-base sm:text-lg font-bold leading-tight text-gray-900 dark:text-white mb-1">Bookmarks</h3>
-                                <p className="text-gray-600 dark:text-gray-400 text-[10px] sm:text-xs font-medium leading-tight mt-1 line-clamp-2">
+
+                        <div className={`relative z-20 flex flex-col items-center justify-between h-full w-full p-4 sm:p-6 transition-opacity duration-300 ${loadingId === 'card-6' ? 'opacity-0' : 'opacity-100'}`}>
+
+                            {/* SVG Container */}
+                            <motion.div
+                                className="w-16 h-16 sm:w-24 sm:h-24 md:w-28 md:h-28 mt-2 relative drop-shadow-xl"
+                                initial={{ scale: 0.9, opacity: 0.8 }}
+                                animate={{ scale: 1, opacity: 1 }}
+                                transition={{ type: "spring", stiffness: 200, damping: 20 }}
+                            >
+                                <BookmarksSVG />
+                            </motion.div>
+
+                            {/* Text Area */}
+                            <div className="flex flex-col items-center justify-end w-full text-center pb-2">
+                                <h3 className="text-sm sm:text-lg font-black leading-tight bg-clip-text text-transparent bg-gradient-to-r from-violet-600 to-violet-900 dark:from-violet-300 dark:to-violet-100 mb-1 sm:mb-2">Bookmarks</h3>
+                                <p className="text-slate-500 dark:text-slate-400 text-[10px] sm:text-xs font-semibold leading-tight line-clamp-2 max-w-[90%]">
                                     Review your saved questions.
                                 </p>
                             </div>
                         </div>
-
-                    </div>
-
-                    {/* Card 7 - About Us */}
+                    </motion.div>
+{/* Card 7 - About Us */}
                     <div
                         onClick={() => handleNavigation('card-7', () => navigate('/about'))}
                         className="bg-slate-50 dark:bg-slate-950/30 p-4 sm:p-6 rounded-2xl cursor-pointer group relative z-20 transition-all duration-200 shadow-sm active:translate-y-1 active:border-b flex flex-col items-start justify-between aspect-square border border-slate-100 dark:border-slate-800/40 border-b-4 border-b-slate-200 dark:border-b-slate-700 hover:border-slate-300 dark:hover:border-slate-600 "
@@ -224,7 +404,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onStartQuiz, onEnglish, on
                         </div>
 
                     </div>
-                </div>
+                </motion.div>
 
                 {/* Footer Link */}
                 <div className="w-full text-center pb-4">
