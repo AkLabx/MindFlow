@@ -147,7 +147,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
 
       {/* --- Sticky Bottom Tab Bar --- */}
       <nav className={cn(
-        "fixed bottom-0 left-0 w-full z-50 transition-colors duration-300 pb-[env(safe-area-inset-bottom)] relative group overflow-visible",
+        "fixed bottom-0 left-0 w-full z-50 transition-colors duration-300 pb-[env(safe-area-inset-bottom)] group overflow-visible",
         isReviewMode || isAIFullScreen ? "hidden" : "block"
       )}>
         {/* Glow Background Layer */}
