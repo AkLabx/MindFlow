@@ -10,6 +10,8 @@ export interface ScrollableCapsulesProps {
   counts?: { [key: string]: number };
   allowMultiple?: boolean;
   tooltip?: string;
+  emptyMessage?: string;
+  isLoading?: boolean;
 }
 
 export const ScrollableCapsules = React.memo(function ScrollableCapsules({
@@ -19,7 +21,9 @@ export const ScrollableCapsules = React.memo(function ScrollableCapsules({
   onOptionToggle,
   counts,
   allowMultiple = true,
-  tooltip
+  tooltip,
+  emptyMessage,
+  isLoading
 }: ScrollableCapsulesProps) {
   return (
     <div className="w-full min-w-0 max-w-full">
@@ -45,38 +49,53 @@ export const ScrollableCapsules = React.memo(function ScrollableCapsules({
         role="group"
         aria-label={label || "Capsule Filter Group"}
       >
-        {options.map(option => {
-            const count = counts?.[option] || 0;
-            const isSelected = selectedOptions.includes(option);
-            const isDisabled = !isSelected && count === 0;
+        {isLoading ? (
+          // Skeleton Loader State
+          Array.from({ length: 4 }).map((_, idx) => (
+            <div
+              key={`skeleton-${idx}`}
+              className="snap-center flex-shrink-0 py-2 px-8 rounded-full h-[38px] w-24 bg-gray-200 dark:bg-gray-800 animate-pulse border border-transparent"
+            />
+          ))
+        ) : options.length === 0 && emptyMessage ? (
+          // Empty State
+          <div className="flex items-center justify-center w-full py-2 text-sm text-gray-500 dark:text-gray-400 italic bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-dashed border-gray-200 dark:border-gray-700 mx-2">
+            {emptyMessage}
+          </div>
+        ) : (
+          options.map(option => {
+              const count = counts?.[option] || 0;
+              const isSelected = selectedOptions.includes(option);
+              const isDisabled = !isSelected && count === 0;
 
-            return (
-              <button
-                  key={option}
-                  type="button"
-                  onClick={() => !isDisabled && onOptionToggle(option)}
-                  disabled={isDisabled}
-                  aria-pressed={isSelected}
-                  className={cn(
-                      "snap-center flex-shrink-0 whitespace-nowrap py-2 px-4 rounded-full text-sm font-semibold transition-all duration-200 border flex items-center gap-2",
-                      isSelected
-                          ? "bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-200 dark:shadow-none"
-                          : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-gray-300 dark:hover:border-gray-600",
-                      isDisabled && "opacity-40 cursor-not-allowed hover:bg-white dark:hover:bg-gray-800 hover:border-gray-200 dark:hover:border-gray-700"
-                  )}
-              >
-                  {option}
-                  <span className={cn(
-                      "text-[10px] px-1.5 py-0.5 rounded-full transition-colors font-bold",
-                      isSelected
-                        ? "bg-indigo-500/30 text-white"
-                        : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300"
-                  )}>
-                      {count}
-                  </span>
-              </button>
-            )
-        })}
+              return (
+                <button
+                    key={option}
+                    type="button"
+                    onClick={() => !isDisabled && onOptionToggle(option)}
+                    disabled={isDisabled}
+                    aria-pressed={isSelected}
+                    className={cn(
+                        "snap-center flex-shrink-0 whitespace-nowrap py-2 px-4 rounded-full text-sm font-semibold transition-all duration-200 border flex items-center gap-2 outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900",
+                        isSelected
+                            ? "bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-200 dark:shadow-none scale-[1.02]"
+                            : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-gray-300 dark:hover:border-gray-600",
+                        isDisabled && "opacity-40 cursor-not-allowed hover:bg-white dark:hover:bg-gray-800 hover:border-gray-200 dark:hover:border-gray-700"
+                    )}
+                >
+                    {option}
+                    <span className={cn(
+                        "text-[10px] px-1.5 py-0.5 rounded-full transition-colors font-bold",
+                        isSelected
+                          ? "bg-indigo-500/30 text-white"
+                          : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300"
+                    )}>
+                        {count}
+                    </span>
+                </button>
+              )
+          })
+        )}
       </div>
     </div>
   );
