@@ -31,8 +31,8 @@ const BrainNetworkSVG = () => (
       stroke="url(#brainGrad)"
       strokeWidth="2"
       initial={{ pathLength: 0, opacity: 0 }}
-      animate={{ pathLength: 1, opacity: 1 }}
-      transition={{ duration: 2, ease: "easeInOut", repeat: Infinity, repeatType: "reverse" }}
+      animate={{ pathLength: [0, 1, 0], opacity: [0, 1, 0] }}
+      transition={{ duration: 4, ease: "easeInOut", repeat: Infinity }}
       filter="url(#glow)"
     />
     {/* Nodes */}
@@ -60,9 +60,9 @@ const BrainNetworkSVG = () => (
       stroke="#A5B4FC"
       strokeWidth="1"
       strokeDasharray="4 4"
-      initial={{ pathLength: 0 }}
-      animate={{ pathLength: 1 }}
-      transition={{ duration: 3, repeat: Infinity }}
+      initial={{ pathLength: 0, opacity: 0 }}
+      animate={{ pathLength: [0, 1, 0], opacity: [0, 1, 0] }}
+      transition={{ duration: 6, ease: "linear", repeat: Infinity }}
     />
   </svg>
 );
