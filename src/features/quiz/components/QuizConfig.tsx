@@ -337,7 +337,12 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
 
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <FilterGroup title="Classification" icon={<Layers className="w-5 h-5" />}>
+          <FilterGroup
+            title="Classification"
+            icon={<Layers className="w-5 h-5" />}
+            showClearAll={filters.subject.length > 0 || filters.topic.length > 0 || filters.subTopic.length > 0}
+            onClearAll={() => setFilters(prev => ({ ...prev, subject: [], topic: [], subTopic: [] }))}
+          >
             <ScrollableCapsules
               label="Subject"
               tooltip="Filter questions by broad academic discipline"
@@ -351,25 +356,35 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
               }}
               counts={filterCounts.subject}
             />
-            <MultiSelectDropdown
+            <ScrollableCapsules
               label="Topic"
               tooltip="Filter by specific topics within the selected subjects"
               options={availableTopics}
               selectedOptions={filters.topic}
-              onSelectionChange={(sel) => handleFilterChange('topic', sel)}
-              placeholder={availableTopics.length > 0 ? "Select Topics" : "Select Subject First"}
-              disabled={availableTopics.length === 0}
+              onOptionToggle={(opt) => {
+                const newSelection = filters.topic.includes(opt)
+                  ? filters.topic.filter(item => item !== opt)
+                  : [...filters.topic, opt];
+                handleFilterChange('topic', newSelection);
+              }}
               counts={filterCounts.topic}
+              isLoading={filters.subject.length > 0 && availableTopics.length === 0 && isLoadingMetadata}
+              emptyMessage={filters.subject.length === 0 ? "Select Subject First" : "No topics available"}
             />
-            <MultiSelectDropdown
+            <ScrollableCapsules
               label="Sub-Topic"
               tooltip="Filter by granular sub-topics for precise practice"
               options={availableSubTopics}
               selectedOptions={filters.subTopic}
-              onSelectionChange={(sel) => handleFilterChange('subTopic', sel)}
-              placeholder={availableSubTopics.length > 0 ? "Select Sub-Topics" : "Select Topic First"}
-              disabled={availableSubTopics.length === 0}
+              onOptionToggle={(opt) => {
+                const newSelection = filters.subTopic.includes(opt)
+                  ? filters.subTopic.filter(item => item !== opt)
+                  : [...filters.subTopic, opt];
+                handleFilterChange('subTopic', newSelection);
+              }}
               counts={filterCounts.subTopic}
+              isLoading={filters.topic.length > 0 && availableSubTopics.length === 0 && isLoadingMetadata}
+              emptyMessage={filters.topic.length === 0 ? "Select Topic First" : "No sub-topics available"}
             />
           </FilterGroup>
 
