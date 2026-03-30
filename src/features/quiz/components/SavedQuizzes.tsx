@@ -161,7 +161,7 @@ export const SavedQuizzes: React.FC = () => {
                         onClick={() => navigate('/dashboard')}
                         className="group flex items-center gap-2 text-sm font-semibold text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors w-fit bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm px-3 py-1.5 rounded-full border border-slate-200/50 dark:border-slate-700/50"
                     >
-                        <Home className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
+                        <motion.div whileHover={{ x: -2, scale: 1.1 }} transition={{ type: "spring", stiffness: 300 }}><Home className="w-4 h-4" /></motion.div>
                         Back to Home
                     </button>
                     <h1 className="text-3xl sm:text-5xl font-black text-gray-900 dark:text-white leading-tight drop-shadow-sm">
@@ -178,7 +178,7 @@ export const SavedQuizzes: React.FC = () => {
                         <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                         <div className="absolute bottom-0 left-0 h-[3px] w-full bg-gradient-to-r from-emerald-400 to-emerald-600 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left" />
 
-                        <CheckCircle className="w-5 h-5 text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition-transform" />
+                        <motion.div whileHover={{ scale: 1.2, rotate: 15 }} transition={{ type: "spring", stiffness: 300 }}><CheckCircle className="w-5 h-5 text-emerald-600 dark:text-emerald-400" /></motion.div>
                         <span className="font-bold bg-clip-text text-transparent bg-gradient-to-r from-emerald-700 to-emerald-900 dark:from-emerald-300 dark:to-emerald-100">
                             View Attempted
                         </span>
@@ -221,7 +221,7 @@ export const SavedQuizzes: React.FC = () => {
                             >
                                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-100%] group-hover/btn:translate-x-[100%] transition-transform duration-700" />
 
-                                <PlusCircle className="w-5 h-5 text-indigo-50 group-hover/btn:scale-110 transition-transform" />
+                                <motion.div whileHover={{ scale: 1.2, rotate: 90 }} transition={{ type: "spring", stiffness: 200 }}><PlusCircle className="w-5 h-5 text-indigo-50" /></motion.div>
                                 <span className="font-bold text-white tracking-wide">
                                     Create New Quiz
                                 </span>
@@ -324,7 +324,7 @@ export const SavedQuizzes: React.FC = () => {
                                                 className="flex items-center gap-1.5 px-3 py-2 bg-amber-500/10 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400 hover:bg-amber-500/20 dark:hover:bg-amber-500/30 border border-amber-200/50 dark:border-amber-700/50 rounded-xl transition-colors font-bold text-sm shadow-sm backdrop-blur-sm"
                                                 title="Talk to Quiz Master"
                                             >
-                                                <Mic className="w-4 h-4" />
+                                                <motion.div whileHover={{ scale: 1.2, y: -2 }} transition={{ type: "spring", stiffness: 300, repeat: Infinity, repeatType: "reverse" }}><Mic className="w-4 h-4" /></motion.div>
                                                 Talk
                                             </button>
                                         )}
@@ -333,7 +333,7 @@ export const SavedQuizzes: React.FC = () => {
                                             className="flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white border border-indigo-500 dark:border-indigo-400/50 shadow-md hover:shadow-lg hover:shadow-indigo-500/20 rounded-xl transition-all font-bold text-sm"
                                             title={isQuizFinished(quiz) ? "View Results" : isQuizStarted(quiz) ? "Resume Quiz" : "Start Quiz"}
                                         >
-                                            <Play className="w-4 h-4" />
+                                            <motion.div whileHover={{ scale: 1.2, x: 2 }} transition={{ type: "spring", stiffness: 300 }}><Play className="w-4 h-4" /></motion.div>
                                             {isQuizFinished(quiz) ? "Results" : isQuizStarted(quiz) ? "Resume" : "Start"}
                                         </button>
                                         <button
@@ -341,7 +341,7 @@ export const SavedQuizzes: React.FC = () => {
                                             className="p-2.5 text-slate-400 dark:text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/30 border border-transparent hover:border-rose-200 dark:hover:border-rose-800/50 rounded-xl transition-all shadow-sm hover:shadow"
                                             title="Delete Quiz"
                                         >
-                                            <Trash2 className="w-5 h-5" />
+                                            <motion.div whileHover={{ scale: 1.1, rotate: [0, -10, 10, -10, 10, 0] }} transition={{ duration: 0.4 }}><Trash2 className="w-5 h-5" /></motion.div>
                                         </button>
                                     </div>
 
