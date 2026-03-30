@@ -81,19 +81,19 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
 
   return (
     <div className={cn(
-        "flex flex-col transition-colors duration-700 relative bg-gradient-to-br from-indigo-50 via-purple-50 to-white dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 animate-flow transform-gpu",
+        "flex flex-col transition-colors duration-700 relative bg-gradient-to-br from-indigo-50 via-purple-50 to-white dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 animate-flow",
         isAIFullScreen ? "h-[100dvh] w-screen overflow-hidden fixed inset-0" : "min-h-screen"
     )}>
       
       {/* --- Sticky Top Header --- */}
       {!isReviewMode && !isAIFullScreen && (
-      <header className="sticky top-0 z-40 w-full transition-[background-color,border-color,box-shadow] duration-300 relative group overflow-hidden transform-gpu">
+      <header className="sticky top-0 z-40 w-full transition-all duration-300 relative group overflow-hidden">
         {/* Glow Background Layer */}
-        <div className="absolute inset-0 bg-white/40 dark:bg-slate-900/40 backdrop-blur-2xl transition-colors duration-300 z-0 will-change-transform transform-gpu"></div>
+        <div className="absolute inset-0 bg-white/40 dark:bg-slate-900/40 backdrop-blur-2xl transition-colors duration-300 z-0"></div>
         <div className="absolute inset-0 bg-gradient-to-br from-white/60 to-white/10 dark:from-white/10 dark:to-transparent z-0"></div>
 
         {/* Interactive Inner Shadow / Border */}
-        <div className="absolute inset-0 border-b border-white/60 dark:border-white/10 shadow-[0_8px_32px_0_rgba(31,38,135,0.07)] dark:shadow-[0_8px_32px_0_rgba(0,0,0,0.3)] z-10 transition-[border-color,box-shadow,background-color] duration-300 border-b-[4px] border-b-indigo-200/50 dark:border-b-indigo-700/50"></div>
+        <div className="absolute inset-0 border-b border-white/60 dark:border-white/10 shadow-[0_8px_32px_0_rgba(31,38,135,0.07)] dark:shadow-[0_8px_32px_0_rgba(0,0,0,0.3)] z-10 transition-all duration-300 border-b-[4px] border-b-indigo-200/50 dark:border-b-indigo-700/50"></div>
 
         {/* Centered Subtle Glow */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full rounded-full blur-[60px] opacity-20 transition-opacity duration-500 z-0 bg-indigo-500"></div>
@@ -151,11 +151,11 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
         isReviewMode || isAIFullScreen ? "hidden" : "block"
       )}>
         {/* Glow Background Layer */}
-        <div className="absolute inset-0 bg-white/40 dark:bg-slate-900/40 backdrop-blur-2xl transition-colors duration-300 z-0 will-change-transform transform-gpu"></div>
+        <div className="absolute inset-0 bg-white/40 dark:bg-slate-900/40 backdrop-blur-2xl transition-colors duration-300 z-0"></div>
         <div className="absolute inset-0 bg-gradient-to-tr from-white/60 to-white/10 dark:from-white/10 dark:to-transparent z-0"></div>
 
         {/* Interactive Inner Shadow / Border */}
-        <div className="absolute inset-0 border-t border-white/60 dark:border-white/10 shadow-[0_-8px_32px_0_rgba(31,38,135,0.07)] dark:shadow-[0_-8px_32px_0_rgba(0,0,0,0.3)] z-10 transition-[border-color,box-shadow,background-color] duration-300 border-t-[4px] border-t-indigo-200/50 dark:border-t-indigo-700/50"></div>
+        <div className="absolute inset-0 border-t border-white/60 dark:border-white/10 shadow-[0_-8px_32px_0_rgba(31,38,135,0.07)] dark:shadow-[0_-8px_32px_0_rgba(0,0,0,0.3)] z-10 transition-all duration-300 border-t-[4px] border-t-indigo-200/50 dark:border-t-indigo-700/50"></div>
 
         {/* Centered Subtle Glow */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full rounded-full blur-[60px] opacity-20 transition-opacity duration-500 z-0 bg-indigo-500"></div>
@@ -182,7 +182,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
             className="relative -top-5 group"
           >
             <div className={cn(
-              "relative w-14 h-14 rounded-full flex items-center justify-center shadow-lg transition-[transform,background-color,box-shadow,border-color] duration-300 border-4 border-white dark:border-slate-900",
+              "relative w-14 h-14 rounded-full flex items-center justify-center shadow-lg transition-all duration-300 border-4 border-white dark:border-slate-900",
               activeTab === 'ai'
                 ? "bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-indigo-500/50 translate-y-1"
                 : "bg-gradient-to-br from-indigo-600 to-indigo-700 text-white hover:from-indigo-500 hover:to-indigo-600 hover:scale-105 shadow-indigo-600/30"
@@ -231,7 +231,7 @@ const NavTab = ({ id, label, icon, isActive, onClick }: { id: string, label: str
   <button 
     onClick={onClick}
     className={cn(
-      "relative flex flex-col items-center justify-center w-16 py-1 transition-transform duration-300 active:scale-95 group",
+      "relative flex flex-col items-center justify-center w-16 py-1 transition-all duration-300 active:scale-95 group",
       isActive ? "" : "text-gray-400 hover:text-gray-600 dark:text-gray-300 dark:hover:text-slate-300"
     )}
   >
@@ -241,7 +241,7 @@ const NavTab = ({ id, label, icon, isActive, onClick }: { id: string, label: str
     )}
 
     <div className={cn(
-      "relative transition-[transform,background-color,box-shadow,color] duration-300 z-10 p-1.5 rounded-xl",
+      "relative transition-all duration-300 z-10 p-1.5 rounded-xl",
       isActive
          ? "bg-gradient-to-br from-indigo-500 to-indigo-600 text-white shadow-md shadow-indigo-500/30 -translate-y-1"
          : "bg-transparent group-hover:bg-gray-100/50 dark:group-hover:bg-gray-800/50"
@@ -249,7 +249,7 @@ const NavTab = ({ id, label, icon, isActive, onClick }: { id: string, label: str
       {icon}
     </div>
     <span className={cn(
-      "text-[10px] font-bold mt-1 transition-[color,transform] duration-300 z-10",
+      "text-[10px] font-bold mt-1 transition-all duration-300 z-10",
       isActive
          ? "bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-indigo-800 dark:from-indigo-300 dark:to-indigo-100 font-black tracking-wide"
          : "font-semibold"
