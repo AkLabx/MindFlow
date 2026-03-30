@@ -339,3 +339,113 @@ export const EnglishMockSVG = () => (
     <motion.text x="55" y="55" fill="#FFE4E6" fontSize="20" fontWeight="bold" opacity="0.4" animate={{ scale: [1, 1.2, 1], rotate: [-10, 10, -10] }} transition={{ duration: 4, repeat: Infinity }}>A+</motion.text>
   </svg>
 );
+
+// --- Vocabulary Master SVGs ---
+
+// 1. Idioms & Phrases (Amber)
+export const IdiomsSVG = () => (
+  <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-lg">
+    <defs>
+      <linearGradient id="idiomsGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stopColor="#FBBF24" />
+        <stop offset="100%" stopColor="#D97706" />
+      </linearGradient>
+    </defs>
+    {/* Floating Quote Marks */}
+    <motion.path
+      d="M30 40 Q40 40 40 50 Q40 60 30 60 Q20 60 20 50 Q20 40 30 40 Z M30 50 L30 65"
+      fill="url(#idiomsGrad)" stroke="white" strokeWidth="2"
+      animate={{ y: [0, -5, 0], rotateZ: [-5, 5, -5] }}
+      transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+    />
+    <motion.path
+      d="M60 30 Q70 30 70 40 Q70 50 60 50 Q50 50 50 40 Q50 30 60 30 Z M60 40 L60 55"
+      fill="#FDE68A" stroke="url(#idiomsGrad)" strokeWidth="2"
+      animate={{ y: [0, 5, 0], rotateZ: [5, -5, 5] }}
+      transition={{ duration: 3.5, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
+    />
+
+    {/* Conversation Bubbles Background */}
+    <motion.ellipse
+      cx="50" cy="50" rx="35" ry="25"
+      fill="none" stroke="#FCD34D" strokeWidth="2" strokeDasharray="4 4"
+      animate={{ rotate: 360, scale: [1, 1.05, 1] }}
+      transition={{ rotate: { duration: 15, repeat: Infinity, ease: "linear" }, scale: { duration: 3, repeat: Infinity } }}
+    />
+  </svg>
+);
+
+// 2. One Word Substitution (Purple)
+export const OwsSVG = () => (
+  <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-lg">
+    <defs>
+      <linearGradient id="owsGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stopColor="#C084FC" />
+        <stop offset="100%" stopColor="#9333EA" />
+      </linearGradient>
+      <linearGradient id="owsGradLight" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stopColor="#E9D5FF" />
+        <stop offset="100%" stopColor="#D8B4FE" />
+      </linearGradient>
+    </defs>
+    {/* Background scattered words (represented by lines) shrinking into one */}
+    {[
+      { x: 20, y: 30, w: 20, d: 0 },
+      { x: 60, y: 20, w: 25, d: 0.2 },
+      { x: 15, y: 70, w: 30, d: 0.4 },
+      { x: 65, y: 75, w: 15, d: 0.6 }
+    ].map((line, i) => (
+      <motion.rect
+        key={i} x={line.x} y={line.y} width={line.w} height="6" rx="3"
+        fill="url(#owsGradLight)" opacity="0.6"
+        animate={{ x: [line.x, 40, line.x], y: [line.y, 45, line.y], opacity: [0.6, 0, 0.6], scale: [1, 0.5, 1] }}
+        transition={{ duration: 4, repeat: Infinity, ease: "easeInOut", delay: line.d }}
+      />
+    ))}
+
+    {/* Center Target / Diamond (The 'One Word') */}
+    <motion.g animate={{ scale: [1, 1.15, 1] }} transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}>
+      <rect x="40" y="40" width="20" height="20" rx="4" fill="url(#owsGrad)" transform="rotate(45 50 50)" />
+      <circle cx="50" cy="50" r="4" fill="white" />
+    </motion.g>
+
+    {/* Impact Rings */}
+    <motion.circle
+      cx="50" cy="50" r="15" fill="none" stroke="#A855F7" strokeWidth="2"
+      initial={{ scale: 1, opacity: 0.8 }}
+      animate={{ scale: 3, opacity: 0 }}
+      transition={{ duration: 2, repeat: Infinity, ease: "easeOut" }}
+    />
+  </svg>
+);
+
+// 3. Synonyms & Antonyms (Emerald)
+export const SynonymsSVG = () => (
+  <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-lg">
+    <defs>
+      <linearGradient id="synGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stopColor="#34D399" />
+        <stop offset="100%" stopColor="#059669" />
+      </linearGradient>
+      <linearGradient id="antGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stopColor="#10B981" />
+        <stop offset="100%" stopColor="#047857" />
+      </linearGradient>
+    </defs>
+    {/* Rotating Arrows showing relationship */}
+    <motion.g animate={{ rotate: 360 }} transition={{ duration: 8, repeat: Infinity, ease: "linear" }} style={{ transformOrigin: '50px 50px' }}>
+      {/* Arrow Up-Right (Synonym) */}
+      <path d="M40 20 L60 20 L60 40" fill="none" stroke="url(#synGrad)" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M60 20 L35 45" fill="none" stroke="url(#synGrad)" strokeWidth="6" strokeLinecap="round" />
+
+      {/* Arrow Down-Left (Antonym) */}
+      <path d="M60 80 L40 80 L40 60" fill="none" stroke="url(#antGrad)" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M40 80 L65 55" fill="none" stroke="url(#antGrad)" strokeWidth="6" strokeLinecap="round" />
+    </motion.g>
+
+    {/* Center Nodes */}
+    <motion.circle cx="35" cy="45" r="8" fill="#A7F3D0" animate={{ scale: [1, 1.2, 1] }} transition={{ duration: 2, repeat: Infinity }} />
+    <motion.circle cx="65" cy="55" r="8" fill="#6EE7B7" animate={{ scale: [1.2, 1, 1.2] }} transition={{ duration: 2, repeat: Infinity }} />
+    <motion.line x1="35" y1="45" x2="65" y2="55" stroke="#34D399" strokeWidth="2" strokeDasharray="3 3" animate={{ opacity: [0.3, 1, 0.3] }} transition={{ duration: 2, repeat: Infinity }} />
+  </svg>
+);
