@@ -449,3 +449,41 @@ export const SynonymsSVG = () => (
     <motion.line x1="35" y1="45" x2="65" y2="55" stroke="#34D399" strokeWidth="2" strokeDasharray="3 3" animate={{ opacity: [0.3, 1, 0.3] }} transition={{ duration: 2, repeat: Infinity }} />
   </svg>
 );
+
+// 8. Download (Cyan/Teal)
+export const DownloadSVG = () => (
+  <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-lg">
+    <defs>
+      <linearGradient id="downloadGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stopColor="#2DD4BF" />
+        <stop offset="100%" stopColor="#0D9488" />
+      </linearGradient>
+    </defs>
+    {/* Floating Cloud */}
+    <motion.path
+      d="M25 60 A15 15 0 0 1 25 30 A20 20 0 0 1 65 30 A15 15 0 0 1 75 60 Z"
+      fill="#CCFBF1" opacity="0.6"
+      animate={{ y: [-2, 2, -2] }}
+      transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+    />
+    <motion.path
+      d="M30 65 A15 15 0 0 1 30 35 A20 20 0 0 1 70 35 A15 15 0 0 1 80 65 Z"
+      fill="url(#downloadGrad)"
+      animate={{ y: [2, -2, 2] }}
+      transition={{ duration: 4, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
+    />
+    {/* Animated Arrow Down */}
+    <motion.g animate={{ y: [0, 8, 0] }} transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}>
+      <line x1="55" y1="35" x2="55" y2="55" stroke="white" strokeWidth="4" strokeLinecap="round" />
+      <path d="M45 45 L55 55 L65 45" fill="none" stroke="white" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
+    </motion.g>
+    {/* Receiving Tray/Drive */}
+    <motion.path
+      d="M35 75 L75 75"
+      stroke="#14B8A6" strokeWidth="4" strokeLinecap="round"
+      animate={{ opacity: [0.5, 1, 0.5], scaleX: [1, 1.1, 1] }}
+      transition={{ duration: 2, repeat: Infinity }}
+      style={{ transformOrigin: "55px 75px" }}
+    />
+  </svg>
+);
