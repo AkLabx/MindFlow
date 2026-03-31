@@ -263,28 +263,65 @@ export const CookingLoader: React.FC<CookingLoaderProps> = ({ progress, syncedIt
           </div>
         </div>
 
-        {/* Progress Metrics Area */}
-        <div className="w-full mt-10">
-          <div className="flex justify-between text-[13px] font-semibold text-slate-500 dark:text-slate-400 mb-2.5 px-1">
-            <span>
-              {totalItems > 0
-                ? `Indexed ${syncedItems.toLocaleString()} of ${totalItems.toLocaleString()} items`
-                : 'Connecting to Database...'}
-            </span>
-            <span className="text-[#7c3aed] dark:text-purple-400">{Math.round(progress)}%</span>
-          </div>
-
-          <div className="w-full h-3 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden shadow-inner relative">
-            <div
-              className="h-full bg-gradient-to-r from-[#8b5cf6] to-[#6d28d9] rounded-full transition-all duration-300 ease-out relative"
-              style={{ width: `${progress}%` }}
+        {/* Progress Metrics Area - Circular Burner Ring */}
+        <div className="w-full mt-8 flex justify-center items-center">
+          <div className="relative flex justify-center items-center" style={{ width: 140, height: 140 }}>
+            <svg
+              width={140}
+              height={140}
+              viewBox="0 0 140 140"
+              className="transform -rotate-90 drop-shadow-[0_0_10px_rgba(234,88,12,0.3)]"
             >
-              <div className="absolute top-0 left-0 bottom-0 right-0 opacity-20"
-                   style={{
-                     background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.6), transparent)',
-                     animation: 'shimmer 1.5s infinite',
-                   }}
+              {/* Defs for gradients and glow */}
+              <defs>
+                <linearGradient id="burnerGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stopColor="#fcd34d" />
+                  <stop offset="50%" stopColor="#f97316" />
+                  <stop offset="100%" stopColor="#ea580c" />
+                </linearGradient>
+                <filter id="burnerGlow" x="-20%" y="-20%" width="140%" height="140%">
+                  <feGaussianBlur stdDeviation="4" result="blur" />
+                  <feMerge>
+                    <feMergeNode in="blur" />
+                    <feMergeNode in="SourceGraphic" />
+                  </feMerge>
+                </filter>
+              </defs>
+
+              {/* Background Track Ring */}
+              <circle
+                cx={70}
+                cy={70}
+                r={60}
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={10}
+                className="text-slate-100 dark:text-slate-800"
               />
+
+              {/* Foreground Progress Ring */}
+              <circle
+                cx={70}
+                cy={70}
+                r={60}
+                fill="none"
+                stroke="url(#burnerGradient)"
+                strokeWidth={10}
+                strokeLinecap="round"
+                filter="url(#burnerGlow)"
+                style={{
+                  strokeDasharray: `${2 * Math.PI * 60}`,
+                  strokeDashoffset: `${(2 * Math.PI * 60) - ((progress / 100) * (2 * Math.PI * 60))}`,
+                  transition: 'stroke-dashoffset 0.5s ease-out'
+                }}
+              />
+            </svg>
+
+            {/* Center Percentage Text */}
+            <div className="absolute inset-0 flex flex-col items-center justify-center">
+              <span className="text-3xl font-black text-slate-800 dark:text-gray-100 drop-shadow-md">
+                {Math.round(progress)}%
+              </span>
             </div>
           </div>
         </div>
