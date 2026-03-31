@@ -242,6 +242,7 @@ export const MobileOnboarding: React.FC<MobileOnboardingProps> = ({
 }) => {
   const [[page, direction], setPage] = useState([0, 0]);
   const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [ripple, setRipple] = useState<{x: number, y: number, id: number} | null>(null);
 
   // Background transition colors depending on slide
   const bgGradients = [
@@ -350,14 +351,7 @@ export const MobileOnboarding: React.FC<MobileOnboardingProps> = ({
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
       >
-        <div className="flex gap-2 p-2 rounded-full bg-white/30 dark:bg-black/20 backdrop-blur-md border border-white/40 dark:border-white/10 shadow-sm">
-          {slides.map((_, i) => (
-            <div
-              key={i}
-              className={`h-1.5 rounded-full transition-all duration-500 ${i === page ? 'w-6 bg-slate-800 dark:bg-white' : 'w-2 bg-slate-400/50 dark:bg-slate-600/50'}`}
-            />
-          ))}
-        </div>
+
 
         {page < slides.length - 1 && (
           <button
@@ -490,7 +484,16 @@ export const MobileOnboarding: React.FC<MobileOnboardingProps> = ({
       </div>
 
       {/* Footer Navigation */}
-      <div className="px-6 pb-10 pt-4 flex-shrink-0 z-20">
+      <div className="px-6 pb-10 pt-4 flex-shrink-0 z-20 flex flex-col items-center gap-6">
+        {/* Relocated Slide Indicator */}
+        <div className="flex gap-2 p-2 rounded-full bg-white/30 dark:bg-black/20 backdrop-blur-md border border-white/40 dark:border-white/10 shadow-sm">
+          {slides.map((_, i) => (
+            <div
+              key={i}
+              className={`h-1.5 rounded-full transition-all duration-500 ${i === page ? 'w-6 bg-slate-800 dark:bg-white' : 'w-2 bg-slate-400/50 dark:bg-slate-600/50'}`}
+            />
+          ))}
+        </div>
         {page === slides.length - 1 ? (
           <motion.button
             initial={{ opacity: 0, y: 20 }}
@@ -508,25 +511,71 @@ export const MobileOnboarding: React.FC<MobileOnboardingProps> = ({
                 </span>
                 <Play className="w-5 h-5 fill-current" />
              </span>
-             <style dangerouslySetInnerHTML={{__html: `
+
+          </motion.button>
+        ) : (
+
+          <motion.button
+            key="continue-btn"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{
+              opacity: 1,
+              y: 0,
+              boxShadow: ['0px 0px 0px rgba(255,255,255,0)', '0px 0px 15px rgba(255,255,255,0.3)', '0px 0px 0px rgba(255,255,255,0)']
+            }}
+            transition={{
+              opacity: { duration: 0.3 },
+              y: { duration: 0.3 },
+              boxShadow: { duration: 2, repeat: Infinity, ease: "easeInOut" }
+            }}
+            exit={{ opacity: 0, y: 20 }}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={(e) => {
+              const rect = e.currentTarget.getBoundingClientRect();
+              const x = e.clientX - rect.left;
+              const y = e.clientY - rect.top;
+              setRipple({ x, y, id: Date.now() });
+              triggerHaptic([10, 20]);
+              setTimeout(() => paginate(1), 150);
+            }}
+            className="w-full relative overflow-hidden py-4 rounded-[24px] text-lg font-bold flex items-center justify-center gap-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:bg-slate-800 dark:hover:bg-slate-100 transition-colors shadow-xl border border-white/10 group"
+          >
+            {/* Shimmer Effect */}
+            <span className="absolute inset-0 bg-[linear-gradient(110deg,transparent,20%,rgba(255,255,255,0.1),80%,transparent)] dark:bg-[linear-gradient(110deg,transparent,20%,rgba(0,0,0,0.05),80%,transparent)] bg-[length:200%_100%] animate-[shimmer_2s_infinite] pointer-events-none" />
+
+            {/* Ripple Effect */}
+            <AnimatePresence>
+              {ripple && (
+                <motion.span
+                  key={ripple.id}
+                  initial={{ top: ripple.y, left: ripple.x, scale: 0, opacity: 0.5 }}
+                  animate={{ scale: 4, opacity: 0 }}
+                  transition={{ duration: 0.6, ease: "easeOut" }}
+                  className="absolute w-20 h-20 bg-white/30 dark:bg-black/20 rounded-full pointer-events-none -translate-x-1/2 -translate-y-1/2"
+                  onAnimationComplete={() => setRipple(null)}
+                />
+              )}
+            </AnimatePresence>
+
+            <span className="relative z-10 flex items-center gap-2">
+              Continue
+              <motion.span
+                animate={{ x: [0, 5, 0] }}
+                transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+              >
+                <ChevronRight className="w-5 h-5" />
+              </motion.span>
+            </span>
+          </motion.button>
+
+        )}
+      <style dangerouslySetInnerHTML={{__html: `
                @keyframes shimmer {
                  0% { background-position: 200% 0; }
                  100% { background-position: -200% 0; }
                }
              `}} />
-          </motion.button>
-        ) : (
-          <motion.button
-            key="continue-btn"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 20 }}
-            onClick={() => paginate(1)}
-            className="w-full py-4 rounded-[24px] text-lg font-bold flex items-center justify-center gap-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:bg-slate-800 dark:hover:bg-slate-100 transition-all active:scale-95 shadow-xl border border-white/10"
-          >
-            Continue <ChevronRight className="w-5 h-5" />
-          </motion.button>
-        )}
       </div>
     </div>
   );
