@@ -135,7 +135,7 @@ export const SynonymsConfig: React.FC<SynonymsConfigProps> = ({ onBack, onStart 
 
                     {/* --- Daily Challenge --- */}
                     <div className="mb-10">
-                         <motion.div variants={containerVariants} initial="hidden" animate="visible" className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+                         <motion.div variants={containerVariants} initial="hidden" animate="visible" className="grid grid-cols-1 gap-4 sm:gap-6">
 
                             <motion.div
                                 variants={itemVariants}
