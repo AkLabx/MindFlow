@@ -122,10 +122,10 @@ export function QuizExplanation({ explanation, zoomLevel }: { explanation: Expla
 
             {/* 1. Correct Answer Analysis - Green Theme */}
             {explanation.analysis_correct && (
-                <div className="bg-green-50 border border-green-200 rounded-xl p-4 flex gap-3 items-start">
-                    <CheckCircle2 className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/30 rounded-xl p-4 flex gap-3 items-start">
+                    <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
                     <div className="text-[0.95em]">
-                        <h4 className="font-bold text-green-800 mb-1.5">Why this is correct</h4>
+                        <h4 className="font-bold text-green-800 dark:text-green-300 mb-1.5">Why this is correct</h4>
                         <div className="text-gray-700 dark:text-gray-200 leading-relaxed">{formatContent(cleanText(explanation.analysis_correct))}</div>
                     </div>
                 </div>
@@ -133,10 +133,10 @@ export function QuizExplanation({ explanation, zoomLevel }: { explanation: Expla
 
             {/* 2. Incorrect Options Analysis - Red Theme */}
             {explanation.analysis_incorrect && (
-                <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex gap-3 items-start">
-                    <XCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/30 rounded-xl p-4 flex gap-3 items-start">
+                    <XCircle className="w-5 h-5 text-red-500 dark:text-red-400 flex-shrink-0 mt-0.5" />
                     <div className="text-[0.95em]">
-                        <h4 className="font-bold text-red-800 mb-1.5">Why other options are incorrect</h4>
+                        <h4 className="font-bold text-red-800 dark:text-red-300 mb-1.5">Why other options are incorrect</h4>
                         <div className="text-gray-700 dark:text-gray-200 leading-relaxed">{formatContent(cleanText(explanation.analysis_incorrect))}</div>
                     </div>
                 </div>
@@ -144,10 +144,10 @@ export function QuizExplanation({ explanation, zoomLevel }: { explanation: Expla
 
             {/* 3. Key Takeaway - Blue Theme */}
             {explanation.conclusion && (
-                <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex gap-3 items-start">
-                    <FileText className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800/30 rounded-xl p-4 flex gap-3 items-start">
+                    <FileText className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
                     <div className="text-[0.95em]">
-                        <h4 className="font-bold text-blue-800 mb-1.5">Key Takeaway</h4>
+                        <h4 className="font-bold text-blue-800 dark:text-blue-300 mb-1.5">Key Takeaway</h4>
                         <div className="text-gray-700 dark:text-gray-200 leading-relaxed">{formatContent(cleanText(explanation.conclusion))}</div>
                     </div>
                 </div>
@@ -155,11 +155,11 @@ export function QuizExplanation({ explanation, zoomLevel }: { explanation: Expla
 
             {/* 4. Interesting Fact - Yellow Theme */}
             {explanation.fact && (
-                <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 flex gap-3 items-start">
-                    <Lightbulb className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+                <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800/30 rounded-xl p-4 flex gap-3 items-start">
+                    <Lightbulb className="w-5 h-5 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-0.5" />
                     <div className="text-[0.95em]">
-                        <h4 className="font-bold text-yellow-800 mb-1.5">Did you know?</h4>
-                        <div className="text-yellow-900 leading-relaxed">{formatContent(cleanText(explanation.fact))}</div>
+                        <h4 className="font-bold text-yellow-800 dark:text-yellow-300 mb-1.5">Did you know?</h4>
+                        <div className="text-yellow-900 dark:text-gray-200 leading-relaxed">{formatContent(cleanText(explanation.fact))}</div>
                     </div>
                 </div>
             )}
