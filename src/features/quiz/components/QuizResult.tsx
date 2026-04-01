@@ -1,12 +1,10 @@
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Trophy, RotateCcw, Home, Target, Clock, CheckCircle2, XCircle, List, ChevronRight, Award, Zap, CircleDashed, ArrowLeft } from 'lucide-react';
+import { Trophy, RotateCcw, Home, Target, Clock, CheckCircle2, XCircle, List, ChevronRight, AlertCircle, TrendingUp, Zap, ChevronLeft } from 'lucide-react';
 import { Button } from '../../../components/Button/Button';
 import { Card } from '../../../components/ui/Card';
 import { ProgressBar } from '../../../components/ui/ProgressBar';
 import { Question } from '../types';
-import { DonutChart } from './ui/DonutChart';
-import { AnimatedCounter } from './ui/AnimatedCounter';
 import { QuizReview } from './QuizReview';
 import { cn } from '../../../utils/cn';
 
@@ -21,18 +19,6 @@ interface QuizResultProps {
   onGoHome?: () => void;
 }
 
-/**
- * The Quiz Result Summary Screen.
- *
- * Displays:
- * - Overall Grade/Score and Visual Chart.
- * - Key Performance Indicators (KPIs) like Accuracy, Speed, Attempted count.
- * - Subject-wise performance breakdown.
- * - Options to review answers (All, Incorrect, Skipped).
- *
- * @param {QuizResultProps} props - The component props.
- * @returns {JSX.Element} The rendered Result screen.
- */
 export const QuizResult: React.FC<QuizResultProps> = ({ 
   score, 
   total, 
@@ -48,8 +34,6 @@ export const QuizResult: React.FC<QuizResultProps> = ({
   const navigate = useNavigate();
 
   // --- Statistics Calculations ---
-
-  // Basic Counts
   const { correct, incorrect, unanswered, attempted } = useMemo(() => {
       let c = 0, i = 0, a = 0;
       questions.forEach(q => {
@@ -71,8 +55,7 @@ export const QuizResult: React.FC<QuizResultProps> = ({
   const stats = useMemo(() => {
       let correctTime = 0, correctCount = 0;
       let incorrectTime = 0, incorrectCount = 0;
-      let fastest = Infinity;
-      let slowest = 0;
+      let skippedTime = 0, skippedCount = 0;
       
       questions.forEach(q => {
           const t = timeTaken[q.id] || 0;
@@ -82,49 +65,55 @@ export const QuizResult: React.FC<QuizResultProps> = ({
               if (ans === q.correct) {
                   correctTime += t;
                   correctCount++;
-                  // Only calculate speed records for CORRECT answers to filter out guessing
-                  if (t > 0) {
-                      if (t < fastest) fastest = t;
-                      if (t > slowest) slowest = t;
-                  }
               } else {
                   incorrectTime += t;
                   incorrectCount++;
               }
+          } else {
+              skippedTime += t;
+              skippedCount++;
           }
       });
       return {
+          avgOverall: total > 0 ? Math.round(totalTime / total) : 0,
           avgCorrect: correctCount > 0 ? Math.round(correctTime / correctCount) : 0,
           avgIncorrect: incorrectCount > 0 ? Math.round(incorrectTime / incorrectCount) : 0,
-          fastest: fastest === Infinity ? 0 : fastest,
-          slowest
+          timeWastedSkipped: Math.round(skippedTime)
       };
-  }, [questions, answers, timeTaken]);
+  }, [questions, answers, timeTaken, total, totalTime]);
 
   // Subject Performance Breakdown
   const subjectPerformance = useMemo(() => {
-      const s: Record<string, { total: number, correct: number }> = {};
+      const s: Record<string, { total: number, attempted: number, correct: number, incorrect: number, timeSpent: number }> = {};
       questions.forEach(q => {
           const sub = q.classification.subject;
-          if (!s[sub]) s[sub] = { total: 0, correct: 0 };
+          if (!s[sub]) s[sub] = { total: 0, attempted: 0, correct: 0, incorrect: 0, timeSpent: 0 };
+
           s[sub].total++;
-          if (answers[q.id] === q.correct) s[sub].correct++;
+          s[sub].timeSpent += (timeTaken[q.id] || 0);
+
+          const ans = answers[q.id];
+          if (ans) {
+              s[sub].attempted++;
+              if (ans === q.correct) {
+                  s[sub].correct++;
+              } else {
+                  s[sub].incorrect++;
+              }
+          }
       });
+
       return Object.entries(s)
-        .map(([name, data]) => ({ name, ...data, accuracy: Math.round((data.correct / data.total) * 100) }))
+        .map(([name, data]) => ({
+            name,
+            ...data,
+            accuracy: data.attempted > 0 ? Math.round((data.correct / data.attempted) * 100) : 0
+        }))
         .sort((a, b) => b.accuracy - a.accuracy);
-  }, [questions, answers]);
+  }, [questions, answers, timeTaken]);
 
-  // Dynamic Grade Assignment
-  const getGrade = (acc: number) => {
-      if (acc >= 90) return { label: 'S', color: 'text-yellow-300', title: 'Legendary!', bg: 'bg-gradient-to-br from-indigo-900 via-purple-900 to-slate-900' };
-      if (acc >= 80) return { label: 'A', color: 'text-emerald-300', title: 'Excellent!', bg: 'bg-gradient-to-br from-emerald-800 to-teal-900' };
-      if (acc >= 60) return { label: 'B', color: 'text-blue-300', title: 'Good Job!', bg: 'bg-gradient-to-br from-blue-800 to-indigo-900' };
-      if (acc >= 40) return { label: 'C', color: 'text-orange-300', title: 'Keep Improving', bg: 'bg-gradient-to-br from-orange-800 to-red-900' };
-      return { label: 'F', color: 'text-rose-300', title: 'Needs Practice', bg: 'bg-gradient-to-br from-rose-900 to-slate-900' };
-  };
-
-  const grade = getGrade(accuracy);
+  const strongSubjects = subjectPerformance.filter(s => s.accuracy >= 75);
+  const weakSubjects = subjectPerformance.filter(s => s.accuracy < 60 && s.attempted > 0);
 
   // --- Sub-View: Review Mode ---
   if (view === 'review') {
@@ -141,192 +130,228 @@ export const QuizResult: React.FC<QuizResultProps> = ({
       );
   }
 
+  // Helper for formatting seconds
+  const formatSecs = (secs: number) => {
+      if (secs < 60) return `${secs}s`;
+      return `${Math.floor(secs/60)}m ${secs%60}s`;
+  };
 
-  // --- Main View: Score Dashboard ---
+  // --- Main View: Dashboard ---
   return (
-    <div className="max-w-5xl mx-auto p-4 md:p-8 animate-in fade-in duration-500">
+    <div className="max-w-6xl mx-auto p-4 md:p-6 lg:p-8 animate-in fade-in duration-500 bg-gray-50/50 dark:bg-gray-900/50 min-h-screen">
       
-      {/* Top Controls */}
-      <div className="flex items-center gap-4 mb-6">
-          <Button variant="ghost" onClick={() => navigate('/quiz/attempted')} className="text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:bg-gray-800 dark:hover:bg-slate-800 pl-0 hover:text-gray-900 dark:text-white">
-              <ArrowLeft className="w-4 h-4 mr-2" /> Back
+      {/* Header Actions */}
+      <div className="flex justify-between items-center mb-6">
+          <Button variant="ghost" onClick={() => navigate('/quiz/attempted')} className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white pl-0">
+              <ChevronLeft className="w-5 h-5 mr-1" /> Back to Quizzes
           </Button>
-      </div>
-
-      {/* Hero Section: Grade & Chart */}
-
-      <Card noPadding className="mb-8 border-0 shadow-2xl overflow-hidden">
-          <div className={cn("p-8 md:p-10 text-white relative transition-all duration-1000", grade.bg)}>
-              
-              {/* Background Texture */}
-              <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-white via-transparent to-transparent" />
-              
-              <div className="relative z-10 grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
-                  
-                  {/* Left: Text Summary */}
-                  <div className="flex flex-col items-center md:items-start text-center md:text-left">
-                      <div className="flex items-center gap-3 mb-2">
-                           <div className="p-2 bg-white dark:bg-gray-800 rounded-lg backdrop-blur-sm">
-                               <Award className={cn("w-6 h-6", grade.color)} />
-                           </div>
-                           <span className="text-sm font-bold uppercase tracking-widest text-white/80">Result Summary</span>
-                      </div>
-                      
-                      <h1 className="text-4xl md:text-5xl font-black tracking-tight mb-2">{grade.title}</h1>
-                      <p className="text-white/60 font-medium mb-6">You completed the quiz in <span className="text-white">{formattedTime}</span></p>
-
-                      <div className="flex items-end gap-4">
-                          <div className="text-8xl font-black leading-none tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-white to-white/50 drop-shadow-lg">
-                              {grade.label}
-                          </div>
-                          <div className="pb-2 text-white/80 font-bold text-xl">
-                              Grade
-                          </div>
-                      </div>
-                  </div>
-
-                  {/* Right: Donut Chart Visualization */}
-                  <div className="flex flex-col items-center justify-center relative">
-                      <div className="relative">
-                          <DonutChart correct={correct} incorrect={incorrect} unanswered={unanswered} size={220} />
-                          <div className="absolute inset-0 flex flex-col items-center justify-center">
-                              <span className="text-5xl font-black text-white drop-shadow-md">
-                                  <AnimatedCounter value={accuracy} />%
-                              </span>
-                              <span className="text-xs font-bold uppercase tracking-widest text-white/60 mt-1">Accuracy</span>
-                          </div>
-                      </div>
-                      
-                      {/* Mini Legend */}
-                      <div className="flex gap-6 mt-6 text-xs font-bold uppercase tracking-wider bg-black/20 px-6 py-3 rounded-full backdrop-blur-md border border-white/10">
-                          <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-emerald-50 dark:bg-emerald-900/200 shadow-[0_0_10px_rgba(34,197,94,0.5)]" /> {correct} Correct</div>
-                          <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-rose-500 shadow-[0_0_10px_rgba(239,68,68,0.5)]" /> {incorrect} Wrong</div>
-                          <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-gray-400" /> {unanswered} Skipped</div>
-                      </div>
-                  </div>
-              </div>
-          </div>
-
-          {/* KPI Grid */}
-          <div className="bg-white dark:bg-gray-800 p-6 border-t border-gray-100 dark:border-gray-800">
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-6">
-                  <StatBox label="Total Score" value={score} suffix={`/ ${total}`} icon={<Trophy className="w-4 h-4 text-amber-500" />} />
-                  <StatBox label="Attempted" value={attempted} suffix={`/ ${total}`} icon={<Target className="w-4 h-4 text-indigo-500" />} />
-                  <StatBox label="Avg Time (Correct)" value={stats.avgCorrect} suffix="s" icon={<Zap className="w-4 h-4 text-emerald-500" />} />
-                  <StatBox label="Avg Time (Incorrect)" value={stats.avgIncorrect} suffix="s" icon={<Clock className="w-4 h-4 text-rose-500" />} />
-                  <StatBox label="Fastest Answer" value={stats.fastest} suffix="s" icon={<Clock className="w-4 h-4 text-blue-500" />} />
-              </div>
-          </div>
-      </Card>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          
-          {/* Column 1: Review Actions */}
-          <div className="space-y-5 order-2 lg:order-1">
-             <h3 className="font-bold text-gray-900 dark:text-white text-lg flex items-center gap-2">
-                 <List className="w-5 h-5 text-indigo-600 dark:text-indigo-400" /> Review & Analysis
-             </h3>
-             
-             <Card onClick={() => { setReviewFilter('All'); setView('review'); }} className="flex items-center justify-between group border-l-4 border-l-indigo-500 hover:shadow-lg cursor-pointer transition-all">
-                 <div>
-                    <span className="font-bold text-gray-800 dark:text-gray-100 block">All Questions</span>
-                    <span className="text-xs text-gray-500 dark:text-gray-400">View solutions & explanations</span>
-                 </div>
-                 <div className="bg-indigo-50 dark:bg-indigo-900/20 p-2 rounded-full group-hover:bg-indigo-100 dark:bg-indigo-900/40 transition-colors">
-                    <ChevronRight className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
-                 </div>
-             </Card>
-
-             <Card 
-                onClick={() => { if(incorrect > 0) { setReviewFilter('Incorrect'); setView('review'); }}}
-                className={cn(
-                    "flex items-center justify-between group border-l-4 border-l-rose-500 transition-all",
-                    incorrect === 0 ? "opacity-60 cursor-not-allowed" : "hover:shadow-lg cursor-pointer"
-                )}
-             >
-                 <div>
-                    <span className="font-bold text-gray-800 dark:text-gray-100 block">Incorrect Only</span>
-                    <span className="text-xs text-gray-500 dark:text-gray-400">{incorrect} mistakes to fix</span>
-                 </div>
-                 <div className="bg-rose-50 p-2 rounded-full group-hover:bg-rose-100 transition-colors">
-                    <ChevronRight className="w-5 h-5 text-rose-600" />
-                 </div>
-             </Card>
-
-             <Card 
-                onClick={() => { if(unanswered > 0) { setReviewFilter('Skipped'); setView('review'); }}}
-                className={cn(
-                    "flex items-center justify-between group border-l-4 border-l-gray-400 transition-all",
-                    unanswered === 0 ? "opacity-60 cursor-not-allowed" : "hover:shadow-lg cursor-pointer"
-                )}
-             >
-                 <div>
-                    <span className="font-bold text-gray-800 dark:text-gray-100 block">Skipped Only</span>
-                    <span className="text-xs text-gray-500 dark:text-gray-400">{unanswered} unanswered questions</span>
-                 </div>
-                 <div className="bg-gray-100 dark:bg-gray-800 p-2 rounded-full group-hover:bg-gray-200 dark:bg-gray-700 transition-colors">
-                    <ChevronRight className="w-5 h-5 text-gray-600 dark:text-gray-300" />
-                 </div>
-             </Card>
-
-             <div className="grid grid-cols-2 gap-3 pt-2">
-                 <Button onClick={onRestart} variant="outline" className="justify-center h-12 border-2 hover:border-indigo-600 hover:text-indigo-600 dark:text-indigo-400">
-                    <RotateCcw className="w-4 h-4 mr-2" /> Retry
-                 </Button>
-                 <Button onClick={onGoHome} variant="outline" className="justify-center h-12 border-2 hover:bg-gray-50 dark:bg-gray-900 dark:hover:bg-slate-800 dark:bg-slate-800/50">
-                    <Home className="w-4 h-4 mr-2" /> Home
-                 </Button>
-             </div>
-          </div>
-
-          {/* Column 2: Subject Performance List */}
-          <div className="lg:col-span-2 order-1 lg:order-2">
-              <h3 className="font-bold text-gray-900 dark:text-white text-lg mb-5 flex items-center gap-2">
-                  <Target className="w-5 h-5 text-indigo-600 dark:text-indigo-400" /> Performance Breakdown
-              </h3>
-              <div className="space-y-4">
-                  {subjectPerformance.map((sub, idx) => (
-                      <div key={sub.name} className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm hover:border-indigo-300 transition-colors animate-in slide-in-from-right-4 duration-500" style={{ animationDelay: `${idx * 100}ms` }}>
-                          <div className="flex justify-between items-center mb-2">
-                              <span className="font-bold text-gray-700 dark:text-gray-200">{sub.name}</span>
-                              <div className="flex items-center gap-2">
-                                  <span className="text-xs font-semibold text-gray-400 dark:text-slate-500">{sub.correct}/{sub.total}</span>
-                                  <span className={cn(
-                                      "text-sm font-bold px-2 py-0.5 rounded",
-                                      sub.accuracy >= 80 ? "bg-emerald-100 text-emerald-700 dark:text-emerald-400" :
-                                      sub.accuracy >= 50 ? "bg-amber-100 text-amber-700 dark:text-amber-400" :
-                                      "bg-rose-100 text-rose-700"
-                                  )}>
-                                      {sub.accuracy}%
-                                  </span>
-                              </div>
-                          </div>
-                          
-                          <ProgressBar 
-                            value={sub.accuracy} 
-                            variant={sub.accuracy >= 80 ? 'success' : sub.accuracy >= 50 ? 'warning' : 'danger'} 
-                            size="sm"
-                            className="opacity-90"
-                          />
-                      </div>
-                  ))}
-              </div>
+          <div className="flex gap-3">
+              <Button onClick={onRestart} variant="outline" className="border-gray-300 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800">
+                  <RotateCcw className="w-4 h-4 mr-2" /> Retake
+              </Button>
           </div>
       </div>
 
+      <div className="space-y-6">
+
+          {/* Section 1: Overview Scorecard */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <Card className="p-5 flex flex-col items-center justify-center text-center border border-gray-200 dark:border-gray-800 shadow-sm">
+                  <span className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Total Score</span>
+                  <div className="flex items-baseline gap-1">
+                      <span className="text-4xl font-black text-gray-900 dark:text-white">{score}</span>
+                      <span className="text-xl text-gray-400 dark:text-gray-500 font-medium">/ {total}</span>
+                  </div>
+              </Card>
+
+              <Card className="p-5 flex flex-col items-center justify-center text-center border border-gray-200 dark:border-gray-800 shadow-sm">
+                  <span className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Accuracy</span>
+                  <div className="flex items-baseline gap-1">
+                      <span className="text-4xl font-black text-indigo-600 dark:text-indigo-400">{accuracy}</span>
+                      <span className="text-xl text-indigo-400/50 dark:text-indigo-400/50 font-medium">%</span>
+                  </div>
+              </Card>
+
+              <Card className="p-5 flex flex-col items-center justify-center text-center border border-gray-200 dark:border-gray-800 shadow-sm">
+                  <span className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Attempted</span>
+                  <div className="flex items-baseline gap-1">
+                      <span className="text-4xl font-black text-gray-900 dark:text-white">{attempted}</span>
+                      <span className="text-xl text-gray-400 dark:text-gray-500 font-medium">/ {total}</span>
+                  </div>
+              </Card>
+
+              <Card className="p-5 flex flex-col items-center justify-center text-center border border-gray-200 dark:border-gray-800 shadow-sm">
+                  <span className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Time Taken</span>
+                  <div className="flex items-baseline gap-1">
+                      <span className="text-3xl font-black text-gray-900 dark:text-white">{formattedTime}</span>
+                  </div>
+              </Card>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              
+              {/* Section 2: Visual Attempt Breakdown & Review Navigation */}
+              <div className="lg:col-span-1 space-y-6">
+                  <Card className="p-6 border border-gray-200 dark:border-gray-800 shadow-sm">
+                      <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-6 flex items-center gap-2">
+                          <Target className="w-5 h-5 text-indigo-500" /> Attempt Analysis
+                      </h3>
+                      
+                      {/* Simple Stacked Bar Visualization */}
+                      <div className="w-full h-4 rounded-full flex overflow-hidden mb-6 bg-gray-100 dark:bg-gray-800">
+                          <div style={{ width: `${(correct/total)*100}%` }} className="h-full bg-emerald-500 transition-all duration-1000" />
+                          <div style={{ width: `${(incorrect/total)*100}%` }} className="h-full bg-rose-500 transition-all duration-1000" />
+                          <div style={{ width: `${(unanswered/total)*100}%` }} className="h-full bg-gray-300 dark:bg-gray-600 transition-all duration-1000" />
+                      </div>
+
+                      <div className="space-y-3">
+                          <div className="flex justify-between items-center text-sm">
+                              <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-sm bg-emerald-500" /> <span className="text-gray-700 dark:text-gray-300 font-medium">Correct</span></div>
+                              <span className="font-bold text-gray-900 dark:text-white">{correct}</span>
+                          </div>
+                          <div className="flex justify-between items-center text-sm">
+                              <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-sm bg-rose-500" /> <span className="text-gray-700 dark:text-gray-300 font-medium">Incorrect</span></div>
+                              <span className="font-bold text-gray-900 dark:text-white">{incorrect}</span>
+                          </div>
+                          <div className="flex justify-between items-center text-sm">
+                              <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-sm bg-gray-300 dark:bg-gray-600" /> <span className="text-gray-700 dark:text-gray-300 font-medium">Skipped</span></div>
+                              <span className="font-bold text-gray-900 dark:text-white">{unanswered}</span>
+                          </div>
+                      </div>
+
+                      <div className="mt-8 space-y-3">
+                          <Button
+                              onClick={() => { setReviewFilter('All'); setView('review'); }}
+                              variant="primary"
+                              className="w-full justify-between group"
+                          >
+                              View Solutions <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                          </Button>
+                          <Button
+                              onClick={() => { if(incorrect > 0) { setReviewFilter('Incorrect'); setView('review'); }}}
+                              variant="outline"
+                              disabled={incorrect === 0}
+                              className="w-full justify-between text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-700"
+                          >
+                              Review Mistakes ({incorrect}) <AlertCircle className="w-4 h-4 text-rose-500" />
+                          </Button>
+                      </div>
+                  </Card>
+
+                  {/* Insights Section */}
+                  {(strongSubjects.length > 0 || weakSubjects.length > 0) && (
+                      <Card className="p-6 border border-gray-200 dark:border-gray-800 shadow-sm">
+                         <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                             <TrendingUp className="w-5 h-5 text-indigo-500" /> Insights
+                         </h3>
+                         <div className="space-y-4">
+                             {strongSubjects.length > 0 && (
+                                 <div>
+                                     <h4 className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider mb-2">Strong Areas</h4>
+                                     <div className="flex flex-wrap gap-2">
+                                         {strongSubjects.map(s => (
+                                             <span key={s.name} className="px-2.5 py-1 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 text-sm rounded-md border border-emerald-200 dark:border-emerald-800/50">
+                                                 {s.name}
+                                             </span>
+                                         ))}
+                                     </div>
+                                 </div>
+                             )}
+                             {weakSubjects.length > 0 && (
+                                 <div>
+                                     <h4 className="text-xs font-bold text-rose-600 dark:text-rose-400 uppercase tracking-wider mb-2">Needs Improvement</h4>
+                                     <div className="flex flex-wrap gap-2">
+                                         {weakSubjects.map(s => (
+                                             <span key={s.name} className="px-2.5 py-1 bg-rose-50 dark:bg-rose-900/20 text-rose-700 dark:text-rose-300 text-sm rounded-md border border-rose-200 dark:border-rose-800/50">
+                                                 {s.name}
+                                             </span>
+                                         ))}
+                                     </div>
+                                 </div>
+                             )}
+                         </div>
+                      </Card>
+                  )}
+              </div>
+
+              {/* Section 3: Detailed Tables (Time & Subject) */}
+              <div className="lg:col-span-2 space-y-6">
+
+                  {/* Time Analysis */}
+                  <Card className="p-0 border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden">
+                      <div className="p-5 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
+                          <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                              <Clock className="w-5 h-5 text-indigo-500" /> Time Management
+                          </h3>
+                      </div>
+                      <div className="grid grid-cols-2 md:grid-cols-4 divide-x divide-y md:divide-y-0 divide-gray-100 dark:divide-gray-800 bg-white dark:bg-gray-900">
+                          <TimeMetricBox label="Avg / Question" value={formatSecs(stats.avgOverall)} icon={<Zap className="w-4 h-4 text-indigo-500" />} />
+                          <TimeMetricBox label="Avg Correct" value={formatSecs(stats.avgCorrect)} icon={<CheckCircle2 className="w-4 h-4 text-emerald-500" />} />
+                          <TimeMetricBox label="Avg Incorrect" value={formatSecs(stats.avgIncorrect)} icon={<XCircle className="w-4 h-4 text-rose-500" />} />
+                          <TimeMetricBox label="Skipped Wasted" value={formatSecs(stats.timeWastedSkipped)} icon={<Clock className="w-4 h-4 text-amber-500" />} />
+                      </div>
+                  </Card>
+
+                  {/* Subject Table */}
+                  <Card className="p-0 border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden">
+                      <div className="p-5 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
+                          <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                              <List className="w-5 h-5 text-indigo-500" /> Sectional Summary
+                          </h3>
+                      </div>
+                      <div className="overflow-x-auto">
+                          <table className="w-full text-left text-sm whitespace-nowrap bg-white dark:bg-gray-900">
+                              <thead className="bg-gray-50/50 dark:bg-gray-800/50 text-gray-600 dark:text-gray-400 font-semibold border-b border-gray-200 dark:border-gray-800">
+                                  <tr>
+                                      <th className="p-4">Subject</th>
+                                      <th className="p-4 text-center">Questions</th>
+                                      <th className="p-4 text-center">Attempted</th>
+                                      <th className="p-4 text-center">Correct</th>
+                                      <th className="p-4 text-center">Accuracy</th>
+                                      <th className="p-4 text-right">Time Spent</th>
+                                  </tr>
+                              </thead>
+                              <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                                  {subjectPerformance.map((sub) => (
+                                      <tr key={sub.name} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                                          <td className="p-4 font-medium text-gray-900 dark:text-white">{sub.name}</td>
+                                          <td className="p-4 text-center text-gray-600 dark:text-gray-400">{sub.total}</td>
+                                          <td className="p-4 text-center text-gray-600 dark:text-gray-400">{sub.attempted}</td>
+                                          <td className="p-4 text-center text-emerald-600 dark:text-emerald-400 font-medium">{sub.correct}</td>
+                                          <td className="p-4 text-center">
+                                              <span className={cn(
+                                                  "px-2 py-1 rounded text-xs font-bold",
+                                                  sub.accuracy >= 75 ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" :
+                                                  sub.accuracy >= 50 ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" :
+                                                  "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400"
+                                              )}>
+                                                  {sub.accuracy}%
+                                              </span>
+                                          </td>
+                                          <td className="p-4 text-right text-gray-600 dark:text-gray-400 font-medium">
+                                              {formatSecs(sub.timeSpent)}
+                                          </td>
+                                      </tr>
+                                  ))}
+                              </tbody>
+                          </table>
+                      </div>
+                  </Card>
+
+              </div>
+          </div>
+      </div>
     </div>
   );
 };
 
-// Helper Component for KPI Grid Item
-const StatBox = ({ label, value, suffix, icon }: { label: string, value: number, suffix?: string, icon: React.ReactNode }) => (
-    <div className="flex flex-col items-start p-3 rounded-lg hover:bg-gray-50 dark:bg-gray-900 dark:hover:bg-slate-800 dark:bg-slate-800/50 transition-colors">
-        <div className="flex items-center gap-2 mb-1 text-gray-500 dark:text-gray-400 text-xs font-bold uppercase tracking-wide">
+const TimeMetricBox = ({ label, value, icon }: { label: string, value: string, icon: React.ReactNode }) => (
+    <div className="p-5 flex flex-col items-center justify-center text-center">
+        <div className="flex items-center gap-1.5 mb-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
             {icon} {label}
         </div>
-        <div className="text-2xl font-black text-gray-900 dark:text-white">
-            <AnimatedCounter value={value} duration={1000} />
-            <span className="text-sm text-gray-400 dark:text-slate-500 font-medium ml-1">{suffix}</span>
+        <div className="text-xl font-bold text-gray-900 dark:text-white">
+            {value}
         </div>
     </div>
 );
