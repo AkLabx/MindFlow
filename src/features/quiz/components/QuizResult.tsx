@@ -78,7 +78,10 @@ export const QuizResult: React.FC<QuizResultProps> = ({
           avgOverall: total > 0 ? Math.round(totalTime / total) : 0,
           avgCorrect: correctCount > 0 ? Math.round(correctTime / correctCount) : 0,
           avgIncorrect: incorrectCount > 0 ? Math.round(incorrectTime / incorrectCount) : 0,
-          timeWastedSkipped: Math.round(skippedTime)
+          timeWastedSkipped: Math.round(skippedTime),
+          totalCorrectTime: Math.round(correctTime),
+          totalIncorrectTime: Math.round(incorrectTime),
+          totalSkippedTime: Math.round(skippedTime)
       };
   }, [questions, answers, timeTaken, total, totalTime]);
 
@@ -146,6 +149,13 @@ export const QuizResult: React.FC<QuizResultProps> = ({
               <ChevronLeft className="w-5 h-5 mr-1" /> Back to Quizzes
           </Button>
           <div className="flex gap-3">
+              <Button
+                  onClick={() => { setReviewFilter('All'); setView('review'); }}
+                  variant="primary"
+                  className="flex items-center group"
+              >
+                  View Solutions <ChevronRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" />
+              </Button>
               <Button onClick={onRestart} variant="outline" className="border-gray-300 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800">
                   <RotateCcw className="w-4 h-4 mr-2" /> Retake
               </Button>
@@ -153,40 +163,6 @@ export const QuizResult: React.FC<QuizResultProps> = ({
       </div>
 
       <div className="space-y-6">
-
-          {/* Section 1: Overview Scorecard */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <Card className="p-5 flex flex-col items-center justify-center text-center border border-gray-200 dark:border-gray-800 shadow-sm">
-                  <span className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Total Score</span>
-                  <div className="flex items-baseline gap-1">
-                      <span className="text-4xl font-black text-gray-900 dark:text-white">{score}</span>
-                      <span className="text-xl text-gray-400 dark:text-gray-500 font-medium">/ {total}</span>
-                  </div>
-              </Card>
-
-              <Card className="p-5 flex flex-col items-center justify-center text-center border border-gray-200 dark:border-gray-800 shadow-sm">
-                  <span className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Accuracy</span>
-                  <div className="flex items-baseline gap-1">
-                      <span className="text-4xl font-black text-indigo-600 dark:text-indigo-400">{accuracy}</span>
-                      <span className="text-xl text-indigo-400/50 dark:text-indigo-400/50 font-medium">%</span>
-                  </div>
-              </Card>
-
-              <Card className="p-5 flex flex-col items-center justify-center text-center border border-gray-200 dark:border-gray-800 shadow-sm">
-                  <span className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Attempted</span>
-                  <div className="flex items-baseline gap-1">
-                      <span className="text-4xl font-black text-gray-900 dark:text-white">{attempted}</span>
-                      <span className="text-xl text-gray-400 dark:text-gray-500 font-medium">/ {total}</span>
-                  </div>
-              </Card>
-
-              <Card className="p-5 flex flex-col items-center justify-center text-center border border-gray-200 dark:border-gray-800 shadow-sm">
-                  <span className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Time Taken</span>
-                  <div className="flex items-baseline gap-1">
-                      <span className="text-3xl font-black text-gray-900 dark:text-white">{formattedTime}</span>
-                  </div>
-              </Card>
-          </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               
@@ -197,6 +173,40 @@ export const QuizResult: React.FC<QuizResultProps> = ({
                           <Target className="w-5 h-5 text-indigo-500" /> Attempt Analysis
                       </h3>
                       
+                      {/* Top 4 Metrics (Moved inside) */}
+                      <div className="grid grid-cols-2 gap-4 mb-6">
+                          <div className="flex flex-col items-center justify-center p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-100 dark:border-gray-800">
+                              <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Total Score</span>
+                              <div className="flex items-baseline gap-1">
+                                  <span className="text-xl font-bold text-gray-900 dark:text-white">{score}</span>
+                                  <span className="text-sm text-gray-400 dark:text-gray-500">/ {total}</span>
+                              </div>
+                          </div>
+
+                          <div className="flex flex-col items-center justify-center p-3 bg-indigo-50/50 dark:bg-indigo-900/10 rounded-lg border border-indigo-100 dark:border-indigo-800/30">
+                              <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Accuracy</span>
+                              <div className="flex items-baseline gap-1">
+                                  <span className="text-xl font-bold text-indigo-600 dark:text-indigo-400">{accuracy}</span>
+                                  <span className="text-sm text-indigo-400/50 dark:text-indigo-400/50">%</span>
+                              </div>
+                          </div>
+
+                          <div className="flex flex-col items-center justify-center p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-100 dark:border-gray-800">
+                              <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Attempted</span>
+                              <div className="flex items-baseline gap-1">
+                                  <span className="text-xl font-bold text-gray-900 dark:text-white">{attempted}</span>
+                                  <span className="text-sm text-gray-400 dark:text-gray-500">/ {total}</span>
+                              </div>
+                          </div>
+
+                          <div className="flex flex-col items-center justify-center p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-100 dark:border-gray-800">
+                              <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1 flex items-center gap-1.5"><Clock className="w-3.5 h-3.5" /></span>
+                              <div className="flex items-baseline gap-1">
+                                  <span className="text-lg font-bold text-gray-900 dark:text-white">{formattedTime}</span>
+                              </div>
+                          </div>
+                      </div>
+
                       {/* Simple Stacked Bar Visualization */}
                       <div className="w-full h-4 rounded-full flex overflow-hidden mb-6 bg-gray-100 dark:bg-gray-800">
                           <div style={{ width: `${(correct/total)*100}%` }} className="h-full bg-emerald-500 transition-all duration-1000" />
@@ -219,24 +229,7 @@ export const QuizResult: React.FC<QuizResultProps> = ({
                           </div>
                       </div>
 
-                      <div className="mt-8 space-y-3">
-                          <Button
-                              onClick={() => { setReviewFilter('All'); setView('review'); }}
-                              variant="primary"
-                              className="w-full justify-between group"
-                          >
-                              View Solutions <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                          </Button>
-                          <Button
-                              onClick={() => { if(incorrect > 0) { setReviewFilter('Incorrect'); setView('review'); }}}
-                              variant="outline"
-                              disabled={incorrect === 0}
-                              className="w-full justify-between text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-700"
-                          >
-                              Review Mistakes ({incorrect}) <AlertCircle className="w-4 h-4 text-rose-500" />
-                          </Button>
-                      </div>
-                  </Card>
+                      </Card>
 
                   {/* Insights Section */}
                   {(strongSubjects.length > 0 || weakSubjects.length > 0) && (
@@ -284,7 +277,32 @@ export const QuizResult: React.FC<QuizResultProps> = ({
                               <Clock className="w-5 h-5 text-indigo-500" /> Time Management
                           </h3>
                       </div>
-                      <div className="grid grid-cols-2 md:grid-cols-4 divide-x divide-y md:divide-y-0 divide-gray-100 dark:divide-gray-800 bg-white dark:bg-gray-900">
+                      <div className="p-5 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
+                          {/* New Tabular Breakdown */}
+                          <div className="grid grid-cols-4 gap-4 text-center">
+                              <div className="flex flex-col items-center">
+                                  <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1">Total Spent</span>
+                                  <span className="text-base font-bold text-gray-900 dark:text-white">{formatSecs(totalTime)}</span>
+                                  <span className="text-xs font-medium text-gray-400 dark:text-gray-500 mt-0.5">100%</span>
+                              </div>
+                              <div className="flex flex-col items-center border-l border-gray-100 dark:border-gray-800">
+                                  <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1">On Correct</span>
+                                  <span className="text-base font-bold text-emerald-600 dark:text-emerald-400">{formatSecs(stats.totalCorrectTime)}</span>
+                                  <span className="text-xs font-medium text-emerald-400/70 dark:text-emerald-500/70 mt-0.5">{totalTime > 0 ? Math.round((stats.totalCorrectTime / totalTime) * 100) : 0}%</span>
+                              </div>
+                              <div className="flex flex-col items-center border-l border-gray-100 dark:border-gray-800">
+                                  <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1">On Incorrect</span>
+                                  <span className="text-base font-bold text-rose-600 dark:text-rose-400">{formatSecs(stats.totalIncorrectTime)}</span>
+                                  <span className="text-xs font-medium text-rose-400/70 dark:text-rose-500/70 mt-0.5">{totalTime > 0 ? Math.round((stats.totalIncorrectTime / totalTime) * 100) : 0}%</span>
+                              </div>
+                              <div className="flex flex-col items-center border-l border-gray-100 dark:border-gray-800">
+                                  <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1">On Skipped</span>
+                                  <span className="text-base font-bold text-amber-600 dark:text-amber-400">{formatSecs(stats.totalSkippedTime)}</span>
+                                  <span className="text-xs font-medium text-amber-400/70 dark:text-amber-500/70 mt-0.5">{totalTime > 0 ? Math.round((stats.totalSkippedTime / totalTime) * 100) : 0}%</span>
+                              </div>
+                          </div>
+                      </div>
+                      <div className="grid grid-cols-2 md:grid-cols-4 divide-x divide-y md:divide-y-0 divide-gray-100 dark:divide-gray-800 bg-gray-50 dark:bg-gray-900/50">
                           <TimeMetricBox label="Avg / Question" value={formatSecs(stats.avgOverall)} icon={<Zap className="w-4 h-4 text-indigo-500" />} />
                           <TimeMetricBox label="Avg Correct" value={formatSecs(stats.avgCorrect)} icon={<CheckCircle2 className="w-4 h-4 text-emerald-500" />} />
                           <TimeMetricBox label="Avg Incorrect" value={formatSecs(stats.avgIncorrect)} icon={<XCircle className="w-4 h-4 text-rose-500" />} />
