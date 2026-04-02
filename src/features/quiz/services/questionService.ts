@@ -81,6 +81,7 @@ export const fetchQuestionMetadata = async (
       const { data, error } = await supabase
         .from('questions')
         .select(columnsToSelect)
+        .order('id')
         .range(from, from + limit - 1);
 
       if (error) throw error;
@@ -102,7 +103,10 @@ export const fetchQuestionMetadata = async (
 
   // Map the raw DB rows to the internal Question model structure.
   // Note: Content fields like 'question' and 'options' are left empty/default.
-  return allRows.map((row) => ({
+    // Deduplicate by v1_id to ensure no duplicate questions in the UI
+  const uniqueRows = Array.from(new Map(allRows.map(item => [item.v1_id || item.id, item])).values());
+
+  return uniqueRows.map((row) => ({
     id: row.id!,
     v1_id: row.v1_id || '',
     sourceInfo: {
@@ -169,7 +173,10 @@ export const fetchQuestionsByIds = async (ids: string[]): Promise<Question[]> =>
   }
 
   // Map the DB rows to the full Question model
-  return (allData as QuestionDBRow[]).map((row) => ({
+  // Deduplicate full questions by v1_id in case there are still DB duplicates
+  const uniqueFullQuestions = Array.from(new Map((allData as QuestionDBRow[]).map(item => [item.v1_id || item.id, item])).values());
+
+  return uniqueFullQuestions.map((row) => ({
     id: row.id,
     v1_id: row.v1_id,
     sourceInfo: {
