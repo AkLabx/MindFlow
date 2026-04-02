@@ -28,6 +28,16 @@ export const AttemptedQuizzes: React.FC = () => {
 
     useEffect(() => {
         loadQuizzes();
+
+        // Listen for sync completion to refresh data and avoid stale cache
+        const handleSyncComplete = () => {
+            loadQuizzes();
+        };
+        window.addEventListener('mindflow-sync-complete', handleSyncComplete);
+
+        return () => {
+            window.removeEventListener('mindflow-sync-complete', handleSyncComplete);
+        };
     }, []);
 
     const loadQuizzes = async () => {

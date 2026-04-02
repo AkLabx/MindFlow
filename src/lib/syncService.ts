@@ -334,6 +334,8 @@ export const syncService = {
       console.error('Error during initial sync:', error);
     } finally {
       isSyncing = false;
+      // Dispatch event to notify UI components that sync has completed
+      window.dispatchEvent(new Event('mindflow-sync-complete'));
     }
   }
 };

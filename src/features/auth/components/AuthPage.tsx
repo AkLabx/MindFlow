@@ -86,6 +86,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ onBack }) => {
     setMessage(null);
     try {
       if (isSignUp) {
+        localStorage.setItem('mindflow_is_signup', 'true');
         const { error } = await supabase.auth.signUp({
           email,
           password,

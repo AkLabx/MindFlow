@@ -42,6 +42,16 @@ export const PerformanceAnalytics: React.FC = () => {
             }
         };
         loadHistory();
+
+        // Listen for sync completion to refresh data and avoid stale cache
+        const handleSyncComplete = () => {
+            loadHistory();
+        };
+        window.addEventListener('mindflow-sync-complete', handleSyncComplete);
+
+        return () => {
+            window.removeEventListener('mindflow-sync-complete', handleSyncComplete);
+        };
     }, []);
 
     // Aggregate Data

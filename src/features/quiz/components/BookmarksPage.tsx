@@ -41,6 +41,16 @@ export const BookmarksPage: React.FC = () => {
             }
         };
         loadBookmarks();
+
+        // Listen for sync completion to refresh data and avoid stale cache
+        const handleSyncComplete = () => {
+            loadBookmarks();
+        };
+        window.addEventListener('mindflow-sync-complete', handleSyncComplete);
+
+        return () => {
+            window.removeEventListener('mindflow-sync-complete', handleSyncComplete);
+        };
     }, []);
 
     const handleRemoveBookmark = async (id: string) => {
