@@ -174,7 +174,31 @@ export const fetchQuestionsByIds = async (ids: string[]): Promise<Question[]> =>
 
   // Map the DB rows to the full Question model
   // Deduplicate full questions by v1_id in case there are still DB duplicates
-  const uniqueFullQuestions = Array.from(new Map((allData as QuestionDBRow[]).map(item => [item.v1_id || item.id, item])).values());
+  const uniqueFullQuestionsById = Array.from(new Map((allData as QuestionDBRow[]).map(item => [item.v1_id || item.id, item])).values());
+
+  // Deep deduplication: Filter out questions that have the exact same text content
+  // This catches database entry errors where the same question was uploaded twice with different IDs
+  const seenContent = new Set<string>();
+  const uniqueFullQuestions = uniqueFullQuestionsById.filter((q) => {
+    // Normalize text: lowercase and remove all whitespace for robust comparison
+    const normEn = (q.question || '').toLowerCase().replace(/\s+/g, '');
+    const normHi = (q.question_hi || '').toLowerCase().replace(/\s+/g, '');
+
+    // Create a unique composite key. If English is empty, rely on Hindi, and vice versa.
+    const contentKey = `${normEn}-${normHi}`;
+
+    if (!contentKey || contentKey === '-') {
+       // Fallback if question text is completely missing, don't deduplicate here
+       return true;
+    }
+
+    if (seenContent.has(contentKey)) {
+      return false; // Duplicate content found, discard
+    }
+
+    seenContent.add(contentKey);
+    return true;
+  });
 
   return uniqueFullQuestions.map((row) => ({
     id: row.id,
