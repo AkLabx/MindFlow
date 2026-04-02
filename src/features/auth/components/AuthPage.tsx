@@ -34,7 +34,8 @@ const AuthPage: React.FC<AuthPageProps> = ({ onBack }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [isEmailLoading, setIsEmailLoading] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [ageConfirmed, setAgeConfirmed] = useState(false);
   const [privacyConfirmed, setPrivacyConfirmed] = useState(false);
   const navigate = useNavigate();
@@ -81,7 +82,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ onBack }) => {
     e.preventDefault();
     if (!validateForm()) return;
 
-    setLoading(true);
+    setIsEmailLoading(true);
     setError(null);
     setMessage(null);
     try {
@@ -108,7 +109,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ onBack }) => {
     } catch (error: any) {
       setError(error.error_description || error.message);
     } finally {
-      setLoading(false);
+      setIsEmailLoading(false);
     }
   };
 
@@ -117,7 +118,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ onBack }) => {
    * Handles redirection URL based on the environment (prod vs dev).
    */
   const handleGoogleSignIn = async () => {
-    setLoading(true);
+    setIsGoogleLoading(true);
     setError(null);
     try {
       // Correctly configure the redirect URL for GitHub Pages production or local dev
@@ -138,7 +139,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ onBack }) => {
     } catch (error: any) {
       setError(error.error_description || error.message);
     } finally {
-      setLoading(false);
+      setIsGoogleLoading(false);
     }
   };
 
@@ -283,11 +284,11 @@ const AuthPage: React.FC<AuthPageProps> = ({ onBack }) => {
              <div>
                <button
                  type="submit"
-                 disabled={loading}
-                 className="w-full group relative flex justify-center items-center gap-2 bg-gradient-to-r from-indigo-600 to-indigo-800 text-white font-bold py-3 px-4 rounded-xl hover:from-indigo-700 hover:to-indigo-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-600 focus:ring-offset-white transition-all duration-300 shadow-lg disabled:opacity-50 overflow-hidden"
+                 disabled={isEmailLoading || isGoogleLoading}
+                 className={`w-full group relative flex justify-center items-center gap-2 bg-gradient-to-r from-indigo-600 to-indigo-800 text-white font-bold py-3 px-4 rounded-xl hover:from-indigo-700 hover:to-indigo-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-600 focus:ring-offset-white transition-all duration-300 shadow-lg overflow-hidden ${isGoogleLoading ? 'opacity-50 cursor-not-allowed' : (isEmailLoading ? 'disabled:opacity-50' : '')}`}
                >
                  <div className="absolute inset-0 bg-white/20 group-hover:bg-transparent transition-colors duration-300 z-0 pointer-events-none"></div>
-                 {loading ? (
+                 {isEmailLoading ? (
                    <Loader2 className="w-5 h-5 animate-spin relative z-10" />
                  ) : (
                    <>
@@ -316,10 +317,10 @@ const AuthPage: React.FC<AuthPageProps> = ({ onBack }) => {
              <button
                type="button"
                onClick={handleGoogleSignIn}
-               disabled={loading}
-               className="w-full group relative flex justify-center items-center gap-3 bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm text-gray-900 dark:text-white font-semibold py-3 px-4 rounded-xl border border-white/40 dark:border-gray-700/50 hover:bg-white/80 dark:hover:bg-gray-700/80 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-600 focus:ring-offset-white transition-all duration-300 shadow-sm disabled:opacity-50 overflow-hidden"
+               disabled={isEmailLoading || isGoogleLoading}
+               className={`w-full group relative flex justify-center items-center gap-3 bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm text-gray-900 dark:text-white font-semibold py-3 px-4 rounded-xl border border-white/40 dark:border-gray-700/50 hover:bg-white/80 dark:hover:bg-gray-700/80 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-600 focus:ring-offset-white transition-all duration-300 shadow-sm overflow-hidden ${isEmailLoading ? 'opacity-50 cursor-not-allowed' : (isGoogleLoading ? 'disabled:opacity-50' : '')}`}
              >
-               {loading ? (
+               {isGoogleLoading ? (
                  <Loader2 className="w-5 h-5 animate-spin relative z-10" />
                ) : (
                  <>
