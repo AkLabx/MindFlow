@@ -1,0 +1,23 @@
+--- src/features/quiz/components/AiExplanationButton.tsx
++++ src/features/quiz/components/AiExplanationButton.tsx
+@@ -62,7 +62,15 @@
+         if (!contentRef.current) return;
+         showToast({ title: 'Downloading...', message: 'Preparing image, please wait.', variant: 'info', duration: 2000 });
+         try {
+-            const canvas = await html2canvas(contentRef.current, { scale: 2, useCORS: true, backgroundColor: document.documentElement.classList.contains('dark') ? '#1f2937' : '#ffffff' });
++            const element = contentRef.current;
++            const originalScrollTop = element.scrollTop;
++            element.scrollTop = 0; // Temporarily scroll to top
++
++            const canvas = await html2canvas(element, {
++                scale: 2,
++                useCORS: true,
++                backgroundColor: document.documentElement.classList.contains('dark') ? '#1f2937' : '#ffffff',
++                windowHeight: element.scrollHeight,
++                height: element.scrollHeight,
++                y: 0
++            });
++
++            element.scrollTop = originalScrollTop; // Restore scroll
+             const dataUrl = canvas.toDataURL('image/png');
+             const link = document.createElement('a');
