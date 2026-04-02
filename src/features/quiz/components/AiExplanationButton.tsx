@@ -1,6 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Bot, X, Loader2, Sparkles, AlertCircle } from 'lucide-react';
+import { Bot, X, Loader2, Sparkles, AlertCircle, Copy, Download } from 'lucide-react';
 import { createPortal } from 'react-dom';
+import html2canvas from 'html2canvas';
+import { useNotification } from '../../../stores/useNotificationStore';
+import ReactMarkdown from 'react-markdown';
+import remarkMath from 'remark-math';
+import remarkGfm from 'remark-gfm';
+import rehypeKatex from 'rehype-katex';
+import 'katex/dist/katex.min.css';
 import { Question } from '../types';
 
 interface AiExplanationButtonProps {
@@ -9,26 +16,16 @@ interface AiExplanationButtonProps {
 }
 
 interface AiResponse {
-    explanation: string;
     correct_answer: string;
+    reasoning: string;
+    exam_facts: string[];
+    recent_news: string;
     interesting_facts: string[];
     fun_fact: string;
 }
 
 /**
  * A button component that triggers an AI-powered explanation for the current question.
- *
- * Uses Google Gemini API (gemini-2.5-flash) to generate a detailed analysis of the question,
- * why the answer is correct, and fun facts.
- *
- * Features:
- * - Direct client-side API call to Google Generative AI (using API Key).
- * - Modal overlay for displaying the result.
- * - Loading and Error states.
- * - Markdown parsing for the explanation text.
- *
- * @param {AiExplanationButtonProps} props - Component props.
- * @returns {JSX.Element} The button and the modal portal.
  */
 export const AiExplanationButton: React.FC<AiExplanationButtonProps> = ({ question, selectedAnswer }) => {
     const [isOpen, setIsOpen] = useState(false);
@@ -37,6 +34,46 @@ export const AiExplanationButton: React.FC<AiExplanationButtonProps> = ({ questi
     const [error, setError] = useState<string | null>(null);
 
     const overlayRef = useRef<HTMLDivElement>(null);
+    const contentRef = useRef<HTMLDivElement>(null);
+    const { showToast } = useNotification();
+
+    const handleCopy = () => {
+        if (!data) return;
+        const textToCopy = `
+Correct Answer: ${data.correct_answer}
+
+Reasoning: ${data.reasoning}
+
+Exam Facts:
+${data.exam_facts?.map(f => '- ' + f).join('\n')}
+
+Recent News: ${data.recent_news}
+
+Did You Know:
+${data.interesting_facts?.map(f => '- ' + f).join('\n')}
+
+Fun Fact: ${data.fun_fact}
+`.trim();
+        navigator.clipboard.writeText(textToCopy);
+        showToast({ title: 'Copied!', message: 'Explanation copied to clipboard.', variant: 'success', duration: 2000 });
+    };
+
+    const handleDownload = async () => {
+        if (!contentRef.current) return;
+        showToast({ title: 'Downloading...', message: 'Preparing image, please wait.', variant: 'info', duration: 2000 });
+        try {
+            const canvas = await html2canvas(contentRef.current, { scale: 2, useCORS: true, backgroundColor: document.documentElement.classList.contains('dark') ? '#1f2937' : '#ffffff' });
+            const dataUrl = canvas.toDataURL('image/png');
+            const link = document.createElement('a');
+            link.download = 'ai-explanation.png';
+            link.href = dataUrl;
+            link.click();
+            showToast({ title: 'Success!', message: 'Image downloaded successfully.', variant: 'success', duration: 2000 });
+        } catch (error) {
+            console.error('Download failed:', error);
+            showToast({ title: 'Error', message: 'Failed to download image.', variant: 'error', duration: 2000 });
+        }
+    };
 
     const handleExplain = async () => {
         setIsOpen(true);
@@ -47,14 +84,15 @@ export const AiExplanationButton: React.FC<AiExplanationButtonProps> = ({ questi
 
         try {
             // Environment Variable check
-            // Note: In Vite, this is populated via define: { ... } in vite.config.ts
             const apiKey = process.env.GOOGLE_AI_KEY;
             if (!apiKey) {
                 throw new Error("AI API Key is missing. Please configure the GOOGLE_AI_KEY environment variable.");
             }
 
+            const todayDate = new Date().toISOString().split('T')[0];
             const prompt = `
 You are a knowledgeable and helpful tutor. Analyze this multiple-choice question and provide a detailed explanation.
+You must use the Google Search tool to find recent news about the topic (Today's date is ${todayDate}).
 Output must be strictly valid JSON.
 
 Question: "${question.question}"
@@ -63,15 +101,17 @@ Correct Answer: "${question.correct}"
 
 JSON Schema:
 {
-  "explanation": "Detailed explanation of why the answer is correct and why others are wrong. Use markdown for formatting (bold, italic).",
-  "correct_answer": "The correct answer text",
+  "correct_answer": "The exact correct answer text",
+  "reasoning": "Detailed explanation of why the answer is correct and why others are wrong. Use markdown for formatting (bullet points, bold, math equations if any).",
+  "exam_facts": ["PYQ Fact 1 based on SSC CGL/UPSC/NDA/CDS etc.", "Fact 2", "Fact 3", "Fact 4", "Fact 5", "Fact 6"],
+  "recent_news": "A short summary of recent news related to the topic. Use the Google Search tool to find this.",
   "interesting_facts": ["Fact 1", "Fact 2"],
   "fun_fact": "A short fun fact related to the topic"
 }
 `;
 
             const response = await fetch(
-                `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+                `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent?key=${apiKey}`,
                 {
                     method: 'POST',
                     headers: {
@@ -81,6 +121,7 @@ JSON Schema:
                         contents: [{
                             parts: [{ text: prompt }]
                         }],
+                        tools: [{ googleSearch: {} }],
                         generationConfig: {
                             responseMimeType: "application/json"
                         }
@@ -143,21 +184,41 @@ JSON Schema:
                         className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-lg max-h-[85vh] overflow-hidden flex flex-col animate-in slide-in-from-bottom-10 zoom-in-95 duration-300"
                     >
                         {/* Header */}
-                        <div className="flex items-center justify-between p-4 border-b border-gray-100 dark:border-gray-800 bg-gradient-to-r from-indigo-50 to-purple-50">
+                        <div className="flex items-center justify-between p-4 border-b border-gray-100 dark:border-gray-800 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/40 dark:to-purple-900/40">
                             <div className="flex items-center gap-2 text-indigo-700 dark:text-indigo-400">
                                 <Sparkles className="w-5 h-5" />
                                 <h3 className="font-bold text-lg">AI Explanation</h3>
                             </div>
-                            <button
-                                onClick={() => setIsOpen(false)}
-                                className="p-1 rounded-full hover:bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:text-gray-200 transition-colors"
-                            >
-                                <X className="w-5 h-5" />
-                            </button>
+                            <div className="flex items-center gap-2">
+                                {data && !isLoading && !error && (
+                                    <>
+                                        <button
+                                            onClick={handleCopy}
+                                            className="p-1.5 rounded-lg bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:shadow shadow-sm transition-all border border-gray-200 dark:border-gray-700"
+                                            title="Copy Text"
+                                        >
+                                            <Copy className="w-4 h-4" />
+                                        </button>
+                                        <button
+                                            onClick={handleDownload}
+                                            className="p-1.5 rounded-lg bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:shadow shadow-sm transition-all border border-gray-200 dark:border-gray-700 mr-2"
+                                            title="Download as Image"
+                                        >
+                                            <Download className="w-4 h-4" />
+                                        </button>
+                                    </>
+                                )}
+                                <button
+                                    onClick={() => setIsOpen(false)}
+                                    className="p-1.5 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
+                                >
+                                    <X className="w-5 h-5" />
+                                </button>
+                            </div>
                         </div>
 
                         {/* Content */}
-                        <div className="p-6 overflow-y-auto custom-scrollbar">
+                        <div ref={contentRef} className="p-6 overflow-y-auto custom-scrollbar bg-white dark:bg-gray-800">
                             {isLoading ? (
                                 <div className="flex flex-col items-center justify-center py-12 text-center">
                                     <Loader2 className="w-10 h-10 text-indigo-500 animate-spin mb-4" />
@@ -177,37 +238,89 @@ JSON Schema:
                                 </div>
                             ) : data ? (
                                 <div className="space-y-6">
-                                    {/* Explanation Body */}
-                                    <div>
-                                        <h4 className="text-sm uppercase tracking-wider text-gray-400 dark:text-slate-500 font-bold mb-2">Analysis</h4>
-                                        <div
-                                            className="text-gray-800 dark:text-gray-100 leading-relaxed text-[0.95rem] space-y-2 [&_strong]:text-indigo-700 dark:text-indigo-400 [&_strong]:font-bold"
-                                            dangerouslySetInnerHTML={{ __html: data.explanation.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') }} // Simple regex markdown bold parser
-                                        />
-                                    </div>
-
-                                    {/* Interesting Facts */}
-                                    {data.interesting_facts?.length > 0 && (
-                                        <div className="bg-amber-50 dark:bg-amber-900/20 rounded-xl p-4 border border-amber-100">
-                                            <h4 className="text-sm font-bold text-amber-800 mb-2 flex items-center gap-2">
-                                                <span className="text-lg">💡</span> Did You Know?
+                                    {/* 1. Correct Answer */}
+                                    {data.correct_answer && (
+                                        <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded-xl p-4 border border-emerald-200 dark:border-emerald-800/50">
+                                            <h4 className="text-sm font-bold text-emerald-800 dark:text-emerald-400 mb-2 uppercase tracking-wider flex items-center gap-2">
+                                                <span>✅</span> Correct Answer
                                             </h4>
-                                            <ul className="space-y-2">
-                                                {data.interesting_facts.map((fact, i) => (
-                                                    <li key={i} className="text-amber-900 text-sm flex gap-2">
-                                                        <span className="text-amber-400 mt-0.5">•</span>
-                                                        <span>{fact}</span>
+                                            <div className="text-emerald-900 dark:text-emerald-100 text-lg font-bold leading-relaxed">
+                                                <ReactMarkdown remarkPlugins={[remarkMath, remarkGfm]} rehypePlugins={[rehypeKatex]}>{data.correct_answer}</ReactMarkdown>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* 2. Reasoning */}
+                                    {data.reasoning && (
+                                        <div>
+                                            <h4 className="text-sm uppercase tracking-wider text-indigo-500 dark:text-indigo-400 font-bold mb-2 flex items-center gap-2">
+                                                <span>🧠</span> Analysis & Reasoning
+                                            </h4>
+                                            <div className="text-gray-800 dark:text-gray-100 leading-relaxed text-[0.95rem] prose dark:prose-invert max-w-none prose-sm sm:prose-base prose-p:my-1 prose-li:my-0">
+                                                <ReactMarkdown remarkPlugins={[remarkMath, remarkGfm]} rehypePlugins={[rehypeKatex]}>{data.reasoning}</ReactMarkdown>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* 3. Exam Facts */}
+                                    {data.exam_facts && data.exam_facts.length > 0 && (
+                                        <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-4 border border-blue-100 dark:border-blue-800/30">
+                                            <h4 className="text-sm font-bold text-blue-800 dark:text-blue-400 mb-2 flex items-center gap-2">
+                                                <span className="text-lg">📚</span> Exam Special Facts (PYQs)
+                                            </h4>
+                                            <ul className="space-y-2 list-none pl-1">
+                                                {data.exam_facts.map((fact, i) => (
+                                                    <li key={i} className="text-blue-900 dark:text-blue-100 text-sm flex gap-2 items-start">
+                                                        <span className="text-blue-500 mt-0.5 font-bold">✓</span>
+                                                        <span className="flex-1">
+                                                             <ReactMarkdown remarkPlugins={[remarkMath, remarkGfm]} rehypePlugins={[rehypeKatex]}>{fact}</ReactMarkdown>
+                                                        </span>
                                                     </li>
                                                 ))}
                                             </ul>
                                         </div>
                                     )}
 
-                                     {/* Fun Fact */}
+                                    {/* 4. Recent News */}
+                                    {data.recent_news && (
+                                         <div className="bg-rose-50 dark:bg-rose-900/20 rounded-xl p-4 border border-rose-100 dark:border-rose-800/30">
+                                            <h4 className="text-sm font-bold text-rose-800 dark:text-rose-400 mb-2 flex items-center gap-2">
+                                                <span className="text-lg">📰</span> Recent News & Updates
+                                            </h4>
+                                            <div className="text-rose-900 dark:text-rose-100 text-sm prose dark:prose-invert max-w-none prose-sm">
+                                                 <ReactMarkdown remarkPlugins={[remarkMath, remarkGfm]} rehypePlugins={[rehypeKatex]}>{data.recent_news}</ReactMarkdown>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* 5. Interesting Facts */}
+                                    {data.interesting_facts && data.interesting_facts.length > 0 && (
+                                        <div className="bg-amber-50 dark:bg-amber-900/20 rounded-xl p-4 border border-amber-100 dark:border-amber-800/30">
+                                            <h4 className="text-sm font-bold text-amber-800 dark:text-amber-400 mb-2 flex items-center gap-2">
+                                                <span className="text-lg">💡</span> Did You Know?
+                                            </h4>
+                                            <ul className="space-y-2 list-none pl-1">
+                                                {data.interesting_facts.map((fact, i) => (
+                                                    <li key={i} className="text-amber-900 dark:text-amber-100 text-sm flex gap-2 items-start">
+                                                        <span className="text-amber-400 mt-0.5 font-bold">•</span>
+                                                        <span className="flex-1">
+                                                            <ReactMarkdown remarkPlugins={[remarkMath, remarkGfm]} rehypePlugins={[rehypeKatex]}>{fact}</ReactMarkdown>
+                                                        </span>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        </div>
+                                    )}
+
+                                     {/* 6. Fun Fact */}
                                      {data.fun_fact && (
-                                        <div className="bg-indigo-50 dark:bg-indigo-900/20 rounded-xl p-4 border border-indigo-100 dark:border-indigo-900/30">
-                                            <h4 className="text-sm font-bold text-indigo-800 dark:text-indigo-300 mb-1">Fun Fact</h4>
-                                            <p className="text-indigo-900 text-sm italic">"{data.fun_fact}"</p>
+                                        <div className="bg-purple-50 dark:bg-purple-900/20 rounded-xl p-4 border border-purple-100 dark:border-purple-900/30">
+                                            <h4 className="text-sm font-bold text-purple-800 dark:text-purple-300 mb-1 flex items-center gap-2">
+                                                <span>🎉</span> Fun Fact
+                                            </h4>
+                                            <div className="text-purple-900 dark:text-purple-200 text-sm italic prose dark:prose-invert max-w-none prose-sm">
+                                                <ReactMarkdown remarkPlugins={[remarkMath, remarkGfm]} rehypePlugins={[rehypeKatex]}>{data.fun_fact}</ReactMarkdown>
+                                            </div>
                                         </div>
                                     )}
                                 </div>
