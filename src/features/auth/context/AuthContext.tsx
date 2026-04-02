@@ -3,6 +3,7 @@ import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '../../../lib/supabase';
 import defaultAvatar from '../../../assets/default-avatar.svg';
 import { syncService } from '../../../lib/syncService';
+import { db } from '../../../lib/db';
 
 /**
  * Interface for the Auth Context value.
@@ -115,6 +116,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   /** Signs out the current user. */
   const signOut = async () => {
     await supabase.auth.signOut();
+    // Clear all sensitive user data from local IndexedDB
+    await db.clearAllUserData();
+    // Dispatch event to notify UI components to refresh/clear their state
+    window.dispatchEvent(new Event('mindflow-sync-complete'));
   };
 
   /** Refreshes the user object from Supabase. */
