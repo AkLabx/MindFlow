@@ -132,11 +132,8 @@ JSON Schema:
                                 contents: [{
                                     parts: [{ text: prompt }]
                                 }],
-                                tools: [{ googleSearch: {} }],
-                                generationConfig: {
-                                    responseMimeType: "application/json"
-                                }
-                            })
+                                tools: [{ googleSearch: {} }]
+                                                            })
                         }
                     );
 
@@ -158,12 +155,29 @@ JSON Schema:
             }
 
             const result = await response.json();
-            const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
+            let text = result.candidates?.[0]?.content?.parts?.[0]?.text;
 
             if (!text) throw new Error("Empty response from AI");
 
-            const parsedData = JSON.parse(text);
-            setData(parsedData);
+            // Clean up potential markdown blocks if responseMimeType wasn't used
+            text = text.trim();
+            if (text.startsWith('```json')) {
+                text = text.slice(7);
+            } else if (text.startsWith('```')) {
+                text = text.slice(3);
+            }
+            if (text.endsWith('```')) {
+                text = text.slice(0, -3);
+            }
+            text = text.trim();
+
+            try {
+                const parsedData = JSON.parse(text);
+                setData(parsedData);
+            } catch (parseError) {
+                console.error("JSON Parse Error on:", text);
+                throw new Error("AI returned invalid data format.");
+            }
 
         } catch (err: any) {
             console.error("AI Explanation Error:", err);
