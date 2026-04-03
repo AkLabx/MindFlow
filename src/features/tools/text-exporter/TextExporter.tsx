@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import MarkdownIt from 'markdown-it';
+import rehypeRaw from 'rehype-raw';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Download, FileText, FileCode, File, Eye, Edit3, Settings } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
@@ -70,7 +72,7 @@ const TextExporter: React.FC = () => {
 <body>
     <!-- Processed Markdown Content -->
     <div id="content">
-    ${require('markdown-it')().render(text)}
+    ${new MarkdownIt({ html: true }).render(text)}
     </div>
 </body>
 </html>`;
@@ -145,12 +147,12 @@ const TextExporter: React.FC = () => {
 
                     <div className="flex-1 flex overflow-hidden">
                         {/* Editor View */}
-                        <div className={`flex-1 w-full h-full p-4 sm:p-6 ${viewMode === 'edit' ? 'block' : 'hidden md:block border-r border-gray-200 dark:border-slate-700'}`}>
+                        <div className={`flex-1 w-full h-full min-h-[50vh] flex flex-col p-4 sm:p-6 pb-24 sm:pb-6 ${viewMode === 'edit' ? 'block' : 'hidden md:block border-r border-gray-200 dark:border-slate-700'}`}>
                             <textarea
                                 value={text}
                                 onChange={(e) => setText(e.target.value)}
                                 placeholder="Start typing your text here..."
-                                className="w-full h-full resize-none bg-transparent outline-none text-gray-800 dark:text-gray-200 font-mono text-sm sm:text-base leading-relaxed placeholder-gray-400 dark:placeholder-gray-500"
+                                className="flex-1 w-full h-full resize-none bg-transparent outline-none text-gray-800 dark:text-gray-200 font-mono text-sm sm:text-base leading-relaxed placeholder-gray-400 dark:placeholder-gray-500"
                                 spellCheck={false}
                             />
                         </div>
@@ -161,7 +163,7 @@ const TextExporter: React.FC = () => {
                             <div className="prose prose-rose dark:prose-invert max-w-none">
                                 <ReactMarkdown
                                     remarkPlugins={[remarkGfm]}
-                                    rehypePlugins={[rehypeKatex]}
+                                    rehypePlugins={[rehypeKatex, rehypeRaw]}
                                     components={{
                                         code({ node, inline, className, children, ...props }: any) {
                                             const match = /language-(\w+)/.exec(className || '');
