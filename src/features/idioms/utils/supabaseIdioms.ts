@@ -85,3 +85,20 @@ export async function getFilteredIdioms(filters: InitialFilters, selectedLetter:
         }
     })) as Idiom[];
 }
+
+
+export async function fetchIdiomMetadata() {
+    // Fetch only the properties needed for filtering
+    const { data, error } = await supabase.from('idiom').select('id, phrase, source_pdf, exam_year, difficulty');
+    if (error) {
+        console.error("Error fetching Idiom metadata:", error);
+        return [];
+    }
+    return (data || []).map(row => ({
+        id: row.id,
+        alphabet: row.phrase ? row.phrase.charAt(0).toUpperCase() : '',
+        examName: row.source_pdf || 'Unknown',
+        examYear: String(row.exam_year || ''),
+        difficulty: row.difficulty || 'Medium'
+    }));
+}

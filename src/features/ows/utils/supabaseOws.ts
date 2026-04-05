@@ -84,3 +84,20 @@ export async function getFilteredOws(filters: InitialFilters, selectedLetter: st
         }
     })) as OneWord[];
 }
+
+
+export async function fetchOwsMetadata() {
+    // Fetch only the properties needed for filtering
+    const { data, error } = await supabase.from('ows').select('id, word, source_pdf, exam_year, difficulty');
+    if (error) {
+        console.error("Error fetching OWS metadata:", error);
+        return [];
+    }
+    return (data || []).map(row => ({
+        id: row.id,
+        alphabet: row.word ? row.word.charAt(0).toUpperCase() : '',
+        examName: row.source_pdf || 'Unknown',
+        examYear: String(row.exam_year || ''),
+        difficulty: row.difficulty || 'Medium'
+    }));
+}

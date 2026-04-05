@@ -1,15 +1,15 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Play, Target, FileText, Settings, Calendar, Type, CheckCircle } from 'lucide-react';
-import { useOWSProgress } from './hooks/useOWSProgress';
 import { Button } from '../../components/Button/Button';
-import { InitialFilters, QuizMode } from '../quiz/types';
+import { InitialFilters } from '../quiz/types';
 import { OneWord } from '../../types/models';
 import { MultiSelectDropdown } from '../quiz/components/ui/MultiSelectDropdown';
 import { SegmentedControl } from '../quiz/components/ui/SegmentedControl';
 import { ActiveFiltersBar } from '../quiz/components/ui/ActiveFiltersBar';
 import { cn } from '../../utils/cn';
 import { SynapticLoader } from '../../components/ui/SynapticLoader';
-import { getUniqueOwsFilters, getOwsCount, getFilteredOws } from './utils/supabaseOws';
+import { fetchOwsMetadata, getFilteredOws } from './utils/supabaseOws';
+import { useOwsQuestionIndex, useOwsFilterCounts, OwsMetadata } from './hooks/useOwsFilterCounts';
 
 interface OWSConfigProps {
     onStart: (data: OneWord[], filters?: InitialFilters) => void;
@@ -26,96 +26,79 @@ const emptyFilters: InitialFilters = {
     examYear: [],
     examDateShift: [],
     tags: [],
-    readStatus: [],
+    readStatus: []
 };
 
 export const OWSConfig: React.FC<OWSConfigProps> = ({ onStart, onBack }) => {
     const [filters, setFilters] = useState<InitialFilters>(emptyFilters);
     const [selectedLetter, setSelectedLetter] = useState<string | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
-    const [isFetchingData, setIsFetchingData] = useState(false);
-    const { isLoaded: isProgressLoaded, getReadStatus } = useOWSProgress();
+    const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
 
-    // Metadata from DB
-    const [allExamNames, setAllExamNames] = useState<string[]>([]);
-    const [allExamYears, setAllExamYears] = useState<string[]>([]);
-    const [matchedCount, setMatchedCount] = useState<number>(0);
-    const alphabet = useMemo(() => 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split(''), []);
+    const [metadata, setMetadata] = useState<OwsMetadata[]>([]);
+    const [isFetchingData, setIsFetchingData] = useState(false);
+    const [isInitializing, setIsInitializing] = useState(true);
 
     useEffect(() => {
-        let isMounted = true;
-        const loadMetadata = async () => {
-            setIsLoading(true);
+        const initConfig = async () => {
             try {
-                const { allExamNames, allExamYears } = await getUniqueOwsFilters();
-                if (isMounted) {
-                    setAllExamNames(allExamNames);
-                    setAllExamYears(allExamYears);
-                }
-            } catch (err) {
-                console.error("Error loading OWS metadata:", err);
+                const meta = await fetchOwsMetadata();
+                setMetadata(meta);
+            } catch (e) {
+                console.error("Error initializing OWS configs", e);
             } finally {
-                if (isMounted) setIsLoading(false);
+                setIsInitializing(false);
             }
         };
-        loadMetadata();
-        return () => { isMounted = false; };
+        initConfig();
     }, []);
 
-    useEffect(() => {
-        let isMounted = true;
-        const fetchCount = async () => {
-            const count = await getOwsCount(filters, selectedLetter);
-            if (isMounted) {
-                setMatchedCount(count);
-            }
-        };
-        fetchCount();
-        return () => { isMounted = false; };
-    }, [filters, selectedLetter]);
+    const index = useOwsQuestionIndex(metadata);
+    const { counts: filterCounts, totalMatchingCount, finalMatchingIds } = useOwsFilterCounts({
+        metadata,
+        selectedFilters: filters,
+        selectedAlphabet: selectedLetter,
+        index
+    });
 
+    const availableExamNames = Object.keys(index.examName || {}).sort();
+    const availableExamYears = Object.keys(index.examYear || {}).sort();
 
-    const handleStart = async () => {
-        setIsFetchingData(true);
-        try {
-            const data = await getFilteredOws(filters, selectedLetter);
-
-            let finalData = data;
-            if (filters.readStatus && filters.readStatus.length > 0) {
-                finalData = data.filter(item => {
-                    const status = getReadStatus(item);
-                    const isReadStr = status ? 'read' : 'unread';
-                    return filters.readStatus.includes(isReadStr);
-                });
-            }
-
-            if (finalData.length === 0) {
-                alert("No words match the selected filters.");
-                setIsFetchingData(false);
-                return;
-            }
-            onStart(finalData, filters);
-        } catch (error) {
-            console.error("Failed to start session:", error);
-            alert("Failed to fetch data for the session.");
-            setIsFetchingData(false);
-        }
+    const handleFilterChange = (key: keyof InitialFilters, selected: string[]) => {
+        setFilters(prev => ({ ...prev, [key]: selected }));
     };
 
     const handleRemoveFilter = (key: keyof InitialFilters, value?: string) => {
         if (value) {
-            setFilters(prev => ({ ...prev, [key]: prev[key].filter(v => v !== value) }));
+            setFilters(prev => ({ ...prev, [key]: (prev[key] as string[]).filter(item => item !== value) }));
         } else {
             setFilters(prev => ({ ...prev, [key]: [] }));
         }
     };
 
-    if (!isProgressLoaded || isLoading || isFetchingData) {
+    const handleStart = async () => {
+        setIsFetchingData(true);
+        try {
+            if (finalMatchingIds.length === 0) {
+                 alert("No OWS found matching current filters.");
+                 return;
+            }
+            const data = await getFilteredOws(filters, selectedLetter);
+            if (data.length > 0) {
+                onStart(data, filters);
+            } else {
+                alert("No OWS found matching current filters.");
+            }
+        } catch (error) {
+            console.error("Error fetching full OWS data:", error);
+            alert("Failed to load OWS data. Please try again.");
+        } finally {
+            setIsFetchingData(false);
+        }
+    };
+
+    if (isInitializing) {
         return <SynapticLoader />;
     }
-
-    const counts: Record<string, number> = {};
-    const letterCounts: Record<string, number> = {};
 
     return (
         <div className="flex flex-col min-h-screen -m-4 sm:-m-6 lg:-m-8 p-4 sm:p-6 lg:p-8 transition-colors duration-700 relative overflow-hidden bg-slate-50 dark:bg-slate-900">
@@ -156,18 +139,24 @@ export const OWSConfig: React.FC<OWSConfigProps> = ({ onStart, onBack }) => {
                             </button>
                             {alphabet.map(letter => {
                                 const isSelected = selectedLetter === letter;
+                                const count = filterCounts.alphabet?.[letter] || 0;
+                                const isDisabled = count === 0 && !isSelected;
                                 return (
                                     <button
                                         key={letter}
+                                        disabled={isDisabled}
                                         onClick={() => setSelectedLetter(isSelected ? null : letter)}
                                         className={cn(
-                                            "w-8 h-8 flex items-center justify-center rounded-lg text-xs font-bold transition-all border",
+                                            "w-9 h-9 flex flex-col items-center justify-center rounded-lg transition-all border",
                                             isSelected
-                                                ? "bg-teal-100 text-teal-900 border-teal-300 ring-1 ring-teal-300"
-                                                : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-teal-300 hover:text-teal-700"
+                                                ? "bg-teal-500 text-white border-teal-500 shadow-md transform scale-110"
+                                                : isDisabled
+                                                ? "bg-slate-100 dark:bg-slate-800/50 text-slate-300 dark:text-slate-600 border-slate-100 dark:border-slate-800 cursor-not-allowed"
+                                                : "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-teal-50 dark:hover:bg-slate-700",
                                         )}
                                     >
-                                        {letter}
+                                        <span className="text-xs font-bold">{letter}</span>
+                                        {count > 0 && !isSelected && <span className="text-[8px] opacity-60 -mt-1">{count}</span>}
                                     </button>
                                 )
                             })}
@@ -181,11 +170,11 @@ export const OWSConfig: React.FC<OWSConfigProps> = ({ onStart, onBack }) => {
                         </div>
                         <MultiSelectDropdown
                             label="Source Name"
-                            options={allExamNames}
+                            options={availableExamNames}
                             selectedOptions={filters.examName}
-                            onSelectionChange={(sel) => setFilters(prev => ({ ...prev, examName: sel }))}
-                            counts={counts}
+                            onSelectionChange={(sel) => handleFilterChange('examName', sel)}
                             placeholder="Select Source (e.g. Blackbook)"
+                            counts={filterCounts.examName}
                         />
                     </div>
 
@@ -195,11 +184,14 @@ export const OWSConfig: React.FC<OWSConfigProps> = ({ onStart, onBack }) => {
                             <Calendar className="w-4 h-4" /> Exam Year
                         </div>
                         <div className="flex flex-wrap gap-2">
-                            {allExamYears.map(year => {
+                            {availableExamYears.map(year => {
                                 const isSelected = filters.examYear.includes(year);
+                                const count = filterCounts.examYear?.[year] || 0;
+                                const isDisabled = count === 0 && !isSelected;
                                 return (
                                     <button
                                         key={year}
+                                        disabled={isDisabled}
                                         onClick={() => setFilters(prev => {
                                             const current = prev.examYear;
                                             return { ...prev, examYear: current.includes(year) ? current.filter(y => y !== year) : [...current, year] };
@@ -208,10 +200,13 @@ export const OWSConfig: React.FC<OWSConfigProps> = ({ onStart, onBack }) => {
                                             "px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 border select-none",
                                             isSelected
                                                 ? "bg-teal-100 text-teal-900 border-teal-300 ring-1 ring-teal-300"
+                                                : isDisabled
+                                                ? "bg-slate-50 dark:bg-slate-900 text-slate-300 dark:text-slate-700 border-slate-100 dark:border-slate-800 cursor-not-allowed"
                                                 : "bg-slate-50 dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:bg-slate-800 hover:border-slate-300 dark:border-slate-600"
                                         )}
                                     >
-                                        {year}
+                                        <span>{year}</span>
+                                        {count > 0 && <span className="text-[10px] bg-teal-100 text-teal-700 px-1.5 py-0.5 rounded-full">{count}</span>}
                                     </button>
                                 );
                             })}
@@ -230,8 +225,9 @@ export const OWSConfig: React.FC<OWSConfigProps> = ({ onStart, onBack }) => {
                                 const current = prev.readStatus || [];
                                 return { ...prev, readStatus: current.includes(opt as any) ? current.filter(i => i !== opt) : [...current, opt as any] };
                             })}
-                            counts={counts}
+                            counts={{}}
                         />
+                        <p className="text-xs text-slate-400 mt-2">Read status is locally tracked and not filtered by server currently.</p>
                     </div>
 
                     {/* Difficulty Card */}
@@ -242,11 +238,8 @@ export const OWSConfig: React.FC<OWSConfigProps> = ({ onStart, onBack }) => {
                         <SegmentedControl
                             options={['Easy', 'Medium', 'Hard']}
                             selectedOptions={filters.difficulty}
-                            onOptionToggle={(opt) => setFilters(prev => {
-                                const current = prev.difficulty;
-                                return { ...prev, difficulty: current.includes(opt) ? current.filter(i => i !== opt) : [...current, opt] };
-                            })}
-                            counts={counts}
+                            onOptionToggle={(opt) => handleFilterChange('difficulty', filters.difficulty.includes(opt) ? filters.difficulty.filter(i => i !== opt) : [...filters.difficulty, opt])}
+                            counts={filterCounts.difficulty}
                         />
                     </div>
                 </div>
@@ -260,10 +253,16 @@ export const OWSConfig: React.FC<OWSConfigProps> = ({ onStart, onBack }) => {
                             fullWidth
                             size="lg"
                             onClick={handleStart}
-                            disabled={matchedCount === 0}
+                            disabled={totalMatchingCount === 0 || isFetchingData}
                             className="bg-teal-500 hover:bg-teal-600 text-white border-none shadow-lg shadow-teal-200"
                         >
-                            <Play className="w-5 h-5 mr-2 fill-current" /> Start Flashcards ({matchedCount})
+                            {isFetchingData ? (
+                                <span className="animate-pulse">Loading...</span>
+                            ) : (
+                                <>
+                                    <Play className="w-5 h-5 mr-2 fill-current" /> Start Flashcards ({totalMatchingCount})
+                                </>
+                            )}
                         </Button>
                     </div>
                 </div>
