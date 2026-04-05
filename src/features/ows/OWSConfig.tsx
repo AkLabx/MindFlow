@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { ArrowLeft, Play, Loader2, Target, FileText, Settings, Calendar, Type } from 'lucide-react';
+import { ArrowLeft, Play, Loader2, Target, FileText, Settings, Calendar, Type, CheckCircle } from 'lucide-react';
+import { useOWSProgress } from './hooks/useOWSProgress';
 import { Button } from '../../components/Button/Button';
 import { InitialFilters, QuizMode } from '../quiz/types';
 import { OneWord } from '../../types/models';
@@ -25,6 +26,7 @@ const emptyFilters: InitialFilters = {
     examYear: [],
     examDateShift: [],
     tags: [],
+    readStatus: [],
 };
 
 export const OWSConfig: React.FC<OWSConfigProps> = ({ onStart, onBack }) => {
@@ -32,6 +34,7 @@ export const OWSConfig: React.FC<OWSConfigProps> = ({ onStart, onBack }) => {
     const [selectedLetter, setSelectedLetter] = useState<string | null>(null);
     const [metadata, setMetadata] = useState<OneWord[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const { isLoaded: isProgressLoaded, getReadStatus } = useOWSProgress();
 
     // Load data from JSON dynamically
     useEffect(() => {
@@ -71,6 +74,14 @@ export const OWSConfig: React.FC<OWSConfigProps> = ({ onStart, onBack }) => {
                 // Apply letter filter to these counts
                 if (selectedLetter && !q.content.word.trim().toUpperCase().startsWith(selectedLetter)) return false;
 
+
+                // Apply readStatus filter to these counts
+                if (filters.readStatus && filters.readStatus.length && key !== 'readStatus') {
+                    const isRead = getReadStatus(q);
+                    if (filters.readStatus.includes('read') && !isRead) return false;
+                    if (filters.readStatus.includes('unread') && isRead) return false;
+                }
+
                 if (key === 'pdfName') return q.sourceInfo.pdfName === value;
                 if (key === 'examYear') return String(q.sourceInfo.examYear) === value;
                 if (key === 'difficulty') return q.properties.difficulty === value;
@@ -81,9 +92,10 @@ export const OWSConfig: React.FC<OWSConfigProps> = ({ onStart, onBack }) => {
         allExamNames.forEach(name => c[name] = countFor('pdfName', name));
         allExamYears.forEach(year => c[year] = countFor('examYear', year));
         ['Easy', 'Medium', 'Hard'].forEach(diff => c[diff] = countFor('difficulty', diff));
+        ['read', 'unread'].forEach(status => c[status] = countFor('readStatus' as keyof InitialFilters, status));
 
         return c;
-    }, [metadata, filters, allExamNames, allExamYears, selectedLetter]);
+    }, [metadata, filters, allExamNames, allExamYears, selectedLetter, getReadStatus]);
 
     // Letter Counts
     const letterCounts = useMemo(() => {
@@ -95,12 +107,18 @@ export const OWSConfig: React.FC<OWSConfigProps> = ({ onStart, onBack }) => {
                 if (filters.examYear.length && !filters.examYear.includes(String(q.sourceInfo.examYear))) return false;
                 if (filters.difficulty.length && !filters.difficulty.includes(q.properties.difficulty)) return false;
 
+                if (filters.readStatus && filters.readStatus.length) {
+                    const isRead = getReadStatus(q);
+                    if (filters.readStatus.includes('read') && !isRead) return false;
+                    if (filters.readStatus.includes('unread') && isRead) return false;
+                }
+
                 // Check if word starts with this letter
                 return q.content.word.trim().toUpperCase().startsWith(letter);
             }).length;
         });
         return c;
-    }, [metadata, filters, alphabet]);
+    }, [metadata, filters, alphabet, getReadStatus]);
 
     // Filtered subset for starting
     const filteredData = useMemo(() => {
@@ -109,13 +127,19 @@ export const OWSConfig: React.FC<OWSConfigProps> = ({ onStart, onBack }) => {
             if (filters.examYear.length && !filters.examYear.includes(String(q.sourceInfo.examYear))) return false;
             if (filters.difficulty.length && !filters.difficulty.includes(q.properties.difficulty)) return false;
 
+            if (filters.readStatus && filters.readStatus.length) {
+                const isRead = getReadStatus(q);
+                if (filters.readStatus.includes('read') && !isRead) return false;
+                if (filters.readStatus.includes('unread') && isRead) return false;
+            }
+
             if (selectedLetter) {
                 return q.content.word.trim().toUpperCase().startsWith(selectedLetter);
             }
 
             return true;
         });
-    }, [metadata, filters, selectedLetter]);
+    }, [metadata, filters, selectedLetter, getReadStatus]);
 
     const handleStart = () => {
         if (filteredData.length === 0) {
@@ -133,7 +157,7 @@ export const OWSConfig: React.FC<OWSConfigProps> = ({ onStart, onBack }) => {
         }
     };
 
-    if (isLoading) {
+    if (isLoading || !isProgressLoaded) {
         return (
             <div className="flex items-center justify-center min-h-[60vh]">
                 <SynapticLoader size="lg" />
@@ -262,6 +286,24 @@ export const OWSConfig: React.FC<OWSConfigProps> = ({ onStart, onBack }) => {
                                 );
                             })}
                         </div>
+                    </div>
+
+
+                    {/* Read Status Card */}
+                    <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-teal-100 border-l-4 border-l-teal-400 shadow-sm relative">
+                        <div className="flex items-center gap-2 mb-4 text-teal-800 font-bold text-sm uppercase tracking-wider">
+                            <CheckCircle className="w-4 h-4" /> Read Status
+                        </div>
+
+                        <SegmentedControl
+                            options={['read', 'unread']}
+                            selectedOptions={filters.readStatus || []}
+                            onOptionToggle={(opt) => setFilters(prev => {
+                                const current = prev.readStatus || [];
+                                return { ...prev, readStatus: current.includes(opt as any) ? current.filter(i => i !== opt) : [...current, opt as any] };
+                            })}
+                            counts={counts}
+                        />
                     </div>
 
                     {/* Difficulty Card */}
