@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import { db, SynonymInteraction, AIChatConversation, AIChatMessage, getChatConversations, getChatMessages } from './db';
+import { db, SynonymInteraction, OWSInteraction, AIChatConversation, AIChatMessage, getChatConversations, getChatMessages } from './db';
 import { fetchQuestionsByIds } from '../features/quiz/services/questionService';
 import { Question, SavedQuiz, QuizHistoryRecord } from '../features/quiz/types';
 
@@ -140,6 +140,20 @@ export const syncService = {
     if (error) console.error('Error pushing synonym interaction:', error);
   },
 
+    /**
+   * Pushes an OWS interaction to Supabase.
+   */
+  pushOWSInteraction: async (userId: string, interaction: OWSInteraction) => {
+    const { error } = await supabase.from('user_ows_interactions').upsert({
+      user_id: userId,
+      word_id: interaction.wordId,
+      is_read: interaction.isRead,
+      updated_at: interaction.lastInteractedAt,
+    }, { onConflict: 'user_id, word_id' });
+
+    if (error) console.error('Error pushing OWS interaction:', error);
+  },
+
   removeBookmark: async (userId: string, questionId: string) => {
     const { error } = await supabase.from('user_bookmarks')
       .delete()
@@ -204,6 +218,7 @@ export const syncService = {
     }
   },
 
+
   syncOnLogin: async (userId: string, isSignup: boolean = false) => {
     if (isSyncing) return;
     isSyncing = true;
@@ -216,12 +231,14 @@ export const syncService = {
         { data: remoteQuizzes },
         { data: remoteHistory },
         { data: remoteBookmarks },
-        { data: remoteSynonyms }
+        { data: remoteSynonyms },
+        { data: remoteOWS }
       ] = await Promise.all([
         supabase.from('saved_quizzes').select('*').eq('user_id', userId),
         supabase.from('quiz_history').select('*').eq('user_id', userId),
         supabase.from('user_bookmarks').select('question_id').eq('user_id', userId),
-        supabase.from('user_synonym_interactions').select('*').eq('user_id', userId)
+        supabase.from('user_synonym_interactions').select('*').eq('user_id', userId),
+        supabase.from('user_ows_interactions').select('*').eq('user_id', userId)
       ]);
 
       // 2. Fetch local data
@@ -229,6 +246,7 @@ export const syncService = {
       const localHistory = await db.getQuizHistory();
       const localBookmarks = await db.getAllBookmarks();
       const localSynonyms = await db.getAllSynonymInteractions();
+      const localOWS = await db.getAllOWSInteractions();
 
       if (isSignup) {
         // --- NEW SIGNUP FLOW ---
@@ -237,6 +255,7 @@ export const syncService = {
         const remoteHistoryIds = new Set((remoteHistory || []).map(h => h.id));
         const remoteBookmarkIds = new Set((remoteBookmarks || []).map(b => b.question_id));
         const remoteSynonymIds = new Set((remoteSynonyms || []).map(s => s.word_id));
+        const remoteOWSIds = new Set((remoteOWS || []).map(o => o.word_id));
 
         for (const quiz of localQuizzes) {
           if (!remoteQuizIds.has(quiz.id)) {
@@ -256,6 +275,11 @@ export const syncService = {
         for (const syn of localSynonyms) {
           if (!remoteSynonymIds.has(syn.wordId)) {
             await syncService.pushSynonymInteraction(userId, syn);
+          }
+        }
+        for (const ows of localOWS) {
+          if (!remoteOWSIds.has(ows.wordId)) {
+            await syncService.pushOWSInteraction(userId, ows);
           }
         }
 
@@ -312,6 +336,16 @@ export const syncService = {
             viewedWordFamily: remote.viewed_word_family,
             lastInteractedAt: remote.last_interacted_at
           });
+        }
+      }
+
+      if (remoteOWS && remoteOWS.length > 0) {
+        for (const remote of remoteOWS) {
+           await db.saveOWSInteraction({
+              wordId: remote.word_id,
+              isRead: remote.is_read,
+              lastInteractedAt: remote.updated_at
+           });
         }
       }
 

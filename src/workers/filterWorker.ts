@@ -35,7 +35,7 @@ self.onmessage = (e: MessageEvent<{ type: 'INIT' | 'CALCULATE', allQuestions?: Q
                       return selected.some(tag => value.includes(tag));
                   }
                   if (typeof value === 'string') {
-                      return selected.includes(value);
+                      return (selected as string[]).includes(value);
                   }
                   return false;
               });

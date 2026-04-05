@@ -233,10 +233,10 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
   const handleSegmentToggle = useCallback((key: keyof InitialFilters, option: string) => {
     setFilters(prev => {
       const current = prev[key];
-      const isSelected = current.includes(option);
+      const isSelected = (current as string[]).includes(option);
       return {
         ...prev,
-        [key]: isSelected ? current.filter(i => i !== option) : [...current, option]
+        [key]: isSelected ? current.filter(i => i !== option) : [...current, option as any]
       };
     });
   }, []);
