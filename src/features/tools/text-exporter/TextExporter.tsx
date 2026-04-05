@@ -37,6 +37,7 @@ const TextExporter: React.FC = () => {
     const { showToast } = useNotification();
     const [text, setText] = useState<string>(DEFAULT_TEMPLATE);
     const [viewMode, setViewMode] = useState<'edit' | 'preview'>('edit');
+    const isHtmlDocument = /<html/i.test(text.trim()) || /<!DOCTYPE html>/i.test(text.trim());
 
     // Stats calculation
     const stats = useMemo(() => {
@@ -51,8 +52,12 @@ const TextExporter: React.FC = () => {
         let mimeType = 'text/plain';
 
         if (format === 'html') {
-            // Generate basic HTML wrapper with simple styling
-            content = `<!DOCTYPE html>
+            if (isHtmlDocument) {
+                // If it's already a full HTML document, download it exactly as is
+                content = text;
+            } else {
+                // Otherwise wrap the processed markdown in a basic HTML structure
+                content = `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -70,12 +75,12 @@ const TextExporter: React.FC = () => {
     </style>
 </head>
 <body>
-    <!-- Processed Markdown Content -->
     <div id="content">
     ${new MarkdownIt({ html: true }).render(text)}
     </div>
 </body>
 </html>`;
+            }
             mimeType = 'text/html';
         } else if (format === 'md') {
             mimeType = 'text/markdown';
@@ -159,35 +164,44 @@ const TextExporter: React.FC = () => {
 
                         {/* Preview View */}
                         <div className={`flex-1 w-full h-full p-4 sm:p-8 overflow-y-auto custom-scrollbar ${viewMode === 'preview' ? 'block' : 'hidden md:block'} bg-white/40 dark:bg-slate-900/40`}>
-                            {viewMode === 'edit' && <div className="absolute top-4 right-4 px-3 py-1 bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 rounded-full text-xs font-bold uppercase tracking-wider md:block hidden">Live Preview</div>}
-                            <div className="prose prose-rose dark:prose-invert max-w-none">
-                                <ReactMarkdown
-                                    remarkPlugins={[remarkGfm]}
-                                    rehypePlugins={[rehypeKatex, rehypeRaw]}
-                                    components={{
-                                        code({ node, inline, className, children, ...props }: any) {
-                                            const match = /language-(\w+)/.exec(className || '');
-                                            return !inline && match ? (
-                                                <SyntaxHighlighter
-                                                    style={vscDarkPlus as any}
-                                                    language={match[1]}
-                                                    PreTag="div"
-                                                    className="rounded-xl shadow-sm !my-4 !bg-slate-900 border border-slate-800"
-                                                    {...props}
-                                                >
-                                                    {String(children).replace(/\n$/, '')}
-                                                </SyntaxHighlighter>
-                                            ) : (
-                                                <code className="bg-gray-100 dark:bg-slate-800 px-1.5 py-0.5 rounded-md text-rose-500 dark:text-rose-400 font-mono text-sm" {...props}>
-                                                    {children}
-                                                </code>
-                                            );
-                                        }
-                                    }}
-                                >
-                                    {text || '*Nothing to preview.*'}
-                                </ReactMarkdown>
-                            </div>
+{viewMode === 'edit' && <div className="absolute top-4 right-4 px-3 py-1 bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 rounded-full text-xs font-bold uppercase tracking-wider md:block hidden z-20">Live Preview</div>}
+                            {isHtmlDocument ? (
+                                <iframe
+                                    srcDoc={text}
+                                    title="HTML Preview"
+                                    className="w-full h-full border-0 bg-white rounded-xl"
+                                    sandbox="allow-scripts allow-same-origin"
+                                />
+                            ) : (
+                                <div className="prose prose-rose dark:prose-invert max-w-none">
+                                    <ReactMarkdown
+                                        remarkPlugins={[remarkGfm]}
+                                        rehypePlugins={[rehypeKatex, rehypeRaw]}
+                                        components={{
+                                            code({ node, inline, className, children, ...props }: any) {
+                                                const match = /language-(\w+)/.exec(className || '');
+                                                return !inline && match ? (
+                                                    <SyntaxHighlighter
+                                                        style={vscDarkPlus as any}
+                                                        language={match[1]}
+                                                        PreTag="div"
+                                                        className="rounded-xl shadow-sm !my-4 !bg-slate-900 border border-slate-800"
+                                                        {...props}
+                                                    >
+                                                        {String(children).replace(/\n$/, '')}
+                                                    </SyntaxHighlighter>
+                                                ) : (
+                                                    <code className="bg-gray-100 dark:bg-slate-800 px-1.5 py-0.5 rounded-md text-rose-500 dark:text-rose-400 font-mono text-sm" {...props}>
+                                                        {children}
+                                                    </code>
+                                                );
+                                            }
+                                        }}
+                                    >
+                                        {text || '*Nothing to preview.*'}
+                                    </ReactMarkdown>
+                                </div>
+                            )}
                         </div>
                     </div>
 
