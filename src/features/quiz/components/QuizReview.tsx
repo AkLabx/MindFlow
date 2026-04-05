@@ -222,7 +222,7 @@ export const QuizReview: React.FC<QuizReviewProps> = ({
 
       {/* Main Review Content */}
       {currentQuestion ? (
-        <div className="space-y-6 pb-20">
+        <div id="quiz-card-container" className="space-y-6 pb-20">
             {/* Question Card */}
             <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 md:p-8 relative overflow-hidden">
                 
