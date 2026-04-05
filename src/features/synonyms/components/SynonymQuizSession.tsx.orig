@@ -5,7 +5,6 @@ import { quizEngine } from '../../quiz/engine';
 import { ImposterGame } from './ImposterGame';
 import { ConnectGame } from './ConnectGame';
 import { SpeedGame } from './SpeedGame';
-import { SynapticLoader } from '../../../components/ui/SynapticLoader';
 
 interface SynonymQuizSessionProps {
     onExit: () => void;
@@ -100,12 +99,7 @@ export const SynonymQuizSession: React.FC<SynonymQuizSessionProps> = ({ onExit }
     };
 
     if (isLoading) {
-        return (
-            <div className="flex flex-col items-center justify-center h-full p-8 text-slate-500">
-                <SynapticLoader size="xl" className="mb-4" />
-                <p className="text-lg font-medium animate-pulse">Loading Game Engine...</p>
-            </div>
-        );
+        return <div className="p-8 text-center text-slate-500">Loading Game Engine...</div>;
     }
 
     if (gameState === 'results') {
