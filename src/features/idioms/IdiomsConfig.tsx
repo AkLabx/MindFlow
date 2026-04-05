@@ -101,8 +101,8 @@ export const IdiomsConfig: React.FC<IdiomsConfigProps> = ({ onStart, onBack }) =
     }
 
     return (
-        <div className="flex flex-col min-h-screen -m-4 sm:-m-6 lg:-m-8 p-4 sm:p-6 lg:p-8 transition-colors duration-700 relative overflow-hidden bg-slate-50 dark:bg-slate-900">
-            <div className="flex items-center gap-4 mb-6 z-10 sticky top-0 bg-slate-50/80 dark:bg-slate-900/80 backdrop-blur-md pb-4 pt-2 -mt-2">
+        <div className="flex flex-col min-h-screen p-4 sm:p-6 lg:p-8 transition-colors duration-700 relative overflow-y-auto bg-slate-50 dark:bg-slate-900">
+            <div className="flex items-center gap-4 mb-6 z-10 sticky top-0 bg-slate-50/90 dark:bg-slate-900/90 backdrop-blur-md pb-4 pt-4 -mt-4 -mx-4 px-4 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8 border-b border-slate-200 dark:border-slate-800">
                 <button
                     onClick={onBack}
                     className="p-3 rounded-xl bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-all border border-slate-200 dark:border-slate-700 shadow-sm"
@@ -242,8 +242,11 @@ export const IdiomsConfig: React.FC<IdiomsConfigProps> = ({ onStart, onBack }) =
                     </div>
                 </div>
 
-                <div className="mt-8 sticky bottom-4 z-10">
-                    <div className="bg-white dark:bg-slate-800 backdrop-blur-md border border-indigo-200 shadow-xl rounded-2xl p-4">
+                </div>
+                <div className="pb-32"></div>
+                {/* Sticky Action Footer */}
+                <div className="fixed bottom-0 left-0 w-full z-[40] border-t border-slate-200 dark:border-slate-700 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md px-4 py-3 pb-safe md:px-6 md:py-4 shadow-[0_-4px_15px_-5px_rgba(0,0,0,0.1)] dark:shadow-none">
+                    <div className="max-w-4xl mx-auto">
                         <div className="mb-4">
                             <ActiveFiltersBar filters={filters} onRemoveFilter={handleRemoveFilter} onClearAll={() => setFilters(emptyFilters)} />
                         </div>
@@ -262,7 +265,6 @@ export const IdiomsConfig: React.FC<IdiomsConfigProps> = ({ onStart, onBack }) =
                                 </>
                             )}
                         </Button>
-                    </div>
                 </div>
             </div>
         </div>

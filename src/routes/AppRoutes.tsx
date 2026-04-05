@@ -150,15 +150,7 @@ const AppRoutesContent: React.FC = () => {
                     <Route path="/quiz/analytics" element={<PerformanceAnalytics />} />
                     <Route path="/quiz/bookmarks" element={<BookmarksPage />} />
 
-                    <Route path="/idioms/config" element={
-                        <IdiomsConfig
-                            onBack={() => { enterEnglishHome(); navTo('/english'); }}
-                            onStart={(data, filters) => {
-                                flashcardStore.startIdioms(data as any, filters);
-                                navTo('/flashcards/session');
-                            }}
-                        />
-                    } />
+
 
 
 
@@ -177,15 +169,7 @@ const AppRoutesContent: React.FC = () => {
 
 
 
-                    <Route path="/ows/config" element={
-                        <OWSConfig
-                            onBack={() => { enterEnglishHome(); navTo('/english'); }}
-                            onStart={(data, filters) => {
-                                flashcardStore.startOWS(data, filters);
-                                navTo('/ows/session');
-                            }}
-                        />
-                    } />
+
 
                     <Route path="/profile" element={
                         <ProfilePage
@@ -247,6 +231,27 @@ const AppRoutesContent: React.FC = () => {
                 </Route>
 
                 {/* --- Immersive Session Routes (No Layout, Fullscreen) --- */}
+
+                    <Route path="/idioms/config" element={
+                        <IdiomsConfig
+                            onBack={() => { enterEnglishHome(); navTo('/english'); }}
+                            onStart={(data, filters) => {
+                                flashcardStore.startIdioms(data as any, filters);
+                                navTo('/flashcards/session');
+                            }}
+                        />
+                    } />
+
+                    <Route path="/ows/config" element={
+                        <OWSConfig
+                            onBack={() => { enterEnglishHome(); navTo('/english'); }}
+                            onStart={(data, filters) => {
+                                flashcardStore.startOWS(data, filters);
+                                navTo('/ows/session');
+                            }}
+                        />
+                    } />
+
 
                     <Route path="/quiz/config" element={
                         <QuizConfig
