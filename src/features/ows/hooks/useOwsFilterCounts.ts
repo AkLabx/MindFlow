@@ -7,10 +7,11 @@ export type OwsMetadata = {
     examName: string;
     examYear: string;
     difficulty: string;
+    readStatus: string;
 };
 
-type FilterKeys = 'alphabet' | 'examName' | 'examYear' | 'difficulty';
-const filterKeys: FilterKeys[] = ['alphabet', 'examName', 'examYear', 'difficulty'];
+type FilterKeys = 'alphabet' | 'examName' | 'examYear' | 'difficulty' | 'readStatus';
+const filterKeys: FilterKeys[] = ['alphabet', 'examName', 'examYear', 'difficulty', 'readStatus'];
 
 export function useOwsQuestionIndex(metadata: OwsMetadata[]) {
     return useMemo(() => {

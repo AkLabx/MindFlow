@@ -1,41 +1,58 @@
 import { supabase } from '../../../lib/supabase';
 import { Idiom, InitialFilters } from '../../../types/models';
 
-export async function getUniqueIdiomFilters() {
-    const { data: examNamesData, error: nameError } = await supabase.from('idiom').select('source_pdf').not('source_pdf', 'is', null);
-    const { data: examYearsData, error: yearError } = await supabase.from('idiom').select('exam_year').not('exam_year', 'is', null);
+export async function fetchIdiomMetadata() {
+    let allData: any[] = [];
+    let start = 0;
+    const limit = 1000;
+    let hasMore = true;
 
-    if (nameError) console.error("Error fetching Idiom exam names:", nameError);
-    if (yearError) console.error("Error fetching Idiom exam years:", yearError);
+    while (hasMore) {
+        const { data, error } = await supabase
+            .from('idiom')
+            .select('id, phrase, source_pdf, exam_year, difficulty')
+            .range(start, start + limit - 1);
 
-    const allExamNames = Array.from(new Set((examNamesData || []).map(r => r.source_pdf))).sort();
-    const allExamYears = Array.from(new Set((examYearsData || []).map(r => String(r.exam_year)))).sort();
+        if (error) {
+            console.error("Error fetching Idiom metadata:", error);
+            break;
+        }
 
-    return { allExamNames, allExamYears };
-}
-
-export async function getIdiomCount(filters: InitialFilters, selectedLetter: string | null): Promise<number> {
-    let query = supabase.from('idiom').select('id', { count: 'exact', head: true });
-
-    if (filters.examName.length > 0) {
-        query = query.in('source_pdf', filters.examName);
+        if (data && data.length > 0) {
+            allData = [...allData, ...data];
+            start += limit;
+            if (data.length < limit) {
+                hasMore = false;
+            }
+        } else {
+            hasMore = false;
+        }
     }
-    if (filters.examYear.length > 0) {
-        query = query.in('exam_year', filters.examYear.map(Number));
-    }
-    if (filters.difficulty.length > 0) {
-        query = query.in('difficulty', filters.difficulty);
-    }
-    if (selectedLetter) {
-        query = query.ilike('phrase', `${selectedLetter}%`);
+
+    // Fetch user interactions for read status
+    const { data: userData } = await supabase.auth.getUser();
+    let readIds = new Set<string>();
+
+    if (userData?.user) {
+        const { data: interactions, error: intError } = await supabase
+            .from('user_idiom_interactions')
+            .select('idiom_id')
+            .eq('user_id', userData.user.id)
+            .eq('is_read', true);
+
+        if (!intError && interactions) {
+            interactions.forEach(int => readIds.add(String(int.idiom_id)));
+        }
     }
 
-    const { count, error } = await query;
-    if (error) {
-        console.error("Error fetching Idiom count:", error);
-        return 0;
-    }
-    return count || 0;
+    return allData.map(row => ({
+        id: String(row.id),
+        alphabet: row.phrase ? row.phrase.charAt(0).toUpperCase() : '',
+        examName: row.source_pdf || 'Unknown',
+        examYear: String(row.exam_year || ''),
+        difficulty: row.difficulty || 'Medium',
+        readStatus: readIds.has(String(row.id)) ? 'read' : 'unread'
+    }));
 }
 
 export async function getFilteredIdioms(filters: InitialFilters, selectedLetter: string | null): Promise<Idiom[]> {
@@ -84,21 +101,4 @@ export async function getFilteredIdioms(filters: InitialFilters, selectedLetter:
             }
         }
     })) as Idiom[];
-}
-
-
-export async function fetchIdiomMetadata() {
-    // Fetch only the properties needed for filtering
-    const { data, error } = await supabase.from('idiom').select('id, phrase, source_pdf, exam_year, difficulty');
-    if (error) {
-        console.error("Error fetching Idiom metadata:", error);
-        return [];
-    }
-    return (data || []).map(row => ({
-        id: row.id,
-        alphabet: row.phrase ? row.phrase.charAt(0).toUpperCase() : '',
-        examName: row.source_pdf || 'Unknown',
-        examYear: String(row.exam_year || ''),
-        difficulty: row.difficulty || 'Medium'
-    }));
 }

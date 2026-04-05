@@ -225,9 +225,8 @@ export const OWSConfig: React.FC<OWSConfigProps> = ({ onStart, onBack }) => {
                                 const current = prev.readStatus || [];
                                 return { ...prev, readStatus: current.includes(opt as any) ? current.filter(i => i !== opt) : [...current, opt as any] };
                             })}
-                            counts={{}}
+                            counts={filterCounts.readStatus || {}}
                         />
-                        <p className="text-xs text-slate-400 mt-2">Read status is locally tracked and not filtered by server currently.</p>
                     </div>
 
                     {/* Difficulty Card */}
