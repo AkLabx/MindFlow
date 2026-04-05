@@ -80,7 +80,7 @@ export const OWSCard: React.FC<OWSCardProps> = ({ data, serialNumber, isFlipped 
         {/* --- BACK FACE --- */}
         <div className="absolute inset-0 w-full h-full backface-hidden rotate-y-180 rounded-3xl overflow-hidden bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm flex flex-col">
           {/* Header */}
-          <div className="bg-teal-50 p-4 border-b border-teal-100 flex justify-between items-center">
+          <div className="bg-teal-50 p-4 border-b border-teal-100 flex justify-between items-center" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center gap-2">
               <h3 className="font-bold text-teal-900 truncate max-w-[200px] font-serif text-lg">{data.content.word}</h3>
               <span className="text-[10px] px-2 py-0.5 bg-teal-200 text-teal-800 rounded-full font-bold uppercase tracking-wide">
@@ -104,9 +104,6 @@ export const OWSCard: React.FC<OWSCardProps> = ({ data, serialNumber, isFlipped 
                 {isRead ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Circle className="w-3.5 h-3.5" />}
                 {isRead ? 'Marked as Read' : 'Mark as Read'}
               </button>
-              <div className="text-teal-400">
-                <BookOpen className="w-5 h-5" />
-              </div>
             </div>
           </div>
 
