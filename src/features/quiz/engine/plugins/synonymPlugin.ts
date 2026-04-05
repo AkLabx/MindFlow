@@ -1,27 +1,15 @@
 import { QuizPlugin } from '../quizPlugin';
 import { SynonymWord } from '../../types';
-import { supabase } from '../../../../lib/supabase';
+import { fetchAllSynonyms } from '../../../synonyms/services/synonymService';
 
 export const synonymPlugin: QuizPlugin<SynonymWord, string> = {
   type: 'synonym',
 
   async loadQuestions(): Promise<SynonymWord[]> {
     try {
-      const { data, error } = await supabase
-        .from('synonym')
-        .select('*');
-
-      if (error) throw error;
-
-      // Safely map and parse JSON columns if they come back as strings or JSONB
-      return (data || []).map(row => ({
-        ...row,
-        synonyms: typeof row.synonyms === 'string' ? JSON.parse(row.synonyms) : row.synonyms,
-        antonyms: typeof row.antonyms === 'string' ? JSON.parse(row.antonyms) : row.antonyms,
-        confusable_with: typeof row.confusable_with === 'string' ? JSON.parse(row.confusable_with) : row.confusable_with
-      })) as SynonymWord[];
+      return await fetchAllSynonyms();
     } catch (e) {
-      console.error("Failed to load synonym plugin data from Supabase", e);
+      console.error("Failed to load synonym plugin data", e);
       return [];
     }
   },
