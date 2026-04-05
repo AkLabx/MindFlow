@@ -447,7 +447,7 @@ export const LearningSession: React.FC<LearningSessionProps> = ({
             footer={footer}
             overlays={overlays}
         >
-            <div className={cn("pb-8", isPaused && "filter blur-lg transition-all duration-300 select-none pointer-events-none")}>
+            <div id="quiz-card-container" className={cn("pb-8", isPaused && "filter blur-lg transition-all duration-300 select-none pointer-events-none")}>
                 <QuizQuestionDisplay
                     question={currentQuestion}
                     selectedAnswer={userAnswer}

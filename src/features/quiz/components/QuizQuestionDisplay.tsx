@@ -2,7 +2,8 @@ import React, { useMemo, useEffect } from 'react';
 import { Question } from '../types';
 import { QuizOption } from './QuizOption';
 import { AiExplanationButton } from './AiExplanationButton';
-import { Clock, Hash, Calendar, FileText, Volume2, Square, Loader2, Copy, Check } from 'lucide-react';
+import { Clock, Hash, Calendar, FileText, Volume2, Square, Loader2, Copy, Check, Download } from 'lucide-react';
+import html2canvas from 'html2canvas';
 import { useTextToSpeech } from '../hooks/useTextToSpeech';
 import { useNotification } from '../../../hooks/useNotification';
 import { SynapticLoader } from '../../../components/ui/SynapticLoader';
@@ -104,6 +105,54 @@ export function QuizQuestionDisplay({
         return text.trim();
     }, [stripHtmlRegex]);
 
+
+    const handleDownload = React.useCallback(async () => {
+        try {
+            const container = document.getElementById('quiz-card-container');
+            if (!container) {
+                console.error('Quiz container not found');
+                showToast({ variant: 'error', message: 'Could not find element to capture', duration: 2000 });
+                return;
+            }
+
+            // Save original styles
+            const originalMaxHeight = container.style.maxHeight;
+            const originalOverflow = container.style.overflow;
+
+            // Modify styles to capture full content
+            container.style.maxHeight = 'none';
+            container.style.overflow = 'visible';
+
+            // Slight delay to ensure DOM updates
+            await new Promise(resolve => setTimeout(resolve, 50));
+
+            const canvas = await html2canvas(container, {
+                useCORS: true,
+                scale: 2,
+                backgroundColor: document.documentElement.classList.contains('dark') ? '#1e293b' : '#ffffff',
+                windowWidth: container.scrollWidth,
+                windowHeight: container.scrollHeight,
+            });
+
+            // Restore original styles
+            container.style.maxHeight = originalMaxHeight;
+            container.style.overflow = originalOverflow;
+
+            const image = canvas.toDataURL('image/png');
+            const link = document.createElement('a');
+            link.href = image;
+            link.download = `MindFlow-Question-${question.id || 'export'}.png`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            showToast({ variant: 'success', message: 'Downloaded successfully', duration: 2000 });
+        } catch (err) {
+            console.error("Failed to download image: ", err);
+            showToast({ variant: 'error', message: 'Failed to download image', duration: 2000 });
+        }
+    }, [question.id, showToast]);
+
     const handleCopy = React.useCallback(async () => {
         try {
             const textToCopy = formatCopyText(question);
@@ -196,6 +245,13 @@ export function QuizQuestionDisplay({
                            title="Copy Question & Options"
                        >
                            {isCopied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
+                       </button>
+                       <button
+                           onClick={handleDownload}
+                           className="flex items-center justify-center mt-3 px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 rounded-full hover:bg-gray-50 dark:hover:bg-gray-700 transition-all shadow-sm"
+                           title="Download Question Card"
+                       >
+                           <Download className="w-4 h-4" />
                        </button>
                        <AiExplanationButton question={question} selectedAnswer={selectedAnswer} />
                    </div>
