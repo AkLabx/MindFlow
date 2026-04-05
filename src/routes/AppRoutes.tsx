@@ -141,7 +141,7 @@ const AppRoutesContent: React.FC = () => {
                             onBack={() => { enterHome(); navTo('/dashboard'); }}
                             onIdiomsClick={() => { enterIdiomsConfig(); navTo('/idioms/config'); }}
                             onOWSClick={() => { enterOWSConfig(); navTo('/ows/config'); }}
-                            onSynonymsClick={() => navTo('/synonyms/config')}
+                            onSynonymsClick={() => { enterSynonymsConfig(); navTo('/synonyms/config'); }}
                         />
                     } />
 
