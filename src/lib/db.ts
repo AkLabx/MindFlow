@@ -17,6 +17,12 @@ export interface SynonymInteraction {
 
 
 
+export interface IdiomInteraction {
+  idiomId: string;
+  isRead: boolean;
+  lastInteractedAt: string;
+}
+
 export interface OWSInteraction {
   wordId: string;
   isRead: boolean;
@@ -24,7 +30,7 @@ export interface OWSInteraction {
 }
 
 const DB_NAME = 'MindFlowDB';
-const DB_VERSION = 6;
+const DB_VERSION = 7;
 const STORE_NAME = 'saved_quizzes';
 const HISTORY_STORE_NAME = 'quiz_history';
 const BOOKMARKS_STORE_NAME = 'global_bookmarks';
@@ -33,6 +39,7 @@ const CHAT_CONVERSATIONS_STORE = 'chat_conversations';
 const CHAT_MESSAGES_STORE = 'chat_messages';
 const ACTIVE_SESSION_STORE = 'active_test_session';
 const OWS_STORE_NAME = 'ows_interactions';
+const IDIOM_STORE_NAME = 'idiom_interactions';
 
 /**
  * Opens a connection to the IndexedDB database.
@@ -70,6 +77,9 @@ const openDB = (): Promise<IDBDatabase> => {
             if (!db.objectStoreNames.contains(OWS_STORE_NAME)) {
                 db.createObjectStore(OWS_STORE_NAME, { keyPath: 'wordId' });
             }
+            if (!db.objectStoreNames.contains(IDIOM_STORE_NAME)) {
+                db.createObjectStore(IDIOM_STORE_NAME, { keyPath: 'idiomId' });
+            }
         };
 
         request.onsuccess = (event) => {
@@ -98,7 +108,8 @@ export const db = {
             db.clearQuizHistory(),
             db.clearBookmarks(),
             db.clearSynonymInteractions(),
-            db.clearOWSInteractions()
+            db.clearOWSInteractions(),
+            db.clearIdiomInteractions()
         ]);
     },
 
@@ -148,7 +159,7 @@ export const db = {
     },
 
     /** Background push helper to sync to Supabase if logged in */
-    _pushToSupabase: async (type: 'quiz' | 'history' | 'bookmark' | 'synonym_interaction' | 'ows_interaction', data: any) => {
+    _pushToSupabase: async (type: 'quiz' | 'history' | 'bookmark' | 'synonym_interaction' | 'ows_interaction' | 'idiom_interaction', data: any) => {
         try {
             const { data: { session } } = await supabase.auth.getSession();
             if (!session?.user) return;
@@ -157,6 +168,7 @@ export const db = {
             else if (type === 'bookmark') await syncService.pushBookmark(session.user.id, data);
             else if (type === 'synonym_interaction') await syncService.pushSynonymInteraction(session.user.id, data);
             else if (type === 'ows_interaction') await syncService.pushOWSInteraction(session.user.id, data);
+            else if (type === 'idiom_interaction') await syncService.pushIdiomInteraction(session.user.id, data);
         } catch (e) {
             console.error('Background push error:', e);
         }
@@ -559,6 +571,55 @@ export const db = {
         return new Promise((resolve, reject) => {
             const transaction = dbInstance.transaction(OWS_STORE_NAME, 'readwrite');
             const store = transaction.objectStore(OWS_STORE_NAME);
+            const request = store.clear();
+
+            request.onsuccess = () => resolve();
+            request.onerror = () => reject(request.error);
+        });
+    },
+
+
+    /**
+     * Saves an Idiom interaction.
+     */
+    saveIdiomInteraction: async (interaction: IdiomInteraction): Promise<void> => {
+        const dbInstance = await openDB();
+        return new Promise((resolve, reject) => {
+            const transaction = dbInstance.transaction(IDIOM_STORE_NAME, 'readwrite');
+            const store = transaction.objectStore(IDIOM_STORE_NAME);
+            const request = store.put(interaction);
+
+            request.onsuccess = () => {
+                db._pushToSupabase('idiom_interaction', interaction);
+                resolve();
+            };
+            request.onerror = () => reject(request.error);
+        });
+    },
+
+    /**
+     * Retrieves all Idiom interactions.
+     */
+    getAllIdiomInteractions: async (): Promise<IdiomInteraction[]> => {
+        const dbInstance = await openDB();
+        return new Promise((resolve, reject) => {
+            const transaction = dbInstance.transaction(IDIOM_STORE_NAME, 'readonly');
+            const store = transaction.objectStore(IDIOM_STORE_NAME);
+            const request = store.getAll();
+
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = () => reject(request.error);
+        });
+    },
+
+    /**
+     * Clears all Idiom interactions.
+     */
+    clearIdiomInteractions: async (): Promise<void> => {
+        const dbInstance = await openDB();
+        return new Promise((resolve, reject) => {
+            const transaction = dbInstance.transaction(IDIOM_STORE_NAME, 'readwrite');
+            const store = transaction.objectStore(IDIOM_STORE_NAME);
             const request = store.clear();
 
             request.onsuccess = () => resolve();
