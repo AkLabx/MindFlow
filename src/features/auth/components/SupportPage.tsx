@@ -57,7 +57,7 @@ const SupportPage: React.FC<SupportPageProps> = ({ onBack }) => {
 
         {/* Share Achievements */}
         <div className="bg-gradient-to-br from-green-500 to-emerald-600 rounded-3xl shadow-lg p-8 relative overflow-hidden group hover:shadow-emerald-500/30 transition-shadow">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-white dark:bg-gray-800/10 rounded-bl-full backdrop-blur-sm -z-0"></div>
+          <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 dark:bg-gray-800/10 rounded-bl-full backdrop-blur-sm pointer-events-none"></div>
 
           <div className="relative z-10 flex items-center gap-4 mb-6">
             <div className="w-14 h-14 bg-white dark:bg-gray-800/20 rounded-2xl flex items-center justify-center text-white backdrop-blur-sm border border-white/30">
@@ -69,7 +69,7 @@ const SupportPage: React.FC<SupportPageProps> = ({ onBack }) => {
             </div>
           </div>
 
-          <button className="relative z-10 w-full flex items-center justify-center gap-3 p-4 bg-white dark:bg-gray-800 text-emerald-700 rounded-2xl font-black text-lg shadow-md hover:bg-emerald-50 hover:scale-[1.02] transition-all duration-300">
+          <button onClick={() => window.open('https://wa.me/?text=' + encodeURIComponent('Check out my progress on MindFlow! https://aklabx.github.io/MindFlow/'), '_blank')} className="relative z-10 w-full flex items-center justify-center gap-3 p-4 bg-white dark:bg-gray-800 text-emerald-700 rounded-2xl font-black text-lg shadow-md hover:bg-emerald-50 hover:scale-[1.02] transition-all duration-300">
             <Share2 className="w-5 h-5" />
             Share via WhatsApp
           </button>
@@ -78,11 +78,11 @@ const SupportPage: React.FC<SupportPageProps> = ({ onBack }) => {
         {/* Legal & Policies */}
         <div className="pt-8 pb-4">
             <div className="flex items-center justify-center gap-6 text-sm font-bold text-slate-500 dark:text-slate-400">
-                <a href="#" className="flex items-center gap-2 hover:text-indigo-600 dark:text-indigo-400 transition-colors">
+                <a href="#/privacy-policy" className="flex items-center gap-2 hover:text-indigo-600 dark:text-indigo-400 transition-colors">
                     <ShieldCheck className="w-4 h-4" /> Privacy Policy
                 </a>
                 <span className="w-1.5 h-1.5 bg-slate-300 rounded-full"></span>
-                <a href="#" className="flex items-center gap-2 hover:text-indigo-600 dark:text-indigo-400 transition-colors">
+                <a href="#/about/terms-of-use" className="flex items-center gap-2 hover:text-indigo-600 dark:text-indigo-400 transition-colors">
                     <FileText className="w-4 h-4" /> Terms of Service
                 </a>
             </div>
