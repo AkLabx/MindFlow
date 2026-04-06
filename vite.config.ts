@@ -32,7 +32,7 @@ export default defineConfig(({ mode }) => {
       plugins: [
         react(),
         VitePWA({
-          registerType: 'autoUpdate',
+          registerType: 'prompt',
           includeAssets: ['mindflow-icon.svg', 'sitemap.xml', 'robots.txt', 'googlef2cc72f43f58845a.html'],
           manifest: {
             name: 'MindFlow Quiz',
