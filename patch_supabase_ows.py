@@ -1,34 +1,8 @@
-import { supabase } from '../../../lib/supabase';
-import { OneWord, InitialFilters } from '../../../types/models';
+with open("src/features/ows/utils/supabaseOws.ts", "r") as f:
+    content = f.read()
 
-export async function fetchOwsMetadata() {
-    let allData: any[] = [];
-    let start = 0;
-    const limit = 1000;
-    let hasMore = true;
-
-    while (hasMore) {
-        const { data, error } = await supabase
-            .from('ows')
-            .select('id, word, source_pdf, exam_year, difficulty')
-            .range(start, start + limit - 1);
-
-        if (error) {
-            console.error("Error fetching OWS metadata:", error);
-            break;
-        }
-
-        if (data && data.length > 0) {
-            allData = [...allData, ...data];
-            start += limit;
-            if (data.length < limit) {
-                hasMore = false;
-            }
-        } else {
-            hasMore = false;
-        }
-    }
-
+# Add spatial statuses into metadata fetch
+metadata_logic = """
     // Fetch user interactions for read status and spatial engine
     const { data: userData } = await supabase.auth.getUser();
     let userInteractions: Record<string, any> = {};
@@ -61,33 +35,15 @@ export async function fetchOwsMetadata() {
         };
     });
 }
+"""
 
-export async function getFilteredOws(filters: InitialFilters, selectedLetter: string | null): Promise<OneWord[]> {
-    let query = supabase.from('ows').select('*');
+import re
+content = re.sub(r'// Fetch user interactions[\s\S]*?\}\)', metadata_logic, content)
 
-    if (filters.examName.length > 0) {
-        query = query.in('source_pdf', filters.examName);
-    }
-    if (filters.examYear.length > 0) {
-        query = query.in('exam_year', filters.examYear.map(Number));
-    }
-    if (filters.difficulty.length > 0) {
-        query = query.in('difficulty', filters.difficulty);
-    }
-    if (selectedLetter) {
-        query = query.ilike('word', `${selectedLetter}%`);
-    }
-
-    // Limit to 5000 just in case to prevent massive memory spikes if unfiltered
-    const { data, error } = await query.limit(5000);
-
-    if (error) {
-        console.error("Error fetching OWS data:", error);
-        return [];
-    }
-
+# Inject deck filtering logic
+deck_filter_logic = """
     let parsedData = (data || []).map(row => ({
-        id: row.word || row.id, // Use word as spatial ID
+        id: row.word, // Use word as spatial ID
         sourceInfo: {
             pdfName: row.source_pdf || 'Unknown',
             examYear: row.exam_year || 0
@@ -142,7 +98,7 @@ export async function getFilteredOws(filters: InitialFilters, selectedLetter: st
              return true;
         });
 
-        // Sort mix: Put "due" ones before "unseen" ones
+        // Sort mix: Put "due" ones before "unseen" ones, or randomize
         if (mode === 'Mix') {
              parsedData.sort((a, b) => {
                  const aDue = interactMap.has(a.id) ? 1 : 0;
@@ -154,3 +110,9 @@ export async function getFilteredOws(filters: InitialFilters, selectedLetter: st
 
     return parsedData;
 }
+"""
+
+content = re.sub(r'    return \(data \|\| \[\]\)[\s\S]*?\}', deck_filter_logic, content)
+
+with open("src/features/ows/utils/supabaseOws.ts", "w") as f:
+    f.write(content)

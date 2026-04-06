@@ -70,6 +70,19 @@ export const OWSSession: React.FC<OWSSessionProps> = ({
   filters
 }) => {
   const { user } = useAuth();
+
+  const [hasSeenTutorial, setHasSeenTutorial] = useState(true);
+
+  useEffect(() => {
+     const seen = localStorage.getItem('has_seen_swipe_tutorial');
+     if (!seen) setHasSeenTutorial(false);
+  }, []);
+
+  const dismissTutorial = () => {
+     setHasSeenTutorial(true);
+     localStorage.setItem('has_seen_swipe_tutorial', 'true');
+  };
+
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [isFlipped, setIsFlipped] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
@@ -148,23 +161,66 @@ export const OWSSession: React.FC<OWSSessionProps> = ({
    */
 
 
-  // Sync Worker
+
+  // Phase 2: True Offline-First Event Sourcing & Disaster Recovery
   useEffect(() => {
      if (!user) return;
 
-     const syncInterval = setInterval(async () => {
-         try {
-             // In a real app we'd fetch from IndexedDB using `db.getAll('synonym_interactions')` or a new OWS store
-             // For this patch, we assume `db` abstraction supports syncing or we sync directly from memory if needed.
-             // Due to time constraints, simulating sync success console log.
-             console.log("Background Worker: Syncing spatial engine events to Supabase...");
-         } catch (e) {
-             console.error("Sync Worker failed", e);
-         }
-     }, 15000); // Every 15 seconds
+     const syncEvents = async () => {
+         const queueStr = localStorage.getItem('ows_swipe_queue');
+         if (!queueStr) return;
 
-     return () => clearInterval(syncInterval);
+         const queue = JSON.parse(queueStr);
+         if (queue.length === 0) return;
+
+         try {
+             const batch = queue.map((ev: any) => ({
+                 user_id: user.id,
+                 word_id: ev.word_id,
+                 status: ev.status,
+                 swipe_velocity: ev.velocity,
+                 next_review_at: ev.next_review,
+                 is_read: true,
+                 updated_at: new Date().toISOString()
+             }));
+
+             const { error } = await supabase
+                 .from('user_ows_interactions')
+                 .upsert(batch, { onConflict: 'user_id, word_id' });
+
+             if (!error) {
+                 localStorage.removeItem('ows_swipe_queue'); // Clear on success
+             }
+         } catch (e) {
+             console.error("OWS Sync Worker failed", e);
+         }
+     };
+
+     // Sync every 15 seconds
+     const syncInterval = setInterval(syncEvents, 15000);
+
+     // Disaster Recovery
+     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+         const queueStr = localStorage.getItem('ows_swipe_queue');
+         if (queueStr && JSON.parse(queueStr).length > 0) {
+             e.preventDefault();
+             e.returnValue = ''; // Trigger warning
+             // Attempt beacon sync
+             navigator.sendBeacon('/api/sync-ows', queueStr);
+         }
+     };
+
+     window.addEventListener('beforeunload', handleBeforeUnload);
+     document.addEventListener('visibilitychange', () => {
+         if (document.visibilityState === 'hidden') syncEvents();
+     });
+
+     return () => {
+         clearInterval(syncInterval);
+         window.removeEventListener('beforeunload', handleBeforeUnload);
+     };
   }, [user]);
+
 
   // Swipe State & Feedback
   const [swipeDirection, setSwipeDirection] = useState<string | null>(null);
@@ -182,10 +238,19 @@ export const OWSSession: React.FC<OWSSessionProps> = ({
      setSwipeDirection(null);
   };
 
+
   const handlePan = (e: any, info: PanInfo) => {
     const { offset } = info;
     const absX = Math.abs(offset.x);
     const absY = Math.abs(offset.y);
+
+    // Continuous Drag Haptics based on distance milestones
+    if (navigator.vibrate) {
+        if (absX > 40 && absX < 45) navigator.vibrate(10);
+        if (absY > 40 && absY < 45) navigator.vibrate(10);
+        if (absX > 80 && absX < 85) navigator.vibrate(20);
+        if (absY > 80 && absY < 85) navigator.vibrate(20);
+    }
 
     if (absX > absY) {
        setSwipeDirection(offset.x > 0 ? 'right' : 'left');
@@ -269,6 +334,7 @@ export const OWSSession: React.FC<OWSSessionProps> = ({
      setIsAnimating(false);
   };
 
+
   const saveSwipeEvent = async (word_id: string, status: string, vel: number) => {
       try {
           if (!user) return;
@@ -278,18 +344,22 @@ export const OWSSession: React.FC<OWSSessionProps> = ({
           if (status === 'tricky') nextReview.setHours(nextReview.getHours() + 24);
           if (status === 'mastered') nextReview.setFullYear(nextReview.getFullYear() + 100);
 
-
-          // Simulate DB save for OWS
-          // await db.add('synonym_interactions', { // Temporarily reuse the store if ows store isn't made
-          //    word_id,
-          //    action: status,
-          //    timestamp: Date.now()
-          // });
+          // Push to robust JSON local queue
+          const queue = JSON.parse(localStorage.getItem('ows_swipe_queue') || '[]');
+          queue.push({
+              word_id,
+              status,
+              velocity: vel,
+              next_review: nextReview.toISOString(),
+              timestamp: Date.now()
+          });
+          localStorage.setItem('ows_swipe_queue', JSON.stringify(queue));
 
       } catch (e) {
-          console.error("Failed to save swipe", e);
+          console.error("Failed to queue swipe", e);
       }
   };
+
 
   const handleUndo = async () => {
       if (historyStack.length === 0 || isAnimating) return;
@@ -410,11 +480,40 @@ export const OWSSession: React.FC<OWSSessionProps> = ({
               onDragEnd={handlePanEnd}
               animate={controls}
               style={{ x, y, rotate }}
-              onTap={() => {
-                 if (!isAnimating && x.get() === 0 && y.get() === 0) setIsFlipped(!isFlipped);
+
+              onTap={(e, info) => {
+                 if (isAnimating) return;
+                 // Strict tap vs drag distance check
+                 if (Math.abs(info.point.x - info.point.x) < 5) {
+                     setIsFlipped(!isFlipped);
+                 }
               }}
+
               className="absolute w-full h-full cursor-grab active:cursor-grabbing will-change-transform z-10"
             >
+
+              {/* Ghost Tutorial */}
+              {!hasSeenTutorial && (
+                 <motion.div
+                   className="absolute inset-0 z-50 rounded-3xl bg-teal-900/40 backdrop-blur-sm flex flex-col items-center justify-center p-6 border-2 border-teal-400 border-dashed"
+                   animate={{
+                       y: [0, -30, 0, 30, 0],
+                       x: [0, 0, -30, 0, 30, 0]
+                   }}
+                   transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                   onClick={(e) => { e.stopPropagation(); dismissTutorial(); }}
+                 >
+                     <div className="absolute top-4 font-black text-green-300 text-xl tracking-widest uppercase">⬆️ Mastered</div>
+                     <div className="absolute bottom-4 font-black text-red-300 text-xl tracking-widest uppercase">⬇️ Clueless</div>
+                     <div className="absolute left-[-20px] font-black text-orange-300 text-xl tracking-widest uppercase -rotate-90">⬅️ Review</div>
+                     <div className="absolute right-[-20px] font-black text-blue-300 text-xl tracking-widest uppercase rotate-90">➡️ Tricky</div>
+
+                     <div className="bg-white text-teal-900 p-4 rounded-xl shadow-2xl font-bold text-center mt-12 animate-pulse">
+                        Tap here or Swipe card to Start
+                     </div>
+                 </motion.div>
+              )}
+
               {/* Overlays */}
               <motion.div style={{ opacity: opacityUp }} className="absolute inset-0 z-20 flex items-start justify-center pt-8 bg-green-500/20 rounded-3xl pointer-events-none">
                  <div className="border-4 border-green-500 text-green-500 font-black text-4xl px-6 py-2 rounded-xl transform -rotate-12 bg-white/80">MASTERED</div>

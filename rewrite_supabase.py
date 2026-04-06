@@ -1,4 +1,5 @@
-import { supabase } from '../../../lib/supabase';
+with open("src/features/ows/utils/supabaseOws.ts", "w") as f:
+    f.write("""import { supabase } from '../../../lib/supabase';
 import { OneWord, InitialFilters } from '../../../types/models';
 
 export async function fetchOwsMetadata() {
@@ -154,3 +155,4 @@ export async function getFilteredOws(filters: InitialFilters, selectedLetter: st
 
     return parsedData;
 }
+""")
