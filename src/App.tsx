@@ -1,3 +1,4 @@
+import { useRegisterSW } from 'virtual:pwa-register/react';
 import React, { useState, useEffect } from 'react';
 import { HashRouter } from 'react-router-dom';
 import { AppProvider } from './providers/AppProvider';
@@ -17,6 +18,42 @@ import { SynapticLoader } from './components/ui/SynapticLoader';
  * @returns {JSX.Element} The mounted application.
  */
 const App: React.FC = () => {
+  // PWA Auto Update Logic
+  const {
+    needRefresh: [needRefresh, setNeedRefresh],
+    updateServiceWorker,
+  } = useRegisterSW({
+    onNeedRefresh() {
+      // Background logic to handle auto update safely
+      const checkAndReload = async () => {
+        try {
+          const quizStateStr = localStorage.getItem('mindflow-quiz-session');
+          if (quizStateStr) {
+             const quizState = JSON.parse(quizStateStr);
+             if (quizState.status === 'quiz') {
+               // We are in middle of quiz, let's pause and save it first
+               const { db } = await import('./lib/db');
+               const { supabase } = await import('./lib/supabase');
+               const { data } = await supabase.auth.getSession();
+               if (data.session) {
+                 const currentTimer = quizState.quizTimeRemaining;
+                 const pausedState = { ...quizState, isPaused: true };
+                 localStorage.setItem('mindflow-quiz-session', JSON.stringify(pausedState));
+                 await db.saveActiveSession(data.session.user.id, pausedState);
+               }
+             }
+          }
+        } catch (e) {
+          console.error('Failed to parse or save quiz state before update:', e);
+        } finally {
+          // Perform the actual update and reload
+          updateServiceWorker(true);
+        }
+      };
+
+      checkAndReload();
+    },
+  });
   const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
