@@ -223,7 +223,7 @@ export const OWSConfig: React.FC<OWSConfigProps> = ({ onStart, onBack }) => {
                         <SegmentedControl
                             options={['Unseen', 'Mastered', 'Review', 'Clueless', 'Tricky']}
                             selectedOptions={filters.deckMode || ['Unseen']}
-                            onOptionToggle={(opt) => setFilters(prev => ({ ...prev, deckMode: [opt] }))}
+                            onOptionToggle={(opt) => setFilters(prev => ({ ...prev, deckMode: [opt as "Unseen" | "Mastered" | "Review" | "Clueless" | "Tricky"] }))}
                             counts={filterCounts.deckMode || {}}
                         />
                     </div>

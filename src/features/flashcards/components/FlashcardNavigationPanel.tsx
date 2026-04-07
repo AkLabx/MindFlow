@@ -45,7 +45,7 @@ export const FlashcardNavigationPanel: React.FC<FlashcardNavigationPanelProps> =
   const [openGroups, setOpenGroups] = useState<Set<number>>(new Set());
 
   // Generators
-  const { generatePDF, isGenerating: isGeneratingPDF, error: pdfError } = usePDFGenerator(() => import('../utils/pdfGenerator').then(m => m.generateIdiomsPDF));
+  const { generatePDF, isGenerating: isGeneratingPDF, error: pdfError } = usePDFGenerator(() => import('../utils/pdfGenerator').then(m => m.generateIdiomsPDF as any));
   const { downloadJSON, isGenerating: isGeneratingJSON, error: jsonError } = useJSONDownloader<Idiom>();
 
   // State to track which chunk is currently being downloaded (to show spinner in list)

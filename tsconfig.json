@@ -37,6 +37,7 @@
     "jsx": "react-jsx",
     // Base directory to resolve non-relative module names
     "baseUrl": ".",
+    "ignoreDeprecations": "6.0",
     // Path mapping for aliases (e.g., @/* -> src/*)
     "paths": {
       "@/*": [

@@ -147,7 +147,7 @@ export const QuizPdfPptGenerator: React.FC = () => {
 
   const removeFilter = (key: keyof InitialFilters, value?: string) => {
     if (value) {
-      setFilters(prev => ({ ...prev, [key]: prev[key].filter(item => item !== value) }));
+      setFilters(prev => ({ ...prev, [key]: (prev[key] || []).filter((item: string) => item !== value) }));
     } else {
       setFilters(prev => ({ ...prev, [key]: [] }));
     }
@@ -155,11 +155,11 @@ export const QuizPdfPptGenerator: React.FC = () => {
 
   const handleSegmentToggle = (key: keyof InitialFilters, option: string) => {
     setFilters(prev => {
-      const current = prev[key];
+      const current = prev[key] || [];
       const isSelected = (current as string[]).includes(option);
       return {
         ...prev,
-        [key]: isSelected ? current.filter(i => i !== option) : [...current, option as any]
+        [key]: isSelected ? [...(current as string[])].filter(i => i !== option) : [...(current as string[]), option as any]
       };
     });
   };
@@ -378,7 +378,7 @@ export const QuizPdfPptGenerator: React.FC = () => {
               selectedOptions={filters.subject}
               onSelectionChange={(sel) => handleFilterChange('subject', sel)}
               placeholder="Select Subjects"
-              counts={filterCounts.subject}
+              counts={filterCounts.subject || {}}
             />
             <MultiSelectDropdown
               label="Topic"
@@ -388,7 +388,7 @@ export const QuizPdfPptGenerator: React.FC = () => {
               onSelectionChange={(sel) => handleFilterChange('topic', sel)}
               placeholder={availableTopics.length > 0 ? "Select Topics" : "Select Subject First"}
               disabled={availableTopics.length === 0}
-              counts={filterCounts.topic}
+              counts={filterCounts.topic || {}}
             />
             <MultiSelectDropdown
               label="Sub-Topic"
@@ -398,7 +398,7 @@ export const QuizPdfPptGenerator: React.FC = () => {
               onSelectionChange={(sel) => handleFilterChange('subTopic', sel)}
               placeholder={availableSubTopics.length > 0 ? "Select Sub-Topics" : "Select Topic First"}
               disabled={availableSubTopics.length === 0}
-              counts={filterCounts.subTopic}
+              counts={filterCounts.subTopic || {}}
             />
           </FilterGroup>
 
@@ -410,7 +410,7 @@ export const QuizPdfPptGenerator: React.FC = () => {
               options={['Easy', 'Medium', 'Hard']}
               selectedOptions={filters.difficulty}
               onOptionToggle={(opt) => handleSegmentToggle('difficulty', opt)}
-              counts={filterCounts.difficulty}
+              counts={filterCounts.difficulty || {}}
             />
             <SegmentedControl
               label="Question Type"
@@ -418,7 +418,7 @@ export const QuizPdfPptGenerator: React.FC = () => {
               options={['MCQ']}
               selectedOptions={filters.questionType}
               onOptionToggle={(opt) => handleSegmentToggle('questionType', opt)}
-              counts={filterCounts.questionType}
+              counts={filterCounts.questionType || {}}
             />
           </FilterGroup>
 
@@ -431,7 +431,7 @@ export const QuizPdfPptGenerator: React.FC = () => {
               selectedOptions={filters.examName}
               onSelectionChange={(sel) => handleFilterChange('examName', sel)}
               placeholder="Select Exams"
-              counts={filterCounts.examName}
+              counts={filterCounts.examName || {}}
             />
             <MultiSelectDropdown
               label="Exam Year"
@@ -440,7 +440,7 @@ export const QuizPdfPptGenerator: React.FC = () => {
               selectedOptions={filters.examYear}
               onSelectionChange={(sel) => handleFilterChange('examYear', sel)}
               placeholder="Select Years"
-              counts={filterCounts.examYear}
+              counts={filterCounts.examYear || {}}
             />
             <MultiSelectDropdown
               label="Exam Shift"
@@ -449,7 +449,7 @@ export const QuizPdfPptGenerator: React.FC = () => {
               selectedOptions={filters.examDateShift}
               onSelectionChange={(sel) => handleFilterChange('examDateShift', sel)}
               placeholder="Select Shifts"
-              counts={filterCounts.examDateShift}
+              counts={filterCounts.examDateShift || {}}
             />
           </FilterGroup>
 
@@ -462,7 +462,7 @@ export const QuizPdfPptGenerator: React.FC = () => {
               selectedOptions={filters.tags}
               onSelectionChange={(sel) => handleFilterChange('tags', sel)}
               placeholder="Filter by Tags"
-              counts={filterCounts.tags}
+              counts={filterCounts.tags || {}}
             />
           </FilterGroup>
         </div>

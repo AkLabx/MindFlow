@@ -42,7 +42,7 @@ const renderHindiToImage = async (text: string, html2canvas: any): Promise<strin
 /**
  * Generates the Synonym PDF.
  */
-export const generateSynonymPDF = async (data: SynonymWord[], config: PDFGenerationConfig): Promise<Blob> => {
+export const generateSynonymPDF = async (data: any[], config: PDFGenerationConfig): Promise<Blob> => {
   const { jsPDF } = await import('jspdf');
   const html2canvasModule = await import('html2canvas');
   const html2canvas = html2canvasModule.default;
@@ -136,7 +136,7 @@ export const generateSynonymPDF = async (data: SynonymWord[], config: PDFGenerat
 
     // Top Synonyms
     if (item.synonyms && item.synonyms.length > 0) {
-      const topSynonyms = item.synonyms.map(s => s.text);
+      const topSynonyms = item.synonyms.map((s: any) => s.text);
       addField('Top Synonyms', topSynonyms);
     }
 

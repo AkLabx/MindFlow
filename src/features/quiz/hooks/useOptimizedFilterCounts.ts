@@ -25,10 +25,10 @@ export function useOptimizedFilterCounts({
             if (otherKey === keyToCount) continue;
 
             const selected = selectedFilters[otherKey as keyof InitialFilters];
-            if (selected.length === 0) continue;
+            if ((selected || []).length === 0) continue;
 
             const categoryIds = new Set<string>();
-            selected.forEach(val => {
+            (selected || []).forEach(val => {
                 const ids = index[otherKey]?.[val];
                 if (ids) {
                     ids.forEach(id => categoryIds.add(id));

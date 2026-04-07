@@ -48,7 +48,7 @@ export const ActiveFiltersBar: React.FC<ActiveFiltersBarProps> = ({ filters, onR
         )}
         
         {Object.keys(filters).map(key => {
-          return filters[key as keyof InitialFilters].map(val => (
+          return (filters[key as keyof InitialFilters] || []).map(val => (
             <div 
               key={`${key}-${val}`} 
               className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-100 text-indigo-700 text-xs font-bold border border-indigo-200 shadow-sm group"

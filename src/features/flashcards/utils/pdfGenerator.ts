@@ -42,7 +42,7 @@ const renderHindiToImage = async (text: string, html2canvas: any): Promise<strin
 /**
  * Generates the Idioms PDF.
  */
-export const generateIdiomsPDF = async (data: Idiom[], config: PDFGenerationConfig): Promise<Blob> => {
+export const generateIdiomsPDF = async (data: any[], config: PDFGenerationConfig): Promise<Blob> => {
   const { jsPDF } = await import('jspdf');
   const html2canvasModule = await import('html2canvas');
   const html2canvas = html2canvasModule.default;

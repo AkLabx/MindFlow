@@ -26,7 +26,7 @@ export const DownloadReadyModal: React.FC<DownloadReadyModalProps> = ({
 
   const handleShareOrDownload = useCallback(async () => {
     // 1. Try Native Share if supported, we have a Blob, and we haven't forced fallback
-    if (navigator.share && blob && !forceDownload) {
+    if (typeof navigator.share === "function" && blob && !forceDownload) {
       setIsSharing(true);
       setError(null);
       try {
@@ -37,7 +37,7 @@ export const DownloadReadyModal: React.FC<DownloadReadyModalProps> = ({
         });
 
         // Some browsers don't support sharing certain file types, we can check with canShare
-        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        if (typeof navigator.canShare !== "undefined" && navigator.canShare({ files: [file] })) {
           await navigator.share({
             files: [file],
             title: fileName,
@@ -120,8 +120,8 @@ export const DownloadReadyModal: React.FC<DownloadReadyModalProps> = ({
                         </>
                     ) : (
                         <>
-                            {(navigator.share && blob && !forceDownload) ? <Share className="w-5 h-5" /> : <Download className="w-5 h-5" />}
-                            {(navigator.share && blob && !forceDownload) ? 'Open / Share File' : 'Save File'}
+                            {(typeof navigator.share === 'function' && blob && !forceDownload) ? <Share className="w-5 h-5" /> : <Download className="w-5 h-5" />}
+                            {(typeof navigator.share === 'function' && blob && !forceDownload) ? 'Open / Share File' : 'Save File'}
                         </>
                     )}
                 </button>

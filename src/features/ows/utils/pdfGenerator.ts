@@ -43,7 +43,7 @@ const renderHindiToImage = async (text: string, html2canvas: any): Promise<strin
 /**
  * Generates the OWS PDF.
  */
-export const generateOWSPDF = async (data: OneWord[], config: PDFGenerationConfig): Promise<Blob> => {
+export const generateOWSPDF = async (data: any[], config: PDFGenerationConfig): Promise<Blob> => {
   const { jsPDF } = await import('jspdf');
   const html2canvasModule = await import('html2canvas');
   const html2canvas = html2canvasModule.default;

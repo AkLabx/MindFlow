@@ -55,11 +55,11 @@ export function filterQuestionsByIndex(
   for (const key of filterKeys) {
     const selectedValues = filters[key as keyof InitialFilters];
 
-    if (selectedValues.length === 0) continue;
+    if ((selectedValues || []).length === 0) continue;
 
     // Union of IDs for the current filter category (OR logic within the same category)
     const categoryIds = new Set<string>();
-    selectedValues.forEach(val => {
+    (selectedValues || []).forEach(val => {
       const idsForValue = index[key]?.[val];
       if (idsForValue) {
         idsForValue.forEach(id => categoryIds.add(id));
