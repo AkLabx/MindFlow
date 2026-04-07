@@ -264,7 +264,7 @@ const AppRoutesContent: React.FC = () => {
                         <QuizConfig
                             onBack={() => { goHome(); navTo('/dashboard'); }}
                             onStart={(questions, filters, mode) => {
-                                startQuiz(questions, filters, mode);
+                                startQuiz(questions, filters || ({} as any), mode);
                                 navTo(mode === 'mock' ? '/quiz/session/mock' : '/quiz/session/learning');
                             }}
                         />
@@ -279,7 +279,7 @@ const AppRoutesContent: React.FC = () => {
                         questions={state.activeQuestions}
                         filters={state.filters || {} as any}
                         remainingTimes={state.remainingTimes}
-                        isPaused={state.isPaused}
+                        isPaused={Boolean(state.isPaused)}
                         currentIndex={state.currentQuestionIndex}
                         answers={state.answers}
                         bookmarks={state.bookmarks}
@@ -295,7 +295,7 @@ const AppRoutesContent: React.FC = () => {
                         onResume={resumeQuiz}
                         onSaveTimer={saveTimer}
                         onFiftyFifty={useFiftyFifty}
-                        hiddenOptions={state.hiddenOptions}
+                        hiddenOptions={state.hiddenOptions || {}}
                     />
                 } />
 

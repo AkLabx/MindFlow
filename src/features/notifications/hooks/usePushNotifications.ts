@@ -59,8 +59,8 @@ export function usePushNotifications() {
       });
 
       // Save to Supabase
-      const p256dh = btoa(String.fromCharCode.apply(null, new Uint8Array(subscription.getKey('p256dh') as ArrayBuffer)));
-      const auth = btoa(String.fromCharCode.apply(null, new Uint8Array(subscription.getKey('auth') as ArrayBuffer)));
+      const p256dh = btoa(String.fromCharCode.apply(null, Array.from(new Uint8Array(subscription.getKey('p256dh') as ArrayBuffer))));
+      const auth = btoa(String.fromCharCode.apply(null, Array.from(new Uint8Array(subscription.getKey('auth') as ArrayBuffer))));
 
       const { error: dbError } = await supabase
         .from('push_subscriptions')

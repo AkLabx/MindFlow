@@ -41,7 +41,7 @@ export const OWSNavigationPanel: React.FC<OWSNavigationPanelProps> = ({
   const [openGroups, setOpenGroups] = useState<Set<number>>(new Set());
 
   // Generators
-  const { generatePDF, isGenerating: isGeneratingPDF, error: pdfError } = usePDFGenerator(() => import('../utils/pdfGenerator').then(m => m.generateOWSPDF));
+  const { generatePDF, isGenerating: isGeneratingPDF, error: pdfError } = usePDFGenerator(() => import('../utils/pdfGenerator').then(m => m.generateOWSPDF as any));
   const { downloadJSON, isGenerating: isGeneratingJSON, error: jsonError } = useJSONDownloader<OneWord>();
 
   // State to track which chunk is currently being downloaded (to show spinner in list)

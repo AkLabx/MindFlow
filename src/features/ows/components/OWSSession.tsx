@@ -369,7 +369,7 @@ export const OWSSession: React.FC<OWSSessionProps> = ({
       if (historyStack.length === 0 || isAnimating) return;
       const lastAction = historyStack[historyStack.length - 1];
       setHistoryStack(prev => prev.slice(0, -1));
-      setSwipeStats(prev => ({ ...prev, [lastAction.status]: Math.max(0, prev[lastAction.status] - 1) }));
+      setSwipeStats(prev => ({ ...prev, [lastAction.status]: Math.max(0, prev[lastAction.status as keyof typeof prev] - 1) }));
 
       onPrev();
   };

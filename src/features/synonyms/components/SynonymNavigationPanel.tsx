@@ -23,7 +23,7 @@ export const SynonymNavigationPanel: React.FC<SynonymNavigationPanelProps> = ({
 }) => {
   const [openGroups, setOpenGroups] = useState<Set<number>>(new Set());
 
-  const { generatePDF, isGenerating: isGeneratingPDF, error: pdfError } = usePDFGenerator(() => import('../utils/pdfGenerator').then(m => m.generateSynonymPDF));
+  const { generatePDF, isGenerating: isGeneratingPDF, error: pdfError } = usePDFGenerator(() => import('../utils/pdfGenerator').then(m => m.generateSynonymPDF as any));
   const { downloadJSON, isGenerating: isGeneratingJSON, error: jsonError } = useJSONDownloader<SynonymWord>();
 
   const [downloadingChunk, setDownloadingChunk] = useState<number | null>(null);

@@ -224,7 +224,7 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
 
   const removeFilter = useCallback((key: keyof InitialFilters, value?: string) => {
     if (value) {
-      setFilters(prev => ({ ...prev, [key]: prev[key].filter(item => item !== value) }));
+      setFilters(prev => ({ ...prev, [key]: (prev[key] || []).filter((item: string) => item !== value) }));
     } else {
       setFilters(prev => ({ ...prev, [key]: [] }));
     }
@@ -232,11 +232,11 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
 
   const handleSegmentToggle = useCallback((key: keyof InitialFilters, option: string) => {
     setFilters(prev => {
-      const current = prev[key];
+      const current = prev[key] || [];
       const isSelected = (current as string[]).includes(option);
       return {
         ...prev,
-        [key]: isSelected ? current.filter(i => i !== option) : [...current, option as any]
+        [key]: isSelected ? [...(current as string[])].filter(i => i !== option) : [...(current as string[]), option as any]
       };
     });
   }, []);
@@ -354,7 +354,7 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
                   : [...filters.subject, opt];
                 handleFilterChange('subject', newSelection);
               }}
-              counts={filterCounts.subject}
+              counts={filterCounts.subject || {}}
             />
             <ScrollableCapsules
               label="Topic"
@@ -367,7 +367,7 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
                   : [...filters.topic, opt];
                 handleFilterChange('topic', newSelection);
               }}
-              counts={filterCounts.topic}
+              counts={filterCounts.topic || {}}
               isLoading={filters.subject.length > 0 && availableTopics.length === 0 && isLoadingMetadata}
               emptyMessage={filters.subject.length === 0 ? "Select Subject First" : "No topics available"}
             />
@@ -382,7 +382,7 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
                   : [...filters.subTopic, opt];
                 handleFilterChange('subTopic', newSelection);
               }}
-              counts={filterCounts.subTopic}
+              counts={filterCounts.subTopic || {}}
               isLoading={filters.topic.length > 0 && availableSubTopics.length === 0 && isLoadingMetadata}
               emptyMessage={filters.topic.length === 0 ? "Select Topic First" : "No sub-topics available"}
             />
@@ -395,7 +395,7 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
               options={['Easy', 'Medium', 'Hard']}
               selectedOptions={filters.difficulty}
               onOptionToggle={(opt) => handleSegmentToggle('difficulty', opt)}
-              counts={filterCounts.difficulty}
+              counts={filterCounts.difficulty || {}}
             />
             <SegmentedControl
               label="Question Type"
@@ -403,7 +403,7 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
               options={['MCQ']}
               selectedOptions={filters.questionType}
               onOptionToggle={(opt) => handleSegmentToggle('questionType', opt)}
-              counts={filterCounts.questionType}
+              counts={filterCounts.questionType || {}}
             />
           </FilterGroup>
         </div>
@@ -418,7 +418,7 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
                 selectedOptions={filters.examName}
                 onSelectionChange={(sel) => handleFilterChange('examName', sel)}
                 placeholder="Select Exams"
-                counts={filterCounts.examName}
+                counts={filterCounts.examName || {}}
               />
               <MultiSelectDropdown
                 label="Exam Year"
@@ -426,7 +426,7 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
                 selectedOptions={filters.examYear}
                 onSelectionChange={(sel) => handleFilterChange('examYear', sel)}
                 placeholder="Select Years"
-                counts={filterCounts.examYear}
+                counts={filterCounts.examYear || {}}
               />
               <MultiSelectDropdown
                 label="Exam Shift"
@@ -434,7 +434,7 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
                 selectedOptions={filters.examDateShift}
                 onSelectionChange={(sel) => handleFilterChange('examDateShift', sel)}
                 placeholder="Select Shifts"
-                counts={filterCounts.examDateShift}
+                counts={filterCounts.examDateShift || {}}
               />
             </FilterGroup>
 
@@ -445,7 +445,7 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
                 selectedOptions={filters.tags}
                 onSelectionChange={(sel) => handleFilterChange('tags', sel)}
                 placeholder="Filter by Tags"
-                counts={filterCounts.tags}
+                counts={filterCounts.tags || {}}
               />
             </FilterGroup>
           </div>
