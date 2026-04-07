@@ -487,3 +487,37 @@ export const DownloadSVG = () => (
     />
   </svg>
 );
+
+// 9. God Mode (Rose/Pink/Red)
+export const GodModeSVG = () => (
+  <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-lg">
+    <defs>
+      <linearGradient id="godModeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stopColor="#F43F5E" />
+        <stop offset="100%" stopColor="#BE123C" />
+      </linearGradient>
+    </defs>
+    {/* Floating Elements (representing nodes) */}
+    <motion.circle cx="30" cy="30" r="8" fill="#FDA4AF" animate={{ y: [0, -5, 0], scale: [1, 1.1, 1] }} transition={{ duration: 3, repeat: Infinity }} />
+    <motion.circle cx="70" cy="40" r="10" fill="url(#godModeGrad)" animate={{ y: [0, 5, 0], scale: [1, 1.2, 1] }} transition={{ duration: 3.5, repeat: Infinity, delay: 0.5 }} />
+    <motion.circle cx="50" cy="70" r="12" fill="#FB7185" animate={{ y: [0, -5, 0], scale: [1, 1.15, 1] }} transition={{ duration: 4, repeat: Infinity, delay: 1 }} />
+
+    {/* Connecting lines */}
+    <motion.path
+      d="M30 30 L50 70 L70 40 Z"
+      fill="none"
+      stroke="#F43F5E"
+      strokeWidth="2"
+      strokeDasharray="4 4"
+      animate={{ opacity: [0.3, 0.8, 0.3] }}
+      transition={{ duration: 2, repeat: Infinity }}
+    />
+
+    {/* Blueprint Compass/Ruler Center */}
+    <motion.g animate={{ rotate: 360 }} transition={{ duration: 20, repeat: Infinity, ease: "linear" }} style={{ transformOrigin: '50px 50px' }}>
+      <path d="M50 20 L50 80 M20 50 L80 50" stroke="#FFE4E6" strokeWidth="1" opacity="0.5" />
+      <circle cx="50" cy="50" r="20" fill="none" stroke="url(#godModeGrad)" strokeWidth="3" strokeDasharray="10 5" />
+      <circle cx="50" cy="50" r="5" fill="#E11D48" />
+    </motion.g>
+  </svg>
+);
