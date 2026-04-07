@@ -37,7 +37,6 @@ const DeveloperProfile = lazy(() => import('../features/about/components/Develop
 const TermsOfUse = lazy(() => import('../pages/TermsOfUse').then(m => ({ default: m.TermsOfUse })));
 const PrivacyPolicy = lazy(() => import('../pages/PrivacyPolicy').then(m => ({ default: m.PrivacyPolicy })));
 const ToolsHome = lazy(() => import('../features/tools/ToolsHome'));
-const ExamBlueprintsHub = lazy(() => import('../features/quiz/components/ExamBlueprintsHub'));
 
 const AIHome = lazy(() => import('../features/ai/AIHome').then(m => ({ default: m.AIHome })));
 
@@ -110,7 +109,16 @@ const AppRoutesContent: React.FC = () => {
 
                 {/* --- Standard Application Routes (Wrapped in QuizLayout) --- */}
                 <Route element={<QuizLayout />}>
-                                        <Route path="/blueprints" element={<ExamBlueprintsHub />} />
+                                        <Route path="/blueprints" element={
+                        <ExamBlueprintsHub
+                            onBack={() => { goHome(); navTo('/dashboard'); }}
+                            onLaunchBlueprint={(bp) => {
+                                // Assume store is updated or we just navigate
+                                navTo('/blueprints/preview');
+                            }}
+                        />
+                    } />
+                    <Route path="/blueprints/preview/:id" element={<BlueprintPreviewWrapper />} />
                     <Route path="/dashboard" element={
                         <Dashboard
                             onStartQuiz={() => { enterConfig(); navTo('/quiz/config'); }}
