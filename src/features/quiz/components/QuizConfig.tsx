@@ -430,105 +430,111 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
           </FilterGroup>
         </div>
 
-        {/* Progressive Disclosure: Advanced Filters Accordion */}
-        <Accordion title="Advanced Filters">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <FilterGroup title="Source" icon={<FileText className="w-5 h-5" />}>
-              <MultiSelectDropdown
-                label="Exam Name"
-                options={allExamNames}
-                selectedOptions={filters.examName}
-                onSelectionChange={(sel) => handleFilterChange('examName', sel)}
-                placeholder="Select Exams"
-                counts={filterCounts.examName || {}}
-              />
-              <MultiSelectDropdown
-                label="Exam Year"
-                options={allExamYears}
-                selectedOptions={filters.examYear}
-                onSelectionChange={(sel) => handleFilterChange('examYear', sel)}
-                placeholder="Select Years"
-                counts={filterCounts.examYear || {}}
-              />
-              <MultiSelectDropdown
-                label="Exam Shift"
-                options={allExamShifts}
-                selectedOptions={filters.examDateShift}
-                onSelectionChange={(sel) => handleFilterChange('examDateShift', sel)}
-                placeholder="Select Shifts"
-                counts={filterCounts.examDateShift || {}}
-              />
-            </FilterGroup>
+        {mode !== 'god' && (
+          <>
+            {/* Progressive Disclosure: Advanced Filters Accordion */}
+            <Accordion title="Advanced Filters">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <FilterGroup title="Source" icon={<FileText className="w-5 h-5" />}>
+                  <MultiSelectDropdown
+                    label="Exam Name"
+                    options={allExamNames}
+                    selectedOptions={filters.examName}
+                    onSelectionChange={(sel) => handleFilterChange('examName', sel)}
+                    placeholder="Select Exams"
+                    counts={filterCounts.examName || {}}
+                  />
+                  <MultiSelectDropdown
+                    label="Exam Year"
+                    options={allExamYears}
+                    selectedOptions={filters.examYear}
+                    onSelectionChange={(sel) => handleFilterChange('examYear', sel)}
+                    placeholder="Select Years"
+                    counts={filterCounts.examYear || {}}
+                  />
+                  <MultiSelectDropdown
+                    label="Exam Shift"
+                    options={allExamShifts}
+                    selectedOptions={filters.examDateShift}
+                    onSelectionChange={(sel) => handleFilterChange('examDateShift', sel)}
+                    placeholder="Select Shifts"
+                    counts={filterCounts.examDateShift || {}}
+                  />
+                </FilterGroup>
 
-            <FilterGroup title="Tags" icon={<Tag className="w-5 h-5" />}>
-              <MultiSelectDropdown
-                label="Search Tags"
-                options={allTags}
-                selectedOptions={filters.tags}
-                onSelectionChange={(sel) => handleFilterChange('tags', sel)}
-                placeholder="Filter by Tags"
-                counts={filterCounts.tags || {}}
-              />
-            </FilterGroup>
-          </div>
-        </Accordion>
+                <FilterGroup title="Tags" icon={<Tag className="w-5 h-5" />}>
+                  <MultiSelectDropdown
+                    label="Search Tags"
+                    options={allTags}
+                    selectedOptions={filters.tags}
+                    onSelectionChange={(sel) => handleFilterChange('tags', sel)}
+                    placeholder="Filter by Tags"
+                    counts={filterCounts.tags || {}}
+                  />
+                </FilterGroup>
+              </div>
+            </Accordion>
 
-        {/* Active Filters Displayed above sticky footer area */}
-        <div className="pb-8">
-           <ActiveFiltersBar
-            filters={filters}
-            onRemoveFilter={removeFilter}
-            onClearAll={() => setFilters(emptyFilters)}
-          />
-        </div>
+            {/* Active Filters Displayed above sticky footer area */}
+            <div className="pb-8">
+               <ActiveFiltersBar
+                filters={filters}
+                onRemoveFilter={removeFilter}
+                onClearAll={() => setFilters(emptyFilters)}
+              />
+            </div>
+          </>
+        )}
       </div>
 
       {/* Sticky Action Footer */}
-      <div className="fixed bottom-0 left-0 w-full z-[40] border-t border-gray-200 dark:border-gray-700 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md px-4 py-3 pb-safe md:px-6 md:py-4 shadow-[0_-4px_15px_-5px_rgba(0,0,0,0.1)] dark:shadow-none">
-        <div className="flex flex-col sm:flex-row justify-between items-center gap-3 w-full">
-           {/* Quiz Name Input - Compact for footer */}
-           <div className="w-full sm:w-64 flex-shrink-0">
-            <input
-              type="text"
-              value={quizName}
-              onChange={(e) => setQuizName(e.target.value)}
-              placeholder="Quiz Name (Optional)"
-              className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
-            />
-          </div>
+      {mode !== 'god' && (
+        <div className="fixed bottom-0 left-0 w-full z-[40] border-t border-gray-200 dark:border-gray-700 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md px-4 py-3 pb-safe md:px-6 md:py-4 shadow-[0_-4px_15px_-5px_rgba(0,0,0,0.1)] dark:shadow-none">
+          <div className="flex flex-col sm:flex-row justify-between items-center gap-3 w-full">
+             {/* Quiz Name Input - Compact for footer */}
+             <div className="w-full sm:w-64 flex-shrink-0">
+              <input
+                type="text"
+                value={quizName}
+                onChange={(e) => setQuizName(e.target.value)}
+                placeholder="Quiz Name (Optional)"
+                className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+              />
+            </div>
 
-          <div className="flex items-center gap-2 w-full sm:w-auto">
-            <Button variant="outline" onClick={() => setFilters(emptyFilters)} className="flex-shrink-0 h-10 px-3">
-              <RotateCcw className="w-4 h-4" />
-            </Button>
-
-            <div className="relative w-full">
-              {showEmptyError && (
-                <div className="absolute bottom-full mb-2 left-0 w-full bg-red-50 dark:bg-red-900/40 text-red-600 dark:text-red-400 text-xs font-semibold px-3 py-2 rounded-lg shadow-md border border-red-100 dark:border-red-900/50 animate-in fade-in slide-in-from-bottom-2 text-center">
-                  No questions match your criteria.
-                </div>
-              )}
-              <Button
-                size="lg"
-                onClick={handleCreate}
-                disabled={isStartingQuiz}
-                className="w-full h-10 bg-indigo-600 hover:bg-indigo-700 text-white border-0 shadow-lg px-6 flex items-center justify-center gap-2 font-semibold"
-              >
-                {isStartingQuiz ? (
-                  <>
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                  </>
-                ) : (
-                  <>
-                    <Save className="w-4 h-4" />
-                    Create Quiz ({filteredMetadata.length})
-                  </>
-                )}
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <Button variant="outline" onClick={() => setFilters(emptyFilters)} className="flex-shrink-0 h-10 px-3">
+                <RotateCcw className="w-4 h-4" />
               </Button>
+
+              <div className="relative w-full">
+                {showEmptyError && (
+                  <div className="absolute bottom-full mb-2 left-0 w-full bg-red-50 dark:bg-red-900/40 text-red-600 dark:text-red-400 text-xs font-semibold px-3 py-2 rounded-lg shadow-md border border-red-100 dark:border-red-900/50 animate-in fade-in slide-in-from-bottom-2 text-center">
+                    No questions match your criteria.
+                  </div>
+                )}
+                <Button
+                  size="lg"
+                  onClick={handleCreate}
+                  disabled={isStartingQuiz}
+                  className="w-full h-10 bg-indigo-600 hover:bg-indigo-700 text-white border-0 shadow-lg px-6 flex items-center justify-center gap-2 font-semibold"
+                >
+                  {isStartingQuiz ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                    </>
+                  ) : (
+                    <>
+                      <Save className="w-4 h-4" />
+                      Create Quiz ({filteredMetadata.length})
+                    </>
+                  )}
+                </Button>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };
