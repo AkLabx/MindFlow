@@ -73,8 +73,32 @@ export const SchoolDownloads: React.FC = () => {
 
     const handleDownload = async (url: string, suggestedName: string) => {
         try {
-            const response = await fetch(url);
-            const blob = await response.blob();
+            // Attempt 1: Supabase Edge Function Proxy (Most Reliable)
+            const { data, error } = await supabase.functions.invoke('proxy-download', {
+                body: { url, filename: suggestedName },
+            });
+
+            if (error) throw new Error(`Edge Function Error: ${error.message}`);
+            if (!data) throw new Error("No data returned from Edge Function");
+
+            // data is returned as Blob by default in Supabase js client when calling invoke if headers map it or if it's binary
+            // Wait, supabase.functions.invoke might try to parse JSON.
+            // We need to fetch directly to avoid JSON parse errors since it returns a raw PDF stream.
+
+            // Re-writing Attempt 1 using raw fetch to the edge function URL
+            const functionUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/proxy-download`;
+            const proxyResponse = await fetch(functionUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
+                },
+                body: JSON.stringify({ url, filename: suggestedName })
+            });
+
+            if (!proxyResponse.ok) throw new Error(`Proxy failed with status ${proxyResponse.status}`);
+
+            const blob = await proxyResponse.blob();
             const blobUrl = URL.createObjectURL(blob);
 
             const a = document.createElement('a');
@@ -84,9 +108,52 @@ export const SchoolDownloads: React.FC = () => {
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(blobUrl);
+            return; // Success
+
         } catch (error) {
-            console.error("Download failed", error);
-            window.open(url, "_blank");
+            console.warn("Attempt 1 (Edge Function) failed:", error);
+
+            try {
+                // Attempt 2: Free CORS Proxy
+                const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(url)}`;
+                const response = await fetch(proxyUrl);
+
+                if (!response.ok) throw new Error(`CORS proxy failed with status ${response.status}`);
+
+                const blob = await response.blob();
+                const blobUrl = URL.createObjectURL(blob);
+
+                const a = document.createElement('a');
+                a.href = blobUrl;
+                a.download = suggestedName;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(blobUrl);
+                return; // Success
+
+            } catch (proxyError) {
+                console.warn("Attempt 2 (CORS Proxy) failed:", proxyError);
+
+                try {
+                    // Attempt 3: Hidden Anchor Tag
+                    const link = document.createElement("a");
+                    link.href = url;
+                    link.download = suggestedName;
+                    link.target = "_blank";
+                    link.rel = "noopener noreferrer";
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    return; // Success
+
+                } catch (anchorError) {
+                    console.warn("Attempt 3 (Anchor tag) failed:", anchorError);
+
+                    // Attempt 4: Ultimate Fallback - Window Open
+                    window.open(url, "_blank");
+                }
+            }
         }
     };
 
