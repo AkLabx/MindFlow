@@ -9,7 +9,7 @@ import { ActiveQuizLayout } from '../layouts/ActiveQuizLayout';
 import { useSettingsStore } from '../../../stores/useSettingsStore';
 import { cn } from '../../../utils/cn';
 import { APP_CONFIG } from '../../../constants/config';
-import { useMockTimer } from '../hooks/useMockTimer';
+import { useGodSessionTimer } from '../hooks/useGodSessionTimer';
 import { useAutoSave } from '../hooks/useAutoSave';
 import { useAntiCheat } from '../hooks/useAntiCheat';
 import { quizEngine } from '../engine';
@@ -33,7 +33,6 @@ export const GodModeSession: React.FC<GodModeSessionProps> = ({ questions, initi
 
     // Track time per question for analytics (approximate)
     const [timeSpentPerQuestion, setTimeSpentPerQuestion] = useState<Record<string, number>>({});
-    const currentQTimer = useRef(0);
 
     // Dedicated Mock Timer (Global)
     // If initialTime is provided (resumed session), use it. Otherwise calculate default.
@@ -41,12 +40,9 @@ export const GodModeSession: React.FC<GodModeSessionProps> = ({ questions, initi
         ? initialTime
         : questions.length * APP_CONFIG.TIMERS.MOCK_MODE_DEFAULT_PER_QUESTION;
 
-        const { timeLeft, formatTime } = useMockTimer({
+        const { timeLeft, formatTime, getAndResetCurrentQuestionTime, getCurrentQuestionTimeRef } = useGodSessionTimer({
         totalTime: totalExamTime,
-        onTimeUp: () => finishSession(),
-        onTick: () => {
-            currentQTimer.current += 1;
-        }
+        onTimeUp: () => finishSession()
     });
 
 
@@ -100,11 +96,11 @@ export const GodModeSession: React.FC<GodModeSessionProps> = ({ questions, initi
     // Record time when switching questions
     const saveCurrentQuestionTime = () => {
         const qId = questions[currentIndex].id;
+        const timeSpent = getAndResetCurrentQuestionTime();
         setTimeSpentPerQuestion(prev => ({
             ...prev,
-            [qId]: (prev[qId] || 0) + currentQTimer.current
+            [qId]: (prev[qId] || 0) + timeSpent
         }));
-        currentQTimer.current = 0;
     };
 
 
