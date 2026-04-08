@@ -10,6 +10,7 @@ import { SynapticLoader } from '../components/ui/SynapticLoader';
 // Groups: Main UI, Quiz Flow, Flashcard Flow, Auth Flow
 const LandingPage = lazy(() => import('../features/quiz/components/LandingPage').then(m => ({ default: m.LandingPage })));
 const Dashboard = lazy(() => import('../features/quiz/components/Dashboard').then(m => ({ default: m.Dashboard })));
+const McqsQuizHome = lazy(() => import('../features/quiz/components/McqsQuizHome').then(m => ({ default: m.McqsQuizHome })));
 const EnglishQuizHome = lazy(() => import('../features/quiz/components/EnglishQuizHome').then(m => ({ default: m.EnglishQuizHome })));
 const QuizConfig = lazy(() => import('../features/quiz/components/QuizConfig').then(m => ({ default: m.QuizConfig })));
 const SavedQuizzes = lazy(() => import('../features/quiz/components/SavedQuizzes').then(m => ({ default: m.SavedQuizzes })));
@@ -122,11 +123,13 @@ const AppRoutesContent: React.FC = () => {
                     <Route path="/blueprints/preview/:id" element={<BlueprintPreviewWrapper />} />
                     <Route path="/dashboard" element={
                         <Dashboard
-                            onStartQuiz={() => { enterConfig(); navTo('/quiz/config'); }}
-                            onEnglish={() => { enterEnglishHome(); navTo('/english'); }}
+                            onEnglish={() => { navTo('/english'); }}
                             onBackToIntro={() => { navTo('/dashboard'); }}
-                            onSavedQuizzes={() => navTo('/quiz/saved')}
                         />
+                    } />
+
+                    <Route path="/mcqs" element={
+                        <McqsQuizHome onBack={() => { navTo('/dashboard'); }} />
                     } />
                     <Route path="/about/developer-profile" element={
                         <Suspense fallback={<SynapticLoader />}>
