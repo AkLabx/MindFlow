@@ -29,6 +29,9 @@ const SynonymClusterList = lazy(() => import('../features/synonyms/components/Sy
 
 const BlueprintPreviewWrapper = lazy(() => import('../features/quiz/components/BlueprintPreviewWrapper').then(m => ({ default: m.BlueprintPreviewWrapper })));
 const ExamBlueprintsHub = lazy(() => import('../features/quiz/components/ExamBlueprintsHub').then(m => ({ default: m.ExamBlueprintsHub })));
+
+const AdminHome = lazy(() => import('../features/quiz/components/AdminHome').then(m => ({ default: m.AdminHome })));
+const AdminUploadMaterials = lazy(() => import('../features/quiz/components/AdminUploadMaterials').then(m => ({ default: m.AdminUploadMaterials })));
 const AdminNotifications = lazy(() => import('../features/notifications/admin/AdminNotifications').then(m => ({ default: m.AdminNotifications })));
 
 const SynonymQuizSession = lazy(() => import('../features/synonyms/components/SynonymQuizSession').then(m => ({ default: m.SynonymQuizSession })));
@@ -421,6 +424,9 @@ const AppRoutesContent: React.FC = () => {
 
                 {/* Fallback Route */}
                 <Route path="*" element={<Navigate to="/" replace />} />
+
+                    <Route path="/admin" element={<AdminHome />} />
+                    <Route path="/admin/upload" element={<AdminUploadMaterials />} />
               <Route path="/admin/notifications" element={
             <Suspense fallback={<div className="flex h-screen items-center justify-center"><SynapticLoader size="md" /></div>}>
               <AdminNotifications />

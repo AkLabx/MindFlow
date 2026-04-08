@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Download, FileText, ChevronRight, CheckCircle2, Loader2 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { useNotificationStore } from '../../stores/useNotificationStore';
 import { cn } from '../../utils/cn';
 
 type MaterialType = 'NCERT Textbook' | 'Study Notes' | 'MCQ Test' | 'Chapter Test' | 'Other Test' | 'Answer Key';
@@ -23,6 +24,8 @@ export const SchoolDownloads: React.FC = () => {
 
     const [materials, setMaterials] = useState<StudyMaterial[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const { showToast } = useNotificationStore();
+    const [downloadStatus, setDownloadStatus] = useState<Record<string, 'loading' | 'success' | null>>({});
 
     const [selectedClass, setSelectedClass] = useState<string | null>(null);
     const [selectedSubject, setSelectedSubject] = useState<string | null>(null);
@@ -71,56 +74,47 @@ export const SchoolDownloads: React.FC = () => {
         fetchMaterials();
     }, []);
 
-    const handleDownload = async (url: string, suggestedName: string) => {
+    const handleDownload = async (id: string, url: string, suggestedName: string) => {
+        setDownloadStatus(prev => ({ ...prev, [id]: 'loading' }));
+        showToast({ title: "Downloading...", message: "Your file is being prepared.", variant: "info" });
+
         try {
-            // Attempt 1: Supabase Edge Function Proxy (Most Reliable)
-            const { data, error } = await supabase.functions.invoke('proxy-download', {
-                body: { url, filename: suggestedName },
-            });
-
-            if (error) throw new Error(`Edge Function Error: ${error.message}`);
-            if (!data) throw new Error("No data returned from Edge Function");
-
-            // data is returned as Blob by default in Supabase js client when calling invoke if headers map it or if it's binary
-            // Wait, supabase.functions.invoke might try to parse JSON.
-            // We need to fetch directly to avoid JSON parse errors since it returns a raw PDF stream.
-
-            // Re-writing Attempt 1 using raw fetch to the edge function URL
-            const functionUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/proxy-download`;
-            const proxyResponse = await fetch(functionUrl, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
-                },
-                body: JSON.stringify({ url, filename: suggestedName })
-            });
-
-            if (!proxyResponse.ok) throw new Error(`Proxy failed with status ${proxyResponse.status}`);
-
-            const blob = await proxyResponse.blob();
-            const blobUrl = URL.createObjectURL(blob);
-
-            const a = document.createElement('a');
-            a.href = blobUrl;
-            a.download = suggestedName;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(blobUrl);
-            return; // Success
-
-        } catch (error) {
-            console.warn("Attempt 1 (Edge Function) failed:", error);
+            // Attempt 1: Direct Fetch (Works perfectly for Supabase Storage URLs since CORS is configured)
+            const directResponse = await fetch(url);
+            if (directResponse.ok) {
+                const blob = await directResponse.blob();
+                const blobUrl = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = blobUrl;
+                a.download = suggestedName;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(blobUrl);
+                setDownloadStatus(prev => ({ ...prev, [id]: 'success' }));
+                showToast({ title: "Success", message: "File downloaded successfully!", variant: "success" });
+                return;
+            } else {
+                throw new Error(`Direct fetch failed: ${directResponse.status}`);
+            }
+        } catch (directError) {
+            console.warn("Direct fetch failed, falling back to proxies...", directError);
 
             try {
-                // Attempt 2: Free CORS Proxy
-                const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(url)}`;
-                const response = await fetch(proxyUrl);
+                // Attempt 2: Supabase Edge Function Proxy (For Archive.org legacy links)
+                const functionUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/proxy-download`;
+                const proxyResponse = await fetch(functionUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
+                    },
+                    body: JSON.stringify({ url, filename: suggestedName })
+                });
 
-                if (!response.ok) throw new Error(`CORS proxy failed with status ${response.status}`);
+                if (!proxyResponse.ok) throw new Error(`Proxy failed with status ${proxyResponse.status}`);
 
-                const blob = await response.blob();
+                const blob = await proxyResponse.blob();
                 const blobUrl = URL.createObjectURL(blob);
 
                 const a = document.createElement('a');
@@ -130,13 +124,38 @@ export const SchoolDownloads: React.FC = () => {
                 a.click();
                 document.body.removeChild(a);
                 URL.revokeObjectURL(blobUrl);
-                return; // Success
+                setDownloadStatus(prev => ({ ...prev, [id]: 'success' }));
+                showToast({ title: "Success", message: "File downloaded successfully!", variant: "success" });
+                return;
 
-            } catch (proxyError) {
-                console.warn("Attempt 2 (CORS Proxy) failed:", proxyError);
+            } catch (error) {
+                console.warn("Attempt 2 (Edge Function) failed:", error);
 
                 try {
-                    // Attempt 3: Hidden Anchor Tag
+                    // Attempt 3: Free CORS Proxy
+                    const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(url)}`;
+                    const response = await fetch(proxyUrl);
+
+                    if (!response.ok) throw new Error(`CORS proxy failed with status ${response.status}`);
+
+                    const blob = await response.blob();
+                    const blobUrl = URL.createObjectURL(blob);
+
+                    const a = document.createElement('a');
+                    a.href = blobUrl;
+                    a.download = suggestedName;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(blobUrl);
+                    setDownloadStatus(prev => ({ ...prev, [id]: 'success' }));
+                    showToast({ title: "Success", message: "File downloaded successfully!", variant: "success" });
+                    return;
+
+                } catch (proxyError) {
+                    console.warn("Attempt 3 (CORS Proxy) failed:", proxyError);
+
+                    // Attempt 4: Ultimate Fallback - Window Open / Anchor Tag
                     const link = document.createElement("a");
                     link.href = url;
                     link.download = suggestedName;
@@ -145,13 +164,8 @@ export const SchoolDownloads: React.FC = () => {
                     document.body.appendChild(link);
                     link.click();
                     document.body.removeChild(link);
-                    return; // Success
 
-                } catch (anchorError) {
-                    console.warn("Attempt 3 (Anchor tag) failed:", anchorError);
-
-                    // Attempt 4: Ultimate Fallback - Window Open
-                    window.open(url, "_blank");
+                    setDownloadStatus(prev => ({ ...prev, [id]: 'success' })); // Assume success if browser handles it
                 }
             }
         }
@@ -368,11 +382,25 @@ export const SchoolDownloads: React.FC = () => {
                                             </div>
 
                                             <button
-                                                onClick={() => handleDownload(material.file_url, `${material.title}.pdf`)}
-                                                className="shrink-0 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white p-2 rounded-xl shadow-md transition-transform active:scale-95 flex items-center gap-2 px-4 font-medium text-sm"
+                                                onClick={() => handleDownload(material.id, material.file_url, `${material.title}.pdf`)}
+                                                disabled={downloadStatus[material.id] === 'loading'}
+                                                className={cn(
+                                                    "shrink-0 p-2 rounded-xl shadow-md transition-all active:scale-95 flex items-center gap-2 px-4 font-medium text-sm disabled:opacity-80 disabled:active:scale-100",
+                                                    downloadStatus[material.id] === 'success'
+                                                        ? "bg-green-500 text-white"
+                                                        : "bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white"
+                                                )}
                                             >
-                                                <Download className="w-4 h-4" />
-                                                <span className="hidden sm:inline">Download</span>
+                                                {downloadStatus[material.id] === 'loading' ? (
+                                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                                ) : downloadStatus[material.id] === 'success' ? (
+                                                    <CheckCircle2 className="w-4 h-4" />
+                                                ) : (
+                                                    <Download className="w-4 h-4" />
+                                                )}
+                                                <span className="hidden sm:inline">
+                                                    {downloadStatus[material.id] === 'loading' ? 'Wait...' : downloadStatus[material.id] === 'success' ? 'Done' : 'Download'}
+                                                </span>
                                             </button>
                                         </motion.div>
                                     ))}
