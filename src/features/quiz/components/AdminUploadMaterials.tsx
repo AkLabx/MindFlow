@@ -27,7 +27,7 @@ export const AdminUploadMaterials: React.FC = () => {
 
     // Guard
     useEffect(() => {
-        if (!user || user.email !== 'mindflow@user.com') {
+        if (!user || user.email !== 'admin@mindflow.com') {
             navigate('/dashboard', { replace: true });
         }
     }, [user, navigate]);
@@ -110,7 +110,7 @@ export const AdminUploadMaterials: React.FC = () => {
         }
     };
 
-    if (!user || user.email !== 'mindflow@user.com') return null;
+    if (!user || user.email !== 'admin@mindflow.com') return null;
 
     return (
         <div className="min-h-screen pt-4 pb-24 px-4 w-full flex flex-col relative bg-slate-50 dark:bg-slate-950 overflow-y-auto">

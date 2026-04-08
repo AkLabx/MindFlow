@@ -10,12 +10,12 @@ export const AdminHome: React.FC = () => {
 
     // Strict Guard
     useEffect(() => {
-        if (!user || user.email !== 'mindflow@user.com') {
+        if (!user || user.email !== 'admin@mindflow.com') {
             navigate('/dashboard', { replace: true });
         }
     }, [user, navigate]);
 
-    if (!user || user.email !== 'mindflow@user.com') return null;
+    if (!user || user.email !== 'admin@mindflow.com') return null;
 
     return (
         <div className="min-h-screen pt-4 pb-24 px-4 w-full flex flex-col relative overflow-hidden bg-slate-50 dark:bg-slate-950">
