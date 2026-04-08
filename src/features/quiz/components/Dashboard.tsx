@@ -14,7 +14,7 @@ import { useNotification } from '../../../stores/useNotificationStore';
  */
 interface DashboardProps {
     /** Callback to navigate to the English Zone. */
-    onEnglish: () => void;
+    onSchool: () => void;
     /** Callback to return to the Landing Page intro. */
     onBackToIntro: () => void;
 }
@@ -32,7 +32,7 @@ interface DashboardProps {
  * @param {DashboardProps} props - The component props.
  * @returns {JSX.Element} The rendered Dashboard.
  */
-export const Dashboard: React.FC<DashboardProps> = ({ onEnglish, onBackToIntro }) => {
+export const Dashboard: React.FC<DashboardProps> = ({ onSchool, onBackToIntro }) => {
     const navigate = useNavigate();
     const { loadingId, handleNavigation } = useNavSpinner();
     const { user } = useAuth();
@@ -145,7 +145,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onEnglish, onBackToIntro }
                         variants={itemVariants}
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
-                        onClick={() => handleNavigation('card-3', onEnglish)}
+                        onClick={() => handleNavigation('card-3', onSchool)}
                         className="relative group cursor-pointer aspect-square rounded-[32px] sm:rounded-[40px] p-[1px] overflow-hidden"
                     >
                         {/* Glow Background Layer */}

@@ -8,6 +8,9 @@ import { SynapticLoader } from '../components/ui/SynapticLoader';
 
 // Lazy Loaded Components for Code Splitting
 // Groups: Main UI, Quiz Flow, Flashcard Flow, Auth Flow
+
+const SchoolHome = lazy(() => import('../features/school/SchoolHome').then(m => ({ default: m.SchoolHome })));
+const SchoolDownloads = lazy(() => import('../features/school/SchoolDownloads').then(m => ({ default: m.SchoolDownloads })));
 const LandingPage = lazy(() => import('../features/quiz/components/LandingPage').then(m => ({ default: m.LandingPage })));
 const Dashboard = lazy(() => import('../features/quiz/components/Dashboard').then(m => ({ default: m.Dashboard })));
 const McqsQuizHome = lazy(() => import('../features/quiz/components/McqsQuizHome').then(m => ({ default: m.McqsQuizHome })));
@@ -125,7 +128,7 @@ const AppRoutesContent: React.FC = () => {
                     <Route path="/blueprints/preview/:id" element={<BlueprintPreviewWrapper />} />
                     <Route path="/dashboard" element={
                         <Dashboard
-                            onEnglish={() => { navTo('/english'); }}
+                            onSchool={() => { navTo('/school'); }}
                             onBackToIntro={() => { navTo('/dashboard'); }}
                         />
                     } />
@@ -268,7 +271,11 @@ const AppRoutesContent: React.FC = () => {
                         />
                     } />
 
-                    <Route path="/tools" element={<ToolsHome />} />
+
+                    {/* School Routes */}
+                    <Route path="/school" element={<SchoolHome />} />
+                    <Route path="/school/download" element={<SchoolDownloads />} />
+<Route path="/tools" element={<ToolsHome />} />
                     <Route path="/ai" element={<AIHome />} />
 
                     <Route path="/ai/chat" element={<AIChatPage />} />

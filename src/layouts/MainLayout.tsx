@@ -1,6 +1,6 @@
 import React, { useContext, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import { BrainCircuit, Home, Compass, PlusCircle, User, Settings, LogIn, Sun, Moon, Brain } from 'lucide-react';
+import { BrainCircuit, Home, GraduationCap, PlusCircle, User, Settings, LogIn, Sun, Moon, Brain } from 'lucide-react';
 import { cn } from '../utils/cn';
 import { useAuth } from '../features/auth/context/AuthContext';
 import { useQuizContext } from '../features/quiz/context/QuizContext';
@@ -12,7 +12,7 @@ import { NotificationBell } from '../features/notifications/components/Notificat
 /**
  * Unique identifiers for the main navigation tabs.
  */
-export type TabID = 'home' | 'explore' | 'create' | 'profile' | 'login' | 'ai';
+export type TabID = 'home' | 'school' | 'create' | 'profile' | 'login' | 'ai';
 
 /**
  * Props for the MainLayout component.
@@ -173,11 +173,11 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
           />
           
           <NavTab 
-            id="explore" 
-            label="English" 
-            icon={<Compass className="w-6 h-6" />} 
-            isActive={activeTab === 'explore'} 
-            onClick={() => onTabChange('explore')} 
+            id="school"
+            label="School"
+            icon={<GraduationCap className="w-6 h-6" />}
+            isActive={activeTab === 'school'}
+            onClick={() => onTabChange('school')}
           />
           
           <button 

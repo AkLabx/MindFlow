@@ -22,7 +22,7 @@ export const QuizLayout: React.FC = () => {
         if (path.includes('/login')) return 'login';
         if (path.includes('/ai')) return 'ai';
         if (path.includes('/profile') || path.includes('/settings')) return 'profile';
-        if (path.includes('/english') || path.includes('/vocab') || path.includes('/idioms') || path.includes('/ows')) return 'explore';
+        if (path.includes('/english') || path.includes('/vocab') || path.includes('/idioms') || path.includes('/ows')) return 'school';
         if (path.includes('/quiz/config')) return 'create';
         return 'home';
     };
@@ -33,9 +33,9 @@ export const QuizLayout: React.FC = () => {
                 enterHome();
                 navigate('/dashboard');
                 break;
-            case 'explore':
-                enterEnglishHome();
-                navigate('/english');
+            case 'school':
+
+                navigate('/school');
                 break;
             case 'create':
                 enterConfig();
