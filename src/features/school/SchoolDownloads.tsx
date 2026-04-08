@@ -81,7 +81,13 @@ export const SchoolDownloads: React.FC = () => {
 
         try {
             // Attempt 1: Direct Fetch (Works perfectly for Supabase Storage URLs since CORS is configured)
-            const directResponse = await fetch(url);
+
+            // Ensure Supabase urls have download parameter to enforce Content-Disposition: attachment
+            const downloadUrl = url.includes('supabase.co') && !url.includes('download=')
+                ? `${url}?download=`
+                : url;
+            const directResponse = await fetch(downloadUrl);
+
             if (directResponse.ok) {
                 const blob = await directResponse.blob();
                 const blobUrl = URL.createObjectURL(blob);
@@ -421,3 +427,5 @@ export const SchoolDownloads: React.FC = () => {
         </div>
     );
 };
+
+// test

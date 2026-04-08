@@ -76,7 +76,7 @@ export const AdminUploadMaterials: React.FC = () => {
             // 2. Get Public URL
             const { data: { publicUrl } } = supabase.storage
                 .from('study_materials')
-                .getPublicUrl(filePath);
+                .getPublicUrl(filePath, { download: true });
 
             // 3. Insert into Database
             const { error: dbError } = await supabase
