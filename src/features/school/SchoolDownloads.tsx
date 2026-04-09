@@ -5,6 +5,11 @@ import { ArrowLeft, Download, FileText, ChevronRight, CheckCircle2, Loader2 } fr
 import { supabase } from '../../lib/supabase';
 import { useNotificationStore } from '../../stores/useNotificationStore';
 import { cn } from '../../utils/cn';
+import { useAuth } from '../auth/context/AuthContext';
+import { AdminEditMaterialModal } from '../quiz/components/AdminEditMaterialModal';
+import { deleteStudyMaterial } from '../quiz/utils/adminMaterialUtils';
+import { Edit2, Trash2 } from 'lucide-react';
+
 
 type MaterialType = 'NCERT Textbook' | 'Study Notes' | 'MCQ Test' | 'Chapter Test' | 'Other Test' | 'Answer Key';
 
@@ -26,6 +31,11 @@ export const SchoolDownloads: React.FC = () => {
     const [materials, setMaterials] = useState<StudyMaterial[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const { showToast } = useNotificationStore();
+    const { user } = useAuth();
+    const isAdmin = user?.email === 'admin@mindflow.com';
+    const [editingMaterial, setEditingMaterial] = useState<StudyMaterial | null>(null);
+    const [deletingId, setDeletingId] = useState<string | null>(null);
+
     const [downloadStatus, setDownloadStatus] = useState<Record<string, 'loading' | 'success' | null>>({});
 
     const [selectedClass, setSelectedClass] = useState<string | null>(null);
@@ -74,6 +84,25 @@ export const SchoolDownloads: React.FC = () => {
         };
         fetchMaterials();
     }, []);
+
+
+    const handleAdminDelete = async (material: StudyMaterial) => {
+        const confirmed = window.confirm(`Are you sure you want to delete "${material.title}"?\nThis will remove the database record and the actual PDF file from the bucket.`);
+        if (!confirmed) return;
+
+        setDeletingId(material.id);
+        try {
+            await deleteStudyMaterial(material.id, material.file_url);
+            setMaterials(prev => prev.filter(m => m.id !== material.id));
+            showToast({ title: "Deleted", message: "Material successfully deleted.", variant: "success" });
+
+            // Re-evaluate selections if needed, simplified by just letting next render handle it
+        } catch (error: any) {
+            showToast({ title: "Error", message: error.message || "Failed to delete material.", variant: "error" });
+        } finally {
+            setDeletingId(null);
+        }
+    };
 
     const handleDownload = async (id: string, url: string, suggestedName: string) => {
         setDownloadStatus(prev => ({ ...prev, [id]: 'loading' }));
@@ -320,6 +349,30 @@ export const SchoolDownloads: React.FC = () => {
                                                 </div>
                                             </div>
 
+
+                                            {isAdmin && (
+                                                <div className="flex items-center gap-1.5 mr-2">
+                                                    <button
+                                                        onClick={() => setEditingMaterial(material)}
+                                                        className="p-1.5 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors shadow-sm"
+                                                        title="Edit Metadata"
+                                                    >
+                                                        <Edit2 className="w-4 h-4" />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleAdminDelete(material)}
+                                                        disabled={deletingId === material.id}
+                                                        className="p-1.5 rounded-lg bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors shadow-sm disabled:opacity-50"
+                                                        title="Delete Material"
+                                                    >
+                                                        {deletingId === material.id ? (
+                                                            <Loader2 className="w-4 h-4 animate-spin" />
+                                                        ) : (
+                                                            <Trash2 className="w-4 h-4" />
+                                                        )}
+                                                    </button>
+                                                </div>
+                                            )}
                                             <button
                                                 onClick={() => handleDownload(material.id, material.file_url, `${material.title}.pdf`)}
                                                 disabled={downloadStatus[material.id] === 'loading'}
@@ -356,8 +409,15 @@ export const SchoolDownloads: React.FC = () => {
 
                 </div>
             )}
+
+            <AdminEditMaterialModal
+                isOpen={!!editingMaterial}
+                material={editingMaterial}
+                onClose={() => setEditingMaterial(null)}
+                onSuccess={(updated) => {
+                    setMaterials(prev => prev.map(m => m.id === updated.id ? updated : m));
+                }}
+            />
         </div>
     );
 };
-
-// test

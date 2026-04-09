@@ -2,6 +2,17 @@
 > mindflow-quiz@0.0.0 preview
 > vite preview
 
-Port 4173 is in use, trying another one...
-  ➜  Local:   http://localhost:4174/MindFlow/
-  ➜  Network: http://192.168.0.2:4174/MindFlow/
+▲ [WARNING] Duplicate key "ignoreDeprecations" in object literal [duplicate-object-key]
+
+    tsconfig.json:41:4:
+      41 │     "ignoreDeprecations": "6.0",
+         ╵     ~~~~~~~~~~~~~~~~~~~~
+
+  The original key "ignoreDeprecations" is here:
+
+    tsconfig.json:5:4:
+      5 │     "ignoreDeprecations": "5.0",
+        ╵     ~~~~~~~~~~~~~~~~~~~~
+
+  ➜  Local:   http://localhost:4173/MindFlow/
+  ➜  Network: http://192.168.0.2:4173/MindFlow/
