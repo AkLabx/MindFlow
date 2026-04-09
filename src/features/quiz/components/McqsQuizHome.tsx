@@ -4,7 +4,7 @@ import { CreateQuizSVG, SavedQuizzesSVG, AttemptedQuizzesSVG, GodModeSVG } from 
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../auth/context/AuthContext';
 import { useNavSpinner } from '../../../hooks/useNavSpinner';
-import { Loader2 } from 'lucide-react';
+import { Loader2, ChevronRight } from 'lucide-react';
 import { MainLayout } from '../../../layouts/MainLayout';
 
 /**
@@ -41,16 +41,25 @@ export const McqsQuizHome: React.FC<McqsQuizHomeProps> = ({ onBack }) => {
     return (
         <div className="flex flex-col min-h-screen -m-4 sm:-m-6 lg:-m-8 p-4 sm:p-6 lg:p-8 transition-colors duration-700 relative overflow-hidden">
             <div className="flex-1 flex flex-col space-y-6 py-4 relative z-10 animate-fade-in w-full">
-                {/* Hero Section */}
-                <div className="relative text-left w-full mt-2">
-                    <h1 className="text-3xl sm:text-5xl font-black text-gray-900 dark:text-white leading-tight mb-1 drop-shadow-sm">
-                        MCQs Quiz
-                    </h1>
+                {/* Header Section */}
+                <header className="relative text-left w-full mt-2 max-w-7xl mx-auto flex flex-col gap-4">
+                    <button
+                        onClick={onBack}
+                        className="text-gray-500 hover:text-indigo-600 dark:hover:text-indigo-400 flex items-center transition-colors font-semibold uppercase tracking-widest text-xs w-fit"
+                    >
+                        <ChevronRight className="w-4 h-4 rotate-180 mr-1" />
+                        Back to Dashboard
+                    </button>
 
-                    <p className="text-base sm:text-lg text-gray-600 dark:text-gray-300 mb-2 leading-relaxed font-medium">
-                        Create, resume, or review your mock tests.
-                    </p>
-                </div>
+                    <div>
+                        <h1 className="text-3xl sm:text-5xl font-black text-gray-900 dark:text-white leading-tight mb-1 drop-shadow-sm">
+                            MCQs Quiz
+                        </h1>
+                        <p className="text-base sm:text-lg text-gray-600 dark:text-gray-300 mb-2 leading-relaxed font-medium">
+                            Create, resume, or review your mock tests.
+                        </p>
+                    </div>
+                </header>
 
                 {/* Cards Grid */}
                 <motion.div variants={containerVariants} initial="hidden" animate="visible" className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 w-full max-w-7xl mx-auto z-20">
