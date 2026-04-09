@@ -38,20 +38,20 @@ export const SidePanel: React.FC<SidePanelProps> = ({ isOpen, onClose, onTabChan
         visible: {
             opacity: 1,
             backdropFilter: 'blur(8px)',
-            transition: { duration: 0.3 }
+            transition: { duration: 0.15 }
         },
         exit: {
             opacity: 0,
             backdropFilter: 'blur(0px)',
-            transition: { duration: 0.3, delay: 0.2 }
+            transition: { duration: 0.15 }
         }
     };
 
     // 2. Panel Base (Slide in from right)
     const panelVariants = {
         hidden: { x: '100%' },
-        visible: { x: 0, transition: { ease: 'easeOut' as const, duration: 0.25 } },
-        exit: { x: '100%', transition: { ease: 'easeIn' as const, duration: 0.2 } }
+        visible: { x: 0, transition: { ease: 'easeOut' as const, duration: 0.15 } },
+        exit: { x: '100%', transition: { ease: 'easeIn' as const, duration: 0.15 } }
     };
 
 
