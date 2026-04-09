@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../../lib/supabase';
 import { useAuth } from '../../auth/context/AuthContext';
-import { ChevronRight, Megaphone, Send, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { Megaphone, Send, AlertCircle, CheckCircle2, Edit2, Trash2, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import { AdminEditNotificationModal } from './AdminEditNotificationModal';
 import { AppNotification } from '../types';
