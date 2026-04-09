@@ -19,8 +19,7 @@ export const SidePanel: React.FC<SidePanelProps> = ({ isOpen, onClose, onTabChan
 
     const handleNavigation = (path: string, tab?: string) => {
         onClose();
-        setTimeout(() => {
-            if (path === 'DOWNLOAD_LINK') {
+        if (path === 'DOWNLOAD_LINK') {
                 window.open('https://drive.google.com/drive/folders/1Owy8_qnvMOTw5WLRGLQajCiScN-dOHtF', '_blank');
             } else if (path === 'HOME_LINK') {
                 window.open('https://aklabx.github.io/MindFlow', '_self');
@@ -28,7 +27,7 @@ export const SidePanel: React.FC<SidePanelProps> = ({ isOpen, onClose, onTabChan
                 if (tab) onTabChange(tab);
                 navigate(path);
             }
-        }, 300);
+
     };
 
     // --- Animation Variants ---
@@ -55,62 +54,22 @@ export const SidePanel: React.FC<SidePanelProps> = ({ isOpen, onClose, onTabChan
             x: 0,
             transition: {
                 type: 'spring' as const,
-                damping: 25,
-                stiffness: 200,
-                duration: 0.4
+                damping: 20,
+                stiffness: 300,
+                duration: 0.2
             }
         },
         exit: {
             x: '100%',
             transition: {
                 type: 'spring' as const,
-                damping: 25, stiffness: 200, duration: 0.3
+                damping: 20, stiffness: 300, duration: 0.2
             }
         }
     };
 
-    // 3. Reveal Curtain (Uncovers content after slide-in)
-    const curtainVariants = {
-        hidden: { clipPath: 'inset(0 0 0 100%)' }, // Start fully clipped from left
-        visible: {
-            clipPath: 'inset(0 0 0 0%)',
-            transition: {
-                duration: 0.5,
-                ease: 'easeInOut' as const,
-                delay: 0.2 // Starts slightly after slide-in begins
-            }
-        },
-        exit: {
-            clipPath: 'inset(0 0 0 100%)',
-            transition: { duration: 0.2 }
-        }
-    };
 
-    // 4. Staggered List Container
-    const listVariants = {
-        hidden: { opacity: 0 },
-        visible: {
-            opacity: 1,
-            transition: {
-                staggerChildren: 0.08,
-                delayChildren: 0.5 // Starts when curtain is almost done
-            }
-        },
-        exit: {
-            opacity: 0,
-            transition: { duration: 0.1 }
-        }
-    };
 
-    // 5. Individual List Item
-    const itemVariants = {
-        hidden: { opacity: 0, x: 20 },
-        visible: {
-            opacity: 1,
-            x: 0,
-            transition: { type: 'spring' as const, stiffness: 300, damping: 24 }
-        }
-    };
 
     const menuItems = [
         { icon: Home, label: 'Home', path: 'HOME_LINK' },
@@ -148,14 +107,7 @@ export const SidePanel: React.FC<SidePanelProps> = ({ isOpen, onClose, onTabChan
                         {/* Inner Glassmorphism Layer */}
                         <div className="absolute inset-0 bg-gradient-to-br from-indigo-50/50 to-white/80 dark:from-slate-800/50 dark:to-slate-900/80 backdrop-blur-3xl -z-10" />
 
-                        {/* Curtain Reveal Container */}
-                        <motion.div
-                            variants={curtainVariants}
-                            initial="hidden"
-                            animate="visible"
-                            exit="exit"
-                            className="flex flex-col h-full w-full relative"
-                        >
+                        <div className="flex flex-col h-full w-full relative">
                             {/* --- Top: Header & Profile --- */}
                             <div className="p-6 pb-4 border-b border-gray-100 dark:border-gray-800 relative">
                                 <button
@@ -212,17 +164,10 @@ export const SidePanel: React.FC<SidePanelProps> = ({ isOpen, onClose, onTabChan
                             </div>
 
                             {/* --- Middle: Navigation Links (Staggered) --- */}
-                            <motion.div
-                                variants={listVariants}
-                                initial="hidden"
-                                animate="visible"
-                                exit="exit"
-                                className="flex-1 overflow-y-auto py-4 px-3 space-y-1 custom-scrollbar"
-                            >
+                            <div className="flex-1 overflow-y-auto py-4 px-3 space-y-1 custom-scrollbar">
                                 {menuItems.map((item, idx) => (
-                                    <motion.button
+                                    <button
                                         key={idx}
-                                        variants={itemVariants}
                                         onClick={() => handleNavigation(item.path, item.tab)}
                                         className="w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors text-left group"
                                     >
@@ -232,9 +177,9 @@ export const SidePanel: React.FC<SidePanelProps> = ({ isOpen, onClose, onTabChan
                                         <span className="font-bold text-gray-700 dark:text-gray-200 group-hover:text-gray-900 dark:group-hover:text-white transition-colors">
                                             {item.label}
                                         </span>
-                                    </motion.button>
+                                    </button>
                                 ))}
-                            </motion.div>
+                            </div>
 
                             {/* --- Bottom: Branding & Legal --- */}
                             <div className="p-6 border-t border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-slate-800/20">
@@ -267,7 +212,7 @@ export const SidePanel: React.FC<SidePanelProps> = ({ isOpen, onClose, onTabChan
                                     </button>
                                 </div>
                             </div>
-                        </motion.div>
+                        </div>
                     </motion.div>
                 </>
             )}
