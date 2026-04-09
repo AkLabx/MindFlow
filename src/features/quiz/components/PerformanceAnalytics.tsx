@@ -139,15 +139,17 @@ export const PerformanceAnalytics: React.FC = () => {
 
     return (
         <div className="max-w-4xl mx-auto p-4 sm:p-6 pb-24 space-y-8 animate-fade-in">
+            <button
+                onClick={() => navigate('/dashboard')}
+                className="text-gray-500 hover:text-indigo-600 dark:hover:text-indigo-400 flex items-center transition-colors font-semibold uppercase tracking-widest text-xs w-fit mb-4"
+            >
+                <ChevronLeft className="w-4 h-4 mr-1" />
+                Back to Dashboard
+            </button>
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-4">
-                <button
-                    onClick={() => navigate('/dashboard')}
-                    className="p-2 -ml-2 rounded-full hover:bg-gray-100 dark:bg-gray-800 dark:hover:bg-slate-800 transition-colors"
-                >
-                    <ChevronLeft className="w-6 h-6 text-gray-600 dark:text-gray-300" />
-                </button>
+
                 <div>
                     <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Performance Analytics</h1>
                     <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Your detailed learning report card.</p>

@@ -15,6 +15,13 @@ export const SchoolHome: React.FC = () => {
       <div className="absolute bottom-[-20%] left-[10%] w-[70vw] h-[70vw] bg-pink-500/20 dark:bg-pink-600/20 rounded-full blur-[100px] mix-blend-multiply dark:mix-blend-lighten animate-blob animation-delay-4000 z-0" />
 
       <div className="relative z-10 w-full max-w-3xl mx-auto flex flex-col">
+        <button
+          onClick={() => navigate('/dashboard')}
+          className="text-gray-500 hover:text-indigo-600 dark:hover:text-indigo-400 flex items-center transition-colors font-semibold uppercase tracking-widest text-xs w-fit mb-4"
+        >
+          <ChevronRight className="w-4 h-4 rotate-180 mr-1" />
+          Back to Dashboard
+        </button>
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}

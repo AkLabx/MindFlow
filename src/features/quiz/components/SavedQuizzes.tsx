@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Trash2, Play, Clock, BookOpen, Edit2, Check, X, Save, Home, PlusCircle, CheckCircle, Mic } from 'lucide-react';
+import { Trash2, Play, Clock, BookOpen, Edit2, Check, X, Save, Home, PlusCircle, CheckCircle, ArrowLeft, Mic } from 'lucide-react';
 import { db } from '../../../lib/db';
 import { SavedQuiz } from '../types';
 import { useQuizContext } from '../context/QuizContext';
@@ -186,11 +186,11 @@ export const SavedQuizzes: React.FC = () => {
                 {/* Header Title & Back Button */}
                 <div className="flex flex-col gap-2">
                     <button
-                        onClick={() => navigate('/dashboard')}
-                        className="group flex items-center gap-2 text-sm font-semibold text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors w-fit bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm px-3 py-1.5 rounded-full border border-slate-200/50 dark:border-slate-700/50"
+                        onClick={() => navigate('/mcqs')}
+                        className="self-start mb-4 z-20 flex items-center justify-center p-2 rounded-full bg-white/50 dark:bg-gray-800/50 hover:bg-white/80 dark:hover:bg-gray-700/80 text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-100 transition-all shadow-sm backdrop-blur-sm border border-white/20 dark:border-gray-700/30"
+                        title="Back to MCQs"
                     >
-                        <motion.div whileHover={{ x: -2, scale: 1.1 }} transition={{ type: "spring", stiffness: 300 }}><Home className="w-4 h-4" /></motion.div>
-                        Back to Home
+                        <ArrowLeft className="w-5 h-5" />
                     </button>
                     <h1 className="text-3xl sm:text-5xl font-black text-gray-900 dark:text-white leading-tight drop-shadow-sm">
                         Created Quizzes

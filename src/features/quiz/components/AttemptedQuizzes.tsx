@@ -113,10 +113,11 @@ export const AttemptedQuizzes: React.FC = () => {
             <div className="max-w-4xl mx-auto">
                 <div className="mb-6">
                     <button
-                        onClick={() => navigate('/quiz/saved')}
-                        className="flex items-center gap-2 text-indigo-600 hover:text-indigo-800 transition-colors font-medium"
+                        onClick={() => navigate('/mcqs')}
+                        className="self-start mb-4 z-20 flex items-center justify-center p-2 rounded-full bg-white/50 dark:bg-gray-800/50 hover:bg-white/80 dark:hover:bg-gray-700/80 text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-100 transition-all shadow-sm backdrop-blur-sm border border-white/20 dark:border-gray-700/30"
+                        title="Back to MCQs"
                     >
-                        <ArrowLeft className="w-5 h-5" /> Back to Created Quizzes
+                        <ArrowLeft className="w-5 h-5" />
                     </button>
                 </div>
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">

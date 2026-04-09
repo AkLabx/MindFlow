@@ -74,7 +74,7 @@ export const EnglishQuizHome: React.FC<EnglishQuizHomeProps> = ({
             className="text-gray-500 hover:text-indigo-600 dark:hover:text-indigo-400 flex items-center transition-colors font-semibold uppercase tracking-widest text-xs w-fit"
           >
             <ChevronRight className="w-4 h-4 rotate-180 mr-1" />
-            Back to Home
+            Back to Dashboard
           </button>
 
           <div>

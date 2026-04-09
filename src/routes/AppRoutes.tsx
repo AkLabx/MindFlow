@@ -313,7 +313,7 @@ const AppRoutesContent: React.FC = () => {
 
                     <Route path="/quiz/config" element={
                         <QuizConfig
-                            onBack={() => { goHome(); navTo('/dashboard'); }}
+                            onBack={() => { navTo('/mcqs'); }}
                             onStart={(questions, filters, mode) => {
                                 startQuiz(questions, filters || ({} as any), mode);
                                 navTo(mode === 'mock' ? '/quiz/session/mock' : '/quiz/session/learning');
