@@ -4,6 +4,7 @@ import { ArrowLeft, ArrowDown, ChevronDown, Brain, Plus, Trash2, MessageSquare, 
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { ChatMessage } from './ChatMessage';
+import { ProcessedDocument } from './utils/fileProcessing';
 import { ChatInput } from './ChatInput';
 import { useAIChat } from './useAIChat';
 import { MODEL_CONFIGS } from './useQuota';
@@ -300,9 +301,9 @@ export const AIChatPage: React.FC = () => {
         }
     };
 
-    const handleSubmit = (image?: string, audio?: { data: string, mimeType: string }) => {
-        if ((!inputValue.trim() && !image && !audio) || isLoading) return;
-        sendMessage(inputValue, image, audio);
+    const handleSubmit = (image?: string, audio?: { data: string, mimeType: string }, documents?: ProcessedDocument[]) => {
+        if ((!inputValue.trim() && !image && !audio && (!documents || documents.length === 0)) || isLoading) return;
+        sendMessage(inputValue, image, audio, documents);
         setInputValue('');
     };
 
