@@ -1,12 +1,13 @@
-import React, { useContext, useEffect } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { BrainCircuit, Home, GraduationCap, PlusCircle, User, Settings, LogIn, Sun, Moon, Brain } from 'lucide-react';
+import { BrainCircuit, Home, GraduationCap, PlusCircle, User, Settings, LogIn, Sun, Moon, Brain, Menu } from 'lucide-react';
 import { cn } from '../utils/cn';
 import { useAuth } from '../features/auth/context/AuthContext';
 import { useQuizContext } from '../features/quiz/context/QuizContext';
 import { useSettingsStore } from '../stores/useSettingsStore';
 import { ClaymorphismSwitch } from '../features/quiz/components/ui/ClaymorphismSwitch';
 import { NotificationBell } from '../features/notifications/components/NotificationBell';
+import { SidePanel } from '../components/layout/SidePanel';
 
 
 /**
@@ -51,6 +52,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
   const { isDarkMode, toggleDarkMode } = useSettingsStore();
   const location = useLocation();
   const isAIFullScreen = location.pathname.startsWith('/ai/chat') || location.pathname.startsWith('/ai/talk') || location.pathname.startsWith('/tools/text-exporter') || location.pathname.startsWith('/tools/flashcard-maker');
+  const [isSidePanelOpen, setIsSidePanelOpen] = useState(false);
 
   const handleProfileClick = () => {
     if (user) {
@@ -100,7 +102,11 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
 
         <div className="max-w-3xl mx-auto px-4 h-14 flex items-center justify-between relative z-20">
 
-          <div className="flex items-center gap-2 cursor-pointer" onClick={() => onTabChange('home')}>
+          <div className="flex items-center gap-3">
+            <button onClick={() => setIsSidePanelOpen(true)} className="p-2 -ml-2 rounded-xl hover:bg-gray-100 dark:hover:bg-slate-800 text-gray-700 dark:text-gray-300 transition-colors">
+              <Menu className="w-6 h-6" />
+            </button>
+            <div className="flex items-center gap-2 cursor-pointer" onClick={() => onTabChange('home')}>
             <div className="bg-indigo-600 p-1.5 rounded-lg">
               <BrainCircuit className="h-5 w-5 text-white" />
             </div>
@@ -108,6 +114,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
               <span className="text-lg font-black tracking-tight text-gray-900 dark:text-white transition-colors duration-300 leading-none">MindFlow</span>
               <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 leading-none mt-0.5">v{import.meta.env.VITE_APP_VERSION}</span>
             </div>
+          </div>
           </div>
           
           <div className="flex items-center gap-2">
@@ -137,6 +144,8 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
         </div>
       </header>
       )}
+
+      <SidePanel isOpen={isSidePanelOpen} onClose={() => setIsSidePanelOpen(false)} onTabChange={(tab: string) => onTabChange(tab as any)} />
 
       {/* --- Main Scrollable Content --- */}
       <main className={cn(
