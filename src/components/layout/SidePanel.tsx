@@ -50,22 +50,8 @@ export const SidePanel: React.FC<SidePanelProps> = ({ isOpen, onClose, onTabChan
     // 2. Panel Base (Slide in from right)
     const panelVariants = {
         hidden: { x: '100%' },
-        visible: {
-            x: 0,
-            transition: {
-                type: 'spring' as const,
-                damping: 20,
-                stiffness: 300,
-                duration: 0.2
-            }
-        },
-        exit: {
-            x: '100%',
-            transition: {
-                type: 'spring' as const,
-                damping: 20, stiffness: 300, duration: 0.2
-            }
-        }
+        visible: { x: 0, transition: { ease: 'easeOut' as const, duration: 0.25 } },
+        exit: { x: '100%', transition: { ease: 'easeIn' as const, duration: 0.2 } }
     };
 
 
@@ -164,12 +150,12 @@ export const SidePanel: React.FC<SidePanelProps> = ({ isOpen, onClose, onTabChan
                             </div>
 
                             {/* --- Middle: Navigation Links (Staggered) --- */}
-                            <div className="flex-1 overflow-y-auto py-4 px-3 space-y-1 custom-scrollbar">
+                            <div className="flex-1 overflow-y-auto py-4 px-3 space-y-3 custom-scrollbar">
                                 {menuItems.map((item, idx) => (
                                     <button
                                         key={idx}
                                         onClick={() => handleNavigation(item.path, item.tab)}
-                                        className="w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors text-left group"
+                                        className="w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors text-left group border border-gray-900 dark:border-white shadow-sm"
                                     >
                                         <div className={`p-2 rounded-xl transition-all ${item.bgClasses}`}>
                                             <item.icon className={`w-5 h-5 transition-colors ${item.colorClasses}`} />
