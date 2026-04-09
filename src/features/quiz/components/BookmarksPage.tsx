@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { ChevronLeft, Star, Trash2, LibraryBig, CheckCircle2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Star, Trash2, LibraryBig, CheckCircle2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { db } from '../../../lib/db';
 import { Question } from '../types';
@@ -94,9 +94,16 @@ export const BookmarksPage: React.FC = () => {
                     <p className="text-gray-500 dark:text-gray-400 max-w-md mb-8">
                         Tap the star icon during a quiz to save questions here for later review.
                     </p>
-                    <Button onClick={() => navigate('/dashboard')} className="bg-indigo-600 hover:bg-indigo-700">
+                    <Button onClick={() => navigate('/dashboard')} className="bg-indigo-600 hover:bg-indigo-700 mb-4">
                         Back to Dashboard
                     </Button>
+                    <button
+                        onClick={() => navigate('/dashboard')}
+                        className="text-gray-500 hover:text-indigo-600 dark:hover:text-indigo-400 flex items-center transition-colors font-semibold uppercase tracking-widest text-xs w-fit"
+                    >
+                        <ChevronRight className="w-4 h-4 rotate-180 mr-1" />
+                        Back to Dashboard
+                    </button>
                 </div>
                 {/* Toast Notification */}
                 {showToast && (
@@ -117,7 +124,7 @@ export const BookmarksPage: React.FC = () => {
                 onClick={() => navigate('/dashboard')}
                 className="text-gray-500 hover:text-indigo-600 dark:hover:text-indigo-400 flex items-center transition-colors font-semibold uppercase tracking-widest text-xs w-fit mb-4"
             >
-                <ChevronLeft className="w-4 h-4 mr-1" />
+                <ChevronRight className="w-4 h-4 rotate-180 mr-1" />
                 Back to Dashboard
             </button>
             {/* Header */}

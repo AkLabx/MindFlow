@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronLeft, BarChart2, TrendingUp, CheckCircle2, XCircle, Clock, Target, AlertCircle, Trash2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, BarChart2, TrendingUp, CheckCircle2, XCircle, Clock, Target, AlertCircle, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { db } from '../../../lib/db';
 import { QuizHistoryRecord } from '../types';
@@ -120,7 +120,11 @@ export const PerformanceAnalytics: React.FC = () => {
                     <Button onClick={() => navigate('/quiz/config')} className="bg-indigo-600 hover:bg-indigo-700">
                         Start a Quiz
                     </Button>
-                    <button onClick={() => navigate('/dashboard')} className="mt-4 text-sm text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:text-indigo-400 font-medium">
+                    <button
+                        onClick={() => navigate('/dashboard')}
+                        className="mt-4 text-gray-500 hover:text-indigo-600 dark:hover:text-indigo-400 flex items-center transition-colors font-semibold uppercase tracking-widest text-xs w-fit"
+                    >
+                        <ChevronRight className="w-4 h-4 rotate-180 mr-1" />
                         Back to Dashboard
                     </button>
                 </div>
@@ -143,7 +147,7 @@ export const PerformanceAnalytics: React.FC = () => {
                 onClick={() => navigate('/dashboard')}
                 className="text-gray-500 hover:text-indigo-600 dark:hover:text-indigo-400 flex items-center transition-colors font-semibold uppercase tracking-widest text-xs w-fit mb-4"
             >
-                <ChevronLeft className="w-4 h-4 mr-1" />
+                <ChevronRight className="w-4 h-4 rotate-180 mr-1" />
                 Back to Dashboard
             </button>
             {/* Header */}

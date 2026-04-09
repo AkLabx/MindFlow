@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../../lib/supabase';
 import { useAuth } from '../../auth/context/AuthContext';
-import { Megaphone, Send, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { ChevronRight, Megaphone, Send, AlertCircle, CheckCircle2 } from 'lucide-react';
 
 export const AdminNotifications: React.FC = () => {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const [title, setTitle] = useState('');
   const [message, setMessage] = useState('');
@@ -58,6 +60,13 @@ export const AdminNotifications: React.FC = () => {
 
   return (
     <div className="max-w-2xl mx-auto p-6">
+      <button
+        onClick={() => navigate('/dashboard')}
+        className="text-gray-500 hover:text-indigo-600 dark:hover:text-indigo-400 flex items-center transition-colors font-semibold uppercase tracking-widest text-xs w-fit mb-4"
+      >
+        <ChevronRight className="w-4 h-4 rotate-180 mr-1" />
+        Back to Dashboard
+      </button>
       <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
         <div className="px-6 py-5 border-b border-gray-200 dark:border-gray-700 flex items-center gap-3 bg-indigo-50/50 dark:bg-indigo-900/10">
           <div className="w-10 h-10 rounded-xl bg-indigo-100 dark:bg-indigo-500/20 flex items-center justify-center">
