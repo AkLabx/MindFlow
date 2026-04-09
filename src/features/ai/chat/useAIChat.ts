@@ -258,6 +258,7 @@ export const useAIChat = () => {
             role: 'user',
             content: content,
             ...(imageBase64 && { image: imageBase64 }),
+            ...(documents && documents.length > 0 && { documents: documents }),
             created_at: new Date().toISOString()
         };
 
