@@ -81,14 +81,14 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
 
         // Calculate offset relative to the nav container
         // offsetLeft avoids issues when scroll is present or viewport resize happens unexpectedly
-        const left = tabRect.left - navRect.left;
-        const width = tabRect.width;
+        const baseLeft = tabRect.left - navRect.left;
+        const baseWidth = tabRect.width;
 
         if (isAi) {
           // AI Button logic: Wrap the elevated circular button
           const height = tabRect.height + 12; // Extra padding
           const widthForAi = tabRect.width + 12;
-          const leftForAi = left - 6; // Center the larger outline over the button
+          const leftForAi = baseLeft - 6; // Center the larger outline over the button
           const top = tabRect.top - navRect.top - 6;
 
           setIndicatorStyle({
@@ -101,9 +101,11 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
           });
         } else {
           // Standard tab logic
-          const height = 48; // Standard h-12 is 48px
+          const height = 56; // Increased from 48 to wrap text completely
           // Vertically center in the 64px (h-16) nav container
           const top = (64 - height) / 2;
+          const left = baseLeft - 4;
+          const width = baseWidth + 8;
 
           setIndicatorStyle({
             left,
