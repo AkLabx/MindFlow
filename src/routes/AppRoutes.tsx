@@ -132,7 +132,7 @@ const AppRoutesContent: React.FC = () => {
                     <Route path="/blueprints/preview/:id" element={<BlueprintPreviewWrapper />} />
                     <Route path="/dashboard" element={
                         <Dashboard
-                            onBackToIntro={() => { navTo('/dashboard'); }}
+                            onBackToIntro={() => { navTo('/'); }}
                         />
                     } />
 
