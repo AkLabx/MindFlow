@@ -365,7 +365,7 @@ const NavTab = ({ id, label, icon, isActive, onClick, buttonRef }: { id: string,
     aria-pressed={isActive}
     aria-selected={isActive}
     className={cn(
-      "relative flex flex-col items-center justify-center w-16 py-1 transition-all group outline-none",
+      "relative flex flex-col items-center justify-center min-w-[4.5rem] px-2 py-1 w-auto transition-all group outline-none",
       "style-[transition:all_0.4s_var(--easing-bounce)]",
       isActive ? "" : "text-gray-400 hover:text-gray-600 dark:text-gray-300 dark:hover:text-slate-300"
     )}
