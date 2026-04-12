@@ -78,7 +78,7 @@ export function QuizQuestionDisplay({
 }) {
 
     const isAnswered = !!selectedAnswer;
-    const { speak, stop, isPlaying, isLoading } = useTextToSpeech();
+    const { speak, stop, isPlaying, isLoading, error } = useTextToSpeech();
     const { showToast } = useNotification();
     const [isCopied, setIsCopied] = React.useState(false);
 
@@ -178,10 +178,17 @@ export function QuizQuestionDisplay({
 
 
 
-    // Stop any playing audio when the question changes to prevent bleed-over
+// Stop any playing audio when the question changes to prevent bleed-over
     useEffect(() => {
         stop();
     }, [question.id, stop]);
+
+    // Show toast on TTS error
+    useEffect(() => {
+        if (error) {
+            showToast({ variant: 'error', message: error, duration: 3000 });
+        }
+    }, [error, showToast]);
     
     // Helper to safely render HTML content after sanitization
     const createSafeMarkup = (html: string) => {
@@ -260,33 +267,34 @@ export function QuizQuestionDisplay({
 
                 {/* Hindi Translation & TTS Control */}
                 {question.question_hi && (
-                    <div className="relative group">
+                    <div className="flex items-start gap-3 group">
                         <div
-                            className="text-gray-800 dark:text-gray-100 font-hindi leading-relaxed border-l-4 border-indigo-100 dark:border-indigo-900/30 pl-4 pr-12 selectable-text relative z-10 [&_pre]:whitespace-pre-wrap [&_pre]:font-inherit [&_pre]:my-2 [&_pre]:bg-gray-50 dark:bg-gray-900 [&_pre]:p-2 [&_pre]:rounded-md [&_pre]:border [&_pre]:border-gray-200 dark:border-gray-700"
+                            className="flex-1 text-gray-800 dark:text-gray-100 font-hindi leading-relaxed border-l-4 border-indigo-100 dark:border-indigo-900/30 pl-4 selectable-text [&_pre]:whitespace-pre-wrap [&_pre]:font-inherit [&_pre]:my-2 [&_pre]:bg-gray-50 dark:bg-gray-900 [&_pre]:p-2 [&_pre]:rounded-md [&_pre]:border [&_pre]:border-gray-200 dark:border-gray-700"
                             dangerouslySetInnerHTML={createSafeMarkup(question.question_hi)}
                             onMouseDown={(e) => e.stopPropagation()}
                             onTouchStart={(e) => e.stopPropagation()}
                         />
-                        <button
-                            onClick={() => {
-                                if (isPlaying) {
-                                    stop();
-                                } else {
-                                    // Strip HTML from Hindi text before sending to TTS engine
-                                    const tempDiv = document.createElement('div');
-                                    tempDiv.innerHTML = question.question_hi || '';
-                                    const textContent = tempDiv.textContent || tempDiv.innerText || '';
-                                    speak(textContent);
-                                }
-                            }}
-                            disabled={isLoading}
-                            className={`absolute top-0 right-0 p-2 rounded-full transition-all shadow-sm border ${
-                                isPlaying
-                                    ? 'text-red-600 dark:text-red-400 bg-red-100 border-red-200 hover:bg-red-200 shadow-red-100'
-                                    : 'text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/20 border-indigo-200 dark:border-indigo-800/50 hover:bg-indigo-100 dark:bg-indigo-900/40 shadow-indigo-100'
-                            } active:scale-95`}
-                            title={isPlaying ? "Stop reading" : "Read question in Hindi"}
-                        >
+                        <div className="shrink-0 pt-0.5">
+                            <button
+                                onClick={() => {
+                                    if (isPlaying) {
+                                        stop();
+                                    } else {
+                                        // Strip HTML from Hindi text before sending to TTS engine
+                                        const tempDiv = document.createElement('div');
+                                        tempDiv.innerHTML = question.question_hi || '';
+                                        const textContent = tempDiv.textContent || tempDiv.innerText || '';
+                                        speak(textContent);
+                                    }
+                                }}
+                                disabled={isLoading}
+                                className={`p-2 rounded-full transition-all shadow-sm border ${
+                                    isPlaying
+                                        ? 'text-red-600 dark:text-red-400 bg-red-100 border-red-200 hover:bg-red-200 shadow-red-100'
+                                        : 'text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/20 border-indigo-200 dark:border-indigo-800/50 hover:bg-indigo-100 dark:bg-indigo-900/40 shadow-indigo-100'
+                                } active:scale-95`}
+                                title={isPlaying ? "Stop reading" : "Read question in Hindi"}
+                            >
                             {isLoading ? (
                                 <svg className="animate-spin w-5 h-5 text-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                             ) : isPlaying ? (
@@ -295,6 +303,7 @@ export function QuizQuestionDisplay({
                                 <Volume2 className="w-5 h-5" />
                             )}
                         </button>
+                        </div>
                     </div>
                 )}
             </div>
