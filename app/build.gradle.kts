@@ -67,6 +67,7 @@ dependencies {
     implementation("io.github.jan-tennert.supabase:gotrue-kt:2.2.3")
     implementation("io.ktor:ktor-client-android:2.3.9")
 
+    implementation("com.google.code.gson:gson:2.10.1")
     // Room
     val roomVersion = "2.6.1"
     implementation("androidx.room:room-runtime:2.6.1")
