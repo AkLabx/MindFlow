@@ -12,6 +12,8 @@ import com.mindflow.quiz.ui.auth.AuthViewModel
 import com.mindflow.quiz.ui.auth.LoginScreen
 import com.mindflow.quiz.ui.auth.SignupScreen
 import com.mindflow.quiz.ui.dashboard.MainLayoutScreen
+import com.mindflow.quiz.ui.ai.AIChatScreen
+import com.mindflow.quiz.ui.ai.AITutorViewModel
 import com.mindflow.quiz.ui.quiz.QuizViewModel
 import com.mindflow.quiz.ui.quiz.QuizScreen
 import com.mindflow.quiz.ui.flashcards.FlashcardViewModel
@@ -23,6 +25,7 @@ import io.github.jan.supabase.gotrue.SessionStatus
 fun AppNavigation(
     authViewModel: AuthViewModel = viewModel()
 ) {
+    val aiTutorViewModel: AITutorViewModel = viewModel()
     val flashcardViewModel: FlashcardViewModel = viewModel()
     val quizViewModel: QuizViewModel = viewModel()
     val navController = rememberNavController()
@@ -69,7 +72,14 @@ fun AppNavigation(
             QuizScreen(
                 quizViewModel = quizViewModel,
                 onNavigateBack = { navController.popBackStack() },
-                onNavigateToResult = { navController.navigate("result") { popUpTo("quiz") { inclusive = true } } }
+                onNavigateToResult = { navController.navigate("result") { popUpTo("quiz") { inclusive = true } } },
+                onNavigateToAI = { navController.navigate("ai_chat") }
+            )
+        }
+        composable("ai_chat") {
+            AIChatScreen(
+                viewModel = aiTutorViewModel,
+                onNavigateBack = { navController.popBackStack() }
             )
         }
         composable("result") {

@@ -28,3 +28,4 @@ scripts/data/processed_embeddings.json
 scripts/data/embeddings_batch_1.json
 app/build/
 .gradle/
+local.properties

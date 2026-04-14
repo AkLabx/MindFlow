@@ -5,23 +5,35 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.mindflow.quiz.utils.TTSManager
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun QuizScreen(
     quizViewModel: QuizViewModel,
     onNavigateBack: () -> Unit,
-    onNavigateToResult: () -> Unit
+    onNavigateToResult: () -> Unit,
+    onNavigateToAI: () -> Unit = {}
 ) {
     val uiState by quizViewModel.uiState.collectAsState()
+    val context = LocalContext.current
+    val ttsManager = remember { TTSManager(context) }
+
+    DisposableEffect(Unit) {
+        onDispose { ttsManager.shutdown() }
+    }
 
     LaunchedEffect(uiState.isFinished) {
         if (uiState.isFinished) {
@@ -36,6 +48,11 @@ fun QuizScreen(
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.Default.Close, contentDescription = "Exit Quiz")
+                    }
+                },
+                actions = {
+                    IconButton(onClick = onNavigateToAI) {
+                        Icon(Icons.Default.Star, contentDescription = "Ask AI")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -76,11 +93,17 @@ fun QuizScreen(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                Text(
-                    text = currentQuestion.questionEn,
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = currentQuestion.questionEn,
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.weight(1f)
+                    )
+                    IconButton(onClick = { ttsManager.speak(currentQuestion.questionEn) }) {
+                        Icon(Icons.Default.PlayArrow, contentDescription = "Read Question aloud")
+                    }
+                }
 
                 Spacer(modifier = Modifier.height(32.dp))
 

@@ -1,3 +1,4 @@
+import java.util.Properties
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -14,6 +15,14 @@ android {
         targetSdk = 34
         versionCode = 1
         versionName = "1.0"
+
+        val properties = Properties()
+        val localPropertiesFile = rootProject.file("local.properties")
+        if (localPropertiesFile.exists()) {
+            properties.load(localPropertiesFile.inputStream())
+        }
+        val geminiApiKey = properties.getProperty("GEMINI_API_KEY") ?: "\"MISSING_KEY\""
+        buildConfigField("String", "GEMINI_API_KEY", geminiApiKey)
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -38,6 +47,7 @@ android {
         jvmTarget = "1.8"
     }
     buildFeatures {
+        buildConfig = true
         compose = true
     }
     composeOptions {
@@ -62,14 +72,12 @@ dependencies {
     implementation("androidx.navigation:navigation-compose:2.7.7")
 
     // Supabase
-    val supabaseVersion = "2.2.3"
     implementation("io.github.jan-tennert.supabase:postgrest-kt:2.2.3")
     implementation("io.github.jan-tennert.supabase:gotrue-kt:2.2.3")
     implementation("io.ktor:ktor-client-android:2.3.9")
 
-    implementation("com.google.code.gson:gson:2.10.1")
     // Room
-    val roomVersion = "2.6.1"
+    implementation("com.google.code.gson:gson:2.10.1")
     implementation("androidx.room:room-runtime:2.6.1")
     annotationProcessor("androidx.room:room-compiler:2.6.1")
     ksp("androidx.room:room-compiler:2.6.1")
@@ -77,6 +85,7 @@ dependencies {
 
     // WorkManager
     implementation("androidx.work:work-runtime-ktx:2.9.0")
+
     // Google AI (Gemini)
     implementation("com.google.ai.client.generativeai:generativeai:0.2.2")
 
