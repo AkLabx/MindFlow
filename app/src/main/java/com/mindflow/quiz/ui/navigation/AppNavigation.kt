@@ -12,12 +12,16 @@ import com.mindflow.quiz.ui.auth.AuthViewModel
 import com.mindflow.quiz.ui.auth.LoginScreen
 import com.mindflow.quiz.ui.auth.SignupScreen
 import com.mindflow.quiz.ui.dashboard.MainLayoutScreen
+import com.mindflow.quiz.ui.quiz.QuizViewModel
+import com.mindflow.quiz.ui.quiz.QuizScreen
+import com.mindflow.quiz.ui.quiz.ResultScreen
 import io.github.jan.supabase.gotrue.SessionStatus
 
 @Composable
 fun AppNavigation(
     authViewModel: AuthViewModel = viewModel()
 ) {
+    val quizViewModel: QuizViewModel = viewModel()
     val navController = rememberNavController()
     val sessionStatus by authViewModel.sessionStatus.collectAsState(initial = SessionStatus.LoadingFromStorage)
 
@@ -57,6 +61,19 @@ fun AppNavigation(
         }
         composable("dashboard") {
             MainLayoutScreen(authViewModel = authViewModel, rootNavController = navController)
+        }
+        composable("quiz") {
+            QuizScreen(
+                quizViewModel = quizViewModel,
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToResult = { navController.navigate("result") { popUpTo("quiz") { inclusive = true } } }
+            )
+        }
+        composable("result") {
+            ResultScreen(
+                quizViewModel = quizViewModel,
+                onNavigateHome = { navController.navigate("dashboard") { popUpTo(0) } }
+            )
 
         }
     }

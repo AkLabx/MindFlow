@@ -21,7 +21,7 @@ import androidx.compose.ui.unit.dp
 data class DashboardFeature(val title: String, val icon: ImageVector, val description: String)
 
 @Composable
-fun DashboardScreen() {
+fun DashboardScreen(onNavigateToQuiz: () -> Unit = {}) {
     val features = listOf(
         DashboardFeature("Create Quiz", Icons.Default.Edit, "Customize subjects and topics"),
         DashboardFeature("English Zone", Icons.Default.Star, "Vocab, Idioms, & OWS"),
@@ -73,7 +73,7 @@ fun DashboardScreen() {
         ) {
             items(features) { feature ->
                 FeatureCard(feature = feature) {
-                    // Navigate to specific feature (Phase 5+)
+                    if (feature.title == "Create Quiz") onNavigateToQuiz()
                 }
             }
         }
