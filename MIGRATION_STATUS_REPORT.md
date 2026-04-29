@@ -83,7 +83,7 @@ The goal of the migration is **100% feature parity**. The current state shows th
   - Update `SyncDataStore` to track `lastSync` for idioms and OWS separately.
   - Expand `SyncWorker` to fetch and sync `idioms` and `ows` tables from Supabase to Room.
   - Establish Repositories for Idioms and OWS with Flow emissions identical to `QuizRepository`.
-- [ ] **Phase 3: Robust TypeConverters & Room Integration**
+- [x] **Phase 3: Robust TypeConverters & Room Integration**
   - Implement and verify complex `TypeConverters` for Room handling arrays and JSON objects (e.g., options, usage sentences, meaning objects).
   - Verify database schema generation.
 - [ ] **Phase 4: Sync Orchestration & Bootstrapping**
