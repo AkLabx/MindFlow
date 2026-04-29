@@ -12,7 +12,7 @@ import { fetchOwsMetadata, getFilteredOws } from './utils/supabaseOws';
 import { useOwsQuestionIndex, useOwsFilterCounts, OwsMetadata } from './hooks/useOwsFilterCounts';
 
 interface OWSConfigProps {
-    onStart: (data: OneWord[], filters?: InitialFilters) => void;
+    onStart: (data: OneWord[], filters?: InitialFilters, mode?: 'basic' | 'review') => void;
     onBack: () => void;
 }
 
@@ -26,13 +26,14 @@ const emptyFilters: InitialFilters = {
     examYear: [],
     examDateShift: [],
     tags: [],
-    readStatus: [],
+    knownStatus: [],
     deckMode: ['Unseen']
 };
 
 export const OWSConfig: React.FC<OWSConfigProps> = ({ onStart, onBack }) => {
     const [filters, setFilters] = useState<InitialFilters>(emptyFilters);
     const [selectedLetter, setSelectedLetter] = useState<string | null>(null);
+    const [sessionMode, setSessionMode] = useState<'basic' | 'review'>('basic');
     const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
 
     const [metadata, setMetadata] = useState<OwsMetadata[]>([]);
@@ -85,7 +86,7 @@ export const OWSConfig: React.FC<OWSConfigProps> = ({ onStart, onBack }) => {
             }
             const data = await getFilteredOws(filters, selectedLetter);
             if (data.length > 0) {
-                onStart(data, filters);
+                onStart(data, filters, sessionMode);
             } else {
                 alert("No OWS found matching current filters.");
             }
@@ -120,6 +121,31 @@ export const OWSConfig: React.FC<OWSConfigProps> = ({ onStart, onBack }) => {
             </div>
 
             <div className="flex-1 flex flex-col relative z-10 animate-fade-in w-full max-w-4xl mx-auto">
+                {/* Mode Selection */}
+                <div className="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-teal-100 shadow-sm mb-6 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <Settings className="w-5 h-5 text-teal-600" />
+                        <div>
+                            <h3 className="font-bold text-slate-800 dark:text-white text-sm">Session Mode</h3>
+                            <p className="text-xs text-slate-500 dark:text-slate-400">{sessionMode === 'basic' ? 'Simple Left/Right swiping' : 'Advanced Anki-style 4-way swiping'}</p>
+                        </div>
+                    </div>
+                    <div className="flex bg-slate-100 dark:bg-slate-900 p-1 rounded-lg">
+                        <button
+                            onClick={() => setSessionMode('basic')}
+                            className={cn("px-4 py-1.5 rounded-md text-sm font-medium transition-all", sessionMode === 'basic' ? "bg-white dark:bg-slate-800 text-teal-600 shadow-sm" : "text-slate-500 hover:text-slate-700 dark:text-slate-400")}
+                        >
+                            Basic
+                        </button>
+                        <button
+                            onClick={() => setSessionMode('review')}
+                            className={cn("px-4 py-1.5 rounded-md text-sm font-medium transition-all", sessionMode === 'review' ? "bg-white dark:bg-slate-800 text-teal-600 shadow-sm" : "text-slate-500 hover:text-slate-700 dark:text-slate-400")}
+                        >
+                            Review
+                        </button>
+                    </div>
+                </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* Alphabetical Filter */}
                     <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-teal-100 border-l-4 border-l-teal-400 shadow-sm relative">
@@ -228,19 +254,19 @@ export const OWSConfig: React.FC<OWSConfigProps> = ({ onStart, onBack }) => {
                         />
                     </div>
 
-                    {/* Read Status Card */}
+                    {/* Known Status Card */}
                     <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-teal-100 border-l-4 border-l-teal-400 shadow-sm relative">
                         <div className="flex items-center gap-2 mb-4 text-teal-800 font-bold text-sm uppercase tracking-wider">
-                            <CheckCircle className="w-4 h-4" /> Read Status
+                            <CheckCircle className="w-4 h-4" /> Known Status
                         </div>
                         <SegmentedControl
-                            options={['read', 'unread']}
-                            selectedOptions={filters.readStatus || []}
+                            options={['known', 'unknown']}
+                            selectedOptions={filters.knownStatus || []}
                             onOptionToggle={(opt) => setFilters(prev => {
-                                const current = prev.readStatus || [];
-                                return { ...prev, readStatus: current.includes(opt as any) ? current.filter(i => i !== opt) : [...current, opt as any] };
+                                const current = prev.knownStatus || [];
+                                return { ...prev, knownStatus: current.includes(opt as any) ? current.filter(i => i !== opt) : [...current, opt as any] };
                             })}
-                            counts={filterCounts.readStatus || {}}
+                            counts={filterCounts.knownStatus || {}}
                         />
                     </div>
 

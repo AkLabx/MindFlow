@@ -27,8 +27,8 @@ interface OWSCardProps {
  * @returns {JSX.Element} The rendered OWS Card.
  */
 export const OWSCard: React.FC<OWSCardProps> = ({ data, serialNumber, isFlipped }) => {
-  const { getReadStatus, toggleReadStatus } = useOWSProgress();
-  const isRead = getReadStatus(data);
+  const { getKnownStatus, toggleKnownStatus } = useOWSProgress();
+  const isKnown = getKnownStatus(data);
 
   return (
     <div className="relative w-full h-full perspective-1000 cursor-pointer group">
@@ -46,7 +46,7 @@ export const OWSCard: React.FC<OWSCardProps> = ({ data, serialNumber, isFlipped 
           <div className="h-2 w-full bg-gradient-to-r from-teal-400 to-cyan-500"></div>
 
             <div className="absolute top-4 left-4">
-              {isRead && (
+              {isKnown && (
                 <div className="flex items-center gap-1 text-teal-600 font-medium bg-teal-50 px-2 py-1 rounded-md text-xs shadow-sm">
                   <CheckCircle2 className="w-3 h-3" /> Read
                 </div>
@@ -94,17 +94,17 @@ export const OWSCard: React.FC<OWSCardProps> = ({ data, serialNumber, isFlipped 
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  toggleReadStatus(data);
+                  toggleKnownStatus(data);
                 }}
                 className={cn(
                   "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all shadow-sm active:scale-95",
-                  isRead
+                  isKnown
                     ? "bg-teal-600 text-white hover:bg-teal-700 ring-2 ring-teal-200"
                     : "bg-white text-gray-500 hover:text-teal-600 hover:bg-teal-50 border border-gray-200"
                 )}
               >
-                {isRead ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Circle className="w-3.5 h-3.5" />}
-                {isRead ? 'Marked as Read' : 'Mark as Read'}
+                {isKnown ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Circle className="w-3.5 h-3.5" />}
+                {isKnown ? 'Known' : 'Mark as Known'}
               </button>
             </div>
           </div>

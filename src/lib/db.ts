@@ -22,13 +22,13 @@ export interface IdiomInteraction {
   next_review_at?: string;
   swipe_velocity?: number;
   idiomId: string;
-  isRead: boolean;
+  known_ows: boolean;
   lastInteractedAt: string;
 }
 
 export interface OWSInteraction {
   wordId: string;
-  isRead: boolean;
+  known_ows: boolean;
   lastInteractedAt: string;
 }
 

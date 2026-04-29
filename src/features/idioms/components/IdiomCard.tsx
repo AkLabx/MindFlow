@@ -26,8 +26,8 @@ interface IdiomCardProps {
  * @returns {JSX.Element} The rendered Flashcard.
  */
 export const IdiomCard: React.FC<IdiomCardProps> = ({ idiom, serialNumber, isFlipped }) => {
-  const { getReadStatus, toggleReadStatus } = useIdiomProgress();
-  const isRead = getReadStatus(idiom);
+  const { getKnownStatus, toggleKnownStatus } = useIdiomProgress();
+  const isKnown = getKnownStatus(idiom);
 
   return (
     <div
@@ -46,7 +46,7 @@ export const IdiomCard: React.FC<IdiomCardProps> = ({ idiom, serialNumber, isFli
           <div className="h-2 w-full bg-gradient-to-r from-amber-400 to-orange-500"></div>
 
             <div className="absolute top-4 left-4">
-              {isRead && (
+              {isKnown && (
                 <div className="flex items-center gap-1 text-amber-600 font-medium bg-amber-50 px-2 py-1 rounded-md text-xs shadow-sm">
                   <CheckCircle2 className="w-3 h-3" /> Read
                 </div>
@@ -89,17 +89,17 @@ export const IdiomCard: React.FC<IdiomCardProps> = ({ idiom, serialNumber, isFli
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  toggleReadStatus(idiom);
+                  toggleKnownStatus(idiom);
                 }}
                 className={cn(
                   "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all shadow-sm active:scale-95",
-                  isRead
+                  isKnown
                     ? "bg-amber-600 text-white hover:bg-amber-700 ring-2 ring-amber-200"
                     : "bg-white text-gray-500 hover:text-amber-600 hover:bg-amber-50 border border-gray-200"
                 )}
               >
-                {isRead ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Circle className="w-3.5 h-3.5" />}
-                {isRead ? 'Marked as Read' : 'Mark as Read'}
+                {isKnown ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Circle className="w-3.5 h-3.5" />}
+                {isKnown ? 'Known' : 'Mark as Known'}
               </button>
             </div>
           </div>

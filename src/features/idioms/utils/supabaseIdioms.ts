@@ -36,7 +36,7 @@ export async function fetchIdiomMetadata() {
     if (userData?.user) {
         const { data: interactions, error: intError } = await supabase
             .from('user_idiom_interactions')
-            .select('idiom_id, is_read, status, next_review_at')
+            .select('idiom_id, known_ows, status, next_review_at')
             .eq('user_id', userData.user.id);
 
         if (!intError && interactions) {
@@ -55,7 +55,7 @@ export async function fetchIdiomMetadata() {
             examName: row.source_pdf || 'Unknown',
             examYear: String(row.exam_year || ''),
             difficulty: row.difficulty || 'Medium',
-            readStatus: interaction?.is_read ? 'read' : 'unread',
+            knownStatus: interaction?.known_ows ? 'known' : 'unknown',
             status: interaction?.status,
             next_review_at: interaction?.next_review_at
         };
