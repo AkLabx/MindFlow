@@ -34,7 +34,8 @@ class FlashcardViewModel : ViewModel() {
             val mockIdioms = listOf(
                 IdiomEntity(
                     id = "1",
-                    pdfName = "SSC_Idioms",
+                    v1Id = null,
+                    sourcePdf = "SSC_Idioms",
                     examYear = 2022,
                     difficulty = "Medium",
                     status = "Unseen",
@@ -42,12 +43,12 @@ class FlashcardViewModel : ViewModel() {
                     meaningEnglish = "A good thing that seemed bad at first",
                     meaningHindi = "भेष में आशीर्वाद (शुरुआत में बुरा लगने वाला पर अंत में अच्छा)",
                     usage = "Losing that job was a blessing in disguise because it led me to my true passion.",
-                    mnemonic = "Imagine a disguise falling off to reveal a blessing.",
-                    origin = "Mid-18th century literature."
+                    mnemonic = "Imagine a disguise falling off to reveal a blessing."
                 ),
                 IdiomEntity(
                     id = "2",
-                    pdfName = "SSC_Idioms",
+                    v1Id = null,
+                    sourcePdf = "SSC_Idioms",
                     examYear = 2021,
                     difficulty = "Easy",
                     status = "Unseen",
@@ -55,8 +56,7 @@ class FlashcardViewModel : ViewModel() {
                     meaningEnglish = "To endure a painful or otherwise unpleasant situation that is seen as unavoidable",
                     meaningHindi = "मजबूरी में स्वीकार करना",
                     usage = "I hate going to the dentist, but I'll just have to bite the bullet.",
-                    mnemonic = "Soldiers biting a bullet to endure pain without anesthesia.",
-                    origin = "Historical military practice."
+                    mnemonic = "Soldiers biting a bullet to endure pain without anesthesia."
                 )
             )
 

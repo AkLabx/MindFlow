@@ -7,10 +7,11 @@ import androidx.work.WorkerParameters
 import com.mindflow.quiz.data.local.AppDatabase
 import com.mindflow.quiz.data.local.datastore.SyncDataStore
 import com.mindflow.quiz.data.remote.SupabaseClientConfig
+import com.mindflow.quiz.data.remote.dto.IdiomDto
+import com.mindflow.quiz.data.remote.dto.OneWordDto
 import com.mindflow.quiz.data.remote.dto.QuestionDto
 import com.mindflow.quiz.data.remote.dto.toEntity
 import io.github.jan.supabase.postgrest.postgrest
-import io.github.jan.supabase.postgrest.query.Order
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.withContext
@@ -29,37 +30,52 @@ class SyncWorker(
 
             val database = AppDatabase.getDatabase(applicationContext)
             val questionDao = database.questionDao()
+            val idiomDao = database.idiomDao()
+            val oneWordDao = database.oneWordDao()
             val syncDataStore = SyncDataStore(applicationContext)
 
-            val lastSync = syncDataStore.lastSyncQuestions.firstOrNull()
+            val now = ZonedDateTime.now(ZoneOffset.UTC).format(DateTimeFormatter.ISO_INSTANT)
 
-            // Fetch updated questions
-            val remoteData = if (lastSync != null) {
-                Log.d("SyncWorker", "Fetching questions updated after $lastSync")
+            // --- 1. Sync Questions ---
+            val lastSyncQuestions = syncDataStore.lastSyncQuestions.firstOrNull()
+            val remoteQuestions = if (lastSyncQuestions != null) {
                 SupabaseClientConfig.client.postgrest["questions"]
-                    .select {
-                        filter {
-                            gte("created_at", lastSync)
-                        }
-                    }.decodeList<QuestionDto>()
+                    .select { filter { gte("created_at", lastSyncQuestions) } }.decodeList<QuestionDto>()
             } else {
-                Log.d("SyncWorker", "Fetching all questions (first sync)")
                 SupabaseClientConfig.client.postgrest["questions"]
-                    .select()
-                    .decodeList<QuestionDto>()
+                    .select().decodeList<QuestionDto>()
+            }
+            if (remoteQuestions.isNotEmpty()) {
+                questionDao.insertQuestions(remoteQuestions.map { it.toEntity() })
+                syncDataStore.saveLastSyncQuestions(now)
             }
 
-            if (remoteData.isNotEmpty()) {
-                val entities = remoteData.map { it.toEntity() }
-                questionDao.insertQuestions(entities)
-
-                // Save new lastSync timestamp
-                val now = ZonedDateTime.now(ZoneOffset.UTC).format(DateTimeFormatter.ISO_INSTANT)
-                syncDataStore.saveLastSyncQuestions(now)
-
-                Log.d("SyncWorker", "Synced ${entities.size} questions successfully.")
+            // --- 2. Sync Idioms ---
+            val lastSyncIdioms = syncDataStore.lastSyncIdioms.firstOrNull()
+            val remoteIdioms = if (lastSyncIdioms != null) {
+                SupabaseClientConfig.client.postgrest["idiom"]
+                    .select { filter { gte("created_at", lastSyncIdioms) } }.decodeList<IdiomDto>()
             } else {
-                Log.d("SyncWorker", "No new questions to sync.")
+                SupabaseClientConfig.client.postgrest["idiom"]
+                    .select().decodeList<IdiomDto>()
+            }
+            if (remoteIdioms.isNotEmpty()) {
+                idiomDao.insertIdioms(remoteIdioms.map { it.toEntity() })
+                syncDataStore.saveLastSyncIdioms(now)
+            }
+
+            // --- 3. Sync One Word Substitutions (OWS) ---
+            val lastSyncOws = syncDataStore.lastSyncOws.firstOrNull()
+            val remoteOws = if (lastSyncOws != null) {
+                SupabaseClientConfig.client.postgrest["ows"]
+                    .select { filter { gte("created_at", lastSyncOws) } }.decodeList<OneWordDto>()
+            } else {
+                SupabaseClientConfig.client.postgrest["ows"]
+                    .select().decodeList<OneWordDto>()
+            }
+            if (remoteOws.isNotEmpty()) {
+                oneWordDao.insertOneWords(remoteOws.map { it.toEntity() })
+                syncDataStore.saveLastSyncOws(now)
             }
 
             Log.d("SyncWorker", "Background sync completed successfully.")

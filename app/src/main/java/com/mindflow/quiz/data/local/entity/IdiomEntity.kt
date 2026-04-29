@@ -6,7 +6,8 @@ import androidx.room.PrimaryKey
 @Entity(tableName = "idioms")
 data class IdiomEntity(
     @PrimaryKey val id: String,
-    val pdfName: String,
+    val v1Id: String?,
+    val sourcePdf: String?,
     val examYear: Int,
     val difficulty: String,
     val status: String,
@@ -15,5 +16,8 @@ data class IdiomEntity(
     val meaningHindi: String,
     val usage: String,
     val mnemonic: String,
-    val origin: String
+
+    // Sync fields
+    val updatedAt: Long = System.currentTimeMillis(),
+    val syncStatus: String = "SYNCED"
 )

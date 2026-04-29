@@ -6,16 +6,20 @@ import androidx.room.PrimaryKey
 @Entity(tableName = "one_words")
 data class OneWordEntity(
     @PrimaryKey val id: String,
-    val pdfName: String,
+    val v1Id: String?,
+    val sourcePdf: String?,
     val examYear: Int,
     val difficulty: String,
     val status: String,
-    val sourceId: Int,
     val pos: String,
     val word: String,
     val meaningEn: String,
     val meaningHi: String,
     val usageSentences: List<String>,
-    val note: String?,
-    val origin: String?
+    val synonyms: List<String>,
+    val antonyms: List<String>,
+
+    // Sync fields
+    val updatedAt: Long = System.currentTimeMillis(),
+    val syncStatus: String = "SYNCED"
 )
