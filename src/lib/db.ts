@@ -569,6 +569,96 @@ export const db = {
     /**
      * Clears all OWS interactions.
      */
+    clearOWSInteractionsMode: async (mode: 'basic' | 'review'): Promise<void> => {
+        const dbInstance = await openDB();
+
+        // Push to Supabase directly
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session?.user) {
+                if (mode === 'basic') {
+                    // Update known_ows to false
+                    await supabase.from('user_ows_interactions')
+                        .update({ known_ows: false })
+                        .eq('user_id', session.user.id);
+                } else {
+                    // Update status, next_review_at, swipe_velocity to null
+                    await supabase.from('user_ows_interactions')
+                        .update({ status: null, next_review_at: null, swipe_velocity: null })
+                        .eq('user_id', session.user.id);
+                }
+            }
+        } catch (e) {
+            console.error('Failed to clear Supabase OWS interactions', e);
+        }
+
+        return new Promise((resolve, reject) => {
+            const transaction = dbInstance.transaction(OWS_STORE_NAME, 'readwrite');
+            const store = transaction.objectStore(OWS_STORE_NAME);
+            const request = store.getAll();
+
+            request.onsuccess = () => {
+                const items = request.result;
+                items.forEach((item: any) => {
+                    if (mode === 'basic') {
+                        item.known_ows = false;
+                    } else {
+                        delete item.status;
+                        delete item.next_review_at;
+                        delete item.swipe_velocity;
+                    }
+                    store.put(item);
+                });
+                resolve();
+            };
+            request.onerror = () => reject(request.error);
+        });
+    },
+
+    clearIdiomInteractionsMode: async (mode: 'basic' | 'review'): Promise<void> => {
+        const dbInstance = await openDB();
+
+        // Push to Supabase directly
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session?.user) {
+                if (mode === 'basic') {
+                    await supabase.from('user_idiom_interactions')
+                        .update({ known_ows: false })
+                        .eq('user_id', session.user.id);
+                } else {
+                    await supabase.from('user_idiom_interactions')
+                        .update({ status: null, next_review_at: null, swipe_velocity: null })
+                        .eq('user_id', session.user.id);
+                }
+            }
+        } catch (e) {
+            console.error('Failed to clear Supabase Idiom interactions', e);
+        }
+
+        return new Promise((resolve, reject) => {
+            const transaction = dbInstance.transaction(IDIOM_STORE_NAME, 'readwrite');
+            const store = transaction.objectStore(IDIOM_STORE_NAME);
+            const request = store.getAll();
+
+            request.onsuccess = () => {
+                const items = request.result;
+                items.forEach((item: any) => {
+                    if (mode === 'basic') {
+                        item.known_ows = false;
+                    } else {
+                        delete item.status;
+                        delete item.next_review_at;
+                        delete item.swipe_velocity;
+                    }
+                    store.put(item);
+                });
+                resolve();
+            };
+            request.onerror = () => reject(request.error);
+        });
+    },
+
     clearOWSInteractions: async (): Promise<void> => {
         const dbInstance = await openDB();
         return new Promise((resolve, reject) => {

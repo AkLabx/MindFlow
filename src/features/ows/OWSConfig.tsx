@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Play, Target, FileText, Settings, Calendar, Type, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Play, Target, FileText, Settings, Calendar, Type, CheckCircle, Lock } from 'lucide-react';
 import { Button } from '../../components/Button/Button';
 import { InitialFilters } from '../quiz/types';
 import { OneWord } from '../../types/models';
@@ -9,7 +9,9 @@ import { ActiveFiltersBar } from '../quiz/components/ui/ActiveFiltersBar';
 import { cn } from '../../utils/cn';
 import { SynapticLoader } from '../../components/ui/SynapticLoader';
 import { fetchOwsMetadata, getFilteredOws } from './utils/supabaseOws';
+import { useAuth } from './../auth/context/AuthContext';
 import { useOwsQuestionIndex, useOwsFilterCounts, OwsMetadata } from './hooks/useOwsFilterCounts';
+import { useOWSProgress } from './hooks/useOWSProgress';
 
 interface OWSConfigProps {
     onStart: (data: OneWord[], filters?: InitialFilters, mode?: 'basic' | 'review') => void;
@@ -31,6 +33,8 @@ const emptyFilters: InitialFilters = {
 };
 
 export const OWSConfig: React.FC<OWSConfigProps> = ({ onStart, onBack }) => {
+    const { user } = useAuth();
+    const { clearProgress } = useOWSProgress();
     const [filters, setFilters] = useState<InitialFilters>(emptyFilters);
     const [selectedLetter, setSelectedLetter] = useState<string | null>(null);
     const [sessionMode, setSessionMode] = useState<'basic' | 'review'>('basic');
@@ -64,6 +68,13 @@ export const OWSConfig: React.FC<OWSConfigProps> = ({ onStart, onBack }) => {
 
     const availableExamNames = Object.keys(index.examName || {}).sort();
     const availableExamYears = Object.keys(index.examYear || {}).sort();
+
+        const handleResetProgress = async () => {
+        if (window.confirm(`Are you sure you want to reset your ${sessionMode === 'basic' ? 'Basic Mode' : 'Review Mode'} progress? This action cannot be undone.`)) {
+            await clearProgress(sessionMode);
+            alert('Progress reset successfully.');
+        }
+    };
 
     const handleFilterChange = (key: keyof InitialFilters, selected: string[]) => {
         setFilters(prev => ({ ...prev, [key]: selected }));
@@ -103,7 +114,26 @@ export const OWSConfig: React.FC<OWSConfigProps> = ({ onStart, onBack }) => {
     }
 
     return (
-        <div className="flex flex-col min-h-screen p-4 sm:p-6 lg:p-8 transition-colors duration-700 relative overflow-y-auto bg-slate-50 dark:bg-slate-900">
+                <div className="flex flex-col min-h-screen p-4 sm:p-6 lg:p-8 transition-colors duration-700 relative overflow-y-auto bg-slate-50 dark:bg-slate-900">
+            {!user && (
+              <div className="absolute inset-0 z-50 flex flex-col items-center justify-center p-6 bg-slate-50/95 dark:bg-slate-900/95 backdrop-blur-sm">
+                <div className="bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-2xl flex flex-col items-center text-center max-w-sm border border-slate-200 dark:border-slate-700">
+                  <div className="w-16 h-16 bg-teal-100 dark:bg-teal-900/50 rounded-full flex items-center justify-center mb-4">
+                    <Lock className="w-8 h-8 text-teal-600 dark:text-teal-400" />
+                  </div>
+                  <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-2">Unlock Progress Tracking</h3>
+                  <p className="text-slate-600 dark:text-slate-300 text-sm mb-6">
+                    Sign in to save your vocabulary mastery across devices.
+                  </p>
+                  <div className="flex gap-3 w-full">
+                    <Button onClick={onBack} variant="outline" fullWidth>Back</Button>
+                    <Button onClick={() => window.location.hash = '#/auth'} className="bg-teal-500 hover:bg-teal-600 text-white border-none" fullWidth>
+                      Sign In
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
             {/* Header */}
             <div className="flex items-center gap-4 mb-6 z-10 sticky top-0 bg-slate-50/90 dark:bg-slate-900/90 backdrop-blur-md pb-4 pt-4 -mt-4 -mx-4 px-4 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8 border-b border-slate-200 dark:border-slate-800">
                 <button
@@ -287,6 +317,11 @@ export const OWSConfig: React.FC<OWSConfigProps> = ({ onStart, onBack }) => {
                 {/* Active Filters Displayed above sticky footer area */}
                 <div className="mt-6">
                     <ActiveFiltersBar filters={filters} onRemoveFilter={handleRemoveFilter} onClearAll={() => setFilters(emptyFilters)} />
+                        <div className="flex justify-center mt-6">
+                            <Button onClick={handleResetProgress} variant="outline" className="border-red-500 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20">
+                                Reset {sessionMode === 'basic' ? 'Basic Mode' : 'Review Mode'} Progress
+                            </Button>
+                        </div>
                 </div>
                 </div>
                 <div className="pb-32"></div>

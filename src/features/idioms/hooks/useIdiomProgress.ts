@@ -108,10 +108,22 @@ export const useIdiomProgress = () => {
       return undefined;
   }, [interactions]);
 
-  const clearProgress = useCallback(async () => {
+  const clearProgress = useCallback(async (mode: 'basic' | 'review') => {
     try {
-        await db.clearIdiomInteractions();
-        setInteractions({});
+        await db.clearIdiomInteractionsMode(mode);
+        setInteractions(prev => {
+            const next = { ...prev };
+            Object.keys(next).forEach(key => {
+                if (mode === 'basic') {
+                    next[key] = { ...next[key], known_ows: false };
+                } else {
+                    delete next[key].status;
+                    delete next[key].next_review_at;
+                    delete next[key].swipe_velocity;
+                }
+            });
+            return next;
+        });
     } catch (e) {
         console.error('Failed to clear Idiom interactions', e);
     }

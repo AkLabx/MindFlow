@@ -375,9 +375,9 @@ export const IdiomSession: React.FC<IdiomSessionProps> = ({
      // Animate card away
      let finalX = 0;
      let finalY = 0;
-     if (status === 'mastered') finalY = -500;
-     if (status === 'clueless') finalY = 500;
-     if (status === 'review') finalX = -500;
+     if (status === 'mastered') finalX = 500;
+     if (status === 'clueless') finalX = 500;
+     if (status === 'review') finalX = 500;
      if (status === 'tricky') finalX = 500;
 
      // Bonus Effect: High velocity mastered confetti
@@ -438,6 +438,11 @@ export const IdiomSession: React.FC<IdiomSessionProps> = ({
       const lastAction = historyStack[historyStack.length - 1];
       setHistoryStack(prev => prev.slice(0, -1));
       setSwipeStats(prev => ({ ...prev, [lastAction.status]: Math.max(0, prev[lastAction.status as keyof typeof prev] - 1) }));
+
+      setIsAnimating(true);
+      x.set(-500); // Start from left for undo animation
+      await controls.start({ x: 0, opacity: 1, transition: { type: "spring", stiffness: 300, damping: 30 } });
+      setIsAnimating(false);
 
       // Remove from queue if it's there
       try {
@@ -591,7 +596,7 @@ export const IdiomSession: React.FC<IdiomSessionProps> = ({
         )}
 
             <motion.div
-              drag={mode === 'basic' ? "x" : true}
+              drag={mode === 'basic' ? "x" : false}
               dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
               dragElastic={1}
               onPanStart={handlePanStart}

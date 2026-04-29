@@ -59,10 +59,28 @@ export const useOWSProgress = () => {
     return false;
   }, [interactions]);
 
-  const clearProgress = useCallback(async () => {
+  const clearProgress = useCallback(async (mode: 'basic' | 'review') => {
     try {
-        await db.clearOWSInteractions();
-        setInteractions({});
+        await db.clearOWSInteractionsMode(mode);
+        // Also update local React state based on mode
+        setInteractions(prev => {
+            const next = { ...prev };
+            Object.keys(next).forEach(key => {
+                if (mode === 'basic') {
+                    next[key] = { ...next[key], known_ows: false };
+                } else {
+                    // Review mode uses Deck mode fields, but OWSInteraction type doesn't have status yet, we will update it in db.ts
+                    const item: any = next[key];
+                    if (item) {
+                       delete item.status;
+                       delete item.next_review_at;
+                       delete item.swipe_velocity;
+                       next[key] = item;
+                    }
+                }
+            });
+            return next;
+        });
     } catch (e) {
         console.error('Failed to clear OWS interactions', e);
     }
