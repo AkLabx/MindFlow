@@ -86,7 +86,7 @@ The goal of the migration is **100% feature parity**. The current state shows th
 - [x] **Phase 3: Robust TypeConverters & Room Integration**
   - Implement and verify complex `TypeConverters` for Room handling arrays and JSON objects (e.g., options, usage sentences, meaning objects).
   - Verify database schema generation.
-- [ ] **Phase 4: Sync Orchestration & Bootstrapping**
+- [x] **Phase 4: Sync Orchestration & Bootstrapping**
   - Implement the UI or App startup logic to schedule `SyncWorker` periodically (e.g., via WorkManager).
   - Add initial loading states (bootstrapping) to ensure crucial data is pulled before first-time offline use.
 
