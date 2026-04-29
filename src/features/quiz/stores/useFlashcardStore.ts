@@ -10,6 +10,7 @@ interface FlashcardState {
   type: FlashcardType;
   currentIndex: number;
   filters: InitialFilters | null;
+  mode?: 'basic' | 'review';
 
   // Domain specific data
   idioms: Idiom[];
@@ -18,7 +19,7 @@ interface FlashcardState {
 
   // Actions
   startIdioms: (data: Idiom[], filters?: InitialFilters) => void;
-  startOWS: (data: OneWord[], filters?: InitialFilters) => void;
+  startOWS: (data: OneWord[], filters?: InitialFilters, mode?: 'basic' | 'review') => void;
   startSynonyms: (data: SynonymWord[], filters?: InitialFilters) => void;
 
   // Navigation
@@ -48,11 +49,12 @@ export const useFlashcardStore = create<FlashcardState>((set, get) => ({
     currentIndex: 0
   }),
 
-  startOWS: (data, filters) => set({
+  startOWS: (data, filters, mode = 'review') => set({
     status: 'active',
     type: 'ows',
     ows: data,
     filters: filters || null,
+    mode,
     currentIndex: 0
   }),
 

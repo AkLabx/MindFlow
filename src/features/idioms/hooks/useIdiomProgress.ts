@@ -26,7 +26,7 @@ export const useIdiomProgress = () => {
   }, []);
 
   const updateInteraction = async (idiomId: string, updates: Partial<IdiomInteraction>) => {
-      const existing = interactions[idiomId] || { idiomId, isRead: false };
+      const existing = interactions[idiomId] || { idiomId, known_ows: false };
       const updated: IdiomInteraction = {
           ...existing,
           ...updates,
@@ -45,10 +45,10 @@ export const useIdiomProgress = () => {
   /**
    * Toggles the read status of a specific Idiom.
    */
-  const toggleReadStatus = useCallback(async (wordObj: Idiom) => {
+  const toggleKnownStatus = useCallback(async (wordObj: Idiom) => {
       const currentInteraction = interactions[wordObj.id];
-      const isCurrentlyRead = currentInteraction ? currentInteraction.isRead : false;
-      await updateInteraction(wordObj.id, { isRead: !isCurrentlyRead });
+      const isCurrentlyKnown = currentInteraction ? currentInteraction.known_ows : false;
+      await updateInteraction(wordObj.id, { known_ows: !isCurrentlyKnown });
   }, [interactions]);
 
   /**
@@ -84,7 +84,7 @@ export const useIdiomProgress = () => {
         status,
         next_review_at: next_review_at.toISOString(),
         swipe_velocity: velocity,
-        isRead: true // Swiping marks it as read implicitly
+        known_ows: true // Swiping marks it as read implicitly
     });
   }, [interactions]);
 
@@ -92,10 +92,10 @@ export const useIdiomProgress = () => {
   /**
    * Determines the read status of a Idiom object.
    */
-  const getReadStatus = useCallback((wordObj: Idiom): boolean => {
+  const getKnownStatus = useCallback((wordObj: Idiom): boolean => {
     const idToCheck = wordObj.id;
     if (idToCheck && interactions[idToCheck]) {
-        return interactions[idToCheck].isRead;
+        return interactions[idToCheck].known_ows;
     }
     return false;
   }, [interactions]);
@@ -120,9 +120,9 @@ export const useIdiomProgress = () => {
   return {
     isLoaded,
     interactions,
-    toggleReadStatus,
+    toggleKnownStatus,
     handleSwipe,
-    getReadStatus,
+    getKnownStatus,
     getInteractionStatus,
     clearProgress
   };

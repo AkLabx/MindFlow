@@ -303,8 +303,8 @@ const AppRoutesContent: React.FC = () => {
                     <Route path="/ows/config" element={
                         <OWSConfig
                             onBack={() => { enterEnglishHome(); navTo('/english'); }}
-                            onStart={(data, filters) => {
-                                flashcardStore.startOWS(data, filters);
+                            onStart={(data, filters, mode) => {
+                                flashcardStore.startOWS(data, filters, mode as 'basic' | 'review');
                                 navTo('/ows/session');
                             }}
                         />

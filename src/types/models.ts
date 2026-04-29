@@ -185,7 +185,7 @@ export interface InitialFilters {
   examYear: string[];
   examDateShift: string[];
   tags: string[];
-    readStatus?: ('read' | 'unread')[];
+    knownStatus?: ('known' | 'unknown')[];
   deckMode?: ('Unseen' | 'Mastered' | 'Review' | 'Clueless' | 'Tricky')[];
 }
 

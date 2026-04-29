@@ -182,7 +182,7 @@ export const IdiomSession: React.FC<IdiomSessionProps> = ({
                  status: ev.status,
                  swipe_velocity: ev.velocity,
                  next_review_at: ev.next_review,
-                 is_read: true,
+                 known_ows: ev.known_ows !== undefined ? ev.known_ows : true,
                  updated_at: new Date().toISOString()
              }));
 

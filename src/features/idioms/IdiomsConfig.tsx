@@ -26,7 +26,7 @@ const emptyFilters: InitialFilters = {
     examYear: [],
     examDateShift: [],
     tags: [],
-    readStatus: [],
+    knownStatus: [],
     deckMode: ["Unseen"]
 };
 
@@ -226,19 +226,19 @@ export const IdiomsConfig: React.FC<IdiomsConfigProps> = ({ onStart, onBack }) =
                         />
                     </div>
 
-                    {/* Read Status Card */}
+                    {/* Known Status Card */}
                     <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-indigo-100 border-l-4 border-l-indigo-400 shadow-sm relative">
                         <div className="flex items-center gap-2 mb-4 text-indigo-800 font-bold text-sm uppercase tracking-wider">
-                            <CheckCircle className="w-4 h-4" /> Read Status
+                            <CheckCircle className="w-4 h-4" /> Known Status
                         </div>
                         <SegmentedControl
-                            options={['read', 'unread']}
-                            selectedOptions={filters.readStatus || []}
+                            options={['known', 'unknown']}
+                            selectedOptions={filters.knownStatus || []}
                             onOptionToggle={(opt) => setFilters(prev => {
-                                const current = prev.readStatus || [];
-                                return { ...prev, readStatus: current.includes(opt as any) ? current.filter(i => i !== opt) : [...current, opt as any] };
+                                const current = prev.knownStatus || [];
+                                return { ...prev, knownStatus: current.includes(opt as any) ? current.filter(i => i !== opt) : [...current, opt as any] };
                             })}
-                            counts={filterCounts.readStatus || {}}
+                            counts={filterCounts.knownStatus || {}}
                         />
                     </div>
 

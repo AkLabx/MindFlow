@@ -23,10 +23,10 @@ export const useOWSProgress = () => {
     init();
   }, []);
 
-  const updateInteraction = async (wordId: string, isRead: boolean) => {
+  const updateInteraction = async (wordId: string, known_ows: boolean) => {
       const updated: OWSInteraction = {
           wordId,
-          isRead,
+          known_ows,
           lastInteractedAt: new Date().toISOString()
       };
 
@@ -42,19 +42,19 @@ export const useOWSProgress = () => {
   /**
    * Toggles the read status of a specific OWS word.
    */
-  const toggleReadStatus = useCallback(async (wordObj: OneWord) => {
+  const toggleKnownStatus = useCallback(async (wordObj: OneWord) => {
       const currentInteraction = interactions[wordObj.id];
-      const isCurrentlyRead = currentInteraction ? currentInteraction.isRead : false;
-      await updateInteraction(wordObj.id, !isCurrentlyRead);
+      const isCurrentlyKnown = currentInteraction ? currentInteraction.known_ows : false;
+      await updateInteraction(wordObj.id, !isCurrentlyKnown);
   }, [interactions]);
 
   /**
    * Determines the read status of a word object.
    */
-  const getReadStatus = useCallback((wordObj: OneWord): boolean => {
+  const getKnownStatus = useCallback((wordObj: OneWord): boolean => {
     const idToCheck = wordObj.id;
     if (idToCheck && interactions[idToCheck]) {
-        return interactions[idToCheck].isRead;
+        return interactions[idToCheck].known_ows;
     }
     return false;
   }, [interactions]);
@@ -71,8 +71,8 @@ export const useOWSProgress = () => {
   return {
     isLoaded,
     interactions,
-    toggleReadStatus,
-    getReadStatus,
+    toggleKnownStatus,
+    getKnownStatus,
     clearProgress
   };
 };
