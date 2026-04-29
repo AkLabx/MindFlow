@@ -25,5 +25,9 @@ data class QuestionEntity(
     val explanationAnalysisCorrect: String?,
     val explanationAnalysisIncorrect: String?,
     val explanationConclusion: String?,
-    val explanationFact: String?
+    val explanationFact: String?,
+
+    // Sync fields
+    val updatedAt: Long = System.currentTimeMillis(),
+    val syncStatus: String = "SYNCED"
 )
