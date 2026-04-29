@@ -5,7 +5,7 @@ import { db } from '../../../lib/db';
 import { supabase } from '../../../lib/supabase';
 
 import React, { useEffect, useState } from 'react';
-import { ArrowLeft, ArrowRight, Home, RotateCcw, Maximize2, Minimize2, RotateCw, Menu } from 'lucide-react';
+import { Home, RotateCcw, Maximize2, Minimize2, Menu, Edit } from 'lucide-react';
 import { motion, useMotionValue, useTransform, useAnimation } from 'framer-motion';
 import { Button } from '../../../components/Button/Button';
 import { OWSCard } from './OWSCard';
@@ -343,10 +343,10 @@ export const OWSSession: React.FC<OWSSessionProps> = ({
       try {
           if (!user) return;
           const nextReview = new Date();
-          if (status === 'clueless') nextReview.setHours(nextReview.getHours() + 1);
-          if (status === 'review') nextReview.setHours(nextReview.getHours() + 4);
-          if (status === 'tricky') nextReview.setHours(nextReview.getHours() + 24);
-          if (status === 'mastered') nextReview.setFullYear(nextReview.getFullYear() + 100);
+          if (status === 'clueless') nextReview.setHours(nextReview.getHours() + 1); // Again
+          if (status === 'review') nextReview.setDate(nextReview.getDate() + 7); // Hard
+          if (status === 'tricky') nextReview.setDate(nextReview.getDate() + 14); // Good
+          if (status === 'mastered') nextReview.setDate(nextReview.getDate() + 30); // Easy
 
           // Push to robust JSON local queue
           const queue = JSON.parse(localStorage.getItem('ows_swipe_queue') || '[]');
@@ -476,12 +476,12 @@ export const OWSSession: React.FC<OWSSessionProps> = ({
         )}
 
             <motion.div
-              drag={user ? true : false}
-              dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
-              dragElastic={0.8}
-              onDragStart={handlePanStart}
-              onDrag={handlePan}
-              onDragEnd={handlePanEnd}
+
+
+
+
+
+
               animate={controls}
               style={{ x, y, rotate }}
 
@@ -493,44 +493,8 @@ export const OWSSession: React.FC<OWSSessionProps> = ({
                  }
               }}
 
-              className="absolute w-full h-full cursor-grab active:cursor-grabbing will-change-transform z-10"
+              className="absolute w-full h-full will-change-transform z-10"
             >
-
-              {/* Ghost Tutorial */}
-              {!hasSeenTutorial && (
-                 <motion.div
-                   className="absolute inset-0 z-50 rounded-3xl bg-teal-900/40 backdrop-blur-sm flex flex-col items-center justify-center p-6 border-2 border-teal-400 border-dashed"
-                   animate={{
-                       y: [0, -30, 0, 30, 0],
-                       x: [0, 0, -30, 0, 30, 0]
-                   }}
-                   transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-                   onClick={(e) => { e.stopPropagation(); dismissTutorial(); }}
-                 >
-                     <div className="absolute top-4 font-black text-green-300 text-xl tracking-widest uppercase">⬆️ Mastered</div>
-                     <div className="absolute bottom-4 font-black text-red-300 text-xl tracking-widest uppercase">⬇️ Clueless</div>
-                     <div className="absolute left-[-20px] font-black text-orange-300 text-xl tracking-widest uppercase -rotate-90">⬅️ Review</div>
-                     <div className="absolute right-[-20px] font-black text-blue-300 text-xl tracking-widest uppercase rotate-90">➡️ Tricky</div>
-
-                     <div className="bg-white text-teal-900 p-4 rounded-xl shadow-2xl font-bold text-center mt-12 animate-pulse">
-                        Tap here or Swipe card to Start
-                     </div>
-                 </motion.div>
-              )}
-
-              {/* Overlays */}
-              <motion.div style={{ opacity: opacityUp }} className="absolute inset-0 z-20 flex items-start justify-center pt-8 bg-green-500/20 rounded-3xl pointer-events-none">
-                 <div className="border-4 border-green-500 text-green-500 font-black text-4xl px-6 py-2 rounded-xl transform -rotate-12 bg-white/80">MASTERED</div>
-              </motion.div>
-              <motion.div style={{ opacity: opacityDown }} className="absolute inset-0 z-20 flex items-end justify-center pb-8 bg-red-500/20 rounded-3xl pointer-events-none">
-                 <div className="border-4 border-red-500 text-red-500 font-black text-4xl px-6 py-2 rounded-xl transform rotate-12 bg-white/80">CLUELESS</div>
-              </motion.div>
-              <motion.div style={{ opacity: opacityLeft }} className="absolute inset-0 z-20 flex items-center justify-start pl-8 bg-orange-500/20 rounded-3xl pointer-events-none">
-                 <div className="border-4 border-orange-500 text-orange-500 font-black text-3xl px-4 py-2 rounded-xl transform -rotate-12 bg-white/80">REVIEW</div>
-              </motion.div>
-              <motion.div style={{ opacity: opacityRight }} className="absolute inset-0 z-20 flex items-center justify-end pr-8 bg-blue-500/20 rounded-3xl pointer-events-none">
-                 <div className="border-4 border-blue-500 text-blue-500 font-black text-3xl px-4 py-2 rounded-xl transform rotate-12 bg-white/80">TRICKY</div>
-              </motion.div>
 
               <OWSCard data={currentItem} serialNumber={currentIndex + 1} isFlipped={isFlipped} />
             </motion.div>
@@ -550,35 +514,56 @@ export const OWSSession: React.FC<OWSSessionProps> = ({
       </div>
 
       {/* Footer Controls */}
-      <div className="flex-none z-30 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 p-4 md:p-6 pb-safe">
-        <div className="max-w-md mx-auto flex items-center justify-between gap-4">
-          <Button
-            variant="outline"
-            onClick={() => handleManualNavigation('prev')}
-            disabled={isFirst || isAnimating}
-            className="flex-1 justify-center"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" /> Previous
-          </Button>
+      <div className="flex-none z-30 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 p-4 pb-safe">
+        <div className="max-w-md mx-auto flex flex-col gap-4">
+          {/* Anki-style Action Buttons */}
+          <div className="flex justify-between items-center gap-2">
+            <button
+              onClick={() => !isAnimating && handleAction('clueless', 0)}
+              disabled={isAnimating}
+              className="flex-1 flex flex-col items-center justify-center py-2 px-1 bg-red-100 hover:bg-red-200 dark:bg-red-900/30 dark:hover:bg-red-900/50 rounded-lg text-red-700 dark:text-red-400 transition-colors"
+            >
+              <span className="font-bold text-sm">Again</span>
+              <span className="text-xs font-medium">Again</span>
+            </button>
 
-          <div
-            onClick={() => !isAnimating && setIsFlipped(!isFlipped)}
-            className="p-3 bg-gray-50 dark:bg-gray-900 rounded-full text-gray-400 hover:bg-gray-100 dark:bg-gray-800 cursor-pointer active:scale-95 transition-transform"
-          >
-            <RotateCw className={cn("w-6 h-6", isAnimating && "opacity-50")} />
+            <button
+              onClick={() => !isAnimating && handleAction('review', 0)}
+              disabled={isAnimating}
+              className="flex-1 flex flex-col items-center justify-center py-2 px-1 bg-amber-100 hover:bg-amber-200 dark:bg-amber-900/30 dark:hover:bg-amber-900/50 rounded-lg text-amber-700 dark:text-amber-400 transition-colors"
+            >
+              <span className="font-bold text-sm">Hard</span>
+              <span className="text-xs font-medium">7d</span>
+            </button>
+
+            <button
+              onClick={() => !isAnimating && handleAction('tricky', 0)}
+              disabled={isAnimating}
+              className="flex-1 flex flex-col items-center justify-center py-2 px-1 bg-green-100 hover:bg-green-200 dark:bg-green-900/30 dark:hover:bg-green-900/50 rounded-lg text-green-700 dark:text-green-400 transition-colors"
+            >
+              <span className="font-bold text-sm">Good</span>
+              <span className="text-xs font-medium">14d</span>
+            </button>
+
+            <button
+              onClick={() => !isAnimating && handleAction('mastered', 0)}
+              disabled={isAnimating}
+              className="flex-1 flex flex-col items-center justify-center py-2 px-1 bg-blue-100 hover:bg-blue-200 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 rounded-lg text-blue-700 dark:text-blue-400 transition-colors border border-blue-200 dark:border-blue-800"
+            >
+              <span className="font-bold text-sm">Perfect</span>
+              <span className="text-xs font-medium">Done</span>
+            </button>
           </div>
 
-          <Button
-            onClick={() => handleManualNavigation('next')}
-            disabled={isAnimating}
-            className="flex-1 justify-center bg-teal-600 hover:bg-teal-700 text-white shadow-lg shadow-teal-200"
-          >
-            {isLast ? (
-              <>Finish <RotateCcw className="w-4 h-4 ml-2" /></>
-            ) : (
-              <>Next <ArrowRight className="w-4 h-4 ml-2" /></>
-            )}
-          </Button>
+          {/* Utility Buttons */}
+          <div className="flex justify-center items-center gap-6 text-gray-500 dark:text-gray-400">
+             <button disabled className="flex items-center gap-1 text-sm hover:text-gray-700 dark:hover:text-gray-200 transition-colors opacity-50 cursor-not-allowed">
+               <Edit className="w-4 h-4" /> Edit
+             </button>
+             <button onClick={handleUndo} disabled={historyStack.length === 0 || isAnimating} className={cn("flex items-center gap-1 text-sm hover:text-gray-700 dark:hover:text-gray-200 transition-colors", (historyStack.length === 0 || isAnimating) && "opacity-50 cursor-not-allowed")}>
+               <RotateCcw className="w-4 h-4" /> Undo
+             </button>
+          </div>
         </div>
       </div>
 
