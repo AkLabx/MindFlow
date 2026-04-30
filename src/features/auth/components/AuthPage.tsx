@@ -360,9 +360,26 @@ const AuthPage: React.FC<AuthPageProps> = ({ onBack }) => {
              Are you guest user?{" "}
              <button
                type="button"
-               onClick={() => {
-                 setEmail("mindflow@user.com");
-                 setPassword("Test@1234");
+               onClick={async () => {
+                 const guestEmail = "mindflow@user.com";
+                 const guestPassword = "Test@1234";
+                 setEmail(guestEmail);
+                 setPassword(guestPassword);
+                 setIsSignUp(false);
+                 setIsEmailLoading(true);
+                 setError(null);
+                 setMessage(null);
+                 try {
+                   const { error } = await supabase.auth.signInWithPassword({
+                     email: guestEmail,
+                     password: guestPassword,
+                   });
+                   if (error) throw error;
+                 } catch (error: any) {
+                   setError(error.error_description || error.message);
+                 } finally {
+                   setIsEmailLoading(false);
+                 }
                }}
                className="font-semibold text-indigo-600 hover:text-indigo-500 hover:underline focus:outline-none dark:text-indigo-400 dark:hover:text-indigo-300"
              >
