@@ -1,7 +1,10 @@
 package com.mindflow.quiz.ui.quiz
 
+import android.os.Parcelable
 import com.mindflow.quiz.data.local.entity.QuestionEntity
+import kotlinx.parcelize.Parcelize
 
+@Parcelize
 data class QuizState(
     val status: String = "intro", // intro, config, quiz, result
     val mode: String = "learning", // learning, mock
@@ -17,4 +20,4 @@ data class QuizState(
     val activeQuestions: List<QuestionEntity> = emptyList(),
     val isPaused: Boolean = false,
     val isLoading: Boolean = true
-)
+) : Parcelable

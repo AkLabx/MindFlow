@@ -1,9 +1,12 @@
 package com.mindflow.quiz.data.local.entity
 
+import android.os.Parcelable
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import kotlinx.parcelize.Parcelize
 
 @Entity(tableName = "questions")
+@Parcelize
 data class QuestionEntity(
     @PrimaryKey val id: String,
     val v1Id: String?,
@@ -30,4 +33,4 @@ data class QuestionEntity(
     // Sync fields
     val updatedAt: Long = System.currentTimeMillis(),
     val syncStatus: String = "SYNCED"
-)
+) : Parcelable

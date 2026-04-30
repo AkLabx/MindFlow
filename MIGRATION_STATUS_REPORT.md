@@ -99,7 +99,7 @@ The goal of the migration is **100% feature parity**. The current state shows th
 - [x] **Phase 2: Timer and Mode Implementations**
   - Integrate a robust coroutine/Flow-based timer logic surviving configuration changes.
   - Implement mode toggles handling (Learning Mode, Mock Mode, God Mode logic).
-- [ ] **Phase 3: Advanced Features & State Resiliency**
+- [x] **Phase 3: Advanced Features & State Resiliency**
   - Implement "Mark for Review" and bookmarking session logic.
   - Ensure the state is perfectly serialized/saved across Activity death using `SavedStateHandle` or DataStore.
 

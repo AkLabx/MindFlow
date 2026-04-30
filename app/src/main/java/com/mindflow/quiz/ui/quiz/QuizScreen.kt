@@ -8,6 +8,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.outlined.Star
+import androidx.compose.material.icons.outlined.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -92,7 +95,7 @@ fun QuizScreen(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                Row(verticalAlignment = Alignment.CenterVertically) {
+Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         text = currentQuestion.questionEn,
                         style = MaterialTheme.typography.headlineSmall,
@@ -101,6 +104,29 @@ fun QuizScreen(
                     )
                     IconButton(onClick = { ttsManager.speak(currentQuestion.questionEn) }) {
                         Icon(Icons.Default.PlayArrow, contentDescription = "Read Question aloud")
+                    }
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    val isBookmarked = uiState.bookmarks.contains(currentQuestion.id)
+                    val isMarkedForReview = uiState.markedForReview.contains(currentQuestion.id)
+
+                    IconButton(onClick = { quizViewModel.onEvent(QuizEvent.ToggleReview(currentQuestion.id)) }) {
+                        Icon(
+                            imageVector = if (isMarkedForReview) Icons.Filled.Warning else Icons.Outlined.Warning,
+                            contentDescription = "Mark for Review",
+                            tint = if (isMarkedForReview) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    IconButton(onClick = { quizViewModel.onEvent(QuizEvent.ToggleBookmark(currentQuestion.id)) }) {
+                        Icon(
+                            imageVector = if (isBookmarked) Icons.Filled.Star else Icons.Outlined.Star,
+                            contentDescription = "Bookmark Question",
+                            tint = if (isBookmarked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
                 }
 

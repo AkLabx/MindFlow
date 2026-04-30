@@ -1,6 +1,7 @@
 package com.mindflow.quiz.ui.quiz
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import com.mindflow.quiz.data.local.entity.QuestionEntity
 import kotlinx.coroutines.delay
@@ -11,19 +12,27 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.isActive
 
-class QuizViewModel : ViewModel() {
+class QuizViewModel(private val savedStateHandle: SavedStateHandle) : ViewModel() {
 
-    private var timerJob: Job? = null
-    private val _uiState = MutableStateFlow(QuizState())
+private var timerJob: Job? = null
+    private val _uiState = MutableStateFlow(savedStateHandle.get<QuizState>("quiz_state") ?: QuizState())
     val uiState: StateFlow<QuizState> = _uiState.asStateFlow()
 
     init {
-        loadMockQuestions()
+        // Only load mock questions if we don't have active ones
+        if (_uiState.value.activeQuestions.isEmpty() && _uiState.value.isLoading) {
+            loadMockQuestions()
+        } else if (_uiState.value.status == "quiz" && !_uiState.value.isPaused) {
+            // Resume timer if we were in the middle of a quiz
+            startTimer()
+        }
     }
 
     private fun loadMockQuestions() {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true)
+                val newState = _uiState.value.copy(isLoading = true)
+                _uiState.value = newState
+                savedStateHandle["quiz_state"] = newState
             // Simulate network/database delay
             delay(1000)
 
@@ -50,7 +59,9 @@ class QuizViewModel : ViewModel() {
 
             // Auto-start mock quiz for now to match previous behavior
             onEvent(QuizEvent.StartQuiz(mockQuestions, "learning"))
-            _uiState.value = _uiState.value.copy(isLoading = false)
+                val newStateMock = _uiState.value.copy(isLoading = false)
+                _uiState.value = newStateMock
+                savedStateHandle["quiz_state"] = newStateMock
         }
     }
 
@@ -68,7 +79,7 @@ class QuizViewModel : ViewModel() {
                     event.questions.associate { it.id to 60 }
                 } else emptyMap()
 
-                _uiState.value = currentState.copy(
+                val newState = currentState.copy(
                     status = "quiz",
                     mode = event.mode,
                     activeQuestions = event.questions,
@@ -83,6 +94,8 @@ class QuizViewModel : ViewModel() {
                     hiddenOptions = emptyMap(),
                     isPaused = false
                 )
+                _uiState.value = newState
+                savedStateHandle["quiz_state"] = newState
                 startTimer()
             }
             is QuizEvent.AnswerQuestion -> {
@@ -102,43 +115,59 @@ class QuizViewModel : ViewModel() {
 
                 val prevTime = currentState.timeTaken[event.questionId] ?: 0
 
-                _uiState.value = currentState.copy(
+                val newState = currentState.copy(
                     answers = currentState.answers + (event.questionId to event.answer),
                     timeTaken = currentState.timeTaken + (event.questionId to (prevTime + event.timeTaken)),
                     score = newScore
                 )
+                _uiState.value = newState
+                savedStateHandle["quiz_state"] = newState
             }
             is QuizEvent.LogTimeSpent -> {
                 val prevTime = currentState.timeTaken[event.questionId] ?: 0
-                _uiState.value = currentState.copy(
+                val newState = currentState.copy(
                     timeTaken = currentState.timeTaken + (event.questionId to (prevTime + event.timeTaken))
                 )
+                _uiState.value = newState
+                savedStateHandle["quiz_state"] = newState
             }
             is QuizEvent.SaveTimer -> {
-                _uiState.value = currentState.copy(
+                val newState = currentState.copy(
                     remainingTimes = currentState.remainingTimes + (event.questionId to event.time)
                 )
+                _uiState.value = newState
+                savedStateHandle["quiz_state"] = newState
             }
             is QuizEvent.SyncGlobalTimer -> {
-                _uiState.value = currentState.copy(
+                val newState = currentState.copy(
                     quizTimeRemaining = event.time
                 )
+                _uiState.value = newState
+                savedStateHandle["quiz_state"] = newState
             }
             is QuizEvent.NextQuestion -> {
                 val nextIndex = currentState.currentQuestionIndex + 1
                 if (nextIndex >= currentState.activeQuestions.size) {
-                    _uiState.value = currentState.copy(status = "result")
+                val newState = currentState.copy(status = "result")
+                _uiState.value = newState
+                savedStateHandle["quiz_state"] = newState
                     stopTimer()
                 } else {
-                    _uiState.value = currentState.copy(currentQuestionIndex = nextIndex)
+                val newState = currentState.copy(currentQuestionIndex = nextIndex)
+                _uiState.value = newState
+                savedStateHandle["quiz_state"] = newState
                 }
             }
             is QuizEvent.PrevQuestion -> {
                 val prevIndex = maxOf(0, currentState.currentQuestionIndex - 1)
-                _uiState.value = currentState.copy(currentQuestionIndex = prevIndex)
+                val newState = currentState.copy(currentQuestionIndex = prevIndex)
+                _uiState.value = newState
+                savedStateHandle["quiz_state"] = newState
             }
             is QuizEvent.JumpToQuestion -> {
-                _uiState.value = currentState.copy(currentQuestionIndex = event.index)
+                val newState = currentState.copy(currentQuestionIndex = event.index)
+                _uiState.value = newState
+                savedStateHandle["quiz_state"] = newState
             }
             is QuizEvent.ToggleBookmark -> {
                 val isBookmarked = currentState.bookmarks.contains(event.questionId)
@@ -147,7 +176,9 @@ class QuizViewModel : ViewModel() {
                 } else {
                     currentState.bookmarks + event.questionId
                 }
-                _uiState.value = currentState.copy(bookmarks = newBookmarks)
+                val newState = currentState.copy(bookmarks = newBookmarks)
+                _uiState.value = newState
+                savedStateHandle["quiz_state"] = newState
             }
             is QuizEvent.ToggleReview -> {
                 val isMarked = currentState.markedForReview.contains(event.questionId)
@@ -156,29 +187,39 @@ class QuizViewModel : ViewModel() {
                 } else {
                     currentState.markedForReview + event.questionId
                 }
-                _uiState.value = currentState.copy(markedForReview = newMarked)
+                val newState = currentState.copy(markedForReview = newMarked)
+                _uiState.value = newState
+                savedStateHandle["quiz_state"] = newState
             }
             is QuizEvent.UseFiftyFifty -> {
-                _uiState.value = currentState.copy(
+                val newState = currentState.copy(
                     hiddenOptions = currentState.hiddenOptions + (event.questionId to event.hiddenOptions)
                 )
+                _uiState.value = newState
+                savedStateHandle["quiz_state"] = newState
             }
             is QuizEvent.PauseQuiz -> {
                 var newRemainingTimes = currentState.remainingTimes
                 if (event.questionId != null && event.remainingTime != null) {
                     newRemainingTimes = newRemainingTimes + (event.questionId to event.remainingTime)
                 }
-                _uiState.value = currentState.copy(
+                val newState = currentState.copy(
                     isPaused = true,
                     remainingTimes = newRemainingTimes
                 )
+                _uiState.value = newState
+                savedStateHandle["quiz_state"] = newState
             }
             is QuizEvent.ResumeQuiz -> {
-                _uiState.value = currentState.copy(isPaused = false)
+                val newState = currentState.copy(isPaused = false)
+                _uiState.value = newState
+                savedStateHandle["quiz_state"] = newState
             }
             is QuizEvent.FinishQuiz -> {
                 stopTimer()
-                _uiState.value = currentState.copy(status = "result")
+                val newState = currentState.copy(status = "result")
+                _uiState.value = newState
+                savedStateHandle["quiz_state"] = newState
             }
             is QuizEvent.RestartQuiz -> {
                 val globalTime = if (currentState.mode == "mock" || currentState.mode == "god") {
@@ -189,7 +230,7 @@ class QuizViewModel : ViewModel() {
                     currentState.activeQuestions.associate { it.id to 60 }
                 } else emptyMap()
 
-                _uiState.value = currentState.copy(
+                val newState = currentState.copy(
                     status = "quiz",
                     currentQuestionIndex = 0,
                     score = 0,
@@ -202,6 +243,8 @@ class QuizViewModel : ViewModel() {
                     hiddenOptions = emptyMap(),
                     isPaused = false
                 )
+                _uiState.value = newState
+                savedStateHandle["quiz_state"] = newState
                 startTimer()
             }
         }
@@ -236,29 +279,37 @@ class QuizViewModel : ViewModel() {
             val prevRemaining = currentState.remainingTimes[currentQuestionId] ?: 60
             if (prevRemaining > 0) {
                 val newRemainingMap = currentState.remainingTimes + (currentQuestionId to (prevRemaining - 1))
-                _uiState.value = currentState.copy(
+                val newState = currentState.copy(
                     timeTaken = newTimeTakenMap,
                     remainingTimes = newRemainingMap
                 )
+                _uiState.value = newState
+                savedStateHandle["quiz_state"] = newState
             } else {
-                 _uiState.value = currentState.copy(
+                val newState = currentState.copy(
                     timeTaken = newTimeTakenMap
                 )
+                _uiState.value = newState
+                savedStateHandle["quiz_state"] = newState
             }
         } else if (currentState.mode == "mock" || currentState.mode == "god") {
             if (currentState.quizTimeRemaining > 0) {
-                _uiState.value = currentState.copy(
+                val newState = currentState.copy(
                     timeTaken = newTimeTakenMap,
                     quizTimeRemaining = currentState.quizTimeRemaining - 1
                 )
+                _uiState.value = newState
+                savedStateHandle["quiz_state"] = newState
             } else if (currentState.mode == "mock") {
                 // Auto finish if time is up in mock mode
                 onEvent(QuizEvent.FinishQuiz)
             } else {
                 // God mode - time can go negative or stop
-                _uiState.value = currentState.copy(
+                val newState = currentState.copy(
                     timeTaken = newTimeTakenMap
                 )
+                _uiState.value = newState
+                savedStateHandle["quiz_state"] = newState
             }
         }
     }
