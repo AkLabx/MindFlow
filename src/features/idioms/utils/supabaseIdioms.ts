@@ -44,6 +44,24 @@ export async function fetchIdiomMetadata() {
                  userInteractions[String(int.idiom_id)] = int;
             });
         }
+
+        try {
+            if (typeof window !== 'undefined') {
+                const localQueueStr = localStorage.getItem('idiom_swipe_queue');
+                if (localQueueStr) {
+                    const localQueue = JSON.parse(localQueueStr);
+                    localQueue.forEach((item: any) => {
+                        const id = String(item.idiom_id);
+                        if (!userInteractions[id]) userInteractions[id] = {};
+                        if (item.status !== undefined) userInteractions[id].status = item.status;
+                        if (item.known_ows !== undefined) userInteractions[id].known_ows = item.known_ows;
+                        if (item.next_review !== undefined) userInteractions[id].next_review_at = item.next_review;
+                    });
+                }
+            }
+        } catch (e) {
+            console.error('Failed to merge local queue for Idiom', e);
+        }
     }
 
     return allData.map(row => {
@@ -122,6 +140,25 @@ export async function getFilteredIdioms(filters: InitialFilters, selectedLetter:
 
         const interactMap = new Map();
         if (interactions) interactions.forEach(i => interactMap.set(String(i.idiom_id), i));
+
+        try {
+            if (typeof window !== 'undefined') {
+                const localQueueStr = localStorage.getItem('idiom_swipe_queue');
+                if (localQueueStr) {
+                    const localQueue = JSON.parse(localQueueStr);
+                    localQueue.forEach((item: any) => {
+                        const id = String(item.idiom_id);
+                        let current = interactMap.get(id) || {};
+                        if (item.status !== undefined) current.status = item.status;
+                        if (item.known_ows !== undefined) current.known_ows = item.known_ows;
+                        if (item.next_review !== undefined) current.next_review_at = item.next_review;
+                        interactMap.set(id, current);
+                    });
+                }
+            }
+        } catch (e) {
+            console.error('Failed to merge local queue for Idiom filter', e);
+        }
 
         const mode = hasDeckFilter ? filters.deckMode![0] : null;
 
