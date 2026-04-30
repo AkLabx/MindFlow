@@ -47,7 +47,7 @@ fun ResultScreen(
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "${uiState.score} / ${uiState.questions.size}",
+                    text = "${uiState.score} / ${uiState.activeQuestions.size}",
                     style = MaterialTheme.typography.displayLarge,
                     fontWeight = FontWeight.ExtraBold,
                     color = MaterialTheme.colorScheme.primary
@@ -59,7 +59,7 @@ fun ResultScreen(
 
         Button(
             onClick = {
-                quizViewModel.resetQuiz()
+                quizViewModel.onEvent(QuizEvent.RestartQuiz)
                 onNavigateHome()
             },
             modifier = Modifier.fillMaxWidth()

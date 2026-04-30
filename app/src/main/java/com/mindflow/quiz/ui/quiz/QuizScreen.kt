@@ -13,11 +13,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.mindflow.quiz.utils.TTSManager
-import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -35,8 +33,8 @@ fun QuizScreen(
         onDispose { ttsManager.shutdown() }
     }
 
-    LaunchedEffect(uiState.isFinished) {
-        if (uiState.isFinished) {
+    LaunchedEffect(uiState.status) {
+        if (uiState.status == "result") {
             onNavigateToResult()
         }
     }
@@ -44,7 +42,7 @@ fun QuizScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Mock Quiz") },
+                title = { Text(if (uiState.mode == "learning") "Learning Mode" else "Mock Quiz") },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.Default.Close, contentDescription = "Exit Quiz")
@@ -65,8 +63,9 @@ fun QuizScreen(
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator()
             }
-        } else if (uiState.questions.isNotEmpty() && !uiState.isFinished) {
-            val currentQuestion = uiState.questions[uiState.currentQuestionIndex]
+        } else if (uiState.activeQuestions.isNotEmpty() && uiState.status == "quiz") {
+            val currentQuestion = uiState.activeQuestions[uiState.currentQuestionIndex]
+            val selectedAnswer = uiState.answers[currentQuestion.id]
 
             Column(
                 modifier = Modifier
@@ -76,7 +75,7 @@ fun QuizScreen(
             ) {
                 // Progress Indicator
                 LinearProgressIndicator(
-                    progress = (uiState.currentQuestionIndex + 1).toFloat() / uiState.questions.size,
+                    progress = (uiState.currentQuestionIndex + 1).toFloat() / uiState.activeQuestions.size,
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(8.dp),
@@ -86,7 +85,7 @@ fun QuizScreen(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 Text(
-                    text = "Question ${uiState.currentQuestionIndex + 1} of ${uiState.questions.size}",
+                    text = "Question ${uiState.currentQuestionIndex + 1} of ${uiState.activeQuestions.size}",
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -109,13 +108,15 @@ fun QuizScreen(
 
                 // Options List
                 currentQuestion.optionsEn.forEach { option ->
-                    val isSelected = uiState.selectedAnswer == option
+                    val isSelected = selectedAnswer == option
 
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(vertical = 8.dp)
-                            .clickable { quizViewModel.selectAnswer(option) },
+                            .clickable {
+                                quizViewModel.onEvent(QuizEvent.AnswerQuestion(currentQuestion.id, option, 10)) // Using 10 as dummy time Taken
+                            },
                         border = if (isSelected) BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null,
                         colors = CardDefaults.cardColors(
                             containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface
@@ -129,7 +130,7 @@ fun QuizScreen(
                         ) {
                             RadioButton(
                                 selected = isSelected,
-                                onClick = { quizViewModel.selectAnswer(option) }
+                                onClick = { quizViewModel.onEvent(QuizEvent.AnswerQuestion(currentQuestion.id, option, 10)) }
                             )
                             Spacer(modifier = Modifier.width(16.dp))
                             Text(text = option, style = MaterialTheme.typography.bodyLarge)
@@ -140,11 +141,11 @@ fun QuizScreen(
                 Spacer(modifier = Modifier.weight(1f))
 
                 Button(
-                    onClick = { quizViewModel.submitAnswer() },
+                    onClick = { quizViewModel.onEvent(QuizEvent.NextQuestion) },
                     modifier = Modifier.fillMaxWidth(),
-                    enabled = uiState.selectedAnswer != null
+                    enabled = selectedAnswer != null
                 ) {
-                    val buttonText = if (uiState.currentQuestionIndex == uiState.questions.size - 1) "Finish Quiz" else "Next"
+                    val buttonText = if (uiState.currentQuestionIndex == uiState.activeQuestions.size - 1) "Finish Quiz" else "Next"
                     Text(text = buttonText, modifier = Modifier.padding(8.dp))
                 }
             }
