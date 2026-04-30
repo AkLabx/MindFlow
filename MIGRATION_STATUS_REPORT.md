@@ -93,10 +93,10 @@ The goal of the migration is **100% feature parity**. The current state shows th
 ## 🚀 Sprint 2: Core Engine (The State Machine)
 **Goal:** Make the Quiz Engine as robust as the React `quizReducer.ts`.
 
-- [ ] **Phase 1: State Machine Setup**
+- [x] **Phase 1: State Machine Setup**
   - Refactor `QuizViewModel.kt` using Sealed Classes for intents/events (`Next`, `Prev`, `Answer`, `FiftyFifty`).
   - Implement the core state class representing the current quiz session.
-- [ ] **Phase 2: Timer and Mode Implementations**
+- [x] **Phase 2: Timer and Mode Implementations**
   - Integrate a robust coroutine/Flow-based timer logic surviving configuration changes.
   - Implement mode toggles handling (Learning Mode, Mock Mode, God Mode logic).
 - [ ] **Phase 3: Advanced Features & State Resiliency**

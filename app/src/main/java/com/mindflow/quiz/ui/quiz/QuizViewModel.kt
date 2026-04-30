@@ -8,9 +8,12 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.isActive
 
 class QuizViewModel : ViewModel() {
 
+    private var timerJob: Job? = null
     private val _uiState = MutableStateFlow(QuizState())
     val uiState: StateFlow<QuizState> = _uiState.asStateFlow()
 
@@ -80,6 +83,7 @@ class QuizViewModel : ViewModel() {
                     hiddenOptions = emptyMap(),
                     isPaused = false
                 )
+                startTimer()
             }
             is QuizEvent.AnswerQuestion -> {
                 val question = currentState.activeQuestions.find { it.id == event.questionId }
@@ -124,6 +128,7 @@ class QuizViewModel : ViewModel() {
                 val nextIndex = currentState.currentQuestionIndex + 1
                 if (nextIndex >= currentState.activeQuestions.size) {
                     _uiState.value = currentState.copy(status = "result")
+                    stopTimer()
                 } else {
                     _uiState.value = currentState.copy(currentQuestionIndex = nextIndex)
                 }
@@ -172,6 +177,7 @@ class QuizViewModel : ViewModel() {
                 _uiState.value = currentState.copy(isPaused = false)
             }
             is QuizEvent.FinishQuiz -> {
+                stopTimer()
                 _uiState.value = currentState.copy(status = "result")
             }
             is QuizEvent.RestartQuiz -> {
@@ -196,7 +202,69 @@ class QuizViewModel : ViewModel() {
                     hiddenOptions = emptyMap(),
                     isPaused = false
                 )
+                startTimer()
             }
         }
+    }
+
+    private fun startTimer() {
+        stopTimer()
+        timerJob = viewModelScope.launch {
+            while (isActive) {
+                delay(1000)
+                tickTimer()
+            }
+        }
+    }
+
+    private fun stopTimer() {
+        timerJob?.cancel()
+        timerJob = null
+    }
+
+    private fun tickTimer() {
+        val currentState = _uiState.value
+        if (currentState.isPaused || currentState.status != "quiz" || currentState.activeQuestions.isEmpty()) return
+
+        val currentQuestionId = currentState.activeQuestions.getOrNull(currentState.currentQuestionIndex)?.id ?: return
+
+        // Always update time taken for current question
+        val prevTimeTaken = currentState.timeTaken[currentQuestionId] ?: 0
+        val newTimeTakenMap = currentState.timeTaken + (currentQuestionId to (prevTimeTaken + 1))
+
+        if (currentState.mode == "learning") {
+            val prevRemaining = currentState.remainingTimes[currentQuestionId] ?: 60
+            if (prevRemaining > 0) {
+                val newRemainingMap = currentState.remainingTimes + (currentQuestionId to (prevRemaining - 1))
+                _uiState.value = currentState.copy(
+                    timeTaken = newTimeTakenMap,
+                    remainingTimes = newRemainingMap
+                )
+            } else {
+                 _uiState.value = currentState.copy(
+                    timeTaken = newTimeTakenMap
+                )
+            }
+        } else if (currentState.mode == "mock" || currentState.mode == "god") {
+            if (currentState.quizTimeRemaining > 0) {
+                _uiState.value = currentState.copy(
+                    timeTaken = newTimeTakenMap,
+                    quizTimeRemaining = currentState.quizTimeRemaining - 1
+                )
+            } else if (currentState.mode == "mock") {
+                // Auto finish if time is up in mock mode
+                onEvent(QuizEvent.FinishQuiz)
+            } else {
+                // God mode - time can go negative or stop
+                _uiState.value = currentState.copy(
+                    timeTaken = newTimeTakenMap
+                )
+            }
+        }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        stopTimer()
     }
 }
