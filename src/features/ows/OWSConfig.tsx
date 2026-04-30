@@ -116,7 +116,7 @@ export const OWSConfig: React.FC<OWSConfigProps> = ({ onStart, onBack }) => {
     return (
                 <div className="flex flex-col min-h-screen p-4 sm:p-6 lg:p-8 transition-colors duration-700 relative overflow-y-auto bg-slate-50 dark:bg-slate-900">
             {!user && (
-              <div className="absolute inset-0 z-50 flex flex-col items-center justify-center p-6 bg-slate-50/95 dark:bg-slate-900/95 backdrop-blur-sm">
+              <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center p-6 bg-slate-50/95 dark:bg-slate-900/95 backdrop-blur-sm">
                 <div className="bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-2xl flex flex-col items-center text-center max-w-sm border border-slate-200 dark:border-slate-700">
                   <div className="w-16 h-16 bg-teal-100 dark:bg-teal-900/50 rounded-full flex items-center justify-center mb-4">
                     <Lock className="w-8 h-8 text-teal-600 dark:text-teal-400" />
@@ -127,7 +127,7 @@ export const OWSConfig: React.FC<OWSConfigProps> = ({ onStart, onBack }) => {
                   </p>
                   <div className="flex gap-3 w-full">
                     <Button onClick={onBack} variant="outline" fullWidth>Back</Button>
-                    <Button onClick={() => window.location.hash = '#/auth'} className="bg-teal-500 hover:bg-teal-600 text-white border-none" fullWidth>
+                    <Button onClick={() => window.location.hash = '#/login'} className="bg-teal-500 hover:bg-teal-600 text-white border-none" fullWidth>
                       Sign In
                     </Button>
                   </div>
