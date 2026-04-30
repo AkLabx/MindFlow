@@ -10,8 +10,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -21,7 +25,13 @@ import androidx.compose.ui.unit.dp
 data class DashboardFeature(val title: String, val icon: ImageVector, val description: String)
 
 @Composable
-fun DashboardScreen(onNavigateToQuiz: () -> Unit = {}, onNavigateToFlashcards: () -> Unit = {}) {
+fun DashboardScreen(
+    viewModel: DashboardViewModel,
+    onNavigateToQuiz: () -> Unit = {},
+    onNavigateToFlashcards: () -> Unit = {}
+) {
+    val stats by viewModel.profileStats.collectAsState()
+
     val features = listOf(
         DashboardFeature("Create Quiz", Icons.Default.Edit, "Customize subjects and topics"),
         DashboardFeature("English Zone", Icons.Default.Star, "Vocab, Idioms, & OWS"),
@@ -46,13 +56,34 @@ fun DashboardScreen(onNavigateToQuiz: () -> Unit = {}, onNavigateToFlashcards: (
             modifier = Modifier.padding(top = 4.dp, bottom = 24.dp)
         )
 
-        // Statistics Cards Row (Placeholder Data)
+        // Statistics Cards Row (Real Data)
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            StatCard(modifier = Modifier.weight(1f), title = "Total Quizzes", value = "12")
-            StatCard(modifier = Modifier.weight(1f), title = "Avg Score", value = "85%")
+            StatCard(modifier = Modifier.weight(1f), title = "Total Quizzes", value = stats.quizzesCompleted.toString())
+            StatCard(modifier = Modifier.weight(1f), title = "Avg Score", value = "${stats.averageScore}%")
+            StatCard(modifier = Modifier.weight(1f), title = "Time Spent", value = stats.totalTimeSpentFormatted)
+        }
+
+        if (stats.weakTopics.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(16.dp))
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)
+            ) {
+                Row(
+                    modifier = Modifier.padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(imageVector = Icons.Default.Warning, contentDescription = "Weak Topics", tint = MaterialTheme.colorScheme.error)
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Column {
+                        Text(text = "Needs Focus", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onErrorContainer)
+                        Text(text = stats.weakTopics.joinToString(", "), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onErrorContainer)
+                    }
+                }
+            }
         }
 
         Spacer(modifier = Modifier.height(32.dp))
@@ -90,8 +121,8 @@ fun StatCard(modifier: Modifier = Modifier, title: String, value: String) {
             modifier = Modifier.padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(text = value, style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold)
-            Text(text = title, style = MaterialTheme.typography.bodyMedium)
+            Text(text = value, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Text(text = title, style = MaterialTheme.typography.labelSmall)
         }
     }
 }

@@ -10,7 +10,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
@@ -18,6 +21,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.mindflow.quiz.ui.auth.AuthViewModel
+import com.mindflow.quiz.ui.ViewModelFactory
 
 sealed class BottomNavItem(val route: String, val title: String, val icon: ImageVector) {
     object Home : BottomNavItem("home", "Dashboard", Icons.Default.Home)
@@ -78,18 +82,21 @@ fun MainLayoutScreen(
             modifier = Modifier.padding(innerPadding)
         ) {
             composable(BottomNavItem.Home.route) {
+                val context = LocalContext.current
+                val dashboardViewModel: DashboardViewModel = viewModel(factory = ViewModelFactory(context))
                 DashboardScreen(
+                    viewModel = dashboardViewModel,
                     onNavigateToQuiz = { rootNavController.navigate("quiz") },
                     onNavigateToFlashcards = { rootNavController.navigate("flashcards") }
                 )
             }
             composable(BottomNavItem.Profile.route) {
                 // Placeholder Profile Screen
-                Text(text = "Profile Screen", modifier = Modifier.padding(innerPadding))
+                Text(text = "Profile Screen", modifier = Modifier.padding(16.dp))
             }
             composable(BottomNavItem.Settings.route) {
                 // Placeholder Settings Screen
-                Text(text = "Settings Screen", modifier = Modifier.padding(innerPadding))
+                Text(text = "Settings Screen", modifier = Modifier.padding(16.dp))
             }
         }
     }

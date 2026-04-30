@@ -9,17 +9,20 @@ import com.mindflow.quiz.data.local.converters.RoomConverters
 import com.mindflow.quiz.data.local.dao.IdiomDao
 import com.mindflow.quiz.data.local.dao.OneWordDao
 import com.mindflow.quiz.data.local.dao.QuestionDao
+import com.mindflow.quiz.data.local.dao.QuizHistoryDao
 import com.mindflow.quiz.data.local.entity.IdiomEntity
 import com.mindflow.quiz.data.local.entity.OneWordEntity
 import com.mindflow.quiz.data.local.entity.QuestionEntity
+import com.mindflow.quiz.data.local.entity.QuizHistoryEntity
 
 @Database(
     entities = [
         QuestionEntity::class,
         IdiomEntity::class,
-        OneWordEntity::class
+        OneWordEntity::class,
+        QuizHistoryEntity::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 @TypeConverters(RoomConverters::class)
@@ -28,6 +31,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun questionDao(): QuestionDao
     abstract fun idiomDao(): IdiomDao
     abstract fun oneWordDao(): OneWordDao
+    abstract fun quizHistoryDao(): QuizHistoryDao
 
     companion object {
         @Volatile
@@ -39,7 +43,9 @@ abstract class AppDatabase : RoomDatabase() {
                     context.applicationContext,
                     AppDatabase::class.java,
                     "mindflow_database"
-                ).build()
+                )
+                .fallbackToDestructiveMigration()
+                .build()
                 INSTANCE = instance
                 instance
             }

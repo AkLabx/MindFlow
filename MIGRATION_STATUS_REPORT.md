@@ -21,7 +21,7 @@ The goal of the migration is **100% feature parity**. The current state shows th
 | Feature / Component | React (PWA) | Android (Kotlin) | Status | Notes |
 | :--- | :--- | :--- | :--- | :--- |
 | **Main Layout Wrapper** | `MainLayout.tsx` | `MainLayoutScreen.kt` | [ ] **Incomplete** | Basic scaffold exists, but complex tab routing and settings modal integration are missing. |
-| **Dashboard Screen** | `Dashboard.tsx` | `DashboardScreen.kt` | [ ] **Incomplete** | UI scaffold present. Missing live data integration (Stats, Recent Quizzes) which are hardcoded placeholders. |
+| **Dashboard Screen** | `Dashboard.tsx` | `DashboardScreen.kt` | [x] **Completed** | UI scaffold present. Wired up live data integration for Profile Stats. |
 | **Settings Modal** | `SettingsModal.tsx` | *Missing* | [ ] **Todo** | Needs Jetpack Compose equivalent for app preferences (bg animations, sound, etc.). |
 | **Settings Store** | `useSettingsStore.ts` | *Missing* | [ ] **Todo** | Needs `DataStore` or `SharedPreferences` implementation in Android. |
 
@@ -106,7 +106,7 @@ The goal of the migration is **100% feature parity**. The current state shows th
 ## 🚀 Sprint 3: Data Integration (Removing the Illusions)
 **Goal:** Wire the UI to the actual Data Layer. Eliminate all mock data.
 
-- [ ] **Phase 1: Dashboard Connectivity**
+- [x] **Phase 1: Dashboard Connectivity**
   - Connect `DashboardScreen` to real statistics from Room DB.
   - Replace hardcoded placeholders with actual user profile and history data.
 - [ ] **Phase 2: Quiz Engine UI Integration**
