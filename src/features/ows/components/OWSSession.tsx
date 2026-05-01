@@ -314,7 +314,8 @@ export const OWSSession: React.FC<OWSSessionProps> = ({
   };
 
 
-  const [swipeStats, setSwipeStats] = useState({ mastered: 0, tricky: 0, review: 0, clueless: 0, known: 0, unknown: 0 });
+  const updateSwipeStats = useFlashcardStore(state => state.updateSwipeStats);
+  const swipeStats = useFlashcardStore(state => state.swipeStats);
   const [historyStack, setHistoryStack] = useState<any[]>([]);
 
   const handleBasicAction = async (isKnown: boolean, vel: number) => {
@@ -325,7 +326,7 @@ export const OWSSession: React.FC<OWSSessionProps> = ({
 
       // Record for Undo
       setHistoryStack(prev => [...prev, { item: currentItem, status: isKnown ? 'known' : 'unknown', index: currentIndex }]);
-      setSwipeStats(prev => ({ ...prev, [isKnown ? 'known' : 'unknown']: prev[isKnown ? 'known' : 'unknown' as keyof typeof prev] + 1 }));
+      // setSwipeStats(prev => ({ ...prev, [isKnown ? 'known' : 'unknown']: prev[isKnown ? 'known' : 'unknown' as keyof typeof prev] + 1 }));
 
       let finalX = isKnown ? -500 : 500;
 
@@ -375,7 +376,7 @@ export const OWSSession: React.FC<OWSSessionProps> = ({
 
      // Record for Undo
      setHistoryStack(prev => [...prev, { item: currentItem, status, index: currentIndex }]);
-     setSwipeStats(prev => ({ ...prev, [status]: prev[status] + 1 }));
+     updateSwipeStats(status, 1);
 
      // Animate card away
      let finalX = 0;
@@ -442,7 +443,7 @@ export const OWSSession: React.FC<OWSSessionProps> = ({
       if (historyStack.length === 0 || isAnimating) return;
       const lastAction = historyStack[historyStack.length - 1];
       setHistoryStack(prev => prev.slice(0, -1));
-      setSwipeStats(prev => ({ ...prev, [lastAction.status]: Math.max(0, prev[lastAction.status as keyof typeof prev] - 1) }));
+      // setSwipeStats(prev => ({ ...prev, [lastAction.status]: Math.max(0, prev[lastAction.status as keyof typeof prev] - 1) }));
 
       setIsAnimating(true);
       x.set(-500); // Start from left for undo animation

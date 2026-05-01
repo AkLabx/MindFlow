@@ -4,6 +4,15 @@ import { SynonymWord } from '../types';
 
 export type FlashcardType = 'idioms' | 'ows' | 'synonyms' | null;
 
+export interface SwipeStats {
+  mastered: number;
+  tricky: number;
+  review: number;
+  clueless: number;
+  known: number;
+  unknown: number;
+}
+
 interface FlashcardState {
   // Common state
   status: 'idle' | 'active' | 'complete';
@@ -11,6 +20,7 @@ interface FlashcardState {
   currentIndex: number;
   filters: InitialFilters | null;
   mode?: 'basic' | 'review';
+  swipeStats: SwipeStats;
 
   // Domain specific data
   idioms: Idiom[];
@@ -26,17 +36,21 @@ interface FlashcardState {
   nextCard: () => void;
   prevCard: () => void;
   jumpToCard: (index: number) => void;
+  updateSwipeStats: (key: keyof SwipeStats, delta: number) => void;
 
   // Lifecycle
   finishSession: () => void;
   resetSession: () => void;
 }
 
+const defaultSwipeStats: SwipeStats = { mastered: 0, tricky: 0, review: 0, clueless: 0, known: 0, unknown: 0 };
+
 export const useFlashcardStore = create<FlashcardState>((set, get) => ({
   status: 'idle',
   type: null,
   currentIndex: 0,
   filters: null,
+  swipeStats: { ...defaultSwipeStats },
   idioms: [],
   ows: [],
   synonyms: [],
@@ -47,6 +61,7 @@ export const useFlashcardStore = create<FlashcardState>((set, get) => ({
     idioms: data,
     filters: filters || null,
     mode,
+    swipeStats: { ...defaultSwipeStats },
     currentIndex: 0
   }),
 
@@ -56,6 +71,7 @@ export const useFlashcardStore = create<FlashcardState>((set, get) => ({
     ows: data,
     filters: filters || null,
     mode,
+    swipeStats: { ...defaultSwipeStats },
     currentIndex: 0
   }),
 
@@ -64,6 +80,7 @@ export const useFlashcardStore = create<FlashcardState>((set, get) => ({
     type: 'synonyms',
     synonyms: data,
     filters: filters || null,
+    swipeStats: { ...defaultSwipeStats },
     currentIndex: 0
   }),
 
@@ -88,6 +105,10 @@ export const useFlashcardStore = create<FlashcardState>((set, get) => ({
     currentIndex: index
   }),
 
+  updateSwipeStats: (key, delta) => set((state) => ({
+    swipeStats: { ...state.swipeStats, [key]: Math.max(0, state.swipeStats[key] + delta) }
+  })),
+
   finishSession: () => set({
     status: 'complete'
   }),
@@ -97,6 +118,7 @@ export const useFlashcardStore = create<FlashcardState>((set, get) => ({
     type: null,
     currentIndex: 0,
     filters: null,
+    swipeStats: { ...defaultSwipeStats },
     idioms: [],
     ows: [],
     synonyms: []

@@ -261,6 +261,9 @@ const AppRoutesContent: React.FC = () => {
                         <FlashcardSummary
                             totalCards={flashcardStore.idioms.length || flashcardStore.ows.length || flashcardStore.synonyms.length || 0}
                             filters={flashcardStore.filters || {} as any}
+                            swipeStats={flashcardStore.swipeStats}
+                            mode={flashcardStore.mode}
+                            flashcardType={flashcardStore.type}
                             onRestart={() => {
                                 flashcardStore.resetSession();
                                 const dest = flashcardStore.type === 'ows' ? '/ows/config' : flashcardStore.type === 'synonyms' ? '/synonyms/config' : '/idioms/config';
