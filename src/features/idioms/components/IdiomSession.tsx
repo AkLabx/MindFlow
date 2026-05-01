@@ -188,7 +188,7 @@ export const IdiomSession: React.FC<IdiomSessionProps> = ({
                  if (ev.status !== undefined) payload.status = ev.status;
                  if (ev.velocity !== undefined) payload.swipe_velocity = ev.velocity;
                  if (ev.next_review !== undefined) payload.next_review_at = ev.next_review;
-                 if (ev.known_ows !== undefined) payload.known_ows = ev.known_ows;
+                 if (ev.known_ows !== undefined) payload.is_read = ev.known_ows;
                  return payload;
              });
 
