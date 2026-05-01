@@ -150,7 +150,7 @@ export const syncService = {
     const { error } = await supabase.from('user_ows_interactions').upsert({
       user_id: userId,
       word_id: interaction.wordId,
-      known_ows: interaction.known_ows,
+      is_read: interaction.known_ows,
       updated_at: interaction.lastInteractedAt,
     }, { onConflict: 'user_id, word_id' });
 
@@ -164,7 +164,7 @@ export const syncService = {
     const { error } = await supabase.from('user_idiom_interactions').upsert({
       user_id: userId,
       idiom_id: interaction.idiomId,
-      known_ows: interaction.known_ows,
+      is_read: interaction.known_ows,
       updated_at: interaction.lastInteractedAt,
     }, { onConflict: 'user_id, idiom_id' });
 
@@ -370,7 +370,7 @@ export const syncService = {
         for (const remote of remoteOWS) {
            await db.saveOWSInteraction({
               wordId: remote.word_id,
-              known_ows: remote.known_ows,
+              known_ows: remote.is_read,
               lastInteractedAt: remote.updated_at
            });
         }
@@ -380,7 +380,7 @@ export const syncService = {
         for (const remote of remoteIdioms) {
            await db.saveIdiomInteraction({
               idiomId: remote.idiom_id,
-              known_ows: remote.known_ows,
+              known_ows: remote.is_read,
               lastInteractedAt: remote.updated_at
            });
         }

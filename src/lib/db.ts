@@ -579,7 +579,7 @@ export const db = {
                 if (mode === 'basic') {
                     // Update known_ows to false
                     await supabase.from('user_ows_interactions')
-                        .update({ known_ows: false })
+                        .update({ is_read: false })
                         .eq('user_id', session.user.id);
                 } else {
                     // Update status, next_review_at, swipe_velocity to null
@@ -624,7 +624,7 @@ export const db = {
             if (session?.user) {
                 if (mode === 'basic') {
                     await supabase.from('user_idiom_interactions')
-                        .update({ known_ows: false })
+                        .update({ is_read: false })
                         .eq('user_id', session.user.id);
                 } else {
                     await supabase.from('user_idiom_interactions')

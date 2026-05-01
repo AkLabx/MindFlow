@@ -36,7 +36,7 @@ export async function fetchOwsMetadata() {
   if (userData?.user) {
     const { data: interactions, error: intError } = await supabase
       .from("user_ows_interactions")
-      .select("word_id, known_ows, status, next_review_at")
+      .select("word_id, is_read, status, next_review_at")
       .eq("user_id", userData.user.id);
 
     if (!intError && interactions) {
@@ -54,7 +54,7 @@ export async function fetchOwsMetadata() {
             const id = String(item.word_id);
             if (!userInteractions[id]) userInteractions[id] = {};
             if (item.status !== undefined) userInteractions[id].status = item.status;
-            if (item.known_ows !== undefined) userInteractions[id].known_ows = item.known_ows;
+            if (item.known_ows !== undefined) userInteractions[id].is_read = item.known_ows;
             if (item.next_review !== undefined) userInteractions[id].next_review_at = item.next_review;
           });
         }
@@ -73,7 +73,7 @@ export async function fetchOwsMetadata() {
       examName: row.source_pdf || "Unknown",
       examYear: String(row.exam_year || ""),
       difficulty: row.difficulty || "Medium",
-      knownStatus: interaction?.known_ows ? "known" : "unknown",
+      knownStatus: interaction?.is_read ? "known" : "unknown",
       status: interaction?.status,
       next_review_at: interaction?.next_review_at,
     };
@@ -160,7 +160,7 @@ export async function getFilteredOws(
   if (userData?.user && (hasDeckFilter || hasKnownFilter)) {
     const { data: interactions } = await supabase
       .from("user_ows_interactions")
-      .select("word_id, status, next_review_at, known_ows")
+      .select("word_id, status, next_review_at, is_read")
       .eq("user_id", userData.user.id);
 
     const interactMap = new Map();
@@ -176,7 +176,7 @@ export async function getFilteredOws(
             const id = String(item.word_id);
             let current = interactMap.get(id) || {};
             if (item.status !== undefined) current.status = item.status;
-            if (item.known_ows !== undefined) current.known_ows = item.known_ows;
+            if (item.known_ows !== undefined) current.is_read = item.known_ows;
             if (item.next_review !== undefined) current.next_review_at = item.next_review;
             interactMap.set(id, current);
           });
@@ -209,7 +209,7 @@ export async function getFilteredOws(
 
       let matchesKnown = true;
       if (hasKnownFilter) {
-        const isKnown = userState?.known_ows === true;
+        const isKnown = userState?.is_read === true;
         const statusStr = isKnown ? "known" : "unknown";
         matchesKnown = filters.knownStatus!.includes(
           statusStr as "known" | "unknown",
