@@ -83,6 +83,7 @@ export async function fetchOwsMetadata() {
 export async function getFilteredOws(
   filters: InitialFilters,
   selectedLetter: string | null,
+  sessionMode?: 'basic' | 'review'
 ): Promise<OneWord[]> {
   let allData: any[] = [];
   let start = 0;
@@ -154,7 +155,7 @@ export async function getFilteredOws(
   const { data: userData } = await supabase.auth.getUser();
 
   // We only need to apply interactions if user exists AND they have deckMode or knownStatus filters
-  const hasDeckFilter = filters.deckMode && filters.deckMode.length > 0;
+  const hasDeckFilter = sessionMode === 'review' && filters.deckMode && filters.deckMode.length > 0;
   const hasKnownFilter = filters.knownStatus && filters.knownStatus.length > 0;
 
   if (userData?.user && (hasDeckFilter || hasKnownFilter)) {
