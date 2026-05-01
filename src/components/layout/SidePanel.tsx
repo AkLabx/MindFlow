@@ -2,7 +2,7 @@ import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     X, User, LogIn, Home, LayoutDashboard, Languages,
-    Wrench, Download, Info, GraduationCap, FileText, Shield
+    Wrench, Download, Info, GraduationCap, FileText, Shield, LogOut
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../features/auth/context/AuthContext';
@@ -14,7 +14,7 @@ interface SidePanelProps {
 }
 
 export const SidePanel: React.FC<SidePanelProps> = ({ isOpen, onClose, onTabChange }) => {
-    const { user } = useAuth();
+    const { user, signOut } = useAuth();
     const navigate = useNavigate();
 
     const handleNavigation = (path: string, tab?: string) => {
@@ -166,6 +166,22 @@ export const SidePanel: React.FC<SidePanelProps> = ({ isOpen, onClose, onTabChan
                                     </button>
                                 ))}
                             </div>
+
+                                                        {/* --- User Actions: Sign Out (Only for logged in users) --- */}
+                            {user && (
+                                <div className="px-6 py-2 border-t border-gray-100 dark:border-gray-800 mt-auto">
+                                    <button
+                                        onClick={async () => {
+                                            await signOut();
+                                            onClose();
+                                        }}
+                                        className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors font-semibold group"
+                                    >
+                                        <LogOut className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
+                                        <span>Sign Out</span>
+                                    </button>
+                                </div>
+                            )}
 
                             {/* --- Bottom: Branding & Legal --- */}
                             <div className="p-6 border-t border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-slate-800/20">
