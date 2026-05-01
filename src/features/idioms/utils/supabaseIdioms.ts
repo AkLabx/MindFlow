@@ -80,7 +80,7 @@ export async function fetchIdiomMetadata() {
     });
 }
 
-export async function getFilteredIdioms(filters: InitialFilters, selectedLetter: string | null): Promise<Idiom[]> {
+export async function getFilteredIdioms(filters: InitialFilters, selectedLetter: string | null, sessionMode?: 'basic' | 'review'): Promise<Idiom[]> {
     let query = supabase.from('idiom').select('*');
 
     if (filters.examName.length > 0) {
@@ -129,7 +129,7 @@ export async function getFilteredIdioms(filters: InitialFilters, selectedLetter:
 
     // THE SIEVE (Deck Mode Filter)
     const { data: userData } = await supabase.auth.getUser();
-    const hasDeckFilter = filters.deckMode && filters.deckMode.length > 0;
+    const hasDeckFilter = sessionMode === 'review' && filters.deckMode && filters.deckMode.length > 0;
     const hasKnownFilter = filters.knownStatus && filters.knownStatus.length > 0;
 
     if (userData?.user && (hasDeckFilter || hasKnownFilter)) {

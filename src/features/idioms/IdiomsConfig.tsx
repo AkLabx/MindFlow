@@ -95,7 +95,7 @@ export const IdiomsConfig: React.FC<IdiomsConfigProps> = ({ onStart, onBack }) =
                  alert("No Idioms found matching current filters.");
                  return;
             }
-            const data = await getFilteredIdioms(filters, selectedLetter);
+            const data = await getFilteredIdioms(filters, selectedLetter, sessionMode);
             if (data.length > 0) {
                 onStart(data, filters, sessionMode);
             } else {
@@ -269,18 +269,19 @@ export const IdiomsConfig: React.FC<IdiomsConfigProps> = ({ onStart, onBack }) =
                         </div>
                     </div>
 
-                    {/* Deck Mode Card */}
-                    <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-indigo-100 border-l-4 border-l-indigo-400 shadow-sm relative">
-                        <div className="flex items-center gap-2 mb-4 text-indigo-800 font-bold text-sm uppercase tracking-wider">
-                            <CheckCircle className="w-4 h-4" /> Deck Mode (Spatial Engine)
+                    {sessionMode === 'review' && (
+                        <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-indigo-100 border-l-4 border-l-indigo-400 shadow-sm relative">
+                            <div className="flex items-center gap-2 mb-4 text-indigo-800 font-bold text-sm uppercase tracking-wider">
+                                <CheckCircle className="w-4 h-4" /> Deck Mode (Spatial Engine)
+                            </div>
+                            <SegmentedControl
+                                options={["Unseen", "Mastered", "Review", "Clueless", "Tricky"]}
+                                selectedOptions={filters.deckMode || ["Unseen"]}
+                                onOptionToggle={(opt) => setFilters(prev => ({ ...prev, deckMode: [opt as "Unseen" | "Mastered" | "Review" | "Clueless" | "Tricky"] }))}
+                                counts={filterCounts.deckMode || {}}
+                            />
                         </div>
-                        <SegmentedControl
-                            options={["Unseen", "Mastered", "Review", "Clueless", "Tricky"]}
-                            selectedOptions={filters.deckMode || ["Unseen"]}
-                            onOptionToggle={(opt) => setFilters(prev => ({ ...prev, deckMode: [opt as "Unseen" | "Mastered" | "Review" | "Clueless" | "Tricky"] }))}
-                            counts={filterCounts.deckMode || {}}
-                        />
-                    </div>
+                    )}
 
                     {/* Known Status Card */}
                     <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-indigo-100 border-l-4 border-l-indigo-400 shadow-sm relative">
