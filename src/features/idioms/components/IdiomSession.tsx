@@ -329,7 +329,7 @@ export const IdiomSession: React.FC<IdiomSessionProps> = ({
 
       // Record for Undo
       setHistoryStack(prev => [...prev, { item: currentItem, status: isKnown ? 'known' : 'unknown', index: currentIndex }]);
-      // setSwipeStats(prev => ({ ...prev, [isKnown ? 'known' : 'unknown']: prev[isKnown ? 'known' : 'unknown' as keyof typeof prev] + 1 }));
+      updateSwipeStats(isKnown ? 'known' : 'unknown', 1);
 
       let finalX = isKnown ? -500 : 500;
 
