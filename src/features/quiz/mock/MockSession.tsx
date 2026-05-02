@@ -1,3 +1,4 @@
+import { useQuizSessionStore } from '../stores/useQuizSessionStore';
 
 import React, { useState, useEffect, useRef, useContext } from 'react';
 import { Clock, Menu, Flag, CheckCircle, ChevronLeft, ChevronRight, AlertTriangle, ZoomIn, ZoomOut, Maximize2, Minimize2, Eraser, Pause } from 'lucide-react';
@@ -27,6 +28,7 @@ export const MockSession: React.FC<MockSessionProps> = ({ questions, initialTime
     const [answers, setAnswers] = useState<Record<string, string>>({});
     const [markedForReview, setMarkedForReview] = useState<string[]>([]);
     const [isNavOpen, setIsNavOpen] = useState(false);
+    const reorderActiveQuestions = useQuizSessionStore(s => s.reorderActiveQuestions);
     const [showConfirmModal, setShowConfirmModal] = useState(false);
     const [zoomLevel, setZoomLevel] = useState(1);
     const [isFullScreen, setIsFullScreen] = useState(false);
@@ -285,6 +287,7 @@ export const MockSession: React.FC<MockSessionProps> = ({ questions, initialTime
                             bookmarks={[]}
                             onSubmitAndReview={() => setShowConfirmModal(true)}
                             mode="mock"
+                            onReorderQuestions={reorderActiveQuestions}
                         />
                         {showConfirmModal && (
                             <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">

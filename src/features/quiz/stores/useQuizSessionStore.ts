@@ -32,6 +32,7 @@ interface QuizSessionState extends QuizState {
   restartQuiz: () => void;
   goHome: () => void;
   loadSavedQuiz: (savedState: QuizState) => void;
+  reorderActiveQuestions: (newOrder: Question[]) => void;
 }
 
 export const initialState: QuizState = {
@@ -225,6 +226,23 @@ export const useQuizSessionStore = create<QuizSessionState>((set, get) => ({
   }),
 
   goHome: () => set({ ...initialState, status: 'idle' }),
+
+  reorderActiveQuestions: (newOrder) => set((state) => {
+    const currentQuestion = state.activeQuestions[state.currentQuestionIndex];
+    let newIndex = state.currentQuestionIndex;
+
+    if (currentQuestion) {
+      const foundIndex = newOrder.findIndex(q => q.id === currentQuestion.id);
+      if (foundIndex !== -1) {
+        newIndex = foundIndex;
+      }
+    }
+
+    return {
+      activeQuestions: newOrder,
+      currentQuestionIndex: newIndex
+    };
+  }),
 
   loadSavedQuiz: (savedState) => set((state) => {
     if (savedState.activeQuestions) {
