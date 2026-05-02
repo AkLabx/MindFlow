@@ -443,6 +443,7 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
                     onSelectionChange={(sel) => handleFilterChange('examName', sel)}
                     placeholder="Select Exams"
                     counts={filterCounts.examName || {}}
+                    hideZeroCount
                   />
                   <MultiSelectDropdown
                     label="Exam Year"
@@ -451,6 +452,7 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
                     onSelectionChange={(sel) => handleFilterChange('examYear', sel)}
                     placeholder="Select Years"
                     counts={filterCounts.examYear || {}}
+                    hideZeroCount
                   />
                   <MultiSelectDropdown
                     label="Exam Shift"
@@ -459,6 +461,7 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
                     onSelectionChange={(sel) => handleFilterChange('examDateShift', sel)}
                     placeholder="Select Shifts"
                     counts={filterCounts.examDateShift || {}}
+                    hideZeroCount
                   />
                 </FilterGroup>
 
