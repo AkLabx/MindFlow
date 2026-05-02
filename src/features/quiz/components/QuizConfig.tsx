@@ -39,6 +39,7 @@ import { ExamBlueprintsHub } from './ExamBlueprintsHub';
 // Optimization Hooks
 import { useQuestionIndex, filterQuestionsByIndex } from '../hooks/useQuestionIndex';
 import { useOptimizedFilterCounts } from '../hooks/useOptimizedFilterCounts';
+import { useNotificationStore } from '../../../stores/useNotificationStore';
 
 interface QuizConfigProps {
   onStart: (questions: Question[], filters?: InitialFilters, mode?: QuizMode) => void;
@@ -155,7 +156,24 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
       setIsStartingQuiz(true);
       const ids = questionSubset.map(q => q.id);
 
+
       const fullQuestions = await fetchQuestionsByIds(ids);
+
+      // Check for removed duplicates
+      if (fullQuestions.length < questionSubset.length) {
+        const returnedIds = new Set(fullQuestions.map(q => q.v1_id || q.id));
+        const missingQuestions = questionSubset.filter(q => !returnedIds.has(q.v1_id || q.id));
+        if (missingQuestions.length > 0) {
+          const missingV1Ids = missingQuestions.map(q => q.v1_id || q.id).join(', ');
+          useNotificationStore.getState().showToast({
+            title: 'Duplicate Questions Removed',
+            message: `${missingQuestions.length} exact duplicate question(s) removed (v1_ids: ${missingV1Ids}).`,
+            variant: 'warning',
+            duration: 5000,
+          });
+        }
+      }
+
       const quizId = crypto.randomUUID();
 
       const newQuiz: SavedQuiz = {
