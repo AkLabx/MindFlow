@@ -8,9 +8,10 @@ import {
 import { useAuth } from '../../../features/auth/context/AuthContext';
 import { supabase } from '../../../lib/supabase';
 import { useNotification } from '../../../hooks/useNotification';
+import { AdminBulkUpdate } from './AdminBulkUpdate';
 
 // --- Types ---
-type UploadMode = 'single' | 'bulk' | 'edit';
+type UploadMode = 'single' | 'bulk' | 'edit' | 'bulk-update';
 
 interface QuestionForm {
     v1_id: string;
@@ -114,12 +115,34 @@ export const AdminUploadGK: React.FC = () => {
                     <Pencil className="w-4 h-4" />
                     Edit Question
                 </button>
+                <button
+                    onClick={() => setMode('bulk-update')}
+                    className={`flex-1 py-3 px-4 rounded-xl font-medium text-sm transition-all flex items-center justify-center gap-2 ${
+                        mode === 'bulk-update'
+                            ? 'bg-white dark:bg-slate-700 text-emerald-600 dark:text-emerald-400 shadow-sm'
+                            : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+                    }`}
+                >
+                    <Settings className="w-4 h-4" />
+                    Bulk Update
+                </button>
             </div>
 
 
             {/* Content Area */}
             <div className="relative z-10 w-full max-w-4xl mx-auto">
                 <AnimatePresence mode="wait">
+                {mode === 'bulk-update' && (
+                    <motion.div
+                        key="bulk-update"
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -20 }}
+                        className="w-full max-w-4xl mx-auto"
+                    >
+                        <AdminBulkUpdate />
+                    </motion.div>
+                )}
                     {mode === 'single' ? (
                         <SingleUpload key="single" />
                     ) : mode === 'bulk' ? (
