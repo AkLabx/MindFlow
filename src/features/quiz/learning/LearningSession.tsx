@@ -1,3 +1,4 @@
+import { useQuizSessionStore } from '../stores/useQuizSessionStore';
 
 import React, { useState, useEffect, useCallback, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -76,6 +77,7 @@ export const LearningSession: React.FC<LearningSessionProps> = ({
     // UI State (Local)
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [isNavOpen, setIsNavOpen] = useState(false);
+    const reorderActiveQuestions = useQuizSessionStore(s => s.reorderActiveQuestions);
     const [zoomLevel, setZoomLevel] = useState(1);
     const [isFullScreen, setIsFullScreen] = useState(false);
 
@@ -382,6 +384,7 @@ export const LearningSession: React.FC<LearningSessionProps> = ({
                 bookmarks={bookmarks}
                 onSubmitAndReview={finishSession}
                 mode='learning'
+                onReorderQuestions={reorderActiveQuestions}
             />
 
             {isFullScreen && (

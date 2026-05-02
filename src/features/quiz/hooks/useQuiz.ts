@@ -196,6 +196,7 @@ export const useQuiz = () => {
     finishQuiz: state.finishQuiz,
     restartQuiz: state.restartQuiz,
     goHome: state.goHome,
-    loadSavedQuiz: state.loadSavedQuiz
+    loadSavedQuiz: state.loadSavedQuiz,
+    reorderActiveQuestions: state.reorderActiveQuestions
   };
 };
