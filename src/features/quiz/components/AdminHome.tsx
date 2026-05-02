@@ -57,6 +57,26 @@ export const AdminHome: React.FC = () => {
                     </div>
                 </motion.div>
 
+
+                {/* Upload GK Question Button */}
+                <motion.div
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => navigate('/admin/uploadgk')}
+                    className="relative group cursor-pointer rounded-3xl p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden"
+                >
+                    <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <div className="flex items-center gap-4 relative z-10">
+                        <div className="bg-emerald-100 dark:bg-emerald-900/50 p-4 rounded-2xl">
+                            <Upload className="w-8 h-8 text-emerald-600 dark:text-emerald-400" />
+                        </div>
+                        <div>
+                            <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100">Upload GK Question</h2>
+                            <p className="text-sm text-slate-500 mt-1">Add GK Questions to the Questions DB (Single & Bulk).</p>
+                        </div>
+                    </div>
+                </motion.div>
+
                 {/* Upload Database Button */}
                 <motion.div
                     whileHover={{ scale: 1.02 }}

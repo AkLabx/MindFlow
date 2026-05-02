@@ -31,6 +31,7 @@ const ExamBlueprintsHub = lazy(() => import('../features/quiz/components/ExamBlu
 
 const AdminHome = lazy(() => import('../features/quiz/components/AdminHome').then(m => ({ default: m.AdminHome })));
 const AdminManageMaterials = lazy(() => import('../features/quiz/components/AdminManageMaterials').then(m => ({ default: m.AdminManageMaterials })));
+const AdminUploadGK = lazy(() => import("../features/admin/components/AdminUploadGK").then(m => ({ default: m.AdminUploadGK })));
 const AdminUploadMaterials = lazy(() => import('../features/quiz/components/AdminUploadMaterials').then(m => ({ default: m.AdminUploadMaterials })));
 const AdminNotifications = lazy(() => import('../features/notifications/admin/AdminNotifications').then(m => ({ default: m.AdminNotifications })));
 
@@ -431,6 +432,7 @@ const AppRoutesContent: React.FC = () => {
                     <Route path="/admin" element={<AdminHome />} />
                                         <Route path="/admin/materials" element={<AdminManageMaterials />} />
                     <Route path="/admin/upload" element={<AdminUploadMaterials />} />
+                    <Route path="/admin/uploadgk" element={<AdminUploadGK />} />
               <Route path="/admin/notifications" element={
             <Suspense fallback={<div className="flex h-screen items-center justify-center"><SynapticLoader size="md" /></div>}>
               <AdminNotifications />
