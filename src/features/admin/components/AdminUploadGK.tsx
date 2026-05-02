@@ -81,7 +81,7 @@ export const AdminUploadGK: React.FC = () => {
 
 
             {/* Mode Switcher */}
-            <div className="relative z-10 w-full max-w-4xl mx-auto mb-8 flex p-1 bg-slate-200/50 dark:bg-slate-800/50 rounded-2xl backdrop-blur-md">
+            <div className="relative z-10 w-full max-w-4xl mx-auto mb-8 grid grid-cols-2 md:flex gap-1 md:gap-0 p-1 bg-slate-200/50 dark:bg-slate-800/50 rounded-2xl backdrop-blur-md">
                 <button
                     onClick={() => setMode('single')}
                     className={`flex-1 py-3 px-4 rounded-xl font-medium text-sm transition-all flex items-center justify-center gap-2 ${
@@ -860,7 +860,7 @@ const EditQuestion: React.FC = () => {
             </div>
 
             {/* Search Bar */}
-            <form onSubmit={handleSearch} className="mb-8 flex gap-3">
+            <form onSubmit={handleSearch} className="mb-8 flex flex-col sm:flex-row gap-3">
                 <input
                     type="text"
                     value={searchId}
@@ -872,7 +872,7 @@ const EditQuestion: React.FC = () => {
                 <button
                     type="submit"
                     disabled={isSearching}
-                    className="px-6 rounded-xl font-bold text-white bg-slate-800 hover:bg-slate-700 dark:bg-slate-700 dark:hover:bg-slate-600 transition-all disabled:opacity-50 flex items-center gap-2"
+                    className="px-6 py-3 sm:py-0 w-full sm:w-auto justify-center rounded-xl font-bold text-white bg-slate-800 hover:bg-slate-700 dark:bg-slate-700 dark:hover:bg-slate-600 transition-all disabled:opacity-50 flex items-center gap-2"
                 >
                     {isSearching ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Search'}
                 </button>
