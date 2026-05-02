@@ -3,14 +3,14 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import {
     Upload, ArrowLeft, ShieldAlert, FileJson, FileText, CheckCircle,
-    XCircle, AlertTriangle, Loader2, Save, Trash2, Settings
+    XCircle, AlertTriangle, Loader2, Save, Trash2, Settings, Pencil
 } from 'lucide-react';
 import { useAuth } from '../../../features/auth/context/AuthContext';
 import { supabase } from '../../../lib/supabase';
 import { useNotification } from '../../../hooks/useNotification';
 
 // --- Types ---
-type UploadMode = 'single' | 'bulk';
+type UploadMode = 'single' | 'bulk' | 'edit';
 
 interface QuestionForm {
     v1_id: string;
@@ -78,6 +78,7 @@ export const AdminUploadGK: React.FC = () => {
                 <div className="w-10"></div>
             </header>
 
+
             {/* Mode Switcher */}
             <div className="relative z-10 w-full max-w-4xl mx-auto mb-8 flex p-1 bg-slate-200/50 dark:bg-slate-800/50 rounded-2xl backdrop-blur-md">
                 <button
@@ -102,15 +103,29 @@ export const AdminUploadGK: React.FC = () => {
                     <FileJson className="w-4 h-4" />
                     Bulk JSON Upload
                 </button>
+                <button
+                    onClick={() => setMode('edit')}
+                    className={`flex-1 py-3 px-4 rounded-xl font-medium text-sm transition-all flex items-center justify-center gap-2 ${
+                        mode === 'edit'
+                            ? 'bg-white dark:bg-slate-700 text-emerald-600 dark:text-emerald-400 shadow-sm'
+                            : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+                    }`}
+                >
+                    <Pencil className="w-4 h-4" />
+                    Edit Question
+                </button>
             </div>
+
 
             {/* Content Area */}
             <div className="relative z-10 w-full max-w-4xl mx-auto">
                 <AnimatePresence mode="wait">
                     {mode === 'single' ? (
                         <SingleUpload key="single" />
-                    ) : (
+                    ) : mode === 'bulk' ? (
                         <BulkUpload key="bulk" />
+                    ) : (
+                        <EditQuestion key="edit" />
                     )}
                 </AnimatePresence>
             </div>
@@ -653,6 +668,309 @@ const BulkUpload: React.FC = () => {
                         {isUploading ? 'Uploading to Database...' : `Upload All ${validCount} Questions`}
                     </button>
                 </div>
+            )}
+        </motion.div>
+    );
+};
+
+// ==========================================
+// EDIT QUESTION COMPONENT
+// ==========================================
+const EditQuestion: React.FC = () => {
+    const { showToast } = useNotification();
+    const [searchId, setSearchId] = useState('');
+    const [isSearching, setIsSearching] = useState(false);
+
+    const [formData, setFormData] = useState<QuestionForm | null>(null);
+    const [jsonError, setJsonError] = useState<string | null>(null);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    // JSON Validation for Explanation
+    useEffect(() => {
+        if (!formData) return;
+        try {
+            JSON.parse(formData.explanation);
+            setJsonError(null);
+        } catch (e: any) {
+            setJsonError(e.message);
+        }
+    }, [formData?.explanation]);
+
+    const handleSearch = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!searchId.trim()) return;
+
+        setIsSearching(true);
+        setFormData(null);
+        try {
+            const { data, error } = await supabase
+                .from('questions')
+                .select('*')
+                .eq('v1_id', searchId.trim())
+                .limit(1);
+
+            if (error) throw error;
+
+            if (data && data.length > 0) {
+                const q = data[0];
+                setFormData({
+                    v1_id: q.v1_id,
+                    subject: q.subject || '',
+                    topic: q.topic || '',
+                    subTopic: q.subTopic || '',
+                    examName: q.examName || '',
+                    examYear: q.examYear ? q.examYear.toString() : '',
+                    examDateShift: q.examDateShift || '',
+                    difficulty: q.difficulty || 'Medium',
+                    questionType: q.questionType || 'MCQ',
+                    question: q.question || '',
+                    question_hi: q.question_hi || '',
+                    options: q.options ? JSON.stringify(q.options) : '[]',
+                    options_hi: q.options_hi ? JSON.stringify(q.options_hi) : '[]',
+                    correct: q.correct || '',
+                    tags: q.tags && Array.isArray(q.tags) ? q.tags.join(', ') : '',
+                    explanation: q.explanation ? JSON.stringify(q.explanation, null, 2) : '{}'
+                });
+                showToast({ title: 'Found', message: `Question ${q.v1_id} loaded.`, variant: 'info' });
+            } else {
+                showToast({ title: 'Not Found', message: `No question found with v1_id: ${searchId}`, variant: 'error' });
+            }
+        } catch (err: any) {
+            console.error(err);
+            showToast({ title: 'Search Failed', message: err.message, variant: 'error' });
+        } finally {
+            setIsSearching(false);
+        }
+    };
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+        if (!formData) return;
+        const { name, value } = e.target;
+        setFormData(prev => prev ? ({ ...prev, [name]: value }) : null);
+    };
+
+    const validateArrayInput = (input: string) => {
+        try {
+            const parsed = JSON.parse(input);
+            if (!Array.isArray(parsed)) throw new Error("Must be a JSON array.");
+            return parsed;
+        } catch (e) {
+            return null;
+        }
+    };
+
+    const handleUpdate = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!formData) return;
+
+        // Validations
+        if (jsonError) {
+            showToast({ title: 'Error', message: 'Explanation JSON is invalid.', variant: 'error' });
+            return;
+        }
+
+        const options = validateArrayInput(formData.options);
+        if (!options) {
+            showToast({ title: 'Error', message: 'Options must be a valid JSON array like ["A","B"]', variant: 'error' });
+            return;
+        }
+
+        const options_hi = validateArrayInput(formData.options_hi);
+        if (!options_hi) {
+            showToast({ title: 'Error', message: 'Hindi Options must be a valid JSON array.', variant: 'error' });
+            return;
+        }
+
+        const tagsArray = formData.tags.split(',').map(t => t.trim()).filter(t => t !== '');
+
+        setIsSubmitting(true);
+
+        const payload = {
+            subject: formData.subject,
+            topic: formData.topic,
+            subTopic: formData.subTopic,
+            examName: formData.examName,
+            examYear: parseInt(formData.examYear, 10),
+            examDateShift: formData.examDateShift,
+            difficulty: formData.difficulty,
+            questionType: formData.questionType,
+            question: formData.question,
+            question_hi: formData.question_hi,
+            options: options,
+            options_hi: options_hi,
+            correct: formData.correct,
+            tags: tagsArray,
+            explanation: JSON.parse(formData.explanation),
+        };
+
+        try {
+            const { error } = await supabase
+                .from('questions')
+                .update(payload)
+                .eq('v1_id', formData.v1_id);
+
+            if (error) throw error;
+
+            showToast({ title: 'Success', message: 'Question updated successfully.', variant: 'success' });
+            setFormData(null); // Clear form after success
+            setSearchId('');
+        } catch (err: any) {
+            console.error(err);
+            showToast({ title: 'Update Failed', message: err.message, variant: 'error' });
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    return (
+        <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl border border-slate-200 dark:border-slate-800 p-6 md:p-8"
+        >
+            <div className="flex justify-between items-center mb-6">
+                <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+                    <Pencil className="w-5 h-5 text-emerald-500" />
+                    Edit Question Database
+                </h2>
+            </div>
+
+            {/* Search Bar */}
+            <form onSubmit={handleSearch} className="mb-8 flex gap-3">
+                <input
+                    type="text"
+                    value={searchId}
+                    onChange={(e) => setSearchId(e.target.value)}
+                    placeholder="Enter v1_id (e.g. POL72)"
+                    className="flex-1 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-3 focus:ring-2 focus:ring-emerald-500 outline-none"
+                    required
+                />
+                <button
+                    type="submit"
+                    disabled={isSearching}
+                    className="px-6 rounded-xl font-bold text-white bg-slate-800 hover:bg-slate-700 dark:bg-slate-700 dark:hover:bg-slate-600 transition-all disabled:opacity-50 flex items-center gap-2"
+                >
+                    {isSearching ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Search'}
+                </button>
+            </form>
+
+            {/* Edit Form */}
+            {formData && (
+                <form onSubmit={handleUpdate} className="space-y-6 pt-6 border-t border-slate-200 dark:border-slate-800">
+
+                    {/* ID & Classification Grid */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800">
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">v1_id (Locked)</label>
+                            <input disabled name="v1_id" value={formData.v1_id} className="w-full bg-slate-100 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 text-slate-500 cursor-not-allowed rounded-xl px-4 py-2 outline-none" />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Subject</label>
+                            <input required name="subject" value={formData.subject} onChange={handleChange} className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-2 focus:ring-2 focus:ring-emerald-500 outline-none" />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Topic</label>
+                            <input required name="topic" value={formData.topic} onChange={handleChange} className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-2 focus:ring-2 focus:ring-emerald-500 outline-none" />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Sub-Topic</label>
+                            <input required name="subTopic" value={formData.subTopic} onChange={handleChange} className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-2 focus:ring-2 focus:ring-emerald-500 outline-none" />
+                        </div>
+                    </div>
+
+                    {/* Exam Info Grid */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800">
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Exam Name</label>
+                            <input required name="examName" value={formData.examName} onChange={handleChange} className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-2 focus:ring-2 focus:ring-emerald-500 outline-none" />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Exam Year</label>
+                            <input required type="number" name="examYear" value={formData.examYear} onChange={handleChange} className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-2 focus:ring-2 focus:ring-emerald-500 outline-none" />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Exam Date & Shift</label>
+                            <input required name="examDateShift" value={formData.examDateShift} onChange={handleChange} className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-2 focus:ring-2 focus:ring-emerald-500 outline-none" />
+                        </div>
+                    </div>
+
+                    {/* Question Properties */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Difficulty</label>
+                            <select name="difficulty" value={formData.difficulty} onChange={handleChange} className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-2 focus:ring-2 focus:ring-emerald-500 outline-none">
+                                <option value="Easy">Easy</option>
+                                <option value="Medium">Medium</option>
+                                <option value="Hard">Hard</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Question Type</label>
+                            <input required name="questionType" value={formData.questionType} onChange={handleChange} className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-2 focus:ring-2 focus:ring-emerald-500 outline-none" />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Tags (Comma Separated)</label>
+                            <input required name="tags" value={formData.tags} onChange={handleChange} className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-2 focus:ring-2 focus:ring-emerald-500 outline-none" />
+                        </div>
+                    </div>
+
+                    {/* Content */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Question (English)</label>
+                            <textarea required name="question" value={formData.question} onChange={handleChange} rows={4} className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-2 focus:ring-2 focus:ring-emerald-500 outline-none resize-none" />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Question (Hindi)</label>
+                            <textarea required name="question_hi" value={formData.question_hi} onChange={handleChange} rows={4} className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-2 focus:ring-2 focus:ring-emerald-500 outline-none resize-none" />
+                        </div>
+                    </div>
+
+                    {/* Options & Correct */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Options (JSON Array)</label>
+                            <textarea required name="options" value={formData.options} onChange={handleChange} rows={3} className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-2 focus:ring-2 focus:ring-emerald-500 outline-none font-mono text-sm" />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Options Hindi (JSON Array)</label>
+                            <textarea required name="options_hi" value={formData.options_hi} onChange={handleChange} rows={3} className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-2 focus:ring-2 focus:ring-emerald-500 outline-none font-mono text-sm" />
+                        </div>
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Correct Answer (Exact Match)</label>
+                        <input required name="correct" value={formData.correct} onChange={handleChange} className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-2 focus:ring-2 focus:ring-emerald-500 outline-none" />
+                    </div>
+
+                    {/* Smart JSON Textarea */}
+                    <div>
+                        <div className="flex justify-between items-center mb-1">
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Explanation JSON</label>
+                            {jsonError && <span className="text-xs text-red-500 font-medium">Invalid JSON</span>}
+                            {!jsonError && <span className="text-xs text-emerald-500 font-medium">Valid JSON</span>}
+                        </div>
+                        <textarea
+                            required
+                            name="explanation"
+                            value={formData.explanation}
+                            onChange={handleChange}
+                            rows={15}
+                            className={`w-full bg-slate-900 text-green-400 font-mono text-sm rounded-xl px-4 py-3 outline-none focus:ring-2 transition-shadow resize-y ${jsonError ? 'border border-red-500 focus:ring-red-500' : 'border border-slate-700 focus:ring-emerald-500'}`}
+                        />
+                        {jsonError && <p className="text-xs text-red-500 mt-1">{jsonError}</p>}
+                    </div>
+
+                    <button
+                        type="submit"
+                        disabled={isSubmitting || !!jsonError}
+                        className="w-full py-4 rounded-xl font-bold text-white bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 shadow-lg shadow-emerald-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    >
+                        {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+                        {isSubmitting ? 'Updating Database...' : 'Update Question'}
+                    </button>
+                </form>
             )}
         </motion.div>
     );
