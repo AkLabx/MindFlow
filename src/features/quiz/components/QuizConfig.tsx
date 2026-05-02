@@ -377,6 +377,7 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
                 handleFilterChange('subject', newSelection);
               }}
               counts={filterCounts.subject || {}}
+              hideZeroCount
             />
             <ScrollableCapsules
               label="Topic"
@@ -390,6 +391,7 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
                 handleFilterChange('topic', newSelection);
               }}
               counts={filterCounts.topic || {}}
+              hideZeroCount
               isLoading={filters.subject.length > 0 && availableTopics.length === 0 && isLoadingMetadata}
               emptyMessage={filters.subject.length === 0 ? "Select Subject First" : "No topics available"}
             />
@@ -405,6 +407,7 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
                 handleFilterChange('subTopic', newSelection);
               }}
               counts={filterCounts.subTopic || {}}
+              hideZeroCount
               isLoading={filters.topic.length > 0 && availableSubTopics.length === 0 && isLoadingMetadata}
               emptyMessage={filters.topic.length === 0 ? "Select Topic First" : "No sub-topics available"}
             />
@@ -418,6 +421,7 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
               selectedOptions={filters.difficulty}
               onOptionToggle={(opt) => handleSegmentToggle('difficulty', opt)}
               counts={filterCounts.difficulty || {}}
+              hideZeroCount
             />
             <SegmentedControl
               label="Question Type"
@@ -426,6 +430,7 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
               selectedOptions={filters.questionType}
               onOptionToggle={(opt) => handleSegmentToggle('questionType', opt)}
               counts={filterCounts.questionType || {}}
+              hideZeroCount
             />
           </FilterGroup>
         </div>
@@ -473,6 +478,7 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
                     onSelectionChange={(sel) => handleFilterChange('tags', sel)}
                     placeholder="Filter by Tags"
                     counts={filterCounts.tags || {}}
+                    hideZeroCount
                   />
                 </FilterGroup>
               </div>

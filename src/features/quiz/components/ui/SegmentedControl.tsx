@@ -15,7 +15,8 @@ export const SegmentedControl = React.memo(function SegmentedControl({
   onOptionToggle,
   counts,
   allowMultiple = true,
-  tooltip
+  tooltip,
+  hideZeroCount = false
 }: { 
   label?: string;
   options: string[]; 
@@ -24,6 +25,7 @@ export const SegmentedControl = React.memo(function SegmentedControl({
   counts?: { [key: string]: number };
   allowMultiple?: boolean;
   tooltip?: string;
+  hideZeroCount?: boolean;
 }) {
   return (
     <div>
@@ -42,7 +44,10 @@ export const SegmentedControl = React.memo(function SegmentedControl({
         </div>
       )}
       <div className="flex flex-wrap p-1 bg-gray-100 dark:bg-gray-800 rounded-xl gap-1" role="group" aria-label={label || "Segmented Control"}>
-        {options.map(option => {
+        {options.filter(opt => {
+            if (!hideZeroCount || !counts) return true;
+            return selectedOptions.includes(opt) || (counts[opt] || 0) > 0;
+        }).map(option => {
             const count = counts?.[option] || 0;
             const isSelected = selectedOptions.includes(option);
             const isDisabled = !isSelected && count === 0;

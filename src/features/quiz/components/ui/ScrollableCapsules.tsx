@@ -12,6 +12,7 @@ export interface ScrollableCapsulesProps {
   tooltip?: string;
   emptyMessage?: string;
   isLoading?: boolean;
+  hideZeroCount?: boolean;
 }
 
 export const ScrollableCapsules = React.memo(function ScrollableCapsules({
@@ -23,7 +24,8 @@ export const ScrollableCapsules = React.memo(function ScrollableCapsules({
   allowMultiple = true,
   tooltip,
   emptyMessage,
-  isLoading
+  isLoading,
+  hideZeroCount = false
 }: ScrollableCapsulesProps) {
   return (
     <div className="w-full min-w-0 max-w-full">
@@ -63,7 +65,10 @@ export const ScrollableCapsules = React.memo(function ScrollableCapsules({
             {emptyMessage}
           </div>
         ) : (
-          options.map(option => {
+          options.filter(opt => {
+              if (!hideZeroCount || !counts) return true;
+              return selectedOptions.includes(opt) || (counts[opt] || 0) > 0;
+          }).map(option => {
               const count = counts?.[option] || 0;
               const isSelected = selectedOptions.includes(option);
               const isDisabled = !isSelected && count === 0;
