@@ -270,7 +270,7 @@ export const CookingLoader: React.FC<CookingLoaderProps> = ({ progress, syncedIt
               width={140}
               height={140}
               viewBox="0 0 140 140"
-              className="transform -rotate-90 drop-shadow-[0_0_10px_rgba(234,88,12,0.3)]"
+              className="transform -rotate-90 drop-shadow-[0_0_10px_rgba(234,88,12,0.3)] google-spinner-group"
             >
               {/* Defs for gradients and glow */}
               <defs>
@@ -299,21 +299,16 @@ export const CookingLoader: React.FC<CookingLoaderProps> = ({ progress, syncedIt
                 className="text-slate-100 dark:text-slate-800"
               />
 
-              {/* Foreground Progress Ring */}
+              {/* Foreground Progress Ring (Indeterminate Google-style Spinner) */}
               <circle
                 cx={70}
                 cy={70}
                 r={60}
                 fill="none"
                 stroke="url(#burnerGradient)"
-                strokeWidth={10}
                 strokeLinecap="round"
                 filter="url(#burnerGlow)"
-                style={{
-                  strokeDasharray: `${2 * Math.PI * 60}`,
-                  strokeDashoffset: `${(2 * Math.PI * 60) - ((progress / 100) * (2 * Math.PI * 60))}`,
-                  transition: 'stroke-dashoffset 0.5s ease-out'
-                }}
+                className="google-spinner-circle"
               />
             </svg>
 
