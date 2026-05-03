@@ -5,6 +5,7 @@ import { useFlashcardStore } from '../features/quiz/stores/useFlashcardStore';
 import { QuizLayout } from '../features/quiz/QuizLayout';
 import { useAuth } from '../features/auth/context/AuthContext';
 import { SynapticLoader } from '../components/ui/SynapticLoader';
+import { ProtectedRoute } from '../components/ProtectedRoute';
 
 // Lazy Loaded Components for Code Splitting
 // Groups: Main UI, Quiz Flow, Flashcard Flow, Auth Flow
@@ -172,10 +173,10 @@ const AppRoutesContent: React.FC = () => {
                         />
                     } />
 
-                    <Route path="/quiz/saved" element={<SavedQuizzes />} />
-                    <Route path="/quiz/attempted" element={<AttemptedQuizzes />} />
-                    <Route path="/quiz/analytics" element={<PerformanceAnalytics />} />
-                    <Route path="/quiz/bookmarks" element={<BookmarksPage />} />
+                    <Route path="/quiz/saved" element={<ProtectedRoute><SavedQuizzes /></ProtectedRoute>} />
+                    <Route path="/quiz/attempted" element={<ProtectedRoute><AttemptedQuizzes /></ProtectedRoute>} />
+                    <Route path="/quiz/analytics" element={<ProtectedRoute><PerformanceAnalytics /></ProtectedRoute>} />
+                    <Route path="/quiz/bookmarks" element={<ProtectedRoute><BookmarksPage /></ProtectedRoute>} />
 
 
 
@@ -199,22 +200,30 @@ const AppRoutesContent: React.FC = () => {
 
 
                     <Route path="/profile" element={
-                        <ProfilePage
-                            onNavigateToSettings={() => navTo('/settings')}
-                            onSignOut={() => { navTo('/dashboard'); }}
-                        />
+                        <ProtectedRoute>
+                            <ProfilePage
+                                onNavigateToSettings={() => navTo('/settings')}
+                                onSignOut={() => { navTo('/dashboard'); }}
+                            />
+                        </ProtectedRoute>
                     } />
 
                     <Route path="/settings" element={
-                        <SettingsPage onBack={() => navTo('/profile')} />
+                        <ProtectedRoute>
+                            <SettingsPage onBack={() => navTo('/profile')} />
+                        </ProtectedRoute>
                     } />
 
                     <Route path="/profile/subscription" element={
-                        <SubscriptionPage onBack={() => navTo('/profile')} />
+                        <ProtectedRoute>
+                            <SubscriptionPage onBack={() => navTo('/profile')} />
+                        </ProtectedRoute>
                     } />
 
                     <Route path="/profile/support" element={
-                        <SupportPage onBack={() => navTo('/profile')} />
+                        <ProtectedRoute>
+                            <SupportPage onBack={() => navTo('/profile')} />
+                        </ProtectedRoute>
                     } />
 
                     <Route path="/login" element={
