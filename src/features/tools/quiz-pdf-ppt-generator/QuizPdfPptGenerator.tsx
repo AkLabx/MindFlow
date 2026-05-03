@@ -30,6 +30,7 @@ import { GeneratorModal } from './components/GeneratorModal';
 import { generatePDF } from './utils/pdfGenerator';
 import { generatePowerPoint } from './utils/pptGenerator';
 import { SynapticLoader } from '../../../components/ui/SynapticLoader';
+import { useNotificationStore } from '../../../stores/useNotificationStore';
 
 const emptyFilters: InitialFilters = {
   subject: [],
@@ -173,7 +174,24 @@ export const QuizPdfPptGenerator: React.FC = () => {
 
     try {
         const ids = filteredMetadata.map(q => q.id);
+
         const fullQuestions = await fetchQuestionsByIds(ids);
+
+        // Check for removed duplicates
+        if (fullQuestions.length < filteredMetadata.length) {
+          const returnedIds = new Set(fullQuestions.map(q => q.v1_id || q.id));
+          const missingQuestions = filteredMetadata.filter(q => !returnedIds.has(q.v1_id || q.id));
+          if (missingQuestions.length > 0) {
+            const missingV1Ids = missingQuestions.map(q => q.v1_id || q.id).join(', ');
+            useNotificationStore.getState().showToast({
+              title: 'Duplicate Questions Removed',
+              message: `${missingQuestions.length} exact duplicate question(s) removed (v1_ids: ${missingV1Ids}).`,
+              variant: 'warning',
+              duration: 5000,
+            });
+          }
+        }
+
         return fullQuestions;
     } catch (err) {
         console.error("Failed to fetch full questions:", err);
