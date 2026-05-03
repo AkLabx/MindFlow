@@ -257,14 +257,14 @@ export const LearningSession: React.FC<LearningSessionProps> = ({
                     </div>
 
                     {/* Tools Group */}
-                    <div className="flex items-center gap-2 ml-auto sm:ml-0">
+                    <div className="flex items-center gap-2 ml-auto sm:ml-0 overflow-x-auto no-scrollbar flex-nowrap w-full sm:w-auto">
 
                         {/* Timer Badge */}
                         <Badge
                             variant="neutral"
                             icon={<Clock className="w-3.5 h-3.5" />}
                             className={cn(
-                                "font-mono font-bold tabular-nums min-w-[4rem] justify-center transition-colors",
+                                "font-mono font-bold tabular-nums min-w-[4rem] justify-center transition-colors shrink-0",
                                 timeLeft <= 10 ? "bg-red-50 text-red-600 border-red-200 animate-pulse" : "bg-gray-50 dark:bg-gray-900"
                             )}
                         >
@@ -276,7 +276,7 @@ export const LearningSession: React.FC<LearningSessionProps> = ({
                             onClick={handleFiftyFifty}
                             disabled={isAnswered || isFiftyFiftyUsed}
                             className={cn(
-                                "p-1.5 rounded-lg border transition-colors",
+                                "p-1.5 rounded-lg border transition-colors shrink-0",
                                 isFiftyFiftyUsed
                                     ? "bg-gray-100 dark:bg-gray-800 text-gray-400 border-gray-200 dark:border-gray-700 cursor-not-allowed"
                                     : "bg-indigo-50 text-indigo-600 border-indigo-100 hover:bg-indigo-100"
@@ -289,7 +289,7 @@ export const LearningSession: React.FC<LearningSessionProps> = ({
                         {/* Pause Button */}
                         <button
                             onClick={handlePause}
-                            className="p-1.5 rounded-lg bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400"
+                            className="p-1.5 rounded-lg bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 shrink-0"
                             title="Pause Quiz"
                             data-testid="pause-button"
                         >
@@ -297,14 +297,14 @@ export const LearningSession: React.FC<LearningSessionProps> = ({
                         </button>
 
                         {/* Zoom Controls */}
-                        <div className="flex items-center border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden bg-gray-50 dark:bg-gray-900">
+                        <div className="flex items-center border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden bg-gray-50 dark:bg-gray-900 shrink-0">
                             <button onClick={() => setZoomLevel(z => Math.max(0.8, z - 0.1))} className="p-1.5 hover:bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 active:bg-gray-300"><ZoomOut className="w-4 h-4" /></button>
                             <div className="w-px h-4 bg-gray-200 dark:bg-gray-700"></div>
                             <button onClick={() => setZoomLevel(z => Math.min(1.6, z + 0.1))} className="p-1.5 hover:bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 active:bg-gray-300"><ZoomIn className="w-4 h-4" /></button>
                         </div>
 
                         {/* Fullscreen Toggle */}
-                        <button onClick={toggleFullScreen} className="p-1.5 rounded-lg hover:bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-700 flex">
+                        <button onClick={toggleFullScreen} className="p-1.5 rounded-lg hover:bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-700 flex shrink-0">
                             {isFullScreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
                         </button>
                     </div>
@@ -332,7 +332,7 @@ export const LearningSession: React.FC<LearningSessionProps> = ({
             </div>
 
             {/* Right Actions */}
-            <div className="flex items-center gap-2 pl-3 border-l border-gray-100 dark:border-gray-800 ml-3">
+            <div className="flex flex-col items-center gap-2 pl-3 border-l border-gray-100 dark:border-gray-800 ml-3 shrink-0">
                 <button onClick={() => onToggleBookmark(currentQuestion.id)} className={cn("p-2 rounded-full transition-colors", bookmarks.includes(currentQuestion.id) ? "bg-amber-100 text-amber-500" : "bg-gray-50 dark:bg-gray-900 text-gray-400 hover:bg-gray-100 dark:bg-gray-800")}>
                     <Star className={cn("w-5 h-5", bookmarks.includes(currentQuestion.id) && "fill-current")} />
                 </button>
