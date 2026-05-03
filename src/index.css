@@ -105,3 +105,48 @@ input, textarea, [contenteditable] {
     animation: none;
   }
 }
+
+/* Cooking Loader Google-style Spinner Animations */
+
+/* 1. Fast Spin with Pause */
+/* 0.8s spin, 0.2s pause total 1s */
+@keyframes google-spinner-rotate {
+  0% { transform: rotate(-90deg); } /* Keep base SVG rotation -90deg starting point */
+  80% { transform: rotate(270deg); } /* Fast spin for 0.8s (80% of 1s loop) */
+  100% { transform: rotate(270deg); } /* Pause for 0.2s */
+}
+
+/* 2. Snake Chasing Tail Effect */
+/* Perimeter is approx 377 (2 * PI * 60) */
+@keyframes google-spinner-dash {
+  0% {
+    stroke-dasharray: 1, 400;
+    stroke-dashoffset: 0;
+  }
+  50% {
+    stroke-dasharray: 200, 400;
+    stroke-dashoffset: -100;
+  }
+  100% {
+    stroke-dasharray: 200, 400;
+    stroke-dashoffset: -350;
+  }
+}
+
+/* 3. Wavy Width Effect */
+@keyframes google-spinner-wave {
+  0% { stroke-width: 10px; }
+  50% { stroke-width: 16px; }
+  100% { stroke-width: 10px; }
+}
+
+.google-spinner-group {
+  animation: google-spinner-rotate 1s linear infinite;
+  transform-origin: center;
+}
+
+.google-spinner-circle {
+  animation:
+    google-spinner-dash 1.5s ease-in-out infinite,
+    google-spinner-wave 2s ease-in-out infinite;
+}
