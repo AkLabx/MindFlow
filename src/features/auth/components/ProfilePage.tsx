@@ -6,7 +6,7 @@ import {
     LogOut, Settings, ChevronRight, Award, CheckCircle, BarChart, Megaphone,
     Pencil, AlertTriangle, Loader2, X, Clock, Target,
     FileText, Bookmark, Grid, CreditCard, Shield, HelpCircle
-, Sliders} from 'lucide-react';
+} from 'lucide-react';
 import { useProfileStats } from '../hooks/useProfileStats';
 import { useNavigate } from 'react-router-dom';
 
@@ -360,13 +360,6 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onSignOut, onNavigateToSettin
                           <span className="font-bold text-slate-700 dark:text-slate-300">Subscription & Rewards</span>
                       </div>
                       <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-emerald-600 dark:text-emerald-400 transition-colors" />
-                  </button>
-                  <button onClick={() => navigate('/profile/preferences')} className="w-full flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
-                      <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 bg-pink-50 dark:bg-pink-900/20 rounded-lg flex items-center justify-center text-pink-500 dark:text-pink-400"><Sliders className="w-4 h-4" /></div>
-                          <span className="font-bold text-slate-700 dark:text-slate-300">App Preferences</span>
-                      </div>
-                      <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-pink-500 transition-colors" />
                   </button>
                   <button onClick={onNavigateToSettings} className="w-full flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
                       <div className="flex items-center gap-3">

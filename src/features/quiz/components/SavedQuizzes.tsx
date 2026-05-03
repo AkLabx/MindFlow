@@ -302,7 +302,7 @@ export const SavedQuizzes: React.FC = () => {
                                     <option value="name-asc">Name (A-Z)</option>
                                     <option value="name-desc">Name (Z-A)</option>
                                 </select>
-                                <div className="flex items-center p-1 bg-white/50 dark:bg-slate-900/50 rounded-lg border border-indigo-100 dark:border-indigo-900/50 shadow-sm">
+                                <div className="hidden sm:flex items-center p-1 bg-white/50 dark:bg-slate-900/50 rounded-lg border border-indigo-100 dark:border-indigo-900/50 shadow-sm">
                                     <button onClick={() => setViewMode('list')} className={`p-1.5 rounded-md transition-colors ${viewMode === 'list' ? 'bg-indigo-100 dark:bg-indigo-900 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`} title="List View">
                                         <List className="w-4 h-4" />
                                     </button>
@@ -334,7 +334,10 @@ export const SavedQuizzes: React.FC = () => {
                                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[150%] h-[150%] rounded-full blur-[80px] opacity-0 group-hover:opacity-40 transition-opacity duration-500 z-0 bg-indigo-500/50" />
 
                                 {/* Card Content */}
-                                <div className="relative z-20 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 p-5 sm:p-6 h-full">
+                                <div className="relative z-20 flex flex-col items-start justify-between gap-4 p-5 sm:p-6 h-full">
+                                    <div className="absolute top-4 right-4 sm:top-6 sm:right-6 opacity-20 font-black text-4xl sm:text-5xl text-slate-900 dark:text-white pointer-events-none select-none z-0">
+                                        #{index + 1}
+                                    </div>
                                     <div className="flex-1 w-full">
                                         {/* Name / Edit Mode */}
                                         {editingId === quiz.id ? (
@@ -396,7 +399,7 @@ export const SavedQuizzes: React.FC = () => {
 
 
                                     {/* Action Buttons */}
-                                    <div className="flex items-center gap-2 w-full md:w-auto justify-end mt-2 md:mt-0 pt-3 md:pt-0 border-t border-slate-100 dark:border-slate-800 md:border-none">
+                                    <div className="flex flex-wrap items-center gap-2 w-full justify-end mt-auto pt-4 border-t border-slate-200/50 dark:border-slate-700/50 z-10 relative">
                                         {!isQuizFinished(quiz) && (
                                             <button
                                                 onClick={(e) => { e.stopPropagation(); navigate('/quiz/live/' + quiz.id); }}

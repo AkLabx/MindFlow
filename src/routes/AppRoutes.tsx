@@ -70,7 +70,6 @@ const OWSSession = lazy(() => import('../features/ows/components/OWSSession').th
 const AuthPage = lazy(() => import('../features/auth/components/AuthPage'));
 const ProfilePage = lazy(() => import('../features/auth/components/ProfilePage'));
 const SettingsPage = lazy(() => import('../features/auth/components/SettingsPage'));
-const PreferencesPage = lazy(() => import('../features/auth/components/PreferencesPage'));
 const SubscriptionPage = lazy(() => import('../features/auth/components/SubscriptionPage'));
 const SupportPage = lazy(() => import('../features/auth/components/SupportPage'));
 
@@ -292,11 +291,6 @@ const AppRoutesContent: React.FC = () => {
                     <Route path="/tools/text-exporter" element={<TextExporter />} />
                     <Route path="/tools/quiz-pdf-ppt-generator" element={<QuizPdfPptGenerator />} />
                 </Route>
-
-                    <Route path="/profile/preferences" element={
-                        <PreferencesPage onBack={() => navTo('/profile')} />
-                    } />
-
 
                 {/* --- Immersive Session Routes (No Layout, Fullscreen) --- */}
 

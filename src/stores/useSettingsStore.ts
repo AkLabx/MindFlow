@@ -19,7 +19,7 @@ export const useSettingsStore = create<SettingsState>()(
       isDarkMode: false,
       isSoundEnabled: true,
       isHapticEnabled: true,
-      areBgAnimationsEnabled: false,
+      areBgAnimationsEnabled: true,
 
       toggleDarkMode: (event?: any) => {
         const { isDarkMode } = get();
@@ -141,7 +141,7 @@ export const useSettingsStore = create<SettingsState>()(
             isDarkMode: oldDarkMode ? JSON.parse(oldDarkMode) : false,
             isSoundEnabled: oldSound ? JSON.parse(oldSound) : true,
             isHapticEnabled: oldHaptics ? JSON.parse(oldHaptics) : true,
-            areBgAnimationsEnabled: oldAnimations ? JSON.parse(oldAnimations) : false,
+            areBgAnimationsEnabled: oldAnimations ? JSON.parse(oldAnimations) : true,
           } as SettingsState;
         }
         return persistedState;
