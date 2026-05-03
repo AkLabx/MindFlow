@@ -28,10 +28,11 @@ export const QuickStartButtons: React.FC<QuickStartButtonsProps> = React.memo(({
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-900/30 dark:hover:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 px-4 py-2.5 rounded-xl font-semibold transition-colors border border-indigo-200 dark:border-indigo-800/50"
+        className="flex items-center shrink-0 gap-1.5 sm:gap-2 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-900/30 dark:hover:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl text-sm sm:text-base font-semibold transition-colors border border-indigo-200 dark:border-indigo-800/50"
       >
         <Zap className="w-4 h-4 fill-current" />
-        <span>Quick Quiz</span>
+        <span className="hidden sm:inline">Quick Quiz</span>
+        <span className="sm:hidden">Quick</span>
         <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
       </button>
 

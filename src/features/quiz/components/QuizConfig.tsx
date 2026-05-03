@@ -320,7 +320,7 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
       <div className="p-6 pb-32 space-y-6 bg-gray-50 dark:bg-gray-900/50 flex-1 overflow-y-auto">
 
         {/* Header actions (Mode & Quick Start) inline */}
-        <div className="flex flex-row items-center justify-between gap-3 mb-4 bg-white dark:bg-gray-800 p-2 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm relative z-20">
+        <div className="flex flex-row items-center justify-between gap-2 sm:gap-3 mb-4 bg-white dark:bg-gray-800 p-1.5 sm:p-2 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm relative z-20 min-w-0">
 
           {/* Segmented Control for Mode Switch */}
           <div className="flex bg-gray-100 dark:bg-gray-900/50 p-1 rounded-xl flex-1 max-w-[400px]">
