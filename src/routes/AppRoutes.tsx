@@ -79,6 +79,8 @@ const SupportPage = lazy(() => import('../features/auth/components/SupportPage')
  *
  * Maps URL paths to components and connects navigation actions from the `useQuizContext` hook.
  */
+import { AppPreferencesPage } from '../features/settings/components/AppPreferencesPage';
+
 const AppRoutesContent: React.FC = () => {
     // Destructure all necessary state and actions from the global store
     const {
@@ -223,6 +225,11 @@ const AppRoutesContent: React.FC = () => {
                     <Route path="/profile/support" element={
                         <ProtectedRoute>
                             <SupportPage onBack={() => navTo('/profile')} />
+                        </ProtectedRoute>
+                    } />
+                    <Route path="/profile/preferences" element={
+                        <ProtectedRoute>
+                            <AppPreferencesPage />
                         </ProtectedRoute>
                     } />
 

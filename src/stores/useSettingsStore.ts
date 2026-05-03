@@ -19,7 +19,7 @@ export const useSettingsStore = create<SettingsState>()(
       isDarkMode: false,
       isSoundEnabled: true,
       isHapticEnabled: true,
-      areBgAnimationsEnabled: true,
+      areBgAnimationsEnabled: false,
 
       toggleDarkMode: (event?: any) => {
         const { isDarkMode } = get();
@@ -128,7 +128,7 @@ export const useSettingsStore = create<SettingsState>()(
         }
       },
       // Migrate old localStorage keys to Zustand persist state if they exist
-      version: 1,
+      version: 2,
       migrate: (persistedState: any, version: number) => {
         if (version === 0) {
           // If no Zustand state exists, try to pull from old keys
@@ -143,6 +143,13 @@ export const useSettingsStore = create<SettingsState>()(
             isHapticEnabled: oldHaptics ? JSON.parse(oldHaptics) : true,
             areBgAnimationsEnabled: oldAnimations ? JSON.parse(oldAnimations) : true,
           } as SettingsState;
+        }
+        // Version 2 migration forces areBgAnimationsEnabled to false to save resources
+        if (version === 1) {
+          return {
+            ...persistedState,
+            areBgAnimationsEnabled: false
+          };
         }
         return persistedState;
       }

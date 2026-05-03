@@ -3,7 +3,7 @@ import Cropper from 'react-easy-crop';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../../../lib/supabase';
 import {
-    LogOut, Settings, ChevronRight, Award, CheckCircle, BarChart, Megaphone,
+    LogOut, Settings, Settings2, ChevronRight, Award, CheckCircle, BarChart, Megaphone,
     Pencil, AlertTriangle, Loader2, X, Clock, Target,
     FileText, Bookmark, Grid, CreditCard, Shield, HelpCircle
 } from 'lucide-react';
@@ -360,6 +360,13 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onSignOut, onNavigateToSettin
                           <span className="font-bold text-slate-700 dark:text-slate-300">Subscription & Rewards</span>
                       </div>
                       <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-emerald-600 dark:text-emerald-400 transition-colors" />
+                  </button>
+                  <button onClick={() => navigate('/profile/preferences')} className="w-full flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
+                      <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 bg-purple-50 dark:bg-purple-900/20 rounded-lg flex items-center justify-center text-purple-600 dark:text-purple-400"><Settings2 className="w-4 h-4" /></div>
+                          <span className="font-bold text-slate-700 dark:text-slate-300">App Preferences</span>
+                      </div>
+                      <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-purple-600 transition-colors" />
                   </button>
                   <button onClick={onNavigateToSettings} className="w-full flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
                       <div className="flex items-center gap-3">
