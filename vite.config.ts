@@ -29,6 +29,22 @@ export default defineConfig(({ mode }) => {
         port: 3000,
         host: '0.0.0.0',
       },
+
+      build: {
+        chunkSizeWarningLimit: 1500,
+        rollupOptions: {
+          output: {
+            manualChunks: {
+              'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+              'vendor-supabase': ['@supabase/supabase-js'],
+              'vendor-framer': ['framer-motion'],
+              'vendor-export': ['jspdf', 'pptxgenjs', 'html2canvas', 'jszip', 'mammoth'],
+              'vendor-markdown': ['react-markdown', 'remark-gfm', 'remark-math', 'rehype-katex', 'katex', 'react-syntax-highlighter'],
+              'vendor-ui': ['lucide-react', 'react-icons', '@headlessui/react']
+            }
+          }
+        }
+      },
       plugins: [
         react(),
         VitePWA({
