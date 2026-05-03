@@ -96,7 +96,7 @@ export const MultiSelectDropdown = React.memo(function MultiSelectDropdown({
           });
       }
       if (debouncedSearchTerm) {
-          result = options.filter(opt => opt.toLowerCase().includes(debouncedSearchTerm.toLowerCase()));
+          result = result.filter(opt => opt.toLowerCase().includes(debouncedSearchTerm.toLowerCase()));
       }
 
       const sorted = [...result].sort((a, b) => {
