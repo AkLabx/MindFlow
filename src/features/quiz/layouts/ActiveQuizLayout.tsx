@@ -14,10 +14,10 @@ export const ActiveQuizLayout: React.FC<ActiveQuizLayoutProps> = ({
   overlays
 }) => {
   return (
-    <div className="fixed inset-0 z-50 bg-white dark:bg-gray-800 flex flex-col animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 bg-white dark:bg-gray-800 flex flex-col animate-in fade-in duration-200 overflow-x-hidden w-full max-w-[100vw]">
       
       {/* Main Content Slot - Header is now part of the scroll flow */}
-      <main className="flex-1 overflow-y-auto bg-white dark:bg-gray-800 relative scroll-smooth">
+      <main className="flex-1 overflow-y-auto overflow-x-hidden w-full max-w-[100vw] bg-white dark:bg-gray-800 relative scroll-smooth">
         {/* Header rendered here to scroll with content */}
         {header && (
           <div className="border-b border-gray-200 dark:border-gray-700 shadow-sm bg-white dark:bg-gray-800">

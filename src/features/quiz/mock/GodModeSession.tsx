@@ -185,28 +185,28 @@ export const GodModeSession: React.FC<GodModeSessionProps> = ({ questions, initi
                 {formatTime(timeLeft)}
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 overflow-x-auto no-scrollbar flex-nowrap shrink-0">
                 {/* Pause Button */}
                 <button
-                    className="p-2 hover:bg-slate-800 text-slate-400 rounded-lg transition-colors"
+                    className="p-2 hover:bg-slate-800 text-slate-400 rounded-lg transition-colors shrink-0"
                     title="Pause Test"
                 >
                 </button>
 
                 {/* Zoom Controls (Dark Theme) */}
-                <div className="flex items-center border border-slate-700 rounded-lg overflow-hidden bg-slate-800 mr-2 hidden sm:flex">
+                <div className="flex items-center border border-slate-700 rounded-lg overflow-hidden bg-slate-800 mr-2 shrink-0">
                     <button onClick={() => setZoomLevel(z => Math.max(0.8, z - 0.1))} className="p-1.5 hover:bg-slate-700 text-slate-400 active:bg-slate-600"><ZoomOut className="w-4 h-4" /></button>
                     <div className="w-px h-4 bg-slate-700"></div>
                     <button onClick={() => setZoomLevel(z => Math.min(1.6, z + 0.1))} className="p-1.5 hover:bg-slate-700 text-slate-400 active:bg-slate-600"><ZoomIn className="w-4 h-4" /></button>
                 </div>
 
-                <button onClick={toggleFullScreen} className="p-2 hover:bg-slate-800 text-slate-400 rounded-lg transition-colors hidden sm:block">
+                <button onClick={toggleFullScreen} className="p-2 hover:bg-slate-800 text-slate-400 rounded-lg transition-colors shrink-0">
                     {isFullScreen ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}
                 </button>
 
                 <button
                     onClick={() => setIsNavOpen(true)}
-                    className="p-2 hover:bg-slate-800 rounded-lg transition-colors text-white"
+                    className="p-2 hover:bg-slate-800 rounded-lg transition-colors text-white shrink-0"
                 >
                     <Menu className="w-6 h-6" />
                 </button>
