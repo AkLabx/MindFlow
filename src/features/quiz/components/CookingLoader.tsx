@@ -295,7 +295,7 @@ export const CookingLoader: React.FC<CookingLoaderProps> = ({ progress, syncedIt
                 r={60}
                 fill="none"
                 stroke="currentColor"
-                strokeWidth={10}
+                strokeWidth={4}
                 className="text-slate-100 dark:text-slate-800"
               />
 
