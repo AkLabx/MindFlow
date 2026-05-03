@@ -9,6 +9,7 @@ import { Question, SavedQuiz, QuizHistoryRecord } from '../features/quiz/types';
 import { useSyncStore } from '../features/quiz/stores/useSyncStore';
 
 let isSyncing = false;
+let lastSyncedUserIdForFullSync: string | null = null;
 
 export const syncService = {
   /** Returns the current sync status */
@@ -237,6 +238,12 @@ export const syncService = {
 
 
   syncOnLogin: async (userId: string, isSignup: boolean = false) => {
+    // If a full sync has already completed for this user in this session, skip the blocking UI sync
+    // but still flush any offline queue silently
+    if (lastSyncedUserIdForFullSync === userId && !isSignup) {
+       await syncService.processEventQueue(userId);
+       return;
+    }
     if (isSyncing) return;
     isSyncing = true;
     window.dispatchEvent(new Event('mindflow-sync-start'));
@@ -405,6 +412,7 @@ export const syncService = {
       console.error('Error during initial sync:', error);
     } finally {
       isSyncing = false;
+      lastSyncedUserIdForFullSync = userId;
       // Dispatch event to notify UI components that sync has completed
       window.dispatchEvent(new Event('mindflow-sync-complete'));
     }

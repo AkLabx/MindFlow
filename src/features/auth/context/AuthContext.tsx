@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '../../../lib/supabase';
 import defaultAvatar from '../../../assets/default-avatar.svg';
@@ -40,6 +40,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const lastSyncedUserId = useRef<string | null>(null);
 
   useEffect(() => {
     // --- ROBUST PWA AUTH FIX: STORAGE EVENT LISTENER ---
@@ -61,7 +62,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       const { data: { session } } = await supabase.auth.getSession();
       setSession(session);
       setUser(session?.user ?? null);
-      if (session?.user) {
+      if (session?.user && lastSyncedUserId.current !== session.user.id) {
+         lastSyncedUserId.current = session.user.id;
          // Run sync on load if user is logged in
          syncService.syncOnLogin(session.user.id, false);
       }
@@ -96,14 +98,24 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         // Check if this is a sign up event (either from explicit event or local flag)
         const isSignup = (event as string) === 'SIGNED_UP' || localStorage.getItem('mindflow_is_signup') === 'true';
 
-        // Run sync on successful sign-in or sign-up
-        syncService.syncOnLogin(finalUser.id, isSignup).then(() => {
-            if (isSignup) {
-                localStorage.removeItem('mindflow_is_signup');
-            }
-        });
+        // Run sync only on explicit sign-in or sign-up, not on token refreshes or user updates
+        // We also check lastSyncedUserId to avoid redundant syncs on INITIAL_SESSION if already handled
+        if (((event as string) === 'SIGNED_IN' || (event as string) === 'SIGNED_UP' || (event as string) === 'INITIAL_SESSION') && lastSyncedUserId.current !== finalUser.id) {
+            lastSyncedUserId.current = finalUser.id;
+            syncService.syncOnLogin(finalUser.id, isSignup).then(() => {
+                if (isSignup) {
+                    localStorage.removeItem('mindflow_is_signup');
+                }
+            });
+        }
       } else {
         setUser(null);
+        lastSyncedUserId.current = null;
+
+        // If explicitly signed out by Supabase event (e.g. session expired, logged out elsewhere)
+        if (event === 'SIGNED_OUT') {
+           db.clearAllUserData().catch(console.error);
+        }
       }
     });
 
