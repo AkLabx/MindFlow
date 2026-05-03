@@ -323,11 +323,11 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
         <div className="flex flex-row items-center justify-between gap-2 sm:gap-3 mb-4 bg-white dark:bg-gray-800 p-1.5 sm:p-2 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm relative z-20 min-w-0">
 
           {/* Segmented Control for Mode Switch */}
-          <div className="flex bg-gray-100 dark:bg-gray-900/50 p-1 rounded-xl flex-1 max-w-[400px]">
+          <div className="flex bg-gray-100 dark:bg-gray-900/50 p-1 rounded-xl flex-1 max-w-[400px] overflow-x-auto hide-scrollbar flex-nowrap min-w-0">
             <button
               onClick={() => setMode('learning')}
               className={cn(
-                "flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-sm font-semibold transition-all duration-200",
+                "shrink-0 flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-sm font-semibold transition-all duration-200",
                 mode === 'learning'
                   ? "bg-white dark:bg-gray-700 text-indigo-600 dark:text-indigo-400 shadow-sm border border-gray-200 dark:border-gray-600"
                   : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 border border-transparent"
@@ -339,7 +339,7 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
             <button
               onClick={() => setMode('mock')}
               className={cn(
-                "flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-sm font-semibold transition-all duration-200",
+                "shrink-0 flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-sm font-semibold transition-all duration-200",
                 mode === 'mock'
                   ? "bg-white dark:bg-gray-700 text-indigo-600 dark:text-indigo-400 shadow-sm border border-gray-200 dark:border-gray-600"
                   : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 border border-transparent"
