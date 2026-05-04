@@ -76,7 +76,7 @@ input, textarea, [contenteditable] {
 
 /* Inline math contrast optimization */
 .katex {
-  @apply text-indigo-700 dark:text-indigo-400 font-semibold mx-0.5 !important;
+  color: inherit !important;
 }
 
 
