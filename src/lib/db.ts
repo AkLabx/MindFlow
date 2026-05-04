@@ -178,12 +178,13 @@ export const db = {
     },
 
     /** Background delete helper to sync deletion to Supabase if logged in */
-    _deleteFromSupabase: async (type: 'quiz' | 'bookmark', id: string) => {
+    _deleteFromSupabase: async (type: 'quiz' | 'bookmark' | 'history_all', id?: string) => {
         try {
             const { data: { session } } = await supabase.auth.getSession();
             if (!session?.user) return;
-            if (type === 'quiz') await syncService.deleteSavedQuiz(session.user.id, id);
-            else if (type === 'bookmark') await syncService.removeBookmark(session.user.id, id);
+            if (type === 'quiz' && id) await syncService.deleteSavedQuiz(session.user.id, id);
+            else if (type === 'bookmark' && id) await syncService.removeBookmark(session.user.id, id);
+            else if (type === 'history_all') await syncService.deleteUserQuizHistory(session.user.id);
         } catch (e) {
             console.error('Background delete error:', e);
         }
@@ -394,7 +395,10 @@ export const db = {
             const store = transaction.objectStore(HISTORY_STORE_NAME);
             const request = store.clear();
 
-            request.onsuccess = () => resolve();
+            request.onsuccess = () => {
+                db._deleteFromSupabase('history_all');
+                resolve();
+            };
             request.onerror = () => reject(request.error);
         });
     },

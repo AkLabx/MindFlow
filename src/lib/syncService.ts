@@ -110,6 +110,23 @@ export const syncService = {
     }
   },
 
+
+  /**
+   * Deletes all quiz history and associated question attempts for a user from Supabase.
+   */
+  deleteUserQuizHistory: async (userId: string) => {
+    // Note: Due to lack of CASCADE DELETE, we must manually delete question_attempts first
+    const { error: attemptsError } = await supabase.from('question_attempts').delete().eq('user_id', userId);
+    if (attemptsError) {
+      console.error('Error deleting question attempts:', attemptsError);
+    }
+
+    const { error: historyError } = await supabase.from('quiz_history').delete().eq('user_id', userId);
+    if (historyError) {
+      console.error('Error deleting quiz history:', historyError);
+    }
+  },
+
   /**
    * Pushes a single bookmark to Supabase.
    */
