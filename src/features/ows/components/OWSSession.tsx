@@ -1,3 +1,4 @@
+import { triggerHaptic } from '../../../lib/haptics';
 import { useAuth } from '../../../features/auth/context/AuthContext';
 import { useSettingsStore } from '../../../stores/useSettingsStore';
 import { Lock } from 'lucide-react';
@@ -250,11 +251,11 @@ export const OWSSession: React.FC<OWSSessionProps> = ({
     const absY = Math.abs(offset.y);
 
     // Continuous Drag Haptics based on distance milestones
-    if (navigator.vibrate) {
-        if (absX > 40 && absX < 45) navigator.vibrate(10);
-        if (absY > 40 && absY < 45) navigator.vibrate(10);
-        if (absX > 80 && absX < 85) navigator.vibrate(20);
-        if (absY > 80 && absY < 85) navigator.vibrate(20);
+    if (triggerHaptic) {
+        if (absX > 40 && absX < 45) triggerHaptic(10);
+        if (absY > 40 && absY < 45) triggerHaptic(10);
+        if (absX > 80 && absX < 85) triggerHaptic(20);
+        if (absY > 80 && absY < 85) triggerHaptic(20);
     }
 
     if (absX > absY) {
@@ -322,7 +323,7 @@ export const OWSSession: React.FC<OWSSessionProps> = ({
       setIsAnimating(true);
       setSwipeDirection(isKnown ? 'known' : 'unknown');
 
-      if (navigator.vibrate) navigator.vibrate(50);
+      if (triggerHaptic) triggerHaptic(50);
 
       // Record for Undo
       setHistoryStack(prev => [...prev, { item: currentItem, status: isKnown ? 'known' : 'unknown', index: currentIndex }]);
@@ -372,7 +373,7 @@ export const OWSSession: React.FC<OWSSessionProps> = ({
      setIsAnimating(true);
      setSwipeDirection(status);
 
-     if (navigator.vibrate) navigator.vibrate(50); // Haptic
+     if (triggerHaptic) triggerHaptic(50); // Haptic
 
      // Record for Undo
      setHistoryStack(prev => [...prev, { item: currentItem, status, index: currentIndex }]);
@@ -388,7 +389,7 @@ export const OWSSession: React.FC<OWSSessionProps> = ({
 
      // Bonus Effect: High velocity mastered confetti
      if (status === 'mastered' && Math.abs(vel) > 800) {
-         if (navigator.vibrate) navigator.vibrate([100, 50, 100]); // Thump thump
+         if (triggerHaptic) triggerHaptic([100, 50, 100]); // Thump thump
      }
 
      await controls.start({ x: finalX, y: finalY, opacity: 0, transition: { duration: 0.3 } });
