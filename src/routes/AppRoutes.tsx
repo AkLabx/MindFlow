@@ -35,6 +35,7 @@ const AdminManageMaterials = lazy(() => import('../features/quiz/components/Admi
 const AdminUploadGK = lazy(() => import("../features/admin/components/AdminUploadGK").then(m => ({ default: m.AdminUploadGK })));
 const AdminUploadMaterials = lazy(() => import('../features/quiz/components/AdminUploadMaterials').then(m => ({ default: m.AdminUploadMaterials })));
 const AdminNotifications = lazy(() => import('../features/notifications/admin/AdminNotifications').then(m => ({ default: m.AdminNotifications })));
+const NotificationsPage = lazy(() => import('../features/notifications/pages/NotificationsPage').then(m => ({ default: m.NotificationsPage })));
 
 const SynonymQuizSession = lazy(() => import('../features/synonyms/components/SynonymQuizSession').then(m => ({ default: m.SynonymQuizSession })));
 const SynonymPhase1Session = lazy(() => import('../features/synonyms/components/SynonymPhase1Session').then(m => ({ default: m.SynonymPhase1Session })));
@@ -299,6 +300,7 @@ const AppRoutesContent: React.FC = () => {
                     <Route path="/school" element={<SchoolHome />} />
                     <Route path="/school/download" element={<SchoolDownloads />} />
 <Route path="/tools" element={<ToolsHome />} />
+                    <Route path="/notification" element={<NotificationsPage />} />
                     <Route path="/ai" element={<AIHome />} />
 
                     <Route path="/ai/chat" element={<AIChatPage />} />
