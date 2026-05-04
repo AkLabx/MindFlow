@@ -1,6 +1,7 @@
 import React from 'react';
 import { Explanation } from '../types';
 import { CheckCircle2, XCircle, Lightbulb, FileText } from 'lucide-react';
+import { MarkdownRenderer } from '../../../components/ui/MarkdownRenderer';
 
 /**
  * A component to display detailed explanations for a question.
@@ -114,9 +115,9 @@ export function QuizExplanation({ explanation, zoomLevel }: { explanation: Expla
             {englishSummary && (
                 <div className="p-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm border-l-4 border-l-indigo-500">
                     <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Answer</h3>
-                    <p className="font-bold text-indigo-700 text-[1em] whitespace-pre-line">
-                        {englishSummary}
-                    </p>
+                    <div className="font-bold text-indigo-700 text-[1em] whitespace-pre-line">
+                        <MarkdownRenderer content={englishSummary} className="!text-current [&_p]:mb-0" />
+                    </div>
                 </div>
             )}
 
@@ -126,7 +127,7 @@ export function QuizExplanation({ explanation, zoomLevel }: { explanation: Expla
                     <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
                     <div className="text-[0.95em]">
                         <h4 className="font-bold text-green-800 dark:text-green-300 mb-1.5">Why this is correct</h4>
-                        <div className="text-gray-700 dark:text-gray-200 leading-relaxed">{formatContent(cleanText(explanation.analysis_correct))}</div>
+                        <div className="text-gray-700 dark:text-gray-200 leading-relaxed"><MarkdownRenderer content={cleanText(explanation.analysis_correct)} className="!text-current" /></div>
                     </div>
                 </div>
             )}
@@ -137,7 +138,7 @@ export function QuizExplanation({ explanation, zoomLevel }: { explanation: Expla
                     <XCircle className="w-5 h-5 text-red-500 dark:text-red-400 flex-shrink-0 mt-0.5" />
                     <div className="text-[0.95em]">
                         <h4 className="font-bold text-red-800 dark:text-red-300 mb-1.5">Why other options are incorrect</h4>
-                        <div className="text-gray-700 dark:text-gray-200 leading-relaxed">{formatContent(cleanText(explanation.analysis_incorrect))}</div>
+                        <div className="text-gray-700 dark:text-gray-200 leading-relaxed"><MarkdownRenderer content={cleanText(explanation.analysis_incorrect)} className="!text-current" /></div>
                     </div>
                 </div>
             )}
@@ -148,7 +149,7 @@ export function QuizExplanation({ explanation, zoomLevel }: { explanation: Expla
                     <FileText className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
                     <div className="text-[0.95em]">
                         <h4 className="font-bold text-blue-800 dark:text-blue-300 mb-1.5">Key Takeaway</h4>
-                        <div className="text-gray-700 dark:text-gray-200 leading-relaxed">{formatContent(cleanText(explanation.conclusion))}</div>
+                        <div className="text-gray-700 dark:text-gray-200 leading-relaxed"><MarkdownRenderer content={cleanText(explanation.conclusion)} className="!text-current" /></div>
                     </div>
                 </div>
             )}
@@ -159,7 +160,7 @@ export function QuizExplanation({ explanation, zoomLevel }: { explanation: Expla
                     <Lightbulb className="w-5 h-5 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-0.5" />
                     <div className="text-[0.95em]">
                         <h4 className="font-bold text-yellow-800 dark:text-yellow-300 mb-1.5">Did you know?</h4>
-                        <div className="text-yellow-900 dark:text-gray-200 leading-relaxed">{formatContent(cleanText(explanation.fact))}</div>
+                        <div className="text-yellow-900 dark:text-gray-200 leading-relaxed"><MarkdownRenderer content={cleanText(explanation.fact)} className="!text-current" /></div>
                     </div>
                 </div>
             )}

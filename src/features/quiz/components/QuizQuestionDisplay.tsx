@@ -1,4 +1,5 @@
 import React, { useMemo, useEffect } from 'react';
+import { MarkdownRenderer } from '../../../components/ui/MarkdownRenderer';
 import { Question } from '../types';
 import { QuizOption } from './QuizOption';
 import { AiExplanationButton } from './AiExplanationButton';
@@ -228,11 +229,12 @@ export function QuizQuestionDisplay({
                     {/* Main English Text */}
                     {/* Added 'selectable-text' utility and stopPropagation to ensure text selection works on touch devices */}
                     <div 
-                        className="text-gray-900 dark:text-white leading-relaxed font-poppins flex-1 selectable-text relative z-10 [&_pre]:whitespace-pre-wrap [&_pre]:font-inherit [&_pre]:my-2 [&_pre]:bg-gray-50 dark:bg-gray-900 [&_pre]:p-2 [&_pre]:rounded-md [&_pre]:border [&_pre]:border-gray-200 dark:border-gray-700"
-                        dangerouslySetInnerHTML={createSafeMarkup(question.question)}
+                        className="text-gray-900 dark:text-white leading-relaxed font-poppins flex-1 selectable-text relative z-10"
                         onMouseDown={(e) => e.stopPropagation()}
                         onTouchStart={(e) => e.stopPropagation()}
-                    />
+                    >
+                        <MarkdownRenderer content={question.question} />
+                    </div>
                     
                     {/* Show Time Spent in Review Mode (if userTime provided) */}
                     {userTime !== undefined && (
@@ -269,11 +271,12 @@ export function QuizQuestionDisplay({
                 {question.question_hi && (
                     <div className="flex items-start gap-3 group">
                         <div
-                            className="flex-1 text-gray-800 dark:text-gray-100 font-hindi leading-relaxed border-l-4 border-indigo-100 dark:border-indigo-900/30 pl-4 selectable-text [&_pre]:whitespace-pre-wrap [&_pre]:font-inherit [&_pre]:my-2 [&_pre]:bg-gray-50 dark:bg-gray-900 [&_pre]:p-2 [&_pre]:rounded-md [&_pre]:border [&_pre]:border-gray-200 dark:border-gray-700"
-                            dangerouslySetInnerHTML={createSafeMarkup(question.question_hi)}
+                            className="flex-1 text-gray-800 dark:text-gray-100 font-hindi leading-relaxed border-l-4 border-indigo-100 dark:border-indigo-900/30 pl-4 selectable-text"
                             onMouseDown={(e) => e.stopPropagation()}
                             onTouchStart={(e) => e.stopPropagation()}
-                        />
+                        >
+                            <MarkdownRenderer content={question.question_hi} />
+                        </div>
                         <div className="shrink-0 pt-0.5">
                             <button
                                 onClick={() => {
