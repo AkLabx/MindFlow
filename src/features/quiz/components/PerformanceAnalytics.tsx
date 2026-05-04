@@ -13,10 +13,12 @@ export const PerformanceAnalytics: React.FC = () => {
     const navigate = useNavigate();
     const [history, setHistory] = useState<QuizHistoryRecord[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [isDeleting, setIsDeleting] = useState(false);
     const [showToast, setShowToast] = useState(false);
 
     const handleResetAnalytics = async () => {
         if (window.confirm("Are you sure you want to reset all analytics data? This action cannot be undone.")) {
+            setIsDeleting(true);
             try {
                 await db.clearQuizHistory();
                 setHistory([]);
@@ -25,6 +27,8 @@ export const PerformanceAnalytics: React.FC = () => {
             } catch (error) {
                 console.error("Failed to reset analytics:", error);
                 alert("Failed to reset analytics. Please try again.");
+            } finally {
+                setIsDeleting(false);
             }
         }
     };
@@ -161,11 +165,19 @@ export const PerformanceAnalytics: React.FC = () => {
             </div>
             <button
                 onClick={handleResetAnalytics}
-                className="flex items-center gap-2 px-3 py-2 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 hover:bg-red-100 rounded-lg transition-colors text-sm font-semibold"
+                disabled={isDeleting}
+                className={cn(
+                    "flex items-center gap-2 px-3 py-2 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-lg transition-colors text-sm font-semibold",
+                    isDeleting ? "opacity-50 cursor-not-allowed" : "hover:bg-red-100"
+                )}
                 title="Reset Analytics"
             >
-                <Trash2 className="w-4 h-4" />
-                <span className="hidden sm:inline">Reset Analytics</span>
+                {isDeleting ? (
+                    <div className="w-4 h-4 rounded-full border-2 border-red-600 border-t-transparent animate-spin" />
+                ) : (
+                    <Trash2 className="w-4 h-4" />
+                )}
+                <span className="hidden sm:inline">{isDeleting ? "Resetting..." : "Reset Analytics"}</span>
             </button>
         </div>
 
