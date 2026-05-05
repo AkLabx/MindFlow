@@ -59,6 +59,9 @@ export const syncService = {
    * Pushes a single saved quiz to Supabase.
    */
   pushSavedQuiz: async (userId: string, quiz: SavedQuiz) => {
+    // Strip questions from payload to save space
+    const { activeQuestions, ...stateWithoutQuestions } = quiz.state;
+
     const { error } = await supabase.from('saved_quizzes').upsert({
       id: quiz.id,
       user_id: userId,
@@ -66,10 +69,28 @@ export const syncService = {
       created_at: quiz.createdAt,
       filters: quiz.filters,
       mode: quiz.mode,
-      questions: quiz.questions,
-      state: quiz.state,
+      state: stateWithoutQuestions,
     });
-    if (error) console.error('Error pushing saved quiz:', error);
+
+    if (error) {
+      console.error('Error pushing saved quiz:', error);
+      return;
+    }
+
+    // Insert into junction table
+    const bridgeRecords = quiz.questions.map((q, index) => ({
+      quiz_id: quiz.id,
+      question_id: q.id,
+      user_id: userId,
+      sort_order: index
+    }));
+
+    if (bridgeRecords.length > 0) {
+      const { error: bridgeError } = await supabase.from('bridge_saved_quiz_questions').upsert(bridgeRecords, { onConflict: 'quiz_id, question_id' });
+      if (bridgeError) {
+        console.error('Error pushing bridge questions:', bridgeError);
+      }
+    }
   },
 
   /**
@@ -270,20 +291,57 @@ export const syncService = {
     try {
       // 1. Pull from Supabase
       const [
-        { data: remoteQuizzes },
+        { data: remoteQuizzesData },
         { data: remoteHistory },
         { data: remoteBookmarks },
         { data: remoteSynonyms },
         { data: remoteOWS },
         { data: remoteIdioms }
       ] = await Promise.all([
-        supabase.from('saved_quizzes').select('*').eq('user_id', userId),
+        supabase.from('saved_quizzes').select('*, bridge_saved_quiz_questions(question_id, sort_order)').eq('user_id', userId),
         supabase.from('quiz_history').select('*').eq('user_id', userId),
         supabase.from('user_bookmarks').select('question_id').eq('user_id', userId),
         supabase.from('user_synonym_interactions').select('*').eq('user_id', userId),
         supabase.from('user_ows_interactions').select('*').eq('user_id', userId),
         supabase.from('user_idiom_interactions').select('*').eq('user_id', userId)
       ]);
+
+      let remoteQuizzes = remoteQuizzesData || [];
+      if (remoteQuizzes.length > 0) {
+        // Collect all distinct question IDs needed across all quizzes
+        const allQuestionIds = new Set<string>();
+        remoteQuizzes.forEach(rq => {
+            const bridgeData = rq.bridge_saved_quiz_questions || [];
+            bridgeData.forEach((bq: any) => allQuestionIds.add(bq.question_id));
+        });
+
+        // Fetch the actual question data
+        const idArray = Array.from(allQuestionIds);
+        const fetchedQuestions = await fetchQuestionsByIds(idArray);
+        const questionsMap = new Map(fetchedQuestions.map(q => [q.id, q]));
+
+        // Reconstruct full questions and state.activeQuestions for each remote quiz
+        remoteQuizzes = remoteQuizzes.map(rq => {
+             let questions: Question[] = [];
+             const bridgeData = rq.bridge_saved_quiz_questions || [];
+             bridgeData.sort((a: any, b: any) => a.sort_order - b.sort_order);
+             bridgeData.forEach((bq: any) => {
+                 const q = questionsMap.get(bq.question_id);
+                 if (q) questions.push(q);
+             });
+
+             const fullQuiz = {
+                 ...rq,
+                 questions: questions,
+                 state: {
+                     ...(rq.state || {}),
+                     activeQuestions: questions
+                 }
+             };
+             delete fullQuiz.bridge_saved_quiz_questions;
+             return fullQuiz;
+        });
+      }
 
       // 2. Fetch local data
       const localQuizzes = await db.getQuizzes();
