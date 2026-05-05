@@ -231,7 +231,7 @@ export const SavedQuizCard: React.FC<SavedQuizCardProps> = ({ quiz, index, onRes
                     </motion.div>
 
                         {/* Actions Container */}
-                        <div className="flex items-center gap-3 shrink-0">
+                        <div className="flex items-center justify-end gap-3 shrink-0 w-full mt-2">
                             {/* Talk Button (Visible by default) */}
                             {!isQuizFinished && (
                                 <button
@@ -262,7 +262,12 @@ export const SavedQuizCard: React.FC<SavedQuizCardProps> = ({ quiz, index, onRes
                                 {/* Button Content */}
                                 <div className="relative z-10 flex items-center justify-center gap-2">
                                     {isActionLoading ? (
-                                        <Loader2 className="w-5 h-5 text-indigo-600 dark:text-indigo-400 animate-spin" />
+                                        <>
+                                            <Loader2 className="w-5 h-5 text-indigo-600 dark:text-indigo-400 animate-spin" />
+                                            <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                                                Loading...
+                                            </span>
+                                        </>
                                     ) : (
                                         <>
                                             {isQuizFinished ? (
@@ -271,7 +276,7 @@ export const SavedQuizCard: React.FC<SavedQuizCardProps> = ({ quiz, index, onRes
                                                 <Play className="w-5 h-5 text-indigo-600 dark:text-indigo-400 ml-0.5" />
                                             )}
 
-                                            <span className="text-sm font-semibold hidden sm:inline-block text-slate-700 dark:text-slate-200">
+                                            <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">
                                                 {isQuizFinished ? "Results" : isQuizStarted ? "Resume" : "Start"}
                                             </span>
                                         </>
