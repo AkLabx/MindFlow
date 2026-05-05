@@ -107,13 +107,13 @@ export const AttemptedQuizCard: React.FC<AttemptedQuizCardProps> = ({ quiz, inde
                 dragConstraints={{ left: 0, right: 0 }}
                 dragElastic={0.2}
                 onDragEnd={handleDragEnd}
-                animate={controls}
+
                 style={{ x }}
                 whileHover={!isTouchDevice ? { scale: 1.01 } : {}}
                 className="relative z-10 w-full h-full cursor-pointer touch-pan-y"
                 onClick={handleCardClick}
                 layout
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
                 transition={{ type: "spring", stiffness: 300, damping: 25, delay: index * 0.05 }}
             >
                 {/* Main Card Container */}
