@@ -17,6 +17,7 @@ export const SavedQuizCard: React.FC<SavedQuizCardProps> = ({ quiz, index, onRes
     const [isExpanded, setIsExpanded] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [editName, setEditName] = useState(quiz.name);
+    const [isDeleteConfirming, setIsDeleteConfirming] = useState(false);
 
     // Swipe gestures
     const controls = useAnimation();
@@ -93,11 +94,67 @@ export const SavedQuizCard: React.FC<SavedQuizCardProps> = ({ quiz, index, onRes
                 dragElastic={0.2}
                 onDragEnd={handleDragEnd}
                 animate={controls}
-                className="relative w-full h-full bg-indigo-50/90 dark:bg-slate-800/90 backdrop-blur-xl rounded-3xl z-10"
+                layout className="relative w-full h-full bg-indigo-50/90 dark:bg-slate-800/90 backdrop-blur-xl rounded-3xl z-10 flex flex-col"
                 onClick={handleCardClick}
             >
                 <div className="absolute inset-0 bg-gradient-to-br from-white/60 to-white/10 dark:from-white/10 dark:to-transparent z-0 pointer-events-none rounded-3xl" />
                 <div className="absolute inset-0 rounded-3xl border-[2px] border-black dark:border-gray-400 z-10 transition-all duration-300 group-hover:border-indigo-500 dark:group-hover:border-indigo-400 pointer-events-none" />
+
+                                    {/* Desktop Delete - Appears on Hover */}
+                    {!isTouchDevice && (
+                        <div className="absolute top-3 right-3 z-30 flex items-center justify-center">
+                            <AnimatePresence mode="wait">
+                                {isDeleteConfirming ? (
+                                    <motion.div
+                                        key="confirm"
+                                        initial={{ opacity: 0, scale: 0.8 }}
+                                        animate={{ opacity: 1, scale: 1 }}
+                                        exit={{ opacity: 0, scale: 0.8 }}
+                                        transition={{ duration: 0.15 }}
+                                        className="flex items-center gap-1 bg-white/90 dark:bg-slate-800/90 backdrop-blur-md rounded-full shadow-lg border border-slate-200 dark:border-slate-700 p-1"
+                                    >
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                onDelete(quiz.id, e);
+                                                setIsDeleteConfirming(false);
+                                            }}
+                                            className="p-1.5 hover:bg-emerald-100 dark:hover:bg-emerald-900/30 text-emerald-600 rounded-full transition-colors"
+                                            title="Confirm Delete"
+                                        >
+                                            <Check className="w-4 h-4" />
+                                        </button>
+                                        <div className="w-[1px] h-4 bg-slate-300 dark:bg-slate-600" />
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setIsDeleteConfirming(false);
+                                            }}
+                                            className="p-1.5 hover:bg-rose-100 dark:hover:bg-rose-900/30 text-rose-600 rounded-full transition-colors"
+                                            title="Cancel"
+                                        >
+                                            <X className="w-4 h-4" />
+                                        </button>
+                                    </motion.div>
+                                ) : (
+                                    <motion.button
+                                        key="trash"
+                                        initial={{ opacity: 0, scale: 0.8 }}
+                                        animate={{ opacity: 0, scale: 0.8, pointerEvents: 'none' }}
+                                        whileHover={{ scale: 1.1 }}
+                                        className="group-hover:opacity-100 group-hover:scale-100 group-hover:pointer-events-auto p-2 text-slate-400 hover:text-rose-600 hover:drop-shadow-[0_0_8px_rgba(225,29,72,0.5)] transition-all duration-300"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setIsDeleteConfirming(true);
+                                        }}
+                                        title="Delete Quiz"
+                                    >
+                                        <Trash2 className="w-5 h-5 stroke-[1.5]" />
+                                    </motion.button>
+                                )}
+                            </AnimatePresence>
+                        </div>
+                    )}
 
                 {/* Micro-Typography Tag */}
                 <div className="absolute top-0 left-0 bg-yellow-400 text-black font-mono text-[10px] sm:text-xs font-bold px-2 py-0.5 rounded-tl-3xl rounded-br-xl z-20 uppercase tracking-widest border-b-[2px] border-r-[2px] border-black pointer-events-none">
@@ -105,28 +162,22 @@ export const SavedQuizCard: React.FC<SavedQuizCardProps> = ({ quiz, index, onRes
                 </div>
 
                 {/* Main Content Area */}
-                <div className="relative z-20 flex flex-col items-start justify-between p-5 sm:p-6 pt-7 sm:pt-8 gap-4">
+                <div className="relative z-20 flex flex-col p-5 sm:p-6 pt-7 sm:pt-8 gap-4 flex-grow">
 
-                    <div className="flex w-full justify-between items-center gap-4">
-                        <div className="flex-1 min-w-0">
+                    {/* Zone 2 & 3: Title and Editing State */}
+                    <motion.div layout className="flex flex-col gap-2 w-full">
+                        <div className="flex w-full justify-between items-center pr-8">
                             {isEditing ? (
-                                <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
-                                    <input
-                                        type="text"
-                                        value={editName}
-                                        onChange={(e) => setEditName(e.target.value)}
-                                        className="flex-1 px-3 py-1.5 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-indigo-300 dark:border-indigo-500/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white"
-                                        autoFocus
-                                    />
-                                    <button onClick={saveEdit} className="p-2 text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 hover:bg-emerald-100 dark:hover:bg-emerald-800/50 rounded-lg transition-colors shadow-sm">
-                                        <Check className="w-4 h-4" />
-                                    </button>
-                                    <button onClick={cancelEdit} className="p-2 text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-900/30 hover:bg-rose-100 dark:hover:bg-rose-800/50 rounded-lg transition-colors shadow-sm">
-                                        <X className="w-4 h-4" />
-                                    </button>
-                                </div>
+                                <input
+                                    type="text"
+                                    value={editName}
+                                    onChange={(e) => setEditName(e.target.value)}
+                                    onClick={e => e.stopPropagation()}
+                                    className="flex-1 px-3 py-1.5 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-indigo-300 dark:border-indigo-500/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white"
+                                    autoFocus
+                                />
                             ) : (
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-2 flex-1 min-w-0">
                                     <h3 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-700 dark:from-white dark:to-slate-300 group-hover:from-indigo-600 group-hover:to-indigo-800 dark:group-hover:from-indigo-300 dark:group-hover:to-indigo-100 transition-all duration-300 truncate">
                                         {quiz.name || 'Untitled Quiz'}
                                     </h3>
@@ -140,6 +191,27 @@ export const SavedQuizCard: React.FC<SavedQuizCardProps> = ({ quiz, index, onRes
                                 </div>
                             )}
                         </div>
+
+                        {/* Zone 3: Save / Cancel row (graceful push) */}
+                        <AnimatePresence>
+                            {isEditing && (
+                                <motion.div
+                                    initial={{ height: 0, opacity: 0 }}
+                                    animate={{ height: "auto", opacity: 1 }}
+                                    exit={{ height: 0, opacity: 0 }}
+                                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                                    className="flex gap-2 overflow-hidden"
+                                >
+                                    <button onClick={saveEdit} className="flex-1 py-1.5 flex justify-center items-center gap-1.5 text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 hover:bg-emerald-100 dark:hover:bg-emerald-800/50 rounded-lg transition-colors shadow-sm">
+                                        <Check className="w-4 h-4" /> Save
+                                    </button>
+                                    <button onClick={cancelEdit} className="flex-1 py-1.5 flex justify-center items-center gap-1.5 text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-900/30 hover:bg-rose-100 dark:hover:bg-rose-800/50 rounded-lg transition-colors shadow-sm">
+                                        <X className="w-4 h-4" /> Cancel
+                                    </button>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+                    </motion.div>
 
                         {/* Actions Container */}
                         <div className="flex items-center gap-3 shrink-0">
@@ -192,53 +264,49 @@ export const SavedQuizCard: React.FC<SavedQuizCardProps> = ({ quiz, index, onRes
                                 )}
                             </button>
 
-                            {/* Desktop Delete - Appears on Hover */}
-                            {!isTouchDevice && (
-                                <button
-                                    onClick={(e) => onDelete(quiz.id, e)}
-                                    className="p-2 text-slate-400 dark:text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-xl transition-all opacity-0 group-hover:opacity-100 absolute -right-2 top-2"
-                                    title="Delete Quiz"
-                                >
-                                    <Trash2 className="w-4 h-4" />
-                                </button>
-                            )}
-                        </div>
-                    </div>
 
-                    {/* Expandable Details Area */}
+                        </div>
+
+                                        {/* Zone 5: Expandable Details Drawer */}
                     <AnimatePresence>
                         {isExpanded && (
                             <motion.div
-                                initial="hidden"
-                                animate="visible"
-                                exit="hidden"
-                                variants={{
-                                    visible: { opacity: 1, height: 'auto', marginTop: 12, transition: { type: "spring", stiffness: 300, damping: 25, mass: 0.8, staggerChildren: 0.05 } },
-                                    hidden: { opacity: 0, height: 0, marginTop: 0, transition: { duration: 0.2 } }
-                                }}
-                                className="w-full overflow-hidden flex flex-wrap gap-2.5 text-xs font-semibold"
+                                initial={{ height: 0, opacity: 0, overflow: "hidden" }}
+                                animate={{ height: "auto", opacity: 1, marginTop: 16 }}
+                                exit={{ height: 0, opacity: 0, marginTop: 0 }}
+                                transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                                className="w-full text-xs font-semibold pt-4 border-t border-indigo-100/50 dark:border-slate-700/50"
                             >
-                                <motion.div variants={{ visible: { opacity: 1, y: 0 }, hidden: { opacity: 0, y: 10 } }} className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-white/50 dark:bg-slate-800/50 border border-slate-200/50 dark:border-slate-700/50 text-slate-600 dark:text-slate-300 backdrop-blur-sm">
-                                    <BookOpen className="w-3.5 h-3.5 text-indigo-500" />
-                                    <span>{quiz.filters.subject}</span>
-                                </motion.div>
-                                <motion.div variants={{ visible: { opacity: 1, y: 0 }, hidden: { opacity: 0, y: 10 } }} className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-white/50 dark:bg-slate-800/50 border border-slate-200/50 dark:border-slate-700/50 text-slate-600 dark:text-slate-300 backdrop-blur-sm">
-                                    <Clock className="w-3.5 h-3.5 text-emerald-500" />
-                                    <span>{new Date(quiz.createdAt).toLocaleDateString()}</span>
-                                </motion.div>
-                                <motion.div variants={{ visible: { opacity: 1, y: 0 }, hidden: { opacity: 0, y: 10 } }} className={`flex items-center gap-1 px-2.5 py-1 rounded-md backdrop-blur-sm border ${
-                                    quiz.mode === 'mock'
-                                    ? 'bg-purple-50/80 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800/50 text-purple-700 dark:text-purple-300'
-                                    : 'bg-emerald-50/80 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800/50 text-emerald-700 dark:text-emerald-300'
-                                }`}>
-                                    {quiz.mode === 'mock' ? 'Mock Test' : 'Learning Mode'}
-                                </motion.div>
-                                <motion.div variants={{ visible: { opacity: 1, y: 0 }, hidden: { opacity: 0, y: 10 } }} className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-white/50 dark:bg-slate-800/50 border border-slate-200/50 dark:border-slate-700/50 text-slate-700 dark:text-slate-200 backdrop-blur-sm">
-                                    <span className="opacity-70">Progress:</span>
-                                    <span className="text-indigo-600 dark:text-indigo-400">
-                                        {Object.keys(quiz.state.answers).length} / {quiz.questions.length}
-                                    </span>
-                                </motion.div>
+                                <div className="grid grid-cols-2 gap-3 w-full">
+                                    {/* Top Left: Subject */}
+                                    <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-indigo-50/50 dark:bg-indigo-900/20 border border-indigo-100/50 dark:border-indigo-800/50 text-slate-600 dark:text-slate-300 backdrop-blur-sm truncate">
+                                        <BookOpen className="w-4 h-4 text-indigo-500 shrink-0" />
+                                        <span className="truncate">{quiz.filters.subject}</span>
+                                    </div>
+
+                                    {/* Top Right: Date */}
+                                    <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-indigo-50/50 dark:bg-indigo-900/20 border border-indigo-100/50 dark:border-indigo-800/50 text-slate-600 dark:text-slate-300 backdrop-blur-sm truncate">
+                                        <Clock className="w-4 h-4 text-emerald-500 shrink-0" />
+                                        <span className="truncate">{new Date(quiz.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric'})}</span>
+                                    </div>
+
+                                    {/* Bottom Left: Mode */}
+                                    <div className={"flex items-center gap-2 px-3 py-2 rounded-lg backdrop-blur-sm border truncate " + (
+                                        quiz.mode === 'mock'
+                                        ? 'bg-purple-50/80 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800/50 text-purple-700 dark:text-purple-300'
+                                        : 'bg-emerald-50/80 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800/50 text-emerald-700 dark:text-emerald-300'
+                                    )}>
+                                        <span className="truncate">{quiz.mode === 'mock' ? '⚙️ Mock Test' : '⚙️ Learning Mode'}</span>
+                                    </div>
+
+                                    {/* Bottom Right: Progress Math */}
+                                    <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-indigo-50/50 dark:bg-indigo-900/20 border border-indigo-100/50 dark:border-indigo-800/50 text-slate-700 dark:text-slate-200 backdrop-blur-sm truncate justify-between">
+                                        <span className="opacity-70 shrink-0">📊 Progress</span>
+                                        <span className="text-indigo-600 dark:text-indigo-400 font-bold shrink-0">
+                                            {Object.keys(quiz.state.answers).length} / {quiz.questions.length}
+                                        </span>
+                                    </div>
+                                </div>
                             </motion.div>
                         )}
                     </AnimatePresence>
