@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Trash2, Play, Clock, BookOpen, Edit2, Check, X, Mic, CheckCircle } from 'lucide-react';
+import { Trash2, Play, Clock, BookOpen, Edit2, Check, X, Mic, CheckCircle, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence, useAnimation } from 'framer-motion';
+import { useNotification } from '@/stores/useNotificationStore';
 import { SavedQuiz } from '../types';
 
 interface SavedQuizCardProps {
@@ -16,6 +17,8 @@ export const SavedQuizCard: React.FC<SavedQuizCardProps> = ({ quiz, index, onRes
     const navigate = useNavigate();
     const [isExpanded, setIsExpanded] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
+    const [isActionLoading, setIsActionLoading] = useState(false);
+    const { showToast } = useNotification();
     const [editName, setEditName] = useState(quiz.name);
     const [isDeleteConfirming, setIsDeleteConfirming] = useState(false);
 
@@ -60,10 +63,24 @@ export const SavedQuizCard: React.FC<SavedQuizCardProps> = ({ quiz, index, onRes
         }
     };
 
-    const handleActionClick = (e: React.MouseEvent) => {
+    const handleActionClick = async (e: React.MouseEvent) => {
         e.stopPropagation();
         if (navigator.vibrate) navigator.vibrate(15);
-        onResume(quiz);
+
+        setIsActionLoading(true);
+        try {
+            // Await onResume in case it becomes async later
+            await Promise.resolve(onResume(quiz));
+        } catch (error) {
+            console.error('Failed to resume quiz:', error);
+            showToast({
+                title: 'Network Error',
+                message: 'Unable to load quiz. Please try again.',
+                variant: 'error'
+            });
+        } finally {
+            setIsActionLoading(false);
+        }
     };
 
     const handleDragEnd = (event: any, info: any) => {
@@ -226,42 +243,40 @@ export const SavedQuizCard: React.FC<SavedQuizCardProps> = ({ quiz, index, onRes
                                 </button>
                             )}
 
-                            {/* FAB Progress Ring */}
+                            {/* Rectangular Action Button with Progress Fill */}
                             <button
                                 onClick={handleActionClick}
-                                className="relative flex items-center justify-center w-12 h-12 rounded-full bg-white dark:bg-slate-800 shadow-md hover:shadow-lg transition-all"
+                                disabled={isActionLoading}
+                                className="relative flex items-center justify-center h-10 min-w-[3rem] px-3 md:px-4 rounded-xl bg-white dark:bg-slate-800 shadow-md hover:shadow-lg disabled:opacity-80 disabled:cursor-not-allowed transition-all overflow-hidden shrink-0"
                                 title={isQuizFinished ? "Results" : isQuizStarted ? "Resume" : "Start"}
                             >
-                                <svg className="absolute inset-0 w-full h-full -rotate-90 pointer-events-none" viewBox="0 0 36 36">
-                                    <circle
-                                        cx="18"
-                                        cy="18"
-                                        r="16"
-                                        fill="none"
-                                        className="stroke-slate-200 dark:stroke-slate-700"
-                                        strokeWidth="3"
-                                    />
-                                    <circle
-                                        cx="18"
-                                        cy="18"
-                                        r="16"
-                                        fill="none"
-                                        stroke={progressColor}
-                                        strokeWidth="3"
-                                        strokeDasharray="100"
-                                        strokeDashoffset={100 - progressPercent}
-                                        strokeLinecap="round"
-                                        className="transition-all duration-500 ease-out"
-                                        style={{
-                                            filter: progressPercent === 100 ? 'drop-shadow(0 0 4px rgba(5,150,105,0.5))' : 'none'
-                                        }}
-                                    />
-                                </svg>
-                                {isQuizFinished ? (
-                                    <CheckCircle className="w-5 h-5 text-emerald-600 dark:text-emerald-400 z-10" />
-                                ) : (
-                                    <Play className="w-5 h-5 text-indigo-600 dark:text-indigo-400 z-10 ml-0.5" />
-                                )}
+                                {/* Apple App Store style progress background fill */}
+                                <div
+                                    className="absolute inset-y-0 left-0 transition-all duration-500 ease-out pointer-events-none opacity-20 dark:opacity-30"
+                                    style={{
+                                        width: `${progressPercent}%`,
+                                        backgroundColor: progressColor,
+                                    }}
+                                />
+
+                                {/* Button Content */}
+                                <div className="relative z-10 flex items-center justify-center gap-2">
+                                    {isActionLoading ? (
+                                        <Loader2 className="w-5 h-5 text-indigo-600 dark:text-indigo-400 animate-spin" />
+                                    ) : (
+                                        <>
+                                            {isQuizFinished ? (
+                                                <CheckCircle className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                                            ) : (
+                                                <Play className="w-5 h-5 text-indigo-600 dark:text-indigo-400 ml-0.5" />
+                                            )}
+
+                                            <span className="text-sm font-semibold hidden sm:inline-block text-slate-700 dark:text-slate-200">
+                                                {isQuizFinished ? "Results" : isQuizStarted ? "Resume" : "Start"}
+                                            </span>
+                                        </>
+                                    )}
+                                </div>
                             </button>
 
 
