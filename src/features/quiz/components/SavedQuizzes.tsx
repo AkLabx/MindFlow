@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Trash2, Play, Clock, BookOpen, Edit2, Check, X, Save, Home, PlusCircle, CheckCircle, ArrowLeft, Mic, LayoutGrid, List } from 'lucide-react';
 import { db } from '../../../lib/db';
 import { SavedQuiz } from '../types';
+import { SavedQuizCard } from './SavedQuizCard';
 import { useQuizContext } from '../context/QuizContext';
 import { syncService } from '../../../lib/syncService';
 import { SynapticLoader } from '../../../components/ui/SynapticLoader';
@@ -126,6 +127,16 @@ export const SavedQuizzes: React.FC = () => {
     };
 
     /** Cancels renaming. */
+
+    const saveEditCard = async (id: string, newName: string) => {
+        try {
+            await db.updateQuizName(id, newName);
+            setQuizzes(prev => prev.map(q => q.id === id ? { ...q, name: newName } : q));
+        } catch (error) {
+            console.error("Failed to update quiz name:", error);
+        }
+    };
+
     const cancelEdit = (e: React.MouseEvent) => {
         e.stopPropagation();
         setEditingId(null);
@@ -315,120 +326,18 @@ export const SavedQuizzes: React.FC = () => {
 
                         <div className={`grid gap-4 sm:gap-6 z-20 ${viewMode === 'list' ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'}`}>
                         {sortedQuizzes.map((quiz, index) => (
-                            <motion.div
-                                variants={itemVariants}
-                                whileHover={{ scale: 1.01 }}
-                                whileTap={{ scale: 0.99 }}
+                            <SavedQuizCard
                                 key={quiz.id}
-                                onClick={() => handleResume(quiz)}
-                                className="relative group cursor-pointer p-[1px] rounded-3xl overflow-visible shadow-sm hover:shadow-md transition-shadow duration-300 ml-3 mt-3"
-                            >
-                                {/* Glow Background Layer */}
-                                <div className="absolute inset-0 rounded-3xl bg-indigo-50/90 dark:bg-slate-800/90 backdrop-blur-xl transition-colors duration-300 z-0 overflow-hidden" />
-                                <div className="absolute inset-0 bg-gradient-to-br from-white/60 to-white/10 dark:from-white/10 dark:to-transparent z-0" />
-
-                                {/* Interactive Inner Shadow / Border */}
-                                <div className="absolute inset-0 rounded-3xl border-[2px] border-black dark:border-gray-400 z-10 transition-all duration-300 group-hover:border-indigo-500 dark:group-hover:border-indigo-400 pointer-events-none" />
-
-                                {/* Centered Subtle Glow */}
-                                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[150%] h-[150%] rounded-full blur-[80px] opacity-0 group-hover:opacity-40 transition-opacity duration-500 z-0 bg-indigo-500/50" />
-
-                                {/* Card Content */}
-                                <div className="relative z-20 flex flex-col items-start justify-between gap-4 p-5 sm:p-6 h-full">
-                                    <div className="absolute top-4 right-4 sm:top-6 sm:right-6 opacity-20 font-black text-4xl sm:text-5xl text-slate-900 dark:text-white pointer-events-none select-none z-0">
-                                        #{index + 1}
-                                    </div>
-                                    <div className="flex-1 w-full">
-                                        {/* Name / Edit Mode */}
-                                        {editingId === quiz.id ? (
-                                            <div className="flex items-center gap-2 mb-3" onClick={e => e.stopPropagation()}>
-                                                <input
-                                                    type="text"
-                                                    value={editName}
-                                                    onChange={(e) => setEditName(e.target.value)}
-                                                    className="flex-1 px-3 py-1.5 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-indigo-300 dark:border-indigo-500/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white"
-                                                    autoFocus
-                                                />
-                                                <button onClick={saveEdit} className="p-2 text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 hover:bg-emerald-100 dark:hover:bg-emerald-800/50 rounded-lg transition-colors shadow-sm">
-                                                    <Check className="w-4 h-4" />
-                                                </button>
-                                                <button onClick={cancelEdit} className="p-2 text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-900/30 hover:bg-rose-100 dark:hover:bg-rose-800/50 rounded-lg transition-colors shadow-sm">
-                                                    <X className="w-4 h-4" />
-                                                </button>
-                                            </div>
-                                        ) : (
-                                            <div className="flex items-center gap-2 mb-3">
-                                                <h3 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-700 dark:from-white dark:to-slate-300 group-hover:from-indigo-600 group-hover:to-indigo-800 dark:group-hover:from-indigo-300 dark:group-hover:to-indigo-100 transition-all duration-300 truncate">
-                                                    {quiz.name || 'Untitled Quiz'}
-                                                </h3>
-                                                <button
-                                                    onClick={(e) => startEditing(quiz, e)}
-                                                    className="p-1.5 text-slate-400 dark:text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 opacity-0 group-hover:opacity-100 transition-all duration-300 rounded-md hover:bg-indigo-50 dark:hover:bg-indigo-900/30"
-                                                    title="Edit Name"
-                                                >
-                                                    <Edit2 className="w-3.5 h-3.5" />
-                                                </button>
-                                            </div>
-                                        )}
-
-                                        {/* Metadata Badges */}
-                                        <div className="flex flex-wrap gap-2.5 text-xs font-semibold">
-                                            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-white/50 dark:bg-slate-800/50 border border-slate-200/50 dark:border-slate-700/50 text-slate-600 dark:text-slate-300 backdrop-blur-sm">
-                                                <BookOpen className="w-3.5 h-3.5 text-indigo-500" />
-                                                <span>{quiz.filters.subject}</span>
-                                            </div>
-                                            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-white/50 dark:bg-slate-800/50 border border-slate-200/50 dark:border-slate-700/50 text-slate-600 dark:text-slate-300 backdrop-blur-sm">
-                                                <Clock className="w-3.5 h-3.5 text-emerald-500" />
-                                                <span>{new Date(quiz.createdAt).toLocaleDateString()}</span>
-                                            </div>
-                                            <div className={`flex items-center gap-1 px-2.5 py-1 rounded-md backdrop-blur-sm border ${
-                                                quiz.mode === 'mock'
-                                                ? 'bg-purple-50/80 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800/50 text-purple-700 dark:text-purple-300'
-                                                : 'bg-emerald-50/80 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800/50 text-emerald-700 dark:text-emerald-300'
-                                            }`}>
-                                                {quiz.mode === 'mock' ? 'Mock Test' : 'Learning Mode'}
-                                            </div>
-                                            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-white/50 dark:bg-slate-800/50 border border-slate-200/50 dark:border-slate-700/50 text-slate-700 dark:text-slate-200 backdrop-blur-sm">
-                                                <span className="opacity-70">Progress:</span>
-                                                <span className="text-indigo-600 dark:text-indigo-400">
-                                                    {quiz.state.currentQuestionIndex + 1} / {quiz.questions.length}
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </div>
-
-
-                                    {/* Action Buttons */}
-                                    <div className="flex flex-wrap items-center gap-2 w-full justify-end mt-auto pt-4 border-t border-slate-200/50 dark:border-slate-700/50 z-10 relative">
-                                        {!isQuizFinished(quiz) && (
-                                            <button
-                                                onClick={(e) => { e.stopPropagation(); navigate('/quiz/live/' + quiz.id); }}
-                                                className="flex items-center gap-1.5 px-3 py-2 bg-amber-500/10 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400 hover:bg-amber-500/20 dark:hover:bg-amber-500/30 border border-amber-200/50 dark:border-amber-700/50 rounded-xl transition-colors font-bold text-sm shadow-sm backdrop-blur-sm"
-                                                title="Talk to Quiz Master"
-                                            >
-                                                <motion.div whileHover={{ scale: 1.2, y: -2 }} transition={{ type: "spring", stiffness: 300, repeat: Infinity, repeatType: "reverse" }}><Mic className="w-4 h-4" /></motion.div>
-                                                Talk
-                                            </button>
-                                        )}
-                                        <button
-                                            onClick={(e) => { e.stopPropagation(); handleResume(quiz); }}
-                                            className="flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white border border-indigo-500 dark:border-indigo-400/50 shadow-md hover:shadow-lg hover:shadow-indigo-500/20 rounded-xl transition-all font-bold text-sm"
-                                            title={isQuizFinished(quiz) ? "View Results" : isQuizStarted(quiz) ? "Resume Quiz" : "Start Quiz"}
-                                        >
-                                            <motion.div whileHover={{ scale: 1.2, x: 2 }} transition={{ type: "spring", stiffness: 300 }}><Play className="w-4 h-4" /></motion.div>
-                                            {isQuizFinished(quiz) ? "Results" : isQuizStarted(quiz) ? "Resume" : "Start"}
-                                        </button>
-                                        <button
-                                            onClick={(e) => handleDelete(quiz.id, e)}
-                                            className="p-2.5 text-slate-400 dark:text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/30 border border-transparent hover:border-rose-200 dark:hover:border-rose-800/50 rounded-xl transition-all shadow-sm hover:shadow"
-                                            title="Delete Quiz"
-                                        >
-                                            <motion.div whileHover={{ scale: 1.1, rotate: [0, -10, 10, -10, 10, 0] }} transition={{ duration: 0.4 }}><Trash2 className="w-5 h-5" /></motion.div>
-                                        </button>
-                                    </div>
-
-                                </div>
-                            </motion.div>
+                                quiz={quiz}
+                                index={index}
+                                onResume={handleResume}
+                                onDelete={handleDelete}
+                                onEditName={(id, newName) => {
+                                    setEditingId(id);
+                                    setEditName(newName);
+                                    saveEditCard(id, newName);
+                                }}
+                            />
                         ))}
                         </div>
                     </motion.div>
