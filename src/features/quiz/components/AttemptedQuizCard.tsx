@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Trash2, Clock, BookOpen, Edit2, Check, X, CheckCircle, Loader2, Award } from 'lucide-react';
-import { motion, AnimatePresence, useAnimation } from 'framer-motion';
+import { motion, AnimatePresence, useAnimation, useMotionValue, useTransform } from "framer-motion";
 import { useNotification } from '@/stores/useNotificationStore';
 import { SavedQuiz } from '../types';
 
@@ -25,6 +25,8 @@ export const AttemptedQuizCard: React.FC<AttemptedQuizCardProps> = ({ quiz, inde
     // Swipe gestures
     const controls = useAnimation();
     const [isTouchDevice, setIsTouchDevice] = useState(false);
+    const x = useMotionValue(0);
+    const deleteOpacity = useTransform(x, [0, -20, -50], [0, 0, 1]);
 
     useEffect(() => {
         setIsTouchDevice(window.matchMedia('(pointer: coarse)').matches);
@@ -96,9 +98,9 @@ export const AttemptedQuizCard: React.FC<AttemptedQuizCardProps> = ({ quiz, inde
     return (
         <div className="relative group/card perspective-1000">
             {/* Delete Confirmation Overlay / Underlay for Touch Devices */}
-            <div className="absolute inset-y-0 right-0 w-24 bg-rose-500 rounded-3xl flex items-center justify-end pr-6 shadow-inner z-0 pointer-events-none">
+            <motion.div style={{ opacity: deleteOpacity }} className="absolute inset-y-0 right-0 w-24 bg-rose-500 rounded-3xl flex items-center justify-end pr-6 shadow-inner z-0 pointer-events-none">
                 <Trash2 className="w-6 h-6 text-white/80" />
-            </div>
+            </motion.div>
 
             <motion.div
                 drag={isTouchDevice ? "x" : false}
@@ -106,6 +108,7 @@ export const AttemptedQuizCard: React.FC<AttemptedQuizCardProps> = ({ quiz, inde
                 dragElastic={0.2}
                 onDragEnd={handleDragEnd}
                 animate={controls}
+                style={{ x }}
                 whileHover={!isTouchDevice ? { scale: 1.01 } : {}}
                 className="relative z-10 w-full h-full cursor-pointer touch-pan-y"
                 onClick={handleCardClick}
