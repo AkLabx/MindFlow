@@ -2,6 +2,7 @@ import React from 'react';
 import { AuthProvider } from '../features/auth/context/AuthContext';
 import { ToastContainer } from '../components/ui/Notification/ToastContainer';
 import { Popup } from '../components/ui/Notification/Popup';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 interface AppProviderProps {
   children: React.ReactNode;
@@ -18,12 +19,23 @@ interface AppProviderProps {
  * @param {React.ReactNode} props.children - The child components (the rest of the app).
  * @returns {JSX.Element} The composed provider tree.
  */
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+      retry: 1,
+    },
+  },
+});
+
 export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   return (
-    <AuthProvider>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
       {children}
       <ToastContainer />
       <Popup />
     </AuthProvider>
+    </QueryClientProvider>
   );
 };
