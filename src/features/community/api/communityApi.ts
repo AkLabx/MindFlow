@@ -16,6 +16,7 @@ export type Post = {
 };
 
 export const fetchPosts = async (limit = 20, cursor?: string): Promise<Post[]> => {
+  try {
   let query = supabase
     .from('posts')
     .select(`
@@ -63,6 +64,10 @@ export const fetchPosts = async (limit = 20, cursor?: string): Promise<Post[]> =
     comments_count: commentsCountMap[p.id] || 0,
     is_liked_by_me: myLikedPostIds.has(p.id)
   }));
+  } catch (err) {
+    console.error('Fetch posts error:', err);
+    return [];
+  }
 };
 
 export const toggleLikePost = async (postId: string, userId: string, currentlyLiked: boolean) => {

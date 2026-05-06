@@ -25,6 +25,7 @@ export type ChatMessage = {
 };
 
 export const fetchUserRooms = async (userId: string): Promise<ChatRoom[]> => {
+  try {
   // First find rooms the user is in
   const { data: myParticipants, error: pError } = await supabase
     .from('chat_participants')
@@ -71,6 +72,10 @@ export const fetchUserRooms = async (userId: string): Promise<ChatRoom[]> => {
       ...profileMap.get(p.user_id)
     }))
   }));
+  } catch (err) {
+    console.error('Fetch user rooms error:', err);
+    return [];
+  }
 };
 
 export const uploadChatMedia = async (file: File, userId: string): Promise<string> => {
