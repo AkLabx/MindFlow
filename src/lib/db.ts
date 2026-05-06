@@ -178,17 +178,7 @@ export const db = {
     },
 
     /** Background delete helper to sync deletion to Supabase if logged in */
-    _deleteFromSupabase: async (type: 'quiz' | 'bookmark' | 'history_all', id?: string) => {
-        try {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (!session?.user) return;
-            if (type === 'quiz' && id) await syncService.deleteSavedQuiz(session.user.id, id);
-            else if (type === 'bookmark' && id) await syncService.removeBookmark(session.user.id, id);
-            else if (type === 'history_all') await syncService.deleteUserQuizHistory(session.user.id);
-        } catch (e) {
-            console.error('Background delete error:', e);
-        }
-    },
+
 
     /**
      * Saves a new quiz to the database.
@@ -272,7 +262,6 @@ export const db = {
             const request = store.delete(id);
 
             request.onsuccess = () => {
-                db._deleteFromSupabase('quiz', id);
                 resolve();
             };
             request.onerror = () => reject(request.error);
@@ -396,7 +385,6 @@ export const db = {
             const request = store.clear();
 
             request.onsuccess = () => {
-                db._deleteFromSupabase('history_all');
                 resolve();
             };
             request.onerror = () => reject(request.error);
@@ -450,7 +438,6 @@ export const db = {
             const request = store.delete(id);
 
             request.onsuccess = () => {
-                db._deleteFromSupabase('bookmark', id);
                 resolve();
             };
             request.onerror = () => reject(request.error);

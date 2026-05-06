@@ -116,18 +116,19 @@ export const syncService = {
     }
 
     if (attempts && attempts.length > 0) {
-      const { error: attemptsError } = await supabase.from('question_attempts').insert(
-        attempts.map(a => ({
-          user_id: userId,
-          quiz_history_id: history.id,
-          question_id: a.questionId,
-          is_correct: a.isCorrect,
-          time_taken: a.timeTaken,
-          subject: a.subject,
-          topic: a.topic
-        }))
-      );
-      if (attemptsError) console.error('Error pushing question attempts:', attemptsError);
+      // question_attempts table no longer exists. Use user_answers or quiz_attempts if needed in the future.
+      // const { error: attemptsError } = await supabase.from('question_attempts').insert(
+        // attempts.map(a => ({
+        //   user_id: userId,
+        //   quiz_history_id: history.id,
+        //   question_id: a.questionId,
+        //   is_correct: a.isCorrect,
+        //   time_taken: a.timeTaken,
+        //   subject: a.subject,
+        //   topic: a.topic
+        // }))
+      // );
+      // if (attemptsError) console.error('Error pushing question attempts:', attemptsError);
     }
   },
 
@@ -136,11 +137,11 @@ export const syncService = {
    * Deletes all quiz history and associated question attempts for a user from Supabase.
    */
   deleteUserQuizHistory: async (userId: string) => {
-    // Note: Due to lack of CASCADE DELETE, we must manually delete question_attempts first
-    const { error: attemptsError } = await supabase.from('question_attempts').delete().eq('user_id', userId);
-    if (attemptsError) {
-      console.error('Error deleting question attempts:', attemptsError);
-    }
+    // Note: question_attempts no longer exists.
+    // const { error: attemptsError } = await supabase.from('question_attempts').delete().eq('user_id', userId);
+    // if (attemptsError) {
+    //   console.error('Error deleting question attempts:', attemptsError);
+    // }
 
     const { error: historyError } = await supabase.from('quiz_history').delete().eq('user_id', userId);
     if (historyError) {
@@ -168,18 +169,8 @@ export const syncService = {
    * Pushes a synonym interaction to Supabase.
    */
   pushSynonymInteraction: async (userId: string, interaction: SynonymInteraction) => {
-    const { error } = await supabase.from('user_synonym_interactions').upsert({
-      user_id: userId,
-      word_id: interaction.wordId,
-      mastery_level: interaction.masteryLevel,
-      daily_challenge_score: interaction.dailyChallengeScore || 0,
-      gamification_score: interaction.gamificationScore || 0,
-      viewed_explanation: interaction.viewedExplanation || false,
-      viewed_word_family: interaction.viewedWordFamily || false,
-      last_interacted_at: interaction.lastInteractedAt,
-    }, { onConflict: 'user_id, word_id' });
-
-    if (error) console.error('Error pushing synonym interaction:', error);
+    // user_synonym_interactions table missing, skipped
+    return Promise.resolve();
   },
 
     /**
@@ -301,7 +292,7 @@ export const syncService = {
         supabase.from('saved_quizzes').select('*, bridge_saved_quiz_questions(question_id, sort_order)').eq('user_id', userId),
         supabase.from('quiz_history').select('*').eq('user_id', userId),
         supabase.from('user_bookmarks').select('question_id').eq('user_id', userId),
-        supabase.from('user_synonym_interactions').select('*').eq('user_id', userId),
+        Promise.resolve({ data: [] }), // supabase.from('user_synonym_interactions').select('*').eq('user_id', userId),
         supabase.from('user_ows_interactions').select('*').eq('user_id', userId),
         supabase.from('user_idiom_interactions').select('*').eq('user_id', userId)
       ]);
@@ -357,7 +348,7 @@ export const syncService = {
         const remoteQuizIds = new Set((remoteQuizzes || []).map(q => q.id));
         const remoteHistoryIds = new Set((remoteHistory || []).map(h => h.id));
         const remoteBookmarkIds = new Set((remoteBookmarks || []).map(b => b.question_id));
-        const remoteSynonymIds = new Set((remoteSynonyms || []).map(s => s.word_id));
+        const remoteSynonymIds = new Set((remoteSynonyms || []).map((s: any) => s.word_id));
         const remoteOWSIds = new Set((remoteOWS || []).map(o => o.word_id));
         const remoteIdiomIds = new Set((remoteIdioms || []).map(i => i.idiom_id));
 
@@ -436,14 +427,14 @@ export const syncService = {
       if (remoteSynonyms) {
         for (const remote of remoteSynonyms) {
           await db.saveSynonymInteraction({
-            wordId: remote.word_id,
+            wordId: (remote as any).word_id,
             wordString: '', // Missing string data from backend, relies on UI hydrating it later
-            masteryLevel: remote.mastery_level,
-            dailyChallengeScore: remote.daily_challenge_score,
-            gamificationScore: remote.gamification_score,
-            viewedExplanation: remote.viewed_explanation,
-            viewedWordFamily: remote.viewed_word_family,
-            lastInteractedAt: remote.last_interacted_at
+            masteryLevel: (remote as any).mastery_level,
+            dailyChallengeScore: (remote as any).daily_challenge_score,
+            gamificationScore: (remote as any).gamification_score,
+            viewedExplanation: (remote as any).viewed_explanation,
+            viewedWordFamily: (remote as any).viewed_word_family,
+            lastInteractedAt: (remote as any).last_interacted_at
           });
         }
       }
