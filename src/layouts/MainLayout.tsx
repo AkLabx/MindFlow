@@ -6,6 +6,7 @@ import { cn } from '../utils/cn';
 import { useAuth } from '../features/auth/context/AuthContext';
 import { useQuizContext } from '../features/quiz/context/QuizContext';
 import { useSettingsStore } from '../stores/useSettingsStore';
+import { useSocialStore } from '../stores/useSocialStore';
 import { ClaymorphismSwitch } from '../features/quiz/components/ui/ClaymorphismSwitch';
 import { NotificationBell } from '../features/notifications/components/NotificationBell';
 import { SidePanel } from '../components/layout/SidePanel';
@@ -51,8 +52,19 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
   const { user } = useAuth();
   const { isReviewMode } = useQuizContext();
   const { isDarkMode, toggleDarkMode } = useSettingsStore();
+  const { isSocialMode, toggleSocialMode } = useSocialStore();
   const location = useLocation();
   const isAIFullScreen = location.pathname.startsWith('/ai/chat') || location.pathname.startsWith('/ai/talk') || location.pathname.startsWith('/tools/text-exporter') || location.pathname.startsWith('/tools/flashcard-maker');
+
+  // Auto toggle based on pathname if user lands directly on a social route
+  useEffect(() => {
+    if (location.pathname.startsWith('/community') || location.pathname.startsWith('/messages')) {
+      if (!isSocialMode) toggleSocialMode(true);
+    } else if (isSocialMode && !location.pathname.startsWith('/community') && !location.pathname.startsWith('/messages') && !location.pathname.startsWith('/search') && !location.pathname.startsWith('/reels')) {
+      toggleSocialMode(false);
+    }
+  }, [location.pathname]);
+
   const [isSidePanelOpen, setIsSidePanelOpen] = useState(false);
 
   // Golden Ring Animation Setup
@@ -232,7 +244,18 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
             ? "max-w-none p-0 overflow-hidden h-full"
             : cn("max-w-3xl mx-auto px-4 pt-4", isReviewMode ? "pb-4" : "pb-24")
       )}>
-        {children}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={isSocialMode ? 'social' : 'learn'}
+            initial={{ opacity: 0, x: isSocialMode ? 50 : -50 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: isSocialMode ? -50 : 50 }}
+            transition={{ duration: 0.3, ease: 'easeInOut' }}
+            className="w-full h-full"
+          >
+            {children}
+          </motion.div>
+        </AnimatePresence>
       </main>
 
       {/* --- Sticky Bottom Tab Bar --- */}
@@ -284,7 +307,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
           </motion.div>
 
           {/* If we are in the community section, render Social Tabs instead */}
-          {(activeTab as any) === 'community' || (activeTab as any) === 'messages' || (activeTab as any) === 'search' || (activeTab as any) === 'reels' ? (
+          {isSocialMode ? (
             <>
               <NavTab 
                 id="community" 

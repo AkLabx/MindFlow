@@ -1,145 +1,146 @@
-import React, { useState, useEffect } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { motion, AnimatePresence } from 'framer-motion';
-import { fetchPosts, toggleLikePost, Post } from '../api/communityApi';
-import { useSocialRealtime } from '../hooks/useSocialRealtime';
+import React, { useEffect, useRef, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { fetchPosts, Post } from '../api/communityApi';
 import { useAuth } from '../../auth/context/AuthContext';
-import { Heart, MessageCircle, Share2, MoreVertical } from 'lucide-react';
+import { Heart, MessageCircle, Share2, MoreVertical, ArrowLeft } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { cn } from '../../../utils/cn';
 
-export const CommunityFeed: React.FC = () => {
-  const { user } = useAuth();
-  useSocialRealtime();
-  const queryClient = useQueryClient();
-
+export const ReelsFeed: React.FC = () => {
+  const navigate = useNavigate();
   const { data: posts, isLoading } = useQuery({
-    queryKey: ['community-posts'],
+    queryKey: ['community-posts-reels'],
     queryFn: () => fetchPosts(),
   });
 
-  const likeMutation = useMutation({
-    mutationFn: ({ postId, currentlyLiked }: { postId: string, currentlyLiked: boolean }) => 
-      toggleLikePost(postId, user!.id, currentlyLiked),
-    onMutate: async ({ postId, currentlyLiked }) => {
-      // Optimistic Update
-      await queryClient.cancelQueries({ queryKey: ['community-posts'] });
-      const previousPosts = queryClient.getQueryData<Post[]>(['community-posts']);
-      
-      queryClient.setQueryData<Post[]>(['community-posts'], (old) => {
-        if (!old) return [];
-        return old.map(p => {
-          if (p.id === postId) {
-            return {
-              ...p,
-              is_liked_by_me: !currentlyLiked,
-              likes_count: p.likes_count ? p.likes_count + (currentlyLiked ? -1 : 1) : (currentlyLiked ? 0 : 1)
-            };
-          }
-          return p;
-        });
-      });
-      return { previousPosts };
-    },
-    onError: (err, newTodo, context) => {
-      if (context?.previousPosts) {
-        queryClient.setQueryData(['community-posts'], context.previousPosts);
-      }
-    },
-    onSettled: () => {
-      // Optionally invalidate to ensure sync
-      // queryClient.invalidateQueries({ queryKey: ['community-posts'] });
-    }
-  });
+  // Filter out to only reels/videos for demo purposes
+  // Since we only seeded text, we'll map them for testing the layout if no media exists
+  const reelPosts = posts?.filter(p => p.type === 'reel' || p.type === 'video' || p.media_url || p.type === 'text') || [];
 
   if (isLoading) {
-    return <div className="flex justify-center items-center h-full text-white">Loading Feed...</div>;
+    return <div className="h-screen w-full flex items-center justify-center bg-black text-white">Loading Reels...</div>;
   }
 
   return (
-    <div className="flex flex-col items-center w-full max-w-2xl mx-auto pb-32">
-      {posts?.map((post) => (
-        <PostCard 
-          key={post.id} 
-          post={post} 
-          onLike={() => {
-            if (!user) return;
-            likeMutation.mutate({ postId: post.id, currentlyLiked: !!post.is_liked_by_me });
-          }} 
-        />
-      ))}
+    <div className="h-[100dvh] w-full bg-black overflow-y-scroll snap-y snap-mandatory hide-scrollbar relative z-50">
+      {/* Absolute Back Button */}
+      <div className="absolute top-safe left-4 z-50 mt-4">
+        <button onClick={() => navigate(-1)} className="p-2 rounded-full bg-black/40 backdrop-blur-md text-white border border-white/10">
+          <ArrowLeft size={24} />
+        </button>
+      </div>
+
+      {reelPosts.length === 0 ? (
+        <div className="h-full w-full flex items-center justify-center text-slate-500">No reels available</div>
+      ) : (
+        reelPosts.map((post) => (
+          <ReelItem key={post.id} post={post} />
+        ))
+      )}
     </div>
   );
 };
 
-const PostCard: React.FC<{ post: Post, onLike: () => void }> = ({ post, onLike }) => {
+const ReelItem: React.FC<{ post: Post }> = ({ post }) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          setIsVisible(entry.isIntersecting);
+          // Here we would play/pause a video element based on entry.isIntersecting
+        });
+      },
+      { threshold: 0.6 } // trigger when 60% of the reel is visible
+    );
+
+    if (containerRef.current) {
+      observer.observe(containerRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, []);
+
   return (
-    <motion.div 
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="w-full bg-slate-900/50 backdrop-blur-md border border-slate-800/50 rounded-2xl p-4 mb-4"
+    <div
+      ref={containerRef}
+      className="h-[100dvh] w-full snap-start relative bg-slate-900 overflow-hidden flex items-center justify-center"
     >
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-slate-700 overflow-hidden">
+      {/* Background Media (Simulated Video/Image) */}
+      {post.media_url ? (
+         <img src={post.media_url} className="absolute inset-0 w-full h-full object-cover opacity-80" alt="Reel media" />
+      ) : (
+         <div className="absolute inset-0 w-full h-full bg-gradient-to-b from-indigo-900 to-black flex items-center justify-center p-8 text-center text-2xl font-bold text-white/50 leading-relaxed">
+            {post.content}
+         </div>
+      )}
+
+      {/* Overlay Gradient for Text Readability */}
+      <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black/90 via-black/40 to-transparent pointer-events-none" />
+
+      {/* Side Action Bar */}
+      <div className="absolute right-4 bottom-24 flex flex-col items-center gap-6 z-10">
+        <button className="flex flex-col items-center gap-1 group">
+          <div className="p-3 bg-black/40 backdrop-blur-md rounded-full text-white border border-white/10 group-active:scale-90 transition-transform">
+            <Heart size={28} className={cn(post.is_liked_by_me && "fill-red-500 text-red-500")} />
+          </div>
+          <span className="text-white text-xs font-semibold drop-shadow-md">{post.likes_count || 0}</span>
+        </button>
+
+        <button className="flex flex-col items-center gap-1 group">
+          <div className="p-3 bg-black/40 backdrop-blur-md rounded-full text-white border border-white/10 group-active:scale-90 transition-transform">
+            <MessageCircle size={28} />
+          </div>
+          <span className="text-white text-xs font-semibold drop-shadow-md">{post.comments_count || 0}</span>
+        </button>
+
+        <button className="flex flex-col items-center gap-1 group">
+          <div className="p-3 bg-black/40 backdrop-blur-md rounded-full text-white border border-white/10 group-active:scale-90 transition-transform">
+            <Share2 size={28} />
+          </div>
+          <span className="text-white text-xs font-semibold drop-shadow-md">Share</span>
+        </button>
+      </div>
+
+      {/* Bottom Content Area */}
+      <div className="absolute bottom-0 left-0 right-16 p-4 z-10">
+        <div className="flex items-center gap-3 mb-3">
+          <div className="w-10 h-10 rounded-full bg-slate-700 border border-white/20 overflow-hidden">
             {post.profiles?.avatar_url ? (
               <img src={post.profiles.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
             ) : (
               <div className="w-full h-full bg-gradient-to-br from-indigo-500 to-purple-500" />
             )}
           </div>
-          <div>
-            <div className="font-semibold text-slate-200">{post.profiles?.full_name || 'Anonymous User'}</div>
-            <div className="text-xs text-slate-500">{new Date(post.created_at).toLocaleDateString()}</div>
-          </div>
+          <span className="text-white font-semibold drop-shadow-md">{post.profiles?.full_name || 'MindFlow User'}</span>
+          <button className="px-3 py-1 rounded-full border border-white/50 text-white text-xs font-semibold backdrop-blur-sm bg-white/10">
+            Follow
+          </button>
         </div>
-        <button className="text-slate-400 hover:text-white">
-          <MoreVertical size={20} />
-        </button>
+
+        {post.media_url && (
+          <p className="text-white text-sm line-clamp-2 drop-shadow-md mb-2">
+            {post.content}
+          </p>
+        )}
       </div>
 
-      <div className="text-slate-200 mb-4 whitespace-pre-wrap">
-        {post.content}
-      </div>
-
-      {post.media_url && (
-        <div className="w-full rounded-xl overflow-hidden mb-4 bg-slate-950">
-          <img src={post.media_url} alt="Post media" className="w-full h-auto" loading="lazy" />
-        </div>
-      )}
-
-      {post.hls_stream_url && (
-        <div className="w-full aspect-[9/16] rounded-xl overflow-hidden mb-4 bg-black relative flex items-center justify-center">
-          <span className="text-slate-500 text-sm">Video Stream Ready (IntersectionObserver Pending)</span>
-        </div>
-      )}
-
-      <div className="flex items-center gap-6 mt-4 pt-4 border-t border-slate-800/50">
-        <button 
-          onClick={onLike}
-          className="flex items-center gap-2 group"
-        >
+      {/* Playing indicator */}
+      <AnimatePresence>
+        {isVisible && (
           <motion.div
-            whileTap={{ scale: 0.8 }}
-            className={cn("p-2 rounded-full transition-colors", post.is_liked_by_me ? "bg-red-500/20 text-red-500" : "bg-slate-800/50 text-slate-400 group-hover:bg-slate-800")}
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute top-safe right-4 mt-4 bg-red-500 text-white text-[10px] font-bold px-2 py-1 rounded border border-red-400 shadow-lg"
           >
-            <Heart size={20} className={cn(post.is_liked_by_me && "fill-current")} />
+            LIVE
           </motion.div>
-          <span className="text-sm font-medium text-slate-400">{post.likes_count || 0}</span>
-        </button>
-
-        <button className="flex items-center gap-2 group">
-          <div className="p-2 rounded-full bg-slate-800/50 text-slate-400 group-hover:bg-slate-800 transition-colors">
-            <MessageCircle size={20} />
-          </div>
-          <span className="text-sm font-medium text-slate-400">{post.comments_count || 0}</span>
-        </button>
-
-        <button className="flex items-center gap-2 group ml-auto">
-          <div className="p-2 rounded-full bg-slate-800/50 text-slate-400 group-hover:bg-slate-800 transition-colors">
-            <Share2 size={20} />
-          </div>
-        </button>
-      </div>
-    </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
   );
 };
