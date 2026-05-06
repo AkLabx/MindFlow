@@ -244,18 +244,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
             ? "max-w-none p-0 overflow-hidden h-full"
             : cn("max-w-3xl mx-auto px-4 pt-4", isReviewMode ? "pb-4" : "pb-24")
       )}>
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={isSocialMode ? 'social' : 'learn'}
-            initial={{ opacity: 0, x: isSocialMode ? 50 : -50 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: isSocialMode ? -50 : 50 }}
-            transition={{ duration: 0.3, ease: 'easeInOut' }}
-            className="w-full h-full"
-          >
-            {children}
-          </motion.div>
-        </AnimatePresence>
+        {children}
       </main>
 
       {/* --- Sticky Bottom Tab Bar --- */}
