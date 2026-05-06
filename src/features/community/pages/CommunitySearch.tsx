@@ -130,12 +130,13 @@ export const CommunitySearch: React.FC = () => {
                     <div className="space-y-4">
                         {results.map((profile, i) => (
                             <motion.div
-                                initial={{ opacity: 0, y: 10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: i * 0.05 }}
-                                key={profile.id}
-                                className="flex items-center justify-between p-3 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 transition-colors"
-                            >
+    initial={{ opacity: 0, y: 10 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ delay: i * 0.05 }}
+    key={profile.id}
+    onClick={() => navigate(`/community/user/${profile.id}`)}
+    className="flex items-center justify-between p-3 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 transition-colors cursor-pointer"
+>
                                 <div className="flex items-center gap-3">
                                     <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-blue-500 to-purple-500 flex items-center justify-center text-lg font-bold text-white overflow-hidden shadow-inner">
                                         {profile.avatar_url ? (
@@ -151,7 +152,7 @@ export const CommunitySearch: React.FC = () => {
                                 </div>
 
                                 <button
-                                    onClick={() => handleToggleFollow(profile)}
+                                    onClick={(e) => { e.stopPropagation(); handleToggleFollow(profile); }}
                                     className={cn(
                                         "px-4 py-2 rounded-xl text-sm font-medium transition-all flex items-center gap-2",
                                         profile.is_following

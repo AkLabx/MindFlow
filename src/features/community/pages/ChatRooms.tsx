@@ -208,7 +208,7 @@ const ActiveChatRoom: React.FC<{ room: ChatRoom; onBack: () => void }> = ({ room
   return (
     <div className="flex flex-col h-[calc(100vh-140px)] w-full max-w-2xl mx-auto bg-slate-950">
       {/* Header */}
-      <div className="flex items-center gap-3 p-4 bg-slate-900/80 backdrop-blur-md border-b border-slate-800 sticky top-0 z-10">
+      <div className="flex items-center gap-3 p-4 bg-slate-950/80 backdrop-blur-xl border-b border-white/5 sticky top-0 z-10">
         <button onClick={onBack} className="p-2 -ml-2 rounded-full hover:bg-slate-800 text-slate-300">
           <ArrowLeft size={20} />
         </button>
@@ -235,8 +235,8 @@ const ActiveChatRoom: React.FC<{ room: ChatRoom; onBack: () => void }> = ({ room
                     className={cn(
                       "max-w-[75%] rounded-2xl px-4 py-2",
                       isMine 
-                        ? "bg-indigo-600 text-white rounded-br-sm" 
-                        : "bg-slate-800 text-slate-200 rounded-bl-sm",
+                        ? "bg-blue-600 text-white rounded-br-sm shadow-md shadow-blue-600/20"
+                        : "bg-white/10 backdrop-blur-md text-white rounded-bl-sm border border-white/5 shadow-sm",
                       msg.status === 'sending' && "opacity-60"
                     )}
                   >
@@ -265,13 +265,13 @@ const ActiveChatRoom: React.FC<{ room: ChatRoom; onBack: () => void }> = ({ room
       </div>
 
       {/* Input Area */}
-      <form onSubmit={handleSend} className="p-4 bg-slate-900 border-t border-slate-800 pb-[env(safe-area-inset-bottom)] relative">
+      <form onSubmit={handleSend} className="p-4 bg-slate-950/90 backdrop-blur-xl border-t border-white/5 pb-[env(safe-area-inset-bottom)] relative">
         {isUploading && (
           <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-xs text-indigo-400 animate-pulse bg-slate-900 px-3 py-1 rounded-full border border-slate-800">
             Uploading media...
           </div>
         )}
-        <div className="flex items-center gap-2 bg-slate-800/50 rounded-full p-1 pl-4 pr-1">
+        <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-full p-1 pl-4 pr-1">
           <input
             type="text"
             value={newMessage}
@@ -291,7 +291,7 @@ const ActiveChatRoom: React.FC<{ room: ChatRoom; onBack: () => void }> = ({ room
           <button 
             type="submit" 
             disabled={(!newMessage.trim() && !isUploading)}
-            className="p-3 bg-indigo-600 text-white rounded-full hover:bg-indigo-500 disabled:opacity-50 disabled:bg-slate-700 transition-colors"
+            className="p-3 bg-blue-600 text-white rounded-full hover:bg-blue-500 shadow-lg shadow-blue-500/30 disabled:opacity-50 disabled:bg-slate-700 transition-colors"
           >
             <Send size={18} className="translate-x-[1px] -translate-y-[1px]" />
           </button>

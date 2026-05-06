@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
-import { fetchPosts, toggleLikePost, Post } from '../api/communityApi';
+import { fetchPosts, toggleLikePost, createPost, Post } from '../api/communityApi';
 import { useSocialRealtime } from '../hooks/useSocialRealtime';
 import { useAuth } from '../../auth/context/AuthContext';
-import { Heart, MessageCircle, Share2, MoreVertical } from 'lucide-react';
+import { Heart, MessageCircle, Share2, MoreVertical, Plus, Image as ImageIcon, X, Loader2 } from 'lucide-react';
 import { cn } from '../../../utils/cn';
 import { useNotificationStore } from '../../../stores/useNotificationStore';
+import { useNavigate } from 'react-router-dom';
 
 // --- Particle Component for "Wow" Effect ---
 const FloatingHeart: React.FC<{ x: number, y: number, onComplete: () => void }> = ({ x, y, onComplete }) => {
@@ -36,7 +37,43 @@ export const CommunityFeed: React.FC = () => {
   const { user } = useAuth();
   useSocialRealtime();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [particles, setParticles] = useState<{ id: number; x: number; y: number }[]>([]);
+
+
+  const [isComposeOpen, setIsComposeOpen] = useState(false);
+  const [composeText, setComposeText] = useState('');
+  const [composeFile, setComposeFile] = useState<File | null>(null);
+  const [composePreview, setComposePreview] = useState<string | null>(null);
+  const { showToast } = useNotificationStore();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const createPostMutation = useMutation({
+    mutationFn: () => createPost(user!.id, composeText, composeFile ? 'image' : 'text', composeFile || undefined),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['community-posts'] });
+      setIsComposeOpen(false);
+      setComposeText('');
+      setComposeFile(null);
+      setComposePreview(null);
+      showToast({ title: 'Success', message: 'Post created successfully!', variant: 'success' });
+    },
+    onError: (err: any) => {
+      showToast({ title: 'Error', message: err.message || 'Failed to create post', variant: 'error' });
+    }
+  });
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setComposeFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setComposePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const { data: posts, isLoading } = useQuery({
     queryKey: ['community-posts'],
@@ -115,6 +152,7 @@ export const CommunityFeed: React.FC = () => {
             likeMutation.mutate({ postId: post.id, currentlyLiked: !!post.is_liked_by_me });
           }}
           onDoubleTap={(x, y) => handleDoubleTapLike(post.id, !!post.is_liked_by_me, x, y)}
+          navigate={navigate}
         />
       ))}
     </div>
@@ -122,10 +160,11 @@ export const CommunityFeed: React.FC = () => {
 };
 
 const PostCard: React.FC<{
+  navigate: any;
   post: Post,
   onLike: () => void,
   onDoubleTap: (x: number, y: number) => void
-}> = ({ post, onLike, onDoubleTap }) => {
+}> = ({ post, onLike, onDoubleTap, navigate }) => {
   const lastTapRef = useRef<number>(0);
 
   const handleTouchEnd = (e: React.TouchEvent | React.MouseEvent) => {
@@ -154,7 +193,7 @@ const PostCard: React.FC<{
       className="w-full bg-slate-900/60 backdrop-blur-xl border border-slate-800/50 rounded-3xl p-4 mb-6 shadow-xl"
     >
       <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 cursor-pointer" onClick={(e) => { e.stopPropagation(); navigate(`/community/user/${post.user_id}`); }}>
           <div className="w-10 h-10 rounded-full bg-slate-800 border border-slate-700 overflow-hidden">
             {post.profiles?.avatar_url ? (
               <img src={post.profiles.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
