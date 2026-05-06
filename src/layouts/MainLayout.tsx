@@ -60,7 +60,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
   useEffect(() => {
     if (location.pathname.startsWith('/community') || location.pathname.startsWith('/messages')) {
       if (!isSocialMode) toggleSocialMode(true);
-    } else if (isSocialMode && !location.pathname.startsWith('/community') && !location.pathname.startsWith('/messages') && !location.pathname.startsWith('/search') && !location.pathname.startsWith('/reels')) {
+    } else if (isSocialMode && !location.pathname.startsWith('/community') && !location.pathname.startsWith('/messages')) {
       toggleSocialMode(false);
     }
   }, [location.pathname]);
