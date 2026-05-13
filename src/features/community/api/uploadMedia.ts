@@ -14,7 +14,7 @@ export const uploadMediaWithProgress = async (
 
       const fileExt = file.name.split('.').pop();
       const fileName = `${userId}-${Date.now()}.${fileExt}`;
-      const bucketName = file.type.startsWith('video/') ? 'reels_media' : 'post_media';
+      const bucketName = 'post_media';
       const projectId = 'sjcfagpjstbfxuiwhlps';
 
       const uploadUrl = `https://${projectId}.supabase.co/storage/v1/upload/resumable`;

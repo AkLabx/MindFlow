@@ -6,7 +6,7 @@ export type Post = {
   content: string | null;
   media_url: string | null;
   hls_stream_url: string | null;
-  type: 'text' | 'image' | 'reel';
+  type: 'text' | 'image' | 'video' | 'reel';
   created_at: string;
   updated_at: string;
   profiles?: { id?: string; full_name: string | null; username?: string; avatar_url: string | null };
@@ -298,7 +298,7 @@ export const toggleFollow = async (followerId: string, followingId: string, curr
     }
 };
 
-export const createPost = async (userId: string, content: string, type: 'text' | 'image' | 'reel' = 'text', mediaUrl?: string) => {
+export const createPost = async (userId: string, content: string, type: 'text' | 'image' | 'video' | 'reel' = 'text', mediaUrl?: string) => {
     try {
         let media_url = mediaUrl || null;
 

@@ -301,7 +301,7 @@ export const UserProfile: React.FC = () => {
                                 )}
 
                                 <div className="absolute top-2 right-2 p-1.5 bg-black/40 backdrop-blur-md rounded-full text-gray-900">
-                                    {post.type === 'reel' ? <Video size={14} /> :
+                                    {post.type === 'video' || post.type === 'reel' ? <Video size={14} /> :
                                      post.type === 'image' ? <ImageIcon size={14} /> :
                                      <FileText size={14} />}
                                 </div>

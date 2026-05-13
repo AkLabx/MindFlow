@@ -22,7 +22,7 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({ isOpen, onClos
   const [content, setContent] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [postType, setPostType] = useState<'text' | 'image' | 'reel'>('text');
+  const [postType, setPostType] = useState<'text' | 'image' | 'video' | 'reel'>('text');
 
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -44,7 +44,7 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({ isOpen, onClos
     onClose();
   };
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>, selectedType: 'image' | 'reel') => {
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>, selectedType: 'image' | 'video' | 'reel') => {
     const selectedFile = e.target.files?.[0];
     if (!selectedFile) return;
 
@@ -56,7 +56,7 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({ isOpen, onClos
       showToast({ title: 'Invalid File', message: 'Please select a valid image file.', variant: 'error' });
       return;
     }
-    if (selectedType === 'reel' && !isVideo) {
+    if ((selectedType === 'video' || selectedType === 'reel') && !isVideo) {
       showToast({ title: 'Invalid File', message: 'Please select a valid video file.', variant: 'error' });
       return;
     }
@@ -66,8 +66,8 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({ isOpen, onClos
       showToast({ title: 'File too large', message: 'Images must be under 5MB.', variant: 'error' });
       return;
     }
-    if (isVideo && fileSizeMB > 15) {
-      showToast({ title: 'File too large', message: 'Videos/Reels must be under 15MB.', variant: 'error' });
+    if (isVideo && fileSizeMB > 50) {
+      showToast({ title: 'File too large', message: 'Videos/Reels must be under 50MB.', variant: 'error' });
       return;
     }
 
@@ -78,7 +78,7 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({ isOpen, onClos
     setPreviewUrl(objectUrl);
   };
 
-  const triggerFileInput = (type: 'image' | 'reel') => {
+  const triggerFileInput = (type: 'image' | 'video' | 'reel') => {
     setPostType(type);
     if (fileInputRef.current) {
       fileInputRef.current.accept = type === 'image' ? 'image/*' : 'video/*';
@@ -201,7 +201,14 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({ isOpen, onClos
                 >
                   <ImageIcon size={20} />
                 </button>
-<button
+                <button
+                  onClick={() => triggerFileInput('video')}
+                  disabled={isUploading || !!file}
+                  className="p-3 rounded-xl bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  <Video size={20} />
+                </button>
+                <button
                   onClick={() => triggerFileInput('reel')}
                   disabled={isUploading || !!file}
                   className="p-3 rounded-xl bg-purple-50 text-purple-600 hover:bg-purple-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
