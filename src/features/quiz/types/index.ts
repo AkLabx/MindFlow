@@ -22,6 +22,7 @@ export interface SubjectStats {
  */
 export interface QuizHistoryRecord {
   id: string;
+  quiz_id?: string;
   date: number;
   totalQuestions: number;
   totalCorrect: number;
@@ -39,6 +40,7 @@ export interface QuizHistoryRecord {
 export interface SavedQuiz {
   /** Unique ID of the saved quiz. */
   id: string;
+  quiz_id?: string;
   /** User-defined name for the quiz. */
   name: string;
   /** Timestamp of creation (ms). */
@@ -119,6 +121,7 @@ export interface Synonym {
   hindiMeaning?: string;
   pos?: string;
   cluster_id: string;
+  quiz_id?: string;
 }
 
 export interface Antonym {
@@ -130,6 +133,7 @@ export interface Antonym {
 
 export interface SynonymWord {
   id: string;
+  quiz_id?: string;
   word: string;
   pos: string;
   repetition_raw: string;
@@ -140,6 +144,7 @@ export interface SynonymWord {
   hindiMeaning?: string;
   theme: string;
   cluster_id: string;
+  quiz_id?: string;
   confusable_with: string[];
   synonyms: Synonym[];
   antonyms: Antonym[];

@@ -99,6 +99,7 @@ export const syncService = {
   pushQuizHistory: async (userId: string, history: QuizHistoryRecord, attempts?: any[]) => {
     const { error: historyError } = await supabase.from('quiz_history').upsert({
       id: history.id,
+      quiz_id: history.quiz_id,
       user_id: userId,
       date: history.date,
       total_questions: history.totalQuestions,
@@ -121,6 +122,7 @@ export const syncService = {
         // attempts.map(a => ({
         //   user_id: userId,
         //   quiz_history_id: history.id,
+      quiz_id: history.quiz_id,
         //   question_id: a.questionId,
         //   is_correct: a.isCorrect,
         //   time_taken: a.timeTaken,

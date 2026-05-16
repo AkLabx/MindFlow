@@ -200,6 +200,7 @@ export const useQuiz = () => {
 
     const historyRecord: QuizHistoryRecord = {
       id: uuidv4(),
+      quiz_id: state.quizId,
       date: Date.now(),
       totalQuestions: state.activeQuestions.length,
       totalCorrect,
@@ -237,6 +238,7 @@ export const useQuiz = () => {
             // 2. Insert into quiz_history
             const { error: historyError } = await supabase.from('quiz_history').insert({
                 id: historyRecord.id,
+                quiz_id: state.quizId,
                 user_id: session.user.id,
                 date: new Date(historyRecord.date).toISOString(),
                 total_questions: historyRecord.totalQuestions,
