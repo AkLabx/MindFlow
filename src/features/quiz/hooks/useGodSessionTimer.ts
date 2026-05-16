@@ -8,7 +8,7 @@ interface UseGodSessionTimerProps {
 export function useGodSessionTimer({ totalTime, onTimeUp }: UseGodSessionTimerProps) {
   const [timeLeft, setTimeLeft] = useState(totalTime);
   const timeLeftRef = useRef(totalTime);
-  const currentQuestionTimeRef = useRef(0);
+  const currentQuestionTimeRef = useRef(Date.now());
   const workerRef = useRef<Worker | null>(null);
 
   // Use a stable reference to onTimeUp so it doesn't trigger effect re-runs
@@ -39,8 +39,7 @@ export function useGodSessionTimer({ totalTime, onTimeUp }: UseGodSessionTimerPr
                 }
                 const newTime = prev - 1;
                 timeLeftRef.current = newTime;
-                // Increment individual question timer
-                currentQuestionTimeRef.current += 1;
+                // Individual question time is now tracked via exact ms
                 return newTime;
             });
         }
@@ -61,15 +60,16 @@ export function useGodSessionTimer({ totalTime, onTimeUp }: UseGodSessionTimerPr
   };
 
   const getAndResetCurrentQuestionTime = useCallback(() => {
-    const timeSpent = currentQuestionTimeRef.current;
-    currentQuestionTimeRef.current = 0;
-    return timeSpent;
+    const now = Date.now();
+    const timeSpentMs = now - currentQuestionTimeRef.current;
+    currentQuestionTimeRef.current = now;
+    return timeSpentMs;
   }, []);
 
   return {
     timeLeft,
     formatTime,
     getAndResetCurrentQuestionTime,
-    getCurrentQuestionTimeRef: () => currentQuestionTimeRef.current
+    getCurrentQuestionTimeRef: () => (Date.now() - currentQuestionTimeRef.current)
   };
 }

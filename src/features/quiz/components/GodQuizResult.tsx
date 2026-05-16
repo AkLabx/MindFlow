@@ -42,7 +42,7 @@ export const GodQuizResult: React.FC<GodQuizResultProps> = ({
       else if (ans === q.correct) correct++;
       else incorrect++;
 
-      totalTime += timeTaken[q.id] || 0;
+      totalTime += (timeTaken[q.id] || 0) / 1000;
     });
 
     const accuracy = total > 0 ? (correct / total) * 100 : 0;
@@ -217,7 +217,7 @@ export const GodQuizResult: React.FC<GodQuizResultProps> = ({
                     </div>
                     <div className="divide-y divide-slate-800/50 max-h-[400px] overflow-y-auto custom-scrollbar">
                         {questions.map((q, idx) => {
-                            const time = timeTaken[q.id] || 0;
+                            const time = (timeTaken[q.id] || 0) / 1000;
                             const isDanger = time > stats.avgTimePerQuestion * 2 && time > 30;
                             const statusColor = answers[q.id] === q.correct ? 'text-emerald-400 border-emerald-400/30 bg-emerald-400/10' : (answers[q.id] ? 'text-red-400 border-red-400/30 bg-red-400/10' : 'text-slate-400 border-slate-600 bg-slate-800');
 

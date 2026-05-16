@@ -90,6 +90,14 @@ export function useQuizSessionTimer({
     secondsLeftRef.current = secondsLeftLearning;
   }, [secondsLeftLearning]);
 
+  // Exact time tracking for Learning Mode
+  const learningStartTimeRef = useRef(Date.now());
+  useEffect(() => {
+    if (!isMockMode) {
+      learningStartTimeRef.current = Date.now();
+    }
+  }, [questionId, isMockMode]);
+
   // 2. Mock Mode Timer (Global Countdown)
   const [secondsLeftMock] = useTimer({
     duration: globalTimeRemaining > 0 ? globalTimeRemaining : totalQuestions * APP_CONFIG.TIMERS.MOCK_MODE_DEFAULT_PER_QUESTION,
@@ -104,24 +112,26 @@ export function useQuizSessionTimer({
     secondsLeftMockRef.current = secondsLeftMock;
   }, [secondsLeftMock]);
 
-  // 3. Mock Mode Question Stopwatch (Count Up)
+  // 3. Mock Mode Question Stopwatch (Exact ms Tracking)
   useEffect(() => {
     setQuestionTimeElapsed(0);
     questionTimeRef.current = 0;
+    const startTime = Date.now();
 
+    // Visual timer update only
     const interval = setInterval(() => {
-      setQuestionTimeElapsed(prev => {
-        const next = prev + 1;
-        questionTimeRef.current = next;
-        return next;
-      });
+      const elapsedMs = Date.now() - startTime;
+      setQuestionTimeElapsed(elapsedMs);
+      questionTimeRef.current = elapsedMs;
     }, 1000);
 
     return () => {
       clearInterval(interval);
-      // When leaving a question in mock mode (unmount or id change), log the time spent
-      if (isMockMode && questionTimeRef.current > 0) {
-        onLogTime(questionId, questionTimeRef.current);
+      // Calculate exact ms on unmount
+      const finalElapsedMs = Date.now() - startTime;
+      // When leaving a question in mock mode (unmount or id change), log the precise time spent
+      if (isMockMode && finalElapsedMs > 0) {
+        onLogTime(questionId, finalElapsedMs);
       }
     };
   }, [questionId, isMockMode, onLogTime]);
@@ -132,6 +142,9 @@ export function useQuizSessionTimer({
           if (!isMockMode && !isAnswered) {
               // Use ref to get latest value without triggering re-render loop
               onSaveTime(questionId, secondsLeftRef.current);
+
+              // Also log exact time spent if needed here, but usually learning mode
+              // saves exact time at the moment of answering via the UI calling answerQuestion
           }
       };
   }, [questionId, isMockMode, isAnswered, onSaveTime]);

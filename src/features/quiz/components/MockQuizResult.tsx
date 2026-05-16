@@ -42,7 +42,7 @@ export const MockQuizResult: React.FC<MockQuizResultProps> = ({
       else if (ans === q.correct) correct++;
       else incorrect++;
 
-      totalTime += timeTaken[q.id] || 0;
+      totalTime += (timeTaken[q.id] || 0) / 1000;
     });
 
     const accuracy = total > 0 ? (correct / total) * 100 : 0;
@@ -207,7 +207,7 @@ export const MockQuizResult: React.FC<MockQuizResultProps> = ({
                     </div>
                     <div className="divide-y divide-slate-100 dark:divide-slate-800 max-h-[400px] overflow-y-auto">
                         {questions.map((q, idx) => {
-                            const time = timeTaken[q.id] || 0;
+                            const time = (timeTaken[q.id] || 0) / 1000;
                             const isSlow = time > stats.avgTimePerQuestion * 1.5 && time > 20;
                             const statusColor = answers[q.id] === q.correct ? 'text-emerald-500' : (answers[q.id] ? 'text-red-500' : 'text-slate-400');
 

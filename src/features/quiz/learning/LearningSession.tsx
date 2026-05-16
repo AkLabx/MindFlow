@@ -98,6 +98,11 @@ export const LearningSession: React.FC<LearningSessionProps> = ({
     }
 
     const userAnswer = answers[currentQuestion.id];
+    const questionMountTimeRef = React.useRef(Date.now());
+
+    React.useEffect(() => {
+        questionMountTimeRef.current = Date.now();
+    }, [currentQuestion.id]);
 
     // Check if question is conceptually "done"
     const isAnswered = !!userAnswer;
@@ -206,12 +211,10 @@ export const LearningSession: React.FC<LearningSessionProps> = ({
         if (isAnswered) return;
         if (isHapticEnabled && window.navigator && window.navigator.vibrate) window.navigator.vibrate(50);
 
-        // Calculate time spent on this question
-        // Total allowed - remaining = spent
-        const allowed = remainingTimes[currentQuestion.id] ?? APP_CONFIG.TIMERS.LEARNING_MODE_DEFAULT;
-        const spent = allowed - timeLeftRef.current;
+        // Calculate exact ms time spent on this question
+        const exactSpentMs = Date.now() - questionMountTimeRef.current;
 
-        onAnswer(currentQuestion.id, option, spent);
+        onAnswer(currentQuestion.id, option, exactSpentMs);
 
         if (option === currentQuestion.correct) {
             playCorrect();

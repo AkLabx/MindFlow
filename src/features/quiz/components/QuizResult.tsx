@@ -48,7 +48,7 @@ export const QuizResult: React.FC<QuizResultProps> = ({
 
   const accuracy = attempted > 0 ? Math.round((correct / attempted) * 100) : 0;
   
-  const totalTime = (Object.values(timeTaken) as number[]).reduce((a, b) => a + b, 0);
+  const totalTime = (Object.values(timeTaken) as number[]).reduce((a, b) => a + b, 0) / 1000;
   const formattedTime = `${Math.floor(totalTime / 60)}m ${Math.round(totalTime % 60)}s`;
 
   // Advanced Stats (Speed Analysis)
@@ -58,7 +58,7 @@ export const QuizResult: React.FC<QuizResultProps> = ({
       let skippedTime = 0, skippedCount = 0;
       
       questions.forEach(q => {
-          const t = timeTaken[q.id] || 0;
+          const t = (timeTaken[q.id] || 0) / 1000;
           const ans = answers[q.id];
 
           if (ans) {
@@ -93,7 +93,7 @@ export const QuizResult: React.FC<QuizResultProps> = ({
           if (!s[sub]) s[sub] = { total: 0, attempted: 0, correct: 0, incorrect: 0, timeSpent: 0 };
 
           s[sub].total++;
-          s[sub].timeSpent += (timeTaken[q.id] || 0);
+          s[sub].timeSpent += (timeTaken[q.id] || 0) / 1000;
 
           const ans = answers[q.id];
           if (ans) {

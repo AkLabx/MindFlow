@@ -98,7 +98,7 @@ export const QuizReview: React.FC<QuizReviewProps> = ({
   const currentAns = currentQuestion ? userAnswers[currentQuestion.id] : undefined;
   const isCorrect = currentQuestion && currentAns && quizEngine.getPlugin('mcq').validateAnswer(currentQuestion, currentAns);
   const isSkipped = currentQuestion && !currentAns;
-  const userTime = currentQuestion ? timeTaken[currentQuestion.id] : 0;
+  const userTime = currentQuestion ? (timeTaken[currentQuestion.id] || 0) / 1000 : 0;
 
   // Handle header visibility on scroll
   useEffect(() => {
