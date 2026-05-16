@@ -131,7 +131,7 @@ export const syncService = {
         // }))
       // );
       // if (attemptsError) console.error('Error pushing question attempts:', attemptsError);
-    }
+    } // CI Trigger update
   },
 
 
