@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuizSessionStore } from '../stores/useQuizSessionStore';
+import { useIsFetching, useIsMutating } from '@tanstack/react-query';
 import { supabase } from '../../../lib/supabase';
 import { SynapticLoader } from '../../../components/ui/SynapticLoader';
 import { ErrorState } from '../../../components/ui/ErrorState';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, WifiOff, RefreshCw } from 'lucide-react';
 
 export const QuizSessionGuard = ({ children }: { children: React.ReactNode }) => {
     const { quizId } = useParams<{ quizId: string }>();
@@ -12,6 +13,49 @@ export const QuizSessionGuard = ({ children }: { children: React.ReactNode }) =>
     const state = useQuizSessionStore();
     const [isHydrating, setIsHydrating] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const isFetching = useIsFetching();
+    const isMutating = useIsMutating();
+    const [isOnline, setIsOnline] = useState(navigator.onLine);
+
+    useEffect(() => {
+        const handleOnline = () => setIsOnline(true);
+        const handleOffline = () => setIsOnline(false);
+
+        window.addEventListener('online', handleOnline);
+        window.addEventListener('offline', handleOffline);
+
+        return () => {
+            window.removeEventListener('online', handleOnline);
+            window.removeEventListener('offline', handleOffline);
+        };
+    }, []);
+
+    const isSyncFailed = state.syncStatus === 'sync_failed_retrying';
+
+    // Show full screen blocking UI if we are totally offline or sync is explicitly failing
+    if (!isOnline || isSyncFailed) {
+        return (
+            <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm p-6 text-center">
+                <WifiOff className="w-16 h-16 text-rose-500 mb-6 animate-pulse" />
+                <h2 className="text-2xl font-bold text-slate-800 dark:text-white mb-2">
+                    {!isOnline ? 'Connection Lost' : 'Sync Failed'}
+                </h2>
+                <p className="text-slate-600 dark:text-slate-400 max-w-md mx-auto mb-8">
+                    {!isOnline
+                        ? 'Please check your internet connection. Your quiz is paused until you reconnect to prevent data loss.'
+                        : 'We could not save your recent answers to the cloud. Your quiz is paused to prevent data loss.'}
+                </p>
+                <button
+                    onClick={() => window.location.reload()}
+                    className="flex items-center gap-2 px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-xl transition-all shadow-lg shadow-emerald-500/20"
+                >
+                    <RefreshCw className="w-5 h-5" />
+                    Retry Connection
+                </button>
+            </div>
+        );
+    }
+
 
     useEffect(() => {
         const hydrateQuiz = async () => {

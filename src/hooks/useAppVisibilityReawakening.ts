@@ -19,7 +19,28 @@ export function useAppVisibilityReawakening() {
       queryClient.resumePausedMutations();
     };
 
+
+    const handleOnlineStatus = () => {
+        onlineManager.setOnline(navigator.onLine);
+        if (navigator.onLine) {
+            handleReawaken();
+        }
+    };
+
+    const handleFocusStatus = () => {
+        focusManager.setFocused(document.hasFocus());
+        if (document.hasFocus()) {
+            handleReawaken();
+        }
+    };
+
+    window.addEventListener('online', handleOnlineStatus);
+    window.addEventListener('offline', handleOnlineStatus);
+    window.addEventListener('focus', handleFocusStatus);
+    window.addEventListener('blur', handleFocusStatus);
+
     // Web / PWA listener
+
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
         handleReawaken();
@@ -54,6 +75,10 @@ export function useAppVisibilityReawakening() {
 
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('online', handleOnlineStatus);
+      window.removeEventListener('offline', handleOnlineStatus);
+      window.removeEventListener('focus', handleFocusStatus);
+      window.removeEventListener('blur', handleFocusStatus);
       if (capListener) {
         capListener.remove();
       }
