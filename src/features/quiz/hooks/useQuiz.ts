@@ -57,7 +57,7 @@ export const useQuiz = () => {
       });
       const { activeQuestions, ...stateWithoutQuestions } = stateToSave;
 
-      const syncToSupabase = async (isKeepAlive = false) => {
+      const syncToSupabase = async () => {
           if (!navigator.onLine) return;
           try {
               const { data: { session } } = await supabase.auth.getSession();
@@ -71,26 +71,12 @@ export const useQuiz = () => {
               // Note: keepalive is handled at the network level or not critical
               // for updating via the standard client. We use the supabase client here.
               let updateError = null;
-
-              if (isKeepAlive) {
-                  // If we need keepalive specifically, we would use raw fetch, but the prompt asks to
-                  // replace manual fetch PATCH flow with Supabase client update.
-                  // However, keepalive is hard to do with the Supabase JS client natively without passing global fetch options.
-                  // We'll follow the exact instruction: Replace manual fetch PATCH flow with Supabase client update.
-                  const { error } = await supabase
-                    .from('saved_quizzes')
-                    .update({ state: stateWithoutQuestions })
-                    .eq('id', state.quizId)
-                    .eq('user_id', userId);
-                  updateError = error;
-              } else {
-                  const { error } = await supabase
-                    .from('saved_quizzes')
-                    .update({ state: stateWithoutQuestions })
-                    .eq('id', state.quizId)
-                    .eq('user_id', userId);
-                  updateError = error;
-              }
+              const { error } = await supabase
+                .from('saved_quizzes')
+                .update({ state: stateWithoutQuestions })
+                .eq('id', state.quizId)
+                .eq('user_id', userId);
+              updateError = error;
 
               if (updateError) {
                   state.setSyncStatus('sync_failed_retrying');
@@ -106,29 +92,10 @@ export const useQuiz = () => {
 
       // 1. Debounce Logic: 2000ms delay for Optimistic UI protection
       const handler = setTimeout(() => {
-         syncToSupabase(false);
+         syncToSupabase();
       }, 2000);
 
-      // 2. Ironclad Safety Nets
-      const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-         clearTimeout(handler);
-         syncToSupabase(true); // Keepalive true
-      };
-
-      const handleVisibilityChange = () => {
-          if (document.visibilityState === 'hidden') {
-              clearTimeout(handler);
-              syncToSupabase(true); // Fire immediately when tab is backgrounded
-          }
-      };
-
-      window.addEventListener('beforeunload', handleBeforeUnload);
-      document.addEventListener('visibilitychange', handleVisibilityChange);
-
-      return () => {
-          clearTimeout(handler);
-          window.removeEventListener('beforeunload', handleBeforeUnload);
-          document.removeEventListener('visibilitychange', handleVisibilityChange);
+      return () => {        clearTimeout(handler);
       };
     }
   }, [

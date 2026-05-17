@@ -31,33 +31,7 @@ export const PresenceProvider = ({ children }: { children: React.ReactNode }) =>
         }
       });
 
-    const updateLastSeen = () => {
-      // Use standard fetch with keepalive to ensure it fires during unload
-      const updateData = { last_seen: new Date().toISOString() };
-
-      // Get the current session for auth token
-      supabase.auth.getSession().then(({ data: { session } }) => {
-        if (session) {
-          fetch(`${import.meta.env.VITE_SUPABASE_URL}/rest/v1/profiles?id=eq.${user.id}`, {
-            method: 'PATCH',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${session.access_token}`,
-              'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
-              'Prefer': 'return=minimal'
-            },
-            body: JSON.stringify(updateData),
-            keepalive: true
-          }).catch(console.error);
-        }
-      });
-    };
-
-    window.addEventListener('beforeunload', updateLastSeen);
-
     return () => {
-      window.removeEventListener('beforeunload', updateLastSeen);
-
       // Update last seen in DB when component unmounts (e.g. sign out)
       supabase.from('profiles').update({ last_seen: new Date().toISOString() }).eq('id', user.id);
 
