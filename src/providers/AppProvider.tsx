@@ -23,7 +23,21 @@ const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       refetchOnWindowFocus: true,
-      retry: 1,
+      refetchOnReconnect: true,
+      refetchOnMount: true,
+      staleTime: 30_000,
+      retry: (failureCount, error: any) => {
+        const message = String(error?.message || '').toLowerCase();
+        const isAuthOrPolicy =
+          message.includes('jwt') ||
+          message.includes('401') ||
+          message.includes('403') ||
+          message.includes('permission') ||
+          message.includes('rls');
+        if (isAuthOrPolicy) return false;
+        return failureCount < 3;
+      },
+      retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 10000),
     },
   },
 });
