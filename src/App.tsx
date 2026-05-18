@@ -19,13 +19,8 @@ import { SynapticLoader } from './components/ui/SynapticLoader';
  */
 import { PWAUpdateManager } from './components/common/PWAUpdateManager';
 import { PresenceProvider } from './components/PresenceProvider';
-import { useAppVisibilityReawakening } from './hooks/useAppVisibilityReawakening';
 
 
-const AppVisibilityWrapper = () => {
-  useAppVisibilityReawakening();
-  return null;
-};
 
 const App: React.FC = () => {
   const [isReady, setIsReady] = useState(false);
@@ -69,7 +64,6 @@ const App: React.FC = () => {
   return (
     <HashRouter>
       <AppProvider>
-        <AppVisibilityWrapper />
         <PresenceProvider>
           <PWAUpdateManager />
         <AppRoutes />
