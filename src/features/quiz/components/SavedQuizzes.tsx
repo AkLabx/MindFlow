@@ -28,7 +28,7 @@ import { ErrorState } from '../../../components/ui/ErrorState';
 export const SavedQuizzes: React.FC = () => {
     const navigate = useNavigate();
     const queryClient = useQueryClient();
-    const { data: quizzes = [], isLoading: loading } = useQuery({
+    const { data: quizzes = [], isLoading: loading, isError, error, refetch } = useQuery({
         queryKey: ['saved-quizzes'],
         queryFn: async () => {
             const { data: { session } } = await supabase.auth.getSession();
@@ -58,7 +58,8 @@ export const SavedQuizzes: React.FC = () => {
             const idArray = Array.from(allQuestionIds);
             if (idArray.length === 0) return [];
 
-            const { data: qData } = await supabase.from('questions').select('*').in('id', idArray);
+            const { data: qData, error: qError } = await supabase.from('questions').select('*').in('id', idArray);
+            if (qError) throw qError;
             const questionsMap = new Map((qData || []).map(q => [String(q.id), q]));
 
             return activeQuizzes.map(rq => {
@@ -233,6 +234,18 @@ export const SavedQuizzes: React.FC = () => {
         });
     }, [quizzes, sortMethod]);
 
+
+    if (isError) {
+        return (
+            <div className="pt-24 pb-16 px-4 md:px-8 max-w-7xl mx-auto min-h-screen">
+                <ErrorState
+
+                    message={error instanceof Error ? error.message : "Failed to load saved quizzes. Please check your connection."}
+                    onRetry={refetch}
+                />
+            </div>
+        );
+    }
 
     if (loading || isSyncing) {
         return (

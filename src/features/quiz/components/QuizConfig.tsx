@@ -220,10 +220,7 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
       });
 
       if (createError) {
-        console.error('Error saving quiz to Supabase:', createError);
-        alert('Failed to save quiz to server. Please try again.');
-        setIsStartingQuiz(false);
-        return;
+        throw createError;
       }
 
       // navigate to Saved route to fetch newly created quiz directly from the cloud
@@ -231,7 +228,7 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
 
     } catch (err) {
       console.error("Failed to create quiz:", err);
-      alert("Failed to create quiz. Please try again.");
+      alert(err instanceof Error ? err.message : "Failed to create quiz. Please try again.");
     } finally {
       setIsStartingQuiz(false);
     }
