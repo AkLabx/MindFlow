@@ -10,6 +10,7 @@ import { syncService } from '../../../lib/syncService';
 import { SynapticLoader } from '../../../components/ui/SynapticLoader';
 import { motion } from 'framer-motion';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { ErrorState } from '../../../components/ui/ErrorState';
 
 /**
  * Screen for managing attempted (completed) quizzes.
@@ -26,7 +27,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 export const AttemptedQuizzes: React.FC = () => {
     const navigate = useNavigate();
     const queryClient = useQueryClient();
-    const { data: quizzes = [], isLoading: loading } = useQuery({
+    const { data: quizzes = [], isLoading: loading, isError, error, refetch } = useQuery({
         queryKey: ['attempted-quizzes'],
         queryFn: async () => {
             const { data: { session } } = await supabase.auth.getSession();
@@ -56,7 +57,8 @@ export const AttemptedQuizzes: React.FC = () => {
             const idArray = Array.from(allQuestionIds);
             if (idArray.length === 0) return [];
 
-            const { data: qData } = await supabase.from('questions').select('*').in('id', idArray);
+            const { data: qData, error: qError } = await supabase.from('questions').select('*').in('id', idArray);
+            if (qError) throw qError;
             const questionsMap = new Map((qData || []).map(q => [String(q.id), q]));
 
             return completedQuizzes.map(rq => {
