@@ -243,12 +243,14 @@ export const useQuiz = () => {
 
             if (rpcError) {
                 console.error("Failed atomic quiz submission RPC:", rpcError);
+                throw new Error(rpcError.message || 'Failed to submit quiz session');
             } else {
                 console.log("Atomic submission successful. New history ID:", newHistoryId);
             }
         }
     } catch (err) {
         console.error("Atomic Push Error:", err);
+        throw err;
     }
 
     state.submitSessionResults(results);

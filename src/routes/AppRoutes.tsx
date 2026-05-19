@@ -118,6 +118,20 @@ const AppRoutesContent: React.FC = () => {
     } = useQuizContext();
 
     const { user, signOut } = useAuth();
+
+    const handleQuizComplete = async (results: any, quizId: string) => {
+        try {
+            await submitSessionResults(results);
+            navTo(`/result/${quizId}`);
+        } catch (error) {
+            useNotificationStore.getState().showToast({
+                variant: 'error',
+                message: 'Failed to submit quiz. Please check your connection and try again.',
+                duration: 5000
+            });
+        }
+    };
+
     const navigate = useNavigate();
     const flashcardStore = useFlashcardStore();
     const location = useLocation();
@@ -427,7 +441,7 @@ const handleReattempt = async (quizId: string, mode: string) => {
                             onPrev={prevQuestion}
                             onJump={jumpToQuestion}
                             onToggleBookmark={toggleBookmark}
-                            onComplete={(results: any) => { submitSessionResults(results); navTo(`/result/${state.quizId}`); }}
+                            onComplete={async (results: any) => await handleQuizComplete(results, state.quizId!)}
                             onGoHome={navHome}
                             onPause={pauseQuiz}
                             onResume={resumeQuiz}
@@ -449,7 +463,7 @@ const handleReattempt = async (quizId: string, mode: string) => {
                                 pauseQuiz();
                                 setTimeout(() => navTo('/quiz/saved'), 100);
                             }}
-                            onComplete={(results: any) => { submitSessionResults(results); navTo(`/result/${state.quizId}`); }}
+                            onComplete={async (results: any) => await handleQuizComplete(results, state.quizId!)}
                         />
                     </QuizSessionGuard>
                 } />
@@ -460,7 +474,7 @@ const handleReattempt = async (quizId: string, mode: string) => {
                         <GodModeSession
                             questions={state.activeQuestions}
                             initialTime={state.quizTimeRemaining}
-                            onComplete={(results: any) => { submitSessionResults(results); navTo(`/result/${state.quizId}`); }}
+                            onComplete={async (results: any) => await handleQuizComplete(results, state.quizId!)}
                         />
                     </QuizSessionGuard>
                 } />
