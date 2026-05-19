@@ -48,7 +48,7 @@ export const ResultGuard = ({ children }: { children: React.ReactNode }) => {
 
             const parsedState = typeof quizData.state === 'string' ? JSON.parse(quizData.state) : (quizData.state || {});
 
-            if (parsedState.status !== 'result') {
+            if (quizData.status !== 'result') {
                  throw new Error("This quiz has not been completed yet.");
             }
 
