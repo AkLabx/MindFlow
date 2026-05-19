@@ -24,7 +24,7 @@ export const logEvent = async (eventName: AnalyticsEvent, data?: Record<string, 
       event_data: data
     });
 
-    if (error) throw error;
+    if (error) console.error("Analytics log error:", error);
   } catch (error) {
     // Fail silently in production so we don't annoy the user
     console.warn('Failed to log analytics event:', error);
