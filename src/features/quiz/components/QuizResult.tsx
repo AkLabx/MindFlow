@@ -89,7 +89,7 @@ export const QuizResult: React.FC<QuizResultProps> = ({
   const subjectPerformance = useMemo(() => {
       const s: Record<string, { total: number, attempted: number, correct: number, incorrect: number, timeSpent: number }> = {};
       questions.forEach(q => {
-          const sub = q.classification.subject;
+          const sub = q?.subject || q?.classification?.subject || 'Unknown';
           if (!s[sub]) s[sub] = { total: 0, attempted: 0, correct: 0, incorrect: 0, timeSpent: 0 };
 
           s[sub].total++;
