@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuizSessionStore } from '../stores/useQuizSessionStore';
 import { supabase } from '../../../lib/supabase';
+import { db } from '../../../lib/db';
+import { syncService } from '../../../lib/syncService';
 import { SynapticLoader } from '../../../components/ui/SynapticLoader';
 import { ErrorState } from '../../../components/ui/ErrorState';
 import { ArrowLeft } from 'lucide-react';
@@ -93,9 +95,36 @@ export const QuizSessionGuard = ({ children }: { children: React.ReactNode }) =>
                         parsedState.status = quizData.status;
                     }
 
+                    // Strict Hydration Precedence: Compare with IndexedDB
+                    let finalStateToLoad = parsedState;
+                    try {
+                        const localQuiz = await db.getQuiz(quizId);
+                        if (localQuiz && localQuiz.state) {
+                            const localUpdated = (localQuiz.state as any).last_updated || 0;
+                            const remoteUpdated = parsedState.last_updated || 0;
+
+                            // If remote is 'result', ALWAYS honor it over local to prevent reopening finished quizzes
+                            const isRemoteCompleted = parsedState.status === 'result' || quizData.status === 'result';
+                            const isLocalCompleted = localQuiz.state.status === 'result';
+
+                            if (!isRemoteCompleted && !isLocalCompleted && localUpdated > remoteUpdated) {
+                                console.log("[Hydration] Local IndexedDB is newer. Overwriting remote state.", { localUpdated, remoteUpdated });
+                                finalStateToLoad = localQuiz.state;
+
+                                // Schedule a background repair of Supabase since it's stale
+                                setTimeout(() => {
+                                   syncService.pushSavedQuiz(session.user.id, localQuiz).catch(console.error);
+                                }, 1000);
+                            }
+                        }
+                    } catch (dbErr) {
+                        console.error("Failed to read IndexedDB during hydration comparison", dbErr);
+                        // Fallback to remote state if DB read fails
+                    }
+
                     // Load into Zustand Store explicitly merging ID
                     state.loadSavedQuiz({
-                        ...parsedState,
+                        ...finalStateToLoad,
                         activeQuestions: fullQuestions,
                         quizId: quizId,
                         isPaused: false

@@ -36,6 +36,7 @@ export type QuizMode = 'learning' | 'mock' | 'god';
  * Does not include heavy runtime objects like full question data.
  */
 export interface QuizPersistentState {
+  last_updated?: number;
   currentQuestionIndex: number;
   score: number;
   answers: Record<string, string>;
