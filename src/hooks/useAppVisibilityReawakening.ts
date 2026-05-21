@@ -9,7 +9,7 @@ export function useAppVisibilityReawakening() {
 
   useEffect(() => {
     const handleReawaken = () => {
-      console.log('App woke up! Forcing session refresh and network reconnect...');
+      // App reawakened; initiate background session refresh and network reconnect.
 
       // 1. Tell React Query that the network is back online IMMEDIATELY.
       // Do not await the auth session. This breaks the deadlock if auth hangs.
