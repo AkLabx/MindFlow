@@ -110,7 +110,39 @@ const flushToCloud = async (state: QuizRuntimeState, set: any) => {
   }
 };
 
-export const useQuizSessionStore = create<QuizSessionState>((set, get) => ({
+
+let dbUpdateTimeout: any = null;
+
+const persistentSet = (zustandSet: any, get: any, partial: any, replace?: boolean | undefined) => {
+    const newStateOrFn = partial;
+
+    const interceptedSetPayload = typeof newStateOrFn === 'function' ? (state: any) => {
+        const result = newStateOrFn(state);
+        return result ? { ...result, last_updated: Date.now() } : result;
+    } : { ...newStateOrFn, last_updated: Date.now() };
+
+    zustandSet(interceptedSetPayload, replace);
+
+    const currentState = get();
+    if (currentState.quizId && currentState.status === 'quiz') {
+        clearTimeout(dbUpdateTimeout);
+        dbUpdateTimeout = setTimeout(() => {
+            const stateToSave = { ...currentState };
+            Object.keys(stateToSave).forEach(key => {
+                if (typeof (stateToSave as any)[key] === 'function') {
+                    delete (stateToSave as any)[key];
+                }
+            });
+            db.updateQuizProgress(currentState.quizId, stateToSave).catch((err: any) => {
+                console.error("Failed non-blocking DB update:", err);
+            });
+        }, 500);
+    }
+};
+
+export const useQuizSessionStore = create<QuizSessionState>((zustandSet, get) => {
+  const set: typeof zustandSet = (partial: any, replace?: boolean | undefined) => persistentSet(zustandSet, get, partial, replace);
+  return {
   ...initialState,
   resetStore: () => set(initialState),
 
@@ -301,4 +333,4 @@ export const useQuizSessionStore = create<QuizSessionState>((set, get) => ({
     }
     return savedState;
   }),
-}));
+} });

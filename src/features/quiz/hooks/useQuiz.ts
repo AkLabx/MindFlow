@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, useRef } from 'react';
 import { useSyncStore } from '../stores/useSyncStore';
 import { useAnalyticsStore } from '../stores/useAnalyticsStore';
 import { logEvent } from '../services/analyticsService';
@@ -47,19 +47,41 @@ export const useQuiz = () => {
     });
   }, [state]);
 
-  // Persistence Effect: Server-Side Optimistic UI + Debounce + Safety Nets
+
+  // Persistence Effect: Stable Ref-Driven Sync Loop
+  const latestStateRef = useRef(state);
+  const dirtyRef = useRef(false);
+
+  // Update refs on every render (no effect dependencies needed for this)
   useEffect(() => {
-    if (state.quizId && state.status === 'quiz') {
-      const stateToSave = { ...state };
-      Object.keys(stateToSave).forEach(key => {
-        if (typeof (stateToSave as any)[key] === 'function') {
-          delete (stateToSave as any)[key];
-        }
-      });
-      const { activeQuestions, ...stateWithoutQuestions } = stateToSave;
+      // Check if state actually mutated meaningfully before marking dirty
+      if (latestStateRef.current.last_updated !== state.last_updated && state.status === 'quiz') {
+          dirtyRef.current = true;
+      }
+      latestStateRef.current = state;
+  });
+
+  useEffect(() => {
+      let intervalId: NodeJS.Timeout;
 
       const syncToSupabase = async (isKeepAlive = false) => {
+          if (!dirtyRef.current && !isKeepAlive) return; // Nothing to sync
           if (!navigator.onLine) return;
+
+          const currentState = latestStateRef.current;
+          if (!currentState.quizId || currentState.status !== 'quiz') return;
+
+          // Clear dirty flag optimistically
+          dirtyRef.current = false;
+
+          const stateToSave = { ...currentState };
+          Object.keys(stateToSave).forEach(key => {
+              if (typeof (stateToSave as any)[key] === 'function') {
+                  delete (stateToSave as any)[key];
+              }
+          });
+          const { activeQuestions, ...stateWithoutQuestions } = stateToSave;
+
           try {
               const { data: { session } } = await supabase.auth.getSession();
               if (!session?.user) return;
@@ -69,55 +91,44 @@ export const useQuiz = () => {
 
               if (!token || !userId) return;
 
-              const payload = {
-                  id: state.quizId,
-                  user_id: userId,
-                  // PostgREST merge-duplicates requires updating the whole row schema, but we only really want to update 'state'
-                  // We should ideally use PATCH instead of POST for partial updates, or include all NOT NULL fields for POST.
-                  // Since we are just updating the 'state' column of an existing row, let's switch to PATCH.
-                  state: stateWithoutQuestions
-              };
-
               const headers = new Headers();
               headers.append("apikey", SUPABASE_ANON_KEY);
               headers.append("Authorization", `Bearer ${token}`);
               headers.append("Content-Type", "application/json");
 
               if (isKeepAlive) {
-                  fetchWithTimeout(`${SUPABASE_URL}/rest/v1/saved_quizzes?id=eq.${state.quizId}`, {
+                  fetchWithTimeout(`${SUPABASE_URL}/rest/v1/saved_quizzes?id=eq.${currentState.quizId}`, {
                       method: 'PATCH',
                       headers: headers,
                       body: JSON.stringify({ state: stateWithoutQuestions }),
                       keepalive: true
                   }).catch(() => {});
               } else {
-                  // Direct async fetch without keepalive for standard debounced calls
-                  await fetchWithTimeout(`${SUPABASE_URL}/rest/v1/saved_quizzes?id=eq.${state.quizId}`, {
+                  await fetchWithTimeout(`${SUPABASE_URL}/rest/v1/saved_quizzes?id=eq.${currentState.quizId}`, {
                       method: 'PATCH',
                       headers: headers,
                       body: JSON.stringify({ state: stateWithoutQuestions })
                   });
               }
           } catch (e) {
-              console.error("Supabase Debounce Push Error", e);
+              console.error("Supabase Sync Loop Error", e);
+              dirtyRef.current = true; // Mark dirty again so it retries next loop
           }
       };
 
-      // 1. Debounce Logic: 2000ms delay for Optimistic UI protection
-      const handler = setTimeout(() => {
-         syncToSupabase(false);
-      }, 2000);
+      // 1. Stable Heartbeat (Network Throttle)
+      intervalId = setInterval(() => {
+          syncToSupabase(false);
+      }, 3000); // 3 seconds interval
 
-      // 2. Ironclad Safety Nets
+      // 2. Ironclad Safety Nets using refs (immune to stale closures)
       const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-         clearTimeout(handler);
-         syncToSupabase(true); // Keepalive true
+         syncToSupabase(true);
       };
 
       const handleVisibilityChange = () => {
           if (document.visibilityState === 'hidden') {
-              clearTimeout(handler);
-              syncToSupabase(true); // Fire immediately when tab is backgrounded
+              syncToSupabase(true);
           }
       };
 
@@ -125,17 +136,12 @@ export const useQuiz = () => {
       document.addEventListener('visibilitychange', handleVisibilityChange);
 
       return () => {
-          clearTimeout(handler);
+          clearInterval(intervalId);
           window.removeEventListener('beforeunload', handleBeforeUnload);
           document.removeEventListener('visibilitychange', handleVisibilityChange);
       };
-    }
-  }, [
-    state.status, state.mode, state.currentQuestionIndex, state.score,
-    state.answers, state.timeTaken, state.remainingTimes, state.quizTimeRemaining,
-    state.bookmarks, state.markedForReview, state.hiddenOptions, state.activeQuestions,
-    state.filters, state.isPaused, state.quizId
-  ]);
+  }, []); // Empty dependency array: Mounts EXACTLY ONCE.
+
 
   // Wrap startQuiz to include analytics
   const startQuiz = useCallback((filteredQuestions: Question[], filters: InitialFilters, mode: QuizMode = 'learning', quizId?: string) => {
