@@ -4,22 +4,6 @@ import { HashRouter } from 'react-router-dom';
 import { AppProvider } from './providers/AppProvider';
 import { AppRoutes } from './routes/AppRoutes';
 import { supabase } from './lib/supabase';
-import { injectDiagnostics } from './lib/diagnostics';
-import { initSWDiagnostics } from './lib/sw-diagnostics';
-import { initNativeFetchDiagnostic } from './lib/native-fetch-diagnostic';
-
-injectDiagnostics();
-initSWDiagnostics();
-initNativeFetchDiagnostic();
-
-
-
-
-
-
-
-
-
 import { SynapticLoader } from './components/ui/SynapticLoader';
 
 /**
@@ -37,7 +21,6 @@ import { PWAUpdateManager } from './components/common/PWAUpdateManager';
 import { PresenceProvider } from './components/PresenceProvider';
 import { useAppVisibilityReawakening } from './hooks/useAppVisibilityReawakening';
 
-
 const AppVisibilityWrapper = () => {
   useAppVisibilityReawakening();
   return null;
@@ -50,7 +33,11 @@ const App: React.FC = () => {
     // 1. Check for active session on app mount (Before Router mounts completely)
     const initAuth = async () => {
       // getSession() parses the URL hash for tokens if present (OAuth redirect)
-      await supabase.auth.getSession();
+      try {
+        await supabase.auth.getSession();
+      } catch (err) {
+        console.error('[AuthStabilization] Initial getSession failed or timed out:', err);
+      }
       
       // Check for Smart Restore after an Auto-Update
       if (localStorage.getItem('mindflow_auto_updated') === 'true') {

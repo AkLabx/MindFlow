@@ -276,7 +276,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       supabase.from('user_active_sessions').delete().eq('user_id', user.id).eq('session_token', localSessionId).then(({ error }) => { if (error) console.error('Error deleting active session:', error); });
     }
 
-    await supabase.auth.signOut({ scope: 'global' });
+    try {
+      await supabase.auth.signOut({ scope: 'global' });
+    } catch (err) {
+      console.error("[AuthStabilization] supabase.auth.signOut threw, but continuing cleanup:", err);
+    }
     console.log("[Diagnostic] supabase.auth.signOut RESOLVED");
 
     // Standard cleanup without hard reload

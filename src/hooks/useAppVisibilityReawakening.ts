@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { useQueryClient, focusManager, onlineManager } from '@tanstack/react-query';
 import { App as CapacitorApp } from '@capacitor/app';
@@ -6,43 +6,42 @@ import { Capacitor } from '@capacitor/core';
 
 export function useAppVisibilityReawakening() {
   const queryClient = useQueryClient();
+  const isRefreshing = useRef(false);
 
   useEffect(() => {
-    const handleReawaken = () => {
-      console.log('[Diagnostic] handleReawaken START');
-      // App reawakened; initiate background session refresh and network reconnect.
-
+    const handleReawaken = async () => {
       // 1. Tell React Query that the network is back online IMMEDIATELY.
-      // Do not await the auth session. This breaks the deadlock if auth hangs.
       // This forces React Query to retry any stalled "pending" queries.
-      console.log('[Diagnostic] Calling queryClient.resumePausedMutations()');
       queryClient.resumePausedMutations();
+      focusManager.setFocused(true);
+      onlineManager.setOnline(true);
 
-      // 2. Force Supabase to check and refresh the auth session CONCURRENTLY.
-      // We float this promise and catch errors to avoid unhandled rejections.
-      console.log('[Diagnostic] Calling supabase.auth.getSession() concurrency start');
-      supabase.auth.getSession()
-        .then(() => {
-          console.log('[Diagnostic] supabase.auth.getSession() concurrency resolved successfully');
-        })
-        .catch(error => {
-          console.error('[Diagnostic] Background session refresh failed on reawaken:', error);
-      });
+      // 2. Prevent overlapping/concurrent getSession calls during rapid wake cycles.
+      if (isRefreshing.current) {
+          console.warn('[AuthStabilization] handleReawaken aborted: auth refresh already in progress.');
+          return;
+      }
+
+      isRefreshing.current = true;
+      try {
+          // Await the strictly-timeout-wrapped getSession
+          await supabase.auth.getSession();
+      } catch (error: any) {
+          console.error('[AuthStabilization] Background session refresh failed or timed out:', error);
+      } finally {
+          // Small debounce buffer to prevent spamming
+          setTimeout(() => {
+              isRefreshing.current = false;
+          }, 2000);
+      }
     };
 
     // Web / PWA listener
     const handleVisibilityChange = () => {
-      console.log(`[Diagnostic] visibilitychange event fired. visibilityState: ${document.visibilityState}`);
-      if ('serviceWorker' in navigator) {
-          console.log(`[Diagnostic-SW] visibilitychange SW Controller:`, navigator.serviceWorker.controller ? navigator.serviceWorker.controller.scriptURL : 'NULL');
-          navigator.serviceWorker.getRegistration().then(reg => {
-              if (reg) {
-                  console.log(`[Diagnostic-SW] visibilitychange SW Active:`, reg.active ? reg.active.scriptURL : 'NULL');
-              }
-          });
-      }
       if (document.visibilityState === 'visible') {
         handleReawaken();
+      } else {
+        focusManager.setFocused(false);
       }
     };
 
@@ -52,14 +51,9 @@ export function useAppVisibilityReawakening() {
     let capListener: any = null;
     if (Capacitor.isNativePlatform()) {
       CapacitorApp.addListener('appStateChange', ({ isActive }) => {
-        console.log(`[Diagnostic] Capacitor appStateChange fired. isActive: ${isActive}`);
         if (isActive) {
           handleReawaken();
-          // Manually force React Query to recognize the window is focused and online in Native WebViews
-          focusManager.setFocused(true);
-          onlineManager.setOnline(true);
         } else {
-          // Tell React Query we are asleep so it pauses background fetching
           focusManager.setFocused(false);
         }
       }).then(listener => {
