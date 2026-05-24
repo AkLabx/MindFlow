@@ -448,6 +448,7 @@ const handleReattempt = async (quizId: string, mode: string) => {
                             onResume={resumeQuiz}
                             onSaveTimer={saveTimer}
                             onFiftyFifty={useFiftyFifty}
+                            quizName={state.quizName}
                             hiddenOptions={state.hiddenOptions || {}}
                         />
                     </QuizSessionGuard>
