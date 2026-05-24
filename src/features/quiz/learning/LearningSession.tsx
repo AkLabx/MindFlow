@@ -300,7 +300,7 @@ export const LearningSession: React.FC<LearningSessionProps> = ({
             {/* Secondary Utility Row (Collapsible) */}
             <div className={cn(
                 "w-full bg-white dark:bg-gray-800 transition-all duration-300 ease-in-out origin-top border-b border-gray-100 dark:border-gray-800",
-                isToolbarExpanded ? "max-h-24 opacity-100 p-3 sm:p-4" : "max-h-0 opacity-0 overflow-hidden py-0 border-transparent"
+                isToolbarExpanded ? "max-h-28 opacity-100 p-3 sm:p-4" : "max-h-0 opacity-0 overflow-hidden py-0 border-transparent"
             )}>
                 <div className="flex items-center justify-between w-full">
                     <div className="flex-1 flex flex-col">
@@ -344,20 +344,17 @@ export const LearningSession: React.FC<LearningSessionProps> = ({
                         </div>
 
                         {/* Progress Bar Row */}
-                        <div className="flex items-center gap-3">
-                            {/* We moved the Menu to the bottom bar, so we just have progress bar here now */}
-                            <div className="flex-1 h-2.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                        <div className="flex items-center gap-3 mt-1.5">
+                            <span className="text-xs font-bold text-gray-500 dark:text-gray-400 min-w-[3rem]">{currentIndex + 1} / {questions.length}</span>
+                            <div className="flex-1 h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden shadow-inner">
                                 <div
                                     className={cn(
-                                        "h-full transition-all duration-1000 ease-linear",
-                                        timeLeft <= 5 ? "bg-red-600 animate-pulse" :
-                                            timeLeft <= 10 ? "bg-red-500" :
-                                                "bg-indigo-600"
+                                        "h-full transition-all duration-1000 ease-linear rounded-full",
+                                        "bg-indigo-500"
                                     )}
-                                    style={{ width: `${(timeLeft / APP_CONFIG.TIMERS.LEARNING_MODE_DEFAULT) * 100}%` }}
+                                    style={{ width: `${((currentIndex + 1) / questions.length) * 100}%` }}
                                 />
                             </div>
-                            <span className="text-xs font-bold text-gray-500 dark:text-gray-400 min-w-[3rem] text-right">{currentIndex + 1} / {questions.length}</span>
                         </div>
                     </div>
                 </div>
@@ -366,34 +363,37 @@ export const LearningSession: React.FC<LearningSessionProps> = ({
     );
 
     const footer = (
-        <div className="p-4 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 w-full">
-            {/* Top row of footer (Settings & Nav Menu) */}
-            <div className="flex justify-between items-center mb-3">
+        <div className="px-2 py-3 sm:px-4 sm:py-4 bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-800 w-full shadow-[0_-8px_30px_rgba(0,0,0,0.04)] dark:shadow-[0_-8px_30px_rgba(0,0,0,0.2)]">
+            <div className="max-w-md mx-auto flex items-center justify-between gap-1.5 sm:gap-2">
+
+                {/* Settings */}
                 <button
                     onClick={() => setIsSettingsOpen(true)}
-                    className="p-2 rounded-lg bg-gray-50 dark:bg-gray-900 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:bg-gray-800 transition-colors border border-gray-200 dark:border-gray-700"
+                    className="p-2 sm:p-2.5 rounded-xl bg-gray-50 dark:bg-gray-900 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:bg-gray-800 transition-colors border border-gray-200 dark:border-gray-700 shrink-0 flex items-center justify-center"
                     title="Settings"
                 >
-                    <Settings className="w-5 h-5" />
+                    <Settings className="w-5 h-5 sm:w-5 sm:h-5" />
                 </button>
+
+                {/* Menu */}
                 <button
                     onClick={() => setIsNavOpen(true)}
-                    className="p-2 rounded-lg bg-gray-50 dark:bg-gray-900 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:bg-gray-800 transition-colors border border-gray-200 dark:border-gray-700 flex items-center justify-center min-w-[3rem]"
+                    className="p-2 sm:p-2.5 rounded-xl bg-gray-50 dark:bg-gray-900 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:bg-gray-800 transition-colors border border-gray-200 dark:border-gray-700 flex items-center justify-center shrink-0 min-w-[2.5rem] sm:min-w-[3rem]"
                     title="Side Panel"
                 >
-                    <Menu className="w-6 h-5" strokeWidth={2.5} />
+                    <Menu className="w-5 h-5 sm:w-6 sm:h-5" strokeWidth={2.5} />
                 </button>
-            </div>
 
-            {/* Bottom Actions Row */}
-            <div className="flex justify-between items-center gap-3">
+                <div className="w-px h-8 bg-gray-200 dark:bg-gray-700 mx-0.5 shrink-0 hidden sm:block"></div>
+
+                {/* Previous */}
                 <button
                     onClick={handlePrevClick}
                     disabled={currentIndex === 0}
-                    className="p-3 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shrink-0"
+                    className="p-2.5 sm:p-3 rounded-xl bg-gray-50 dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300 disabled:opacity-40 disabled:cursor-not-allowed transition-colors border border-gray-200 dark:border-gray-700 shrink-0 flex items-center justify-center"
                     title="Previous Question"
                 >
-                    <ChevronLeft className="w-6 h-6" />
+                    <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6" strokeWidth={2.5} />
                 </button>
 
                 {/* 50:50 Lifeline Button (Pill) */}
@@ -401,26 +401,30 @@ export const LearningSession: React.FC<LearningSessionProps> = ({
                     onClick={handleFiftyFifty}
                     disabled={isAnswered || isFiftyFiftyUsed}
                     className={cn(
-                        "flex-1 max-w-[8rem] py-2.5 px-4 rounded-full font-bold text-sm text-center transition-all shadow-sm flex items-center justify-center",
+                        "flex-1 min-w-[3.5rem] sm:min-w-[4.5rem] max-w-[5.5rem] py-2 sm:py-2.5 px-1 sm:px-3 rounded-full font-bold text-xs sm:text-sm text-center transition-all flex items-center justify-center border",
                         isFiftyFiftyUsed
-                            ? "bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed shadow-none"
-                            : "bg-yellow-400 hover:bg-yellow-500 text-gray-900 shadow-yellow-200/50"
+                            ? "bg-gray-50 dark:bg-gray-800 text-gray-400 dark:text-gray-500 border-gray-200 dark:border-gray-700 cursor-not-allowed"
+                            : "bg-amber-400 hover:bg-amber-500 text-amber-950 border-amber-500/20 shadow-[0_2px_10px_rgba(251,191,36,0.2)] active:scale-95"
                     )}
                     title="50:50 Lifeline"
                 >
                     50:50
                 </button>
 
-                <Button
+                {/* Next */}
+                <button
                     onClick={handleNextClick}
                     disabled={!isAnswered}
                     className={cn(
-                        "flex-1 max-w-[12rem] py-6 rounded-xl transition-all shadow-lg text-base font-bold",
-                        !isAnswered ? "opacity-50 cursor-not-allowed bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400" : "bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-200 dark:shadow-indigo-900/20"
+                        "flex-[2] min-w-[6rem] sm:min-w-[7.5rem] py-2.5 sm:py-3 px-3 sm:px-4 rounded-xl transition-all font-bold flex items-center justify-center text-sm sm:text-base whitespace-nowrap",
+                        !isAnswered
+                            ? "bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 border border-gray-200 dark:border-gray-700 cursor-not-allowed opacity-70"
+                            : "bg-indigo-600 hover:bg-indigo-700 text-white shadow-[0_4px_14px_rgba(79,70,229,0.3)] dark:shadow-[0_4px_14px_rgba(79,70,229,0.2)] active:scale-95"
                     )}
                 >
-                    {currentIndex === questions.length - 1 ? "Finish" : "Next"} <ArrowRight className="w-5 h-5 ml-2" />
-                </Button>
+                    {currentIndex === questions.length - 1 ? "Finish" : "Next"}
+                    <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 ml-1.5 sm:ml-2" strokeWidth={2.5} />
+                </button>
             </div>
         </div>
     );
