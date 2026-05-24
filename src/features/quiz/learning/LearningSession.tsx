@@ -110,6 +110,7 @@ export const LearningSession: React.FC<LearningSessionProps> = ({
 
     // Check if question is conceptually "done"
     const isAnswered = !!userAnswer;
+    const isTimeOut = userAnswer === 'TIME_UP';
     const currentHiddenOptions = hiddenOptions[currentQuestion.id] || [];
     const isFiftyFiftyUsed = currentHiddenOptions.length > 0;
 
@@ -403,10 +404,10 @@ export const LearningSession: React.FC<LearningSessionProps> = ({
                 {/* 50:50 Lifeline Button (Pill) */}
                 <button
                     onClick={handleFiftyFifty}
-                    disabled={isAnswered || isFiftyFiftyUsed}
+                    disabled={isAnswered || isTimeOut || isFiftyFiftyUsed}
                     className={cn(
                         "flex-1 min-w-[3.5rem] sm:min-w-[4.5rem] max-w-[5.5rem] py-2 sm:py-2.5 px-1 sm:px-3 rounded-full font-bold text-xs sm:text-sm text-center transition-all flex items-center justify-center border",
-                        isFiftyFiftyUsed
+                        (isAnswered || isTimeOut || isFiftyFiftyUsed)
                             ? "bg-gray-50 dark:bg-gray-800 text-gray-400 dark:text-gray-500 border-gray-200 dark:border-gray-700 cursor-not-allowed"
                             : "bg-amber-400 hover:bg-amber-500 text-amber-950 border-amber-500/20 shadow-[0_2px_10px_rgba(251,191,36,0.2)] active:scale-95"
                     )}
