@@ -195,7 +195,8 @@ export const LearningSession: React.FC<LearningSessionProps> = ({
     };
 
     const handleFiftyFifty = () => {
-        if (isAnswered || isFiftyFiftyUsed) return;
+        // Local timeout check to prevent clicking right as it times out
+        if (isAnswered || isTimeOut || isFiftyFiftyUsed || timeLeft === 0) return;
 
         // Identify incorrect options
         const incorrectOptions = currentQuestion.options.filter(opt => opt !== currentQuestion.correct);
