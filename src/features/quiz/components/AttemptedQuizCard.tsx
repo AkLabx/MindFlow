@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Trash2, Clock, BookOpen, Edit2, Check, X, CheckCircle, Loader2, Award, Link } from 'lucide-react';
+import { Trash2, Clock, BookOpen, Edit2, Check, X, CheckCircle, Loader2, Award, Link, ChevronDown } from 'lucide-react';
 import { motion, AnimatePresence, useAnimation, useMotionValue, useTransform } from "framer-motion";
 import { useNotification } from '@/stores/useNotificationStore';
 import { SavedQuiz } from '../types';
@@ -126,11 +126,16 @@ export const AttemptedQuizCard: React.FC<AttemptedQuizCardProps> = ({ quiz, inde
 
                 style={{ x }}
                 whileHover={!isTouchDevice ? { scale: 1.01 } : {}}
+                whileTap={{ scale: 0.98 }}
                 className="relative z-10 w-full h-full cursor-pointer touch-pan-y"
                 onClick={handleCardClick}
                 layout
                 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-                transition={{ type: "spring", stiffness: 300, damping: 25, delay: index * 0.05 }}
+                transition={{
+                    opacity: { duration: 0.2, delay: index * 0.05 },
+                    y: { type: "spring", stiffness: 300, damping: 25, delay: index * 0.05 },
+                    layout: { type: "spring", stiffness: 500, damping: 40 }
+                }}
             >
                 {/* Main Card Container */}
                 <div className="relative w-full overflow-hidden rounded-3xl p-4 sm:p-5 flex flex-col justify-between h-full bg-white/70 dark:bg-slate-900/70 backdrop-blur-md border border-white/60 dark:border-white/10 shadow-[0_8px_32px_0_rgba(31,38,135,0.07)] dark:shadow-[0_8px_32px_0_rgba(0,0,0,0.3)] transition-all duration-300 hover:shadow-indigo-500/10 dark:hover:shadow-indigo-500/5 group-hover/card:border-indigo-300 dark:group-hover/card:border-indigo-500/50">
@@ -139,7 +144,7 @@ export const AttemptedQuizCard: React.FC<AttemptedQuizCardProps> = ({ quiz, inde
                     <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 via-purple-500/5 to-transparent opacity-0 group-hover/card:opacity-100 transition-opacity duration-500 pointer-events-none" />
 
                     {/* Zone 1 & 2 Container (Top section with Name and Actions) */}
-                    <motion.div layout="position" className="flex flex-col gap-3 relative z-10">
+                    <motion.div layout transition={{ type: "spring", stiffness: 500, damping: 40 }} className="flex flex-col gap-3 relative z-10">
                         <div className="flex justify-between items-start gap-4">
                             {/* Desktop Delete Button (Absolute Right) */}
                             {!isTouchDevice && (
@@ -167,20 +172,29 @@ export const AttemptedQuizCard: React.FC<AttemptedQuizCardProps> = ({ quiz, inde
                                     />
                                 </div>
                             ) : (
-                                <div className="flex items-center gap-3 flex-1 group min-w-0 pr-8">
-                                    <div className="p-2 rounded-xl bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-900/30 dark:to-purple-900/30 border border-indigo-100 dark:border-indigo-800/50 shadow-inner shrink-0 group-hover/card:scale-110 transition-transform duration-300">
-                                        <Award className="w-5 h-5 text-indigo-500 dark:text-indigo-400" />
+                                <div className="flex items-center justify-between flex-1 group min-w-0 pr-8">
+                                    <div className="flex items-center gap-3 min-w-0">
+                                        <div className="p-2 rounded-xl bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-900/30 dark:to-purple-900/30 border border-indigo-100 dark:border-indigo-800/50 shadow-inner shrink-0 group-hover/card:scale-110 transition-transform duration-300">
+                                            <Award className="w-5 h-5 text-indigo-500 dark:text-indigo-400" />
+                                        </div>
+                                        <h3 className="text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-700 dark:from-white dark:to-slate-300 group-hover:from-indigo-600 group-hover:to-indigo-800 dark:group-hover:from-indigo-300 dark:group-hover:to-indigo-100 transition-all duration-300 truncate">
+                                            {quiz.name || 'Untitled Quiz'}
+                                        </h3>
+                                        <button
+                                            onClick={startEditing}
+                                            className="p-1.5 text-slate-400 dark:text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 opacity-0 group-hover:opacity-100 transition-all duration-300 rounded-md hover:bg-indigo-50 dark:hover:bg-indigo-900/30 shrink-0"
+                                            title="Edit Name"
+                                         aria-label="Edit item">
+                                            <Edit2 className="w-3.5 h-3.5" />
+                                        </button>
                                     </div>
-                                    <h3 className="text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-700 dark:from-white dark:to-slate-300 group-hover:from-indigo-600 group-hover:to-indigo-800 dark:group-hover:from-indigo-300 dark:group-hover:to-indigo-100 transition-all duration-300 truncate">
-                                        {quiz.name || 'Untitled Quiz'}
-                                    </h3>
-                                    <button
-                                        onClick={startEditing}
-                                        className="p-1.5 text-slate-400 dark:text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 opacity-0 group-hover:opacity-100 transition-all duration-300 rounded-md hover:bg-indigo-50 dark:hover:bg-indigo-900/30 shrink-0"
-                                        title="Edit Name"
-                                     aria-label="Edit item">
-                                        <Edit2 className="w-3.5 h-3.5" />
-                                    </button>
+                                    <motion.div
+                                        animate={{ rotate: isExpanded ? 180 : 0 }}
+                                        transition={{ type: "spring", stiffness: 500, damping: 40 }}
+                                        className="ml-2 text-slate-400 dark:text-slate-500 shrink-0"
+                                    >
+                                        <ChevronDown className="w-5 h-5" />
+                                    </motion.div>
                                 </div>
                             )}
                         </div>
@@ -251,16 +265,17 @@ export const AttemptedQuizCard: React.FC<AttemptedQuizCardProps> = ({ quiz, inde
                         </div>
 
                     {/* Zone 5: Expandable Details Drawer */}
-                    <AnimatePresence>
+                    <AnimatePresence initial={false}>
                         {isExpanded && (
                             <motion.div
-                                initial={{ height: 0, opacity: 0, overflow: "hidden" }}
-                                animate={{ height: "auto", opacity: 1, marginTop: 16 }}
-                                exit={{ height: 0, opacity: 0, marginTop: 0 }}
-                                transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                                className="w-full text-xs font-semibold pt-4 border-t border-indigo-100/50 dark:border-slate-700/50"
+                                initial={{ height: 0, opacity: 0 }}
+                                animate={{ height: "auto", opacity: 1 }}
+                                exit={{ height: 0, opacity: 0 }}
+                                transition={{ opacity: { duration: 0.2 }, height: { type: "spring", stiffness: 500, damping: 40 } }}
+                                className="w-full overflow-hidden"
                             >
-                                <div className="grid grid-cols-2 gap-3 w-full">
+                                <div className="pt-4 mt-4 border-t border-indigo-100/50 dark:border-slate-700/50 text-xs font-semibold">
+                                    <div className="grid grid-cols-2 gap-3 w-full">
                                     {/* Top Left: Subject */}
                                     <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-indigo-50/50 dark:bg-indigo-900/20 border border-indigo-100/50 dark:border-indigo-800/50 text-slate-600 dark:text-slate-300 backdrop-blur-sm truncate">
                                         <BookOpen className="w-4 h-4 text-indigo-500 shrink-0" />
@@ -289,11 +304,11 @@ export const AttemptedQuizCard: React.FC<AttemptedQuizCardProps> = ({ quiz, inde
                                             {quiz.state.score} / {quiz.questions.length}
                                         </span>
                                     </div>
+                                    </div>
                                 </div>
                             </motion.div>
                         )}
                     </AnimatePresence>
-
                 </div>
             </motion.div>
         </div>

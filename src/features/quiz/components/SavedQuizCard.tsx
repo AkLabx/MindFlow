@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Trash2, Play, Clock, BookOpen, Edit2, Check, X, Mic, CheckCircle, Loader2, Link } from 'lucide-react';
+import { Trash2, Play, Clock, BookOpen, Edit2, Check, X, Mic, CheckCircle, Loader2, Link, ChevronDown } from 'lucide-react';
 import { motion, AnimatePresence, useAnimation } from 'framer-motion';
 import { useNotification } from '@/stores/useNotificationStore';
 import { SavedQuiz } from '../types';
@@ -115,7 +115,7 @@ export const SavedQuizCard: React.FC<SavedQuizCardProps> = ({ quiz, index, onRes
         : '#059669'; // emerald-600
 
     return (
-        <div className="relative group p-[1px] rounded-3xl overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-300 ml-3 mt-3 cursor-pointer">
+        <motion.div layout transition={{ type: "spring", stiffness: 500, damping: 40 }} className="relative group p-[1px] rounded-3xl overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-300 ml-3 mt-3 cursor-pointer">
             {/* Delete Pane Background (Glassmorphic) */}
             <div className="absolute inset-0 bg-gradient-to-r from-rose-500 to-rose-600 dark:from-rose-600 dark:to-rose-800 rounded-3xl flex items-center justify-end px-8 z-0">
                 <Trash2 className="text-white w-6 h-6" />
@@ -127,7 +127,9 @@ export const SavedQuizCard: React.FC<SavedQuizCardProps> = ({ quiz, index, onRes
                 dragElastic={0.2}
                 onDragEnd={handleDragEnd}
                 animate={controls}
-                layout className="relative w-full h-full bg-indigo-50/90 dark:bg-slate-800/90 backdrop-blur-xl rounded-3xl z-10 flex flex-col"
+                layout transition={{ type: "spring", stiffness: 500, damping: 40 }}
+                whileTap={{ scale: 0.98 }}
+                className="relative w-full h-full bg-indigo-50/90 dark:bg-slate-800/90 backdrop-blur-xl rounded-3xl z-10 flex flex-col"
                 onClick={handleCardClick}
             >
                 <div className="absolute inset-0 bg-gradient-to-br from-white/60 to-white/10 dark:from-white/10 dark:to-transparent z-0 pointer-events-none rounded-3xl" />
@@ -210,17 +212,26 @@ export const SavedQuizCard: React.FC<SavedQuizCardProps> = ({ quiz, index, onRes
                                     autoFocus
                                 />
                             ) : (
-                                <div className="flex items-center gap-2 flex-1 min-w-0">
-                                    <h3 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-700 dark:from-white dark:to-slate-300 group-hover:from-indigo-600 group-hover:to-indigo-800 dark:group-hover:from-indigo-300 dark:group-hover:to-indigo-100 transition-all duration-300 truncate">
-                                        {quiz.name || 'Untitled Quiz'}
-                                    </h3>
-                                    <button
-                                        onClick={startEditing}
-                                        className="p-1.5 text-slate-400 dark:text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 opacity-60 hover:opacity-100 transition-all duration-300 rounded-md hover:bg-indigo-50 dark:hover:bg-indigo-900/30 shrink-0"
-                                        title="Edit Name"
-                                     aria-label="Edit item">
-                                        <Edit2 className="w-3.5 h-3.5" />
-                                    </button>
+                                <div className="flex items-center justify-between flex-1 min-w-0">
+                                    <div className="flex items-center gap-2 min-w-0">
+                                        <h3 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-700 dark:from-white dark:to-slate-300 group-hover:from-indigo-600 group-hover:to-indigo-800 dark:group-hover:from-indigo-300 dark:group-hover:to-indigo-100 transition-all duration-300 truncate">
+                                            {quiz.name || 'Untitled Quiz'}
+                                        </h3>
+                                        <button
+                                            onClick={startEditing}
+                                            className="p-1.5 text-slate-400 dark:text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 opacity-60 hover:opacity-100 transition-all duration-300 rounded-md hover:bg-indigo-50 dark:hover:bg-indigo-900/30 shrink-0"
+                                            title="Edit Name"
+                                         aria-label="Edit item">
+                                            <Edit2 className="w-3.5 h-3.5" />
+                                        </button>
+                                    </div>
+                                    <motion.div
+                                        animate={{ rotate: isExpanded ? 180 : 0 }}
+                                        transition={{ type: "spring", stiffness: 500, damping: 40 }}
+                                        className="ml-2 text-slate-400 dark:text-slate-500 shrink-0"
+                                    >
+                                        <ChevronDown className="w-5 h-5" />
+                                    </motion.div>
                                 </div>
                             )}
                         </div>
@@ -314,16 +325,17 @@ export const SavedQuizCard: React.FC<SavedQuizCardProps> = ({ quiz, index, onRes
                         </div>
 
                                         {/* Zone 5: Expandable Details Drawer */}
-                    <AnimatePresence>
+                    <AnimatePresence initial={false}>
                         {isExpanded && (
                             <motion.div
-                                initial={{ height: 0, opacity: 0, overflow: "hidden" }}
-                                animate={{ height: "auto", opacity: 1, marginTop: 16 }}
-                                exit={{ height: 0, opacity: 0, marginTop: 0 }}
-                                transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                                className="w-full text-xs font-semibold pt-4 border-t border-indigo-100/50 dark:border-slate-700/50"
+                                initial={{ height: 0, opacity: 0 }}
+                                animate={{ height: "auto", opacity: 1 }}
+                                exit={{ height: 0, opacity: 0 }}
+                                transition={{ opacity: { duration: 0.2 }, height: { type: "spring", stiffness: 500, damping: 40 } }}
+                                className="w-full overflow-hidden"
                             >
-                                <div className="grid grid-cols-2 gap-3 w-full">
+                                <div className="pt-4 mt-4 border-t border-indigo-100/50 dark:border-slate-700/50 text-xs font-semibold">
+                                    <div className="grid grid-cols-2 gap-3 w-full">
                                     {/* Top Left: Subject */}
                                     <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-indigo-50/50 dark:bg-indigo-900/20 border border-indigo-100/50 dark:border-indigo-800/50 text-slate-600 dark:text-slate-300 backdrop-blur-sm truncate">
                                         <BookOpen className="w-4 h-4 text-indigo-500 shrink-0" />
@@ -352,6 +364,7 @@ export const SavedQuizCard: React.FC<SavedQuizCardProps> = ({ quiz, index, onRes
                                             {Object.keys(quiz.state?.answers || {}).length} / {quiz.questions?.length || 0}
                                         </span>
                                     </div>
+                                    </div>
                                 </div>
                             </motion.div>
                         )}
@@ -359,6 +372,6 @@ export const SavedQuizCard: React.FC<SavedQuizCardProps> = ({ quiz, index, onRes
 
                 </div>
             </motion.div>
-        </div>
+        </motion.div>
     );
 };
