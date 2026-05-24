@@ -318,7 +318,9 @@ export const LearningSession: React.FC<LearningSessionProps> = ({
                                     icon={<Clock className="w-3.5 h-3.5" />}
                                     className={cn(
                                         "font-mono font-bold tabular-nums min-w-[4rem] justify-center transition-colors shrink-0",
-                                        timeLeft <= 10 ? "bg-red-50 text-red-600 border-red-200 animate-pulse" : "bg-gray-50 dark:bg-gray-900"
+                                        timeLeft <= 5 ? "bg-red-50 text-red-600 border-red-200 animate-pulse" :
+                                        timeLeft <= 15 ? "bg-amber-50 text-amber-600 border-amber-200" :
+                                        "bg-gray-50 dark:bg-gray-900"
                                     )}
                                 >
                                     {formatTime(timeLeft)}
@@ -346,13 +348,15 @@ export const LearningSession: React.FC<LearningSessionProps> = ({
                         {/* Progress Bar Row */}
                         <div className="flex items-center gap-3 mt-1.5">
                             <span className="text-xs font-bold text-gray-500 dark:text-gray-400 min-w-[3rem]">{currentIndex + 1} / {questions.length}</span>
-                            <div className="flex-1 h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden shadow-inner">
+                            <div className="flex-1 h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden shadow-inner relative">
                                 <div
                                     className={cn(
                                         "h-full transition-all duration-1000 ease-linear rounded-full",
+                                        timeLeft <= 5 ? "bg-red-500" :
+                                        timeLeft <= 15 ? "bg-amber-500" :
                                         "bg-indigo-500"
                                     )}
-                                    style={{ width: `${((currentIndex + 1) / questions.length) * 100}%` }}
+                                    style={{ width: `${(timeLeft / APP_CONFIG.TIMERS.LEARNING_MODE_DEFAULT) * 100}%` }}
                                 />
                             </div>
                         </div>
