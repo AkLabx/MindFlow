@@ -14,6 +14,10 @@ import { useNotificationStore } from '../../../stores/useNotificationStore';
 import { Menu, Transition } from '@headlessui/react';
 import { ShieldAlert, MoreVertical } from 'lucide-react';
 import { ReportModal } from '../components/reports/ReportModal';
+import { useDeleteReel } from '../hooks/useDeletion';
+import { ConfirmDeleteModal } from '../components/ConfirmDeleteModal';
+import { Trash2 } from 'lucide-react';
+
 import { submitReport } from '../api/reportsApi';
 import { ErrorState } from '../../../components/ui/ErrorState';
 
@@ -92,6 +96,21 @@ const ReelItem: React.FC<{ reel: Reel, currentUser: any, index: number, activeIn
   const queryClient = useQueryClient();
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [isHiddenLocally, setIsHiddenLocally] = useState(false);
+
+  const { deleteReel, isPending: isDeleting } = useDeleteReel();
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+
+  const handleDeleteConfirm = async () => {
+      if (!currentUser) return;
+      try {
+          await deleteReel({ id: reel.id, ownerId: currentUser.id, videoUrl: reel.video_url });
+          setIsDeleteModalOpen(false);
+          // QueryClient handles the cache removal, UI will update.
+      } catch (err) {
+          // Error handled by hook toast
+      }
+  };
+
 
   const handleReportSubmit = async (reason: string, customNote: string) => {
     if (!currentUser) return;
@@ -218,10 +237,11 @@ const ReelItem: React.FC<{ reel: Reel, currentUser: any, index: number, activeIn
       {!isHiddenLocally && (
         <motion.div
           initial={{ opacity: 1, height: "100%" }}
+          animate={{ opacity: isDeleting ? 0.5 : 1 }}
           exit={{ opacity: 0, height: 0, overflow: 'hidden' }}
           transition={{ duration: 0.3 }}
           ref={containerRef}
-          className="h-full w-full snap-start relative bg-black flex items-center justify-center cursor-pointer overflow-hidden"
+          className={cn("h-full w-full snap-start relative bg-black flex items-center justify-center cursor-pointer overflow-hidden", isDeleting && "pointer-events-none")}
           onClick={togglePlay}
         >
       {/* Background Media (Video) using Byte-Range Requests */}
@@ -321,6 +341,24 @@ const ReelItem: React.FC<{ reel: Reel, currentUser: any, index: number, activeIn
             >
               <Menu.Items className="absolute right-0 bottom-14 mb-2 w-48 origin-bottom-right bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-gray-100 dark:border-slate-700 focus:outline-none z-[60]">
                 <div className="py-1">
+                  {currentUser && currentUser.id === reel.user_id && (
+                    <Menu.Item>
+                      {({ active }) => (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setIsDeleteModalOpen(true); }}
+                          disabled={isDeleting}
+                          className={cn(
+                            active ? 'bg-red-50 dark:bg-slate-700/50' : '',
+                            'flex items-center gap-2 w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 font-medium disabled:opacity-50'
+                          )}
+                        >
+                          <Trash2 size={16} />
+                          {isDeleting ? 'Deleting...' : 'Delete Reel'}
+                        </button>
+                      )}
+                    </Menu.Item>
+                  )}
+                  {currentUser && currentUser.id !== reel.user_id && (
                   <Menu.Item>
                     {({ active }) => (
                       <button
@@ -338,6 +376,7 @@ const ReelItem: React.FC<{ reel: Reel, currentUser: any, index: number, activeIn
                       </button>
                     )}
                   </Menu.Item>
+                  )}
                 </div>
               </Menu.Items>
             </Transition>
@@ -355,6 +394,12 @@ const ReelItem: React.FC<{ reel: Reel, currentUser: any, index: number, activeIn
             targetName={reel.profiles?.full_name || 'Reel'}
             targetType="reel"
             onSubmit={handleReportSubmit}
+        />
+        <ConfirmDeleteModal
+            isOpen={isDeleteModalOpen}
+            onClose={() => setIsDeleteModalOpen(false)}
+            onConfirm={handleDeleteConfirm}
+            isDeleting={isDeleting}
         />
       </div>
 

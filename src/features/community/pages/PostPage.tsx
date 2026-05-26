@@ -10,6 +10,11 @@ import { Heart, MessageCircle, Share2, ArrowLeft, Send, Loader2 } from 'lucide-r
 import { cn } from '../../../utils/cn';
 import { useNotificationStore } from '../../../stores/useNotificationStore';
 import { CommentSkeleton } from '../components/CommentSkeleton';
+import { useDeletePost } from '../hooks/useDeletion';
+import { ConfirmDeleteModal } from '../components/ConfirmDeleteModal';
+import { Trash2, MoreVertical } from 'lucide-react';
+import { Menu, Transition } from '@headlessui/react';
+
 import { ErrorState } from '../../../components/ui/ErrorState';
 
 export const PostPage: React.FC = () => {
@@ -20,6 +25,22 @@ export const PostPage: React.FC = () => {
   const { showToast } = useNotificationStore();
   const [commentText, setCommentText] = useState('');
   const [replyingTo, setReplyingTo] = useState<{ id: string, username: string } | null>(null);
+
+  const { deletePost, isPending: isDeleting } = useDeletePost();
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+
+  const handleDeleteConfirm = async () => {
+      if (!user || !post) return;
+      try {
+          await deletePost({ id: post.id, ownerId: user.id });
+          setIsDeleteModalOpen(false);
+          // Navigate back since the post is now deleted
+          navigate(-1);
+      } catch (err) {
+          // Error handled by hook toast
+      }
+  };
+
 
   const { data: post, isLoading: postLoading } = useQuery({
     queryKey: ['community-post', id],
@@ -111,12 +132,59 @@ export const PostPage: React.FC = () => {
   return (
     <div className="flex flex-col w-full max-w-[100vw] overflow-x-hidden md:max-w-2xl mx-auto pb-[140px] min-h-screen bg-white">
       {/* Header */}
-      <div className="sticky top-0 z-50 bg-white/80 backdrop-blur-xl border-b border-gray-100 p-4 flex items-center gap-4 shadow-sm">
-        <button onClick={() => navigate(-1)} className="p-2 -ml-2 rounded-full hover:bg-gray-100 transition-colors">
-          <ArrowLeft size={24} className="text-gray-700" />
-        </button>
-        <h1 className="font-semibold text-lg text-gray-900">Post</h1>
+      <div className="sticky top-0 z-50 bg-white/80 backdrop-blur-xl border-b border-gray-100 p-4 flex items-center justify-between gap-4 shadow-sm">
+        <div className="flex items-center gap-4">
+            <button onClick={() => navigate(-1)} className="p-2 -ml-2 rounded-full hover:bg-gray-100 transition-colors">
+            <ArrowLeft size={24} className="text-gray-700" />
+            </button>
+            <h1 className="font-semibold text-lg text-gray-900">Post</h1>
+        </div>
+
+        {user && post.user_id === user.id && (
+            <Menu as="div" className="relative">
+                <Menu.Button
+                    className="p-2 -mr-2 rounded-full hover:bg-gray-100 transition-colors"
+                >
+                    <MoreVertical size={24} className="text-gray-700" />
+                </Menu.Button>
+                <Transition
+                    as={React.Fragment}
+                    enter="transition ease-out duration-100"
+                    enterFrom="transform opacity-0 scale-95"
+                    enterTo="transform opacity-100 scale-100"
+                    leave="transition ease-in duration-75"
+                    leaveFrom="transform opacity-100 scale-100"
+                    leaveTo="transform opacity-0 scale-95"
+                >
+                    <Menu.Items className="absolute right-0 mt-2 w-48 origin-top-right bg-white rounded-xl shadow-lg border border-gray-100 focus:outline-none z-50">
+                        <div className="py-1">
+                            <Menu.Item>
+                                {({ active }) => (
+                                    <button
+                                        onClick={() => setIsDeleteModalOpen(true)}
+                                        disabled={isDeleting}
+                                        className={cn(
+                                            active ? 'bg-red-50' : '',
+                                            'flex items-center gap-2 w-full text-left px-4 py-2 text-sm text-red-600 font-medium disabled:opacity-50'
+                                        )}
+                                    >
+                                        <Trash2 size={16} />
+                                        {isDeleting ? 'Deleting...' : 'Delete Post'}
+                                    </button>
+                                )}
+                            </Menu.Item>
+                        </div>
+                    </Menu.Items>
+                </Transition>
+            </Menu>
+        )}
       </div>
+      <ConfirmDeleteModal
+            isOpen={isDeleteModalOpen}
+            onClose={() => setIsDeleteModalOpen(false)}
+            onConfirm={handleDeleteConfirm}
+            isDeleting={isDeleting}
+        />
 
       {/* Main Post Content */}
         <div className="bg-white p-4 mb-0 border-b border-gray-200">
