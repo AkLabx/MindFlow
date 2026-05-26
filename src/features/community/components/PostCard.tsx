@@ -10,6 +10,10 @@ import { useNotificationStore } from '../../../stores/useNotificationStore';
 import { Menu, Transition } from '@headlessui/react';
 import { ShieldAlert } from 'lucide-react';
 import { ReportModal } from './reports/ReportModal';
+import { useDeletePost } from '../hooks/useDeletion';
+import { ConfirmDeleteModal } from './ConfirmDeleteModal';
+import { Trash2 } from 'lucide-react';
+
 import { submitReport } from '../api/reportsApi';
 
 export const PostCard: React.FC<{
@@ -26,6 +30,21 @@ export const PostCard: React.FC<{
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [isReporting, setIsReporting] = useState(false);
   const [isHiddenLocally, setIsHiddenLocally] = useState(false);
+
+  const { deletePost, isPending: isDeleting } = useDeletePost();
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+
+  const handleDeleteConfirm = async () => {
+      if (!user) return;
+      try {
+          await deletePost({ id: post.id, ownerId: user.id });
+          setIsDeleteModalOpen(false);
+          // QueryClient handles the cache removal, UI will update.
+      } catch (err) {
+          // Error handled by hook toast
+      }
+  };
+
 
   const handleReportSubmit = async (reason: string, customNote: string) => {
     if (!user) return;
@@ -107,8 +126,8 @@ export const PostCard: React.FC<{
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="w-full bg-white backdrop-blur-xl border border-gray-200 rounded-3xl p-4 mb-6 shadow-sm"
+      animate={{ opacity: isDeleting ? 0.5 : 1, y: 0 }}
+      className={cn("w-full bg-white backdrop-blur-xl border border-gray-200 rounded-3xl p-4 mb-6 shadow-sm", isDeleting && "pointer-events-none")}
     >
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3 cursor-pointer" onClick={(e) => { e.stopPropagation(); navigate(`/u/${post.profiles?.username || post.user_id}`); }}>
@@ -146,6 +165,24 @@ export const PostCard: React.FC<{
           >
             <Menu.Items className="absolute right-0 mt-2 w-48 origin-top-right bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-gray-100 dark:border-slate-700 focus:outline-none z-50">
               <div className="py-1">
+                {user && user.id === post.user_id && (
+                    <Menu.Item>
+                      {({ active }) => (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setIsDeleteModalOpen(true); }}
+                          disabled={isDeleting}
+                          className={cn(
+                            active ? 'bg-red-50 dark:bg-slate-700/50' : '',
+                            'flex items-center gap-2 w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 font-medium disabled:opacity-50'
+                          )}
+                        >
+                          <Trash2 size={16} />
+                          {isDeleting ? 'Deleting...' : 'Delete Post'}
+                        </button>
+                      )}
+                    </Menu.Item>
+                )}
+                {user && user.id !== post.user_id && (
                 <Menu.Item>
                   {({ active }) => (
                     <button
@@ -160,6 +197,7 @@ export const PostCard: React.FC<{
                     </button>
                   )}
                 </Menu.Item>
+                )}
               </div>
             </Menu.Items>
           </Transition>
@@ -171,6 +209,12 @@ export const PostCard: React.FC<{
             targetName={post.profiles?.full_name || 'Post'}
             targetType="post"
             onSubmit={handleReportSubmit}
+        />
+        <ConfirmDeleteModal
+            isOpen={isDeleteModalOpen}
+            onClose={() => setIsDeleteModalOpen(false)}
+            onConfirm={handleDeleteConfirm}
+            isDeleting={isDeleting}
         />
       </div>
 

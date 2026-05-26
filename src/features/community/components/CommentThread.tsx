@@ -5,6 +5,10 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { toggleLikeComment, toggleLikeReelComment } from '../api/communityApi';
 import { cn } from '../../../utils/cn';
+import { useDeleteComment } from '../hooks/useDeletion';
+import { Trash2, Loader2 } from 'lucide-react';
+import { ConfirmDeleteModal } from './ConfirmDeleteModal';
+
 import { useNotificationStore } from '../../../stores/useNotificationStore';
 
 // Helper to flatten the replies array to avoid infinite DOM recursion
@@ -31,6 +35,23 @@ const SingleComment: React.FC<{
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { showToast } = useNotificationStore();
+
+  const { deleteComment, isPending: isDeleting } = useDeleteComment(
+      isReelComment ? 'reel' : 'post',
+      isReelComment ? comment.reel_id : comment.post_id
+  );
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+
+  const handleDeleteConfirm = async () => {
+      if (!currentUserId) return;
+      try {
+          await deleteComment({ id: comment.id, ownerId: currentUserId });
+          setIsDeleteModalOpen(false);
+      } catch (err) {
+          // Error handled by hook toast
+      }
+  };
+
 
   const likeCommentMutation = useMutation({
     mutationFn: (currentlyLiked: boolean) =>
@@ -72,7 +93,7 @@ const SingleComment: React.FC<{
   });
 
   return (
-    <div className={cn("w-full flex items-start justify-between mb-5", isReply ? "mt-3 pl-12" : "mt-2")}>
+    <div className={cn("w-full flex items-start justify-between mb-5 transition-opacity", isReply ? "mt-3 pl-12" : "mt-2", isDeleting && "opacity-50 pointer-events-none")}>
       <div onClick={(e) => { e.stopPropagation(); navigate(`/u/${comment.profiles?.username || comment.user_id}`); }} className={cn("shrink-0 cursor-pointer", isReply ? "w-8 h-8" : "w-10 h-10")}>
         <PresenceAvatar
           userId={comment.user_id}
@@ -111,10 +132,31 @@ const SingleComment: React.FC<{
           </span>
           <button
             onClick={() => onReply(comment.id, comment.profiles?.username || comment.profiles?.full_name || 'User')}
-            className="text-[12px] text-gray-500 font-semibold hover:text-gray-900 transition-colors"
+            disabled={isDeleting}
+            className="text-[12px] text-gray-500 font-semibold hover:text-gray-900 transition-colors disabled:opacity-50"
           >
             Reply
           </button>
+
+          {currentUserId && currentUserId === comment.user_id && (
+              <button
+                onClick={() => setIsDeleteModalOpen(true)}
+                disabled={isDeleting}
+                className="text-[12px] text-red-500 font-semibold hover:text-red-700 transition-colors disabled:opacity-50 flex items-center gap-1 ml-2"
+              >
+                  {isDeleting ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
+                  Delete
+              </button>
+          )}
+
+          <ConfirmDeleteModal
+            isOpen={isDeleteModalOpen}
+            onClose={() => setIsDeleteModalOpen(false)}
+            onConfirm={handleDeleteConfirm}
+            isDeleting={isDeleting}
+            title="Delete Comment"
+            message="Are you sure you want to delete this comment?"
+          />
         </div>
       </div>
 
