@@ -161,11 +161,16 @@ Fun Fact: ${data.fun_fact}
 
             if (resultData?.error) {
                 console.error("Backend returned error:", resultData.error);
+                if (resultData.error === 'quota_exceeded') throw new Error('quota_exceeded');
+                if (resultData.error === 'kill_switch_active') throw new Error('kill_switch_active');
                 throw new Error("provider_error");
             }
 
             if (resultData?.data) {
-                setData(resultData.data);
+                // Prevent state updates if aborted or closed
+                if (!signal.aborted) {
+                    setData(resultData.data);
+                }
             } else {
                 throw new Error("empty_response");
             }
@@ -173,7 +178,7 @@ Fun Fact: ${data.fun_fact}
         } catch (err: any) {
             if (err.name === 'AbortError') {
                 if (err.message === 'timeout') {
-                    setError("The request took too long. Please try again.");
+                    if (!signal.aborted || signal.reason === 'timeout') setError("The request took too long. Please try again.");
                 } else {
                     // Modal was closed, silent abort
                     console.log("AI Explanation request cancelled by user.");
@@ -181,23 +186,37 @@ Fun Fact: ${data.fun_fact}
             } else {
                 console.error("AI Explanation Error:", err);
 
-                // User-Friendly Error Translation Layer
-                switch (err.message) {
-                    case 'network_error':
-                        setError("Network issue. Please check your connection.");
-                        break;
-                    case 'provider_error':
-                    case 'empty_response':
-                        setError("AI Tutor is currently busy or overloaded. Please try again shortly.");
-                        break;
-                    default:
-                        setError("Something went wrong loading the explanation.");
+                // Only update state if modal is still active
+                if (!signal.aborted) {
+                    // User-Friendly Error Translation Layer
+                    switch (err.message) {
+                        case 'network_error':
+                            setError("Network issue. Please check your connection.");
+                            break;
+                        case 'quota_exceeded':
+                            setError("Daily AI Tutor limit reached. Please try again tomorrow.");
+                            break;
+                        case 'kill_switch_active':
+                            setError("The AI Tutor is currently down for maintenance. Please check back later.");
+                            break;
+                        case 'provider_error':
+                        case 'empty_response':
+                            setError("AI Tutor is currently busy or overloaded. Please try again shortly.");
+                            break;
+                        default:
+                            setError("Something went wrong loading the explanation.");
+                    }
                 }
             }
         } finally {
             clearTimeout(timeoutId);
-            setIsLoading(false);
-            abortControllerRef.current = null;
+            // Only update loading state if not unmounted/aborted, or if we aborted specifically due to timeout
+            if (!signal.aborted || signal.reason === 'timeout') {
+                setIsLoading(false);
+            }
+            if (abortControllerRef.current?.signal === signal) {
+                 abortControllerRef.current = null;
+            }
         }
     };
 
