@@ -56,6 +56,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
   const location = useLocation();
   const isAIFullScreen = location.pathname.startsWith('/ai/chat') || location.pathname.startsWith('/ai/talk') || location.pathname.startsWith('/tools/text-exporter') || location.pathname.startsWith('/tools/flashcard-maker');
   const isReelsFullScreen = location.pathname.startsWith('/community/reels');
+  const isMessagingFullScreen = location.pathname.startsWith('/messages');
 
   // Auto toggle based on pathname if user lands directly on a social route
   useEffect(() => {
@@ -184,7 +185,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
   return (
     <div className={cn(
         "flex flex-col transition-colors duration-700 relative bg-gradient-to-br from-indigo-50 via-purple-50 to-white dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 animate-flow",
-        isAIFullScreen ? "h-[100dvh] w-screen overflow-hidden fixed inset-0" : isReelsFullScreen ? "h-[calc(100dvh-3.5rem-env(safe-area-inset-bottom))] w-screen overflow-hidden fixed top-0 left-0" : "min-h-screen"
+        isAIFullScreen || isMessagingFullScreen ? "h-[100dvh] w-screen overflow-hidden fixed inset-0" : isReelsFullScreen ? "h-[calc(100dvh-3.5rem-env(safe-area-inset-bottom))] w-screen overflow-hidden fixed top-0 left-0" : "min-h-screen"
     )}>
       
       {/* --- Sticky Top Header --- */}
@@ -262,7 +263,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
       <nav className={cn(
         "main-layout-nav",
         "fixed bottom-0 left-0 w-full z-[10000] transition-colors duration-300 pb-[env(safe-area-inset-bottom)] pt-2 group overflow-visible",
-        isReviewMode || isAIFullScreen ? "hidden" : "block"
+        isReviewMode || isAIFullScreen || isMessagingFullScreen ? 'hidden' : 'block'
       )}>
         {/* Glow Background Layer */}
         <div className="absolute inset-0 bg-white/40 dark:bg-slate-900/40 backdrop-blur-2xl transition-colors duration-300 z-0"></div>
