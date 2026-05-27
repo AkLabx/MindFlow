@@ -9,6 +9,21 @@ import remarkGfm from 'remark-gfm';
 import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
 import { Question } from '../types';
+import { supabase } from '../../../lib/supabase';
+import DOMPurify from 'dompurify';
+
+// Configure DOMPurify to allow KaTeX math classes and markdown elements
+const purifyConfig = {
+    ALLOWED_TAGS: [
+        'b', 'i', 'em', 'strong', 'a', 'p', 'ul', 'ol', 'li', 'br', 'span',
+        'div', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'code', 'pre', 'blockquote',
+        'math', 'mrow', 'mi', 'mo', 'mn', 'msup', 'msub', 'mfrac', 'msqrt', 'mroot' // Basic MathML tags
+    ],
+    ALLOWED_ATTR: ['href', 'class', 'target', 'rel', 'style'],
+    FORBID_TAGS: ['script', 'style', 'iframe', 'object', 'embed'],
+    FORBID_ATTR: ['on*']
+};
+
 
 interface AiExplanationButtonProps {
     question: Question;
@@ -105,100 +120,29 @@ Fun Fact: ${data.fun_fact}
         setError(null);
 
         try {
-            // Environment Variable check
-            const apiKey = process.env.GOOGLE_AI_KEY || process.env.GEMINI_API_KEY || process.env.API_KEY;
-            if (!apiKey) {
-                throw new Error("AI API Key is missing. Please configure the GOOGLE_AI_KEY environment variable.");
-            }
-
-            const todayDate = new Date().toISOString().split('T')[0];
-            const prompt = `
-You are a knowledgeable and helpful tutor. Analyze this multiple-choice question and provide a detailed explanation.
-You must use the Google Search tool to find recent news about the topic (Today's date is ${todayDate}).
-Output must be strictly valid JSON.
-
-Question: "${question.question}"
-Options: ${JSON.stringify(question.options)}
-Correct Answer: "${question.correct}"
-
-JSON Schema:
-{
-  "correct_answer": "The exact correct answer text",
-  "reasoning": "Detailed explanation of why the answer is correct and why others are wrong. Use markdown for formatting (bullet points, bold, math equations if any).",
-  "exam_facts": ["PYQ Fact 1 based on SSC CGL/UPSC/NDA/CDS etc.", "Fact 2", "Fact 3", "Fact 4", "Fact 5", "Fact 6"],
-  "recent_news": "A short summary of recent news related to the topic. Use the Google Search tool to find this.",
-  "interesting_facts": ["Fact 1", "Fact 2"],
-  "fun_fact": "A short fun fact related to the topic"
-}
-`;
-
-            const modelsToTry = [
-                'gemini-3.1-flash-lite-preview',
-                'gemini-2.5-flash-lite',
-                'gemini-2.5-flash'
-            ];
-
-            let response;
-            let lastErrorMsg = "Failed to fetch explanation";
-
-            for (const model of modelsToTry) {
-                try {
-                    response = await fetch(
-                        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
-                        {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                            },
-                            body: JSON.stringify({
-                                contents: [{
-                                    parts: [{ text: prompt }]
-                                }],
-                                tools: [{ googleSearch: {} }]
-                                                            })
-                        }
-                    );
-
-                    if (response.ok) {
-                        break; // Success, stop trying models
-                    } else {
-                        const errData = await response.json();
-                        console.warn(`Model ${model} failed:`, errData.error?.message);
-                        lastErrorMsg = errData.error?.message || `Failed with ${model}`;
-                    }
-                } catch (e: any) {
-                    console.warn(`Network error with ${model}:`, e.message);
-                    lastErrorMsg = e.message;
+            const { data: resultData, error: invokeError } = await supabase.functions.invoke('ask-ai-tutor', {
+                body: {
+                    questionId: question.id,
+                    questionText: question.question,
+                    options: question.options,
+                    correctAnswer: question.correct,
+                    locale: 'en' // Can be dynamically set based on user preferences in the future
                 }
+            });
+
+            if (invokeError) {
+                console.error("Function invocation error:", invokeError);
+                throw new Error("Failed to connect to the AI Tutor service.");
             }
 
-            if (!response || !response.ok) {
-                throw new Error(lastErrorMsg);
+            if (resultData?.error) {
+                throw new Error(resultData.error);
             }
 
-            const result = await response.json();
-            let text = result.candidates?.[0]?.content?.parts?.[0]?.text;
-
-            if (!text) throw new Error("Empty response from AI");
-
-            // Clean up potential markdown blocks if responseMimeType wasn't used
-            text = text.trim();
-            if (text.startsWith('```json')) {
-                text = text.slice(7);
-            } else if (text.startsWith('```')) {
-                text = text.slice(3);
-            }
-            if (text.endsWith('```')) {
-                text = text.slice(0, -3);
-            }
-            text = text.trim();
-
-            try {
-                const parsedData = JSON.parse(text);
-                setData(parsedData);
-            } catch (parseError) {
-                console.error("JSON Parse Error on:", text);
-                throw new Error("AI returned invalid data format.");
+            if (resultData?.data) {
+                setData(resultData.data);
+            } else {
+                 throw new Error("Received an empty response from the AI Tutor.");
             }
 
         } catch (err: any) {
@@ -304,7 +248,7 @@ JSON Schema:
                                                 <span>✅</span> Correct Answer
                                             </h4>
                                             <div className="text-emerald-900 dark:text-emerald-100 text-lg font-bold leading-relaxed">
-                                                <ReactMarkdown remarkPlugins={[remarkMath, remarkGfm]} rehypePlugins={[rehypeKatex]}>{data.correct_answer}</ReactMarkdown>
+                                                <ReactMarkdown remarkPlugins={[remarkMath, remarkGfm]} rehypePlugins={[rehypeKatex]}>{DOMPurify.sanitize(data.correct_answer, purifyConfig)}</ReactMarkdown>
                                             </div>
                                         </div>
                                     )}
@@ -316,7 +260,7 @@ JSON Schema:
                                                 <span>🧠</span> Analysis & Reasoning
                                             </h4>
                                             <div className="text-gray-800 dark:text-gray-100 leading-relaxed text-[0.95rem] prose dark:prose-invert max-w-none prose-sm sm:prose-base prose-p:my-1 prose-li:my-0">
-                                                <ReactMarkdown remarkPlugins={[remarkMath, remarkGfm]} rehypePlugins={[rehypeKatex]}>{data.reasoning}</ReactMarkdown>
+                                                <ReactMarkdown remarkPlugins={[remarkMath, remarkGfm]} rehypePlugins={[rehypeKatex]}>{DOMPurify.sanitize(data.reasoning, purifyConfig)}</ReactMarkdown>
                                             </div>
                                         </div>
                                     )}
@@ -332,7 +276,7 @@ JSON Schema:
                                                     <li key={i} className="text-blue-900 dark:text-blue-100 text-sm flex gap-2 items-start">
                                                         <span className="text-blue-500 mt-0.5 font-bold">✓</span>
                                                         <span className="flex-1">
-                                                             <ReactMarkdown remarkPlugins={[remarkMath, remarkGfm]} rehypePlugins={[rehypeKatex]}>{fact}</ReactMarkdown>
+                                                             <ReactMarkdown remarkPlugins={[remarkMath, remarkGfm]} rehypePlugins={[rehypeKatex]}>{DOMPurify.sanitize(fact, purifyConfig)}</ReactMarkdown>
                                                         </span>
                                                     </li>
                                                 ))}
@@ -347,7 +291,7 @@ JSON Schema:
                                                 <span className="text-lg">📰</span> Recent News & Updates
                                             </h4>
                                             <div className="text-rose-900 dark:text-rose-100 text-sm prose dark:prose-invert max-w-none prose-sm">
-                                                 <ReactMarkdown remarkPlugins={[remarkMath, remarkGfm]} rehypePlugins={[rehypeKatex]}>{data.recent_news}</ReactMarkdown>
+                                                 <ReactMarkdown remarkPlugins={[remarkMath, remarkGfm]} rehypePlugins={[rehypeKatex]}>{DOMPurify.sanitize(data.recent_news, purifyConfig)}</ReactMarkdown>
                                             </div>
                                         </div>
                                     )}
@@ -363,7 +307,7 @@ JSON Schema:
                                                     <li key={i} className="text-amber-900 dark:text-amber-100 text-sm flex gap-2 items-start">
                                                         <span className="text-amber-400 mt-0.5 font-bold">•</span>
                                                         <span className="flex-1">
-                                                            <ReactMarkdown remarkPlugins={[remarkMath, remarkGfm]} rehypePlugins={[rehypeKatex]}>{fact}</ReactMarkdown>
+                                                            <ReactMarkdown remarkPlugins={[remarkMath, remarkGfm]} rehypePlugins={[rehypeKatex]}>{DOMPurify.sanitize(fact, purifyConfig)}</ReactMarkdown>
                                                         </span>
                                                     </li>
                                                 ))}
@@ -378,7 +322,7 @@ JSON Schema:
                                                 <span>🎉</span> Fun Fact
                                             </h4>
                                             <div className="text-purple-900 dark:text-purple-200 text-sm italic prose dark:prose-invert max-w-none prose-sm">
-                                                <ReactMarkdown remarkPlugins={[remarkMath, remarkGfm]} rehypePlugins={[rehypeKatex]}>{data.fun_fact}</ReactMarkdown>
+                                                <ReactMarkdown remarkPlugins={[remarkMath, remarkGfm]} rehypePlugins={[rehypeKatex]}>{DOMPurify.sanitize(data.fun_fact, purifyConfig)}</ReactMarkdown>
                                             </div>
                                         </div>
                                     )}
