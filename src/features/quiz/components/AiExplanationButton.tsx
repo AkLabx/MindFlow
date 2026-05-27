@@ -9,6 +9,7 @@ import remarkGfm from 'remark-gfm';
 import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
 import { Question } from '../types';
+import { supabase } from '../../../lib/supabase';
 
 interface AiExplanationButtonProps {
     question: Question;
@@ -105,100 +106,31 @@ Fun Fact: ${data.fun_fact}
         setError(null);
 
         try {
-            // Environment Variable check
-            const apiKey = process.env.GOOGLE_AI_KEY || process.env.GEMINI_API_KEY || process.env.API_KEY;
-            if (!apiKey) {
-                throw new Error("AI API Key is missing. Please configure the GOOGLE_AI_KEY environment variable.");
-            }
-
-            const todayDate = new Date().toISOString().split('T')[0];
-            const prompt = `
-You are a knowledgeable and helpful tutor. Analyze this multiple-choice question and provide a detailed explanation.
-You must use the Google Search tool to find recent news about the topic (Today's date is ${todayDate}).
-Output must be strictly valid JSON.
-
-Question: "${question.question}"
-Options: ${JSON.stringify(question.options)}
-Correct Answer: "${question.correct}"
-
-JSON Schema:
-{
-  "correct_answer": "The exact correct answer text",
-  "reasoning": "Detailed explanation of why the answer is correct and why others are wrong. Use markdown for formatting (bullet points, bold, math equations if any).",
-  "exam_facts": ["PYQ Fact 1 based on SSC CGL/UPSC/NDA/CDS etc.", "Fact 2", "Fact 3", "Fact 4", "Fact 5", "Fact 6"],
-  "recent_news": "A short summary of recent news related to the topic. Use the Google Search tool to find this.",
-  "interesting_facts": ["Fact 1", "Fact 2"],
-  "fun_fact": "A short fun fact related to the topic"
-}
-`;
-
-            const modelsToTry = [
-                'gemini-3.1-flash-lite-preview',
-                'gemini-2.5-flash-lite',
-                'gemini-2.5-flash'
-            ];
-
-            let response;
-            let lastErrorMsg = "Failed to fetch explanation";
-
-            for (const model of modelsToTry) {
-                try {
-                    response = await fetch(
-                        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
-                        {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                            },
-                            body: JSON.stringify({
-                                contents: [{
-                                    parts: [{ text: prompt }]
-                                }],
-                                tools: [{ googleSearch: {} }]
-                                                            })
-                        }
-                    );
-
-                    if (response.ok) {
-                        break; // Success, stop trying models
-                    } else {
-                        const errData = await response.json();
-                        console.warn(`Model ${model} failed:`, errData.error?.message);
-                        lastErrorMsg = errData.error?.message || `Failed with ${model}`;
-                    }
-                } catch (e: any) {
-                    console.warn(`Network error with ${model}:`, e.message);
-                    lastErrorMsg = e.message;
+            const { data: resultData, error: invokeError } = await supabase.functions.invoke('ask-ai-tutor', {
+                body: {
+                    questionId: question.id,
+                    questionText: question.question,
+                    options: question.options,
+                    correctAnswer: question.correct,
+                    locale: 'en', // Can be dynamically set based on user preferences in the future
+                    promptVersion: 'v1',
+                    modelVersion: 'gemini-2.5-flash-lite'
                 }
+            });
+
+            if (invokeError) {
+                console.error("Function invocation error:", invokeError);
+                throw new Error("Failed to connect to the AI Tutor service.");
             }
 
-            if (!response || !response.ok) {
-                throw new Error(lastErrorMsg);
+            if (resultData?.error) {
+                throw new Error(resultData.error);
             }
 
-            const result = await response.json();
-            let text = result.candidates?.[0]?.content?.parts?.[0]?.text;
-
-            if (!text) throw new Error("Empty response from AI");
-
-            // Clean up potential markdown blocks if responseMimeType wasn't used
-            text = text.trim();
-            if (text.startsWith('```json')) {
-                text = text.slice(7);
-            } else if (text.startsWith('```')) {
-                text = text.slice(3);
-            }
-            if (text.endsWith('```')) {
-                text = text.slice(0, -3);
-            }
-            text = text.trim();
-
-            try {
-                const parsedData = JSON.parse(text);
-                setData(parsedData);
-            } catch (parseError) {
-                console.error("JSON Parse Error on:", text);
-                throw new Error("AI returned invalid data format.");
+            if (resultData?.data) {
+                setData(resultData.data);
+            } else {
+                 throw new Error("Received an empty response from the AI Tutor.");
             }
 
         } catch (err: any) {
