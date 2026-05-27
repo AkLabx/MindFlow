@@ -63,7 +63,7 @@ export const ChatRooms: React.FC = () => {
   }
 
   return (
-    <div className="flex flex-col w-full max-w-2xl mx-auto pb-[calc(56px_+_env(safe-area-inset-bottom))] px-4">
+    <div className="flex flex-col w-full max-w-2xl mx-auto pb-[env(safe-area-inset-bottom)] px-4">
       <div className="flex items-center gap-3 mb-6 mt-4"><button onClick={() => navigate('/community')} className="p-2 -ml-2 rounded-full hover:bg-gray-100 text-gray-800"><ArrowLeft size={24} /></button><h2 className="text-2xl font-bold text-gray-900">Messages</h2></div>
       <div className="space-y-2">
         {rooms?.map(room => {
@@ -311,7 +311,7 @@ const ActiveChatRoom: React.FC<{ room: ChatRoom; onBack: () => void }> = ({ room
   };
 
   return (
-    <div className="fixed inset-0 z-[100] bg-white flex flex-col w-full md:relative md:h-[calc(100dvh-70px)] md:max-w-2xl md:mx-auto md:border-x md:border-gray-100 md:shadow-sm">
+    <div className="fixed inset-0 z-[100] bg-white flex flex-col w-full md:relative md:h-[100dvh] md:max-w-2xl md:mx-auto md:border-x md:border-gray-100 md:shadow-sm">
       {/* Header */}
       <div className="flex items-center gap-3 p-4 bg-white/80 backdrop-blur-xl border-b border-gray-200 sticky top-0 z-10">
         <button onClick={onBack} className="p-2 -ml-2 rounded-full hover:bg-gray-100 text-gray-800" aria-label="Go back">
