@@ -10,6 +10,20 @@ import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
 import { Question } from '../types';
 import { supabase } from '../../../lib/supabase';
+import DOMPurify from 'dompurify';
+
+// Configure DOMPurify to allow KaTeX math classes and markdown elements
+const purifyConfig = {
+    ALLOWED_TAGS: [
+        'b', 'i', 'em', 'strong', 'a', 'p', 'ul', 'ol', 'li', 'br', 'span',
+        'div', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'code', 'pre', 'blockquote',
+        'math', 'mrow', 'mi', 'mo', 'mn', 'msup', 'msub', 'mfrac', 'msqrt', 'mroot' // Basic MathML tags
+    ],
+    ALLOWED_ATTR: ['href', 'class', 'target', 'rel', 'style'],
+    FORBID_TAGS: ['script', 'style', 'iframe', 'object', 'embed'],
+    FORBID_ATTR: ['on*']
+};
+
 
 interface AiExplanationButtonProps {
     question: Question;
@@ -112,9 +126,7 @@ Fun Fact: ${data.fun_fact}
                     questionText: question.question,
                     options: question.options,
                     correctAnswer: question.correct,
-                    locale: 'en', // Can be dynamically set based on user preferences in the future
-                    promptVersion: 'v1',
-                    modelVersion: 'gemini-2.5-flash-lite'
+                    locale: 'en' // Can be dynamically set based on user preferences in the future
                 }
             });
 
@@ -236,7 +248,7 @@ Fun Fact: ${data.fun_fact}
                                                 <span>✅</span> Correct Answer
                                             </h4>
                                             <div className="text-emerald-900 dark:text-emerald-100 text-lg font-bold leading-relaxed">
-                                                <ReactMarkdown remarkPlugins={[remarkMath, remarkGfm]} rehypePlugins={[rehypeKatex]}>{data.correct_answer}</ReactMarkdown>
+                                                <ReactMarkdown remarkPlugins={[remarkMath, remarkGfm]} rehypePlugins={[rehypeKatex]}>{DOMPurify.sanitize(data.correct_answer, purifyConfig)}</ReactMarkdown>
                                             </div>
                                         </div>
                                     )}
@@ -248,7 +260,7 @@ Fun Fact: ${data.fun_fact}
                                                 <span>🧠</span> Analysis & Reasoning
                                             </h4>
                                             <div className="text-gray-800 dark:text-gray-100 leading-relaxed text-[0.95rem] prose dark:prose-invert max-w-none prose-sm sm:prose-base prose-p:my-1 prose-li:my-0">
-                                                <ReactMarkdown remarkPlugins={[remarkMath, remarkGfm]} rehypePlugins={[rehypeKatex]}>{data.reasoning}</ReactMarkdown>
+                                                <ReactMarkdown remarkPlugins={[remarkMath, remarkGfm]} rehypePlugins={[rehypeKatex]}>{DOMPurify.sanitize(data.reasoning, purifyConfig)}</ReactMarkdown>
                                             </div>
                                         </div>
                                     )}
@@ -264,7 +276,7 @@ Fun Fact: ${data.fun_fact}
                                                     <li key={i} className="text-blue-900 dark:text-blue-100 text-sm flex gap-2 items-start">
                                                         <span className="text-blue-500 mt-0.5 font-bold">✓</span>
                                                         <span className="flex-1">
-                                                             <ReactMarkdown remarkPlugins={[remarkMath, remarkGfm]} rehypePlugins={[rehypeKatex]}>{fact}</ReactMarkdown>
+                                                             <ReactMarkdown remarkPlugins={[remarkMath, remarkGfm]} rehypePlugins={[rehypeKatex]}>{DOMPurify.sanitize(fact, purifyConfig)}</ReactMarkdown>
                                                         </span>
                                                     </li>
                                                 ))}
@@ -279,7 +291,7 @@ Fun Fact: ${data.fun_fact}
                                                 <span className="text-lg">📰</span> Recent News & Updates
                                             </h4>
                                             <div className="text-rose-900 dark:text-rose-100 text-sm prose dark:prose-invert max-w-none prose-sm">
-                                                 <ReactMarkdown remarkPlugins={[remarkMath, remarkGfm]} rehypePlugins={[rehypeKatex]}>{data.recent_news}</ReactMarkdown>
+                                                 <ReactMarkdown remarkPlugins={[remarkMath, remarkGfm]} rehypePlugins={[rehypeKatex]}>{DOMPurify.sanitize(data.recent_news, purifyConfig)}</ReactMarkdown>
                                             </div>
                                         </div>
                                     )}
@@ -295,7 +307,7 @@ Fun Fact: ${data.fun_fact}
                                                     <li key={i} className="text-amber-900 dark:text-amber-100 text-sm flex gap-2 items-start">
                                                         <span className="text-amber-400 mt-0.5 font-bold">•</span>
                                                         <span className="flex-1">
-                                                            <ReactMarkdown remarkPlugins={[remarkMath, remarkGfm]} rehypePlugins={[rehypeKatex]}>{fact}</ReactMarkdown>
+                                                            <ReactMarkdown remarkPlugins={[remarkMath, remarkGfm]} rehypePlugins={[rehypeKatex]}>{DOMPurify.sanitize(fact, purifyConfig)}</ReactMarkdown>
                                                         </span>
                                                     </li>
                                                 ))}
@@ -310,7 +322,7 @@ Fun Fact: ${data.fun_fact}
                                                 <span>🎉</span> Fun Fact
                                             </h4>
                                             <div className="text-purple-900 dark:text-purple-200 text-sm italic prose dark:prose-invert max-w-none prose-sm">
-                                                <ReactMarkdown remarkPlugins={[remarkMath, remarkGfm]} rehypePlugins={[rehypeKatex]}>{data.fun_fact}</ReactMarkdown>
+                                                <ReactMarkdown remarkPlugins={[remarkMath, remarkGfm]} rehypePlugins={[rehypeKatex]}>{DOMPurify.sanitize(data.fun_fact, purifyConfig)}</ReactMarkdown>
                                             </div>
                                         </div>
                                     )}
