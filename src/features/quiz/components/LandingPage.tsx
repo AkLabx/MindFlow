@@ -1,6 +1,4 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { PresenceAvatar } from '../../../components/ui/PresenceAvatar';
-import { getCanonicalAvatarUrl } from '../../../utils/avatar';
 import { useSettingsStore } from '../../../stores/useSettingsStore';
 import { ArrowRight, Brain, Zap, Layers, Star, Play, Github, Download, Target, User as UserIcon, LogOut, ChevronDown, Moon, Sun } from 'lucide-react';
 import { ClaymorphismSwitch } from './ui/ClaymorphismSwitch';
@@ -165,7 +163,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLoginC
               {user ? (
                 <div className="relative">
                   <button onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)} className="flex items-center gap-2 cursor-pointer">
-                    <PresenceAvatar userId={user.id} avatarUrl={getCanonicalAvatarUrl(null, user)} altText="User avatar" className="w-8 h-8" />
+                    <img src={user.user_metadata.avatar_url} alt="User avatar" className="w-8 h-8 rounded-full" />
                     <ChevronDown className={`w-4 h-4 text-slate-600 dark:text-slate-400 transition-transform ${isProfileMenuOpen ? 'rotate-180' : ''}`} />
                   </button>
                   {isProfileMenuOpen && (

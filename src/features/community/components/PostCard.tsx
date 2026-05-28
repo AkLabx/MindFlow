@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { useAuth } from '../../auth/context/AuthContext';
 import { getCanonicalAvatarUrl } from '../../../utils/avatar';
 import { PresenceAvatar } from '../../../components/ui/PresenceAvatar';
 import { PresenceDot } from '../../../components/ui/PresenceDot';
@@ -21,10 +22,9 @@ export const PostCard: React.FC<{
   navigate: any;
   post: Post;
   user: any;
-  profile?: any;
   onLike: () => void;
   onDoubleTap: (x: number, y: number) => void;
-}> = React.memo(({ post, onLike, onDoubleTap, navigate, user, profile }) => {
+}> = React.memo(({ post, onLike, onDoubleTap, navigate, user }) => {
   const lastTapRef = useRef<number>(0);
   const [showCommentBox, setShowCommentBox] = useState(false);
   const [commentText, setCommentText] = useState('');
@@ -299,7 +299,7 @@ export const PostCard: React.FC<{
                 <div className="w-8 h-8 rounded-full overflow-hidden shrink-0 mt-1">
                   <PresenceAvatar
                     userId={user?.id || ''}
-                    avatarUrl={getCanonicalAvatarUrl(profile, user)}
+                    avatarUrl={getCanonicalAvatarUrl(null, user)}
                     className="w-full h-full"
                     altText="Your avatar"
                   />

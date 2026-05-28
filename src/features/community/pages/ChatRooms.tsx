@@ -277,7 +277,7 @@ const ActiveChatRoom: React.FC<{ room: ChatRoom; onBack: () => void }> = ({ room
                 id: otherParticipant!.user_id,
                 username: otherParticipant!.full_name || 'Unknown',
                 full_name: otherParticipant!.full_name || 'Unknown',
-                avatar_url: getCanonicalAvatarUrl(otherParticipant, null),
+                avatar_url: otherParticipant!.avatar_url,
                 bio: null // Not available in ChatRoom participants by default
             }
         });

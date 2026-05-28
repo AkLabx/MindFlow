@@ -1,6 +1,4 @@
 import React, { useContext, useEffect, useState, useRef, useLayoutEffect } from 'react';
-import { PresenceAvatar } from '../components/ui/PresenceAvatar';
-import { getCanonicalAvatarUrl } from '../utils/avatar';
 import { useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BrainCircuit, Home, LayoutDashboard, GraduationCap, PlusCircle, User, Settings, LogIn, Sun, Moon, Brain, Menu, Search, Play, MessageSquare, ArrowLeft, Users } from 'lucide-react';
@@ -51,7 +49,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
   onTabChange,
   onOpenSettings 
 }) => {
-  const { user, profile } = useAuth();
+  const { user } = useAuth();
   const { isReviewMode } = useQuizContext();
   const { isDarkMode, toggleDarkMode } = useSettingsStore();
   const { isSocialMode, toggleSocialMode } = useSocialStore();
@@ -225,11 +223,10 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
               <div className="flex items-center gap-2">
                 <NotificationBell />
                 <button onClick={() => onTabChange('profile')} className="rounded-full transition-opacity duration-200 hover:opacity-80">
-                  <PresenceAvatar
-                    userId={user.id}
-                    avatarUrl={getCanonicalAvatarUrl(profile, user)}
-                    altText="User Avatar"
-                    className="w-8 h-8"
+                  <img
+                    src={user.user_metadata?.avatar_url || `https://api.dicebear.com/6.x/initials/svg?seed=${user.user_metadata?.full_name || user.email}`}
+                    alt="User Avatar"
+                    className="w-8 h-8 rounded-full"
                   />
                 </button>
               </div>

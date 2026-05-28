@@ -16,7 +16,7 @@ import { ErrorState } from '../../../components/ui/ErrorState';
 import { KeyboardAwareBottomBar } from "../../../components/ui/KeyboardAwareBottomBar";
 export const ReelCommentsPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const { user, profile } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { showToast } = useNotificationStore();
@@ -196,7 +196,7 @@ export const ReelCommentsPage: React.FC = () => {
         <form onSubmit={handleCommentSubmit} className="flex flex-col gap-3">
           <div className="flex items-start gap-3">
               <img
-                src={getCanonicalAvatarUrl(profile, user)}
+                src={getCanonicalAvatarUrl(null, user)}
                 className="w-10 h-10 rounded-full object-cover shrink-0 border border-gray-100 mt-1"
                 alt="avatar"
               />

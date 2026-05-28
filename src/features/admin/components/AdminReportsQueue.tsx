@@ -1,6 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import { PresenceAvatar } from '../../../components/ui/PresenceAvatar';
-import { getCanonicalAvatarUrl } from '../../../utils/avatar';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
