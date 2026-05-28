@@ -181,11 +181,40 @@ Fun Fact: ${data.fun_fact}
 
         // Check if the explanation is already cached directly on the question object
         if ((question as any).ask_ai_explanation) {
-             const cachedData = (question as any).ask_ai_explanation;
-             setData(cachedData);
-             setExplanationId(question.id);
-             setHasVoted(false);
-             return;
+            setIsLoading(true);
+            const cachedData = (question as any).ask_ai_explanation;
+
+            // Add a cinematic delay to simulate AI processing even for cached responses
+            const fakeDelay = 1400 + Math.random() * 900;
+
+            // We still want to allow early cancellation if the user closes the modal
+            abortControllerRef.current = new AbortController();
+            const signal = abortControllerRef.current.signal;
+
+            try {
+                await new Promise<void>((resolve, reject) => {
+                    const timer = setTimeout(resolve, fakeDelay);
+                    signal.addEventListener('abort', () => {
+                        clearTimeout(timer);
+                        reject(new DOMException('abort', 'AbortError'));
+                    });
+                });
+
+                if (!signal.aborted) {
+                    setData(cachedData);
+                    setExplanationId(question.id);
+                    setHasVoted(false);
+                }
+            } catch (err: any) {
+                if (err.name === 'AbortError') {
+                    console.log('AI Explanation cached delay aborted');
+                }
+            } finally {
+                if (!signal.aborted) {
+                    setIsLoading(false);
+                }
+            }
+            return;
         }
 
         setIsLoading(true);
@@ -299,7 +328,7 @@ Fun Fact: ${data.fun_fact}
             const messages = [
                 "🧠 Analyzing concepts...",
                 "📚 Reviewing exam patterns...",
-                "📰 Checking recent context...",
+                "🔎 Connecting related facts...",
                 "✨ Preparing explanation..."
             ];
             let index = 0;
@@ -307,7 +336,7 @@ Fun Fact: ${data.fun_fact}
             interval = setInterval(() => {
                 index = (index + 1) % messages.length;
                 setLoadingMessage(messages[index]);
-            }, 1200);
+            }, 400);
         }
         return () => clearInterval(interval);
     }, [isLoading]);
