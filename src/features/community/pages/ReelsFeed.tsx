@@ -1,6 +1,4 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { PresenceAvatar } from '../../../components/ui/PresenceAvatar';
-import { getCanonicalAvatarUrl } from '../../../utils/avatar';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchReels, toggleLikeReel, Reel } from '../api/communityApi';
 import { useAuth } from '../../auth/context/AuthContext';

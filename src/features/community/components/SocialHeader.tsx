@@ -1,5 +1,4 @@
 import React from 'react';
-import { getCanonicalAvatarUrl } from '../../../utils/avatar';
 import { PresenceAvatar } from '../../../components/ui/PresenceAvatar';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -21,7 +20,7 @@ const mockStories = [
 ];
 
 export const SocialHeader: React.FC = () => {
-  const { user, profile } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
 
   const { data: profileUsername } = useQuery({
@@ -40,7 +39,9 @@ export const SocialHeader: React.FC = () => {
     }
   };
 
-  const userAvatar = getCanonicalAvatarUrl(profile, user);
+  const userAvatar = user?.user_metadata?.avatar_url ||
+    (user ? `https://api.dicebear.com/6.x/initials/svg?seed=${user.user_metadata?.full_name || user.email}` :
+    'https://api.dicebear.com/6.x/initials/svg?seed=Guest');
 
   return (
     <div className="w-full bg-white/5 dark:bg-slate-900/5 backdrop-blur-md border-b border-indigo-100/20 dark:border-indigo-900/20 py-3 mb-4">

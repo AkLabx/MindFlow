@@ -1,6 +1,6 @@
 export const getCanonicalAvatarUrl = (
-  profile: { avatar_url?: string | null; updated_at?: string | null } | null | undefined,
-  user: { user_metadata?: { avatar_url?: string | null, full_name?: string | null }; email?: string | null } | null | undefined,
+  profile: { avatar_url?: string | null; updated_at?: string | null } | null,
+  user: { user_metadata?: { avatar_url?: string | null, full_name?: string | null }; email?: string | null } | null,
   options?: { fallbackSeed?: string }
 ): string => {
   const defaultSeed = profile?.avatar_url ? 'User' : (user?.user_metadata?.full_name || user?.email || options?.fallbackSeed || 'User');
@@ -30,29 +30,20 @@ export const getCanonicalAvatarUrl = (
 
      // Check if it's a Supabase storage URL (public URL)
      // Signed URLs might break if we randomly append query params without care,
-     // but currently the app uses public URLs for avatars.
+     // but currently the app uses public URLs for avatars (ProfilePage.tsx:160).
+     // We safely append using URL object or simple check.
      try {
        const urlObj = new URL(avatarUrl);
-       // Only append if it doesn't already have our exact cache buster
-       if (urlObj.searchParams.get('t') !== cacheBuster.toString()) {
-           urlObj.searchParams.set('t', cacheBuster.toString());
-           avatarUrl = urlObj.toString();
-       }
+       urlObj.searchParams.set('t', cacheBuster.toString());
+       avatarUrl = urlObj.toString();
      } catch (e) {
-       // Fallback if URL parsing fails (e.g., relative URLs, though avatars shouldn't be relative)
+       // Fallback if URL parsing fails
        const separator = avatarUrl.includes('?') ? '&' : '?';
-       if (!avatarUrl.includes(`t=${cacheBuster}`)) {
-          // Remove any existing 't=' param if we're fallback parsing to avoid ?t=123&t=456
-          avatarUrl = avatarUrl.replace(/([?&])t=[^&]+/, '$1');
-          avatarUrl = `${avatarUrl}${avatarUrl.endsWith('?') || avatarUrl.endsWith('&') ? '' : separator}t=${cacheBuster}`;
+       if (!avatarUrl.includes('t=')) {
+          avatarUrl = `${avatarUrl}${separator}t=${cacheBuster}`;
        }
      }
   }
 
   return avatarUrl;
-};
-
-export const getDeterministicFallback = (seed?: string | null): string => {
-  const safeSeed = seed || 'User';
-  return `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(safeSeed)}&backgroundColor=e2e8f0`;
 };

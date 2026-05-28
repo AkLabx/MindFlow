@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { getCanonicalAvatarUrl } from '../../../utils/avatar';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchUserRooms, fetchMessages, sendMessage, uploadChatMedia, ChatRoom, ChatMessage } from '../api/chatApi';
 import { useAuth } from '../../auth/context/AuthContext';
@@ -71,7 +70,7 @@ export const ChatRooms: React.FC = () => {
           // For direct chats, find the other person
           const otherParticipant = room.participants?.find(p => p.user_id !== user?.id);
           const title = room.type === 'direct' ? otherParticipant?.full_name || 'Unknown User' : 'Group Chat';
-          const avatar = room.type === 'direct' ? getCanonicalAvatarUrl(otherParticipant, null) : null;
+          const avatar = room.type === 'direct' ? otherParticipant?.avatar_url : null;
 
           return (
             <motion.button
@@ -84,7 +83,7 @@ export const ChatRooms: React.FC = () => {
               <div className="w-12 h-12 rounded-full overflow-hidden shrink-0 shadow-sm">
                 <PresenceAvatar
                   userId={otherParticipant?.user_id || ''}
-                  avatarUrl={getCanonicalAvatarUrl(otherParticipant, null)}
+                  avatarUrl={otherParticipant?.avatar_url}
                   altText={otherParticipant?.full_name || 'User'}
                   className="w-full h-full"
                 />
@@ -277,7 +276,7 @@ const ActiveChatRoom: React.FC<{ room: ChatRoom; onBack: () => void }> = ({ room
                 id: otherParticipant!.user_id,
                 username: otherParticipant!.full_name || 'Unknown',
                 full_name: otherParticipant!.full_name || 'Unknown',
-                avatar_url: getCanonicalAvatarUrl(otherParticipant, null),
+                avatar_url: otherParticipant!.avatar_url,
                 bio: null // Not available in ChatRoom participants by default
             }
         });
@@ -321,7 +320,7 @@ const ActiveChatRoom: React.FC<{ room: ChatRoom; onBack: () => void }> = ({ room
         <div className="w-10 h-10 rounded-full overflow-hidden shadow-sm">
              <PresenceAvatar
                 userId={otherParticipant?.user_id || ''}
-                avatarUrl={getCanonicalAvatarUrl(otherParticipant, null)}
+                avatarUrl={otherParticipant?.avatar_url}
                 altText={otherParticipant?.full_name || 'User'}
                 className="w-full h-full"
              />
@@ -482,7 +481,7 @@ const ActiveChatRoom: React.FC<{ room: ChatRoom; onBack: () => void }> = ({ room
                   isMine={isMine}
                   showTimeSeparator={showTimeSeparator}
                   timeSeparatorText={timeSeparatorText}
-                  otherParticipantAvatar={getCanonicalAvatarUrl(otherParticipant, null)}
+                  otherParticipantAvatar={otherParticipant?.avatar_url}
                   onLikeToggle={handleLikeToggle}
                 />
               );
