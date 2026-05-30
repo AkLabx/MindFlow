@@ -1,6 +1,5 @@
 import { Question, InitialFilters } from '../../../types/models';
 import { QuizRuntimeState, QuizPersistentState, QuizMode } from './store';
-export * from './blueprint';
 
 // Re-export models so existing imports in components don't break
 export * from '../../../types/models';

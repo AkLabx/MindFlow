@@ -1,6 +1,6 @@
 import { supabase } from '../../../lib/supabase';
 import { CalculatedQuery } from '../engine/blueprintMath';
-import { Question } from '../types';
+import { Question } from '../../quiz/types';
 
 export const fetchBlueprintQuestions = async (
   userId: string,
@@ -34,7 +34,7 @@ export const fetchBlueprintQuestions = async (
     const questionIds = data.map((row: any) => row.question_id);
 
     // Fetch full data using the optimized batch function
-    const { fetchQuestionsByIds } = await import('./questionService');
+    const { fetchQuestionsByIds } = await import('../../quiz/services/questionService');
     const fullQuestions = await fetchQuestionsByIds(questionIds);
 
     return fullQuestions;

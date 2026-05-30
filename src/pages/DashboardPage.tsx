@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
 import { motion } from "framer-motion";
-import { AdminSVG } from "@/features/quiz/components/AdminSVGs";
+import { AdminSVG } from "@/features/admin/components/AdminSVGs";
 import {
   McqsQuizSVG,
   EnglishZoneSVG,

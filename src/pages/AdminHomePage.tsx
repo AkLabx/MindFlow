@@ -2,9 +2,9 @@ import React, { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { ShieldAlert, Bell, Upload, ArrowLeft } from 'lucide-react';
-import { useAuth } from '../../auth/context/AuthContext';
+import { useAuth } from '@/features/auth/context/AuthContext';
 
-export const AdminHome: React.FC = () => {
+export const AdminHomePage: React.FC = () => {
     const navigate = useNavigate();
     const { user } = useAuth();
 

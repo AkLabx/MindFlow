@@ -6,7 +6,7 @@ import { supabase } from '../../lib/supabase';
 import { useNotificationStore } from '../../stores/useNotificationStore';
 import { cn } from '../../utils/cn';
 import { useAuth } from '../auth/context/AuthContext';
-import { AdminEditMaterialModal } from '../quiz/components/AdminEditMaterialModal';
+import { AdminEditMaterialModal } from '../../features/admin/components/AdminEditMaterialModal';
 import { deleteStudyMaterial } from '../quiz/utils/adminMaterialUtils';
 import { Edit2, Trash2 } from 'lucide-react';
 
@@ -414,7 +414,7 @@ export const SchoolDownloads: React.FC = () => {
                 isOpen={!!editingMaterial}
                 material={editingMaterial}
                 onClose={() => setEditingMaterial(null)}
-                onSuccess={(updated) => {
+                onSuccess={ (updated: any)  => {
                     setMaterials(prev => prev.map(m => m.id === updated.id ? updated : m));
                 }}
             />

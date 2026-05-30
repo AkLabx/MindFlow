@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { supabase } from '../../../lib/supabase';
-import { ExamBlueprint } from '../types/blueprint';
-import { BlueprintPreview } from './BlueprintPreview';
-import { useQuizSessionStore } from '../stores/useQuizSessionStore';
-import { Question } from '../types';
-import { CookingLoader } from './CookingLoader';
-import { useNotification } from '../../../stores/useNotificationStore';
-import { useAuth } from '../../auth/context/AuthContext';
+import { supabase } from '@/lib/supabase';
+import { ExamBlueprint } from '@/features/blueprints/types/blueprint';
+import { BlueprintPreview } from '@/features/blueprints/components/BlueprintPreview';
+import { useQuizSessionStore } from '@/features/quiz/stores/useQuizSessionStore';
+import { Question } from '@/features/quiz/types';
+import { CookingLoader } from '@/features/quiz/components/CookingLoader';
+import { useNotification } from '@/stores/useNotificationStore';
+import { useAuth } from '@/features/auth/context/AuthContext';
 
 export const BlueprintPreviewWrapper: React.FC = () => {
   const { id } = useParams<{ id: string }>();

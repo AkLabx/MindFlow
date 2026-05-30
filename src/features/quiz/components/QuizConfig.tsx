@@ -34,7 +34,7 @@ import { QuickStartButtons } from './ui/QuickStartButtons';
 import { ActiveFiltersBar } from './ui/ActiveFiltersBar';
 import { Accordion } from './ui/Accordion';
 import { ScrollableCapsules } from './ui/ScrollableCapsules';
-import { ExamBlueprintsHub } from './ExamBlueprintsHub';
+import { ExamBlueprintsHubPage } from '@/pages/ExamBlueprintsHubPage';
 
 // Optimization Hooks
 import { useQuestionIndex, filterQuestionsByIndex } from '../hooks/useQuestionIndex';
@@ -417,7 +417,7 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
 
         {mode === 'god' && (
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-            <ExamBlueprintsHub onBack={onBack} onLaunchBlueprint={(bp) => navigate(`/blueprints/preview/${bp.id}`)} metadataIndex={questionIndex} />
+            <ExamBlueprintsHubPage onBack={onBack} onLaunchBlueprint={(bp: any) => navigate(`/blueprints/preview/${bp.id}`)} metadataIndex={questionIndex} />
           </div>
         )}
 

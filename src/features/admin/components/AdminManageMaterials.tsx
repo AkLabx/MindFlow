@@ -2,11 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Edit2, Trash2, FileText, Loader2, Search } from 'lucide-react';
-import { supabase } from '../../../lib/supabase';
-import { useAuth } from '../../auth/context/AuthContext';
-import { useNotificationStore } from '../../../stores/useNotificationStore';
-import { AdminEditMaterialModal, StudyMaterial } from './AdminEditMaterialModal';
-import { deleteStudyMaterial } from '../utils/adminMaterialUtils';
+import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/features/auth/context/AuthContext';
+import { useNotificationStore } from '@/stores/useNotificationStore';
+import { AdminEditMaterialModal, StudyMaterial } from '@/features/admin/components/AdminEditMaterialModal';
+import { deleteStudyMaterial } from '@/features/quiz/utils/adminMaterialUtils';
 
 export const AdminManageMaterials: React.FC = () => {
     const navigate = useNavigate();
@@ -171,7 +171,7 @@ export const AdminManageMaterials: React.FC = () => {
                 isOpen={!!editingMaterial}
                 material={editingMaterial}
                 onClose={() => setEditingMaterial(null)}
-                onSuccess={(updated) => {
+                onSuccess={ (updated: any)  => {
                     setMaterials(prev => prev.map(m => m.id === updated.id ? updated : m));
                 }}
             />

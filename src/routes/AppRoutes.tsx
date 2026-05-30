@@ -26,8 +26,8 @@ const SchoolHomePage = lazy(() => import('../pages/SchoolHomePage').then(m => ({
 const SchoolDownloads = lazy(() => import('../features/school/SchoolDownloads').then(m => ({ default: m.SchoolDownloads })));
 const LandingPage = lazy(() => import('../pages/LandingPage').then(m => ({ default: m.LandingPage })));
 const Dashboard = lazy(() => import('../pages/DashboardPage').then(m => ({ default: m.DashboardPage })));
-const McqsQuizHome = lazy(() => import('../features/quiz/components/McqsQuizHome').then(m => ({ default: m.McqsQuizHome })));
-const EnglishQuizHome = lazy(() => import('../features/quiz/components/EnglishQuizHome').then(m => ({ default: m.EnglishQuizHome })));
+const McqsQuizHome = lazy(() => import('../pages/McqsQuizHomePage').then(m => ({ default: m.McqsQuizHomePage })));
+const EnglishQuizHome = lazy(() => import('../pages/EnglishQuizHomePage').then(m => ({ default: m.EnglishQuizHomePage })));
 const QuizConfig = lazy(() => import('../features/quiz/components/QuizConfig').then(m => ({ default: m.QuizConfig })));
 const QuizLibrary = lazy(() => import('../features/quiz/components/QuizLibrary').then(m => ({ default: m.QuizLibrary })));
 
@@ -39,14 +39,14 @@ const LiveQuizRoom = lazy(() => import('../features/quiz/live/LiveQuizRoom').the
 const SynonymsConfig = lazy(() => import('../features/synonyms/SynonymsConfig').then(m => ({ default: m.SynonymsConfig })));
 const SynonymClusterList = lazy(() => import('../features/synonyms/components/SynonymClusterList').then(m => ({ default: m.SynonymClusterList })));
 
-const BlueprintPreviewWrapper = lazy(() => import('../features/quiz/components/BlueprintPreviewWrapper').then(m => ({ default: m.BlueprintPreviewWrapper })));
-const ExamBlueprintsHub = lazy(() => import('../features/quiz/components/ExamBlueprintsHub').then(m => ({ default: m.ExamBlueprintsHub })));
+const BlueprintPreviewWrapper = lazy(() => import('../features/blueprints/components/BlueprintPreviewWrapper').then(m => ({ default: m.BlueprintPreviewWrapper })));
+const ExamBlueprintsHub = lazy(() => import('../pages/ExamBlueprintsHubPage').then(m => ({ default: m.ExamBlueprintsHubPage })));
 
 const AdminReportsQueue = lazy(() => import('../features/admin/components/AdminReportsQueue').then(m => ({ default: m.AdminReportsQueue })));
-const AdminHome = lazy(() => import('../features/quiz/components/AdminHome').then(m => ({ default: m.AdminHome })));
-const AdminManageMaterials = lazy(() => import('../features/quiz/components/AdminManageMaterials').then(m => ({ default: m.AdminManageMaterials })));
+const AdminHomePage = lazy(() => import('../pages/AdminHomePage').then(m => ({ default: m.AdminHomePage })));
+const AdminManageMaterials = lazy(() => import('../features/admin/components/AdminManageMaterials').then(m => ({ default: m.AdminManageMaterials })));
 const AdminUploadGK = lazy(() => import("../features/admin/components/AdminUploadGK").then(m => ({ default: m.AdminUploadGK })));
-const AdminUploadMaterials = lazy(() => import('../features/quiz/components/AdminUploadMaterials').then(m => ({ default: m.AdminUploadMaterials })));
+const AdminUploadMaterials = lazy(() => import('../features/admin/components/AdminUploadMaterials').then(m => ({ default: m.AdminUploadMaterials })));
 const AdminNotifications = lazy(() => import('../features/notifications/admin/AdminNotifications').then(m => ({ default: m.AdminNotifications })));
 const NotificationsPage = lazy(() => import('../pages/NotificationsPage').then(m => ({ default: m.NotificationsPage })));
 
@@ -533,7 +533,7 @@ const handleReattempt = async (quizId: string, mode: string) => {
                 {/* Fallback Route */}
                 <Route path="*" element={<Navigate to="/" replace />} />
 
-                    <Route path="/admin" element={<Suspense fallback={<SynapticLoader />}><AdminHome /></Suspense>} />
+                    <Route path="/admin" element={<Suspense fallback={<SynapticLoader />}><AdminHomePage /></Suspense>} />
                     <Route path="/admin/reports" element={<Suspense fallback={<SynapticLoader />}><AdminReportsQueue /></Suspense>} />
                                         <Route path="/admin/materials" element={<Suspense fallback={<SynapticLoader />}><AdminManageMaterials /></Suspense>} />
                     <Route path="/admin/upload" element={<Suspense fallback={<SynapticLoader />}><AdminUploadMaterials /></Suspense>} />
