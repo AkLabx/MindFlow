@@ -28,6 +28,7 @@ import { useAuth } from "../../auth/context/AuthContext";
 import { useNavSpinner } from "../../../hooks/useNavSpinner";
 import { Loader2 } from "lucide-react";
 import { useNotification } from "../../../stores/useNotificationStore";
+import { isNativeApp } from "../../../utils/platform";
 
 /**
  * Props for the Dashboard component.
@@ -100,7 +101,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onBackToIntro }) => {
     <div className="flex flex-col min-h-screen -m-4 sm:-m-6 lg:-m-8 p-4 sm:p-6 lg:p-8 transition-colors duration-700 relative overflow-hidden">
       <div className="flex-1 flex flex-col space-y-3 py-1 relative z-10 animate-fade-in w-full">
         {/* Greeting Section */}
-        <div className="relative text-left w-full">
+        <div className="relative text-left w-full mb-2">
           <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white leading-tight drop-shadow-sm">
             Dashboard
           </h1>
@@ -115,6 +116,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onBackToIntro }) => {
         </div>
 
         {/* --- Google Play App Banner --- */}
+        {!isNativeApp() && (
         <motion.div
           variants={itemVariants}
           className="relative w-full max-w-lg mx-auto sm:ml-0 overflow-hidden rounded-3xl p-[1px] bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 cursor-pointer shadow-lg"
@@ -133,6 +135,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onBackToIntro }) => {
             />
           </div>
         </motion.div>
+        )}
 
 
         {/* --- Primary Hero Card: MCQs Quiz --- */}
