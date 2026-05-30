@@ -98,14 +98,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ onBackToIntro }) => {
 
   return (
     <div className="flex flex-col min-h-screen -m-4 sm:-m-6 lg:-m-8 p-4 sm:p-6 lg:p-8 transition-colors duration-700 relative overflow-hidden">
-      <div className="flex-1 flex flex-col space-y-4 py-2 relative z-10 animate-fade-in w-full">
+      <div className="flex-1 flex flex-col space-y-3 py-1 relative z-10 animate-fade-in w-full">
         {/* Greeting Section */}
         <div className="relative text-left w-full">
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-gray-900 dark:text-white leading-tight mb-0.5 drop-shadow-sm">
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white leading-tight drop-shadow-sm">
             Dashboard
           </h1>
 
-          <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300 leading-relaxed font-medium">
+          <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 leading-snug font-medium">
             {getGreeting()},{" "}
             {user?.user_metadata?.first_name ||
               user?.user_metadata?.full_name?.split(" ")[0] ||
@@ -189,7 +189,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onBackToIntro }) => {
             {/* Bottom Area: CTA Button */}
             <div className="flex items-center justify-center bg-fuchsia-600 hover:bg-fuchsia-500 active:bg-fuchsia-700 text-white font-bold py-3 px-6 sm:py-4 sm:px-8 rounded-full shadow-[0_4px_14px_0_rgba(192,38,211,0.39)] transition-all transform hover:scale-105 active:scale-95 gap-2 backdrop-blur-sm border border-fuchsia-400/50">
               <span className="text-sm sm:text-base tracking-wide">Start Practicing Now</span>
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 fill-current" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+              <ChevronRight className="w-5 h-5" />
             </div>
           </div>
         </motion.div>
