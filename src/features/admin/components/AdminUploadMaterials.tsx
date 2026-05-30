@@ -2,9 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, UploadCloud, CheckCircle2, Loader2, AlertCircle } from 'lucide-react';
-import { supabase } from '../../../lib/supabase';
-import { useAuth } from '../../auth/context/AuthContext';
-import { useNotificationStore } from '../../../stores/useNotificationStore';
+import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/features/auth/context/AuthContext';
+import { useNotificationStore } from '@/stores/useNotificationStore';
 
 const CLASSES = ['Class VI', 'Class VII', 'Class VIII', 'Class IX', 'Class X', 'Class XI', 'Class XII'];
 const TYPES = ['NCERT Textbook', 'Study Notes', 'MCQ Test', 'Chapter Test', 'Other Test', 'Answer Key'];

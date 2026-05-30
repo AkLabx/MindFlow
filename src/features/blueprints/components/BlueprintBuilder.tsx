@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { ChevronRight, ChevronDown, Plus, Trash2, Save, X, Target } from 'lucide-react';
-import { Button } from '../../../components/Button/Button';
-import { ExamBlueprint, BlueprintNode } from '../types/blueprint';
+import { Button } from '@/components/Button/Button';
+import { ExamBlueprint, BlueprintNode } from '@/features/blueprints/types/blueprint';
 import { v4 as uuidv4 } from 'uuid';
-import { fetchQuestionMetadata } from '../services/questionService';
-import { useQuestionIndex } from '../hooks/useQuestionIndex';
-import { Question } from '../types';
-import { CookingLoader } from './CookingLoader';
+import { fetchQuestionMetadata } from '@/features/quiz/services/questionService';
+import { useQuestionIndex } from '@/features/quiz/hooks/useQuestionIndex';
+import { Question } from '@/features/quiz/types';
+import { CookingLoader } from '@/features/quiz/components/CookingLoader';
 
 interface BlueprintBuilderProps {
   initialData?: ExamBlueprint;

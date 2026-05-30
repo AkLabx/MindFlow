@@ -1,14 +1,14 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { ChevronLeft, ChevronRight, Star, Trash2, LibraryBig, CheckCircle2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { db } from '../../../lib/db';
-import { Question } from '../types';
-import { Button } from '../../../components/Button/Button';
-import { Card } from '../../../components/ui/Card';
-import { cn } from '../../../utils/cn';
-import { SynapticLoader } from '../../../components/ui/SynapticLoader';
+import { db } from '@/lib/db';
+import { Question } from '@/features/quiz/types';
+import { Button } from '@/components/Button/Button';
+import { Card } from '@/components/ui/Card';
+import { cn } from '@/utils/cn';
+import { SynapticLoader } from '@/components/ui/SynapticLoader';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { ErrorState } from '../../../components/ui/ErrorState';
+import { ErrorState } from '@/components/ui/ErrorState';
 
 export const BookmarksPage: React.FC = () => {
     const navigate = useNavigate();

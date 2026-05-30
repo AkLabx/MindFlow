@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Layers, Plus, Play, MoreVertical, Edit2, Trash2, ArrowLeft } from 'lucide-react';
-import { Button } from '../../../components/Button/Button';
-import { useAuth } from '../../auth/context/AuthContext';
-import { supabase } from '../../../lib/supabase';
-import { ExamBlueprint } from '../types/blueprint';
-import { BlueprintBuilder } from './BlueprintBuilder';
-import { useNotification } from '../../../stores/useNotificationStore';
+import { Button } from '@/components/Button/Button';
+import { useAuth } from '@/features/auth/context/AuthContext';
+import { supabase } from '@/lib/supabase';
+import { ExamBlueprint } from '@/features/blueprints/types/blueprint';
+import { BlueprintBuilder } from '@/features/blueprints/components/BlueprintBuilder';
+import { useNotification } from '@/stores/useNotificationStore';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CookingLoader } from './CookingLoader';
+import { CookingLoader } from '@/features/quiz/components/CookingLoader';
 
 interface ExamBlueprintsHubProps {
   onBack: () => void;
@@ -15,7 +15,7 @@ interface ExamBlueprintsHubProps {
   metadataIndex?: Record<string, Record<string, Set<string>>>;
 }
 
-export const ExamBlueprintsHub: React.FC<ExamBlueprintsHubProps> = ({ onBack, onLaunchBlueprint, metadataIndex }) => {
+export const ExamBlueprintsHubPage: React.FC<ExamBlueprintsHubProps> = ({ onBack, onLaunchBlueprint, metadataIndex }) => {
   const { user } = useAuth();
   const { showToast } = useNotification();
   const [blueprints, setBlueprints] = useState<ExamBlueprint[]>([]);

@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Play, AlertTriangle, CheckCircle, Target } from 'lucide-react';
-import { Button } from '../../../components/Button/Button';
-import { ExamBlueprint } from '../types/blueprint';
-import { calculateBlueprintAllocations, generateQueriesFromTree } from '../engine/blueprintMath';
-import { fetchBlueprintQuestions, markQuestionsAsSeen } from '../services/blueprintService';
-import { useAuth } from '../../auth/context/AuthContext';
-import { Question } from '../types';
-import { CookingLoader } from './CookingLoader';
-import { useNotification } from '../../../stores/useNotificationStore';
+import { Button } from '@/components/Button/Button';
+import { ExamBlueprint } from '@/features/blueprints/types/blueprint';
+import { calculateBlueprintAllocations, generateQueriesFromTree } from '@/features/blueprints/engine/blueprintMath';
+import { fetchBlueprintQuestions, markQuestionsAsSeen } from '@/features/blueprints/services/blueprintService';
+import { useAuth } from '@/features/auth/context/AuthContext';
+import { Question } from '@/features/quiz/types';
+import { CookingLoader } from '@/features/quiz/components/CookingLoader';
+import { useNotification } from '@/stores/useNotificationStore';
 
 interface BlueprintPreviewProps {
   blueprint: ExamBlueprint;

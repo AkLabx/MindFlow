@@ -4,12 +4,12 @@ import {
   CreateQuizSVG,
   SavedQuizzesSVG,
   GodModeSVG,
-} from "./DashboardSVGs";
+} from "@/features/quiz/components/DashboardSVGs";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../../auth/context/AuthContext";
-import { useNavSpinner } from "../../../hooks/useNavSpinner";
+import { useAuth } from "@/features/auth/context/AuthContext";
+import { useNavSpinner } from "@/hooks/useNavSpinner";
 import { Loader2, ChevronRight } from "lucide-react";
-import { MainLayout } from "../../../layouts/MainLayout";
+import { MainLayout } from "@/layouts/MainLayout";
 
 /**
  * Props for the McqsQuizHome component.
@@ -18,7 +18,7 @@ interface McqsQuizHomeProps {
   onBack: () => void;
 }
 
-export const McqsQuizHome: React.FC<McqsQuizHomeProps> = ({ onBack }) => {
+export const McqsQuizHomePage: React.FC<McqsQuizHomeProps> = ({ onBack }) => {
   const navigate = useNavigate();
   const { loadingId, handleNavigation } = useNavSpinner();
   const { user } = useAuth();

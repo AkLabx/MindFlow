@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Save, Loader2 } from 'lucide-react';
-import { supabase } from '../../../lib/supabase';
-import { useNotificationStore } from '../../../stores/useNotificationStore';
+import { supabase } from '@/lib/supabase';
+import { useNotificationStore } from '@/stores/useNotificationStore';
 
 export type MaterialType = 'NCERT Textbook' | 'Study Notes' | 'MCQ Test' | 'Chapter Test' | 'Other Test' | 'Answer Key';
 

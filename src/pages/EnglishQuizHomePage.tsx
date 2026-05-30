@@ -1,8 +1,8 @@
 import React from "react";
 import { motion } from "framer-motion";
 import { ChevronRight, Loader2 } from "lucide-react";
-import { IdiomsSVG, OwsSVG, SynonymsSVG } from "./DashboardSVGs";
-import { useNavSpinner } from "../../../hooks/useNavSpinner";
+import { IdiomsSVG, OwsSVG, SynonymsSVG } from "@/features/quiz/components/DashboardSVGs";
+import { useNavSpinner } from "@/hooks/useNavSpinner";
 
 interface EnglishQuizHomeProps {
   onBack: () => void;
@@ -28,7 +28,7 @@ const itemVariants = {
   },
 };
 
-export const EnglishQuizHome: React.FC<EnglishQuizHomeProps> = ({
+export const EnglishQuizHomePage: React.FC<EnglishQuizHomeProps> = ({
   onBack,
   onIdiomsClick,
   onOWSClick,
