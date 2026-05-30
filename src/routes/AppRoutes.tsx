@@ -22,17 +22,17 @@ const PostPage = lazy(() => import('../features/community/pages/PostPage').then(
 
 
 
-const SchoolHome = lazy(() => import('../features/school/SchoolHome').then(m => ({ default: m.SchoolHome })));
+const SchoolHomePage = lazy(() => import('../pages/SchoolHomePage').then(m => ({ default: m.SchoolHomePage })));
 const SchoolDownloads = lazy(() => import('../features/school/SchoolDownloads').then(m => ({ default: m.SchoolDownloads })));
-const LandingPage = lazy(() => import('../features/quiz/components/LandingPage').then(m => ({ default: m.LandingPage })));
-const Dashboard = lazy(() => import('../features/quiz/components/Dashboard').then(m => ({ default: m.Dashboard })));
+const LandingPage = lazy(() => import('../pages/LandingPage').then(m => ({ default: m.LandingPage })));
+const Dashboard = lazy(() => import('../pages/DashboardPage').then(m => ({ default: m.DashboardPage })));
 const McqsQuizHome = lazy(() => import('../features/quiz/components/McqsQuizHome').then(m => ({ default: m.McqsQuizHome })));
 const EnglishQuizHome = lazy(() => import('../features/quiz/components/EnglishQuizHome').then(m => ({ default: m.EnglishQuizHome })));
 const QuizConfig = lazy(() => import('../features/quiz/components/QuizConfig').then(m => ({ default: m.QuizConfig })));
 const QuizLibrary = lazy(() => import('../features/quiz/components/QuizLibrary').then(m => ({ default: m.QuizLibrary })));
 
 const PerformanceAnalytics = lazy(() => import('../features/quiz/components/PerformanceAnalytics').then(m => ({ default: m.PerformanceAnalytics })));
-const BookmarksPage = lazy(() => import('../features/quiz/components/BookmarksPage').then(m => ({ default: m.BookmarksPage })));
+const BookmarksPage = lazy(() => import('../pages/BookmarksPage').then(m => ({ default: m.BookmarksPage })));
 const IdiomsConfig = lazy(() => import('../features/idioms/IdiomsConfig').then(m => ({ default: m.IdiomsConfig })));
 const OWSConfig = lazy(() => import('../features/ows/OWSConfig').then(m => ({ default: m.OWSConfig })));
 const LiveQuizRoom = lazy(() => import('../features/quiz/live/LiveQuizRoom').then(m => ({ default: m.LiveQuizRoom })));
@@ -48,7 +48,7 @@ const AdminManageMaterials = lazy(() => import('../features/quiz/components/Admi
 const AdminUploadGK = lazy(() => import("../features/admin/components/AdminUploadGK").then(m => ({ default: m.AdminUploadGK })));
 const AdminUploadMaterials = lazy(() => import('../features/quiz/components/AdminUploadMaterials').then(m => ({ default: m.AdminUploadMaterials })));
 const AdminNotifications = lazy(() => import('../features/notifications/admin/AdminNotifications').then(m => ({ default: m.AdminNotifications })));
-const NotificationsPage = lazy(() => import('../features/notifications/pages/NotificationsPage').then(m => ({ default: m.NotificationsPage })));
+const NotificationsPage = lazy(() => import('../pages/NotificationsPage').then(m => ({ default: m.NotificationsPage })));
 
 const SynonymQuizSession = lazy(() => import('../features/synonyms/components/SynonymQuizSession').then(m => ({ default: m.SynonymQuizSession })));
 const SynonymPhase1Session = lazy(() => import('../features/synonyms/components/SynonymPhase1Session').then(m => ({ default: m.SynonymPhase1Session })));
@@ -372,7 +372,7 @@ const handleReattempt = async (quizId: string, mode: string) => {
                     <Route path="/u/:username" element={<ProtectedRoute><ErrorBoundary><Suspense fallback={<SynapticLoader />}><UserProfile /></Suspense></ErrorBoundary></ProtectedRoute>} />
                     <Route path="/community/post/:id" element={<ProtectedRoute><ErrorBoundary><Suspense fallback={<SynapticLoader />}><PostPage /></Suspense></ErrorBoundary></ProtectedRoute>} />
 
-                    <Route path="/school" element={<Suspense fallback={<SynapticLoader />}><SchoolHome /></Suspense>} />
+                    <Route path="/school" element={<Suspense fallback={<SynapticLoader />}><SchoolHomePage /></Suspense>} />
                     <Route path="/school/download" element={<Suspense fallback={<SynapticLoader />}><SchoolDownloads /></Suspense>} />
 <Route path="/tools" element={<Suspense fallback={<SynapticLoader />}><ToolsHome /></Suspense>} />
                     <Route path="/notification" element={<Suspense fallback={<SynapticLoader />}><NotificationsPage /></Suspense>} />

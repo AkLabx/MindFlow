@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
 import { motion } from "framer-motion";
-import { AdminSVG } from "./AdminSVGs";
+import { AdminSVG } from "@/features/quiz/components/AdminSVGs";
 import {
   McqsQuizSVG,
   EnglishZoneSVG,
@@ -9,7 +9,7 @@ import {
   BookmarksSVG,
   AboutSVG,
   DownloadSVG,
-} from "./DashboardSVGs";
+} from "@/features/quiz/components/DashboardSVGs";
 import {
   ListChecks,
   FileText,
@@ -22,13 +22,13 @@ import {
   ChevronRight,
   Info,
 } from "lucide-react";
-import { Button } from "../../../components/Button/Button";
+import { Button } from "@/components/Button/Button";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../../auth/context/AuthContext";
-import { useNavSpinner } from "../../../hooks/useNavSpinner";
+import { useAuth } from "@/features/auth/context/AuthContext";
+import { useNavSpinner } from "@/hooks/useNavSpinner";
 import { Loader2 } from "lucide-react";
-import { useNotification } from "../../../stores/useNotificationStore";
-import { isNativeApp } from "../../../utils/platform";
+import { useNotification } from "@/stores/useNotificationStore";
+import { isNativeApp } from "@/utils/platform";
 
 /**
  * Props for the Dashboard component.
@@ -53,7 +53,7 @@ interface DashboardProps {
  * @param {DashboardProps} props - The component props.
  * @returns {JSX.Element} The rendered Dashboard.
  */
-export const Dashboard: React.FC<DashboardProps> = ({ onBackToIntro }) => {
+export const DashboardPage: React.FC<DashboardProps> = ({ onBackToIntro }) => {
   const navigate = useNavigate();
   const { loadingId, handleNavigation } = useNavSpinner();
   const { user } = useAuth();
