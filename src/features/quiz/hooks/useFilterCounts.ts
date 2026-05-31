@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Question, InitialFilters } from '../features/quiz/types';
+import { Question, InitialFilters } from '../types';
 
 /**
  * Custom hook to calculate the count of available questions for each filter option.

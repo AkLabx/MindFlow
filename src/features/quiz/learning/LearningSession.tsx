@@ -13,7 +13,7 @@ import { QuizBreadcrumbs } from '../components/QuizBreadcrumbs';
 import { Button } from '../../../components/Button/Button';
 import { Badge } from '../../../components/ui/Badge';
 import { useSettingsStore } from '../../../stores/useSettingsStore';
-import { useQuizSounds } from '../../../hooks/useQuizSounds';
+import { useQuizSounds } from '@/features/quiz';
 import { ActiveQuizLayout } from '../layouts/ActiveQuizLayout';
 import { SettingsModal } from '../components/ui/SettingsModal';
 import { cn } from '../../../utils/cn';

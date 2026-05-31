@@ -1,5 +1,5 @@
 import { useCallback, useContext, useRef, useEffect } from 'react';
-import { useSettingsStore } from '../stores/useSettingsStore';
+import { useSettingsStore } from '@/stores/useSettingsStore';
 
 /**
  * Custom hook to generate synthesized sound effects for quiz interactions.

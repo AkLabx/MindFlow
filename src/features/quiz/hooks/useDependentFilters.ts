@@ -1,5 +1,5 @@
 import { useState, useEffect, Dispatch, SetStateAction, useRef } from 'react';
-import { InitialFilters } from '../features/quiz/types';
+import { InitialFilters } from '../types';
 
 /**
  * Custom hook to manage dependent dropdown filters (cascading selects).
