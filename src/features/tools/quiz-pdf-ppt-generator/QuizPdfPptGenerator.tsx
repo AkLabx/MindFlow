@@ -18,8 +18,8 @@ import { Button } from '../../../components/Button/Button';
 import { fetchQuestionMetadata, fetchQuestionsByIds } from '../../quiz/services/questionService';
 import { Question, InitialFilters } from '../../quiz/types';
 import { cn } from '../../../utils/cn';
-import { useDependentFilters } from '../../../hooks/useDependentFilters';
-import { useFilterCounts } from '../../../hooks/useFilterCounts';
+import { useDependentFilters } from '@/features/quiz';
+import { useFilterCounts } from '@/features/quiz';
 
 // UI Components
 import { FilterGroup } from '../../quiz/components/ui/FilterGroup';

@@ -20,7 +20,7 @@ import { Button } from '../../../components/Button/Button';
 import { fetchQuestionMetadata, fetchQuestionsByIds } from '../services/questionService';
 import { Question, InitialFilters, QuizMode, SavedQuiz } from '../types';
 import { cn } from '../../../utils/cn';
-import { useDependentFilters } from '../../../hooks/useDependentFilters';
+import { useDependentFilters } from '@/features/quiz';
 import { db } from '../../../lib/db';
 import { APP_CONFIG } from '../../../constants/config';
 import { initialState } from '../stores/useQuizSessionStore';

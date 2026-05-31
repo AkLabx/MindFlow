@@ -1,4 +1,4 @@
-import { Question, InitialFilters, filterKeys, getQuestionValue } from '../features/quiz/types';
+import { Question, InitialFilters, filterKeys, getQuestionValue } from '../types';
 
 // Web Worker for calculating filter counts asynchronously
 // This offloads the heavy O(N * 9) calculation from the main thread.
@@ -46,7 +46,7 @@ self.onmessage = (e: MessageEvent<{ type: 'INIT' | 'CALCULATE', allQuestions?: Q
           for (const question of tempFilteredQuestions) {
               const value = getQuestionValue(question, keyToCount as keyof InitialFilters);
               if (Array.isArray(value)) {
-                  value.forEach(tag => {
+                  value.forEach((tag: string) => {
                       counts[tag] = (counts[tag] || 0) + 1;
                   });
               } else if (value) {
