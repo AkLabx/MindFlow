@@ -729,9 +729,10 @@ const EditQuestion: React.FC = () => {
         setIsSearching(true);
         setFormData(null);
         try {
-            const q = await fetchEditMutation.mutateAsync(searchId.trim());
+            const data = await fetchIdsMutation.mutateAsync([formData.v1_id]);
 
-            if (q) {
+            if (data && data.length > 0) {
+                const q = data[0];
                 setFormData({
                     v1_id: q.v1_id,
                     subject: q.subject || '',

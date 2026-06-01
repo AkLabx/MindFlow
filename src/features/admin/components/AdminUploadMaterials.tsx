@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, UploadCloud, CheckCircle2, Loader2, AlertCircle } from 'lucide-react';
-import { useAdminMetadata, useUploadMaterial } from '../hooks/useAdminMaterials';
+import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { useNotificationStore } from '@/stores/useNotificationStore';
 
@@ -21,11 +21,8 @@ export const AdminUploadMaterials: React.FC = () => {
     const [chapter, setChapter] = useState('');
     const [title, setTitle] = useState('');
 
-
-    const { data: metadata = [] } = useAdminMetadata();
-    const existingSubjects = Array.from(new Set(metadata.map((d: any) => d.subject))).sort();
-    const existingChapters = Array.from(new Set(metadata.map((d: any) => d.chapter))).sort();
-    const uploadMutation = useUploadMaterial();
+    const [existingSubjects, setExistingSubjects] = useState<string[]>([]);
+    const [existingChapters, setExistingChapters] = useState<string[]>([]);
     const [isUploading, setIsUploading] = useState(false);
 
     // Guard
@@ -35,7 +32,19 @@ export const AdminUploadMaterials: React.FC = () => {
         }
     }, [user, navigate]);
 
-
+    // Fetch existing metadata to enforce consistency
+    useEffect(() => {
+        const fetchMetadata = async () => {
+            const { data } = await supabase.from('study_materials').select('subject, chapter');
+            if (data) {
+                const subjs = Array.from(new Set(data.map(d => d.subject))).sort();
+                const chaps = Array.from(new Set(data.map(d => d.chapter))).sort();
+                setExistingSubjects(subjs);
+                setExistingChapters(chaps);
+            }
+        };
+        fetchMetadata();
+    }, []);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
@@ -53,17 +62,36 @@ export const AdminUploadMaterials: React.FC = () => {
         setIsUploading(true);
 
         try {
-            await uploadMutation.mutateAsync({
-                file,
-                record: {
+            // 1. Upload to Supabase Storage Bucket
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+            const filePath = `${selectedClass}/${subject}/${fileName}`; // Organized structure
+
+            const { error: uploadError, data: uploadData } = await supabase.storage
+                .from('study_materials')
+                .upload(filePath, file);
+
+            if (uploadError) throw uploadError;
+
+            // 2. Get Public URL
+            const { data: { publicUrl } } = supabase.storage
+                .from('study_materials')
+                .getPublicUrl(filePath, { download: true });
+
+            // 3. Insert into Database
+            const { error: dbError } = await supabase
+                .from('study_materials')
+                .insert({
                     class: selectedClass,
                     subject: subject.trim(),
                     chapter: chapter.trim(),
+                    type: selectedType,
                     title: title.trim(),
-                    type: selectedType as any,
+                    file_url: publicUrl,
                     status: true
-                }
-            });
+                });
+
+            if (dbError) throw dbError;
 
             showToast({ title: 'Success', message: 'File uploaded and database updated!', variant: 'success' });
 
