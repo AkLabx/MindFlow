@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Save, Loader2 } from 'lucide-react';
-import { useUpdateMaterial } from '../hooks/useAdminMaterials';
+import { supabase } from '@/lib/supabase';
 import { useNotificationStore } from '@/stores/useNotificationStore';
 
 export type MaterialType = 'NCERT Textbook' | 'Study Notes' | 'MCQ Test' | 'Chapter Test' | 'Other Test' | 'Answer Key';
@@ -31,7 +31,6 @@ const TYPES: MaterialType[] = ['NCERT Textbook', 'Study Notes', 'MCQ Test', 'Cha
 export const AdminEditMaterialModal: React.FC<AdminEditMaterialModalProps> = ({ isOpen, onClose, material, onSuccess }) => {
     const { showToast } = useNotificationStore();
     const [isSaving, setIsSaving] = useState(false);
-    const updateMutation = useUpdateMaterial();
 
     const [formData, setFormData] = useState<Partial<StudyMaterial>>({});
 
@@ -66,14 +65,20 @@ export const AdminEditMaterialModal: React.FC<AdminEditMaterialModalProps> = ({ 
                 parts: formData.parts ? formData.parts.trim() : null
             };
 
-            const data = await updateMutation.mutateAsync({ id: material.id, updates: updatePayload });
+            const { error, data } = await supabase
+                .from('study_materials')
+                .update(updatePayload)
+                .eq('id', material.id)
+                .select();
+
+            if (error) throw error;
 
             showToast({ title: 'Success', message: 'Material metadata updated!', variant: 'success' });
-            onSuccess(data as StudyMaterial);
+            onSuccess(data[0] as StudyMaterial);
             onClose();
         } catch (error: any) {
             console.error('Update error:', error);
-            showToast({ title: 'Error', message: error.message || 'Failed to update material', variant: 'error' });
+            showToast({ title: 'Error', message: error.message || 'Failed to update metadata.', variant: 'error' });
         } finally {
             setIsSaving(false);
         }

@@ -1,5 +1,4 @@
 export * from './components';
-export * from './api';
-export * from './hooks';
-
-export type { StudyMaterial, MaterialType, UploadGKPayload } from './types';
+export * from './api/adminApi';
+export * from './hooks/useAdminBulkUpdate';
+export * from './hooks/useAdminUploadGK';

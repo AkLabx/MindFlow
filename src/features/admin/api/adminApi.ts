@@ -1,82 +1,6 @@
 import { supabase } from '@/lib/supabase';
-import { StudyMaterial } from '../types';
 
-export const fetchStudyMaterials = async (): Promise<StudyMaterial[]> => {
-    const { data, error } = await supabase
-        .from('study_materials')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-    if (error) throw error;
-    return data || [];
-};
-
-export const fetchStudyMetadata = async () => {
-    const { data, error } = await supabase.from('study_materials').select('subject, chapter');
-    if (error) throw error;
-    return data || [];
-};
-
-export const deleteStudyMaterial = async ({ id, fileUrl }: { id: string, fileUrl: string }): Promise<boolean> => {
-    const bucketPath = 'study_materials/';
-    const bucketIndex = fileUrl.indexOf(bucketPath);
-
-    let filePath = '';
-    if (bucketIndex !== -1) {
-        filePath = fileUrl.substring(bucketIndex + bucketPath.length);
-        filePath = filePath.split('?')[0];
-        filePath = decodeURIComponent(filePath);
-    }
-
-    if (filePath) {
-        const { error: storageError } = await supabase.storage.from('study_materials').remove([filePath]);
-        if (storageError) console.error("Storage delete error:", storageError);
-    }
-
-    const { error: dbError } = await supabase.from('study_materials').delete().eq('id', id);
-    if (dbError) throw dbError;
-
-    return true;
-};
-
-export const updateStudyMaterial = async ({ id, updates }: { id: string, updates: Partial<StudyMaterial> }) => {
-    const { data, error } = await supabase
-        .from('study_materials')
-        .update(updates)
-        .eq('id', id)
-        .select()
-        .single();
-
-    if (error) throw error;
-    return data;
-};
-
-export const uploadStudyMaterialFile = async ({ file, filePath }: { file: File, filePath: string }) => {
-    const { error: uploadError } = await supabase.storage
-        .from('study_materials')
-        .upload(filePath, file, { cacheControl: '3600', upsert: false });
-
-    if (uploadError) throw uploadError;
-
-    const { data: { publicUrl } } = supabase.storage
-        .from('study_materials')
-        .getPublicUrl(filePath);
-
-    return publicUrl;
-};
-
-export const createStudyMaterialRecord = async (record: Omit<StudyMaterial, 'id' | 'created_at'>) => {
-    const { data, error } = await supabase
-        .from('study_materials')
-        .insert(record)
-        .select()
-        .single();
-
-    if (error) throw error;
-    return data;
-};
-
-// --- GK/MCQ API ---
+// Helper to build queries dynamically since it's used in multiple places
 const buildQuery = (baseQuery: any, filters: any[]) => {
     let query = baseQuery;
     filters.forEach(f => {
@@ -109,6 +33,7 @@ export const performBulkUpdate = async ({ filters, targetField, targetValue }: {
     return data;
 };
 
+// Upload GK Queries
 export const fetchQuestionsByIds = async (ids: string[]) => {
     const { data, error } = await supabase.from('questions').select('v1_id').in('v1_id', ids);
     if (error) throw error;

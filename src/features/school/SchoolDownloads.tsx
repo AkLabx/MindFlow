@@ -2,12 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Download, FileText, ChevronRight, CheckCircle2, Loader2 } from 'lucide-react';
-import { useAdminMaterials, useDeleteMaterial } from '@/features/admin';
+import { supabase } from '../../lib/supabase';
 import { useNotificationStore } from '../../stores/useNotificationStore';
 import { cn } from '../../utils/cn';
 import { useAuth } from '../auth/context/AuthContext';
 import { AdminEditMaterialModal } from '../../features/admin/components/AdminEditMaterialModal';
-
+import { deleteStudyMaterial } from '../quiz/utils/adminMaterialUtils';
 import { Edit2, Trash2 } from 'lucide-react';
 
 
@@ -28,14 +28,13 @@ interface StudyMaterial {
 export const SchoolDownloads: React.FC = () => {
     const navigate = useNavigate();
 
-
-    const { data: materials = [], isLoading } = useAdminMaterials();
+    const [materials, setMaterials] = useState<StudyMaterial[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
     const { showToast } = useNotificationStore();
     const { user } = useAuth();
     const isAdmin = user?.email === 'admin@mindflow.com';
     const [editingMaterial, setEditingMaterial] = useState<StudyMaterial | null>(null);
     const [deletingId, setDeletingId] = useState<string | null>(null);
-    const deleteMutation = useDeleteMaterial();
 
     const [downloadStatus, setDownloadStatus] = useState<Record<string, 'loading' | 'success' | null>>({});
 
@@ -67,8 +66,23 @@ export const SchoolDownloads: React.FC = () => {
     ).sort((a, b) => a.title.localeCompare(b.title, undefined, { numeric: true, sensitivity: 'base' }));
 
     useEffect(() => {
+        const fetchMaterials = async () => {
+            setIsLoading(true);
+            try {
+                const { data, error } = await supabase
+                    .from('study_materials')
+                    .select('*')
+                    .eq('status', true);
 
-
+                if (error) throw error;
+                setMaterials((data as StudyMaterial[]) || []);
+            } catch (error) {
+                console.error("Error fetching materials:", error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        fetchMaterials();
     }, []);
 
 
@@ -78,8 +92,8 @@ export const SchoolDownloads: React.FC = () => {
 
         setDeletingId(material.id);
         try {
-            await deleteMutation.mutateAsync({ id: material.id, fileUrl: material.file_url });
-            {/* React Query invalidation */}
+            await deleteStudyMaterial(material.id, material.file_url);
+            setMaterials(prev => prev.filter(m => m.id !== material.id));
             showToast({ title: "Deleted", message: "Material successfully deleted.", variant: "success" });
 
             // Re-evaluate selections if needed, simplified by just letting next render handle it
@@ -401,7 +415,7 @@ export const SchoolDownloads: React.FC = () => {
                 material={editingMaterial}
                 onClose={() => setEditingMaterial(null)}
                 onSuccess={ (updated: any)  => {
-                    {/* React Query invalidation */}
+                    setMaterials(prev => prev.map(m => m.id === updated.id ? updated : m));
                 }}
             />
         </div>

@@ -742,3 +742,10 @@ export const checkBlockStatus = async (currentUserId: string, otherUserId: strin
         return { hasBlocked: false, isBlockedBy: false };
     }
 };
+
+// Fetch Profile Username
+export const fetchProfileUsername = async (userId: string) => {
+  const { data, error } = await supabase.from('profiles').select('username').eq('id', userId).maybeSingle();
+  if (error) throw error;
+  return data?.username || null;
+};
