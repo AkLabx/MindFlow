@@ -11,6 +11,7 @@ import { SynapticLoader } from '../../../components/ui/SynapticLoader';
 import { motion } from 'framer-motion';
 import { QuizLibraryToolbar } from './QuizLibraryToolbar';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useAuth } from '../../auth/context/AuthContext';
 
 /**
  * Screen for managing attempted (completed) quizzes.
@@ -37,7 +38,7 @@ export const AttemptedQuizzesList: React.FC<AttemptedQuizzesListProps> = ({ view
     const { data: quizzes = [], isLoading: loading } = useQuery({
         queryKey: ['attempted-quizzes'],
         queryFn: async () => {
-            const { data: { session } } = await supabase.auth.getSession();
+            const { session } = useAuth();
             if (!session?.user) return [];
 
             const { data, error } = await supabase

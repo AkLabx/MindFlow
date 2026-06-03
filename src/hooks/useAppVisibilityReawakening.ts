@@ -25,7 +25,7 @@ export function useAppVisibilityReawakening() {
       isRefreshing.current = true;
       try {
           // Await the strictly-timeout-wrapped getSession
-          await supabase.auth.getSession();
+          if (window.dispatchEvent) { window.dispatchEvent(new Event("auth:refresh")); }
       } catch (error: any) {
           console.error('[AuthStabilization] Background session refresh failed or timed out:', error);
       } finally {

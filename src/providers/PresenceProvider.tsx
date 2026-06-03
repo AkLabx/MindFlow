@@ -5,7 +5,7 @@ import { fetchWithTimeout } from '../lib/fetchWithTimeout';
 import { usePresenceStore } from '../stores/usePresenceStore';
 
 export const PresenceProvider = ({ children }: { children: React.ReactNode }) => {
-  const { user } = useAuth();
+  const { user, session } = useAuth();
   const setOnlineUsers = usePresenceStore((state) => state.setOnlineUsers);
 
   useEffect(() => {
@@ -36,22 +36,19 @@ export const PresenceProvider = ({ children }: { children: React.ReactNode }) =>
       // Use standard fetch with keepalive to ensure it fires during unload
       const updateData = { last_seen: new Date().toISOString() };
 
-      // Get the current session for auth token
-      supabase.auth.getSession().then(({ data: { session } }) => {
-        if (session) {
-          fetchWithTimeout(`${import.meta.env.VITE_SUPABASE_URL}/rest/v1/profiles?id=eq.${user.id}`, {
-            method: 'PATCH',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${session.access_token}`,
-              'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
-              'Prefer': 'return=minimal'
-            },
-            body: JSON.stringify(updateData),
-            keepalive: true
-          }).catch(console.error);
-        }
-      });
+      if (session) {
+        fetchWithTimeout(`${import.meta.env.VITE_SUPABASE_URL}/rest/v1/profiles?id=eq.${user.id}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`,
+            'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+            'Prefer': 'return=minimal'
+          },
+          body: JSON.stringify(updateData),
+          keepalive: true
+        }).catch(console.error);
+      }
     };
 
     window.addEventListener('beforeunload', updateLastSeen);
@@ -64,7 +61,7 @@ export const PresenceProvider = ({ children }: { children: React.ReactNode }) =>
 
       room.unsubscribe();
     };
-  }, [user, setOnlineUsers]);
+  }, [user, session, setOnlineUsers]);
 
   return <>{children}</>;
 };

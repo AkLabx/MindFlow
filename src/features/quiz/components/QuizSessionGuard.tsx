@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../auth/context/AuthContext';
 import { useQuizSessionStore } from '../stores/useQuizSessionStore';
 import { supabase } from '../../../lib/supabase';
 import { db } from '../../../lib/db';
@@ -30,7 +31,7 @@ export const QuizSessionGuard = ({ children }: { children: React.ReactNode }) =>
             }
 
             try {
-                const { data: { session } } = await supabase.auth.getSession();
+                const { session } = useAuth();
                 if (!session?.user) {
                     setError("Please login to continue.");
                     setIsHydrating(false);

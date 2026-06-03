@@ -1,5 +1,6 @@
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../auth/context/AuthContext';
 import { useQuery } from '@tanstack/react-query';
 import { useQuizSessionStore } from '../stores/useQuizSessionStore';
 import { supabase } from '../../../lib/supabase';
@@ -26,7 +27,7 @@ export const ResultGuard = ({ children }: { children: React.ReactNode }) => {
         queryFn: async () => {
             if (!quizId) throw new Error("Quiz ID is missing.");
 
-            const { data: { session } } = await supabase.auth.getSession();
+            const { session } = useAuth();
             if (!session?.user) {
                 throw new Error("Please login to continue.");
             }
