@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../auth/context/AuthContext';
+import { useQueryClient } from '@tanstack/react-query';
+import { quizKeys, useQuizSession } from '../api';
 import { useQuizSessionStore } from '../stores/useQuizSessionStore';
 import { supabase } from '../../../lib/supabase';
 import { db } from '../../../lib/db';
@@ -12,6 +14,7 @@ import { ArrowLeft } from 'lucide-react';
 export const QuizSessionGuard = ({ children }: { children: React.ReactNode }) => {
     const { quizId } = useParams<{ quizId: string }>();
     const navigate = useNavigate();
+    const queryClient = useQueryClient();
     const state = useQuizSessionStore();
     const [isHydrating, setIsHydrating] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -38,11 +41,32 @@ export const QuizSessionGuard = ({ children }: { children: React.ReactNode }) =>
                     return;
                 }
 
-                const { data: quizData, error } = await supabase
-                    .from('saved_quizzes')
-                    .select('*, bridge_saved_quiz_questions(question_id, sort_order)')
-                    .eq('id', quizId)
-                    .single();
+
+                let quizData: any = null;
+                let error = null;
+                try {
+                    quizData = await queryClient.fetchQuery({
+                        queryKey: quizKeys.session(quizId || ''),
+                        queryFn: async () => {
+                            const res = await supabase
+                                .from('saved_quizzes')
+                                .select('*, bridge_saved_quiz_questions(question_id, sort_order)')
+                                .eq('id', quizId)
+                                .single();
+                            if (res.error) throw res.error;
+                            // Inject questions manually for the guard to prevent refetch loop
+                            const bData = res.data.bridge_saved_quiz_questions || [];
+                            bData.sort((a: any, b: any) => a.sort_order - b.sort_order);
+                            const qIds = bData.map((b: any) => String(b.question_id));
+                            if (qIds.length === 0) return { ...res.data, questions: [] };
+                            const qRes = await supabase.from('questions').select('*').in('id', qIds);
+                            return { ...res.data, questions: qRes.data || [] };
+                        }
+                    });
+                } catch(e) {
+                    error = e;
+                }
+
 
                 if (error || !quizData) {
                     console.error("Failed to fetch quiz for hydration:", error);
@@ -63,10 +87,11 @@ export const QuizSessionGuard = ({ children }: { children: React.ReactNode }) =>
                 const questionIds = bridgeData.map((bq: any) => bq.question_id);
 
                 if (questionIds.length > 0) {
-                    const { data: qData, error: qError } = await supabase
-                        .from('questions')
-                        .select('*')
-                        .in('id', questionIds);
+
+                    // The hook already fetched the questions and attached them to quizData
+                    const qData = quizData?.questions || [];
+                    const qError = null;
+
 
                     if (qError) {
                          console.error("Failed to fetch study materials:", qError);
@@ -75,7 +100,7 @@ export const QuizSessionGuard = ({ children }: { children: React.ReactNode }) =>
                          return;
                     }
 
-                    const questionsMap = new Map((qData || []).map(q => [String(q.id), q]));
+                    const questionsMap = new Map((qData || []).map((q: any) => [String(q.id), q]));
 
                     const fullQuestions: any[] = [];
                     bridgeData.forEach((bq: any) => {

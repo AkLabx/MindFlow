@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../../lib/supabase';
+import { quizKeys } from '../api';
 
 export interface PerformanceMetrics {
   total_quizzes: number;
@@ -21,7 +22,7 @@ export const usePerformanceAnalytics = () => {
   const queryClient = useQueryClient();
 
   const query = useQuery({
-    queryKey: ['performance-analytics'],
+    queryKey: quizKeys.analyticsMetrics(),
     queryFn: async (): Promise<PerformanceMetrics> => {
       const { data, error } = await supabase.rpc('get_user_performance_metrics');
 
@@ -60,7 +61,7 @@ export const usePerformanceAnalytics = () => {
     },
     onSuccess: () => {
       // Invalidate the query so that it refetches immediately and returns zeroes
-      queryClient.invalidateQueries({ queryKey: ['performance-analytics'] });
+      queryClient.invalidateQueries({ queryKey: quizKeys.analyticsMetrics() });
     }
   });
 

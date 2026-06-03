@@ -7,6 +7,7 @@ import { SavedQuiz } from '../types';
 import { SavedQuizCard } from './SavedQuizCard';
 import { useQuizContext } from '../context/QuizContext';
 import { useSyncStore } from '../stores/useSyncStore';
+import { useSavedQuizzes, quizKeys } from "../api";
 import { syncService } from '../../../lib/syncService';
 import { SynapticLoader } from '../../../components/ui/SynapticLoader';
 import { motion } from 'framer-motion';
@@ -113,7 +114,7 @@ export const SavedQuizzesList: React.FC<SavedQuizzesListProps> = ({ viewMode, se
     const [editName, setEditName] = useState('');
 
     useEffect(() => {
-        queryClient.invalidateQueries({ queryKey: ['saved-quizzes'] });
+        queryClient.invalidateQueries({ queryKey: quizKeys.saved() });
 
         const handleSyncStart = () => {
             setIsSyncing(true);
@@ -123,7 +124,7 @@ export const SavedQuizzesList: React.FC<SavedQuizzesListProps> = ({ viewMode, se
             // Add a small delay to ensure IndexedDB transactions are fully committed
             // before we try to read the hydrated data.
             setTimeout(async () => {
-                await queryClient.invalidateQueries({ queryKey: ['saved-quizzes'] });
+                await queryClient.invalidateQueries({ queryKey: quizKeys.saved() });
                 setIsSyncing(false);
             }, 100);
         };
@@ -170,7 +171,7 @@ export const SavedQuizzesList: React.FC<SavedQuizzesListProps> = ({ viewMode, se
             try {
                 const { error } = await supabase.from('saved_quizzes').update({ deleted_at: new Date().toISOString() }).eq('id', id);
                 if (error) throw error;
-                queryClient.setQueryData(['saved-quizzes'], (old: SavedQuiz[] = []) => old.filter(q => q.id !== id));
+                queryClient.setQueryData(quizKeys.saved(), (old: SavedQuiz[] = []) => old.filter(q => q.id !== id));
             } catch (error) {
                 console.error("Failed to delete quiz:", error);
                 alert("Failed to delete quiz");
@@ -191,7 +192,7 @@ export const SavedQuizzesList: React.FC<SavedQuizzesListProps> = ({ viewMode, se
         if (editingId && editName.trim()) {
             try {
                 await db.updateQuizName(editingId, editName.trim());
-                queryClient.setQueryData(['saved-quizzes'], (old: SavedQuiz[] = []) => old.map(q => q.id === editingId ? { ...q, name: editName.trim() } : q));
+                queryClient.setQueryData(quizKeys.saved(), (old: SavedQuiz[] = []) => old.map(q => q.id === editingId ? { ...q, name: editName.trim() } : q));
                 setEditingId(null);
             } catch (error) {
                 console.error("Failed to update quiz name:", error);
@@ -205,7 +206,7 @@ export const SavedQuizzesList: React.FC<SavedQuizzesListProps> = ({ viewMode, se
         try {
             const { error } = await supabase.from('saved_quizzes').update({ name: newName }).eq('id', id);
             if (error) throw error;
-            queryClient.setQueryData(['saved-quizzes'], (old: SavedQuiz[] = []) => old.map(q => q.id === id ? { ...q, name: newName } : q));
+            queryClient.setQueryData(quizKeys.saved(), (old: SavedQuiz[] = []) => old.map(q => q.id === id ? { ...q, name: newName } : q));
         } catch (error) {
             console.error("Failed to update quiz name:", error);
         }
