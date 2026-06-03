@@ -11,7 +11,7 @@ import { SynapticLoader } from '../../../components/ui/SynapticLoader';
 import { motion } from 'framer-motion';
 import { QuizLibraryToolbar } from './QuizLibraryToolbar';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useQuizHistory, quizKeys } from '../api';
+import { useQuizHistory, quizKeys, useDeleteSavedQuiz, useRenameSavedQuiz } from '../api';
 import { useAuth } from '../../auth/context/AuthContext';
 
 /**
@@ -35,11 +35,15 @@ interface AttemptedQuizzesListProps {
 
 export const AttemptedQuizzesList: React.FC<AttemptedQuizzesListProps> = ({ viewMode, setViewMode, sortMethod, setSortMethod }) => {
     const navigate = useNavigate();
+    const deleteQuizMutation = useDeleteSavedQuiz();
+    const renameQuizMutation = useRenameSavedQuiz();
     const queryClient = useQueryClient();
     const { data: quizzes = [], isLoading: loading } = useQuery({
         queryKey: ['attempted-quizzes'],
         queryFn: async () => {
             const { session } = useAuth();
+    const deleteQuizMutation = useDeleteSavedQuiz();
+    const renameQuizMutation = useRenameSavedQuiz();
             if (!session?.user) return [];
 
             const { data, error } = await supabase
@@ -137,24 +141,16 @@ export const AttemptedQuizzesList: React.FC<AttemptedQuizzesListProps> = ({ view
     const handleDelete = async (id: string, e: React.MouseEvent) => {
         e.stopPropagation();
         if (window.confirm('Are you sure you want to delete this quiz?')) {
-            try {
-                const { error } = await supabase.from('saved_quizzes').update({ deleted_at: new Date().toISOString() }).eq('id', id);
-                if (error) throw error;
-                queryClient.setQueryData(quizKeys.attempted(), (old: SavedQuiz[] = []) => old.filter(q => q.id !== id));
-            } catch (error) {
-                console.error("Failed to delete quiz:", error);
-            }
+            deleteQuizMutation.mutate(id, {
+                onError: (error: any) => console.error("Failed to delete quiz:", error)
+            });
         }
     };
 
     const saveEditCard = async (id: string, newName: string) => {
-        try {
-            const { error } = await supabase.from('saved_quizzes').update({ name: newName }).eq('id', id);
-            if (error) throw error;
-            queryClient.setQueryData(quizKeys.attempted(), (old: SavedQuiz[] = []) => old.map(q => q.id === id ? { ...q, name: newName } : q));
-        } catch (error) {
-            console.error("Failed to update quiz name:", error);
-        }
+        renameQuizMutation.mutate({ quizId: id, newName }, {
+            onError: (error: any) => console.error("Failed to update quiz name:", error)
+        });
     };
 
     const sortedQuizzes = useMemo(() => {

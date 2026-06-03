@@ -10,6 +10,9 @@ import { v4 as uuidv4 } from 'uuid';
 import { supabase, SUPABASE_URL, SUPABASE_ANON_KEY } from '../../../lib/supabase';
 import { fetchWithTimeout } from '../../../lib/fetchWithTimeout';
 import { syncService } from '../../../lib/syncService';
+import { calculateSessionGrades } from '../engine/grading';
+import { buildHistoryRecord, buildFinalStatePayload } from '../utils/payloadMappers';
+import { useAuth } from '../../auth/context/AuthContext';
 
 /**
  * Custom hook to manage the global quiz application state.
@@ -25,6 +28,7 @@ export const useQuiz = () => {
 
   // Directly bind state and actions from the Zustand store
   const state = useQuizSessionStore();
+  const { session } = useAuth();
 
   const flushSync = useCallback(() => {
     if (!state.quizId) return;
@@ -38,13 +42,13 @@ export const useQuiz = () => {
 
     db.updateQuizProgress(state.quizId, stateToSave as any).catch(console.error);
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    if (session?.user) {
       if (session?.user && state.quizId) {
         db.getQuiz(state.quizId).then(quiz => {
           if (quiz) syncService.pushSavedQuiz(session.user.id, quiz).catch(console.error);
         });
       }
-    });
+    }
   }, [state]);
 
 
@@ -83,7 +87,7 @@ export const useQuiz = () => {
           const { activeQuestions, ...stateWithoutQuestions } = stateToSave;
 
           try {
-              const { data: { session } } = await supabase.auth.getSession();
+              // Auth now fetched via useAuth hook
               if (!session?.user) return;
 
               const token = session.access_token;
@@ -226,7 +230,7 @@ export const useQuiz = () => {
 
     // --- ATOMIC PUSH TO SUPABASE VIA RPC ---
     try {
-        const { data: { session } } = await supabase.auth.getSession();
+        // Auth now fetched via useAuth hook
         if (session?.user && state.quizId) {
 
             // Explicit whitelist serialization for Postgres JSONB payload
