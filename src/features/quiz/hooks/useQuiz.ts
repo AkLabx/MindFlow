@@ -29,9 +29,6 @@ export const useQuiz = () => {
   // Directly bind state and actions from the Zustand store
   const state = useQuizSessionStore();
   const { session } = useAuth();
-  const { session } = useAuth();
-  const { session } = useAuth();
-  const { session } = useAuth();
 
   const flushSync = useCallback(() => {
     if (!state.quizId) return;
@@ -51,7 +48,7 @@ export const useQuiz = () => {
           if (quiz) syncService.pushSavedQuiz(session.user.id, quiz).catch(console.error);
         });
       }
-    });
+    }
   }, [state]);
 
 
@@ -164,37 +161,107 @@ export const useQuiz = () => {
   // Wrap submitSessionResults to include complex logic previously in useQuiz
   const submitSessionResults = useCallback(async (results: { answers: Record<string, string>, timeTaken: Record<string, number>, score: number, bookmarks: string[] }) => {
     state.setFinalizing();
-
+    // We do not abort ongoing fetches explicitly here because fetch logic is decoupled, but the store status update will stop further autosaves.
     logEvent('quiz_completed', {
       score: results.score,
       total_questions: state.activeQuestions.length,
       mode: state.mode
     });
 
-    // 1. Calculate Grades
-    const fallbackTimes = useAnalyticsStore.getState().timeTaken;
-    const grades = calculateSessionGrades(state.activeQuestions, results.answers, results.timeTaken, fallbackTimes);
+    const subjectStats: Record<string, SubjectStats> = {};
+    let totalCorrect = 0;
+    let totalIncorrect = 0;
+    let totalSkipped = 0;
+    let totalTimeSpent = 0;
 
-    // 2. Build Payloads
+    state.activeQuestions.forEach(q => {
+      const subject = q?.subject || q?.classification?.subject || 'Unknown';
+      if (!subjectStats[subject]) {
+        subjectStats[subject] = { attempted: 0, correct: 0, incorrect: 0, skipped: 0, accuracy: 0 };
+      }
+
+      const answer = results.answers[q.id];
+      const timeMs = results.timeTaken[q.id] || useAnalyticsStore.getState().timeTaken[q.id] || 0;
+      totalTimeSpent += timeMs;
+
+      if (!answer) {
+        totalSkipped++;
+        subjectStats[subject].skipped++;
+      } else {
+        subjectStats[subject].attempted++;
+        const isCorrect = answer === q.correct;
+        if (isCorrect) {
+          totalCorrect++;
+          subjectStats[subject].correct++;
+        } else {
+          totalIncorrect++;
+          subjectStats[subject].incorrect++;
+        }
+      }
+    });
+
+    Object.keys(subjectStats).forEach(subj => {
+      const stats = subjectStats[subj];
+      stats.accuracy = stats.attempted > 0 ? Math.round((stats.correct / stats.attempted) * 100) : 0;
+    });
+
+    const overallAccuracy = state.activeQuestions.length > 0 ? Math.round((totalCorrect / state.activeQuestions.length) * 100) : 0;
+
     const difficultyStr = Array.isArray(state.filters?.difficulty)
         ? state.filters.difficulty.join(', ')
         : (state.filters?.difficulty || 'Mixed');
 
-    const historyRecord = buildHistoryRecord(state.quizId!, state.activeQuestions.length, difficultyStr, grades);
-    const stateWithoutQuestions = buildFinalStatePayload(state, results.score, results.answers, results.timeTaken, results.bookmarks);
+    // Convert total ms to decimal seconds for history storage
+    const totalTimeSpentSeconds = totalTimeSpent / 1000;
 
+    const historyRecord: QuizHistoryRecord = {
+      id: uuidv4(),
+      quiz_id: state.quizId,
+      date: Date.now(),
+      totalQuestions: state.activeQuestions.length,
+      totalCorrect,
+      totalIncorrect,
+      totalSkipped,
+      totalTimeSpent: totalTimeSpentSeconds,
+      overallAccuracy,
+      difficulty: difficultyStr,
+      subjectStats
+    };
+
+    // --- ATOMIC PUSH TO SUPABASE VIA RPC ---
+    try {
+        // Auth now fetched via useAuth hook
+        if (session?.user && state.quizId) {
+
+            // Explicit whitelist serialization for Postgres JSONB payload
+            const stateWithoutQuestions = {
+                status: 'result',
+                mode: state.mode,
+                score: results.score,
+                answers: results.answers,
+                timeTaken: results.timeTaken,
+                remainingTimes: state.remainingTimes,
+                quizTimeRemaining: state.quizTimeRemaining,
+                bookmarks: results.bookmarks,
+                markedForReview: state.markedForReview,
+                hiddenOptions: state.hiddenOptions,
+                filters: state.filters,
+                isPaused: state.isPaused,
+                quizId: state.quizId,
+                currentQuestionIndex: state.currentQuestionIndex
+            };
 
             const { data: newHistoryId, error: rpcError } = await supabase.rpc('submit_quiz_session', {
                 p_quiz_id: state.quizId,
                 p_final_state: stateWithoutQuestions,
-                p_total_questions: state.activeQuestions.length,
-                p_total_correct: grades.totalCorrect,
-                p_total_incorrect: grades.totalIncorrect,
-                p_total_skipped: grades.totalSkipped,
-                p_time_taken: (grades.totalTimeSpent / 1000),
-                p_overall_accuracy: grades.overallAccuracy,
-                p_difficulty: difficultyStr,
-                p_subject_stats: grades.subjectStats
+                p_total_questions: historyRecord.totalQuestions,
+                p_total_correct: historyRecord.totalCorrect,
+                p_total_incorrect: historyRecord.totalIncorrect,
+                p_total_skipped: historyRecord.totalSkipped,
+                p_time_taken: historyRecord.totalTimeSpent,
+                p_overall_accuracy: historyRecord.overallAccuracy,
+                p_difficulty: historyRecord.difficulty,
+                p_subject_stats: historyRecord.subjectStats
             });
 
             if (rpcError) {
