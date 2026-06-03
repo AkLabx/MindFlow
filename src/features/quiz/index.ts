@@ -3,6 +3,7 @@ export * from './hooks';
 export * from './types';
 export * from './context';
 export * from './services';
+export * from './api';
 export * from './stores/useFlashcardStore';
 export * from './layouts';
 export * from './QuizLayout';

@@ -11,6 +11,7 @@ import { SynapticLoader } from '../../../components/ui/SynapticLoader';
 import { motion } from 'framer-motion';
 import { QuizLibraryToolbar } from './QuizLibraryToolbar';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuizHistory, quizKeys } from '../api';
 import { useAuth } from '../../auth/context/AuthContext';
 
 /**
@@ -100,7 +101,7 @@ export const AttemptedQuizzesList: React.FC<AttemptedQuizzesListProps> = ({ view
     const [editName, setEditName] = useState('');
 
     useEffect(() => {
-        queryClient.invalidateQueries({ queryKey: ['attempted-quizzes'] });
+        queryClient.invalidateQueries({ queryKey: quizKeys.attempted() });
 
         const handleSyncStart = () => {
             setIsSyncing(true);
@@ -108,7 +109,7 @@ export const AttemptedQuizzesList: React.FC<AttemptedQuizzesListProps> = ({ view
 
         const handleSyncComplete = () => {
             setTimeout(async () => {
-                await queryClient.invalidateQueries({ queryKey: ['attempted-quizzes'] });
+                await queryClient.invalidateQueries({ queryKey: quizKeys.attempted() });
                 setIsSyncing(false);
             }, 100);
         };
@@ -139,7 +140,7 @@ export const AttemptedQuizzesList: React.FC<AttemptedQuizzesListProps> = ({ view
             try {
                 const { error } = await supabase.from('saved_quizzes').update({ deleted_at: new Date().toISOString() }).eq('id', id);
                 if (error) throw error;
-                queryClient.setQueryData(['attempted-quizzes'], (old: SavedQuiz[] = []) => old.filter(q => q.id !== id));
+                queryClient.setQueryData(quizKeys.attempted(), (old: SavedQuiz[] = []) => old.filter(q => q.id !== id));
             } catch (error) {
                 console.error("Failed to delete quiz:", error);
             }
@@ -150,7 +151,7 @@ export const AttemptedQuizzesList: React.FC<AttemptedQuizzesListProps> = ({ view
         try {
             const { error } = await supabase.from('saved_quizzes').update({ name: newName }).eq('id', id);
             if (error) throw error;
-            queryClient.setQueryData(['attempted-quizzes'], (old: SavedQuiz[] = []) => old.map(q => q.id === id ? { ...q, name: newName } : q));
+            queryClient.setQueryData(quizKeys.attempted(), (old: SavedQuiz[] = []) => old.map(q => q.id === id ? { ...q, name: newName } : q));
         } catch (error) {
             console.error("Failed to update quiz name:", error);
         }
