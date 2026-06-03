@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { X, ChevronDown, ChevronRight, Map, ArrowDown, Loader2 } from 'lucide-react';
 import { OneWord } from '../../../types/models';
-import { cn } from '../../../../utils/cn';
+import { cn } from '@/utils/cn';
 import { APP_CONFIG } from '../../../constants/config';
 import { usePDFGenerator } from '../../../hooks/usePDFGenerator';
 import { useJSONDownloader } from '../../../hooks/useJSONDownloader';

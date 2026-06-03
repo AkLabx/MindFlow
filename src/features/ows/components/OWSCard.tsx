@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion, useMotionValue, useTransform } from 'framer-motion';
-import { cn } from '../../../../utils/cn';
+import { cn } from '@/utils/cn';
 import { OneWord } from '../../../types/models';
 import { BookOpen, Lightbulb, RotateCw, Target, Tag, CheckCircle2, Circle } from 'lucide-react';
 import { useOWSProgress } from '../hooks/useOWSProgress';

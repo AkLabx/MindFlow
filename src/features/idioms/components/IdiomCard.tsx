@@ -1,5 +1,5 @@
 import React from 'react';
-import { cn } from '../../../../utils/cn';
+import { cn } from '@/utils/cn';
 import { Idiom } from '../../../types/models';
 import { BookOpen, Lightbulb, Quote, RotateCw, CheckCircle2, Circle } from 'lucide-react';
 import { useIdiomProgress } from '../../idioms/hooks/useIdiomProgress';
