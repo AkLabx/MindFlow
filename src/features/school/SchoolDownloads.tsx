@@ -7,7 +7,7 @@ import { useNotificationStore } from '../../stores/useNotificationStore';
 import { cn } from '../../utils/cn';
 import { useAuth } from '../auth/context/AuthContext';
 import { AdminEditMaterialModal } from '../../features/admin/components/AdminEditMaterialModal';
-import { deleteStudyMaterial } from '../quiz/utils/adminMaterialUtils';
+import { deleteStudyMaterial } from '../admin/utils/adminMaterialUtils';
 import { Edit2, Trash2 } from 'lucide-react';
 
 

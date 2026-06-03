@@ -1,157 +1,146 @@
-# Codebase Directory Map
-
-```text
-./
-├── .github/
-│   └── workflows/
-│       ├── Debug_Android_apk_build.txt
-│       ├── android-build.yml
-│       └── deploy.yml
-├── .idx/
-│   └── dev.nix
-├── .jules/
-│   └── bolt.md
-├── AI SECTION/
-│   ├── CHECK.TXT
-│   └── SamvadChat.tsx.txt
-├── android/
-│   ├── app/
-│   │   ├── src/
-│   │   │   ├── androidTest/
-│   │   │   │   └── java/
-│   │   │   │       └── com/
-│   │   │   │           └── getcapacitor/
-│   │   │   │               └── myapp/
+```
+.
+├── android
+│   ├── app
+│   │   ├── src
+│   │   │   ├── androidTest
+│   │   │   │   └── java
+│   │   │   │       └── com
+│   │   │   │           └── getcapacitor
+│   │   │   │               └── myapp
 │   │   │   │                   └── ExampleInstrumentedTest.java
-│   │   │   ├── main/
-│   │   │   │   ├── java/
-│   │   │   │   │   └── com/
-│   │   │   │   │       └── aklabxmindflow/
-│   │   │   │   │           └── app/
+│   │   │   ├── main
+│   │   │   │   ├── java
+│   │   │   │   │   └── com
+│   │   │   │   │       └── aklabxmindflow
+│   │   │   │   │           └── app
 │   │   │   │   │               └── MainActivity.java
-│   │   │   │   ├── res/
-│   │   │   │   │   ├── drawable/
+│   │   │   │   ├── res
+│   │   │   │   │   ├── drawable
 │   │   │   │   │   │   ├── ic_launcher_background.xml
 │   │   │   │   │   │   └── splash.png
-│   │   │   │   │   ├── drawable-land-hdpi/
+│   │   │   │   │   ├── drawable-land-hdpi
 │   │   │   │   │   │   └── splash.png
-│   │   │   │   │   ├── drawable-land-ldpi/
+│   │   │   │   │   ├── drawable-land-ldpi
 │   │   │   │   │   │   └── splash.png
-│   │   │   │   │   ├── drawable-land-mdpi/
+│   │   │   │   │   ├── drawable-land-mdpi
 │   │   │   │   │   │   └── splash.png
-│   │   │   │   │   ├── drawable-land-night-hdpi/
+│   │   │   │   │   ├── drawable-land-night-hdpi
 │   │   │   │   │   │   └── splash.png
-│   │   │   │   │   ├── drawable-land-night-ldpi/
+│   │   │   │   │   ├── drawable-land-night-ldpi
 │   │   │   │   │   │   └── splash.png
-│   │   │   │   │   ├── drawable-land-night-mdpi/
+│   │   │   │   │   ├── drawable-land-night-mdpi
 │   │   │   │   │   │   └── splash.png
-│   │   │   │   │   ├── drawable-land-night-xhdpi/
+│   │   │   │   │   ├── drawable-land-night-xhdpi
 │   │   │   │   │   │   └── splash.png
-│   │   │   │   │   ├── drawable-land-night-xxhdpi/
+│   │   │   │   │   ├── drawable-land-night-xxhdpi
 │   │   │   │   │   │   └── splash.png
-│   │   │   │   │   ├── drawable-land-night-xxxhdpi/
+│   │   │   │   │   ├── drawable-land-night-xxxhdpi
 │   │   │   │   │   │   └── splash.png
-│   │   │   │   │   ├── drawable-land-xhdpi/
+│   │   │   │   │   ├── drawable-land-xhdpi
 │   │   │   │   │   │   └── splash.png
-│   │   │   │   │   ├── drawable-land-xxhdpi/
+│   │   │   │   │   ├── drawable-land-xxhdpi
 │   │   │   │   │   │   └── splash.png
-│   │   │   │   │   ├── drawable-land-xxxhdpi/
+│   │   │   │   │   ├── drawable-land-xxxhdpi
 │   │   │   │   │   │   └── splash.png
-│   │   │   │   │   ├── drawable-night/
+│   │   │   │   │   ├── drawable-night
 │   │   │   │   │   │   └── splash.png
-│   │   │   │   │   ├── drawable-port-hdpi/
+│   │   │   │   │   ├── drawable-port-hdpi
 │   │   │   │   │   │   └── splash.png
-│   │   │   │   │   ├── drawable-port-ldpi/
+│   │   │   │   │   ├── drawable-port-ldpi
 │   │   │   │   │   │   └── splash.png
-│   │   │   │   │   ├── drawable-port-mdpi/
+│   │   │   │   │   ├── drawable-port-mdpi
 │   │   │   │   │   │   └── splash.png
-│   │   │   │   │   ├── drawable-port-night-hdpi/
+│   │   │   │   │   ├── drawable-port-night-hdpi
 │   │   │   │   │   │   └── splash.png
-│   │   │   │   │   ├── drawable-port-night-ldpi/
+│   │   │   │   │   ├── drawable-port-night-ldpi
 │   │   │   │   │   │   └── splash.png
-│   │   │   │   │   ├── drawable-port-night-mdpi/
+│   │   │   │   │   ├── drawable-port-night-mdpi
 │   │   │   │   │   │   └── splash.png
-│   │   │   │   │   ├── drawable-port-night-xhdpi/
+│   │   │   │   │   ├── drawable-port-night-xhdpi
 │   │   │   │   │   │   └── splash.png
-│   │   │   │   │   ├── drawable-port-night-xxhdpi/
+│   │   │   │   │   ├── drawable-port-night-xxhdpi
 │   │   │   │   │   │   └── splash.png
-│   │   │   │   │   ├── drawable-port-night-xxxhdpi/
+│   │   │   │   │   ├── drawable-port-night-xxxhdpi
 │   │   │   │   │   │   └── splash.png
-│   │   │   │   │   ├── drawable-port-xhdpi/
+│   │   │   │   │   ├── drawable-port-xhdpi
 │   │   │   │   │   │   └── splash.png
-│   │   │   │   │   ├── drawable-port-xxhdpi/
+│   │   │   │   │   ├── drawable-port-xxhdpi
 │   │   │   │   │   │   └── splash.png
-│   │   │   │   │   ├── drawable-port-xxxhdpi/
+│   │   │   │   │   ├── drawable-port-xxxhdpi
 │   │   │   │   │   │   └── splash.png
-│   │   │   │   │   ├── drawable-v24/
+│   │   │   │   │   ├── drawable-v24
 │   │   │   │   │   │   └── ic_launcher_foreground.xml
-│   │   │   │   │   ├── layout/
+│   │   │   │   │   ├── layout
 │   │   │   │   │   │   └── activity_main.xml
-│   │   │   │   │   ├── mipmap-anydpi-v26/
+│   │   │   │   │   ├── mipmap-anydpi-v26
 │   │   │   │   │   │   ├── ic_launcher.xml
 │   │   │   │   │   │   └── ic_launcher_round.xml
-│   │   │   │   │   ├── mipmap-hdpi/
+│   │   │   │   │   ├── mipmap-hdpi
 │   │   │   │   │   │   ├── ic_launcher.png
 │   │   │   │   │   │   ├── ic_launcher_background.png
 │   │   │   │   │   │   ├── ic_launcher_foreground.png
 │   │   │   │   │   │   └── ic_launcher_round.png
-│   │   │   │   │   ├── mipmap-ldpi/
+│   │   │   │   │   ├── mipmap-ldpi
 │   │   │   │   │   │   ├── ic_launcher.png
 │   │   │   │   │   │   ├── ic_launcher_background.png
 │   │   │   │   │   │   ├── ic_launcher_foreground.png
 │   │   │   │   │   │   └── ic_launcher_round.png
-│   │   │   │   │   ├── mipmap-mdpi/
+│   │   │   │   │   ├── mipmap-mdpi
 │   │   │   │   │   │   ├── ic_launcher.png
 │   │   │   │   │   │   ├── ic_launcher_background.png
 │   │   │   │   │   │   ├── ic_launcher_foreground.png
 │   │   │   │   │   │   └── ic_launcher_round.png
-│   │   │   │   │   ├── mipmap-xhdpi/
+│   │   │   │   │   ├── mipmap-xhdpi
 │   │   │   │   │   │   ├── ic_launcher.png
 │   │   │   │   │   │   ├── ic_launcher_background.png
 │   │   │   │   │   │   ├── ic_launcher_foreground.png
 │   │   │   │   │   │   └── ic_launcher_round.png
-│   │   │   │   │   ├── mipmap-xxhdpi/
+│   │   │   │   │   ├── mipmap-xxhdpi
 │   │   │   │   │   │   ├── ic_launcher.png
 │   │   │   │   │   │   ├── ic_launcher_background.png
 │   │   │   │   │   │   ├── ic_launcher_foreground.png
 │   │   │   │   │   │   └── ic_launcher_round.png
-│   │   │   │   │   ├── mipmap-xxxhdpi/
+│   │   │   │   │   ├── mipmap-xxxhdpi
 │   │   │   │   │   │   ├── ic_launcher.png
 │   │   │   │   │   │   ├── ic_launcher_background.png
 │   │   │   │   │   │   ├── ic_launcher_foreground.png
 │   │   │   │   │   │   └── ic_launcher_round.png
-│   │   │   │   │   ├── values/
+│   │   │   │   │   ├── values
 │   │   │   │   │   │   ├── colors.xml
 │   │   │   │   │   │   ├── ic_launcher_background.xml
 │   │   │   │   │   │   ├── strings.xml
 │   │   │   │   │   │   └── styles.xml
-│   │   │   │   │   └── xml/
+│   │   │   │   │   └── xml
 │   │   │   │   │       └── file_paths.xml
 │   │   │   │   └── AndroidManifest.xml
-│   │   │   └── test/
-│   │   │       └── java/
-│   │   │           └── com/
-│   │   │               └── getcapacitor/
-│   │   │                   └── myapp/
+│   │   │   └── test
+│   │   │       └── java
+│   │   │           └── com
+│   │   │               └── getcapacitor
+│   │   │                   └── myapp
 │   │   │                       └── ExampleUnitTest.java
 │   │   ├── .gitignore
 │   │   ├── build.gradle
 │   │   ├── capacitor.build.gradle
 │   │   └── proguard-rules.pro
-│   ├── gradle/
-│   │   └── wrapper/
+│   ├── gradle
+│   │   └── wrapper
 │   │       ├── gradle-wrapper.jar
 │   │       └── gradle-wrapper.properties
 │   ├── .gitignore
 │   ├── build.gradle
 │   ├── capacitor.settings.gradle
 │   ├── gradle.properties
-│   ├── gradlew*
+│   ├── gradlew
 │   ├── gradlew.bat
 │   ├── settings.gradle
 │   └── variables.gradle
-├── docs/
-│   ├── audit/
+├── docs
+│   ├── AI SECTION
+│   │   ├── CHECK.TXT
+│   │   └── SamvadChat.tsx.txt
+│   ├── audit
 │   │   ├── FINAL_NETWORK_CONSISTENCY_REVIEW.md
 │   │   ├── FINAL_RUNTIME_HARDENING_REPORT.md
 │   │   ├── MIND_FLOW_RUNTIME_STABILIZATION_SUMMARY.md
@@ -161,20 +150,27 @@
 │   ├── CTO_REPORT.md
 │   ├── DEPLOYMENT.md
 │   ├── FULL_SYSTEM_AUDIT_REPORT.md
+│   ├── GK_QUIZ_AUDIT_REPORT.md
 │   ├── IG_MEMORY.md
 │   ├── OAUTH_HASH_ROUTER_GUIDE.md
 │   ├── Presence_Avatar_Architecture_Guide.txt
 │   ├── REPORT.md
+│   ├── SLEEP_COMA_DIAGNOSTIC_REPORT.md
+│   ├── SLEEP_COMA_IMPLEMENTATION_SAFETY_REVIEW.md
+│   ├── SLEEP_COMA_RUNTIME_VERIFICATION_ADDENDUM.md
+│   ├── SLEEP_COMA_STABILIZATION_PLAN.md
+│   ├── VERIFICATION_REPORT.md
+│   ├── VERIFICATION_SWEEP_REPORT.md
 │   ├── ai_tutor_observability.md
 │   └── repo_map.json
-├── google-play-assets/
+├── google-play-assets
 │   ├── PLAY_STORE_METADATA.md
 │   ├── app-icon-512x512.png
 │   └── feature-graphic-1024x500.png
-├── providers/
+├── providers
 │   └── AppProvider.tsx
-├── public/
-│   ├── images/
+├── public
+│   ├── images
 │   │   ├── Temp
 │   │   ├── backend-profile.png
 │   │   ├── ceo-profile.png
@@ -185,75 +181,100 @@
 │   ├── og-image.png
 │   ├── robots.txt
 │   └── sitemap.xml
-├── scripts/
-│   ├── data/
+├── scripts
+│   ├── data
 │   │   ├── inject_chunk_aa
 │   │   ├── inject_chunk_ab
 │   │   ├── inject_chunk_ac
 │   │   ├── inject_chunk_ad
 │   │   └── inject_embeddings.sql
+│   ├── verification
+│   │   ├── mock_engine_error.png
+│   │   ├── synonyms_config_debug_final.png
+│   │   ├── synonyms_config_success.png
+│   │   ├── verify_dropdown_open.py
+│   │   ├── verify_dropdown_render.py
+│   │   ├── verify_dropdown_screenshot.py
+│   │   ├── verify_engine.py
+│   │   ├── verify_engine2.py
+│   │   ├── verify_engine3.py
+│   │   ├── verify_engine4.py
+│   │   └── verify_filter_dropdown.py
 │   ├── backfill_embeddings.cjs
 │   ├── fetch_all_questions.cjs
+│   ├── fix_duplicate.py
+│   ├── fix_polishes.py
 │   ├── generate_injection_sql.cjs
 │   ├── inject.cjs
-│   └── process_embeddings_repo_only.cjs
-├── src/
-│   ├── assets/
+│   ├── process_embeddings_repo_only.cjs
+│   ├── replace_mcq_card.py
+│   ├── update_secondary_cards.py
+│   └── verify_dashboard.py
+├── src
+│   ├── assets
 │   │   ├── aalok.jpg
 │   │   └── default-avatar.svg
-│   ├── components/
-│   │   ├── Background/
+│   ├── components
+│   │   ├── Background
 │   │   │   └── Fireballs.tsx
-│   │   ├── Button/
+│   │   ├── Button
 │   │   │   └── Button.tsx
-│   │   ├── common/
+│   │   ├── common
 │   │   │   ├── InstallPwaModal.tsx
 │   │   │   └── PWAUpdateManager.tsx
-│   │   ├── debug/
+│   │   ├── debug
 │   │   │   └── HydrationDebugger.tsx
-│   │   ├── layout/
-│   │   │   └── SidePanel.tsx
-│   │   ├── ui/
-│   │   │   ├── ErrorState/
-│   │   │   │   ├── ErrorState.tsx
-│   │   │   │   └── index.ts
-│   │   │   ├── Notification/
-│   │   │   │   ├── Popup.tsx
-│   │   │   │   ├── Toast.tsx
-│   │   │   │   └── ToastContainer.tsx
-│   │   │   ├── Badge.tsx
-│   │   │   ├── Card.tsx
-│   │   │   ├── DownloadOptionsModal.tsx
-│   │   │   ├── DownloadReadyModal.tsx
-│   │   │   ├── KeyboardAwareBottomBar.tsx
-│   │   │   ├── KeyboardAwareSurface.tsx
-│   │   │   ├── MarkdownRenderer.tsx
-│   │   │   ├── PresenceAvatar.tsx
-│   │   │   ├── PresenceDot.tsx
-│   │   │   ├── ProgressBar.tsx
-│   │   │   ├── ShimmerBlock.tsx
-│   │   │   └── SynapticLoader.tsx
-│   │   ├── ErrorBoundary.tsx
-│   │   ├── PresenceProvider.tsx
-│   │   └── ProtectedRoute.tsx
-│   ├── constants/
+│   │   └── ui
+│   │       ├── ErrorState
+│   │       │   ├── ErrorState.tsx
+│   │       │   └── index.ts
+│   │       ├── Notification
+│   │       │   ├── Popup.tsx
+│   │       │   ├── Toast.tsx
+│   │       │   └── ToastContainer.tsx
+│   │       ├── Badge.tsx
+│   │       ├── Card.tsx
+│   │       ├── DownloadOptionsModal.tsx
+│   │       ├── DownloadReadyModal.tsx
+│   │       ├── KeyboardAwareBottomBar.tsx
+│   │       ├── KeyboardAwareSurface.tsx
+│   │       ├── MarkdownRenderer.tsx
+│   │       ├── PresenceAvatar.tsx
+│   │       ├── PresenceDot.tsx
+│   │       ├── ProgressBar.tsx
+│   │       ├── ShimmerBlock.tsx
+│   │       └── SynapticLoader.tsx
+│   ├── constants
 │   │   └── config.ts
-│   ├── features/
-│   │   ├── about/
-│   │   │   └── components/
-│   │   │       ├── AalokProfile.tsx
-│   │   │       ├── AboutSVGs.tsx
-│   │   │       ├── AboutUs.tsx
-│   │   │       ├── DeveloperProfile.tsx
-│   │   │       └── TeamMemberProfile.tsx
-│   │   ├── admin/
-│   │   │   └── components/
-│   │   │       ├── AdminBulkUpdate.tsx
-│   │   │       ├── AdminReportsQueue.tsx
-│   │   │       └── AdminUploadGK.tsx
-│   │   ├── ai/
-│   │   │   ├── chat/
-│   │   │   │   ├── utils/
+│   ├── features
+│   │   ├── about
+│   │   │   ├── components
+│   │   │   │   ├── AalokProfile.tsx
+│   │   │   │   ├── AboutSVGs.tsx
+│   │   │   │   ├── AboutUs.tsx
+│   │   │   │   ├── DeveloperProfile.tsx
+│   │   │   │   ├── TeamMemberProfile.tsx
+│   │   │   │   └── index.ts
+│   │   │   └── index.ts
+│   │   ├── admin
+│   │   │   ├── api
+│   │   │   │   └── adminApi.ts
+│   │   │   ├── components
+│   │   │   │   ├── AdminBulkUpdate.tsx
+│   │   │   │   ├── AdminEditMaterialModal.tsx
+│   │   │   │   ├── AdminManageMaterials.tsx
+│   │   │   │   ├── AdminReportsQueue.tsx
+│   │   │   │   ├── AdminSVGs.tsx
+│   │   │   │   ├── AdminUploadGK.tsx
+│   │   │   │   ├── AdminUploadMaterials.tsx
+│   │   │   │   └── index.ts
+│   │   │   ├── hooks
+│   │   │   │   ├── useAdminBulkUpdate.ts
+│   │   │   │   └── useAdminUploadGK.ts
+│   │   │   └── index.ts
+│   │   ├── ai
+│   │   │   ├── chat
+│   │   │   │   ├── utils
 │   │   │   │   │   └── fileProcessing.ts
 │   │   │   │   ├── AIChatPage.tsx
 │   │   │   │   ├── ChatInput.tsx
@@ -261,7 +282,7 @@
 │   │   │   │   ├── index.ts
 │   │   │   │   ├── useAIChat.ts
 │   │   │   │   └── useQuota.ts
-│   │   │   ├── talk/
+│   │   │   ├── talk
 │   │   │   │   ├── AITalkPage.tsx
 │   │   │   │   ├── AITalkSummary.tsx
 │   │   │   │   ├── README.md
@@ -273,32 +294,50 @@
 │   │   │   ├── AIHome.tsx
 │   │   │   ├── AIHomeSVGs.tsx
 │   │   │   └── Icons.tsx
-│   │   ├── auth/
-│   │   │   ├── components/
+│   │   ├── auth
+│   │   │   ├── components
 │   │   │   │   ├── AuthPage.tsx
-│   │   │   │   ├── AuthPage.tsx.orig
-│   │   │   │   ├── AuthPage.tsx.rej
 │   │   │   │   ├── ProfilePage.tsx
 │   │   │   │   ├── RestoreAccountModal.tsx
 │   │   │   │   ├── SettingsPage.tsx
 │   │   │   │   ├── SubscriptionPage.tsx
-│   │   │   │   └── SupportPage.tsx
-│   │   │   ├── context/
-│   │   │   │   └── AuthContext.tsx
-│   │   │   ├── hooks/
+│   │   │   │   ├── SupportPage.tsx
+│   │   │   │   └── index.ts
+│   │   │   ├── context
+│   │   │   │   ├── AuthContext.tsx
+│   │   │   │   └── index.ts
+│   │   │   ├── hooks
+│   │   │   │   ├── index.ts
 │   │   │   │   └── useProfileStats.ts
-│   │   │   ├── utils/
+│   │   │   ├── utils
 │   │   │   │   └── cropImage.ts
-│   │   │   └── AuthGuard.tsx
-│   │   ├── community/
-│   │   │   ├── api/
+│   │   │   ├── AuthGuard.tsx
+│   │   │   └── index.ts
+│   │   ├── blueprints
+│   │   │   ├── components
+│   │   │   │   ├── BlueprintBuilder.tsx
+│   │   │   │   ├── BlueprintPreview.tsx
+│   │   │   │   ├── BlueprintPreviewWrapper.tsx
+│   │   │   │   └── index.ts
+│   │   │   ├── engine
+│   │   │   │   └── blueprintMath.ts
+│   │   │   ├── services
+│   │   │   │   ├── blueprintService.ts
+│   │   │   │   └── index.ts
+│   │   │   ├── types
+│   │   │   │   ├── blueprint.ts
+│   │   │   │   └── index.ts
+│   │   │   └── index.ts
+│   │   ├── community
+│   │   │   ├── api
 │   │   │   │   ├── chatApi.ts
 │   │   │   │   ├── communityApi.ts
 │   │   │   │   ├── deletionService.ts
+│   │   │   │   ├── index.ts
 │   │   │   │   ├── reportsApi.ts
 │   │   │   │   └── uploadMedia.ts
-│   │   │   ├── components/
-│   │   │   │   ├── reports/
+│   │   │   ├── components
+│   │   │   │   ├── reports
 │   │   │   │   │   ├── BlockUserPromptModal.tsx
 │   │   │   │   │   └── ReportModal.tsx
 │   │   │   │   ├── ChatListSkeleton.tsx
@@ -310,12 +349,14 @@
 │   │   │   │   ├── PostCardSkeleton.tsx
 │   │   │   │   ├── ReelSkeleton.tsx
 │   │   │   │   ├── ReelUploadModal.tsx
-│   │   │   │   └── SocialHeader.tsx
-│   │   │   ├── hooks/
+│   │   │   │   ├── SocialHeader.tsx
+│   │   │   │   └── index.ts
+│   │   │   ├── hooks
+│   │   │   │   ├── index.ts
 │   │   │   │   ├── useCreatePost.ts
 │   │   │   │   ├── useDeletion.ts
 │   │   │   │   └── useSocialRealtime.ts
-│   │   │   ├── pages/
+│   │   │   ├── pages
 │   │   │   │   ├── ChatInputBar.tsx
 │   │   │   │   ├── ChatIntro.tsx
 │   │   │   │   ├── ChatMessageItem.tsx
@@ -326,55 +367,66 @@
 │   │   │   │   ├── ReelCommentsPage.tsx
 │   │   │   │   ├── ReelsFeed.tsx
 │   │   │   │   └── UserProfile.tsx
-│   │   │   └── utils/
-│   │   │       └── errorTranslation.ts
-│   │   ├── flashcards/
-│   │   │   ├── components/
-│   │   │   │   └── FlashcardSummary.tsx
-│   │   │   └── utils/
-│   │   │       └── pdfGenerator.ts
-│   │   ├── idioms/
-│   │   │   ├── components/
+│   │   │   ├── stores
+│   │   │   │   └── useSocialStore.ts
+│   │   │   ├── utils
+│   │   │   │   └── errorTranslation.ts
+│   │   │   └── index.ts
+│   │   ├── flashcards
+│   │   │   ├── components
+│   │   │   │   ├── FlashcardSummary.tsx
+│   │   │   │   └── index.ts
+│   │   │   ├── utils
+│   │   │   │   └── pdfGenerator.ts
+│   │   │   └── index.ts
+│   │   ├── idioms
+│   │   │   ├── components
 │   │   │   │   ├── IdiomCard.tsx
 │   │   │   │   ├── IdiomNavigationPanel.tsx
-│   │   │   │   └── IdiomSession.tsx
-│   │   │   ├── hooks/
+│   │   │   │   ├── IdiomSession.tsx
+│   │   │   │   └── index.ts
+│   │   │   ├── hooks
+│   │   │   │   ├── index.ts
 │   │   │   │   ├── useIdiomFilterCounts.ts
 │   │   │   │   └── useIdiomProgress.ts
-│   │   │   ├── utils/
+│   │   │   ├── utils
 │   │   │   │   └── supabaseIdioms.ts
-│   │   │   └── IdiomsConfig.tsx
-│   │   ├── notifications/
-│   │   │   ├── admin/
+│   │   │   ├── IdiomsConfig.tsx
+│   │   │   └── index.ts
+│   │   ├── notifications
+│   │   │   ├── admin
 │   │   │   │   ├── AdminEditNotificationModal.tsx
 │   │   │   │   └── AdminNotifications.tsx
-│   │   │   ├── components/
+│   │   │   ├── components
 │   │   │   │   ├── NotificationBell.tsx
-│   │   │   │   └── NotificationSettings.tsx
-│   │   │   ├── hooks/
+│   │   │   │   ├── NotificationSettings.tsx
+│   │   │   │   └── index.ts
+│   │   │   ├── hooks
 │   │   │   │   ├── index.ts
 │   │   │   │   ├── useNotificationPreferences.ts
 │   │   │   │   ├── useNotifications.ts
 │   │   │   │   └── usePushNotifications.ts
-│   │   │   ├── pages/
-│   │   │   │   └── NotificationsPage.tsx
-│   │   │   └── types/
-│   │   │       └── index.ts
-│   │   ├── ows/
-│   │   │   ├── components/
+│   │   │   ├── types
+│   │   │   │   └── index.ts
+│   │   │   └── index.ts
+│   │   ├── ows
+│   │   │   ├── components
 │   │   │   │   ├── OWSCard.tsx
 │   │   │   │   ├── OWSNavigationPanel.tsx
-│   │   │   │   └── OWSSession.tsx
-│   │   │   ├── hooks/
+│   │   │   │   ├── OWSSession.tsx
+│   │   │   │   └── index.ts
+│   │   │   ├── hooks
+│   │   │   │   ├── index.ts
 │   │   │   │   ├── useOWSProgress.ts
 │   │   │   │   └── useOwsFilterCounts.ts
-│   │   │   ├── utils/
+│   │   │   ├── utils
 │   │   │   │   ├── pdfGenerator.ts
 │   │   │   │   └── supabaseOws.ts
-│   │   │   └── OWSConfig.tsx
-│   │   ├── quiz/
-│   │   │   ├── components/
-│   │   │   │   ├── Landing/
+│   │   │   ├── OWSConfig.tsx
+│   │   │   └── index.ts
+│   │   ├── quiz
+│   │   │   ├── components
+│   │   │   │   ├── Landing
 │   │   │   │   │   ├── AnimatedLogo.tsx
 │   │   │   │   │   ├── CinematicIntro.css
 │   │   │   │   │   ├── CinematicIntro.tsx
@@ -383,12 +435,12 @@
 │   │   │   │   │   ├── MobileOnboarding.tsx
 │   │   │   │   │   ├── Typewriter.tsx
 │   │   │   │   │   └── WelcomeIntro.tsx
-│   │   │   │   ├── archive/
+│   │   │   │   ├── archive
 │   │   │   │   │   ├── AnimatedCounter.tsx
 │   │   │   │   │   ├── DonutChart.tsx
 │   │   │   │   │   ├── QuizResult.tsx
 │   │   │   │   │   └── README.md
-│   │   │   │   ├── ui/
+│   │   │   │   ├── ui
 │   │   │   │   │   ├── Accordion.tsx
 │   │   │   │   │   ├── ActiveFiltersBar.tsx
 │   │   │   │   │   ├── ClaymorphismSwitch.css
@@ -401,27 +453,12 @@
 │   │   │   │   │   ├── SegmentedControl.tsx
 │   │   │   │   │   ├── SettingsModal.tsx
 │   │   │   │   │   └── SettingsToggle.tsx
-│   │   │   │   ├── AdminEditMaterialModal.tsx
-│   │   │   │   ├── AdminHome.tsx
-│   │   │   │   ├── AdminManageMaterials.tsx
-│   │   │   │   ├── AdminSVGs.tsx
-│   │   │   │   ├── AdminUploadMaterials.tsx
 │   │   │   │   ├── AiExplanationButton.tsx
 │   │   │   │   ├── AttemptedQuizCard.tsx
 │   │   │   │   ├── AttemptedQuizzesList.tsx
-│   │   │   │   ├── BlueprintBuilder.tsx
-│   │   │   │   ├── BlueprintPreview.tsx
-│   │   │   │   ├── BlueprintPreviewWrapper.tsx
-│   │   │   │   ├── BookmarksPage.tsx
 │   │   │   │   ├── CookingLoader.tsx
-│   │   │   │   ├── Dashboard.tsx
-│   │   │   │   ├── Dashboard.tsx.bak
 │   │   │   │   ├── DashboardSVGs.tsx
-│   │   │   │   ├── EnglishQuizHome.tsx
-│   │   │   │   ├── ExamBlueprintsHub.tsx
 │   │   │   │   ├── GodQuizResult.tsx
-│   │   │   │   ├── LandingPage.tsx
-│   │   │   │   ├── McqsQuizHome.tsx
 │   │   │   │   ├── MockQuizResult.tsx
 │   │   │   │   ├── PerformanceAnalytics.tsx
 │   │   │   │   ├── QuizBottomNav.tsx
@@ -444,28 +481,32 @@
 │   │   │   │   ├── ResultGuard.tsx
 │   │   │   │   ├── SavedQuizCard.tsx
 │   │   │   │   ├── SavedQuizzesList.tsx
-│   │   │   │   └── ShareGatekeeper.tsx
-│   │   │   ├── context/
-│   │   │   │   └── QuizContext.tsx
-│   │   │   ├── data/
+│   │   │   │   ├── ShareGatekeeper.tsx
+│   │   │   │   └── index.ts
+│   │   │   ├── context
+│   │   │   │   ├── QuizContext.tsx
+│   │   │   │   └── index.ts
+│   │   │   ├── data
 │   │   │   │   ├── Synonym data.json
 │   │   │   │   ├── idioms.json
 │   │   │   │   ├── ows.json
 │   │   │   │   ├── questions.ts
 │   │   │   │   ├── validate_synonyms_data.js
 │   │   │   │   └── validation_report.json
-│   │   │   ├── engine/
-│   │   │   │   ├── plugins/
+│   │   │   ├── engine
+│   │   │   │   ├── plugins
 │   │   │   │   │   ├── mcqPlugin.ts
 │   │   │   │   │   └── synonymPlugin.ts
 │   │   │   │   ├── TestEngineController.ts
-│   │   │   │   ├── blueprintMath.ts
 │   │   │   │   ├── index.ts
 │   │   │   │   ├── quizEngine.ts
 │   │   │   │   ├── quizPlugin.ts
 │   │   │   │   └── timerWorker.ts
-│   │   │   ├── hooks/
+│   │   │   ├── hooks
+│   │   │   │   ├── index.ts
 │   │   │   │   ├── useAntiCheat.ts
+│   │   │   │   ├── useDependentFilters.ts
+│   │   │   │   ├── useFilterCounts.ts
 │   │   │   │   ├── useGodSessionTimer.ts
 │   │   │   │   ├── useLearningTimer.ts
 │   │   │   │   ├── useMockSessionTimer.ts
@@ -475,26 +516,25 @@
 │   │   │   │   ├── useQuestionIndex.ts
 │   │   │   │   ├── useQuiz.ts
 │   │   │   │   ├── useQuizSessionTimer.ts
+│   │   │   │   ├── useQuizSounds.ts
 │   │   │   │   ├── useTextToSpeech.test.tsx
 │   │   │   │   └── useTextToSpeech.ts
-│   │   │   ├── layouts/
-│   │   │   │   └── ActiveQuizLayout.tsx
-│   │   │   ├── learning/
+│   │   │   ├── layouts
+│   │   │   │   ├── ActiveQuizLayout.tsx
+│   │   │   │   └── index.ts
+│   │   │   ├── learning
 │   │   │   │   └── LearningSession.tsx
-│   │   │   ├── live/
+│   │   │   ├── live
 │   │   │   │   ├── LiveQuizRoom.tsx
-│   │   │   │   ├── useGenAILive.ts
-│   │   │   │   ├── useGenAILive.ts.bak
-│   │   │   │   ├── useGenAILive.ts.orig
-│   │   │   │   └── useGenAILive.ts.patch
-│   │   │   ├── mock/
+│   │   │   │   └── useGenAILive.ts
+│   │   │   ├── mock
 │   │   │   │   ├── GodModeSession.tsx
 │   │   │   │   └── MockSession.tsx
-│   │   │   ├── services/
+│   │   │   ├── services
 │   │   │   │   ├── analyticsService.ts
-│   │   │   │   ├── blueprintService.ts
+│   │   │   │   ├── index.ts
 │   │   │   │   └── questionService.ts
-│   │   │   ├── stores/
+│   │   │   ├── stores
 │   │   │   │   ├── quizReducer.test.ts
 │   │   │   │   ├── quizReducer.ts
 │   │   │   │   ├── useAnalyticsStore.ts
@@ -502,24 +542,28 @@
 │   │   │   │   ├── useFlashcardStore.ts
 │   │   │   │   ├── useQuizSessionStore.ts
 │   │   │   │   └── useSyncStore.ts
-│   │   │   ├── types/
-│   │   │   │   ├── blueprint.ts
+│   │   │   ├── types
 │   │   │   │   ├── index.ts
 │   │   │   │   └── store.ts
-│   │   │   ├── utils/
+│   │   │   ├── utils
 │   │   │   │   └── adminMaterialUtils.ts
-│   │   │   └── QuizLayout.tsx
-│   │   ├── school/
+│   │   │   ├── workers
+│   │   │   │   └── filterWorker.ts
+│   │   │   ├── QuizLayout.tsx
+│   │   │   └── index.ts
+│   │   ├── school
 │   │   │   ├── SchoolDownloads.tsx
-│   │   │   ├── SchoolHome.tsx
-│   │   │   └── SchoolSVGs.tsx
-│   │   ├── settings/
-│   │   │   └── components/
-│   │   │       ├── AppPreferencesPage.tsx
-│   │   │       ├── DeleteAccountPage.tsx
-│   │   │       └── MyReportsPage.tsx
-│   │   ├── synonyms/
-│   │   │   ├── components/
+│   │   │   ├── SchoolSVGs.tsx
+│   │   │   └── index.ts
+│   │   ├── settings
+│   │   │   ├── components
+│   │   │   │   ├── AppPreferencesPage.tsx
+│   │   │   │   ├── DeleteAccountPage.tsx
+│   │   │   │   ├── MyReportsPage.tsx
+│   │   │   │   └── index.ts
+│   │   │   └── index.ts
+│   │   ├── synonyms
+│   │   │   ├── components
 │   │   │   │   ├── ConnectGame.tsx
 │   │   │   │   ├── ImposterGame.tsx
 │   │   │   │   ├── SpeedGame.tsx
@@ -529,47 +573,48 @@
 │   │   │   │   ├── SynonymNavigationPanel.tsx
 │   │   │   │   ├── SynonymPhase1Session.tsx
 │   │   │   │   ├── SynonymQuizSession.tsx
-│   │   │   │   ├── SynonymQuizSession.tsx.orig
 │   │   │   │   ├── SynonymsSVGs.tsx
-│   │   │   │   └── WordDetailModal.tsx
-│   │   │   ├── hooks/
+│   │   │   │   ├── WordDetailModal.tsx
+│   │   │   │   └── index.ts
+│   │   │   ├── hooks
+│   │   │   │   ├── index.ts
 │   │   │   │   ├── useSynonymProgress.ts
 │   │   │   │   └── useSynonymsData.ts
-│   │   │   ├── services/
+│   │   │   ├── services
+│   │   │   │   ├── index.ts
 │   │   │   │   └── synonymService.ts
-│   │   │   ├── utils/
+│   │   │   ├── utils
 │   │   │   │   └── pdfGenerator.ts
 │   │   │   ├── SynapticLoader.tsx
 │   │   │   ├── Synonym.html
-│   │   │   └── SynonymsConfig.tsx
-│   │   └── tools/
-│   │       ├── bilingual-pdf-maker/
-│   │       │   ├── utils/
+│   │   │   ├── SynonymsConfig.tsx
+│   │   │   └── index.ts
+│   │   └── tools
+│   │       ├── bilingual-pdf-maker
+│   │       │   ├── utils
 │   │       │   │   └── pdfGenerator.ts
 │   │       │   └── BilingualPdfMaker.tsx
-│   │       ├── flashcard-maker/
-│   │       │   ├── components/
+│   │       ├── flashcard-maker
+│   │       │   ├── components
 │   │       │   │   ├── Editor.tsx
 │   │       │   │   └── Preview.tsx
-│   │       │   ├── utils/
+│   │       │   ├── utils
 │   │       │   │   └── canvasDrawing.ts
 │   │       │   ├── FlashcardMaker.tsx
 │   │       │   └── types.ts
-│   │       ├── quiz-pdf-ppt-generator/
-│   │       │   ├── components/
+│   │       ├── quiz-pdf-ppt-generator
+│   │       │   ├── components
 │   │       │   │   └── GeneratorModal.tsx
-│   │       │   ├── utils/
+│   │       │   ├── utils
 │   │       │   │   ├── pdfGenerator.ts
 │   │       │   │   └── pptGenerator.ts
 │   │       │   └── QuizPdfPptGenerator.tsx
-│   │       ├── text-exporter/
+│   │       ├── text-exporter
 │   │       │   └── TextExporter.tsx
 │   │       ├── ToolsHome.tsx
 │   │       └── ToolsSVGs.tsx
-│   ├── hooks/
+│   ├── hooks
 │   │   ├── useAppVisibilityReawakening.ts
-│   │   ├── useDependentFilters.ts
-│   │   ├── useFilterCounts.ts
 │   │   ├── useHardwareBackButton.ts
 │   │   ├── useJSONDownloader.spec.ts
 │   │   ├── useJSONDownloader.ts
@@ -579,52 +624,60 @@
 │   │   ├── useNotification.ts
 │   │   ├── usePDFGenerator.ts
 │   │   ├── usePWAInstall.ts
-│   │   ├── useQuizSounds.ts
 │   │   ├── useSound.ts
 │   │   └── useTimer.ts
-│   ├── layouts/
-│   │   └── MainLayout.tsx
-│   ├── lib/
+│   ├── layouts
+│   │   ├── MainLayout.tsx
+│   │   └── SidePanel.tsx
+│   ├── lib
 │   │   ├── db.ts
 │   │   ├── fetchWithTimeout.ts
 │   │   ├── haptics.ts
 │   │   ├── supabase.ts
 │   │   └── syncService.ts
-│   ├── pages/
+│   ├── pages
+│   │   ├── AdminHomePage.tsx
+│   │   ├── BookmarksPage.tsx
+│   │   ├── DashboardPage.tsx
+│   │   ├── EnglishQuizHomePage.tsx
+│   │   ├── ExamBlueprintsHubPage.tsx
+│   │   ├── LandingPage.tsx
+│   │   ├── McqsQuizHomePage.tsx
+│   │   ├── NotificationsPage.tsx
 │   │   ├── PrivacyPolicy.tsx
+│   │   ├── SchoolHomePage.tsx
 │   │   └── TermsOfUse.tsx
-│   ├── providers/
-│   │   └── AppProvider.tsx
-│   ├── routes/
-│   │   ├── AppRoutes.tsx
-│   │   └── AppRoutes.tsx.rej
-│   ├── stores/
+│   ├── providers
+│   │   ├── AppProvider.tsx
+│   │   ├── ErrorBoundary.tsx
+│   │   ├── PresenceProvider.tsx
+│   │   └── ProtectedRoute.tsx
+│   ├── routes
+│   │   └── AppRoutes.tsx
+│   ├── stores
 │   │   ├── useDebugStore.ts
 │   │   ├── useNotificationStore.ts
 │   │   ├── usePresenceStore.ts
-│   │   ├── useSettingsStore.ts
-│   │   └── useSocialStore.ts
-│   ├── types/
+│   │   └── useSettingsStore.ts
+│   ├── types
 │   │   ├── mammoth.d.ts
 │   │   └── models.ts
-│   ├── utils/
+│   ├── utils
 │   │   ├── avatar.ts
 │   │   ├── cn.ts
 │   │   ├── platform.ts
 │   │   └── withTimeout.ts
-│   ├── workers/
-│   │   └── filterWorker.ts
 │   ├── App.tsx
 │   ├── assets.d.ts
 │   ├── index.css
 │   ├── index.tsx
 │   └── vite-env.d.ts
-├── supabase/
-│   ├── functions/
-│   │   └── push-notifications/
+├── supabase
+│   ├── functions
+│   │   └── push-notifications
 │   │       ├── deno.json
 │   │       └── index.ts
-│   └── migrations/
+│   └── migrations
 │       ├── 20240101000000_create_chat_message_likes.sql
 │       ├── 20240101000000_soft_delete_and_rpc.sql
 │       ├── 20240311000000_create_user_synonym_interactions.sql
@@ -654,45 +707,22 @@
 │       ├── 20260517100002_make_rpc_idempotent.sql
 │       ├── 20260517100003_add_relational_status.sql
 │       └── 20260517100004_fix_rpc_accuracy_type.sql
-├── utils/
+├── utils
 │   └── cn.ts
-├── verification/
-│   ├── mock_engine_error.png
-│   ├── synonyms_config_debug_final.png
-│   ├── synonyms_config_success.png
-│   ├── verify_dropdown_open.py
-│   ├── verify_dropdown_render.py
-│   ├── verify_dropdown_screenshot.py
-│   ├── verify_engine.py
-│   ├── verify_engine2.py
-│   ├── verify_engine3.py
-│   ├── verify_engine4.py
-│   └── verify_filter_dropdown.py
 ├── .gitignore
-├── GK_QUIZ_AUDIT_REPORT.md
 ├── README.md
-├── SLEEP_COMA_DIAGNOSTIC_REPORT.md
-├── SLEEP_COMA_IMPLEMENTATION_SAFETY_REVIEW.md
-├── SLEEP_COMA_RUNTIME_VERIFICATION_ADDENDUM.md
-├── SLEEP_COMA_STABILIZATION_PLAN.md
-├── VERIFICATION_REPORT.md
-├── VERIFICATION_SWEEP_REPORT.md
+├── architecture.md
 ├── capacitor.config.ts
+├── directory_map.txt
 ├── fix-android-immersive.patch
-├── fix_duplicate.py
-├── fix_polishes.py
 ├── index.html
 ├── metadata.json
 ├── package-lock.json
 ├── package.json
 ├── postcss.config.js
-├── replace_mcq_card.py
 ├── tailwind.config.js
-├── tree_output.txt
 ├── tsconfig.json
-├── update_secondary_cards.py
-├── verify_dashboard.py
 └── vite.config.ts
 
-174 directories, 518 files
+176 directories, 548 files
 ```

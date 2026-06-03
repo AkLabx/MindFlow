@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { useNotificationStore } from '@/stores/useNotificationStore';
 import { AdminEditMaterialModal, StudyMaterial } from '@/features/admin/components/AdminEditMaterialModal';
-import { deleteStudyMaterial } from '@/features/quiz/utils/adminMaterialUtils';
+import { deleteStudyMaterial } from '@/features/admin/utils/adminMaterialUtils';
 
 export const AdminManageMaterials: React.FC = () => {
     const navigate = useNavigate();
