@@ -7,7 +7,7 @@ import { SavedQuiz } from '../types';
 import { SavedQuizCard } from './SavedQuizCard';
 import { useQuizContext } from '../context/QuizContext';
 import { useSyncStore } from '../stores/useSyncStore';
-import { useSavedQuizzes, quizKeys } from "../api";
+import { useSavedQuizzes, quizKeys, useDeleteSavedQuiz, useRenameSavedQuiz } from '../api';
 import { syncService } from '../../../lib/syncService';
 import { SynapticLoader } from '../../../components/ui/SynapticLoader';
 import { motion } from 'framer-motion';
@@ -37,11 +37,15 @@ interface SavedQuizzesListProps {
 
 export const SavedQuizzesList: React.FC<SavedQuizzesListProps> = ({ viewMode, setViewMode, sortMethod, setSortMethod }) => {
     const navigate = useNavigate();
+    const deleteQuizMutation = useDeleteSavedQuiz();
+    const renameQuizMutation = useRenameSavedQuiz();
     const queryClient = useQueryClient();
     const { data: quizzes = [], isLoading: loading } = useQuery({
         queryKey: ['saved-quizzes'],
         queryFn: async () => {
             const { session } = useAuth();
+    const deleteQuizMutation = useDeleteSavedQuiz();
+    const renameQuizMutation = useRenameSavedQuiz();
             if (!session?.user) return [];
 
             const { data, error } = await supabase
@@ -168,14 +172,12 @@ export const SavedQuizzesList: React.FC<SavedQuizzesListProps> = ({ viewMode, se
     const handleDelete = async (id: string, e: React.MouseEvent) => {
         e.stopPropagation();
         if (window.confirm('Are you sure you want to delete this quiz?')) {
-            try {
-                const { error } = await supabase.from('saved_quizzes').update({ deleted_at: new Date().toISOString() }).eq('id', id);
-                if (error) throw error;
-                queryClient.setQueryData(quizKeys.saved(), (old: SavedQuiz[] = []) => old.filter(q => q.id !== id));
-            } catch (error) {
-                console.error("Failed to delete quiz:", error);
-                alert("Failed to delete quiz");
-            }
+            deleteQuizMutation.mutate(id, {
+                onError: (error: any) => {
+                    console.error("Failed to delete quiz:", error);
+                    alert("Failed to delete quiz");
+                }
+            });
         }
     };
 
@@ -203,13 +205,9 @@ export const SavedQuizzesList: React.FC<SavedQuizzesListProps> = ({ viewMode, se
     /** Cancels renaming. */
 
     const saveEditCard = async (id: string, newName: string) => {
-        try {
-            const { error } = await supabase.from('saved_quizzes').update({ name: newName }).eq('id', id);
-            if (error) throw error;
-            queryClient.setQueryData(quizKeys.saved(), (old: SavedQuiz[] = []) => old.map(q => q.id === id ? { ...q, name: newName } : q));
-        } catch (error) {
-            console.error("Failed to update quiz name:", error);
-        }
+        renameQuizMutation.mutate({ quizId: id, newName }, {
+            onError: (error: any) => console.error("Failed to update quiz name:", error)
+        });
     };
 
     const cancelEdit = (e: React.MouseEvent) => {
