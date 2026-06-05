@@ -1,6 +1,5 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useAuth } from '../../auth/context/AuthContext';
 import {
   ArrowLeft,
   Layers,
@@ -177,7 +176,7 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
         }
       }
 
-      const { session } = useAuth();
+      const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user) {
          useNotificationStore.getState().showToast({ variant: "error", message: "You must be logged in to create a quiz." });
          setIsStartingQuiz(false);
