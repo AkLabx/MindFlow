@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { quizKeys } from './queryKeys';
 import { SavedQuiz, Question } from '../types';
+import { fetchQuestionsByIds } from '../services/questionService';
 
 export const useSavedQuizzes = (userId?: string) => {
   return useQuery({
@@ -30,10 +31,8 @@ export const useSavedQuizzes = (userId?: string) => {
       if (idArray.length === 0) return quizzes as SavedQuiz[];
 
       // Fetch questions
-      const { data: qData, error: qError } = await supabase
-        .from('questions')
-        .select('*')
-        .in('id', idArray);
+      const qData = await fetchQuestionsByIds(idArray);
+      const qError = null;
 
       if (qError) throw qError;
 
@@ -82,10 +81,8 @@ export const useQuizHistory = (userId?: string) => {
       const idArray = Array.from(allQuestionIds);
       if (idArray.length === 0) return quizzes as SavedQuiz[];
 
-      const { data: qData, error: qError } = await supabase
-        .from('questions')
-        .select('*')
-        .in('id', idArray);
+      const qData = await fetchQuestionsByIds(idArray);
+      const qError = null;
 
       if (qError) throw qError;
 
@@ -126,10 +123,8 @@ export const useQuizSession = (quizId?: string) => {
 
       if (questionIds.length === 0) return { ...quizData, questions: [] } as unknown as SavedQuiz;
 
-      const { data: qData, error: qError } = await supabase
-        .from('questions')
-        .select('*')
-        .in('id', questionIds);
+      const qData = await fetchQuestionsByIds(questionIds);
+      const qError = null;
 
       if (qError) throw new Error("Failed to fetch quiz questions.");
 
@@ -202,10 +197,8 @@ export const useQuizResult = (quizId?: string) => {
 
         if (questionIds.length === 0) return { ...savedData, questions: [] } as unknown as SavedQuiz;
 
-        const { data: qData, error: qError } = await supabase
-          .from('questions')
-          .select('*')
-          .in('id', questionIds);
+        const qData = await fetchQuestionsByIds(questionIds);
+      const qError = null;
 
         if (qError) throw new Error("Failed to fetch quiz questions.");
 

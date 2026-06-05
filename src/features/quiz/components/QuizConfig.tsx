@@ -214,7 +214,7 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
         id: newQuiz.id,
         user_id: userId,
         name: newQuiz.name,
-        created_at: newQuiz.createdAt,
+        created_at: new Date(newQuiz.createdAt).toISOString(),
         filters: newQuiz.filters,
         mode: newQuiz.mode,
         state: newQuiz.state,
