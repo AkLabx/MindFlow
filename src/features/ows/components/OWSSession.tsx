@@ -442,27 +442,42 @@ export const OWSSession: React.FC<OWSSessionProps> = ({
 
   const handleUndo = async () => {
       if (historyStack.length === 0 || isAnimating) return;
-      const lastAction = historyStack[historyStack.length - 1];
-      setHistoryStack(prev => prev.slice(0, -1));
-      // setSwipeStats(prev => ({ ...prev, [lastAction.status]: Math.max(0, prev[lastAction.status as keyof typeof prev] - 1) }));
 
       setIsAnimating(true);
-      x.set(-500); // Start from left for undo animation
-      await controls.start({ x: 0, opacity: 1, transition: { type: "spring", stiffness: 300, damping: 30 } });
-      setIsAnimating(false);
-
-      // Remove from queue if it's there
       try {
-          const queueStr = localStorage.getItem('ows_swipe_queue');
-          if (queueStr) {
-              let queue = JSON.parse(queueStr);
-              queue = queue.filter((q: any) => q.word_id !== lastAction.item.id);
-              localStorage.setItem('ows_swipe_queue', JSON.stringify(queue));
+          const lastAction = historyStack[historyStack.length - 1];
+          setHistoryStack(prev => prev.slice(0, -1));
+
+          // Update stats to revert the last action
+          if (lastAction.status) {
+              updateSwipeStats(lastAction.status, -1);
           }
-      } catch (e) {}
 
+          // Remove from queue if it's there
+          try {
+              const queueStr = localStorage.getItem('ows_swipe_queue');
+              if (queueStr) {
+                  let queue = JSON.parse(queueStr);
+                  queue = queue.filter((q: any) => q.word_id !== lastAction.item.id);
+                  localStorage.setItem('ows_swipe_queue', JSON.stringify(queue));
+              }
+          } catch (e) {}
 
-      onPrev();
+          // First, move the current card out of the way without animation
+          x.set(-500);
+          controls.set({ x: -500, opacity: 0 });
+
+          // Call onPrev to change the currentIndex
+          onPrev();
+
+          // Need a small delay to let React render the previous card
+          await new Promise(resolve => setTimeout(resolve, 50));
+
+          // Now animate the card back into view
+          await controls.start({ x: 0, opacity: 1, transition: { type: "spring", stiffness: 300, damping: 30 } });
+      } finally {
+          setIsAnimating(false);
+      }
   };
 
 
