@@ -170,10 +170,26 @@ export const syncService = {
   /**
    * Pushes a synonym interaction to Supabase.
    */
+
   pushSynonymInteraction: async (userId: string, interaction: SynonymInteraction) => {
-    // user_synonym_interactions table missing, skipped
-    return Promise.resolve();
+    const { error } = await supabase.from('user_synonym_interactions').upsert({
+      user_id: userId,
+      word_id: interaction.wordId,
+      mastery_level: interaction.masteryLevel,
+      daily_challenge_score: interaction.dailyChallengeScore,
+      gamification_score: interaction.gamificationScore,
+      viewed_explanation: interaction.viewedExplanation,
+      viewed_word_family: interaction.viewedWordFamily,
+      last_interacted_at: interaction.lastInteractedAt,
+      status: (interaction as any).status || null,
+      is_read: (interaction as any).is_read || false,
+      next_review_at: (interaction as any).next_review_at || null,
+      swipe_velocity: (interaction as any).swipe_velocity || null,
+    }, { onConflict: 'user_id, word_id' });
+
+    if (error) console.error('Error pushing synonym interaction:', error);
   },
+
 
     /**
    * Pushes an OWS interaction to Supabase.
@@ -293,7 +309,7 @@ export const syncService = {
         supabase.from('saved_quizzes').select('*, bridge_saved_quiz_questions(question_id, sort_order)').eq('user_id', userId).is('deleted_at', null),
         supabase.from('quiz_history').select('*').eq('user_id', userId),
         supabase.from('user_bookmarks').select('question_id').eq('user_id', userId),
-        Promise.resolve({ data: [] }), // supabase.from('user_synonym_interactions').select('*').eq('user_id', userId),
+        supabase.from('user_synonym_interactions').select('*').eq('user_id', userId),
         supabase.from('user_ows_interactions').select('*').eq('user_id', userId),
         supabase.from('user_idiom_interactions').select('*').eq('user_id', userId)
       ]);
