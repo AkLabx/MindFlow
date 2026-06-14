@@ -402,6 +402,50 @@ export const db = {
     /**
      * Clears all synonym interactions.
      */
+
+    clearSynonymInteractionsMode: async (mode: 'basic' | 'review'): Promise<void> => {
+        const dbInstance = await openDB();
+
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session?.user) {
+                if (mode === 'basic') {
+                    await supabase.from('user_synonym_interactions')
+                        .update({ is_read: false })
+                        .eq('user_id', session.user.id);
+                } else {
+                    await supabase.from('user_synonym_interactions')
+                        .update({ status: null, next_review_at: null, swipe_velocity: null })
+                        .eq('user_id', session.user.id);
+                }
+            }
+        } catch (e) {
+            console.error('Failed to clear Supabase Synonym interactions', e);
+        }
+
+        return new Promise((resolve, reject) => {
+            const transaction = dbInstance.transaction(SYNONYM_STORE_NAME, 'readwrite');
+            const store = transaction.objectStore(SYNONYM_STORE_NAME);
+            const request = store.getAll();
+
+            request.onsuccess = () => {
+                const items = request.result;
+                items.forEach((item: any) => {
+                    if (mode === 'basic') {
+                        item.is_read = false;
+                    } else {
+                        delete item.status;
+                        delete item.next_review_at;
+                        delete item.swipe_velocity;
+                    }
+                    store.put(item);
+                });
+                resolve();
+            };
+            request.onerror = () => reject(request.error);
+        });
+    },
+
     clearSynonymInteractions: async (): Promise<void> => {
         const dbInstance = await openDB();
         return new Promise((resolve, reject) => {

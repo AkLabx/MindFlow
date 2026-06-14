@@ -33,11 +33,11 @@ const QuizLibrary = lazy(() => import('../features/quiz/components/QuizLibrary')
 
 const PerformanceAnalytics = lazy(() => import('../features/quiz/components/PerformanceAnalytics').then(m => ({ default: m.PerformanceAnalytics })));
 const BookmarksPage = lazy(() => import('../pages/BookmarksPage').then(m => ({ default: m.BookmarksPage })));
-const IdiomsConfig = lazy(() => import('../features/idioms/IdiomsConfig').then(m => ({ default: m.IdiomsConfig })));
-const OWSConfig = lazy(() => import('../features/ows/OWSConfig').then(m => ({ default: m.OWSConfig })));
+const IdiomsConfig = lazy(() => import('../features/vocab/idioms/IdiomsConfig').then(m => ({ default: m.IdiomsConfig })));
+const OWSConfig = lazy(() => import('../features/vocab/ows/OWSConfig').then(m => ({ default: m.OWSConfig })));
 const LiveQuizRoom = lazy(() => import('../features/quiz/live/LiveQuizRoom').then(m => ({ default: m.LiveQuizRoom })));
-const SynonymsConfig = lazy(() => import('../features/synonyms/SynonymsConfig').then(m => ({ default: m.SynonymsConfig })));
-const SynonymClusterList = lazy(() => import('../features/synonyms/components/SynonymClusterList').then(m => ({ default: m.SynonymClusterList })));
+const SynonymsConfig = lazy(() => import('../features/vocab/synonyms/SynonymsConfig').then(m => ({ default: m.SynonymsConfig })));
+const SynonymClusterList = lazy(() => import('../features/vocab/synonyms/components/SynonymClusterList').then(m => ({ default: m.SynonymClusterList })));
 
 const BlueprintPreviewWrapper = lazy(() => import('../features/blueprints/components/BlueprintPreviewWrapper').then(m => ({ default: m.BlueprintPreviewWrapper })));
 const ExamBlueprintsHub = lazy(() => import('../pages/ExamBlueprintsHubPage').then(m => ({ default: m.ExamBlueprintsHubPage })));
@@ -53,12 +53,12 @@ const AdminUploadMaterials = lazy(() => import('../features/admin/components/Adm
 const AdminNotifications = lazy(() => import('../features/notifications/admin/AdminNotifications').then(m => ({ default: m.AdminNotifications })));
 const NotificationsPage = lazy(() => import('../pages/NotificationsPage').then(m => ({ default: m.NotificationsPage })));
 
-const SynonymQuizSession = lazy(() => import('../features/synonyms/components/SynonymQuizSession').then(m => ({ default: m.SynonymQuizSession })));
-const SynonymPhase1Session = lazy(() => import('../features/synonyms/components/SynonymPhase1Session').then(m => ({ default: m.SynonymPhase1Session })));
+const SynonymQuizSession = lazy(() => import('../features/vocab/synonyms/components/SynonymQuizSession').then(m => ({ default: m.SynonymQuizSession })));
+const SynonymPhase1Session = lazy(() => import('../features/vocab/synonyms/components/SynonymPhase1Session').then(m => ({ default: m.SynonymPhase1Session })));
 
 const QuizResult = lazy(() => import('../features/quiz/components/QuizResult').then(m => ({ default: m.QuizResult })));
 const MockQuizResult = lazy(() => import('../features/quiz/components/MockQuizResult').then(m => ({ default: m.MockQuizResult })));
-const SynonymFlashcardSession = lazy(() => import("../features/synonyms/components/SynonymFlashcardSession").then(m => ({ default: m.SynonymFlashcardSession })));
+const SynonymFlashcardSession = lazy(() => import("../features/vocab/synonyms/components/SynonymFlashcardSession").then(m => ({ default: m.SynonymFlashcardSession })));
 const GodQuizResult = lazy(() => import('../features/quiz/components/GodQuizResult').then(m => ({ default: m.GodQuizResult })));
 const FlashcardSummary = lazy(() => import('../features/flashcards/components/FlashcardSummary').then(m => ({ default: m.FlashcardSummary })));
 const AboutUs = lazy(() => import('../features/about/components/AboutUs').then(m => ({ default: m.AboutUs })));
@@ -84,8 +84,8 @@ const TextExporter = lazy(() => import('../features/tools/text-exporter/TextExpo
 const LearningSession = lazy(() => import('../features/quiz/learning/LearningSession').then(m => ({ default: m.LearningSession })));
 const MockSession = lazy(() => import('../features/quiz/mock/MockSession').then(m => ({ default: m.MockSession })));
 const GodModeSession = lazy(() => import('../features/quiz/mock/GodModeSession').then(m => ({ default: m.GodModeSession })));
-const IdiomSession = lazy(() => import('../features/idioms/components/IdiomSession').then(m => ({ default: m.IdiomSession })));
-const OWSSession = lazy(() => import('../features/ows/components/OWSSession').then(m => ({ default: m.OWSSession })));
+const IdiomSession = lazy(() => import('../features/vocab/idioms/components/IdiomSession').then(m => ({ default: m.IdiomSession })));
+const OWSSession = lazy(() => import('../features/vocab/ows/components/OWSSession').then(m => ({ default: m.OWSSession })));
 
 // Auth & User Management
 const AuthPage = lazy(() => import('../features/auth/components/AuthPage'));
@@ -233,7 +233,7 @@ const handleReattempt = async (quizId: string, mode: string) => {
 
 
 
-                    <Route path="/english" element={<Suspense fallback={<SynapticLoader />}><EnglishQuizHome onBack={() => { enterHome(); navTo('/dashboard'); }} onIdiomsClick={() => { enterIdiomsConfig(); navTo('/idioms/config'); }} onOWSClick={() => { enterOWSConfig(); navTo('/ows/config'); }} onSynonymsClick={() => { enterSynonymsConfig(); navTo('/synonyms/config'); }} /></Suspense>} />
+                    <Route path="/english" element={<Suspense fallback={<SynapticLoader />}><EnglishQuizHome onBack={() => { enterHome(); navTo('/dashboard'); }} onIdiomsClick={() => { enterIdiomsConfig(); navTo('/vocab/idioms'); }} onOWSClick={() => { enterOWSConfig(); navTo('/vocab/ows'); }} onSynonymsClick={() => { enterSynonymsConfig(); navTo('/vocab/synonyms'); }} /></Suspense>} />
 
                     <Route path="/share/:originalQuizId" element={<ShareGatekeeper />} />
                 <Route path="/quiz/library" element={<Suspense fallback={<SynapticLoader />}><QuizLibrary /></Suspense>} />
@@ -249,12 +249,12 @@ const handleReattempt = async (quizId: string, mode: string) => {
 
 
 
-                    <Route path="/synonyms/config" element={
+                    <Route path="/vocab/synonyms/config" element={
                         <Suspense fallback={<SynapticLoader />}><SynonymsConfig
                             onBack={() => { enterEnglishHome(); navTo('/english'); }}
                             onStart={(data: any, filters: any) => {
                                 flashcardStore.startSynonyms(data, filters);
-                                navTo('/synonyms/session');
+                                navTo('/vocab/synonyms/session');
                             }}
                         /></Suspense>
                     } />
@@ -354,11 +354,11 @@ const handleReattempt = async (quizId: string, mode: string) => {
                             flashcardType={flashcardStore.type}
                             onRestart={() => {
                                 flashcardStore.resetSession();
-                                const dest = flashcardStore.type === 'ows' ? '/ows/config' : flashcardStore.type === 'synonyms' ? '/synonyms/config' : '/idioms/config';
+                                const dest = flashcardStore.type === 'ows' ? '/vocab/ows/config' : flashcardStore.type === 'synonyms' ? '/vocab/synonyms/config' : '/vocab/idioms/config';
                                 navTo(dest);
                             }}
                             onHome={() => {
-                                const dest = flashcardStore.type === 'ows' ? '/ows/config' : flashcardStore.type === 'synonyms' ? '/synonyms/config' : '/idioms/config';
+                                const dest = flashcardStore.type === 'ows' ? '/vocab/ows/config' : flashcardStore.type === 'synonyms' ? '/vocab/synonyms/config' : '/vocab/idioms/config';
                                 navTo(dest);
                             }}
                             backText={flashcardStore.type === 'ows' ? 'Back To OWS Config' : flashcardStore.type === 'synonyms' ? 'Back To Synonyms Config' : 'Back To Idioms Config'}
@@ -390,22 +390,22 @@ const handleReattempt = async (quizId: string, mode: string) => {
 
                 {/* --- Immersive Session Routes (No Layout, Fullscreen) --- */}
 
-                    <Route path="/idioms/config" element={
+                    <Route path="/vocab/idioms/config" element={
                         <Suspense fallback={<SynapticLoader />}><IdiomsConfig
                             onBack={() => { enterEnglishHome(); navTo('/english'); }}
                             onStart={(data, filters, mode) => {
                                 flashcardStore.startIdioms(data as any, filters, mode as 'basic' | 'review');
-                                navTo('/idioms/session');
+                                navTo('/vocab/idioms/session');
                             }}
                         /></Suspense>
                     } />
 
-                    <Route path="/ows/config" element={
+                    <Route path="/vocab/ows/config" element={
                         <Suspense fallback={<SynapticLoader />}><OWSConfig
                             onBack={() => { enterEnglishHome(); navTo('/english'); }}
                             onStart={(data, filters, mode) => {
                                 flashcardStore.startOWS(data, filters, mode as 'basic' | 'review');
-                                navTo('/ows/session');
+                                navTo('/vocab/ows/session');
                             }}
                         /></Suspense>
                     } />
@@ -485,7 +485,7 @@ const handleReattempt = async (quizId: string, mode: string) => {
                 } />
 
                 {/* Flashcard Sessions */}
-                <Route path="/idioms/session" element={
+                <Route path="/vocab/idioms/session" element={
                     <IdiomSession
                         data={flashcardStore.idioms}
                         currentIndex={flashcardStore.currentIndex}
@@ -500,31 +500,31 @@ const handleReattempt = async (quizId: string, mode: string) => {
 
 
 
-                <Route path="/synonyms/session" element={
+                <Route path="/vocab/synonyms/session" element={
                     <SynonymFlashcardSession
                         data={flashcardStore.synonyms}
                         currentIndex={flashcardStore.currentIndex}
                         onNext={flashcardStore.nextCard}
                         onPrev={flashcardStore.prevCard}
-                        onExit={() => navTo('/synonyms/config')}
+                        onExit={() => navTo('/vocab/synonyms')}
                         onFinish={() => { flashcardStore.finishSession(); navTo('/flashcards/summary'); }}
                         filters={flashcardStore.filters || {} as any}
                         onJump={flashcardStore.jumpToCard}
                     />
                 } />
 
-                <Route path="/synonyms/phase1" element={<Suspense fallback={<SynapticLoader />}><SynonymPhase1Session /></Suspense>} />
-                <Route path="/synonyms/list" element={<Suspense fallback={<SynapticLoader />}><SynonymClusterList data={flashcardStore.synonyms} onSelectWord={(word) => { flashcardStore.jumpToCard(flashcardStore.synonyms.findIndex(w => w.id === word.id) || 0); navTo('/synonyms/session'); }} onExit={() => navTo('/synonyms/config')} /></Suspense>} />
-                <Route path="/synonyms/quiz" element={<Suspense fallback={<SynapticLoader />}><SynonymQuizSession onExit={() => navTo('/synonyms/config')} /></Suspense>} />
+                <Route path="/vocab/synonyms/phase1" element={<Suspense fallback={<SynapticLoader />}><SynonymPhase1Session /></Suspense>} />
+                <Route path="/vocab/synonyms/list" element={<Suspense fallback={<SynapticLoader />}><SynonymClusterList data={flashcardStore.synonyms} onSelectWord={(word) => { flashcardStore.jumpToCard(flashcardStore.synonyms.findIndex(w => w.id === word.id) || 0); navTo('/vocab/synonyms/session'); }} onExit={() => navTo('/vocab/synonyms')} /></Suspense>} />
+                <Route path="/vocab/synonyms/quiz" element={<Suspense fallback={<SynapticLoader />}><SynonymQuizSession onExit={() => navTo('/vocab/synonyms')} /></Suspense>} />
 
 
-                <Route path="/ows/session" element={
+                <Route path="/vocab/ows/session" element={
                     <OWSSession
                         data={flashcardStore.ows}
                         currentIndex={flashcardStore.currentIndex}
                         onNext={flashcardStore.nextCard}
                         onPrev={flashcardStore.prevCard}
-                        onExit={() => navTo('/ows/config')}
+                        onExit={() => navTo('/vocab/ows/config')}
                         onFinish={() => { flashcardStore.finishSession(); navTo('/flashcards/summary'); }}
                         filters={flashcardStore.filters || {} as any}
                         onJump={flashcardStore.jumpToCard}

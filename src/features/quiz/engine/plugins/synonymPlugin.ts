@@ -1,6 +1,6 @@
 import { QuizPlugin } from '../quizPlugin';
 import { SynonymWord } from '../../types';
-import { fetchAllSynonyms } from '../../../synonyms/services/synonymService';
+import { fetchAllSynonyms } from '../../../vocab/synonyms/services/synonymService';
 
 export const synonymPlugin: QuizPlugin<SynonymWord, string> = {
   type: 'synonym',
