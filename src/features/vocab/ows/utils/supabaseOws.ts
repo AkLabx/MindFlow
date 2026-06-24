@@ -138,6 +138,7 @@ export async function getFilteredOws(
     },
     content: {
       id: row.id ? parseInt(String(row.id).replace(/[^0-9]/g, "")) || 0 : 0,
+      image_url: row.image_url || undefined,
       pos: row.pos || "",
       word: row.word || "",
       meaning_en: row.meaning_english || "",

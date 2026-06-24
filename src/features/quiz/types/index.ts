@@ -134,6 +134,7 @@ export interface SynonymWord {
   id: string;
   quiz_id?: string;
   word: string;
+  image_url?: string;
   pos: string;
   repetition_raw: string;
   importance_score: number;

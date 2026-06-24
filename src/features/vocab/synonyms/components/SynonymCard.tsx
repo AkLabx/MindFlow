@@ -2,6 +2,13 @@ import React from 'react';
 import { SynonymWord } from '../../../../features/quiz/types';
 import { useSynonymProgress } from '../hooks/useSynonymProgress';
 import { cn } from '../../../../utils/cn';
+import { useState, useEffect } from 'react';
+import { FlashcardImage } from '../../../../components/ui/FlashcardImage';
+import { useAuth } from '../../../../features/auth/context/AuthContext';
+import { uploadMediaToCloudinary } from '../../../../services/mediaUploadService';
+import { supabase } from '../../../../lib/supabase';
+import { useNotification } from '../../../../hooks/useNotification';
+import { ImagePlus, Trash2, Loader2 } from 'lucide-react';
 
 interface SynonymCardProps {
   data: SynonymWord;
@@ -9,9 +16,76 @@ interface SynonymCardProps {
   isFlipped: boolean;
 }
 
-export const SynonymCard: React.FC<SynonymCardProps> = ({ data, serialNumber, isFlipped }) => {
+export const SynonymCard: React.FC<SynonymCardProps> = ({ data: initialData, serialNumber, isFlipped }) => {
+  const [data, setData] = useState<SynonymWord>(initialData);
   const { markMastered, getStatus } = useSynonymProgress();
   const status = getStatus(data);
+  const { user } = useAuth();
+  const { showToast } = useNotification();
+  const isAdmin = user?.email === 'admin@mindflow.com';
+  const [isUploading, setIsUploading] = useState(false);
+
+  useEffect(() => {
+    setData(initialData);
+  }, [initialData]);
+
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !isAdmin) return;
+
+    setIsUploading(true);
+    try {
+      const url = await uploadMediaToCloudinary({ file, resourceType: "image" });
+
+      const { error } = await supabase
+        .from("synonym")
+        .update({ image_url: url })
+        .eq("id", data.id);
+
+      if (error) throw error;
+
+      setData(prev => ({
+        ...prev,
+        image_url: url
+      }));
+
+      showToast({ title: "Success", message: "Image added successfully", variant: "success" });
+    } catch (error: any) {
+      console.error("Upload error:", error);
+      showToast({ title: "Upload Failed", message: error.message || "Failed to upload image.", variant: "error" });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleImageRemove = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!isAdmin) return;
+
+    if (!confirm("Are you sure you want to remove this image?")) return;
+
+    setIsUploading(true);
+    try {
+      const { error } = await supabase
+        .from("synonym")
+        .update({ image_url: null })
+        .eq("id", data.id);
+
+      if (error) throw error;
+
+      setData(prev => ({
+        ...prev,
+        image_url: undefined
+      }));
+
+      showToast({ title: "Removed", message: "Image removed successfully", variant: "success" });
+    } catch (error: any) {
+      console.error("Remove error:", error);
+      showToast({ title: "Failed", message: error.message || "Failed to remove image.", variant: "error" });
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   return (
     <div className={cn(
@@ -84,6 +158,62 @@ export const SynonymCard: React.FC<SynonymCardProps> = ({ data, serialNumber, is
                 ⚠️ Confusable with: <strong>{data.confusable_with.join(', ')}</strong>
               </span>
             </div>
+          )}
+        </div>
+
+
+        {/* Flashcard Image */}
+        <div className="mt-4 pb-4 relative group/image">
+          {data.image_url ? (
+            <div className="relative">
+              <FlashcardImage src={data.image_url} alt={data.word} />
+              {isAdmin && (
+                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover/image:opacity-100 transition-opacity flex items-center justify-center rounded-lg" onClick={(e) => e.stopPropagation()}>
+                  <button
+                    onClick={handleImageRemove}
+                    disabled={isUploading}
+                    className="p-2 bg-red-500 hover:bg-red-600 text-white rounded-full transition-colors flex items-center justify-center shadow-lg"
+                    title="Remove Image"
+                  >
+                    {isUploading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Trash2 className="w-5 h-5" />}
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
+            isAdmin && (
+              <div className="w-full" onClick={(e) => e.stopPropagation()}>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  disabled={isUploading}
+                  className="hidden"
+                  id={`synonym-card-image-upload-${data.id}`}
+                />
+                <label
+                  htmlFor={`synonym-card-image-upload-${data.id}`}
+                  className={cn(
+                    "w-full flex flex-col items-center justify-center p-4 border-2 border-dashed rounded-xl cursor-pointer transition-colors",
+                    isUploading
+                      ? "border-blue-300 bg-blue-50 opacity-70 cursor-not-allowed"
+                      : "border-gray-300 hover:border-blue-500 hover:bg-blue-50 dark:border-gray-700 dark:hover:border-blue-500 dark:hover:bg-blue-900/20"
+                  )}
+                >
+                  {isUploading ? (
+                    <div className="flex items-center gap-2 text-blue-600">
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      <span className="text-sm font-medium">Uploading...</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400">
+                      <ImagePlus className="w-5 h-5" />
+                      <span className="text-sm font-medium">Admin: Add Image</span>
+                    </div>
+                  )}
+                </label>
+              </div>
+            )
           )}
         </div>
 

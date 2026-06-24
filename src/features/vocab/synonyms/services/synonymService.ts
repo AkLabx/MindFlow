@@ -41,6 +41,7 @@ export const fetchAllSynonyms = async (): Promise<SynonymWord[]> => {
             const parsedData = allData.map(item => ({
                 ...item,
                 hindiMeaning: item.hindi_meaning || item.hindiMeaning,
+                image_url: item.image_url || undefined,
                 synonyms: typeof item.synonyms === 'string' ? JSON.parse(item.synonyms) : item.synonyms,
                 antonyms: typeof item.antonyms === 'string' ? JSON.parse(item.antonyms) : item.antonyms,
                 confusable_with: typeof item.confusable_with === 'string' ? JSON.parse(item.confusable_with) : item.confusable_with
