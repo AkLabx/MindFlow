@@ -9,11 +9,12 @@ export type IdiomMetadata = {
     difficulty: string;
     knownStatus: string;
     status?: string;
+    hasPhoto?: 'With Photo' | 'Without Photo';
     reviewModeStatus?: string;
 };
 
-type FilterKeys = 'alphabet' | 'examName' | 'examYear' | 'difficulty' | 'knownStatus' | 'reviewModeStatus';
-const filterKeys: FilterKeys[] = ['alphabet', 'examName', 'examYear', 'difficulty', 'knownStatus', 'reviewModeStatus'];
+type FilterKeys = 'alphabet' | 'examName' | 'examYear' | 'difficulty' | 'knownStatus' | 'reviewModeStatus' | 'hasPhoto';
+const filterKeys: FilterKeys[] = ['alphabet', 'examName', 'examYear', 'difficulty', 'knownStatus', 'reviewModeStatus', 'hasPhoto'];
 
 export function useIdiomQuestionIndex(metadata: IdiomMetadata[]) {
     return useMemo(() => {

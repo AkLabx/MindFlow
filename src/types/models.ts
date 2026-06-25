@@ -204,6 +204,7 @@ export interface InitialFilters {
   examYear: string[];
   examDateShift: string[];
   tags: string[];
+  hasPhoto?: ('With Photo' | 'Without Photo')[];
   theme?: string[];
     knownStatus?: ('known' | 'unknown')[];
   reviewModeStatus?: ('Unseen' | 'Mastered' | 'Review' | 'Clueless' | 'Tricky')[];
