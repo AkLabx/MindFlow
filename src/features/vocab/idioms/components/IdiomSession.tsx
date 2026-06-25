@@ -42,6 +42,7 @@ interface IdiomSessionProps {
   onPrev: () => void;
   /** Callback to exit the session. */
   onExit: () => void;
+  onSwipe?: (wordId: string, status: string, timeSpentMs: number) => void;
   /** Callback to finish the session. */
   onFinish: () => void;
   /** Callback to jump to a specific index. */
@@ -72,6 +73,7 @@ export const IdiomSession: React.FC<IdiomSessionProps> = ({
   onExit,
   onFinish,
   onJump,
+  onSwipe,
   filters
 }) => {
   const { user } = useAuth();

@@ -1,5 +1,6 @@
+import { deckService } from "../services/deckService";
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Play, Target, FileText, Settings, Calendar, Type, CheckCircle, Lock } from 'lucide-react';
+import {  ArrowLeft, Play, Target, FileText, Settings, Calendar, Type, CheckCircle, Lock , Save } from 'lucide-react';
 import { Button } from '../../../components/Button/Button';
 import { InitialFilters } from '../../../features/quiz/types';
 import { Idiom } from '../../../types/models';
@@ -35,6 +36,8 @@ const emptyFilters: InitialFilters = {
 export const IdiomsConfig: React.FC<IdiomsConfigProps> = ({ onStart, onBack }) => {
     const { user } = useAuth();
     const { clearProgress } = useIdiomProgress();
+    const [deckName, setDeckName] = useState('');
+    const [isSaving, setIsSaving] = useState(false);
     const [filters, setFilters] = useState<InitialFilters>(emptyFilters);
     const [selectedLetter, setSelectedLetter] = useState<string | null>(null);
     const [sessionMode, setSessionMode] = useState<'basic' | 'review'>('basic');
@@ -85,6 +88,47 @@ export const IdiomsConfig: React.FC<IdiomsConfigProps> = ({ onStart, onBack }) =
             setFilters(prev => ({ ...prev, [key]: (prev[key] as string[]).filter(item => item !== value) }));
         } else {
             setFilters(prev => ({ ...prev, [key]: [] }));
+        }
+    };
+
+
+    const handleSaveDeck = async () => {
+        setIsSaving(true);
+        try {
+            if (finalMatchingIds.length === 0) {
+                 alert("No data found matching current filters.");
+                 return;
+            }
+            if (!deckName.trim()) {
+                 alert("Please enter a name for your deck.");
+                 return;
+            }
+            const data = await getFilteredIdioms(filters, selectedLetter, sessionMode);
+            if (data.length > 0) {
+                 await deckService.createDeck('idiom', {
+                     id: crypto.randomUUID(),
+                     user_id: user.id,
+                     name: deckName,
+                     created_at: Date.now(),
+                     filters,
+                     mode: sessionMode,
+                     status: 'active',
+                     state: {
+                         currentQuestionIndex: 0,
+                         answers: {},
+                         timeSpent: 0,
+                         isPaused: false,
+                         markedForReview: []
+                     }
+                 }, data.map(d => d.id));
+                 alert("Deck saved successfully!");
+                 onBack();
+            }
+        } catch (error) {
+            console.error("Error saving deck:", error);
+            alert("Failed to save deck.");
+        } finally {
+            setIsSaving(false);
         }
     };
 
@@ -328,9 +372,21 @@ export const IdiomsConfig: React.FC<IdiomsConfigProps> = ({ onStart, onBack }) =
                 <div className="pb-32"></div>
                 {/* Sticky Action Footer */}
                 <div className="fixed bottom-0 left-0 w-full z-[40] border-t border-slate-200 dark:border-slate-700 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md px-4 py-3 pb-safe md:px-6 md:py-4 shadow-[0_-4px_15px_-5px_rgba(0,0,0,0.1)] dark:shadow-none">
-                    <div className="max-w-4xl mx-auto">
-                        <Button
-                            fullWidth
+
+                    <div className="max-w-4xl mx-auto flex flex-col gap-2">
+                        <input
+                            type="text"
+                            value={deckName}
+                            onChange={(e) => setDeckName(e.target.value)}
+                            placeholder="Enter Deck Name to Save..."
+                            className="w-full px-4 py-2 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500"
+                        />
+                        <div className="flex gap-2">
+                            <Button size="lg" onClick={handleSaveDeck} disabled={totalMatchingCount === 0 || isSaving || !deckName.trim()} className="bg-indigo-500 hover:bg-indigo-600 text-white w-1/3 shadow-lg shadow-indigo-200">
+                                <Save className="w-5 h-5 mr-2" /> {isSaving ? 'Saving...' : 'Save'}
+                            </Button>
+
+                            <Button
                             size="lg"
                             onClick={handleStart}
                             disabled={totalMatchingCount === 0 || isFetchingData}
@@ -344,6 +400,7 @@ export const IdiomsConfig: React.FC<IdiomsConfigProps> = ({ onStart, onBack }) =
                                 </>
                             )}
                         </Button>
+                        </div>
                 </div>
             </div>
         </div>

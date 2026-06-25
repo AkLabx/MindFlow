@@ -28,7 +28,7 @@ export const useSettingsStore = create<SettingsState>()(
         const willBeDark = !isDarkMode;
 
         // Fallback for browsers without View Transitions or users who prefer reduced motion
-        if (!document.startViewTransition || prefersReducedMotion || !event) {
+        if (!(document as any).startViewTransition || prefersReducedMotion || !event) {
           if (willBeDark) {
             document.documentElement.classList.add('dark');
           } else {
@@ -60,7 +60,7 @@ export const useSettingsStore = create<SettingsState>()(
           Math.max(y, window.innerHeight - y)
         );
 
-        const transition = document.startViewTransition(() => {
+        const transition = (document as any).startViewTransition(() => {
           if (willBeDark) {
             document.documentElement.classList.add('dark');
           } else {

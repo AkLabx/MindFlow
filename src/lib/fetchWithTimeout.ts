@@ -40,10 +40,10 @@ export const fetchWithTimeout = (url: RequestInfo | URL, options?: RequestInit, 
   // If there's an existing signal, we must abort if either fires
   let finalSignal = timeoutSignal;
   if (existingSignal) {
-      if (typeof AbortSignal.any === 'function') {
-          finalSignal = AbortSignal.any([existingSignal, timeoutSignal]);
+      if (typeof (AbortSignal as any).any === 'function') {
+          finalSignal = (AbortSignal as any).any([existingSignal, timeoutSignal]);
       } else {
-          // Manual fallback if AbortSignal.any is missing (unlikely if .timeout exists, but safe)
+          // Manual fallback if (AbortSignal as any).any is missing (unlikely if .timeout exists, but safe)
           const combinedController = new AbortController();
 
           const onAbort = () => {

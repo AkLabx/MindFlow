@@ -90,6 +90,15 @@ const GodModeSession = lazy(() => import('../features/quiz/mock/GodModeSession')
 const IdiomSession = lazy(() => import('../features/vocab/idioms/components/IdiomSession').then(m => ({ default: m.IdiomSession })));
 const OWSSession = lazy(() => import('../features/vocab/ows/components/OWSSession').then(m => ({ default: m.OWSSession })));
 
+// Vocab Libraries
+const VocabLibraryPage = lazy(() => import('../features/vocab/components/VocabLibrary').then(m => ({ default: m.VocabLibrary })));
+
+const DeckSessionGuard = lazy(() => import('../features/vocab/components/DeckSessionGuard').then(m => ({ default: m.DeckSessionGuard })));
+const DeckSession = lazy(() => import('../features/vocab/components/DeckSession').then(m => ({ default: m.DeckSession })));
+const VocabResult = lazy(() => import('../features/vocab/components/VocabResult').then(m => ({ default: m.VocabResult })));
+
+
+
 // Auth & User Management
 const AuthPage = lazy(() => import('../features/auth/components/AuthPage'));
 const ProfilePage = lazy(() => import('../features/auth/components/ProfilePage'));
@@ -396,7 +405,22 @@ const handleReattempt = async (quizId: string, mode: string) => {
 
                 {/* --- Immersive Session Routes (No Layout, Fullscreen) --- */}
 
-                    <Route path="/vocab/idioms/config" element={
+
+                    {/* Vocab Libraries */}
+                    <Route path="/vocab/ows/library" element={<Suspense fallback={<SynapticLoader />}><VocabLibraryPage vocabType="ows" onBack={() => navTo('/vocab/ows')} onStartDeck={(id) => { navTo(`/vocab/ows/session/${id}`); }} /></Suspense>} />
+                    <Route path="/vocab/idioms/library" element={<Suspense fallback={<SynapticLoader />}><VocabLibraryPage vocabType="idiom" onBack={() => navTo('/vocab/idioms')} onStartDeck={(id) => { navTo(`/vocab/idioms/session/${id}`); }} /></Suspense>} />
+                    <Route path="/vocab/synonyms/library" element={<Suspense fallback={<SynapticLoader />}><VocabLibraryPage vocabType="synonym" onBack={() => navTo('/vocab/synonyms')} onStartDeck={(id) => { navTo(`/vocab/synonyms/session/${id}`); }} /></Suspense>} />
+
+
+                    <Route path="/vocab/ows/session/:deckId" element={<Suspense fallback={<SynapticLoader />}><DeckSessionGuard vocabType="ows"><DeckSession /></DeckSessionGuard></Suspense>} />
+                    <Route path="/vocab/idioms/session/:deckId" element={<Suspense fallback={<SynapticLoader />}><DeckSessionGuard vocabType="idiom"><DeckSession /></DeckSessionGuard></Suspense>} />
+                    <Route path="/vocab/synonyms/session/:deckId" element={<Suspense fallback={<SynapticLoader />}><DeckSessionGuard vocabType="synonym"><DeckSession /></DeckSessionGuard></Suspense>} />
+
+                    <Route path="/vocab/ows/result/:deckId" element={<Suspense fallback={<SynapticLoader />}><VocabResult vocabType="ows" /></Suspense>} />
+                    <Route path="/vocab/idioms/result/:deckId" element={<Suspense fallback={<SynapticLoader />}><VocabResult vocabType="idiom" /></Suspense>} />
+                    <Route path="/vocab/synonyms/result/:deckId" element={<Suspense fallback={<SynapticLoader />}><VocabResult vocabType="synonym" /></Suspense>} />
+
+<Route path="/vocab/idioms/config" element={
                         <Suspense fallback={<SynapticLoader />}><IdiomsConfig
                             onBack={() => { enterEnglishHome(); navTo('/english'); }}
                             onStart={(data, filters, mode) => {
