@@ -10,7 +10,7 @@ export async function fetchIdiomMetadata() {
     while (hasMore) {
         const { data, error } = await supabase
             .from('idiom')
-            .select('id, phrase, source_pdf, exam_year, difficulty')
+            .select('id, phrase, source_pdf, exam_year, difficulty, image_url')
             .range(start, start + limit - 1);
 
         if (error) {
@@ -74,6 +74,7 @@ export async function fetchIdiomMetadata() {
             examYear: String(row.exam_year || ''),
             difficulty: row.difficulty || 'Medium',
             knownStatus: interaction?.is_read ? 'known' : 'unknown',
+            hasPhoto: row.image_url ? ('With Photo' as const) : ('Without Photo' as const),
             status: interaction?.status,
             next_review_at: interaction?.next_review_at
         };
@@ -94,6 +95,13 @@ export async function getFilteredIdioms(filters: InitialFilters, selectedLetter:
     }
     if (selectedLetter) {
         query = query.ilike('phrase', `${selectedLetter}%`);
+    }
+    if (filters.hasPhoto && filters.hasPhoto.length === 1) {
+        if (filters.hasPhoto[0] === 'With Photo') {
+            query = query.not('image_url', 'is', null);
+        } else if (filters.hasPhoto[0] === 'Without Photo') {
+            query = query.is('image_url', null);
+        }
     }
 
     const { data, error } = await query.limit(5000);

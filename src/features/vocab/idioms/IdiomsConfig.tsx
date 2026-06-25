@@ -1,6 +1,6 @@
 import { deckService } from "../services/deckService";
 import React, { useState, useEffect } from 'react';
-import {  ArrowLeft, Play, Target, FileText, Settings, Calendar, Type, CheckCircle, Lock , Save } from 'lucide-react';
+import {  ArrowLeft, Play, Target, FileText, Settings, Calendar, Type, CheckCircle, Lock, Save, Image } from 'lucide-react';
 import { Button } from '../../../components/Button/Button';
 import { InitialFilters } from '../../../features/quiz/types';
 import { Idiom } from '../../../types/models';
@@ -29,6 +29,7 @@ const emptyFilters: InitialFilters = {
     examYear: [],
     examDateShift: [],
     tags: [],
+    hasPhoto: [],
     knownStatus: [],
     reviewModeStatus: ["Unseen"]
 };
@@ -46,6 +47,8 @@ export const IdiomsConfig: React.FC<IdiomsConfigProps> = ({ onStart, onBack }) =
     const [metadata, setMetadata] = useState<IdiomMetadata[]>([]);
     const [isFetchingData, setIsFetchingData] = useState(false);
     const [isInitializing, setIsInitializing] = useState(true);
+
+    const isAdmin = user?.email === 'admin@mindflow.com';
 
     useEffect(() => {
         const initConfig = async () => {
@@ -357,6 +360,21 @@ export const IdiomsConfig: React.FC<IdiomsConfigProps> = ({ onStart, onBack }) =
                             counts={filterCounts.difficulty}
                         />
                     </div>
+
+                    {/* Admin Has Photo Card */}
+                    {isAdmin && (
+                        <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-indigo-100 border-l-4 border-l-indigo-400 shadow-sm relative">
+                            <div className="flex items-center gap-2 mb-4 text-indigo-800 font-bold text-sm uppercase tracking-wider">
+                                <Image className="w-4 h-4" /> Media Status (Admin Only)
+                            </div>
+                            <SegmentedControl
+                                options={['With Photo', 'Without Photo']}
+                                selectedOptions={filters.hasPhoto || []}
+                                onOptionToggle={(opt) => handleFilterChange('hasPhoto', (filters.hasPhoto || []).includes(opt as any) ? (filters.hasPhoto || []).filter(i => i !== opt) : [...(filters.hasPhoto || []), opt as any])}
+                                counts={filterCounts.hasPhoto || {}}
+                            />
+                        </div>
+                    )}
                 </div>
 
                 {/* Active Filters Displayed above sticky footer area */}
