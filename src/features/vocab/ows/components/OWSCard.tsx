@@ -1,9 +1,14 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion, useMotionValue, useTransform } from 'framer-motion';
 import { cn } from '../../../../utils/cn';
 import { OneWord } from '../../../../types/models';
-import { BookOpen, Lightbulb, RotateCw, Target, Tag, CheckCircle2, Circle } from 'lucide-react';
+import { BookOpen, Lightbulb, RotateCw, Target, Tag, CheckCircle2, Circle, ImagePlus, Trash2, Loader2 } from 'lucide-react';
 import { useOWSProgress } from '../hooks/useOWSProgress';
+import { FlashcardImage } from '../../../../components/ui/FlashcardImage';
+import { useAuth } from '../../../../features/auth/context/AuthContext';
+import { uploadMediaToCloudinary } from '../../../../services/mediaUploadService';
+import { supabase } from '../../../../lib/supabase';
+import { useNotification } from '../../../../hooks/useNotification';
 
 /**
  * Props for the One Word Substitution (OWS) Card.
@@ -26,9 +31,82 @@ interface OWSCardProps {
  * @param {OWSCardProps} props - The component props.
  * @returns {JSX.Element} The rendered OWS Card.
  */
-export const OWSCard: React.FC<OWSCardProps> = ({ data, serialNumber, isFlipped }) => {
+export const OWSCard: React.FC<OWSCardProps> = ({ data: initialData, serialNumber, isFlipped }) => {
+  const [data, setData] = useState<OneWord>(initialData);
   const { getKnownStatus, toggleKnownStatus } = useOWSProgress();
   const isKnown = getKnownStatus(data);
+  const { user } = useAuth();
+  const { showToast } = useNotification();
+  const isAdmin = user?.email === 'admin@mindflow.com';
+  const [isUploading, setIsUploading] = useState(false);
+
+  React.useEffect(() => {
+    setData(initialData);
+  }, [initialData]);
+
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !isAdmin) return;
+
+    setIsUploading(true);
+    try {
+      const url = await uploadMediaToCloudinary({ file, resourceType: "image" });
+
+      const { error } = await supabase
+        .from("ows")
+        .update({ image_url: url })
+        .eq("id", data.id);
+
+      if (error) throw error;
+
+      setData(prev => ({
+        ...prev,
+        content: {
+          ...prev.content,
+          image_url: url
+        }
+      }));
+
+      showToast({ title: "Success", message: "Image added successfully", variant: "success" });
+    } catch (error: any) {
+      console.error("Upload error:", error);
+      showToast({ title: "Upload Failed", message: error.message || "Failed to upload image.", variant: "error" });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleImageRemove = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!isAdmin) return;
+
+    if (!confirm("Are you sure you want to remove this image?")) return;
+
+    setIsUploading(true);
+    try {
+      const { error } = await supabase
+        .from("ows")
+        .update({ image_url: null })
+        .eq("id", data.id);
+
+      if (error) throw error;
+
+      setData(prev => ({
+        ...prev,
+        content: {
+          ...prev.content,
+          image_url: undefined
+        }
+      }));
+
+      showToast({ title: "Removed", message: "Image removed successfully", variant: "success" });
+    } catch (error: any) {
+      console.error("Remove error:", error);
+      showToast({ title: "Failed", message: error.message || "Failed to remove image.", variant: "error" });
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   return (
     <div className="relative w-full h-full perspective-1000 cursor-pointer group">
@@ -161,6 +239,61 @@ export const OWSCard: React.FC<OWSCardProps> = ({ data, serialNumber, isFlipped 
                 )}
               </div>
             )}
+
+            {/* Flashcard Image */}
+            <div className="mt-4 pb-4 relative group/image">
+              {data.content.image_url ? (
+                <div className="relative">
+                  <FlashcardImage src={data.content.image_url} alt={data.content.word} />
+                  {isAdmin && (
+                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover/image:opacity-100 transition-opacity flex items-center justify-center rounded-lg" onClick={(e) => e.stopPropagation()}>
+                      <button
+                        onClick={handleImageRemove}
+                        disabled={isUploading}
+                        className="p-2 bg-red-500 hover:bg-red-600 text-white rounded-full transition-colors flex items-center justify-center shadow-lg"
+                        title="Remove Image"
+                      >
+                        {isUploading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Trash2 className="w-5 h-5" />}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                isAdmin && (
+                  <div className="w-full" onClick={(e) => e.stopPropagation()}>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      disabled={isUploading}
+                      className="hidden"
+                      id={`ows-card-image-upload-${data.id}`}
+                    />
+                    <label
+                      htmlFor={`ows-card-image-upload-${data.id}`}
+                      className={cn(
+                        "w-full flex flex-col items-center justify-center p-4 border-2 border-dashed rounded-xl cursor-pointer transition-colors",
+                        isUploading
+                          ? "border-teal-300 bg-teal-50 opacity-70 cursor-not-allowed"
+                          : "border-gray-300 hover:border-teal-500 hover:bg-teal-50 dark:border-gray-700 dark:hover:border-teal-500 dark:hover:bg-teal-900/20"
+                      )}
+                    >
+                      {isUploading ? (
+                        <div className="flex items-center gap-2 text-teal-600">
+                          <Loader2 className="w-5 h-5 animate-spin" />
+                          <span className="text-sm font-medium">Uploading...</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400">
+                          <ImagePlus className="w-5 h-5" />
+                          <span className="text-sm font-medium">Admin: Add Image</span>
+                        </div>
+                      )}
+                    </label>
+                  </div>
+                )
+              )}
+            </div>
           </div>
         </div>
       </div>

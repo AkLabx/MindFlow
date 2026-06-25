@@ -144,6 +144,8 @@ export interface Idiom {
 export interface OWSContent {
   /** Numeric ID (likely legacy or source-specific). */
   id: number;
+  /** Optional image URL for flashcard display */
+  image_url?: string;
   /** Part of speech (e.g., Noun, Verb). */
   pos: string;
   /** The word being defined. */
