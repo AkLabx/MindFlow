@@ -170,8 +170,6 @@ export const SynonymsConfig: React.FC<SynonymsConfigProps> = ({ onStart, onBack 
                   </p>
                   <div className="flex gap-3 w-full">
                     <Button onClick={onBack} variant="outline" fullWidth>Back</Button>
-<Button size="lg" onClick={handleSaveDeck} disabled={totalMatchingCount === 0 || isSaving || !deckName.trim()} className="bg-indigo-500 hover:bg-indigo-600 text-white w-1/3"><Save className="w-5 h-5 mr-2" /> {isSaving ? 'Saving...' : 'Save'}</Button>
-</div>
                     <Button onClick={() => window.location.hash = '#/login'} className="bg-teal-500 hover:bg-teal-600 text-white border-none" fullWidth>
                       Sign In
                     </Button>
@@ -376,24 +374,24 @@ export const SynonymsConfig: React.FC<SynonymsConfigProps> = ({ onStart, onBack 
                 {/* Sticky Action Footer */}
                 <div className="fixed bottom-0 left-0 w-full z-[40] border-t border-slate-200 dark:border-slate-700 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md px-4 py-3 pb-safe md:px-6 md:py-4 shadow-[0_-4px_15px_-5px_rgba(0,0,0,0.1)] dark:shadow-none">
 
-                <div className="max-w-4xl mx-auto flex flex-col gap-2 mb-2">
-                    <input
-                        type="text"
-                        value={deckName}
-                        onChange={(e) => setDeckName(e.target.value)}
-                        placeholder="Enter Deck Name to Save..."
-                        className="w-full px-4 py-2 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500"
-                    />
-                </div>
+                    <div className="max-w-4xl mx-auto flex flex-col gap-2">
+                        <input
+                            type="text"
+                            value={deckName}
+                            onChange={(e) => setDeckName(e.target.value)}
+                            placeholder="Enter Deck Name to Save..."
+                            className="w-full px-4 py-2 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500"
+                        />
+                        <div className="flex gap-2">
+                            <Button size="lg" onClick={handleSaveDeck} disabled={totalMatchingCount === 0 || isSaving || !deckName.trim()} className="bg-indigo-500 hover:bg-indigo-600 text-white w-1/3 shadow-lg shadow-indigo-200">
+                                <Save className="w-5 h-5 mr-2" /> {isSaving ? 'Saving...' : 'Save'}
+                            </Button>
 
-                    <div className="max-w-4xl mx-auto">
-<div className="flex gap-2">
-                        <Button
-                            fullWidth
+                            <Button
                             size="lg"
                             onClick={handleStart}
                             disabled={totalMatchingCount === 0 || isFetchingData}
-                            className="bg-teal-500 hover:bg-teal-600 text-white border-none shadow-lg shadow-teal-200"
+                            className="w-2/3 bg-teal-500 hover:bg-teal-600 text-white border-none shadow-lg shadow-teal-200"
                         >
                             {isFetchingData ? (
                                 <span className="animate-pulse">Loading...</span>
@@ -403,6 +401,7 @@ export const SynonymsConfig: React.FC<SynonymsConfigProps> = ({ onStart, onBack 
                                 </>
                             )}
                         </Button>
+                        </div>
                 </div>
             </div>
         </div>
