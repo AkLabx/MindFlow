@@ -142,7 +142,7 @@ export const SynonymsHub: React.FC<SynonymsHubProps> = ({ onBack, onStart }) => 
                                 variants={itemVariants}
                                 whileHover={{ scale: 1.02 }}
                                 whileTap={{ scale: 0.98 }}
-                                onClick={() => handleNavigation('daily-challenge', () => navigate('/synonyms/quiz?mode=speed'))}
+                                onClick={() => handleNavigation('daily-challenge', () => navigate('/vocab/synonyms/quiz?mode=speed'))}
                                 className="relative group cursor-pointer w-full min-h-[120px] rounded-[32px] sm:rounded-[40px] p-[1px] overflow-hidden"
                             >
                                 <div className="absolute inset-0 bg-white/40 dark:bg-slate-900/40 backdrop-blur-2xl transition-colors duration-300 z-0"></div>
@@ -178,7 +178,7 @@ export const SynonymsHub: React.FC<SynonymsHubProps> = ({ onBack, onStart }) => 
                                 variants={itemVariants}
                                 whileHover={{ scale: 1.02 }}
                                 whileTap={{ scale: 0.98 }}
-                                onClick={() => handleNavigation('guided-learning', () => navigate('/synonyms/phase1'))}
+                                onClick={() => handleNavigation('guided-learning', () => navigate('/vocab/synonyms/phase1'))}
                                 className="relative group cursor-pointer aspect-square rounded-[32px] sm:rounded-[40px] p-[1px] overflow-hidden"
                             >
                                 <div className="absolute inset-0 bg-white/40 dark:bg-slate-900/40 backdrop-blur-2xl transition-colors duration-300 z-0"></div>
@@ -274,7 +274,7 @@ export const SynonymsHub: React.FC<SynonymsHubProps> = ({ onBack, onStart }) => 
                                 whileTap={{ scale: 0.98 }}
                                 onClick={() => handleNavigation('master-list', () => {
                                     onStart(sortedData, { mode: 'list' });
-                                    navigate('/synonyms/list');
+                                    navigate('/vocab/synonyms/list');
                                 })}
                                 className="relative group cursor-pointer aspect-square rounded-[32px] sm:rounded-[40px] p-[1px] overflow-hidden"
                             >
@@ -313,7 +313,7 @@ export const SynonymsHub: React.FC<SynonymsHubProps> = ({ onBack, onStart }) => 
                                 variants={itemVariants}
                                 whileHover={{ scale: 1.02 }}
                                 whileTap={{ scale: 0.98 }}
-                                onClick={() => handleNavigation('game-1', () => navigate('/synonyms/quiz?mode=imposter'))}
+                                onClick={() => handleNavigation('game-1', () => navigate('/vocab/synonyms/quiz?mode=imposter'))}
                                 className="relative group cursor-pointer aspect-square rounded-[32px] sm:rounded-[40px] p-[1px] overflow-hidden"
                             >
                                 <div className="absolute inset-0 bg-white/40 dark:bg-slate-900/40 backdrop-blur-2xl transition-colors duration-300 z-0"></div>
@@ -343,7 +343,7 @@ export const SynonymsHub: React.FC<SynonymsHubProps> = ({ onBack, onStart }) => 
                                 variants={itemVariants}
                                 whileHover={{ scale: 1.02 }}
                                 whileTap={{ scale: 0.98 }}
-                                onClick={() => handleNavigation('game-2', () => navigate('/synonyms/quiz?mode=connect'))}
+                                onClick={() => handleNavigation('game-2', () => navigate('/vocab/synonyms/quiz?mode=connect'))}
                                 className="relative group cursor-pointer aspect-square rounded-[32px] sm:rounded-[40px] p-[1px] overflow-hidden"
                             >
                                 <div className="absolute inset-0 bg-white/40 dark:bg-slate-900/40 backdrop-blur-2xl transition-colors duration-300 z-0"></div>
@@ -373,7 +373,7 @@ export const SynonymsHub: React.FC<SynonymsHubProps> = ({ onBack, onStart }) => 
                                 variants={itemVariants}
                                 whileHover={{ scale: 1.02 }}
                                 whileTap={{ scale: 0.98 }}
-                                onClick={() => handleNavigation('game-3', () => navigate('/synonyms/quiz?mode=speed'))}
+                                onClick={() => handleNavigation('game-3', () => navigate('/vocab/synonyms/quiz?mode=speed'))}
                                 className="relative group cursor-pointer aspect-square rounded-[32px] sm:rounded-[40px] p-[1px] overflow-hidden"
                             >
                                 <div className="absolute inset-0 bg-white/40 dark:bg-slate-900/40 backdrop-blur-2xl transition-colors duration-300 z-0"></div>
