@@ -99,26 +99,32 @@ export async function fetchIdiomMetadata() {
 }
 
 
-export async function getFilteredIdioms(filters: InitialFilters, selectedLetter: string | null, sessionMode?: 'basic' | 'review'): Promise<Idiom[]> {
+export async function getFilteredIdioms(filters: InitialFilters, selectedLetter: string | null, sessionMode?: 'basic' | 'review', finalMatchingIds?: string[]): Promise<Idiom[]> {
     let query = supabase.from('idiom').select('*');
 
-    if (filters.examName.length > 0) {
-        query = query.in('source_pdf', filters.examName);
-    }
-    if (filters.examYear.length > 0) {
-        query = query.in('exam_year', filters.examYear.map(Number));
-    }
-    if (filters.difficulty.length > 0) {
-        query = query.in('difficulty', filters.difficulty);
-    }
-    if (selectedLetter) {
-        query = query.ilike('phrase', `${selectedLetter}%`);
-    }
-    if (filters.hasPhoto && filters.hasPhoto.length === 1) {
-        if (filters.hasPhoto[0] === 'With Photo') {
-            query = query.neq('image_url', '').not('image_url', 'is', null);
-        } else if (filters.hasPhoto[0] === 'Without Photo') {
-            query = query.or('image_url.is.null,image_url.eq.""');
+    // Hybrid Fetching: If we have a precise, manageable list of IDs, skip complex filters
+    if (finalMatchingIds && finalMatchingIds.length > 0 && finalMatchingIds.length <= 1000) {
+        query = query.in('id', finalMatchingIds);
+    } else {
+        // Fallback to standard DB filtering if too many IDs or missing
+        if (filters.examName.length > 0) {
+            query = query.in('source_pdf', filters.examName);
+        }
+        if (filters.examYear.length > 0) {
+            query = query.in('exam_year', filters.examYear.map(Number));
+        }
+        if (filters.difficulty.length > 0) {
+            query = query.in('difficulty', filters.difficulty);
+        }
+        if (selectedLetter) {
+            query = query.ilike('phrase', `${selectedLetter}%`);
+        }
+        if (filters.hasPhoto && filters.hasPhoto.length === 1) {
+            if (filters.hasPhoto[0] === 'With Photo') {
+                query = query.neq('image_url', '').not('image_url', 'is', null);
+            } else if (filters.hasPhoto[0] === 'Without Photo') {
+                query = query.or('image_url.is.null,image_url.eq.""');
+            }
         }
     }
 
@@ -149,7 +155,7 @@ export async function getFilteredIdioms(filters: InitialFilters, selectedLetter:
             usage: row.usage || '',
             extras: {
                 mnemonic: row.mnemonic || '',
-                origin: row.origin || ''
+                origin: ''
             }
         }
     })) as Idiom[];
