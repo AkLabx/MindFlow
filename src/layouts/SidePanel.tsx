@@ -84,7 +84,7 @@ export const SidePanel: React.FC<SidePanelProps> = ({ isOpen, onClose, onTabChan
                         animate="visible"
                         exit="exit"
                         onClick={onClose}
-                        className="fixed inset-0 z-[60] bg-slate-900/40 dark:bg-slate-900/60"
+                        className="fixed inset-0 z-[10010] bg-slate-900/40 dark:bg-slate-900/60"
                         aria-hidden="true"
                     />
 
@@ -94,7 +94,7 @@ export const SidePanel: React.FC<SidePanelProps> = ({ isOpen, onClose, onTabChan
                         initial="hidden"
                         animate="visible"
                         exit="exit"
-                        className="fixed top-0 right-0 h-[100dvh] w-4/5 max-w-sm z-[70] bg-white dark:bg-slate-900 shadow-2xl flex flex-col overflow-hidden border-l border-white/20 dark:border-white/10"
+                        className="fixed top-0 right-0 h-[100dvh] w-4/5 max-w-sm z-[10020] bg-white dark:bg-slate-900 shadow-2xl flex flex-col overflow-hidden border-l border-white/20 dark:border-white/10"
                     >
                         {/* Inner Glassmorphism Layer */}
                         <div className="absolute inset-0 bg-gradient-to-br from-indigo-50/50 to-white/80 dark:from-slate-800/50 dark:to-slate-900/80 backdrop-blur-3xl -z-10" />
