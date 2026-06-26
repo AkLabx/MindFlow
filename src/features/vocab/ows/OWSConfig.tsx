@@ -128,7 +128,7 @@ export const OWSConfig: React.FC<OWSConfigProps> = ({ onStart, onBack }) => {
                  alert("Please enter a name for your deck.");
                  return;
             }
-            const data = await getFilteredOws(filters, selectedLetter, sessionMode);
+            const data = await getFilteredOws(filters, selectedLetter, sessionMode, finalMatchingIds);
             if (data.length > 0) {
                  await deckService.createDeck('ows', {
                      id: crypto.randomUUID(),
@@ -164,7 +164,7 @@ export const OWSConfig: React.FC<OWSConfigProps> = ({ onStart, onBack }) => {
                  alert("No OWS found matching current filters.");
                  return;
             }
-            const data = await getFilteredOws(filters, selectedLetter, sessionMode);
+            const data = await getFilteredOws(filters, selectedLetter, sessionMode, finalMatchingIds);
             if (data.length > 0) {
                 onStart(data, filters, sessionMode);
             } else {

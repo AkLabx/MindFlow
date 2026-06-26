@@ -104,7 +104,8 @@ export async function fetchOwsMetadata() {
 export async function getFilteredOws(
   filters: InitialFilters,
   selectedLetter: string | null,
-  sessionMode?: 'basic' | 'review'
+  sessionMode?: 'basic' | 'review',
+  finalMatchingIds?: string[]
 ): Promise<OneWord[]> {
   let allData: any[] = [];
   let start = 0;
@@ -114,28 +115,33 @@ export async function getFilteredOws(
   while (hasMore) {
     let query = supabase.from("ows").select("*");
 
-    if (filters.examName && filters.examName.length > 0) {
-      query = query.in("source_pdf", filters.examName);
-    }
-    if (filters.examYear && filters.examYear.length > 0) {
-      query = query.in("exam_year", filters.examYear.map(Number));
-    }
-    if (filters.difficulty && filters.difficulty.length > 0) {
-      query = query.in("difficulty", filters.difficulty);
-    }
-    if (filters.theme && filters.theme.length > 0) {
-      query = query.in("theme", filters.theme);
-    }
-    if (selectedLetter) {
-      query = query.ilike("word", `${selectedLetter}%`);
-    }
+    // Hybrid Fetching: If we have a precise, manageable list of IDs, skip complex filters
+    if (finalMatchingIds && finalMatchingIds.length > 0 && finalMatchingIds.length <= 1000) {
+        query = query.in('id', finalMatchingIds);
+    } else {
+        if (filters.examName && filters.examName.length > 0) {
+          query = query.in("source_pdf", filters.examName);
+        }
+        if (filters.examYear && filters.examYear.length > 0) {
+          query = query.in("exam_year", filters.examYear.map(Number));
+        }
+        if (filters.difficulty && filters.difficulty.length > 0) {
+          query = query.in("difficulty", filters.difficulty);
+        }
+        if (filters.theme && filters.theme.length > 0) {
+          query = query.in("theme", filters.theme);
+        }
+        if (selectedLetter) {
+          query = query.ilike("word", `${selectedLetter}%`);
+        }
 
-    if (filters.hasPhoto && filters.hasPhoto.length === 1) {
-      if (filters.hasPhoto[0] === 'With Photo') {
-          query = query.neq('image_url', '').not('image_url', 'is', null);
-      } else if (filters.hasPhoto[0] === 'Without Photo') {
-          query = query.or('image_url.is.null,image_url.eq.""');
-      }
+        if (filters.hasPhoto && filters.hasPhoto.length === 1) {
+          if (filters.hasPhoto[0] === 'With Photo') {
+              query = query.neq('image_url', '').not('image_url', 'is', null);
+          } else if (filters.hasPhoto[0] === 'Without Photo') {
+              query = query.or('image_url.is.null,image_url.eq.""');
+          }
+        }
     }
 
 

@@ -118,7 +118,7 @@ export const IdiomsConfig: React.FC<IdiomsConfigProps> = ({ onStart, onBack }) =
                  alert("Please enter a name for your deck.");
                  return;
             }
-            const data = await getFilteredIdioms(filters, selectedLetter, sessionMode);
+            const data = await getFilteredIdioms(filters, selectedLetter, sessionMode, finalMatchingIds);
             if (data.length > 0) {
                  await deckService.createDeck('idiom', {
                      id: crypto.randomUUID(),
@@ -154,7 +154,7 @@ export const IdiomsConfig: React.FC<IdiomsConfigProps> = ({ onStart, onBack }) =
                  alert("No Idioms found matching current filters.");
                  return;
             }
-            const data = await getFilteredIdioms(filters, selectedLetter, sessionMode);
+            const data = await getFilteredIdioms(filters, selectedLetter, sessionMode, finalMatchingIds);
             if (data.length > 0) {
                 onStart(data, filters, sessionMode);
             } else {
