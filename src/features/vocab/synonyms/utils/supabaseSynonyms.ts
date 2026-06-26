@@ -4,30 +4,16 @@ import { SynonymWord } from '../../../../features/quiz/types';
 
 export async function fetchSynonymMetadata() {
   let allData: any[] = [];
-  let start = 0;
-  const limit = 1000;
-  let hasMore = true;
 
-  while (hasMore) {
-    const { data, error } = await supabase
-      .from("synonym")
-      .select("id, word, exam_name, exam_year, difficulty")
-      .range(start, start + limit - 1);
+  // Single fetch to bypass waterfall
+  const { data, error } = await supabase
+    .from("synonym")
+    .select("id, word, exam_name, exam_year, difficulty");
 
-    if (error) {
-      console.error("Error fetching Synonym metadata:", error);
-      break;
-    }
-
-    if (data && data.length > 0) {
-      allData = [...allData, ...data];
-      start += limit;
-      if (data.length < limit) {
-        hasMore = false;
-      }
-    } else {
-      hasMore = false;
-    }
+  if (error) {
+    console.error("Error fetching Synonym metadata:", error);
+  } else if (data) {
+    allData = data;
   }
 
   // Fetch user interactions for read status and spatial engine
@@ -84,7 +70,8 @@ export async function fetchSynonymMetadata() {
 export async function getFilteredSynonyms(
   filters: InitialFilters,
   selectedLetter: string | null,
-  sessionMode?: 'basic' | 'review'
+  sessionMode?: 'basic' | 'review',
+  finalMatchingIds?: string[]
 ): Promise<SynonymWord[]> {
   let allData: any[] = [];
   let start = 0;
@@ -94,17 +81,22 @@ export async function getFilteredSynonyms(
   while (hasMore) {
     let query = supabase.from("synonym").select("*");
 
-    if (filters.examName && filters.examName.length > 0) {
-      query = query.in("exam_name", filters.examName);
-    }
-    if (filters.examYear && filters.examYear.length > 0) {
-      query = query.in("exam_year", filters.examYear.map(Number));
-    }
-    if (filters.difficulty && filters.difficulty.length > 0) {
-      query = query.in("difficulty", filters.difficulty);
-    }
-    if (selectedLetter) {
-      query = query.ilike("word", `${selectedLetter}%`);
+    // Hybrid fetching
+    if (finalMatchingIds && finalMatchingIds.length > 0 && finalMatchingIds.length <= 1000) {
+      query = query.in("id", finalMatchingIds);
+    } else {
+      if (filters.examName && filters.examName.length > 0) {
+        query = query.in("exam_name", filters.examName);
+      }
+      if (filters.examYear && filters.examYear.length > 0) {
+        query = query.in("exam_year", filters.examYear.map(Number));
+      }
+      if (filters.difficulty && filters.difficulty.length > 0) {
+        query = query.in("difficulty", filters.difficulty);
+      }
+      if (selectedLetter) {
+        query = query.ilike("word", `${selectedLetter}%`);
+      }
     }
 
     const { data, error } = await query
