@@ -8,7 +8,7 @@ export const SchoolHomePage: React.FC = () => {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen pt-4 pb-24 px-4 w-full flex flex-col relative overflow-hidden">
+    <div className="min-h-screen pb-24 w-full flex flex-col relative overflow-hidden -m-4 sm:-m-6 lg:-m-8 p-4 sm:p-6 lg:p-8">
       {/* Fluid Background Layers */}
       <div className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] bg-indigo-500/20 dark:bg-indigo-600/20 rounded-full blur-[100px] mix-blend-multiply dark:mix-blend-lighten animate-blob z-0" />
       <div className="absolute top-[20%] right-[-10%] w-[60vw] h-[60vw] bg-purple-500/20 dark:bg-purple-600/20 rounded-full blur-[120px] mix-blend-multiply dark:mix-blend-lighten animate-blob animation-delay-2000 z-0" />

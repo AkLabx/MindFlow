@@ -241,7 +241,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onSignOut, onNavigateToSettin
         </div>
       )}
 
-      <div className="min-h-full bg-slate-50 dark:bg-slate-950 p-4 sm:p-6 lg:p-8 pb-32 md:pb-20 transition-colors duration-300">
+      <div className="min-h-full bg-slate-50 dark:bg-slate-950 pb-32 md:pb-20 transition-colors duration-300 -m-4 sm:-m-6 lg:-m-8 p-4 sm:p-6 lg:p-8">
         <div className="max-w-2xl mx-auto space-y-6">
           
           {/* --- Top Information Card --- */}
