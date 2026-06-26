@@ -20,7 +20,7 @@ export const IdiomsHub: React.FC<IdiomsHubProps> = ({ onBack }) => {
     const itemVariants = { hidden: { y: 20, opacity: 0 }, visible: { y: 0, opacity: 1 } };
 
     return (
-        <div className="flex flex-col min-h-screen bg-slate-50 dark:bg-slate-900 overflow-hidden relative">
+        <div className="flex flex-col min-h-screen bg-slate-50 dark:bg-slate-900 overflow-hidden relative -m-4 sm:-m-6 lg:-m-8 p-4 sm:p-6 lg:p-8">
             <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-indigo-500/20 rounded-full blur-[120px] pointer-events-none" />
             <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-purple-500/20 rounded-full blur-[120px] pointer-events-none" />
 
