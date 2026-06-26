@@ -6,12 +6,32 @@ export async function fetchOwsMetadata() {
   const userId = userData?.user?.id;
 
   if (userId) {
-    const { data, error } = await supabase.rpc('get_filtered_ows_metadata', { p_user_id: userId });
 
-    if (error) {
-      console.error("Error fetching OWS metadata via RPC:", error);
-      return [];
+    let allRpcData: any[] = [];
+    let rpcStart = 0;
+    const rpcLimit = 1000;
+    let rpcHasMore = true;
+
+    while (rpcHasMore) {
+        const { data, error } = await supabase.rpc('get_filtered_ows_metadata', { p_user_id: userId })
+            .range(rpcStart, rpcStart + rpcLimit - 1);
+
+        if (error) {
+            console.error("Error fetching OWS metadata via RPC:", error);
+            break;
+        }
+
+        if (data && data.length > 0) {
+            allRpcData = [...allRpcData, ...data];
+            rpcStart += rpcLimit;
+            if (data.length < rpcLimit) {
+                rpcHasMore = false;
+            }
+        } else {
+            rpcHasMore = false;
+        }
     }
+
 
     // Process local queue logic as before (optimistic offline state)
     const interactMap = new Map();
@@ -34,7 +54,7 @@ export async function fetchOwsMetadata() {
       console.error('Failed to merge local queue for OWS', e);
     }
 
-    return data.map((row: any) => {
+    return allRpcData.map((row: any) => {
       const rowId = row.word || String(row.id);
       const localInteraction = interactMap.get(rowId);
 
