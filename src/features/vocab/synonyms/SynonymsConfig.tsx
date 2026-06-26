@@ -1,5 +1,5 @@
 import { deckService } from "../services/deckService";
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {  ArrowLeft, Play, Target, FileText, Settings, Calendar, Type, CheckCircle, Lock , Save } from 'lucide-react';
 import { Button } from '../../../components/Button/Button';
 import { InitialFilters } from '../../../features/quiz/types';
@@ -8,6 +8,7 @@ import { MultiSelectDropdown } from '../../../features/quiz/components/ui/MultiS
 import { SegmentedControl } from '../../../features/quiz/components/ui/SegmentedControl';
 import { ActiveFiltersBar } from '../../../features/quiz/components/ui/ActiveFiltersBar';
 import { cn } from '../../../utils/cn';
+import { db } from '../../../lib/db';
 import { SynapticLoader } from '../../../components/ui/SynapticLoader';
 import { fetchSynonymMetadata, getFilteredSynonyms } from './utils/supabaseSynonyms';
 import { useAuth } from '../../../features/auth/context/AuthContext';
@@ -50,8 +51,19 @@ export const SynonymsConfig: React.FC<SynonymsConfigProps> = ({ onStart, onBack 
     useEffect(() => {
         const initConfig = async () => {
             try {
+                // 1. Instantly load from IndexedDB cache (Stale-While-Revalidate)
+                const cachedMetadata = await db.getSynonymMetadataCache();
+                if (cachedMetadata && cachedMetadata.length > 0) {
+                    setMetadata(cachedMetadata);
+                    setIsInitializing(false); // Instantly render UI
+                }
+
+                // 2. Fetch fresh data
                 const meta = await fetchSynonymMetadata();
+
+                // 3. Update React State & Cache
                 setMetadata(meta);
+                await db.saveSynonymMetadataCache(meta);
             } catch (e) {
                 console.error("Error initializing Synonyms configs", e);
             } finally {
@@ -91,6 +103,31 @@ export const SynonymsConfig: React.FC<SynonymsConfigProps> = ({ onStart, onBack 
         }
     };
 
+
+    // Predictive Prefetching logic
+    const prefetchedDataRef = React.useRef<{ idsHash: string, data: SynonymWord[] } | null>(null);
+
+    useEffect(() => {
+        if (finalMatchingIds.length > 0 && finalMatchingIds.length <= 200) {
+            const currentHash = finalMatchingIds.join(',');
+
+            // Don't refetch if we already have it
+            if (prefetchedDataRef.current?.idsHash === currentHash) return;
+
+            const timer = setTimeout(async () => {
+                try {
+                    const data = await getFilteredSynonyms(filters, selectedLetter, sessionMode, finalMatchingIds);
+                    prefetchedDataRef.current = { idsHash: currentHash, data };
+                } catch (e) {
+                    console.error("Silent prefetch failed", e);
+                }
+            }, 600); // Wait 600ms after user stops clicking filters
+
+            return () => clearTimeout(timer);
+        } else {
+             prefetchedDataRef.current = null;
+        }
+    }, [finalMatchingIds, filters, selectedLetter, sessionMode]);
 
     const handleSaveDeck = async () => {
         setIsSaving(true);
@@ -139,7 +176,17 @@ export const SynonymsConfig: React.FC<SynonymsConfigProps> = ({ onStart, onBack 
                  alert("No Synonyms found matching current filters.");
                  return;
             }
-            const data = await getFilteredSynonyms(filters, selectedLetter, sessionMode);
+
+            let data: SynonymWord[] = [];
+            const currentHash = finalMatchingIds.join(',');
+
+            // Use prefetched data if it's perfectly matched
+            if (prefetchedDataRef.current?.idsHash === currentHash) {
+                data = prefetchedDataRef.current.data;
+            } else {
+                data = await getFilteredSynonyms(filters, selectedLetter, sessionMode, finalMatchingIds);
+            }
+
             if (data.length > 0) {
                 onStart(data, filters, sessionMode);
             } else {
