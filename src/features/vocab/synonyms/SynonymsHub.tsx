@@ -46,9 +46,6 @@ export const SynonymsHub: React.FC<SynonymsHubProps> = ({ onBack, onStart }) => 
         load();
     }, []);
 
-    const handleStartLearning = () => {
-        onStart(sortedData, { mode: 'learning' });
-    };
 
     const containerVariants = {
         hidden: { opacity: 0 },
@@ -246,7 +243,7 @@ export const SynonymsHub: React.FC<SynonymsHubProps> = ({ onBack, onStart }) => 
                                 variants={itemVariants}
                                 whileHover={{ scale: 1.02 }}
                                 whileTap={{ scale: 0.98 }}
-                                onClick={handleStartLearning}
+                                onClick={() => handleNavigation('smart-flashcards', () => navigate('/vocab/synonyms/config'))}
                                 className="relative group cursor-pointer aspect-square rounded-[32px] sm:rounded-[40px] p-[1px] overflow-hidden"
                             >
                                 <div className="absolute inset-0 bg-white/40 dark:bg-slate-900/40 backdrop-blur-2xl transition-colors duration-300 z-0"></div>
