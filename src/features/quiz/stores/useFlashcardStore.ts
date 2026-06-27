@@ -32,7 +32,7 @@ interface FlashcardState {
   // Actions
   startIdioms: (data: Idiom[], filters?: InitialFilters, mode?: 'basic' | 'review') => void;
   startOWS: (data: OneWord[], filters?: InitialFilters, mode?: 'basic' | 'review') => void;
-  startSynonyms: (data: SynonymWord[], filters?: InitialFilters) => void;
+  startSynonyms: (data: SynonymWord[], filters?: InitialFilters, mode?: 'basic' | 'review') => void;
 
   // Navigation
   nextCard: () => void;
