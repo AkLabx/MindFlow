@@ -29,6 +29,7 @@ export const AdminEditVocabModal: React.FC<AdminEditVocabModalProps> = ({
           meaning_hindi: cardData.content?.meanings?.hindi || '',
           usage: cardData.content?.usage || '',
           mnemonic: cardData.content?.extras?.mnemonic || '',
+          origin: cardData.content?.extras?.origin || '',
           difficulty: cardData.properties?.difficulty || '',
           source_pdf: cardData.sourceInfo?.pdfName || '',
           exam_year: cardData.sourceInfo?.examYear || '',
@@ -138,7 +139,7 @@ export const AdminEditVocabModal: React.FC<AdminEditVocabModalProps> = ({
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 capitalize">
                 {key.replace(/_/g, ' ')}
               </label>
-              {(key === 'synonyms' || key === 'antonyms' || key === 'usage_sentences' || key === 'usage' || key === 'mnemonic' || key === 'meaning_english' || key === 'meaning_hindi' || key === 'meaning' || key === 'hindi_meaning') ? (
+              {(key === 'synonyms' || key === 'antonyms' || key === 'usage_sentences' || key === 'usage' || key === 'mnemonic' || key === 'origin' || key === 'meaning_english' || key === 'meaning_hindi' || key === 'meaning' || key === 'hindi_meaning') ? (
                 <textarea
                   name={key}
                   value={value as string}

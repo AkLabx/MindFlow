@@ -226,7 +226,7 @@ export const useFlashcardStore = create<FlashcardState>((set, get) => ({
                 usage: rawData.usage || card.content.usage,
                 extras: {
                   mnemonic: rawData.mnemonic || card.content.extras.mnemonic,
-                  origin: card.content.extras.origin,
+                  origin: rawData.origin !== undefined ? rawData.origin : card.content.extras.origin,
                 }
               }
             };

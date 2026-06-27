@@ -21,6 +21,7 @@ interface IdiomForm {
     meaning_hindi: string;
     usage: string;
     mnemonic: string;
+    origin: string;
     source_pdf: string;
     exam_year: string;
     difficulty: string;
@@ -35,6 +36,7 @@ const initialFormState: IdiomForm = {
     meaning_hindi: '',
     usage: '',
     mnemonic: '',
+    origin: '',
     source_pdf: 'TCS PYQ',
     exam_year: new Date().getFullYear().toString(),
     difficulty: 'Medium',
@@ -202,6 +204,7 @@ export const AdminUploadIdioms: React.FC = () => {
                 meaning_hindi: data.meaning_hindi || '',
                 usage: data.usage || '',
                 mnemonic: data.mnemonic || '',
+                origin: data.origin || '',
                 source_pdf: data.source_pdf || '',
                 exam_year: data.exam_year ? data.exam_year.toString() : '',
                 difficulty: data.difficulty || 'Medium',
@@ -401,9 +404,13 @@ export const AdminUploadIdioms: React.FC = () => {
                             </div>
                              <div>
                                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Mnemonic / Hint</label>
-                                <textarea name="mnemonic" value={formData.mnemonic} onChange={handleChange} rows={3} placeholder="Memory trick..." className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-2 focus:ring-2 focus:ring-amber-500 outline-none resize-none text-base" />
-                            </div>
-                        </div>
+                                        <textarea name="mnemonic" value={formData.mnemonic} onChange={handleChange} rows={3} placeholder="Memory trick..." className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-2 focus:ring-2 focus:ring-amber-500 outline-none resize-none text-base" />
+                                    </div>
+                                    <div className="md:col-span-2">
+                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Origin (Optional)</label>
+                                        <textarea name="origin" value={formData.origin} onChange={handleChange} rows={2} placeholder="Etymology or origin story..." className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-2 focus:ring-2 focus:ring-amber-500 outline-none resize-none text-base" />
+                                    </div>
+                                </div>
 
                         {/* Properties */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -578,6 +585,10 @@ export const AdminUploadIdioms: React.FC = () => {
                                     <div>
                                         <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Mnemonic / Hint</label>
                                         <textarea name="mnemonic" value={formData.mnemonic} onChange={handleChange} rows={3} placeholder="Memory trick..." className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-2 focus:ring-2 focus:ring-amber-500 outline-none resize-none text-base" />
+                                    </div>
+                                    <div className="md:col-span-2">
+                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Origin (Optional)</label>
+                                        <textarea name="origin" value={formData.origin} onChange={handleChange} rows={2} placeholder="Etymology or origin story..." className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-2 focus:ring-2 focus:ring-amber-500 outline-none resize-none text-base" />
                                     </div>
                                 </div>
 
