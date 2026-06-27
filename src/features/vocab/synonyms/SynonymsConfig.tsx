@@ -52,11 +52,11 @@ export const SynonymsConfig: React.FC<SynonymsConfigProps> = ({ onStart, onBack 
         const initConfig = async () => {
             try {
                 // HOTFIX: Clear corrupted cache from previous bug
-                if (!localStorage.getItem('vocab_cache_cleared_v3')) {
+                if (!localStorage.getItem('vocab_cache_cleared_v4')) {
                     await db.clearIdiomMetadataCache?.().catch(()=>console.log('clear method not found'));
                     await db.clearOwsMetadataCache?.().catch(()=>console.log('clear method not found'));
                     await db.clearSynonymMetadataCache?.().catch(()=>console.log('clear method not found'));
-                    localStorage.setItem('vocab_cache_cleared_v3', 'true');
+                    localStorage.setItem('vocab_cache_cleared_v4', 'true');
                     // Force a full re-sync from backend to fix the columns
                     localStorage.removeItem('idiom_last_sync');
                     localStorage.removeItem('ows_last_sync');
