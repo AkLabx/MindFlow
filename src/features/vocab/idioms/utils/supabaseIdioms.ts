@@ -208,7 +208,7 @@ export async function getFilteredIdioms(filters: InitialFilters, selectedLetter:
             usage: row.usage || '',
             extras: {
                 mnemonic: row.mnemonic || '',
-                origin: ''
+                origin: row.origin || ''
             }
         }
     })) as Idiom[];
