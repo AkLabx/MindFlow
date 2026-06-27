@@ -1,4 +1,5 @@
 import { deckService } from "../services/deckService";
+import { useLayoutStore } from '../../../stores/useLayoutStore';
 import React, { useState, useEffect, useRef } from 'react';
 import {  ArrowLeft, Play, Target, FileText, Settings, Calendar, Type, CheckCircle, Lock, Save, Image } from 'lucide-react';
 import { Button } from '../../../components/Button/Button';
@@ -37,6 +38,11 @@ const emptyFilters: InitialFilters = {
 
 export const IdiomsConfig: React.FC<IdiomsConfigProps> = ({ onStart, onBack }) => {
     const { user } = useAuth();
+    const setHideGlobalFooter = useLayoutStore(state => state.setHideGlobalFooter);
+    useEffect(() => {
+        setHideGlobalFooter(true);
+        return () => setHideGlobalFooter(false);
+    }, [setHideGlobalFooter]);
     const { clearProgress } = useIdiomProgress();
     const [deckName, setDeckName] = useState('');
     const [isSaving, setIsSaving] = useState(false);
