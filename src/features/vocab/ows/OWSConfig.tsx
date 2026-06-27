@@ -1,4 +1,5 @@
 import { deckService } from "../services/deckService";
+import { useLayoutStore } from '../../../stores/useLayoutStore';
 import React, { useState, useEffect, useRef } from 'react';
 import {  ArrowLeft, Play, Target, FileText, Settings, Calendar, Type, CheckCircle, Lock , Save , Image } from 'lucide-react';
 import { Button } from '../../../components/Button/Button';
@@ -37,6 +38,11 @@ const emptyFilters: InitialFilters = {
 
 export const OWSConfig: React.FC<OWSConfigProps> = ({ onStart, onBack }) => {
     const { user } = useAuth();
+    const setHideGlobalFooter = useLayoutStore(state => state.setHideGlobalFooter);
+    useEffect(() => {
+        setHideGlobalFooter(true);
+        return () => setHideGlobalFooter(false);
+    }, [setHideGlobalFooter]);
     const isAdmin = user?.email === 'admin@mindflow.com';
     const { clearProgress } = useOWSProgress();
     const [deckName, setDeckName] = useState('');

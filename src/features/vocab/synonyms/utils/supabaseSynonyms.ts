@@ -53,7 +53,7 @@ export async function fetchSynonymMetadata() {
   }
 
   return allData.map((row) => {
-    const rowId = row.word || String(row.id); // Using word as fallback word_id
+    const rowId = String(row.id); // Use standard db id
     const interaction = userInteractions[rowId];
 
     const phrase = row.word || row.phrase || row.alphabet || "";
@@ -128,7 +128,7 @@ export async function getFilteredSynonyms(
   }
 
   let parsedData = allData.map((row) => ({
-    id: row.id,
+    id: String(row.id),
     word: row.word || "",
     pos: row.pos || "",
     meaning: row.meaning || "",

@@ -1,4 +1,5 @@
 import { deckService } from "../services/deckService";
+import { useLayoutStore } from '../../../stores/useLayoutStore';
 import React, { useState, useEffect, useRef } from 'react';
 import {  ArrowLeft, Play, Target, FileText, Settings, Calendar, Type, CheckCircle, Lock , Save } from 'lucide-react';
 import { Button } from '../../../components/Button/Button';
@@ -36,6 +37,11 @@ const emptyFilters: InitialFilters = {
 
 export const SynonymsConfig: React.FC<SynonymsConfigProps> = ({ onStart, onBack }) => {
     const { user } = useAuth();
+    const setHideGlobalFooter = useLayoutStore(state => state.setHideGlobalFooter);
+    useEffect(() => {
+        setHideGlobalFooter(true);
+        return () => setHideGlobalFooter(false);
+    }, [setHideGlobalFooter]);
     const { clearProgress } = useSynonymProgress();
     const [deckName, setDeckName] = useState('');
     const [isSaving, setIsSaving] = useState(false);
@@ -246,7 +252,7 @@ export const SynonymsConfig: React.FC<SynonymsConfigProps> = ({ onStart, onBack 
                 </button>
                 <div>
                     <h1 className="text-2xl font-bold text-slate-800 dark:text-white flex items-center gap-2">
-                        <Target className="w-7 h-7 text-teal-500" /> Session Config
+                        <Target className="w-7 h-7 text-teal-500" /> Synonym Config
                     </h1>
                     <p className="text-sm text-slate-500 dark:text-slate-400">Filter Synonymss</p>
                 </div>

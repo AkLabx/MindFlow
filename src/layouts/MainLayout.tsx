@@ -10,6 +10,7 @@ import { cn } from '../utils/cn';
 import { useAuth } from '../features/auth/context/AuthContext';
 import { useQuizContext } from '../features/quiz/context/QuizContext';
 import { useSettingsStore } from '../stores/useSettingsStore';
+import { useLayoutStore } from '../stores/useLayoutStore';
 import { useSocialStore } from '@/features/community';
 import { ClaymorphismSwitch } from '../features/quiz/components/ui/ClaymorphismSwitch';
 import { NotificationBell } from '../features/notifications/components/NotificationBell';
@@ -60,6 +61,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
   const { isReviewMode } = useQuizContext();
   const { isDarkMode, toggleDarkMode } = useSettingsStore();
   const { isSocialMode, toggleSocialMode } = useSocialStore();
+  const { hideGlobalFooter } = useLayoutStore();
   const location = useLocation();
   const isAIFullScreen = location.pathname.startsWith('/ai/chat') || location.pathname.startsWith('/ai/talk') || location.pathname.startsWith('/tools/text-exporter') || location.pathname.startsWith('/tools/flashcard-maker');
   const isReelsFullScreen = location.pathname.startsWith('/community/reels');
@@ -272,7 +274,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
       <nav className={cn(
         "main-layout-nav",
         "fixed bottom-0 left-0 w-full z-[10000] transition-colors duration-300 pb-[env(safe-area-inset-bottom)] pt-2 group overflow-visible",
-        isReviewMode || isAIFullScreen || isMessagingFullScreen ? 'hidden' : 'block'
+        isReviewMode || isAIFullScreen || isMessagingFullScreen || hideGlobalFooter ? 'hidden' : 'block'
       )}>
         {/* Glow Background Layer */}
         <div className="absolute inset-0 bg-white/40 dark:bg-slate-900/40 backdrop-blur-2xl transition-colors duration-300 z-0"></div>
