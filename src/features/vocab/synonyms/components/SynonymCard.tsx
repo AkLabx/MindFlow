@@ -295,6 +295,12 @@ export const SynonymCard: React.FC<SynonymCardProps> = ({ data: initialData, ser
         type="synonym"
         cardData={data}
       />
+
+      <style>{`
+        .transform-style-3d { transform-style: preserve-3d; }
+        .backface-hidden { backface-visibility: hidden; }
+        .rotate-y-180 { transform: rotateY(180deg); }
+      `}</style>
 </div>
   );
 };
