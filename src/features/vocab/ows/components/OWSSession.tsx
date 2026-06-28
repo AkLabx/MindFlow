@@ -636,7 +636,7 @@ export const OWSSession: React.FC<OWSSessionProps> = ({
               onTap={(e, info) => {
                  if (isAnimating) return;
                  // Strict tap vs drag distance check
-                 if (Math.abs(info.point.x - info.point.x) < 5) {
+                 if (Math.abs((info as any).offset?.x || 0) < 5 && Math.abs((info as any).offset?.y || 0) < 5) {
                      setIsFlipped(!isFlipped);
                  }
               }}
