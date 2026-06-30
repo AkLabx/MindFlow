@@ -6,7 +6,7 @@ import { cn } from '../../../../utils/cn';
 import { APP_CONFIG } from '../../../../constants/config';
 import { usePDFGenerator } from '../../../../hooks/usePDFGenerator';
 import { useJSONDownloader } from '../../../../hooks/useJSONDownloader';
-import { FlashcardNavigationPanelBase } from '../../../../features/flashcards/components/FlashcardNavigationPanelBase';
+import { FlashcardSidePanel } from '../../../../components/ui/FlashcardSidePanel';
 
 interface OWSNavigationPanelProps {
   isOpen: boolean;
@@ -39,25 +39,18 @@ export const OWSNavigationPanel: React.FC<OWSNavigationPanelProps> = ({
   };
 
   return (
-    <FlashcardNavigationPanelBase<OneWord>
+    <FlashcardSidePanel<OneWord>
       isOpen={isOpen}
       onClose={onClose}
       data={data}
       currentIndex={currentIndex}
-      onJump={onJump}
+      onItemSelected={onJump}
       title="Word Map"
       totalLabel="items total"
       themeColor="teal"
       chunkSizeStorageKey={APP_CONFIG.STORAGE_KEYS.OWS_BATCH_SIZE}
       currentSortOrder={currentSortOrder}
       onSortOrderChange={setSortOrder}
-      currentId={data[currentIndex]?.id}
-      isGeneratingPDF={isGeneratingPDF}
-      isGeneratingJSON={isGeneratingJSON}
-      pdfError={pdfError}
-      jsonError={jsonError}
-      onDownloadPDF={handleDownloadPDF}
-      onDownloadJSON={handleDownloadJSON}
       renderItem={(item, globalIdx, isCurrent, closePanel, jumpTo) => {
         const isKnown = getKnownStatus ? getKnownStatus(item) : false;
         let statusColor = "bg-gray-300 dark:bg-gray-600";

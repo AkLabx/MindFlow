@@ -6,7 +6,7 @@ import { cn } from '../../../../utils/cn';
 import { APP_CONFIG } from '../../../../constants/config';
 import { usePDFGenerator } from '../../../../hooks/usePDFGenerator';
 import { useJSONDownloader } from '../../../../hooks/useJSONDownloader';
-import { FlashcardNavigationPanelBase } from '../../../../features/flashcards/components/FlashcardNavigationPanelBase';
+import { FlashcardSidePanel } from '../../../../components/ui/FlashcardSidePanel';
 
 interface IdiomNavigationPanelProps {
   isOpen: boolean;
@@ -39,25 +39,18 @@ export const IdiomNavigationPanel: React.FC<IdiomNavigationPanelProps> = ({
   };
 
   return (
-    <FlashcardNavigationPanelBase<Idiom>
+    <FlashcardSidePanel<Idiom>
       isOpen={isOpen}
       onClose={onClose}
       data={idioms}
       currentIndex={currentIndex}
-      onJump={onJump}
+      onItemSelected={onJump}
       title="Idiom Map"
       totalLabel="items total"
       themeColor="amber"
       chunkSizeStorageKey={APP_CONFIG.STORAGE_KEYS.IDIOMS_BATCH_SIZE}
       currentSortOrder={currentSortOrder}
       onSortOrderChange={setSortOrder}
-      currentId={idioms[currentIndex]?.id}
-      isGeneratingPDF={isGeneratingPDF}
-      isGeneratingJSON={isGeneratingJSON}
-      pdfError={pdfError}
-      jsonError={jsonError}
-      onDownloadPDF={handleDownloadPDF}
-      onDownloadJSON={handleDownloadJSON}
       renderItem={(idiom, globalIdx, isCurrent, closePanel, jumpTo) => {
         const status = getInteractionStatus ? getInteractionStatus(idiom) : undefined;
         const isKnown = getKnownStatus ? getKnownStatus(idiom) : false;

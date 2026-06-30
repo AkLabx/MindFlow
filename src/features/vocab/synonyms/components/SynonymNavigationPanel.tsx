@@ -3,7 +3,7 @@ import { useFlashcardStore, SortOrder } from '../../../../features/quiz/stores/u
 import { cn } from '../../../../utils/cn';
 import { usePDFGenerator } from '../../../../hooks/usePDFGenerator';
 import { useJSONDownloader } from '../../../../hooks/useJSONDownloader';
-import { FlashcardNavigationPanelBase } from '../../../../features/flashcards/components/FlashcardNavigationPanelBase';
+import { FlashcardSidePanel } from '../../../../components/ui/FlashcardSidePanel';
 
 interface SynonymNavigationPanelProps {
   isOpen: boolean;
@@ -35,25 +35,18 @@ export const SynonymNavigationPanel: React.FC<SynonymNavigationPanelProps> = ({
   };
 
   return (
-    <FlashcardNavigationPanelBase<any>
+    <FlashcardSidePanel<any>
       isOpen={isOpen}
       onClose={onClose}
       data={data}
       currentIndex={currentIndex}
-      onJump={onJump}
+      onItemSelected={onJump}
       title="Word Map"
       totalLabel="items total"
       themeColor="blue"
       chunkSizeStorageKey="synonym_batch_size_v1"
       currentSortOrder={currentSortOrder}
       onSortOrderChange={setSortOrder}
-      currentId={data[currentIndex]?.id}
-      isGeneratingPDF={isGeneratingPDF}
-      isGeneratingJSON={isGeneratingJSON}
-      pdfError={pdfError}
-      jsonError={jsonError}
-      onDownloadPDF={handleDownloadPDF}
-      onDownloadJSON={handleDownloadJSON}
       renderGroupContainer={(children) => (
         <div className="p-3 grid grid-cols-5 gap-2 bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700 animate-in slide-in-from-top-2 fade-in duration-200">
           {children}
