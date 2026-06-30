@@ -379,7 +379,7 @@ export const db = {
      */
 
     clearActiveSessions: async (): Promise<void> => {
-        const dbInstance = await initDB();
+        const dbInstance = await openDB();
         return new Promise((resolve, reject) => {
             const transaction = dbInstance.transaction(ACTIVE_SESSION_STORE, 'readwrite');
             const store = transaction.objectStore(ACTIVE_SESSION_STORE);
@@ -390,7 +390,7 @@ export const db = {
     },
 
     clearHistory: async (): Promise<void> => {
-        const dbInstance = await initDB();
+        const dbInstance = await openDB();
         return new Promise((resolve, reject) => {
             const transaction = dbInstance.transaction(HISTORY_STORE_NAME, 'readwrite');
             const store = transaction.objectStore(HISTORY_STORE_NAME);
@@ -401,7 +401,7 @@ export const db = {
     },
 
     clearSavedQuizzes: async (): Promise<void> => {
-        const dbInstance = await initDB();
+        const dbInstance = await openDB();
         return new Promise((resolve, reject) => {
             const transaction = dbInstance.transaction(STORE_NAME, 'readwrite');
             const store = transaction.objectStore(STORE_NAME);
@@ -412,7 +412,7 @@ export const db = {
     },
 
     clearChatData: async (): Promise<void> => {
-        const dbInstance = await initDB();
+        const dbInstance = await openDB();
         return new Promise((resolve, reject) => {
             const tx = dbInstance.transaction([CHAT_CONVERSATIONS_STORE, CHAT_MESSAGES_STORE], 'readwrite');
             tx.objectStore(CHAT_CONVERSATIONS_STORE).clear();

@@ -26,8 +26,6 @@ interface AuthContextType {
   /** True if the initial session check is still in progress. */
   loading: boolean;
   isAuthTransitioning: boolean;
-  isAuthTransitioning: boolean;
-  isAuthTransitioning: boolean;
   /** Function to sign out the current user. */
   signOut: () => Promise<void>;
   /** Function to manually refresh user data from the server. */
@@ -60,8 +58,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [profileStatus, setProfileStatus] = useState<string | null>(null);
   const [deleteRequestedAt, setDeleteRequestedAt] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [isAuthTransitioning, setIsAuthTransitioning] = useState(false);
-  const [isAuthTransitioning, setIsAuthTransitioning] = useState(false);
   const [isAuthTransitioning, setIsAuthTransitioning] = useState(false);
   const [sessionConflict, setSessionConflict] = useState(false);
   const lastSyncedUserId = useRef<string | null>(null);
