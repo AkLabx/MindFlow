@@ -3,6 +3,11 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Loader2 } from 'lucide-react';
 
+import { useScrollDirection, ScrollDirection } from '../../hooks/useScrollDirection';
+import { useLayoutStore } from '../../stores/useLayoutStore';
+import { cn } from '../../utils/cn';
+
+
 export interface TabConfig {
     key: string;
     label: string;
@@ -20,6 +25,9 @@ interface CentralizedTabbedPageProps {
     headerDescription?: React.ReactNode;
     onBack?: () => void;
     backLabel?: string;
+    stickyTabs?: boolean;
+    autoHideFooter?: boolean;
+    hideHero?: boolean;
 }
 
 export const CentralizedTabbedPage: React.FC<CentralizedTabbedPageProps> = ({
@@ -30,15 +38,39 @@ export const CentralizedTabbedPage: React.FC<CentralizedTabbedPageProps> = ({
     headerTitle,
     headerDescription,
     onBack,
-    backLabel = "Back"
+    backLabel = "Back",
+    stickyTabs = false,
+    autoHideFooter = false,
+    hideHero = false
 }) => {
     const [searchParams, setSearchParams] = useSearchParams();
     const navigate = useNavigate();
+
 
     // Determine active tab from URL, fallback to defaultTab
     const tabKeyParam = searchParams.get('tab');
     const isValidTab = tabKeyParam && tabs[tabKeyParam];
     const activeTabKey = isValidTab ? tabKeyParam : defaultTab;
+
+    // Optional layout store hook for hiding bottom nav
+    const setHideGlobalFooter = useLayoutStore((state) => state.setHideGlobalFooter);
+    const scrollDirection = useScrollDirection();
+
+    useEffect(() => {
+        if (autoHideFooter) {
+            setHideGlobalFooter(scrollDirection === ScrollDirection.Down);
+        }
+    }, [scrollDirection, autoHideFooter, setHideGlobalFooter]);
+
+    // Restore footer on unmount
+    useEffect(() => {
+        return () => {
+            if (autoHideFooter) {
+                setHideGlobalFooter(false);
+            }
+        };
+    }, [autoHideFooter, setHideGlobalFooter]);
+
 
     // Scroll positions storage (in-memory per runtime)
     const scrollPositions = useRef<Record<string, number>>({});
@@ -86,15 +118,15 @@ export const CentralizedTabbedPage: React.FC<CentralizedTabbedPageProps> = ({
 
             <div className="relative z-10 flex flex-col min-h-screen w-full max-w-7xl mx-auto px-2 sm:px-4 lg:px-6 py-6">
 
-                {/* Optional Header Section */}
-                {(headerTitle || onBack) && (
-                    <header className="flex flex-col gap-4 mb-6">
+                                {/* Optional Header Section */}
+                {(onBack || (!hideHero && headerTitle)) && (
+                    <header className="flex flex-col gap-4 mb-4">
                         {onBack && (
                             <button onClick={onBack} className="text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 flex items-center transition-colors font-semibold uppercase tracking-widest text-xs w-fit">
                                 <span className="mr-2">&larr;</span> {backLabel}
                             </button>
                         )}
-                        {headerTitle && (
+                        {!hideHero && headerTitle && (
                             <div>
                                 <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-slate-900 dark:text-white leading-[1.1] tracking-tight drop-shadow-sm">
                                     {headerTitle}
@@ -109,9 +141,12 @@ export const CentralizedTabbedPage: React.FC<CentralizedTabbedPageProps> = ({
                     </header>
                 )}
 
-                {/* Scalable Segmented Control Tab Switcher */}
-                <div className="mb-8 overflow-x-auto pb-2 scrollbar-hide w-full">
-                    <div className="flex bg-slate-200/50 dark:bg-slate-800/50 rounded-xl p-1 w-fit min-w-full sm:min-w-0 border border-slate-300/50 dark:border-slate-700/50 backdrop-blur-sm shadow-sm">
+                                {/* Scalable Segmented Control Tab Switcher */}
+                <div className={cn(
+                    "overflow-x-auto pb-2 scrollbar-hide w-full transition-all duration-300",
+                    stickyTabs ? "sticky top-[env(safe-area-inset-top,0px)] z-50 py-2 -mx-4 px-4 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8 bg-slate-50/90 dark:bg-slate-900/90 backdrop-blur-md" : "mb-8"
+                )}>
+                    <div className="flex bg-slate-200/50 dark:bg-slate-800/50 rounded-xl p-1 w-fit min-w-full sm:min-w-0 border border-slate-300/50 dark:border-slate-700/50 shadow-sm">
                         {Object.entries(tabs).map(([key, tabConfig]) => {
                             const isActive = key === activeTabKey;
                             return (

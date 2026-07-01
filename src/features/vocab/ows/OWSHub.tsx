@@ -23,23 +23,12 @@ export const OWSHub: React.FC<OWSHubProps> = ({ onBack }) => {
     return (
         <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-900 overflow-hidden relative p-2 sm:p-4">
             {/* Background elements (similar to SynonymsHub) */}
-            <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-500/20 rounded-full blur-[120px] pointer-events-none" />
-            <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-indigo-500/20 rounded-full blur-[120px] pointer-events-none" />
 
-            <div className="relative z-10 flex flex-col h-full w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+
+            <div className="relative z-10 flex flex-col h-full w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-6 pt-2">
                 {/* Header */}
-                <header className="flex flex-col gap-6 mb-8 pt-4">
 
-
-                    <div>
-                        <h1 className="text-4xl sm:text-5xl md:text-6xl font-black text-slate-900 dark:text-white leading-[1.1] tracking-tight drop-shadow-sm">
-                            One Word <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-indigo-500">Substitution</span>
-                        </h1>
-                        <p className="mt-3 text-base sm:text-lg text-slate-600 dark:text-slate-300 max-w-2xl font-medium leading-relaxed">
-                            Master frequently asked one word substitutions through smart flashcards and adaptive learning.
-                        </p>
-                    </div>
-                </header>
 
                 <div className="flex-1 flex flex-col space-y-12 pb-12">
                     {/* Core Learning Section */}
