@@ -1,4 +1,6 @@
 import { lazy } from 'react';
+import React from 'react';
+import { BookOpen, FileText, Languages, SpellCheck, Target } from 'lucide-react';
 import { TabConfig } from '../../../components/common/CentralizedTabbedPage';
 import { GrammarComingSoon } from '../components/placeholders/GrammarComingSoon';
 import { MockComingSoon } from '../components/placeholders/MockComingSoon';
@@ -11,30 +13,35 @@ const LazySynonymsPage = lazy(() => import('../../vocab/synonyms/SynonymsHub').t
 export const ENGLISH_TABS: Record<string, TabConfig> = {
     vocabidiom: {
         key: 'vocabidiom',
-        label: "Idioms & Phrases",
+        label: "Idioms",
         component: LazyIdiomsPage,
+        icon: React.createElement(BookOpen, { className: "w-5 h-5" }),
         legacyRoutes: ["/vocab/idioms"]
     },
     vocabows: {
         key: 'vocabows',
-        label: "One Word Substitution",
+        label: "OWS",
         component: LazyOWSPage,
+        icon: React.createElement(FileText, { className: "w-5 h-5" }),
         legacyRoutes: ["/vocab/ows"]
     },
     vocabsynonyms: {
         key: 'vocabsynonyms',
         label: "Synonyms",
         component: LazySynonymsPage,
+        icon: React.createElement(Languages, { className: "w-5 h-5" }),
         legacyRoutes: ["/vocab/synonyms"]
     },
     enggrammar: {
         key: 'enggrammar',
         label: "Grammar",
-        component: GrammarComingSoon
+        component: GrammarComingSoon,
+        icon: React.createElement(SpellCheck, { className: "w-5 h-5" })
     },
     engmock: {
         key: 'engmock',
         label: "Mock Test",
-        component: MockComingSoon
+        component: MockComingSoon,
+        icon: React.createElement(Target, { className: "w-5 h-5" })
     }
 };
