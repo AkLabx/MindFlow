@@ -25,15 +25,9 @@ export const EnglishHub: React.FC = () => {
             defaultTab="vocabidiom"
             baseRoute="/english"
             onTabChange={handleTabChange}
-            headerTitle={
-                <>
-                    English{' '}
-                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-rose-500 to-orange-500">
-                        Proficiency
-                    </span>
-                </>
-            }
-            headerDescription="Master vocabulary, grammar, and comprehension with targeted modules."
+            hideHero={true}
+            stickyTabs={true}
+            autoHideFooter={true}
             onBack={handleBack}
             backLabel="Back to Dashboard"
         />
