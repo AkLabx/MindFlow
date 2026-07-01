@@ -341,7 +341,7 @@ export const OWSCard: React.FC<OWSCardProps> = ({ data: initialData, serialNumbe
         cardData={data}
       />
     </div>
-  );
+  
       <style>{`
         .perspective-1000 { perspective: 1000px; }
         .transform-style-3d { transform-style: preserve-3d; }
