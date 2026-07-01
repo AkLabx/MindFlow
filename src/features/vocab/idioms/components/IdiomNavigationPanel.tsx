@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Idiom } from '../../../../types/models';
 import { useFlashcardStore, SortOrder } from '../../../../features/quiz/stores/useFlashcardStore';
 import { useIdiomProgress } from '../hooks/useIdiomProgress';
@@ -55,24 +55,16 @@ export const IdiomNavigationPanel: React.FC<IdiomNavigationPanelProps> = ({
   const { generatePDF, isGenerating: isGeneratingPDF, error: pdfError } = usePDFGenerator(() => import('../../ows/utils/pdfGenerator').then(m => m.generateOWSPDF as any));
   const { downloadJSON, isGenerating: isGeneratingJSON, error: jsonError } = useJSONDownloader<Idiom>();
 
-  const [downloadingChunkIndex, setDownloadingChunkIndex] = useState<number | null>(null);
-
-  const handleDownloadRequest = async (payload: { chunkIndex: number, start: number, end: number, format: 'pdf' | 'json' }) => {
-    const { chunkIndex, start, end, format } = payload;
-    setDownloadingChunkIndex(chunkIndex);
+  const handleDownloadPDF = async (start: number, end: number, chunkIndex: number) => {
     const chunkData = idioms.slice(start, end);
+    const fileName = `Idiom_Flashcards_Part_${chunkIndex + 1}_(${start + 1}-${end}).pdf`;
+    return await generatePDF(chunkData, { fileName });
+  };
 
-    try {
-      if (format === 'pdf') {
-        const fileName = `Idiom_Flashcards_Part_${chunkIndex + 1}_(${start + 1}-${end}).pdf`;
-        await generatePDF(chunkData, { fileName });
-      } else {
-        const fileName = `Idiom_Flashcards_Part_${chunkIndex + 1}_(${start + 1}-${end}).json`;
-        await downloadJSON(chunkData, fileName);
-      }
-    } finally {
-      setDownloadingChunkIndex(null);
-    }
+  const handleDownloadJSON = async (start: number, end: number, chunkIndex: number) => {
+    const chunkData = idioms.slice(start, end);
+    const fileName = `Idiom_Flashcards_Part_${chunkIndex + 1}_(${start + 1}-${end}).json`;
+    return await downloadJSON(chunkData, fileName);
   };
 
   return (
@@ -90,9 +82,6 @@ export const IdiomNavigationPanel: React.FC<IdiomNavigationPanelProps> = ({
       onSortOrderChange={setSortOrder}
       sortOptions={IDIOM_SORT_OPTIONS}
       getLearningStatus={getLearningStatus}
-      isGeneratingDownload={isGeneratingPDF || isGeneratingJSON}
-      downloadingChunkIndex={downloadingChunkIndex}
-      onDownloadRequest={handleDownloadRequest}
       renderItem={(idiom, globalIdx, isCurrent, closePanel, jumpTo, learningStatus, statusColor = "bg-gray-300 dark:bg-gray-600") => {
 
         return (
