@@ -11,8 +11,6 @@ export interface SortOption {
   value: string;
 }
 
-export type ExportFormat = 'pdf' | 'json';
-
 export interface FlashcardSidePanelProps<T> {
   isOpen: boolean;
   onClose: () => void;
@@ -40,7 +38,7 @@ export interface FlashcardSidePanelProps<T> {
   // Downloads
   isGeneratingDownload?: boolean;
   downloadingChunkIndex?: number | null;
-  onDownloadRequest?: (payload: { chunkIndex: number; start: number; end: number; format: ExportFormat }) => void;
+  onDownloadRequest?: (chunkIndex: number, start: number, end: number) => void;
 }
 
 const themeClasses = {
@@ -165,19 +163,11 @@ export function FlashcardSidePanel<T>({
     });
   };
 
-  const [activeDownloadMenu, setActiveDownloadMenu] = useState<number | null>(null);
-
-  const handleDownloadClick = (e: React.MouseEvent, chunkIndex: number) => {
+  const handleDownloadClick = (e: React.MouseEvent, chunkIndex: number, start: number, end: number) => {
     e.stopPropagation();
     if (isGeneratingDownload) return;
-    setActiveDownloadMenu(prev => prev === chunkIndex ? null : chunkIndex);
-  };
-
-  const executeDownload = (e: React.MouseEvent, chunkIndex: number, start: number, end: number, format: ExportFormat) => {
-    e.stopPropagation();
-    setActiveDownloadMenu(null);
     if (onDownloadRequest) {
-      onDownloadRequest({ chunkIndex, start, end, format });
+      onDownloadRequest(chunkIndex, start, end);
     }
   };
 
@@ -266,40 +256,18 @@ export function FlashcardSidePanel<T>({
                   <span>Words {start + 1} - {end}</span>
                   <div className="flex items-center gap-2">
                      {onDownloadRequest && (
-                       <div className="flex items-center gap-1">
-                         {activeDownloadMenu === chunkIndex ? (
-                           <div className="flex items-center gap-1 mr-1 animate-in slide-in-from-right-2 fade-in duration-200">
-                             <button
-                               onClick={(e) => executeDownload(e, chunkIndex, start, end, 'pdf')}
-                               className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/20 rounded text-current transition-colors"
-                             >
-                               PDF
-                             </button>
-                             <button
-                               onClick={(e) => executeDownload(e, chunkIndex, start, end, 'json')}
-                               className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/20 rounded text-current transition-colors"
-                             >
-                               JSON
-                             </button>
-                           </div>
-                         ) : null}
-                         <button
-                            onClick={(e) => handleDownloadClick(e, chunkIndex)}
-                            disabled={isGeneratingDownload && isDownloading}
-                            className={cn(
-                              "p-1.5 hover:bg-black/10 dark:hover:bg-white/10 rounded-full text-current transition-colors",
-                              (isGeneratingDownload && isDownloading) ? "opacity-50 cursor-not-allowed" : "",
-                              activeDownloadMenu === chunkIndex ? "bg-black/10 dark:bg-white/10" : ""
-                            )}
-                            title="Download Flashcards"
-                         >
-                            {isDownloading ? (
-                               <Loader2 className="w-4 h-4 animate-spin" />
-                            ) : (
-                               <ArrowDown className="w-4 h-4" />
-                            )}
-                         </button>
-                       </div>
+                       <button
+                          onClick={(e) => handleDownloadClick(e, chunkIndex, start, end)}
+                          disabled={isGeneratingDownload}
+                          className="p-1.5 hover:bg-black/10 dark:hover:bg-white/10 rounded-full text-current transition-colors disabled:opacity-50"
+                          title="Download Flashcards"
+                       >
+                          {isDownloading ? (
+                             <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                             <ArrowDown className="w-4 h-4" />
+                          )}
+                       </button>
                      )}
                     {isOpen ? <ChevronDown className={cn("w-4 h-4", theme.chevronOpen)} /> : <ChevronRight className="w-4 h-4 text-gray-400 dark:text-slate-500" />}
                   </div>
