@@ -3,6 +3,7 @@ import { useQuota, MODEL_CONFIGS, ModelId } from './useQuota';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useProfileStats } from '../../auth/hooks/useProfileStats';
 import { v4 as uuidv4 } from 'uuid';
+import { supabase } from '../../../lib/supabase';
 import {
     AIChatConversation,
     AIChatMessage,
@@ -137,56 +138,62 @@ export const useAIChat = () => {
 
     const generateTitle = async (convId: string, firstMessage: string) => {
         // @ts-ignore
-        const apiKey = process.env.GOOGLE_AI_KEY || process.env.GEMINI_API_KEY || process.env.API_KEY;
-        if (!apiKey) return;
 
 
-        // Always use the model with the highest quota for background title generation to save active model quota
-        const modelsToTry = [
-            'gemini-3.1-flash-lite-preview',
-            'gemini-2.5-flash-lite',
-            'gemini-2.5-flash'
-        ];
 
-        try {
-            let response;
-            for (const model of modelsToTry) {
-                try {
-                    response = await fetch(
-                        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
-                        {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                contents: [{ role: 'user', parts: [{ text: `Generate a short 3-5 word title for a conversation that starts with: "${firstMessage}". Do not use quotes in the response.` }] }],
-                                generationConfig: { temperature: 0.3, maxOutputTokens: 20 }
-                            })
+try {
+            const { data, error } = await supabase.auth.getSession();
+            if (error || !data.session) return;
+
+            const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat-ai`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${data.session.access_token}`
+                },
+                body: JSON.stringify({
+                    messages: [{ role: 'user', content: `Generate a short 3-5 word title for a conversation that starts with: "${firstMessage}". Do not use quotes in the response.` }],
+                    requestedModel: 'gemini-3.1-flash-lite'
+                })
+            });
+
+            if (!response.ok) return;
+
+            const reader = response.body?.getReader();
+            const decoder = new TextDecoder("utf-8");
+            let fullTitle = "";
+
+            if (reader) {
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    const chunk = decoder.decode(value, { stream: true });
+                    const lines = chunk.split('\n');
+                    for (const line of lines) {
+                        if (line.startsWith('data: ')) {
+                            const dataStr = line.slice(6);
+                            if (dataStr === '[DONE]') continue;
+                            try {
+                                const parsed = JSON.parse(dataStr);
+                                const text = parsed.candidates?.[0]?.content?.parts?.[0]?.text;
+                                if (text) fullTitle += text;
+                            } catch (e) { }
                         }
-                    );
-                    if (response.ok) {
-                        break;
                     }
-                } catch(e) {
-                     console.warn(`Model ${model} failed for title generation:`, e);
                 }
             }
 
-            if (response && response.ok) {
-                const data = await response.json();
-                let title = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
-                title = title.replace(/^["']|["']$/g, ''); // remove surrounding quotes
-
-                if (title) {
-                    setConversations(prev => {
-                        const updated = prev.map(c => c.id === convId ? { ...c, title } : c);
-                        const convToSave = updated.find(c => c.id === convId);
-                        if (convToSave) saveChatConversation(convToSave);
-                        return updated;
-                    });
-                }
+            let title = fullTitle.trim().replace(/^["']|["']$/g, '');
+            if (title) {
+                setConversations(prev => {
+                    const updated = prev.map(c => c.id === convId ? { ...c, title } : c);
+                    const convToSave = updated.find(c => c.id === convId);
+                    if (convToSave) saveChatConversation(convToSave);
+                    return updated;
+                });
             }
-        } catch (e) {
-            console.error("Auto-title failed", e);
+        } catch (error) {
+            console.error("Error generating title:", error);
         }
     };
 
@@ -274,20 +281,7 @@ export const useAIChat = () => {
         setIsLoading(true);
 
         // @ts-ignore
-        const apiKey = process.env.GOOGLE_AI_KEY || process.env.GEMINI_API_KEY || process.env.API_KEY;
 
-        if (!apiKey) {
-            const errorMsg: AIChatMessage = {
-                id: uuidv4(),
-                conversation_id: activeConvId,
-                role: 'assistant',
-                content: "Error: Missing API Key. Please check your environment variables.",
-                created_at: new Date().toISOString()
-            };
-            setMessages(prev => [...prev, errorMsg]);
-            setIsLoading(false);
-            return;
-        }
 
         const aiMessageId = uuidv4();
         // Insert empty AI message to be streamed into
@@ -372,34 +366,7 @@ export const useAIChat = () => {
 
 
             let shouldUseGrounding = false;
-            if (groundingState === 'always') {
-                shouldUseGrounding = true;
-            } else if (groundingState === 'auto') {
-                try {
-                    const preflightResponse = await fetch(
-                        `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent?key=${apiKey}`,
-                        {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                systemInstruction: {
-                                    parts: [{ text: "You are a decision engine. Analyze the user query. Does it require information about recent events, news, or knowledge after January 2025 to be answered accurately? Reply exactly with YES or NO." }]
-                                },
-                                contents: [{ role: "user", parts: [{ text: content }] }]
-                            })
-                        }
-                    );
-                    if (preflightResponse.ok) {
-                        const preflightData = await preflightResponse.json();
-                        const answer = preflightData.candidates?.[0]?.content?.parts?.[0]?.text?.trim()?.toUpperCase() || "NO";
-                        if (answer.includes("YES")) {
-                            shouldUseGrounding = true;
-                        }
-                    }
-                } catch (e) {
-                    console.error("Grounding pre-flight check failed:", e);
-                }
-            }
+            if (groundingState === 'always') { shouldUseGrounding = true; }
 
             let finalSystemPrompt = SYSTEM_PROMPT;
 
@@ -409,32 +376,34 @@ export const useAIChat = () => {
             }
 
                         const requestBody: any = {
-                systemInstruction: {
-                    parts: [{ text: finalSystemPrompt }]
-                },
-                contents: historyToSent,
-                generationConfig: {
-                    temperature: 0.7,
-                }
+                messages: historyToSent.map(h => ({ role: h.role, content: h.parts[0].text })),
+                sessionId: activeConvId,
+                requestedModel: activeModel
             };
 
-            if (shouldUseGrounding) {
-                requestBody.tools = [{ googleSearch: {} }];
+            const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+            if (sessionError || !sessionData.session) {
+                throw new Error("Please log in to use AI Chat.");
             }
 
-            const response = await fetch(
-                `https://generativelanguage.googleapis.com/v1beta/models/${String(activeModel).startsWith('gemini') ? activeModel : 'gemini-2.5-flash'}:streamGenerateContent?key=${apiKey}&alt=sse`,
-                {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(requestBody),
-                    signal: abortControllerRef.current.signal
-                }
-            );
+            const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat-ai`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${sessionData.session.access_token}`
+                },
+                body: JSON.stringify(requestBody),
+                signal: abortControllerRef.current.signal
+            });
 
             if (!response.ok) {
-                const errData = await response.json().catch(() => ({}));
-                throw new Error(errData.error?.message || "Failed to fetch response");
+                 const errBody = await response.json().catch(() => ({}));
+                 if (response.status === 429) {
+                     throw new Error("You have reached your daily AI Chat limit.");
+                 } else if (response.status === 503) {
+                     throw new Error("AI Chat is currently disabled for maintenance.");
+                 }
+                 throw new Error(errBody?.error || `AI Error: ${response.status}`);
             }
 
             if (!response.body) throw new Error("No response body");
@@ -449,7 +418,6 @@ export const useAIChat = () => {
 
                 const chunk = decoder.decode(value, { stream: true });
 
-                // SSE format parsing
                 const lines = chunk.split('\n');
                 for (const line of lines) {
                     if (line.startsWith('data: ')) {
