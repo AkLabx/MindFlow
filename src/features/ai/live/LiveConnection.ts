@@ -1,4 +1,5 @@
 import { supabase } from '../../../lib/supabase';
+import { RUNTIME_CONFIG } from '../../../lib/runtimeConfig';
 
 export interface LiveConnectionConfig {
     onMessage: (msg: any) => void;
@@ -10,14 +11,23 @@ export class LiveConnection {
     private ws: WebSocket | null = null;
     private config: LiveConnectionConfig;
     private pingTimer: number | null = null;
+
+    private retryCount = 0;
+    private maxRetries = 6; // 1s, 2s, 4s, 8s, 16s, 32s
+    private retryTimer: number | null = null;
+
     public status: 'disconnected' | 'connecting' | 'connected' = 'disconnected';
 
     constructor(config: LiveConnectionConfig) {
         this.config = config;
     }
 
-    async connect() {
-        if (this.status !== 'disconnected') return;
+    async connect(isRetry = false) {
+        if (!isRetry) {
+            this.retryCount = 0;
+        }
+
+        if (this.status === 'connected' || (this.status === 'connecting' && !isRetry)) return;
         this.updateStatus('connecting');
 
         try {
@@ -26,10 +36,15 @@ export class LiveConnection {
                 throw new Error("Authentication required");
             }
 
-            const proxyUrl = import.meta.env.VITE_LIVE_PROXY_URL || 'ws://localhost:8080';
+            const proxyUrl = RUNTIME_CONFIG.LIVE_PROXY_URL;
             this.ws = new WebSocket(proxyUrl);
 
             this.ws.onopen = () => {
+                this.retryCount = 0; // Reset retries on successful connection
+                if (this.retryTimer) {
+                    window.clearTimeout(this.retryTimer);
+                    this.retryTimer = null;
+                }
                 this.ws?.send(JSON.stringify({
                     type: 'auth',
                     token: data.session?.access_token
@@ -65,10 +80,18 @@ export class LiveConnection {
                 this.config.onError("Network error occurred.");
             };
 
-            this.ws.onclose = () => {
+            this.ws.onclose = (event) => {
                 this.stopHeartbeat();
                 if (this.status !== 'disconnected') {
-                    this.updateStatus('disconnected', 'Network disconnect');
+                    // Exponential backoff logic
+                    if (this.retryCount < this.maxRetries && event.code !== 1000) { // 1000 is normal closure
+                        const timeoutMs = Math.pow(2, this.retryCount) * 1000;
+                        console.log(`Live Connection closed. Retrying in ${timeoutMs}ms...`);
+                        this.retryCount++;
+                        this.retryTimer = window.setTimeout(() => this.connect(true), timeoutMs);
+                    } else {
+                        this.updateStatus('disconnected', 'Network disconnect');
+                    }
                 }
             };
         } catch (e: any) {
@@ -122,9 +145,13 @@ export class LiveConnection {
 
     disconnect(reason?: string) {
         this.stopHeartbeat();
+        if (this.retryTimer) {
+            window.clearTimeout(this.retryTimer);
+            this.retryTimer = null;
+        }
         this.updateStatus('disconnected', reason);
         if (this.ws) {
-            this.ws.close();
+            this.ws.close(1000); // 1000 = Normal closure, avoids triggering retry
             this.ws = null;
         }
     }
