@@ -3,10 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { useNavSpinner } from '../../../hooks/useNavSpinner';
 import { Loader2, ArrowLeft, ChevronRight } from 'lucide-react';
 import { motion } from 'framer-motion';
-
-// Using the same Smart Flashcards SVG component as synonyms for now
-import { SmartFlashcardsSVG } from '../synonyms/components/SynonymsSVGs';
-import { SavedQuizzesSVG } from '../../../features/quiz/components/DashboardSVGs';
+import { ContinueLearningBanner, DomainStatsRow, QuickActionsGrid } from '../../../features/english/components/workspace';
+import { BookOpen, FolderOpen, Plus, Download } from 'lucide-react';
+import { useFlashcardStore } from '../../quiz/stores/useFlashcardStore';
 
 interface IdiomsHubProps {
     onBack?: () => void;
@@ -15,105 +14,33 @@ interface IdiomsHubProps {
 export const IdiomsHub: React.FC<IdiomsHubProps> = ({ onBack }) => {
     const navigate = useNavigate();
     const { loadingId, handleNavigation } = useNavSpinner();
+    const swipeStats = useFlashcardStore(state => state.swipeStats);
 
-    const containerVariants = { hidden: { opacity: 0 }, visible: { opacity: 1, transition: { staggerChildren: 0.1 } } };
-    const itemVariants = { hidden: { y: 20, opacity: 0 }, visible: { y: 0, opacity: 1 } };
+    // Derived dummy remaining count for workspace feel
+    const remaining = 500 - (swipeStats.mastered + swipeStats.review);
+
+    const quickActions = [
+        { id: 'smart', label: 'Smart Flashcards', icon: <BookOpen className="w-5 h-5" />, onClick: () => handleNavigation('smart', () => navigate('/vocab/idioms/config')), colorClass: 'text-indigo-500 bg-indigo-50 dark:bg-indigo-500/10' },
+        { id: 'library', label: 'Saved Decks', icon: <FolderOpen className="w-5 h-5" />, onClick: () => handleNavigation('library', () => navigate('/vocab/idioms/library')), colorClass: 'text-amber-500 bg-amber-50 dark:bg-amber-500/10' },
+        { id: 'create', label: 'Create Deck', icon: <Plus className="w-5 h-5" />, onClick: () => navigate('/tools/flashcard-maker'), colorClass: 'text-sky-500 bg-sky-50 dark:bg-sky-500/10' },
+        { id: 'import', label: 'Import Deck', icon: <Download className="w-5 h-5" />, onClick: () => navigate('/admin/upload'), colorClass: 'text-rose-500 bg-rose-50 dark:bg-rose-500/10' }
+    ];
 
     return (
-        <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-900 overflow-hidden relative p-2 sm:p-4">
-
-
-
-            <div className="relative z-10 flex flex-col h-full w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-6 pt-2">
-
-
-                <div className="flex-1 flex flex-col space-y-12 pb-12">
-                    <div>
-                        <div className="mb-6 flex items-center gap-3">
-                            <h2 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Core Learning</h2>
-                            <div className="h-px flex-1 bg-slate-200 dark:bg-slate-800 rounded-full"></div>
-                        </div>
-
-                        <motion.div variants={containerVariants} initial="hidden" animate="visible" className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 w-full max-w-7xl mx-auto z-20">
-
-                            {/* Saved Decks */}
-                            <motion.div
-                                variants={itemVariants}
-                                whileHover={{ scale: 1.02 }}
-                                whileTap={{ scale: 0.98 }}
-                                onClick={() => handleNavigation('saved-decks', () => navigate('/vocab/idioms/library'))}
-                                className="relative group cursor-pointer aspect-square rounded-[32px] sm:rounded-[40px] p-[1px] overflow-hidden"
-                            >
-                                <div className="absolute inset-0 bg-white/40 dark:bg-slate-900/40 backdrop-blur-2xl transition-colors duration-300 z-0"></div>
-                                <div className="absolute inset-0 bg-gradient-to-br from-white/60 to-white/10 dark:from-white/10 dark:to-transparent z-0"></div>
-                                <div className="absolute inset-0 rounded-[32px] sm:rounded-[40px] border border-white/60 dark:border-white/10 shadow-[0_8px_32px_0_rgba(31,38,135,0.07)] dark:shadow-[0_8px_32px_0_rgba(0,0,0,0.3)] z-10 transition-all duration-300 group-active:border-b-0 border-b-[4px] border-b-emerald-200/50 dark:border-b-emerald-700/50 group-hover:border-emerald-300 dark:group-hover:border-emerald-500"></div>
-                                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full rounded-full blur-[60px] opacity-40 group-hover:opacity-60 transition-opacity duration-500 z-0 bg-emerald-500"></div>
-
-                                {loadingId === 'saved-decks' && (
-                                    <div className="absolute inset-0 flex items-center justify-center z-20 bg-white/20 dark:bg-black/20 backdrop-blur-sm rounded-[32px] sm:rounded-[40px]">
-                                        <Loader2 className="w-8 h-8 text-emerald-500 animate-spin drop-shadow-md" />
-                                    </div>
-                                )}
-
-                                <div className={`relative z-20 flex flex-col items-center justify-between h-full w-full p-4 sm:p-6 transition-opacity duration-300 ${loadingId === 'saved-decks' ? 'opacity-0' : 'opacity-100'}`}>
-
-
-                                    <motion.div className="w-16 h-16 sm:w-24 sm:h-24 md:w-28 md:h-28 mt-2 relative drop-shadow-xl" initial={{ scale: 0.9, opacity: 0.8 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: "spring", stiffness: 200, damping: 20 }}>
-                                        <SavedQuizzesSVG />
-                                    </motion.div>
-
-                                    <div className="flex flex-col items-center justify-end w-full text-center pb-2">
-                                        <div className="flex items-center justify-center mb-1 sm:mb-2 gap-1">
-                                            <h3 className="text-sm sm:text-lg font-black leading-tight bg-clip-text text-transparent bg-gradient-to-r from-emerald-600 to-emerald-900 dark:from-emerald-300 dark:to-emerald-100">
-                                                Saved Decks
-                                            </h3>
-                                            <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 dark:text-gray-500 flex-shrink-0" />
-                                        </div>
-                                        <p className="text-slate-500 dark:text-slate-400 text-[10px] sm:text-xs font-semibold leading-tight line-clamp-2 max-w-[90%]">Resume and review your custom saved decks.</p>
-                                    </div>
-                                </div>
-                            </motion.div>
-
-                            {/* Smart Flashcards */}
-                            <motion.div
-                                variants={itemVariants}
-                                whileHover={{ scale: 1.02 }}
-                                whileTap={{ scale: 0.98 }}
-                                onClick={() => handleNavigation('smart-flashcards', () => navigate('/vocab/idioms/config'))}
-                                className="relative group cursor-pointer aspect-square rounded-[32px] sm:rounded-[40px] p-[1px] overflow-hidden"
-                            >
-                                <div className="absolute inset-0 bg-white/40 dark:bg-slate-900/40 backdrop-blur-2xl transition-colors duration-300 z-0"></div>
-                                <div className="absolute inset-0 bg-gradient-to-br from-white/60 to-white/10 dark:from-white/10 dark:to-transparent z-0"></div>
-                                <div className="absolute inset-0 rounded-[32px] sm:rounded-[40px] border border-white/60 dark:border-white/10 shadow-[0_8px_32px_0_rgba(31,38,135,0.07)] dark:shadow-[0_8px_32px_0_rgba(0,0,0,0.3)] z-10 transition-all duration-300 group-active:border-b-0 border-b-[4px] border-b-indigo-200/50 dark:border-b-indigo-700/50 group-hover:border-indigo-300 dark:group-hover:border-indigo-500"></div>
-                                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full rounded-full blur-[60px] opacity-40 group-hover:opacity-60 transition-opacity duration-500 z-0 bg-indigo-500"></div>
-
-                                {loadingId === 'smart-flashcards' && (
-                                    <div className="absolute inset-0 flex items-center justify-center z-20 bg-white/20 dark:bg-black/20 backdrop-blur-sm rounded-[32px] sm:rounded-[40px]">
-                                        <Loader2 className="w-8 h-8 text-indigo-500 animate-spin drop-shadow-md" />
-                                    </div>
-                                )}
-
-                                <div className={`relative z-20 flex flex-col items-center justify-between h-full w-full p-4 sm:p-6 transition-opacity duration-300 ${loadingId === 'smart-flashcards' ? 'opacity-0' : 'opacity-100'}`}>
-
-
-                                    <motion.div className="w-16 h-16 sm:w-24 sm:h-24 md:w-28 md:h-28 mt-2 relative drop-shadow-xl" initial={{ scale: 0.9, opacity: 0.8 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: "spring", stiffness: 200, damping: 20 }}>
-                                        <SmartFlashcardsSVG />
-                                    </motion.div>
-
-                                    <div className="flex flex-col items-center justify-end w-full text-center pb-2">
-                                        <div className="flex items-center justify-center mb-1 sm:mb-2 gap-1">
-                                            <h3 className="text-sm sm:text-lg font-black leading-tight bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-indigo-900 dark:from-indigo-300 dark:to-indigo-100">
-                                                Smart Flashcards
-                                            </h3>
-                                            <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 dark:text-gray-500 flex-shrink-0" />
-                                        </div>
-                                        <p className="text-slate-500 dark:text-slate-400 text-[10px] sm:text-xs font-semibold leading-tight line-clamp-2 max-w-[90%]">Swipe through personalized idioms sets based on mastery.</p>
-                                    </div>
-                                </div>
-                            </motion.div>
-
-                        </motion.div>
-                    </div>
+        <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-900 overflow-hidden relative p-0">
+            <div className="relative z-10 flex flex-col h-full w-full max-w-7xl mx-auto px-1 sm:px-2 pt-1 pb-6">
+                <div className="flex flex-col gap-1 w-full max-w-7xl mx-auto">
+                    <ContinueLearningBanner
+                        domainName="Idioms"
+                        reviewCount={swipeStats.review > 0 ? swipeStats.review : 18}
+                        onClick={() => handleNavigation('continue', () => navigate('/vocab/idioms/config'))}
+                    />
+                    <DomainStatsRow
+                        mastered={swipeStats.mastered}
+                        reviewQueue={swipeStats.review > 0 ? swipeStats.review : 18}
+                        remaining={remaining}
+                    />
+                    <QuickActionsGrid actions={quickActions} />
                 </div>
             </div>
         </div>

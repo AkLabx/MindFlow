@@ -109,18 +109,48 @@ export const CentralizedTabbedPage: React.FC<CentralizedTabbedPageProps> = ({
 
     const ActiveComponent = tabs[activeTabKey]?.component;
 
+    // Swipe logic
+    const touchStartX = useRef<number | null>(null);
+    const minSwipeDistance = 50;
+
+    const onTouchStart = (e: React.TouchEvent) => {
+        touchStartX.current = e.touches[0].clientX;
+    };
+
+    const onTouchEnd = (e: React.TouchEvent) => {
+        if (!touchStartX.current) return;
+        const touchEndX = e.changedTouches[0].clientX;
+        const distance = touchStartX.current - touchEndX;
+        const isLeftSwipe = distance > minSwipeDistance;
+        const isRightSwipe = distance < -minSwipeDistance;
+
+        if (isLeftSwipe || isRightSwipe) {
+            const tabKeys = Object.keys(tabs);
+            const currentIndex = tabKeys.indexOf(activeTabKey);
+
+            if (isLeftSwipe && currentIndex < tabKeys.length - 1) {
+                handleTabChange(tabKeys[currentIndex + 1]);
+            }
+            if (isRightSwipe && currentIndex > 0) {
+                handleTabChange(tabKeys[currentIndex - 1]);
+            }
+        }
+        touchStartX.current = null;
+    };
+
+
     // Reusable segmented control rendering
     return (
-        <div className="flex flex-col min-h-screen bg-slate-50 dark:bg-slate-900 overflow-hidden relative -m-4 sm:-m-6 lg:-m-8 p-4 sm:p-6 lg:p-8">
+        <div className="flex flex-col min-h-screen bg-slate-50 dark:bg-slate-900 overflow-hidden relative -m-2 p-2 sm:p-2">
             {/* Minimal background elements */}
             <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-indigo-500/10 rounded-full blur-[120px] pointer-events-none" />
             <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-purple-500/10 rounded-full blur-[120px] pointer-events-none" />
 
-            <div className="relative z-10 flex flex-col min-h-screen w-full max-w-7xl mx-auto px-2 sm:px-4 lg:px-6 py-6">
+            <div className="relative z-10 flex flex-col min-h-screen w-full max-w-7xl mx-auto px-0 py-2">
 
                                 {/* Optional Header Section */}
                 {(onBack || (!hideHero && headerTitle)) && (
-                    <header className="flex flex-col gap-4 mb-4">
+                    <header className="flex flex-col gap-2 mb-2">
                         {onBack && (
                             <button onClick={onBack} className="text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 flex items-center transition-colors font-semibold uppercase tracking-widest text-xs w-fit">
                                 <span className="mr-2">&larr;</span> {backLabel}
@@ -144,16 +174,16 @@ export const CentralizedTabbedPage: React.FC<CentralizedTabbedPageProps> = ({
                                 {/* Scalable Segmented Control Tab Switcher */}
                 <div className={cn(
                     "overflow-x-auto pb-2 scrollbar-hide w-full transition-all duration-300",
-                    stickyTabs ? "sticky top-[env(safe-area-inset-top,0px)] z-50 py-2 -mx-4 px-4 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8 bg-slate-50/90 dark:bg-slate-900/90 backdrop-blur-md" : "mb-8"
+                    stickyTabs ? "sticky top-[env(safe-area-inset-top,0px)] z-50 py-1 px-1 bg-slate-50/90 dark:bg-slate-900/90 backdrop-blur-md" : "mb-8"
                 )}>
-                    <div className="flex bg-slate-200/50 dark:bg-slate-800/50 rounded-xl p-1 w-fit min-w-full sm:min-w-0 border border-slate-300/50 dark:border-slate-700/50 shadow-sm">
+                    <div className="flex bg-slate-200/50 dark:bg-slate-800/50 rounded-lg p-0.5 w-fit min-w-full sm:min-w-0 border border-slate-300/50 dark:border-slate-700/50 shadow-sm">
                         {Object.entries(tabs).map(([key, tabConfig]) => {
                             const isActive = key === activeTabKey;
                             return (
                                 <button
                                     key={key}
                                     onClick={() => handleTabChange(key)}
-                                    className={`relative flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2.5 sm:px-6 rounded-lg transition-all text-sm sm:text-base whitespace-nowrap min-w-[120px] ${
+                                    className={`relative flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md transition-all text-xs sm:text-sm whitespace-nowrap min-w-[90px] ${
                                         isActive
                                         ? 'text-indigo-700 dark:text-indigo-300 font-bold'
                                         : 'text-slate-600 dark:text-slate-400 font-semibold hover:bg-white/40 dark:hover:bg-slate-700/40 hover:text-indigo-600 dark:hover:text-indigo-400'
@@ -177,7 +207,7 @@ export const CentralizedTabbedPage: React.FC<CentralizedTabbedPageProps> = ({
                 </div>
 
                 {/* Tab Content Area with Conditional Rendering and Suspense */}
-                <div className="flex-1 w-full animate-fade-in relative min-h-[400px]">
+                <div className="flex-1 w-full animate-fade-in relative min-h-[400px]" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
                     <Suspense fallback={
                         <div className="absolute inset-0 flex items-center justify-center">
                             <Loader2 className="w-8 h-8 text-indigo-500 animate-spin" />
