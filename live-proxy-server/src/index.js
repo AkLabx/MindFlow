@@ -63,7 +63,20 @@ class LiveSession {
         const url = `wss://${host}/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent?key=${geminiApiKey}`;
 
         return new Promise((resolve, reject) => {
-            this.geminiSocket = new WebSocket(url);
+            const headers = {
+                "Origin": "https://aklabx.github.io",
+                "Referer": "https://aklabx.github.io/MindFlow/",
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+            };
+
+            logger.info({
+                origin: headers.Origin,
+                referer: headers.Referer,
+                model,
+                host
+            }, "Opening Gemini websocket");
+
+            this.geminiSocket = new WebSocket(url, { headers });
 
             this.geminiSocket.on('open', () => {
                 logger.info({ userId: this.userId }, "Gemini WebSocket connected.");
@@ -111,7 +124,7 @@ class LiveSession {
             });
 
             this.geminiSocket.on('close', (code, reason) => {
-                logger.info({ userId: this.userId, code, reason: reason.toString() }, "Gemini WebSocket closed");
+                logger.warn({ userId: this.userId, code, reason: reason.toString() }, "Gemini WebSocket closed");
                 this.handleDisconnect('gemini_closed');
             });
 
