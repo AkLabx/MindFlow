@@ -59,8 +59,8 @@ class LiveSession {
 
     async initGeminiConnection() {
         const host = "generativelanguage.googleapis.com";
-        const model = "gemini-2.5-flash-native-audio-preview";
-        const url = `wss://${host}/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent?key=${geminiApiKey}`;
+        const model = "gemini-3.1-flash-live-preview";
+        const url = `wss://${host}/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent?key=${geminiApiKey}`;
 
         return new Promise((resolve, reject) => {
             const headers = {
@@ -281,7 +281,7 @@ class LiveSession {
                 user_id: this.userId,
                 feature: 'live_talk',
                 provider: 'google',
-                model: 'gemini-2.5-flash-native-audio-preview',
+                model: 'gemini-3.1-flash-live-preview',
                 session_duration_ms: durationMs,
                 audio_input_bytes: this.audioInputBytes,
                 audio_output_bytes: this.audioOutputBytes,
