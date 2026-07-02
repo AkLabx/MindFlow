@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useProfileStats } from '../../auth/hooks/useProfileStats';
 import { v4 as uuidv4 } from 'uuid';
 import { supabase, SUPABASE_URL } from '../../../lib/supabase';
+import { RUNTIME_CONFIG } from '../../../lib/runtimeConfig';
 import {
     AIChatConversation,
     AIChatMessage,
@@ -144,9 +145,9 @@ export const useAIChat = () => {
 try {
             const { data, error } = await supabase.auth.getSession();
             if (error || !data.session) return;
-            console.log("chat endpoint", `${SUPABASE_URL}/functions/v1/chat-ai`);
+            console.log("chat endpoint", RUNTIME_CONFIG.CHAT_AI_URL);
 
-            const response = await fetch(`${SUPABASE_URL}/functions/v1/chat-ai`, {
+            const response = await fetch(RUNTIME_CONFIG.CHAT_AI_URL, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -386,9 +387,9 @@ try {
             if (sessionError || !sessionData.session) {
                 throw new Error("Please log in to use AI Chat.");
             }
-            console.log("chat endpoint", `${SUPABASE_URL}/functions/v1/chat-ai`);
+            console.log("chat endpoint", RUNTIME_CONFIG.CHAT_AI_URL);
 
-            const response = await fetch(`${SUPABASE_URL}/functions/v1/chat-ai`, {
+            const response = await fetch(RUNTIME_CONFIG.CHAT_AI_URL, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
