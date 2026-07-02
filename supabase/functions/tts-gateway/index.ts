@@ -13,7 +13,7 @@ const MAX_PAYLOAD_SIZE = 50000; // ~50k chars max for TTS
 
 serve(async (req) => {
     if (req.method === 'OPTIONS') {
-        return new Response('ok', { headers: corsHeaders });
+        return new Response(null, { headers: corsHeaders });
     }
 
 
