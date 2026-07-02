@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { supabase } from '../lib/supabase';
+import { supabase, SUPABASE_URL } from '../lib/supabase';
 import { useAuth } from '../features/auth/context/AuthContext';
 import { fetchWithTimeout } from '../lib/fetchWithTimeout';
 import { usePresenceStore } from '../stores/usePresenceStore';
@@ -39,7 +39,7 @@ export const PresenceProvider = ({ children }: { children: React.ReactNode }) =>
       // Get the current session for auth token
       supabase.auth.getSession().then(({ data: { session } }) => {
         if (session) {
-          fetchWithTimeout(`${import.meta.env.VITE_SUPABASE_URL}/rest/v1/profiles?id=eq.${user.id}`, {
+          fetchWithTimeout(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${user.id}`, {
             method: 'PATCH',
             headers: {
               'Content-Type': 'application/json',
