@@ -1,8 +1,137 @@
+
+// --- _shared/ai/governance.ts ---
+import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+interface GovernanceConfig {
+    is_enabled: boolean;
+    free_daily_limit: number;
+    premium_daily_limit: number;
+    model_chain: string[];
+    cache_enabled: boolean;
+}
+
+async function checkQuotaAndConfig(
+    supabaseAdmin: SupabaseClient,
+    userId: string,
+    featureName: string
+): Promise<{ config: GovernanceConfig, isPremium: boolean }> {
+    // We now use an atomic RPC to prevent race conditions and double-spending
+    const { data, error } = await supabaseAdmin
+        .rpc('check_and_increment_ai_quota', {
+            p_user_id: userId,
+            p_feature: featureName
+        });
+
+    if (error) {
+        if (error.message.includes('quota_exceeded')) {
+            throw new Error("quota_exceeded");
+        }
+        if (error.message.includes('kill_switch_active')) {
+            throw new Error("kill_switch_active");
+        }
+        console.error(`Quota RPC error for ${featureName}:`, error);
+        throw new Error("system_configuration_error");
+    }
+
+    if (!data || !data.config) {
+        throw new Error("system_configuration_error");
+    }
+
+    return {
+        config: data.config as GovernanceConfig,
+        isPremium: data.isPremium as boolean
+    };
+}
+
+// --- _shared/ai/telemetry.ts ---
+import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+interface TelemetryData {
+    user_id: string | null;
+    feature: string;
+    provider: string | null;
+    model: string | null;
+    input_tokens: number;
+    output_tokens: number;
+    latency_ms: number;
+    cache_hit: boolean;
+    fallback_depth: number;
+    error_type: string | null;
+    estimated_cost_usd: number;
+    request_type: string;
+    response_status: string;
+    session_id?: string | null;
+}
+
+async function logTelemetry(
+    supabaseAdmin: SupabaseClient,
+    data: TelemetryData
+) {
+    try {
+        const { error } = await supabaseAdmin
+            .from('ai_request_logs')
+            .insert({
+                user_id: data.user_id,
+                feature: data.feature,
+                provider: data.provider,
+                model: data.model,
+                input_tokens: data.input_tokens,
+                output_tokens: data.output_tokens,
+                latency_ms: data.latency_ms,
+                cache_hit: data.cache_hit,
+                fallback_depth: data.fallback_depth,
+                error_type: data.error_type,
+                estimated_cost_usd: data.estimated_cost_usd,
+                request_type: data.request_type,
+                response_status: data.response_status,
+                session_id: data.session_id || null
+            });
+
+        if (error) {
+            console.error("Failed to insert telemetry log:", error);
+        }
+    } catch (e) {
+        console.error("Telemetry error:", e);
+    }
+}
+
+// --- _shared/ai/providers/gemini.ts ---
+interface GeminiRequestOptions {
+    apiKey: string;
+    model: string;
+    body: any;
+    signal?: AbortSignal;
+}
+
+async function fetchGeminiStream(options: GeminiRequestOptions): Promise<Response> {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${options.model}:streamGenerateContent?key=${options.apiKey}&alt=sse`;
+    return fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(options.body),
+        signal: options.signal
+    });
+}
+
+async function fetchGemini(options: GeminiRequestOptions): Promise<Response> {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${options.model}:generateContent?key=${options.apiKey}`;
+    return fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(options.body),
+        signal: options.signal
+    });
+}
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { checkQuotaAndConfig } from "../_shared/ai/governance.ts";
-import { logTelemetry } from "../_shared/ai/telemetry.ts";
-import { fetchGeminiStream } from "../_shared/ai/providers/gemini.ts";
+
+
+
 
 const corsHeaders = {
     'Access-Control-Allow-Origin': '*',

@@ -85,7 +85,7 @@ export const AIChatPage: React.FC = () => {
  role: m.role as 'user' | 'model',
  text: m.content
  }));
- connect(initialContext);
+ connect(JSON.stringify(initialContext));
  }
  };
 
@@ -115,7 +115,7 @@ export const AIChatPage: React.FC = () => {
  role: m.role as 'user' | 'model',
  text: m.content
  }));
- connect(initialContext);
+ connect(JSON.stringify(initialContext));
  };
 
  const handleEndLiveTalk = async () => {
