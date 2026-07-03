@@ -27,7 +27,7 @@ export const IdiomsHub: React.FC<IdiomsHubProps> = ({ onBack }) => {
     ];
 
     return (
-        <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-900 overflow-hidden relative p-0">
+        <div className="flex flex-col h-full bg-transparent overflow-hidden relative p-0">
             <div className="relative z-10 flex flex-col h-full w-full max-w-7xl mx-auto px-1 sm:px-2 pt-1 pb-6">
                 <div className="flex flex-col gap-1 w-full max-w-7xl mx-auto">
                     <ContinueLearningBanner

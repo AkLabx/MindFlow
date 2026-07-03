@@ -141,12 +141,12 @@ export const CentralizedTabbedPage: React.FC<CentralizedTabbedPageProps> = ({
 
     // Reusable segmented control rendering
     return (
-        <div className="flex flex-col min-h-screen bg-slate-50 dark:bg-slate-900 overflow-hidden relative -m-2 p-2 sm:p-2">
+        <div className="flex flex-col min-h-screen pb-[calc(64px_+_env(safe-area-inset-bottom))] bg-transparent overflow-hidden relative -m-2 p-2 sm:p-2">
             {/* Minimal background elements */}
             <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-indigo-500/10 rounded-full blur-[120px] pointer-events-none" />
             <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-purple-500/10 rounded-full blur-[120px] pointer-events-none" />
 
-            <div className="relative z-10 flex flex-col min-h-screen w-full max-w-7xl mx-auto px-0 py-2">
+            <div className="relative z-10 flex flex-col min-h-screen pb-[calc(64px_+_env(safe-area-inset-bottom))] w-full max-w-7xl mx-auto px-0 py-2">
 
                                 {/* Optional Header Section */}
                 {(onBack || (!hideHero && headerTitle)) && (
