@@ -11,3 +11,4 @@ export * from './hooks/useAdminUploadIdioms';
 export * from './api/adminSynonymsApi';
 export * from './hooks/useAdminBulkUpdateSynonyms';
 export * from './hooks/useAdminUploadSynonyms';
+export * from './enrichment';

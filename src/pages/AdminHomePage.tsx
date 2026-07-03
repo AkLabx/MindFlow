@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { ShieldAlert, Bell, Upload, ArrowLeft } from 'lucide-react';
+import { ShieldAlert, Bell, Upload, Brain, ArrowLeft } from 'lucide-react';
 import { useAuth } from '@/features/auth';
 
 export const AdminHomePage: React.FC = () => {
@@ -53,6 +53,25 @@ export const AdminHomePage: React.FC = () => {
                         <div>
                             <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100">Reports Queue</h2>
                             <p className="text-sm text-slate-500 mt-1">Review user reports and take moderation actions.</p>
+                        </div>
+                    </div>
+                </motion.div>
+
+                {/* AI Enrichment Center Button */}
+                <motion.div
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => navigate('/admin/enrichment')}
+                    className="relative group cursor-pointer rounded-3xl p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden"
+                >
+                    <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <div className="flex items-center gap-4 relative z-10">
+                        <div className="bg-indigo-100 dark:bg-indigo-900/50 p-4 rounded-2xl">
+                            <Brain className="w-8 h-8 text-indigo-600 dark:text-indigo-400" />
+                        </div>
+                        <div>
+                            <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100">AI Enrichment Center</h2>
+                            <p className="text-sm text-slate-500 mt-1">Manage lexical pipeline, quotas, and DLQ.</p>
                         </div>
                     </div>
                 </motion.div>
