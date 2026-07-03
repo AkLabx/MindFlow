@@ -8,19 +8,26 @@ interface TelemetryPanelProps {
 export const TelemetryPanel: React.FC<TelemetryPanelProps> = ({ metrics }) => {
     if (!metrics) return null;
 
+    const getRuntimeColor = (ms: number) => {
+        if (ms === 0) return 'text-slate-800 dark:text-slate-100';
+        if (ms < 30000) return 'text-emerald-600 dark:text-emerald-400';
+        if (ms <= 90000) return 'text-yellow-600 dark:text-yellow-400';
+        return 'text-red-600 dark:text-red-400';
+    };
+
     return (
         <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm mb-8">
             <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-6">Telemetry</h2>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                 <div>
                     <p className="text-sm text-slate-500 mb-1">Avg Runtime (Examples)</p>
-                    <p className="text-xl font-bold text-slate-800 dark:text-slate-100">
+                    <p className={`text-xl font-bold ${getRuntimeColor(metrics.avg_runtime_examples)}`}>
                         {metrics.avg_runtime_examples.toFixed(0)} ms
                     </p>
                 </div>
                 <div>
                     <p className="text-sm text-slate-500 mb-1">Avg Runtime (Synonyms)</p>
-                    <p className="text-xl font-bold text-slate-800 dark:text-slate-100">
+                    <p className={`text-xl font-bold ${getRuntimeColor(metrics.avg_runtime_synonyms)}`}>
                         {metrics.avg_runtime_synonyms.toFixed(0)} ms
                     </p>
                 </div>

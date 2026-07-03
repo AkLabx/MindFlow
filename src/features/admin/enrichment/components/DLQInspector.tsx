@@ -81,6 +81,7 @@ export const DLQInspector: React.FC<DLQInspectorProps> = ({
                                 <th className="p-3 font-medium rounded-tl-xl">Word ID</th>
                                 <th className="p-3 font-medium">Task</th>
                                 <th className="p-3 font-medium">Error</th>
+                                <th className="p-3 font-medium text-center">Retry Count</th>
                                 <th className="p-3 font-medium">Failed At</th>
                                 {!isMobile && <th className="p-3 font-medium text-right rounded-tr-xl">Actions</th>}
                             </tr>
@@ -97,6 +98,11 @@ export const DLQInspector: React.FC<DLQInspectorProps> = ({
                                     <td className="p-3 text-red-600 dark:text-red-400 max-w-xs truncate" title={job.error_message}>
                                         {job.error_message}
                                     </td>
+                                    <td className="p-3 text-center">
+                                        <span className={`px-2 py-1 rounded text-xs font-medium ${job.attempt_count > 3 ? 'bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-400' : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'}`}>
+                                            {job.attempt_count}
+                                        </span>
+                                    </td>
                                     <td className="p-3 text-xs text-slate-500">
                                         {new Date(job.failed_at).toLocaleString()}
                                     </td>
@@ -107,17 +113,17 @@ export const DLQInspector: React.FC<DLQInspectorProps> = ({
                                                     onClick={() => handleAction(() => onRetry(job.id), job.id, 'Job re-queued successfully')}
                                                     disabled={isProcessing === job.id}
                                                     title="Retry Job"
-                                                    className="p-1.5 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400 rounded-lg transition-colors"
+                                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-900/30 dark:hover:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400 rounded-lg font-medium text-xs transition-colors"
                                                 >
-                                                    <RotateCcw className="w-4 h-4" />
+                                                    <RotateCcw className="w-4 h-4" /> Retry
                                                 </button>
                                                 <button
                                                     onClick={() => handleAction(() => onArchive(job.id), job.id, 'Job archived')}
                                                     disabled={isProcessing === job.id}
                                                     title="Archive Error"
-                                                    className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 rounded-lg transition-colors"
+                                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 rounded-lg font-medium text-xs transition-colors"
                                                 >
-                                                    <Archive className="w-4 h-4" />
+                                                    <Archive className="w-4 h-4" /> Archive
                                                 </button>
                                             </div>
                                         </td>
