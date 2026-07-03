@@ -104,7 +104,9 @@ class LiveSession {
             this.geminiSocket.on('message', (data) => {
                 this.recordActivity();
                 try {
-                    const msg = JSON.parse(data.toString());
+                    const msgStr = data.toString();
+                    // logger.info({ geminiMessage: msgStr.slice(0, 500) }, "Gemini response");
+                    const msg = JSON.parse(msgStr);
                     if (msg.serverContent?.modelTurn?.parts) {
                         for (const part of msg.serverContent.modelTurn.parts) {
                             if (part.inlineData && part.inlineData.data) {
@@ -184,10 +186,8 @@ class LiveSession {
                 return;
             }
 
-            if (msg.realtimeInput?.mediaChunks) {
-                for (const chunk of msg.realtimeInput.mediaChunks) {
-                    if (chunk.data) this.audioInputBytes += chunk.data.length;
-                }
+            if (msg.realtimeInput?.audio?.data) {
+                this.audioInputBytes += msg.realtimeInput.audio.data.length;
             }
             if (msg.clientContent?.turns) {
                 for (const turn of msg.clientContent.turns) {
@@ -198,6 +198,13 @@ class LiveSession {
             }
 
             if (this.geminiSocket && this.geminiSocket.readyState === WebSocket.OPEN) {
+                if (msg.realtimeInput?.audio) {
+                    logger.info({
+                        payloadType: "audio",
+                        mimeType: msg.realtimeInput.audio.mimeType,
+                        size: msg.realtimeInput.audio.data.length
+                    }, "Forwarding audio chunk");
+                }
                 this.geminiSocket.send(data.toString());
             }
         } catch (e) {
