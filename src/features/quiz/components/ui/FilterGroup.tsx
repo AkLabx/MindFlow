@@ -14,7 +14,7 @@ import React from 'react';
  */
 export function FilterGroup({ title, icon, children, onClearAll, showClearAll }: { title: string; icon: React.ReactElement; children?: React.ReactNode; onClearAll?: () => void; showClearAll?: boolean }) {
   return (
-    <fieldset className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm h-full flex flex-col min-w-0">
+    <fieldset className="bg-transparent md:bg-white dark:md:bg-gray-800 p-0 md:p-6 rounded-none md:rounded-xl border-transparent border-b md:border-b-0 border-slate-200 dark:border-slate-700 md:border-gray-200 dark:md:border-gray-700 shadow-none md:shadow-sm h-full flex flex-col min-w-0 pb-6 mb-6 md:pb-0 md:mb-0">
       <div className="flex items-center justify-between mb-6 border-b border-gray-100 dark:border-gray-800 pb-4 w-full">
         <div className="flex items-center gap-2">
           <span className="text-indigo-600 dark:text-indigo-400">{icon}</span>

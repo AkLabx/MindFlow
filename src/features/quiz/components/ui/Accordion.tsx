@@ -7,7 +7,7 @@ export function Accordion({ title, children }: { title: string; children: React.
 
   return (
     <div className={cn(
-      "border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 shadow-sm mt-6 mb-24",
+      "border-y md:border border-gray-200 dark:border-gray-700 md:rounded-xl bg-transparent md:bg-white dark:md:bg-gray-800 shadow-none md:shadow-sm mt-6 mb-24",
       !isOpen && "overflow-hidden"
     )}>
       <button
@@ -23,7 +23,7 @@ export function Accordion({ title, children }: { title: string; children: React.
           isOpen ? "max-h-[2000px] opacity-100" : "max-h-0 opacity-0 overflow-hidden"
         )}
       >
-        <div className="p-6 pt-2">
+        <div className="p-0 md:p-6 pt-2 md:pt-2">
           {children}
         </div>
       </div>
