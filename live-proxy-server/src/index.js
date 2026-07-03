@@ -59,11 +59,24 @@ class LiveSession {
 
     async initGeminiConnection() {
         const host = "generativelanguage.googleapis.com";
-        const model = "gemini-2.5-flash-native-audio-preview";
-        const url = `wss://${host}/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent?key=${geminiApiKey}`;
+        const model = "gemini-3.1-flash-live-preview";
+        const url = `wss://${host}/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent?key=${geminiApiKey}`;
 
         return new Promise((resolve, reject) => {
-            this.geminiSocket = new WebSocket(url);
+            const headers = {
+                "Origin": "https://aklabx.github.io",
+                "Referer": "https://aklabx.github.io/MindFlow/",
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+            };
+
+            logger.info({
+                origin: headers.Origin,
+                referer: headers.Referer,
+                model,
+                host
+            }, "Opening Gemini websocket");
+
+            this.geminiSocket = new WebSocket(url, { headers });
 
             this.geminiSocket.on('open', () => {
                 logger.info({ userId: this.userId }, "Gemini WebSocket connected.");
@@ -111,7 +124,7 @@ class LiveSession {
             });
 
             this.geminiSocket.on('close', (code, reason) => {
-                logger.info({ userId: this.userId, code, reason: reason.toString() }, "Gemini WebSocket closed");
+                logger.warn({ userId: this.userId, code, reason: reason.toString() }, "Gemini WebSocket closed");
                 this.handleDisconnect('gemini_closed');
             });
 
@@ -268,7 +281,7 @@ class LiveSession {
                 user_id: this.userId,
                 feature: 'live_talk',
                 provider: 'google',
-                model: 'gemini-2.5-flash-native-audio-preview',
+                model: 'gemini-3.1-flash-live-preview',
                 session_duration_ms: durationMs,
                 audio_input_bytes: this.audioInputBytes,
                 audio_output_bytes: this.audioOutputBytes,
