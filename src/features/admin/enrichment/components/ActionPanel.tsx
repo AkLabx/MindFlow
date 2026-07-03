@@ -74,9 +74,13 @@ export const ActionPanel: React.FC<ActionPanelProps> = ({
             <div className="flex flex-wrap gap-4 mb-8">
                 {isPipelineActive ? (
                     <button
-                        onClick={() => handleAction(onPause, 'Pipeline paused (Cron disabled)')}
+                        onClick={() => {
+                            if(window.confirm('Are you sure you want to pause the pipeline? Active queue will NOT be purged.')) {
+                                handleAction(onPause, 'Pipeline paused (Cron disabled)');
+                            }
+                        }}
                         disabled={isProcessing}
-                        className="flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-medium transition-colors disabled:opacity-50"
+                        className="flex items-center gap-2 px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-xl font-medium transition-colors disabled:opacity-50"
                     >
                         <Pause className="w-4 h-4" /> Pause Pipeline
                     </button>
@@ -89,18 +93,6 @@ export const ActionPanel: React.FC<ActionPanelProps> = ({
                         <Play className="w-4 h-4" /> Resume Pipeline
                     </button>
                 )}
-
-                <button
-                    onClick={() => {
-                        if(window.confirm('WARNING: This immediately stops cron triggers. Active queue will NOT be purged. Proceed?')) {
-                            handleAction(onEmergencyStop, 'Emergency stop engaged');
-                        }
-                    }}
-                    disabled={isProcessing}
-                    className="flex items-center gap-2 px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-xl font-medium transition-colors disabled:opacity-50"
-                >
-                    <AlertTriangle className="w-4 h-4" /> Emergency Stop
-                </button>
 
                 <button
                     onClick={() => handleAction(onForceManualBatch, 'Manual batch queued')}
