@@ -28,7 +28,7 @@ export const QuickStartButtons: React.FC<QuickStartButtonsProps> = React.memo(({
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center shrink-0 gap-1.5 sm:gap-2 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-900/30 dark:hover:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl text-sm sm:text-base font-semibold transition-colors border border-indigo-200 dark:border-indigo-800/50"
+        className="flex items-center shrink-0 gap-1 sm:gap-1.5 bg-transparent hover:bg-indigo-50 dark:hover:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 px-2 sm:px-3 py-1.5 rounded-md text-sm font-semibold transition-colors border-none"
       >
         <Zap className="w-4 h-4 fill-current" />
         <span className="hidden sm:inline">Quick Quiz</span>

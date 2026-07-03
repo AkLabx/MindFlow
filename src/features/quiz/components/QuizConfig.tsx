@@ -343,60 +343,54 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
       )}
 
       {/* Header */}
-      <div className="px-6 pt-6 pb-2">
-        <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-4 cursor-pointer hover:text-indigo-600 dark:text-indigo-400 w-fit" onClick={onBack}>
-          <ArrowLeft className="w-4 h-4" />
-          <span className="font-medium">Back</span>
-        </div>
-
-        <div className="text-center mb-4">
-          <h1 className="text-2xl md:text-3xl font-bold text-indigo-900 dark:text-indigo-100 mb-1">Create New Quiz</h1>
-          <p className="text-sm md:text-base text-gray-500 dark:text-gray-400">Select from <span className="font-bold text-indigo-600 dark:text-indigo-400">{metadata.length.toLocaleString()}</span> available questions.</p>
+      <div className="px-4 md:px-6 pt-4 md:pt-6 pb-4 border-b border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-800 z-10 md:relative flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <button onClick={onBack} className="flex items-center justify-center p-2 -ml-2 text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:text-indigo-400 transition-colors rounded-full hover:bg-indigo-50 dark:hover:bg-indigo-900/30">
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+          <h1 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white m-0 leading-none tracking-tight">Create New Quiz</h1>
         </div>
       </div>
 
       {/* Scrollable Config Content */}
-      <div className="p-6 pb-32 space-y-6 bg-gray-50 dark:bg-gray-900/50 flex-1 overflow-y-auto">
+      <div className="p-0 md:p-6 pb-32 md:space-y-6 bg-gray-50 dark:bg-gray-900/50 flex-1 overflow-y-auto pt-6 md:pt-6">
 
-        {/* Header actions (Mode & Quick Start) inline */}
-        <div className="flex flex-row items-center justify-between gap-2 sm:gap-3 mb-4 bg-white dark:bg-gray-800 p-1.5 sm:p-2 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm relative z-20 min-w-0">
+        {/* Header actions (Mode & Quick Start) inline Filter Bar */}
+        <div className="flex flex-row items-center justify-between gap-2 sm:gap-3 mb-6 relative z-20 min-w-0 pb-4 border-b border-gray-200 dark:border-gray-700 md:border-none md:pb-0 px-4 md:px-0">
 
-          {/* Segmented Control for Mode Switch */}
-          <div className="flex bg-gray-100 dark:bg-gray-900/50 p-1 rounded-xl flex-1 max-w-[400px] overflow-x-auto hide-scrollbar flex-nowrap min-w-0">
+          {/* Seamless Mode Switch */}
+          <div className="flex bg-gray-200/50 dark:bg-gray-800/80 p-0.5 rounded-lg max-w-[300px] overflow-x-auto hide-scrollbar flex-nowrap min-w-0">
             <button
               onClick={() => setMode('learning')}
               className={cn(
-                "shrink-0 flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-sm font-semibold transition-all duration-200",
+                "shrink-0 flex-1 flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-md text-xs sm:text-sm font-medium transition-all duration-200",
                 mode === 'learning'
-                  ? "bg-white dark:bg-gray-700 text-indigo-600 dark:text-indigo-400 shadow-sm border border-gray-200 dark:border-gray-600"
-                  : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 border border-transparent"
+                  ? "bg-white dark:bg-gray-700 text-indigo-700 dark:text-indigo-300 shadow-sm"
+                  : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
               )}
             >
-              <BookOpen className="w-4 h-4 hidden sm:block" />
               <span>Learning</span>
             </button>
             <button
               onClick={() => setMode('mock')}
               className={cn(
-                "shrink-0 flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-sm font-semibold transition-all duration-200",
+                "shrink-0 flex-1 flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-md text-xs sm:text-sm font-medium transition-all duration-200",
                 mode === 'mock'
-                  ? "bg-white dark:bg-gray-700 text-indigo-600 dark:text-indigo-400 shadow-sm border border-gray-200 dark:border-gray-600"
-                  : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 border border-transparent"
+                  ? "bg-white dark:bg-gray-700 text-indigo-700 dark:text-indigo-300 shadow-sm"
+                  : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
               )}
             >
-              <Timer className="w-4 h-4 hidden sm:block" />
               <span>Mock</span>
             </button>
             <button
               onClick={() => setMode('god')}
               className={cn(
-                "flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-sm font-semibold transition-all duration-200",
+                "flex-1 flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-md text-xs sm:text-sm font-medium transition-all duration-200",
                 mode === 'god'
-                  ? "bg-white dark:bg-gray-700 text-red-600 dark:text-red-400 shadow-sm border border-red-200 dark:border-red-900/30"
-                  : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 border border-transparent"
+                  ? "bg-white dark:bg-gray-700 text-red-600 dark:text-red-400 shadow-sm"
+                  : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
               )}
             >
-              <Crown className="w-4 h-4 hidden sm:block" />
               <span>God Mode</span>
             </button>
           </div>
@@ -415,7 +409,7 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
           </div>
         )}
 
-        <div className={cn("grid grid-cols-1 lg:grid-cols-2 gap-6", mode === 'god' && "hidden")}>
+        <div className={cn("grid grid-cols-1 lg:grid-cols-2 gap-0 md:gap-6", mode === 'god' && "hidden")}>
           <FilterGroup
             title="Classification"
             icon={<Layers className="w-5 h-5" />}
@@ -499,7 +493,7 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
           <>
             {/* Progressive Disclosure: Advanced Filters Accordion */}
             <Accordion title="Advanced Filters">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-0 md:gap-6">
                 <FilterGroup title="Source" icon={<FileText className="w-5 h-5" />}>
                   <MultiSelectDropdown
                     label="Exam Name"
@@ -545,7 +539,7 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
             </Accordion>
 
             {/* Active Filters Displayed above sticky footer area */}
-            <div className="pb-8">
+            <div className="pb-8 mt-6 md:mt-0">
                <ActiveFiltersBar
                 filters={filters}
                 onRemoveFilter={removeFilter}
