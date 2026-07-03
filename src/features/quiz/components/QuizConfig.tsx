@@ -353,10 +353,10 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
       </div>
 
       {/* Scrollable Config Content */}
-      <div className="p-0 md:p-6 pb-32 md:space-y-6 bg-gray-50 dark:bg-gray-900/50 flex-1 overflow-y-auto pt-6 md:pt-6">
+      <div className="p-4 md:p-6 pb-32 md:space-y-6 bg-gray-50 dark:bg-gray-900/50 flex-1 overflow-y-auto pt-6 md:pt-6">
 
         {/* Header actions (Mode & Quick Start) inline Filter Bar */}
-        <div className="flex flex-row items-center justify-between gap-2 sm:gap-3 mb-6 relative z-20 min-w-0 pb-4 border-b border-gray-200 dark:border-gray-700 md:border-none md:pb-0 px-4 md:px-0">
+        <div className="flex flex-row items-center justify-between gap-2 sm:gap-3 mb-6 relative z-20 min-w-0 pb-4 border-b border-gray-200 dark:border-gray-700 md:border-none md:pb-0">
 
           {/* Seamless Mode Switch */}
           <div className="flex bg-gray-200/50 dark:bg-gray-800/80 p-0.5 rounded-lg max-w-[300px] overflow-x-auto hide-scrollbar flex-nowrap min-w-0">
