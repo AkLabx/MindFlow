@@ -104,10 +104,10 @@ export class LiveConnection {
         if (this.status === 'connected' && this.ws?.readyState === WebSocket.OPEN) {
             this.ws.send(JSON.stringify({
                 realtimeInput: {
-                    mediaChunks: [{
+                    audio: {
                         mimeType: "audio/pcm;rate=16000",
                         data: base64Data
-                    }]
+                    }
                 }
             }));
         }
