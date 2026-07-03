@@ -31,7 +31,7 @@ export const ProgressMatrix: React.FC<ProgressMatrixProps> = ({ metrics }) => {
 
     return (
         <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm mb-8">
-            <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-6">Progress Matrix (Synonyms)</h2>
+            <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-6">Lexical Enrichment Progress</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div>
                     <ProgressBar current={metrics.examples_complete} total={metrics.examples_total} label="Examples" />

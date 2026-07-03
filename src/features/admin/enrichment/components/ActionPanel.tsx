@@ -114,7 +114,7 @@ export const ActionPanel: React.FC<ActionPanelProps> = ({
             <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700">
                 <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-200 mb-3 flex items-center gap-2">
                     <Zap className="w-4 h-4 text-amber-500" />
-                    Single Record Injection (Bypass Cron)
+                    Manual Reprocessing
                 </h3>
                 <div className="flex flex-wrap gap-3 items-end">
                     <div className="flex-1 min-w-[200px]">
