@@ -3,14 +3,13 @@ import { motion } from 'framer-motion';
 import { Activity, Layers, AlertOctagon } from 'lucide-react';
 import type { EnrichmentDashboardMetrics } from '../types/enrichmentAdmin';
 
-interface PipelineHealthCardsProps {
+interface PipelineHeroCardProps {
     metrics: EnrichmentDashboardMetrics | undefined;
 }
 
-export const PipelineHealthCards: React.FC<PipelineHealthCardsProps> = ({ metrics }) => {
+export const PipelineHeroCard: React.FC<PipelineHeroCardProps> = ({ metrics }) => {
     if (!metrics) return null;
 
-    // Queue depth colors
     let queueColor = "text-emerald-600 dark:text-emerald-400";
     let queueBgColor = "bg-emerald-100 dark:bg-emerald-900/30";
     let queueBorder = "border-emerald-200 dark:border-emerald-800/50";
@@ -29,15 +28,12 @@ export const PipelineHealthCards: React.FC<PipelineHealthCardsProps> = ({ metric
         queueBorder = "border-yellow-200 dark:border-yellow-800/50";
     }
 
-    // Pipeline Hero colors
     const heroBg = metrics.pipeline_active
         ? "bg-gradient-to-r from-emerald-500/10 to-emerald-600/5 dark:from-emerald-900/30 dark:to-emerald-800/10 border-emerald-200 dark:border-emerald-800/50"
         : "bg-gradient-to-r from-red-500/10 to-red-600/5 dark:from-red-900/30 dark:to-red-800/10 border-red-200 dark:border-red-800/50";
 
     return (
         <div className="flex flex-col gap-6 mb-8">
-
-            {/* Primary Hero Card: Pipeline Status */}
             <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -72,10 +68,7 @@ export const PipelineHealthCards: React.FC<PipelineHealthCardsProps> = ({ metric
                 </div>
             </motion.div>
 
-            {/* Secondary Indicators */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-
-                {/* Queue Depth */}
                 <motion.div
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -98,7 +91,6 @@ export const PipelineHealthCards: React.FC<PipelineHealthCardsProps> = ({ metric
                     </div>
                 </motion.div>
 
-                {/* DLQ Count */}
                 <motion.div
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -123,7 +115,6 @@ export const PipelineHealthCards: React.FC<PipelineHealthCardsProps> = ({ metric
                         </div>
                     </div>
                 </motion.div>
-
             </div>
         </div>
     );
