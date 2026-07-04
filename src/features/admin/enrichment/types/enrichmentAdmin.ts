@@ -5,6 +5,7 @@ export interface ModelDistribution {
 export interface EnrichmentDashboardMetrics {
     pipeline_active: boolean;
     queue_depth: number;
+    current_task: string;
     dlq_count: number;
     last_success_minutes: number;
     gemini_requests_today: number;
