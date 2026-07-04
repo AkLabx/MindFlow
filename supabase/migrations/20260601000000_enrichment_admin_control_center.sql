@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS public.enrichment_dlq_archive (
 DO $$
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='enrichment_dlq' AND column_name='task') THEN
-        ALTER TABLE public.enrichment_dlq ADD COLUMN task TEXT NOT NULL DEFAULT 'synonyms';
+        ALTER TABLE public.enrichment_dlq ADD COLUMN task TEXT NOT NULL DEFAULT 'unknown';
     END IF;
 END $$;
 

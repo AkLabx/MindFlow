@@ -58,6 +58,9 @@ export const PipelineHealthCards: React.FC<PipelineHealthCardsProps> = ({ metric
                             </h3>
                             <div className="flex flex-col gap-1 mt-3">
                                 <p className="text-sm font-bold text-slate-700 dark:text-slate-300">
+                                    Pipeline Mode: <span className={`capitalize ${metrics.pipeline_active ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`}>{metrics.pipeline_active ? 'Running' : 'Paused'}</span>
+                                </p>
+                                <p className="text-sm font-bold text-slate-700 dark:text-slate-300">
                                     Current Task: <span className="text-indigo-600 dark:text-indigo-400 capitalize">{metrics.current_task || 'Idle'}</span>
                                 </p>
                                 <p className="text-sm font-medium text-slate-600 dark:text-slate-400">

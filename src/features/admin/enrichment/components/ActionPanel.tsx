@@ -80,7 +80,7 @@ export const ActionPanel: React.FC<ActionPanelProps> = ({
                             }
                         }}
                         disabled={isProcessing}
-                        className="flex items-center gap-2 px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-xl font-medium transition-colors disabled:opacity-50"
+                        className="flex items-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-medium transition-colors disabled:opacity-50"
                     >
                         <Pause className="w-4 h-4" /> Pause Pipeline
                     </button>
@@ -93,6 +93,18 @@ export const ActionPanel: React.FC<ActionPanelProps> = ({
                         <Play className="w-4 h-4" /> Resume Pipeline
                     </button>
                 )}
+
+                <button
+                    onClick={() => {
+                        if(window.confirm('WARNING: This immediately stops cron triggers. Active queue will NOT be purged. Proceed?')) {
+                            handleAction(onEmergencyStop, 'Emergency stop engaged');
+                        }
+                    }}
+                    disabled={isProcessing}
+                    className="flex items-center gap-2 px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-xl font-medium transition-colors disabled:opacity-50"
+                >
+                    <AlertTriangle className="w-4 h-4" /> Emergency Stop
+                </button>
 
                 <button
                     onClick={() => handleAction(onForceManualBatch, 'Manual batch queued')}

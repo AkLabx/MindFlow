@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { AlertOctagon, Archive, RotateCcw } from 'lucide-react';
 import type { EnrichmentDlqJob } from '../types/enrichmentAdmin';
 import { useNotificationStore } from '@/stores/useNotificationStore';
+import { DLQInspectorModal } from './DLQInspectorModal';
 
 interface DLQInspectorProps {
     dlqJobs: EnrichmentDlqJob[] | undefined;
@@ -21,6 +22,7 @@ export const DLQInspector: React.FC<DLQInspectorProps> = ({
     const showToast = useNotificationStore(s => s.showToast);
     const [isProcessing, setIsProcessing] = useState<string | null>(null);
     const [isArchivingAll, setIsArchivingAll] = useState(false);
+    const [inspectJob, setInspectJob] = useState<EnrichmentDlqJob | null>(null);
 
     if (!dlqJobs) return null;
 
@@ -109,6 +111,13 @@ export const DLQInspector: React.FC<DLQInspectorProps> = ({
                                     {!isMobile && (
                                         <td className="p-3 text-right">
                                             <div className="flex items-center justify-end gap-2">
+                                                <button
+                                                    onClick={() => setInspectJob(job)}
+                                                    title="Inspect Details"
+                                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-900/30 dark:hover:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 rounded-lg font-medium text-xs transition-colors"
+                                                >
+                                                    Inspect
+                                                </button>
                                                 <button
                                                     onClick={() => handleAction(() => onRetry(job.id), job.id, 'Job re-queued successfully')}
                                                     disabled={isProcessing === job.id}
