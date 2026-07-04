@@ -1,42 +1,17 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Brain } from 'lucide-react';
 import { SynapticLoader } from '@/components/ui/SynapticLoader';
-import { useEnrichmentAdmin } from '../hooks/useEnrichmentAdmin';
 
-import { PipelineHealthCards } from '../components/PipelineHealthCards';
-import { QuotaDefensePanel } from '../components/QuotaDefensePanel';
-import { ProgressMatrix } from '../components/ProgressMatrix';
-import { TelemetryPanel } from '../components/TelemetryPanel';
+import { useEnrichmentMetrics } from '../hooks/useEnrichmentMetrics';
 import { ActionPanel } from '../components/ActionPanel';
-import { DLQInspector } from '../components/DLQInspector';
+import { QueueIntelligence } from '../components/QueueIntelligence';
+import { QualityMetrics } from '../components/QualityMetrics';
+// import { LineageExplorer } from '../components/LineageExplorer'; // Can be built out later if needed
 
 export const AdminEnrichmentControlCenter: React.FC = () => {
     const navigate = useNavigate();
-    const {
-        metrics,
-        isMetricsLoading,
-        isMetricsError,
-        dlq,
-        emergencyStop,
-        resume,
-        forceSingleRecord,
-        forceManualBatch,
-        retryDlq,
-        archiveDlq,
-        archiveAllDlq
-    } = useEnrichmentAdmin();
-
-    const [isMobile, setIsMobile] = useState(false);
-
-    useEffect(() => {
-        const checkMobile = () => {
-            setIsMobile(window.innerWidth < 768);
-        };
-        checkMobile();
-        window.addEventListener('resize', checkMobile);
-        return () => window.removeEventListener('resize', checkMobile);
-    }, []);
+    const { data: metrics, isLoading: isMetricsLoading, isError: isMetricsError } = useEnrichmentMetrics();
 
     if (isMetricsLoading && !metrics) {
         return (
@@ -77,44 +52,20 @@ export const AdminEnrichmentControlCenter: React.FC = () => {
                         </button>
                         <div className="flex items-center gap-2">
                             <Brain className="w-6 h-6 text-indigo-500" />
-                            <h1 className="text-lg font-bold text-slate-800 dark:text-slate-100">AI Enrichment Center</h1>
+                            <h1 className="text-lg font-bold text-slate-800 dark:text-slate-100">AI Observability Platform</h1>
                         </div>
                     </div>
                 </div>
             </header>
 
             <main className="max-w-7xl mx-auto px-4 py-8">
-                {/* Row 1: Pipeline Health */}
-                <PipelineHealthCards metrics={metrics} />
+                <ActionPanel isPipelineActive={metrics?.pipeline_active || false} />
 
-                {/* Row 2: Quota Defense */}
-                <QuotaDefensePanel metrics={metrics} />
+                <QualityMetrics metrics={metrics!} />
 
-                {/* Row 3: Progress Matrix */}
-                <ProgressMatrix metrics={metrics} />
+                <QueueIntelligence metrics={metrics!} />
 
-                {/* Row 4: Telemetry */}
-                <TelemetryPanel metrics={metrics} />
-
-                {/* Row 5: Action Panel */}
-                <ActionPanel
-                    isPipelineActive={metrics?.pipeline_active || false}
-                    onPause={emergencyStop}
-                    onResume={resume}
-                    onEmergencyStop={emergencyStop}
-                    onForceManualBatch={forceManualBatch}
-                    onForceSingleRecord={(wordId, task) => forceSingleRecord({wordId, task})}
-                    isMobile={isMobile}
-                />
-
-                {/* Row 6: DLQ Inspector */}
-                <DLQInspector
-                    dlqJobs={dlq}
-                    onRetry={retryDlq}
-                    onArchive={archiveDlq}
-                    onArchiveAll={archiveAllDlq}
-                    isMobile={isMobile}
-                />
+                {/* DLQ and Lineage UI can be expanded further below based on the hooks provided. */}
             </main>
         </div>
     );
