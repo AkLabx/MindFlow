@@ -217,6 +217,9 @@ const handleReattempt = async (quizId: string, mode: string) => {
                     <Route path="/dashboard" element={<Suspense fallback={<SynapticLoader />}><Dashboard onBackToIntro={() => { navTo('/dashboard'); }} /></Suspense>} />
 
                     <Route path="/mcqs" element={<Suspense fallback={<SynapticLoader />}><McqsQuizHome onBack={() => { navTo('/dashboard'); }} /></Suspense>} />
+                    <Route path="/mcqs/test-series" element={<Suspense fallback={<SynapticLoader />}><ExamCategoriesPage /></Suspense>} />
+                    <Route path="/mcqs/test-series/category/:id" element={<Suspense fallback={<SynapticLoader />}><TestSeriesPage /></Suspense>} />
+                    <Route path="/mcqs/test-series/series/:id" element={<Suspense fallback={<SynapticLoader />}><TestsListPage /></Suspense>} />
                     <Route path="/about/developer-profile" element={
                         <Suspense fallback={<SynapticLoader />}>
                             <DeveloperProfile />
@@ -581,6 +584,7 @@ const handleReattempt = async (quizId: string, mode: string) => {
                     <Route path="/admin/upload-idioms" element={<Suspense fallback={<SynapticLoader />}><AdminUploadIdioms /></Suspense>} />
                     <Route path="/admin/upload-synonyms" element={<Suspense fallback={<SynapticLoader />}><AdminUploadSynonyms /></Suspense>} />
                     <Route path="/admin/enrichment" element={<Suspense fallback={<SynapticLoader />}><AdminEnrichmentControlCenter /></Suspense>} />
+                    <Route path="/admin/test-series" element={<Suspense fallback={<SynapticLoader />}><AdminTestSeriesDashboard /></Suspense>} />
               <Route path="/admin/notifications" element={
             <Suspense fallback={<div className="flex h-screen items-center justify-center"><SynapticLoader size="md" /></div>}>
               <AdminNotifications />
