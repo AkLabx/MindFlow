@@ -4,9 +4,12 @@ import { ArrowLeft, Brain } from 'lucide-react';
 import { SynapticLoader } from '@/components/ui/SynapticLoader';
 
 import { useEnrichmentMetrics } from '../hooks/useEnrichmentMetrics';
+import { PipelineHeroCard } from '../components/PipelineHeroCard';
 import { ActionPanel } from '../components/ActionPanel';
-import { QueueIntelligence } from '../components/QueueIntelligence';
 import { QualityMetrics } from '../components/QualityMetrics';
+import { QueueIntelligence } from '../components/QueueIntelligence';
+import { ProgressMatrix } from '../components/ProgressMatrix';
+import { TokenEconomicsPanel } from '../components/TokenEconomicsPanel';
 import { DLQInspector } from '../components/DLQInspector';
 import { useQuery } from '@tanstack/react-query';
 import { getEnrichmentDlq, retryDlqJob, archiveDlqJob, archiveAllDlq } from '../services/enrichmentAdminService';
@@ -15,7 +18,6 @@ export const AdminEnrichmentControlCenter: React.FC = () => {
     const navigate = useNavigate();
     const { data: metrics, isLoading: isMetricsLoading, isError: isMetricsError } = useEnrichmentMetrics();
 
-    // Restore DLQ logic
     const { data: dlq, refetch: refetchDlq } = useQuery({
         queryKey: ['enrichment_dlq'],
         queryFn: getEnrichmentDlq,
@@ -79,15 +81,26 @@ export const AdminEnrichmentControlCenter: React.FC = () => {
             </header>
 
             <main className="max-w-7xl mx-auto px-4 py-8">
-                {/* Action Panel preserving all manual processing capabilities */}
+                {/* Row 1: Hero Status */}
+                <PipelineHeroCard metrics={metrics} />
+
+                {/* Row 2: Operations Controls */}
                 <ActionPanel
                     isPipelineActive={metrics?.pipeline_active || false}
                     isMobile={isMobile}
                 />
 
+                {/* Row 3: AI Health */}
                 <QualityMetrics metrics={metrics!} />
 
+                {/* Row 4: Queue Intelligence */}
                 <QueueIntelligence metrics={metrics!} />
+
+                {/* Row 5: Completion Matrix */}
+                <ProgressMatrix metrics={metrics} />
+
+                {/* Row 6 & 7: Token Economics & Model Intelligence */}
+                <TokenEconomicsPanel metrics={metrics!} />
 
                 {/* Restored DLQ Inspector */}
                 <DLQInspector
