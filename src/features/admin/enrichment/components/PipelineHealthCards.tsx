@@ -14,15 +14,19 @@ export const PipelineHealthCards: React.FC<PipelineHealthCardsProps> = ({ metric
     let queueColor = "text-emerald-600 dark:text-emerald-400";
     let queueBgColor = "bg-emerald-100 dark:bg-emerald-900/30";
     let queueBorder = "border-emerald-200 dark:border-emerald-800/50";
-    if (metrics.queue_depth > 30) {
-        queueColor = "text-yellow-600 dark:text-yellow-400";
-        queueBgColor = "bg-yellow-100 dark:bg-yellow-900/30";
-        queueBorder = "border-yellow-200 dark:border-yellow-800/50";
-    }
+
     if (metrics.queue_depth > 100) {
         queueColor = "text-red-600 dark:text-red-400";
         queueBgColor = "bg-red-100 dark:bg-red-900/30";
         queueBorder = "border-red-200 dark:border-red-800/50";
+    } else if (metrics.queue_depth > 60) {
+        queueColor = "text-orange-600 dark:text-orange-400";
+        queueBgColor = "bg-orange-100 dark:bg-orange-900/30";
+        queueBorder = "border-orange-200 dark:border-orange-800/50";
+    } else if (metrics.queue_depth > 30) {
+        queueColor = "text-yellow-600 dark:text-yellow-400";
+        queueBgColor = "bg-yellow-100 dark:bg-yellow-900/30";
+        queueBorder = "border-yellow-200 dark:border-yellow-800/50";
     }
 
     // Pipeline Hero colors
@@ -45,16 +49,21 @@ export const PipelineHealthCards: React.FC<PipelineHealthCardsProps> = ({ metric
                             <Activity className="w-8 h-8" />
                         </div>
                         <div>
-                            <h3 className="text-3xl font-extrabold text-slate-800 dark:text-slate-100 flex items-center gap-3 tracking-tight uppercase">
+                            <h3 className="text-3xl font-extrabold text-slate-800 dark:text-slate-100 flex items-center gap-3 tracking-tight uppercase mb-1">
                                 {metrics.pipeline_active ? (
                                     <><span className="w-4 h-4 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_15px_rgba(16,185,129,0.7)]" /> PIPELINE ACTIVE</>
                                 ) : (
                                     <><span className="w-4 h-4 rounded-full bg-red-500 shadow-[0_0_15px_rgba(239,68,68,0.7)]" /> PIPELINE PAUSED</>
                                 )}
                             </h3>
-                            <p className="text-sm font-medium text-slate-600 dark:text-slate-400 mt-2">
-                                Last successful run: {metrics.last_success_minutes === 0 ? '< 1' : metrics.last_success_minutes}m ago
-                            </p>
+                            <div className="flex flex-col gap-1 mt-3">
+                                <p className="text-sm font-bold text-slate-700 dark:text-slate-300">
+                                    Current Task: <span className="text-indigo-600 dark:text-indigo-400 capitalize">{metrics.current_task || 'Idle'}</span>
+                                </p>
+                                <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
+                                    Last successful run: {metrics.last_success_minutes === 0 ? '< 1' : metrics.last_success_minutes}m ago
+                                </p>
+                            </div>
                         </div>
                     </div>
                 </div>

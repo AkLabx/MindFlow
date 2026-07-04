@@ -89,7 +89,22 @@ export const QuotaDefensePanel: React.FC<QuotaDefensePanelProps> = ({ metrics })
                             })}
 
                             {Object.keys(metrics.model_distribution).length === 0 && (
-                                <p className="text-sm text-slate-500 italic">No model data recorded today.</p>
+                                <div className="flex flex-col gap-3">
+                                    {['gemini-3.1-flash-lite', 'gemini-2.5-flash', 'gemma-4-31b'].map(model => (
+                                        <div key={model}>
+                                            <div className="flex items-center justify-between text-xs mb-1">
+                                                <span className="text-slate-600 dark:text-slate-400 font-mono truncate mr-2">{model}</span>
+                                                <span className="font-semibold text-slate-800 dark:text-slate-200">0%</span>
+                                            </div>
+                                            <div className="w-full bg-slate-100 dark:bg-slate-800/50 rounded-full h-2 overflow-hidden">
+                                                <div
+                                                    className={`h-full rounded-full transition-all duration-500 bg-slate-200 dark:bg-slate-700`}
+                                                    style={{ width: `0%` }}
+                                                />
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
                             )}
                         </div>
                     </div>
@@ -98,7 +113,11 @@ export const QuotaDefensePanel: React.FC<QuotaDefensePanelProps> = ({ metrics })
                     <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-100 dark:border-slate-700/50">
                         <p className="text-xs text-slate-500 mb-1 uppercase tracking-wider font-semibold">Estimated Completion</p>
                         <p className="text-2xl font-bold text-slate-800 dark:text-slate-100">
-                            {metrics.estimated_completion_days} <span className="text-lg font-medium text-slate-500">Days</span>
+                            {metrics.estimated_completion_days === 0 ? (
+                                <span className="text-emerald-600 dark:text-emerald-400">Completed</span>
+                            ) : (
+                                <>{metrics.estimated_completion_days} <span className="text-lg font-medium text-slate-500">Days</span></>
+                            )}
                         </p>
                     </div>
                 </div>
