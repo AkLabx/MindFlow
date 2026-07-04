@@ -54,6 +54,11 @@ const AdminUploadIdioms = lazy(() => import("../features/admin/components/AdminU
 const AdminUploadSynonyms = lazy(() => import("../features/admin/components/AdminUploadSynonyms").then(m => ({ default: m.AdminUploadSynonyms })));
 const AdminEnrichmentControlCenter = lazy(() => import("../features/admin/enrichment/pages/AdminEnrichmentControlCenter").then(m => ({ default: m.AdminEnrichmentControlCenter })));
 const AdminUploadMaterials = lazy(() => import('../features/admin/components/AdminUploadMaterials').then(m => ({ default: m.AdminUploadMaterials })));
+
+const AdminTestSeriesDashboard = lazy(() => import('../features/admin/test-series/pages/AdminTestSeriesDashboard').then(m => ({ default: m.AdminTestSeriesDashboard })));
+const ExamCategoriesPage = lazy(() => import('../features/mock-tests/pages/ExamCategoriesPage').then(m => ({ default: m.ExamCategoriesPage })));
+const TestSeriesPage = lazy(() => import('../features/mock-tests/pages/TestSeriesPage').then(m => ({ default: m.TestSeriesPage })));
+const TestsListPage = lazy(() => import('../features/mock-tests/pages/TestsListPage').then(m => ({ default: m.TestsListPage })));
 const AdminNotifications = lazy(() => import('../features/notifications/admin/AdminNotifications').then(m => ({ default: m.AdminNotifications })));
 const NotificationsPage = lazy(() => import('../pages/NotificationsPage').then(m => ({ default: m.NotificationsPage })));
 

@@ -592,3 +592,40 @@ export const AttemptedQuizzesSVG = () => (
     </motion.g>
   </svg>
 );
+
+// Mock Test Series (Amber/Gold)
+export const MockTestSVG = () => (
+  <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-lg">
+    <defs>
+      <linearGradient id="mockTestGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stopColor="#F59E0B" />
+        <stop offset="100%" stopColor="#B45309" />
+      </linearGradient>
+    </defs>
+    {/* Base Document / Exam Paper */}
+    <motion.path
+      d="M30 20 h40 a5 5 0 0 1 5 5 v50 a5 5 0 0 1 -5 5 h-40 a5 5 0 0 1 -5 -5 v-50 a5 5 0 0 1 5 -5 z"
+      fill="url(#mockTestGrad)" opacity="0.8"
+      animate={{ y: [0, -3, 0] }}
+      transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+    />
+
+    {/* Exam Header Lines */}
+    <rect x="35" y="30" width="30" height="4" rx="2" fill="#FEF3C7" opacity="0.9" />
+    <rect x="35" y="40" width="20" height="4" rx="2" fill="#FDE68A" opacity="0.8" />
+
+    {/* Target / Focus Reticle inside the exam */}
+    <motion.g animate={{ rotate: 360 }} transition={{ duration: 15, repeat: Infinity, ease: "linear" }} style={{ transformOrigin: '50px 60px' }}>
+      <circle cx="50" cy="60" r="12" fill="none" stroke="#FEF3C7" strokeWidth="2" strokeDasharray="4 4" opacity="0.8" />
+    </motion.g>
+    <circle cx="50" cy="60" r="4" fill="#FEF3C7" />
+
+    {/* Floating Star (Premium/Excellence) */}
+    <motion.path
+      d="M75 25 l3 8 h8 l-6 5 l2 8 l-7 -5 l-7 5 l2 -8 l-6 -5 h8 z"
+      fill="#FCD34D"
+      animate={{ scale: [1, 1.2, 1], rotate: [0, 15, 0, -15, 0] }}
+      transition={{ duration: 3, repeat: Infinity }}
+    />
+  </svg>
+);
