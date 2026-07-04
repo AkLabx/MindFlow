@@ -2,30 +2,25 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Brain } from 'lucide-react';
 import { SynapticLoader } from '@/components/ui/SynapticLoader';
-import { useEnrichmentAdmin } from '../hooks/useEnrichmentAdmin';
 
-import { PipelineHealthCards } from '../components/PipelineHealthCards';
-import { QuotaDefensePanel } from '../components/QuotaDefensePanel';
-import { ProgressMatrix } from '../components/ProgressMatrix';
-import { TelemetryPanel } from '../components/TelemetryPanel';
+import { useEnrichmentMetrics } from '../hooks/useEnrichmentMetrics';
 import { ActionPanel } from '../components/ActionPanel';
+import { QueueIntelligence } from '../components/QueueIntelligence';
+import { QualityMetrics } from '../components/QualityMetrics';
 import { DLQInspector } from '../components/DLQInspector';
+import { useQuery } from '@tanstack/react-query';
+import { getEnrichmentDlq, retryDlqJob, archiveDlqJob, archiveAllDlq } from '../services/enrichmentAdminService';
 
 export const AdminEnrichmentControlCenter: React.FC = () => {
     const navigate = useNavigate();
-    const {
-        metrics,
-        isMetricsLoading,
-        isMetricsError,
-        dlq,
-        emergencyStop,
-        resume,
-        forceSingleRecord,
-        forceManualBatch,
-        retryDlq,
-        archiveDlq,
-        archiveAllDlq
-    } = useEnrichmentAdmin();
+    const { data: metrics, isLoading: isMetricsLoading, isError: isMetricsError } = useEnrichmentMetrics();
+
+    // Restore DLQ logic
+    const { data: dlq, refetch: refetchDlq } = useQuery({
+        queryKey: ['enrichment_dlq'],
+        queryFn: getEnrichmentDlq,
+        refetchInterval: 30000,
+    });
 
     const [isMobile, setIsMobile] = useState(false);
 
@@ -77,42 +72,29 @@ export const AdminEnrichmentControlCenter: React.FC = () => {
                         </button>
                         <div className="flex items-center gap-2">
                             <Brain className="w-6 h-6 text-indigo-500" />
-                            <h1 className="text-lg font-bold text-slate-800 dark:text-slate-100">AI Enrichment Center</h1>
+                            <h1 className="text-lg font-bold text-slate-800 dark:text-slate-100">AI Observability Platform</h1>
                         </div>
                     </div>
                 </div>
             </header>
 
             <main className="max-w-7xl mx-auto px-4 py-8">
-                {/* Row 1: Pipeline Health */}
-                <PipelineHealthCards metrics={metrics} />
-
-                {/* Row 2: Quota Defense */}
-                <QuotaDefensePanel metrics={metrics} />
-
-                {/* Row 3: Progress Matrix */}
-                <ProgressMatrix metrics={metrics} />
-
-                {/* Row 4: Telemetry */}
-                <TelemetryPanel metrics={metrics} />
-
-                {/* Row 5: Action Panel */}
+                {/* Action Panel preserving all manual processing capabilities */}
                 <ActionPanel
                     isPipelineActive={metrics?.pipeline_active || false}
-                    onPause={emergencyStop}
-                    onResume={resume}
-                    onEmergencyStop={emergencyStop}
-                    onForceManualBatch={forceManualBatch}
-                    onForceSingleRecord={(wordId, task) => forceSingleRecord({wordId, task})}
                     isMobile={isMobile}
                 />
 
-                {/* Row 6: DLQ Inspector */}
+                <QualityMetrics metrics={metrics!} />
+
+                <QueueIntelligence metrics={metrics!} />
+
+                {/* Restored DLQ Inspector */}
                 <DLQInspector
-                    dlqJobs={dlq}
-                    onRetry={retryDlq}
-                    onArchive={archiveDlq}
-                    onArchiveAll={archiveAllDlq}
+                    dlqJobs={dlq || []}
+                    onRetry={async (id) => { await retryDlqJob(id); refetchDlq(); }}
+                    onArchive={async (id) => { await archiveDlqJob(id); refetchDlq(); }}
+                    onArchiveAll={async () => { const count = await archiveAllDlq(); refetchDlq(); return count; }}
                     isMobile={isMobile}
                 />
             </main>

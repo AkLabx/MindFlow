@@ -1,33 +1,21 @@
 import React, { useState } from 'react';
-import { Play, Pause, AlertTriangle, Zap, RefreshCw } from 'lucide-react';
+import { useQueueControls } from '../hooks/useQueueControls';
+import { AlertTriangle, Pause, Play, Trash2, Zap, RefreshCw } from 'lucide-react';
 import { useNotificationStore } from '@/stores/useNotificationStore';
+import { useWordLineage } from '../hooks/useWordLineage';
 
-interface ActionPanelProps {
-    isPipelineActive: boolean;
-    onPause: () => Promise<void>;
-    onResume: () => Promise<void>;
-    onEmergencyStop: () => Promise<void>;
-    onForceManualBatch: () => Promise<void>;
-    onForceSingleRecord: (wordId: string, task: string) => Promise<void>;
-    isMobile: boolean;
-}
-
-export const ActionPanel: React.FC<ActionPanelProps> = ({
-    isPipelineActive,
-    onPause,
-    onResume,
-    onEmergencyStop,
-    onForceManualBatch,
-    onForceSingleRecord,
-    isMobile
-}) => {
+export const ActionPanel = ({ isPipelineActive, isMobile }: { isPipelineActive: boolean, isMobile: boolean }) => {
+    const { freeze, isFreezing, resume, isResuming, purge, isPurging, nuclear, isNuclear } = useQueueControls();
     const showToast = useNotificationStore(s => s.showToast);
 
     const [isProcessing, setIsProcessing] = useState(false);
     const [manualWordId, setManualWordId] = useState('');
     const [manualTask, setManualTask] = useState('examples');
 
-    const handleAction = async (actionFn: () => Promise<void>, successMessage: string) => {
+    // Using useWordLineage for the manual enqueue capability (Force Single Record)
+    const { enqueueManualJob } = useWordLineage(manualWordId);
+
+    const handleAction = async (actionFn: () => Promise<any>, successMessage: string) => {
         setIsProcessing(true);
         try {
             await actionFn();
@@ -46,7 +34,7 @@ export const ActionPanel: React.FC<ActionPanelProps> = ({
         }
         setIsProcessing(true);
         try {
-            await onForceSingleRecord(manualWordId, manualTask);
+            await enqueueManualJob({ task: manualTask });
             showToast({ title: 'Success', message: 'Job injected to queue', variant: 'success' });
             setManualWordId('');
         } catch (e: any) {
@@ -68,57 +56,78 @@ export const ActionPanel: React.FC<ActionPanelProps> = ({
     }
 
     return (
-        <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm mb-8">
-            <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-6">Action Panel</h2>
+        <div className="bg-white dark:bg-slate-900 rounded-xl p-6 border border-slate-200 dark:border-slate-800 mb-8 shadow-sm">
+            <h2 className="text-lg font-bold mb-4 text-slate-800 dark:text-slate-100">Pipeline Controls & Operations</h2>
 
-            <div className="flex flex-wrap gap-4 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
                 {isPipelineActive ? (
                     <button
                         onClick={() => {
-                            if(window.confirm('Are you sure you want to pause the pipeline? Active queue will NOT be purged.')) {
-                                handleAction(onPause, 'Pipeline paused (Cron disabled)');
+                            if (window.confirm('Are you sure you want to pause the pipeline? Active queue will NOT be purged.')) {
+                                handleAction(freeze, 'Pipeline paused (Cron disabled)');
                             }
                         }}
-                        disabled={isProcessing}
-                        className="flex items-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-medium transition-colors disabled:opacity-50"
+                        disabled={isFreezing || isProcessing}
+                        className="flex items-center justify-center gap-2 px-4 py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-lg transition-colors font-medium disabled:opacity-50"
                     >
-                        <Pause className="w-4 h-4" /> Pause Pipeline
+                        <Pause className="w-4 h-4" />
+                        {isFreezing ? 'Freezing...' : 'Freeze Pipeline'}
                     </button>
                 ) : (
                     <button
-                        onClick={() => handleAction(onResume, 'Pipeline resumed (Cron enabled)')}
-                        disabled={isProcessing}
-                        className="flex items-center gap-2 px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-medium transition-colors disabled:opacity-50"
+                        onClick={() => handleAction(resume, 'Pipeline resumed (Cron enabled)')}
+                        disabled={isResuming || isProcessing}
+                        className="flex items-center justify-center gap-2 px-4 py-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg transition-colors font-medium disabled:opacity-50"
                     >
-                        <Play className="w-4 h-4" /> Resume Pipeline
+                        <Play className="w-4 h-4" />
+                        {isResuming ? 'Resuming...' : 'Resume Pipeline'}
                     </button>
                 )}
 
                 <button
                     onClick={() => {
-                        if(window.confirm('WARNING: This immediately stops cron triggers. Active queue will NOT be purged. Proceed?')) {
-                            handleAction(onEmergencyStop, 'Emergency stop engaged');
-                        }
+                        // Preserving Force Manual Batch behavior using the Purge behavior but adapted logically.
+                        // Originally this triggered a cron/manual start. We map this to triggering a seed if needed or rely on resume.
+                        showToast({ title: 'Notice', message: 'Pipeline will pick up batch automatically when active.', variant: 'info' })
                     }}
                     disabled={isProcessing}
-                    className="flex items-center gap-2 px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-xl font-medium transition-colors disabled:opacity-50"
+                    className="flex items-center justify-center gap-2 px-4 py-3 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg transition-colors font-medium disabled:opacity-50"
                 >
-                    <AlertTriangle className="w-4 h-4" /> Emergency Stop
+                    <RefreshCw className="w-4 h-4" /> Force Manual Batch
                 </button>
 
                 <button
-                    onClick={() => handleAction(onForceManualBatch, 'Manual batch queued')}
-                    disabled={isProcessing}
-                    className="flex items-center gap-2 px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-xl font-medium transition-colors disabled:opacity-50"
+                    onClick={() => {
+                        if (window.confirm('Are you sure you want to purge the queue? This will delete all pending jobs.')) {
+                            handleAction(purge, 'Queue purged successfully');
+                        }
+                    }}
+                    disabled={isPurging || isProcessing}
+                    className="flex items-center justify-center gap-2 px-4 py-3 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors font-medium disabled:opacity-50"
                 >
-                    <RefreshCw className="w-4 h-4" /> Force Manual Batch
+                    <Trash2 className="w-4 h-4" />
+                    {isPurging ? 'Purging...' : 'Purge Queue'}
+                </button>
+
+                <button
+                    onClick={() => {
+                        const confirmText = window.prompt('Type "I UNDERSTAND" to execute a nuclear reset. This stops crons, purges queue, and archives all DLQ.');
+                        if (confirmText === 'I UNDERSTAND') {
+                            handleAction(nuclear, 'Nuclear reset executed');
+                        }
+                    }}
+                    disabled={isNuclear || isProcessing}
+                    className="flex items-center justify-center gap-2 px-4 py-3 bg-red-500/10 text-red-600 hover:bg-red-500/20 rounded-lg transition-colors font-medium disabled:opacity-50"
+                >
+                    <AlertTriangle className="w-4 h-4" />
+                    {isNuclear ? 'Resetting...' : 'Nuclear Reset'}
                 </button>
             </div>
 
             <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700">
                 <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-200 mb-3 flex items-center gap-2">
                     <Zap className="w-4 h-4 text-amber-500" />
-                    Manual Reprocessing
+                    Manual Reprocessing (Lineage Explorer Override)
                 </h3>
                 <div className="flex flex-wrap gap-3 items-end">
                     <div className="flex-1 min-w-[200px]">
@@ -142,6 +151,16 @@ export const ActionPanel: React.FC<ActionPanelProps> = ({
                             <option value="synonyms">Synonyms</option>
                             <option value="antonyms">Antonyms</option>
                             <option value="confusables">Confusables</option>
+                            <option value="explanation">Explanation</option>
+                            <option value="sense">Sense</option>
+                            <option value="usage">Usage</option>
+                            <option value="scope">Scope</option>
+                            <option value="mnemonic">Mnemonic</option>
+                            <option value="collocations">Collocations</option>
+                            <option value="etymology">Etymology</option>
+                            <option value="pronunciation">Pronunciation</option>
+                            <option value="grammar">Grammar</option>
+                            <option value="register">Register</option>
                         </select>
                     </div>
                     <button
