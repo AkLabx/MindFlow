@@ -413,7 +413,9 @@ ${JSON.stringify(inputBatch, null, 2)}
         output_tokens: outputTokens,
         latency_ms: totalTime,
         request_type: currentTask,
-        response_status: 'success'
+        response_status: 'success',
+        cache_hit: false,
+        locale: 'en'
     });
 
     if (telemetryError) {
