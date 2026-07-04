@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Brain } from 'lucide-react';
 import { SynapticLoader } from '@/components/ui/SynapticLoader';
@@ -7,11 +7,31 @@ import { useEnrichmentMetrics } from '../hooks/useEnrichmentMetrics';
 import { ActionPanel } from '../components/ActionPanel';
 import { QueueIntelligence } from '../components/QueueIntelligence';
 import { QualityMetrics } from '../components/QualityMetrics';
-// import { LineageExplorer } from '../components/LineageExplorer'; // Can be built out later if needed
+import { DLQInspector } from '../components/DLQInspector';
+import { useQuery } from '@tanstack/react-query';
+import { getEnrichmentDlq, retryDlqJob, archiveDlqJob, archiveAllDlq } from '../services/enrichmentAdminService';
 
 export const AdminEnrichmentControlCenter: React.FC = () => {
     const navigate = useNavigate();
     const { data: metrics, isLoading: isMetricsLoading, isError: isMetricsError } = useEnrichmentMetrics();
+
+    // Restore DLQ logic
+    const { data: dlq, refetch: refetchDlq } = useQuery({
+        queryKey: ['enrichment_dlq'],
+        queryFn: getEnrichmentDlq,
+        refetchInterval: 30000,
+    });
+
+    const [isMobile, setIsMobile] = useState(false);
+
+    useEffect(() => {
+        const checkMobile = () => {
+            setIsMobile(window.innerWidth < 768);
+        };
+        checkMobile();
+        window.addEventListener('resize', checkMobile);
+        return () => window.removeEventListener('resize', checkMobile);
+    }, []);
 
     if (isMetricsLoading && !metrics) {
         return (
@@ -59,13 +79,24 @@ export const AdminEnrichmentControlCenter: React.FC = () => {
             </header>
 
             <main className="max-w-7xl mx-auto px-4 py-8">
-                <ActionPanel isPipelineActive={metrics?.pipeline_active || false} />
+                {/* Action Panel preserving all manual processing capabilities */}
+                <ActionPanel
+                    isPipelineActive={metrics?.pipeline_active || false}
+                    isMobile={isMobile}
+                />
 
                 <QualityMetrics metrics={metrics!} />
 
                 <QueueIntelligence metrics={metrics!} />
 
-                {/* DLQ and Lineage UI can be expanded further below based on the hooks provided. */}
+                {/* Restored DLQ Inspector */}
+                <DLQInspector
+                    dlqJobs={dlq || []}
+                    onRetry={async (id) => { await retryDlqJob(id); refetchDlq(); }}
+                    onArchive={async (id) => { await archiveDlqJob(id); refetchDlq(); }}
+                    onArchiveAll={async () => { const count = await archiveAllDlq(); refetchDlq(); return count; }}
+                    isMobile={isMobile}
+                />
             </main>
         </div>
     );
