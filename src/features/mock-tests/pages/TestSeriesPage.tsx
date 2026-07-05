@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { MainLayout } from '@/layouts/MainLayout';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ChevronRight, Loader2, Layers, Crown } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -27,7 +26,7 @@ export const TestSeriesPage: React.FC = () => {
     };
 
     return (
-        <MainLayout activeTab="quiz" onTabChange={() => {}} onOpenSettings={() => {}}>
+        <>
             <div className="flex flex-col min-h-screen -m-4 sm:-m-6 lg:-m-8 p-4 sm:p-6 lg:p-8 transition-colors duration-700 relative overflow-hidden bg-slate-50 dark:bg-slate-900">
                 <div className="flex-1 flex flex-col space-y-6 py-4 relative z-10 w-full max-w-7xl mx-auto">
                     <header className="relative text-left w-full mt-2 flex flex-col gap-4">
@@ -87,6 +86,6 @@ export const TestSeriesPage: React.FC = () => {
                     )}
                 </div>
             </div>
-        </MainLayout>
+        </>
     );
 };
