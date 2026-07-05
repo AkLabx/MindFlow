@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { MainLayout } from '@/layouts/MainLayout';
 import { useNavigate } from 'react-router-dom';
 import { ChevronRight, Loader2, BookOpen } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -43,7 +42,7 @@ export const ExamCategoriesPage: React.FC = () => {
     };
 
     return (
-        <MainLayout activeTab="quiz" onTabChange={() => {}} onOpenSettings={() => {}}>
+        <>
             <div className="flex flex-col min-h-screen -m-4 sm:-m-6 lg:-m-8 p-4 sm:p-6 lg:p-8 transition-colors duration-700 relative overflow-hidden bg-slate-50 dark:bg-slate-900">
                 <div className="flex-1 flex flex-col space-y-6 py-4 relative z-10 w-full max-w-7xl mx-auto">
                     <header className="relative text-left w-full mt-2 flex flex-col gap-4">
@@ -67,6 +66,16 @@ export const ExamCategoriesPage: React.FC = () => {
                     {loading ? (
                         <div className="flex-1 flex justify-center items-center">
                             <Loader2 className="w-12 h-12 text-amber-500 animate-spin" />
+                        </div>
+                    ) : categories.length === 0 ? (
+                        <div className="flex-1 flex flex-col items-center justify-center text-center py-12">
+                            <div className="w-24 h-24 mb-6 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center">
+                                <BookOpen className="w-12 h-12 text-slate-400 dark:text-slate-500" />
+                            </div>
+                            <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">No Categories Yet</h2>
+                            <p className="text-slate-500 dark:text-slate-400 max-w-md">
+                                There are currently no active exam categories available. Please check back later.
+                            </p>
                         </div>
                     ) : (
                         <motion.div
@@ -97,6 +106,6 @@ export const ExamCategoriesPage: React.FC = () => {
                     )}
                 </div>
             </div>
-        </MainLayout>
+        </>
     );
 };
