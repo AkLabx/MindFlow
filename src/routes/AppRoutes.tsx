@@ -55,6 +55,7 @@ const AdminUploadIdioms = lazy(() => import("../features/admin/components/AdminU
 const AdminUploadSynonyms = lazy(() => import("../features/admin/components/AdminUploadSynonyms").then(m => ({ default: m.AdminUploadSynonyms })));
 const AdminEnrichmentControlCenter = lazy(() => import("../features/admin/enrichment/pages/AdminEnrichmentControlCenter").then(m => ({ default: m.AdminEnrichmentControlCenter })));
 const AdminUploadMaterials = lazy(() => import('../features/admin/components/AdminUploadMaterials').then(m => ({ default: m.AdminUploadMaterials })));
+const AdminContentStudio = lazy(() => import("../features/admin/content/pages/AdminContentStudio").then(m => ({ default: m.AdminContentStudio })));
 
 const AdminTestSeriesDashboard = lazy(() => import('../features/admin/test-series/pages/AdminTestSeriesDashboard').then(m => ({ default: m.AdminTestSeriesDashboard })));
 const ExamCategoriesPage = lazy(() => import('../features/mock-tests/pages/ExamCategoriesPage').then(m => ({ default: m.ExamCategoriesPage })));
@@ -586,6 +587,7 @@ const handleReattempt = async (quizId: string, mode: string) => {
                     <Route path="/admin/upload-synonyms" element={<AdminProtectedRoute><Suspense fallback={<SynapticLoader />}><AdminUploadSynonyms /></Suspense></AdminProtectedRoute>} />
                     <Route path="/admin/enrichment" element={<AdminProtectedRoute><Suspense fallback={<SynapticLoader />}><AdminEnrichmentControlCenter /></Suspense></AdminProtectedRoute>} />
                     <Route path="/admin/test-series" element={<AdminProtectedRoute><Suspense fallback={<SynapticLoader />}><AdminTestSeriesDashboard /></Suspense></AdminProtectedRoute>} />
+                    <Route path="/admin/content" element={<AdminProtectedRoute><Suspense fallback={<SynapticLoader />}><AdminContentStudio /></Suspense></AdminProtectedRoute>} />
               <Route path="/admin/notifications" element={
             <AdminProtectedRoute>
               <Suspense fallback={<div className="flex h-screen items-center justify-center"><SynapticLoader size="md" /></div>}>
