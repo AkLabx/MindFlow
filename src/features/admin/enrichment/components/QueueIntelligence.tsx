@@ -15,6 +15,7 @@ export const QueueIntelligence = ({ metrics }: { metrics: EnrichmentDashboardMet
                             <th className="pb-2">Task Stage</th>
                             <th className="pb-2 text-right">Pending</th>
                             <th className="pb-2 text-right">Running (Locked)</th>
+                            <th className="pb-2 text-right">Success Rate</th>
                             <th className="pb-2 text-right text-orange-500">Retry Pending</th>
                         </tr>
                     </thead>
@@ -25,12 +26,13 @@ export const QueueIntelligence = ({ metrics }: { metrics: EnrichmentDashboardMet
                                     <td className="py-2 font-medium capitalize">{q.task}</td>
                                     <td className="py-2 text-right">{q.pending}</td>
                                     <td className="py-2 text-right text-indigo-500">{q.running}</td>
+                                    <td className={`py-2 text-right font-medium ${(metrics.success_rate?.[q.task] || 0) < 80 ? 'text-orange-500' : 'text-emerald-500'}`}>{(metrics.success_rate?.[q.task] || 0).toFixed(1)}%</td>
                                     <td className="py-2 text-right text-orange-500">{q.retry_pending}</td>
                                 </tr>
                             ))
                         ) : (
                             <tr>
-                                <td colSpan={4} className="py-4 text-center text-slate-500">Queue is empty</td>
+                                <td colSpan={5} className="py-4 text-center text-slate-500">Queue is empty</td>
                             </tr>
                         )}
                     </tbody>

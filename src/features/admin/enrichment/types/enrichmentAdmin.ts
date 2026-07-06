@@ -42,6 +42,8 @@ export interface EnrichmentDashboardMetrics {
 
     queue_depth: number;
     current_task: string;
+    phase_latency: { [key: string]: { phase_fetch_ms: number; phase_gemini_ms: number; phase_validation_ms: number; phase_db_write_ms: number; latency_ms: number; } };
+    success_rate: { [key: string]: number };
 }
 
 export interface EnrichmentDlqJob {
@@ -51,4 +53,15 @@ export interface EnrichmentDlqJob {
     task: string;
     failed_at: string;
     attempt_count: number;
+}
+
+export interface AiTaskConfig {
+    task: string;
+    batch_size: number;
+    priority: number;
+    visibility_timeout: number;
+    max_attempts: number;
+    cooldown_seconds: number;
+    is_enabled: boolean;
+    model_chain: string[];
 }
