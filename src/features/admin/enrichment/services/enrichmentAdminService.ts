@@ -81,3 +81,25 @@ export const getPromptRegistryMetrics = async () => {
     if (error) throw error;
     return data;
 };
+
+export const getAiTaskConfig = async () => {
+    const { data, error } = await supabase
+        .from('ai_task_config')
+        .select('*')
+        .order('priority', { ascending: true });
+
+    if (error) throw error;
+    return data;
+};
+
+export const updateAiTaskConfig = async (task: string, updates: any) => {
+    const { data, error } = await supabase
+        .from('ai_task_config')
+        .update(updates)
+        .eq('task', task)
+        .select()
+        .single();
+
+    if (error) throw error;
+    return data;
+};

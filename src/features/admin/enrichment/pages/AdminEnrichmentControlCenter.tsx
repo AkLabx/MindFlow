@@ -10,6 +10,8 @@ import { QualityMetrics } from '../components/QualityMetrics';
 import { QueueIntelligence } from '../components/QueueIntelligence';
 import { ProgressMatrix } from '../components/ProgressMatrix';
 import { TokenEconomicsPanel } from '../components/TokenEconomicsPanel';
+import { PhaseLatencyChart } from '../components/PhaseLatencyChart';
+import { TaskTuningPanel } from '../components/TaskTuningPanel';
 import { DLQInspector } from '../components/DLQInspector';
 import { useQuery } from '@tanstack/react-query';
 import { getEnrichmentDlq, retryDlqJob, archiveDlqJob, archiveAllDlq } from '../services/enrichmentAdminService';
@@ -93,14 +95,20 @@ export const AdminEnrichmentControlCenter: React.FC = () => {
                 {/* Row 3: AI Health */}
                 <QualityMetrics metrics={metrics!} />
 
-                {/* Row 4: Queue Intelligence */}
+                                {/* Row 4: Queue Intelligence */}
                 <QueueIntelligence metrics={metrics!} />
+
+                {/* Row 4.25: Phase Latency Chart */}
+                <PhaseLatencyChart metrics={metrics!} />
 
                 {/* Row 5: Completion Matrix */}
                 <ProgressMatrix metrics={metrics} />
 
                 {/* Row 6 & 7: Token Economics & Model Intelligence */}
                 <TokenEconomicsPanel metrics={metrics!} />
+
+                                {/* Row 4.5: Task Tuning Panel */}
+                <TaskTuningPanel />
 
                 {/* Restored DLQ Inspector */}
                 <DLQInspector

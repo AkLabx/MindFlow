@@ -6,6 +6,7 @@ import { QuizLayout } from '@/features/quiz';
 import { useAuth } from '@/features/auth';
 import { SynapticLoader } from '../components/ui/SynapticLoader';
 import { ProtectedRoute } from '../providers/ProtectedRoute';
+import { AdminProtectedRoute } from '../providers/AdminProtectedRoute';
 import { ErrorBoundary } from '../providers/ErrorBoundary';
 import { useHardwareBackButton } from '../hooks/useHardwareBackButton';
 import { useNotificationStore } from '../stores/useNotificationStore';
@@ -575,20 +576,22 @@ const handleReattempt = async (quizId: string, mode: string) => {
                 {/* Fallback Route */}
                 <Route path="*" element={<Navigate to="/" replace />} />
 
-                    <Route path="/admin" element={<Suspense fallback={<SynapticLoader />}><AdminHomePage /></Suspense>} />
-                    <Route path="/admin/reports" element={<Suspense fallback={<SynapticLoader />}><AdminReportsQueue /></Suspense>} />
-                                        <Route path="/admin/materials" element={<Suspense fallback={<SynapticLoader />}><AdminManageMaterials /></Suspense>} />
-                    <Route path="/admin/upload" element={<Suspense fallback={<SynapticLoader />}><AdminUploadMaterials /></Suspense>} />
-                    <Route path="/admin/uploadgk" element={<Suspense fallback={<SynapticLoader />}><AdminUploadGK /></Suspense>} />
-                    <Route path="/admin/upload-ows" element={<Suspense fallback={<SynapticLoader />}><AdminUploadOWS /></Suspense>} />
-                    <Route path="/admin/upload-idioms" element={<Suspense fallback={<SynapticLoader />}><AdminUploadIdioms /></Suspense>} />
-                    <Route path="/admin/upload-synonyms" element={<Suspense fallback={<SynapticLoader />}><AdminUploadSynonyms /></Suspense>} />
-                    <Route path="/admin/enrichment" element={<Suspense fallback={<SynapticLoader />}><AdminEnrichmentControlCenter /></Suspense>} />
-                    <Route path="/admin/test-series" element={<Suspense fallback={<SynapticLoader />}><AdminTestSeriesDashboard /></Suspense>} />
+                    <Route path="/admin" element={<AdminProtectedRoute><Suspense fallback={<SynapticLoader />}><AdminHomePage /></Suspense></AdminProtectedRoute>} />
+                    <Route path="/admin/reports" element={<AdminProtectedRoute><Suspense fallback={<SynapticLoader />}><AdminReportsQueue /></Suspense></AdminProtectedRoute>} />
+                                        <Route path="/admin/materials" element={<AdminProtectedRoute><Suspense fallback={<SynapticLoader />}><AdminManageMaterials /></Suspense></AdminProtectedRoute>} />
+                    <Route path="/admin/upload" element={<AdminProtectedRoute><Suspense fallback={<SynapticLoader />}><AdminUploadMaterials /></Suspense></AdminProtectedRoute>} />
+                    <Route path="/admin/uploadgk" element={<AdminProtectedRoute><Suspense fallback={<SynapticLoader />}><AdminUploadGK /></Suspense></AdminProtectedRoute>} />
+                    <Route path="/admin/upload-ows" element={<AdminProtectedRoute><Suspense fallback={<SynapticLoader />}><AdminUploadOWS /></Suspense></AdminProtectedRoute>} />
+                    <Route path="/admin/upload-idioms" element={<AdminProtectedRoute><Suspense fallback={<SynapticLoader />}><AdminUploadIdioms /></Suspense></AdminProtectedRoute>} />
+                    <Route path="/admin/upload-synonyms" element={<AdminProtectedRoute><Suspense fallback={<SynapticLoader />}><AdminUploadSynonyms /></Suspense></AdminProtectedRoute>} />
+                    <Route path="/admin/enrichment" element={<AdminProtectedRoute><Suspense fallback={<SynapticLoader />}><AdminEnrichmentControlCenter /></Suspense></AdminProtectedRoute>} />
+                    <Route path="/admin/test-series" element={<AdminProtectedRoute><Suspense fallback={<SynapticLoader />}><AdminTestSeriesDashboard /></Suspense></AdminProtectedRoute>} />
               <Route path="/admin/notifications" element={
-            <Suspense fallback={<div className="flex h-screen items-center justify-center"><SynapticLoader size="md" /></div>}>
-              <AdminNotifications />
-            </Suspense>
+            <AdminProtectedRoute>
+              <Suspense fallback={<div className="flex h-screen items-center justify-center"><SynapticLoader size="md" /></div>}>
+                <AdminNotifications />
+              </Suspense>
+            </AdminProtectedRoute>
           } />
         (</Routes>)
         </Suspense>
