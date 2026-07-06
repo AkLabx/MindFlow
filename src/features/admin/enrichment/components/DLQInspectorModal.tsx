@@ -3,13 +3,14 @@ import { X } from 'lucide-react';
 import type { EnrichmentDlqJob } from '../types/enrichmentAdmin';
 
 interface DLQInspectorModalProps {
-    isOpen: boolean;
     onClose: () => void;
     job: EnrichmentDlqJob | null;
+    onRetry?: () => Promise<void>;
+    onArchive?: () => Promise<void>;
 }
 
-export const DLQInspectorModal: React.FC<DLQInspectorModalProps> = ({ isOpen, onClose, job }) => {
-    if (!isOpen || !job) return null;
+export const DLQInspectorModal: React.FC<DLQInspectorModalProps> = ({ onClose, job, onRetry, onArchive }) => {
+    if (!job) return null;
 
     let parsedError: any = null;
     try {
