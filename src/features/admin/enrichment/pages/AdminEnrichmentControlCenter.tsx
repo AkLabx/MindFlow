@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Brain } from 'lucide-react';
+import { ArrowLeft, Brain, ChevronDown } from 'lucide-react';
 import { SynapticLoader } from '@/components/ui/SynapticLoader';
 
 import { useEnrichmentMetrics } from '../hooks/useEnrichmentMetrics';
@@ -14,19 +14,26 @@ import { PhaseLatencyChart } from '../components/PhaseLatencyChart';
 import { TaskTuningPanel } from '../components/TaskTuningPanel';
 import { DLQInspector } from '../components/DLQInspector';
 import { useQuery } from '@tanstack/react-query';
-import { getEnrichmentDlq, retryDlqJob, archiveDlqJob, archiveAllDlq } from '../services/enrichmentAdminService';
+import { retryDlqJob, archiveDlqJob, archiveAllDlq } from '../services/enrichmentAdminService';
+import { fetchPipelineDlq } from '../services/pipelineMetricsService';
+import { usePipelineStore } from '../stores/usePipelineStore';
+import { PIPELINE_REGISTRY, PipelineType } from '../constants/pipelineRegistry';
 
 export const AdminEnrichmentControlCenter: React.FC = () => {
     const navigate = useNavigate();
+    const { selectedPipeline, setSelectedPipeline } = usePipelineStore();
+    const config = PIPELINE_REGISTRY[selectedPipeline];
+
     const { data: metrics, isLoading: isMetricsLoading, isError: isMetricsError } = useEnrichmentMetrics();
 
     const { data: dlq, refetch: refetchDlq } = useQuery({
-        queryKey: ['enrichment_dlq'],
-        queryFn: getEnrichmentDlq,
+        queryKey: ['enrichment_dlq', selectedPipeline],
+        queryFn: () => fetchPipelineDlq(selectedPipeline),
         refetchInterval: 30000,
     });
 
     const [isMobile, setIsMobile] = useState(false);
+    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
     useEffect(() => {
         const checkMobile = () => {
@@ -50,7 +57,7 @@ export const AdminEnrichmentControlCenter: React.FC = () => {
             <div className="h-screen flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-950 p-6 text-center">
                 <div className="bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 p-6 rounded-2xl max-w-md">
                     <h2 className="text-xl font-bold mb-2">Metrics Unavailable</h2>
-                    <p className="text-sm">Could not connect to the Enrichment Control Center RPCs. Ensure migrations are applied.</p>
+                    <p className="text-sm">Could not connect to the Enrichment Control Center adapter for {config.label}.</p>
                     <button
                         onClick={() => navigate('/admin')}
                         className="mt-6 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors font-medium"
@@ -74,9 +81,41 @@ export const AdminEnrichmentControlCenter: React.FC = () => {
                         >
                             <ArrowLeft className="w-5 h-5" />
                         </button>
-                        <div className="flex items-center gap-2">
-                            <Brain className="w-6 h-6 text-indigo-500" />
-                            <h1 className="text-lg font-bold text-slate-800 dark:text-slate-100">AI Observability Platform</h1>
+                        <div className="flex flex-col">
+                            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">AI Operations</span>
+                            <div className="relative">
+                                <button
+                                    onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                                    className="flex items-center gap-2 text-lg font-bold text-slate-800 dark:text-slate-100 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+                                >
+                                    {config.label}
+                                    <ChevronDown className="w-4 h-4" />
+                                </button>
+
+                                {isDropdownOpen && (
+                                    <>
+                                        <div className="fixed inset-0 z-40" onClick={() => setIsDropdownOpen(false)} />
+                                        <div className="absolute top-full left-0 mt-2 w-56 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl overflow-hidden z-50">
+                                            {(Object.keys(PIPELINE_REGISTRY) as PipelineType[]).map((pKey) => (
+                                                <button
+                                                    key={pKey}
+                                                    onClick={() => {
+                                                        setSelectedPipeline(pKey);
+                                                        setIsDropdownOpen(false);
+                                                    }}
+                                                    className={`w-full text-left px-4 py-3 text-sm font-medium transition-colors ${
+                                                        selectedPipeline === pKey
+                                                            ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300'
+                                                            : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50'
+                                                    }`}
+                                                >
+                                                    {PIPELINE_REGISTRY[pKey].label}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -84,40 +123,59 @@ export const AdminEnrichmentControlCenter: React.FC = () => {
 
             <main className="max-w-7xl mx-auto px-4 py-8">
                 {/* Row 1: Hero Status */}
-                <PipelineHeroCard metrics={metrics} />
+                {config.supportedWidgets.includes('HeroCard') && (
+                    <PipelineHeroCard metrics={metrics!} pipelineConfig={config} />
+                )}
 
                 {/* Row 2: Operations Controls */}
-                <ActionPanel
-                    isPipelineActive={metrics?.pipeline_active || false}
-                    isMobile={isMobile}
-                />
+                {config.supportedWidgets.includes('ActionPanel') && (
+                    <ActionPanel
+                        isPipelineActive={metrics?.pipeline_active || false}
+                        isMobile={isMobile}
+                    />
+                )}
 
                 {/* Row 3: AI Health */}
-                <QualityMetrics metrics={metrics!} />
+                {config.supportedWidgets.includes('QualityMetrics') && (
+                    <QualityMetrics metrics={metrics!} />
+                )}
 
-                                {/* Row 4: Queue Intelligence */}
-                <QueueIntelligence metrics={metrics!} />
+                {/* Row 4: Queue Intelligence */}
+                {config.supportedWidgets.includes('QueueIntelligence') && (
+                    <QueueIntelligence metrics={metrics!} pipelineConfig={config} />
+                )}
 
                 {/* Row 4.25: Phase Latency Chart */}
-                <PhaseLatencyChart metrics={metrics!} />
+                {config.supportedWidgets.includes('PhaseLatency') && (
+                    <PhaseLatencyChart metrics={metrics!} />
+                )}
 
                 {/* Row 5: Completion Matrix */}
-                <ProgressMatrix metrics={metrics} />
+                {config.supportedWidgets.includes('ProgressMatrix') && (
+                    <ProgressMatrix metrics={metrics!} pipelineConfig={config} />
+                )}
 
                 {/* Row 6 & 7: Token Economics & Model Intelligence */}
-                <TokenEconomicsPanel metrics={metrics!} />
+                {config.supportedWidgets.includes('TokenEconomics') && (
+                    <TokenEconomicsPanel metrics={metrics!} />
+                )}
 
-                                {/* Row 4.5: Task Tuning Panel */}
-                <TaskTuningPanel />
+                {/* Row 4.5: Task Tuning Panel */}
+                {config.supportedWidgets.includes('TaskTuning') && (
+                    <TaskTuningPanel />
+                )}
 
                 {/* Restored DLQ Inspector */}
-                <DLQInspector
-                    dlqJobs={dlq || []}
-                    onRetry={async (id) => { await retryDlqJob(id); refetchDlq(); }}
-                    onArchive={async (id) => { await archiveDlqJob(id); refetchDlq(); }}
-                    onArchiveAll={async () => { const count = await archiveAllDlq(); refetchDlq(); return count; }}
-                    isMobile={isMobile}
-                />
+                {config.supportedWidgets.includes('DLQInspector') && (
+                    <DLQInspector
+                        dlqJobs={dlq || []}
+                        onRetry={async (id) => { await retryDlqJob(id); refetchDlq(); }}
+                        onArchive={async (id) => { await archiveDlqJob(id); refetchDlq(); }}
+                        onArchiveAll={async () => { const count = await archiveAllDlq(); refetchDlq(); return count; }}
+                        isMobile={isMobile}
+                        pipelineConfig={config}
+                    />
+                )}
             </main>
         </div>
     );
