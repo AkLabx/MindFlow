@@ -17,5 +17,6 @@ export interface IngestionJobPayload {
         tags: string[];
     };
     rawContent?: string;
-    fileUrl?: string;
+    fileUrl?: string; // Will store the actual UUID-based storage path
+    file?: File; // Temporary client-side reference to the file before upload
 }
