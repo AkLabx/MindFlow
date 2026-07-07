@@ -12,16 +12,13 @@ export const dispatchIngestionJob = async (payload: IngestionJobPayload) => {
         finalFilename = payload.file.name;
         mimeType = payload.file.type;
         fileSize = payload.file.size;
-
+        
         const date = new Date();
         const year = date.getFullYear();
         const month = String(date.getMonth() + 1).padStart(2, '0');
-       const extension =
-payload.file.name
-.split('.')
-.pop()
-        const storagePath = `pdfs/${year}/${month}/${uuid}.pdf`;
-
+        const uuid = crypto.randomUUID();
+        const extension = payload.file.name.split('.').pop() || 'pdf';
+        const storagePath = pdfs/${year}/${month}/${uuid}.${extension}`;
         const { error: uploadError } = await supabase.storage
             .from('content_studio')
             .upload(storagePath, payload.file);
@@ -54,9 +51,17 @@ payload.file.name
             status: 'QUEUED',
             schema_version: 1
         })
-        .select()
-        .single();
-
+       .select(`
+id,
+storage_bucket,
+storage_path,
+exam_name,
+exam_year,
+exam_shift,
+prompt_profile,
+source_type
+`)
+.single();
     if (docError) throw new Error(`Failed to create source document: ${docError.message}`);
 
     // 3. Dispatch to pgmq pre_phase_question_jobs
