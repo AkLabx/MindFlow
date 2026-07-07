@@ -5,7 +5,7 @@ export const dispatchIngestionJob = async (payload: IngestionJobPayload) => {
     let finalStoragePath = null;
     let finalFilename = payload.sourceType === 'Raw Text' ? 'raw_text_import' : 'unknown_file';
     let mimeType = 'text/plain';
-    let fileSize = 0;
+    let fileSize = payload.rawContent.length
 
     // 1. If PDF, upload to content_studio
     if (payload.sourceType === 'PDF' && payload.file) {
@@ -16,7 +16,10 @@ export const dispatchIngestionJob = async (payload: IngestionJobPayload) => {
         const date = new Date();
         const year = date.getFullYear();
         const month = String(date.getMonth() + 1).padStart(2, '0');
-        const uuid = crypto.randomUUID();
+       const extension =
+payload.file.name
+.split('.')
+.pop()
         const storagePath = `pdfs/${year}/${month}/${uuid}.pdf`;
 
         const { error: uploadError } = await supabase.storage
