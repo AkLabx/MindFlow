@@ -17,7 +17,10 @@ export const dispatchIngestionJob = async (payload: IngestionJobPayload) => {
         const year = date.getFullYear();
         const month = String(date.getMonth() + 1).padStart(2, '0');
         const uuid = crypto.randomUUID();
-        const extension = payload.file.name.split('.').pop() || 'pdf';
+       const extension = payload.file.name
+        .split('.')
+        .pop()
+        ?.toLowerCase() || 'pdf';
         const storagePath = pdfs/${year}/${month}/${uuid}.${extension}`;
         const { error: uploadError } = await supabase.storage
             .from('content_studio')
