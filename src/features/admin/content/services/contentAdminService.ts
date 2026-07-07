@@ -35,7 +35,6 @@ export const dispatchIngestionJob = async (payload: IngestionJobPayload) => {
         .from('source_documents')
         .insert({
             filename: finalFilename,
-            original_filename: finalFilename,
             source_type: payload.sourceType,
             storage_bucket: payload.sourceType === 'PDF' ? 'content_studio' : null,
             storage_path: finalStoragePath,
