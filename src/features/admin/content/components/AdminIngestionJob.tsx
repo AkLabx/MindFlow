@@ -24,6 +24,7 @@ export const AdminIngestionJob: React.FC = () => {
 
     // Payload State
     const [rawContent, setRawContent] = useState('');
+    const [pdfFile, setPdfFile] = useState<File | null>(null);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -48,12 +49,13 @@ export const AdminIngestionJob: React.FC = () => {
                     language,
                     tags: tags.split(',').map(t => t.trim()).filter(Boolean)
                 },
-                rawContent
+                rawContent,
+                file: pdfFile || undefined
             };
 
             await dispatchIngestionJob(payload);
             showToast({ title: 'Job Dispatched', message: 'Ingestion job queued successfully.', variant: 'success' });
-            setRawContent(''); // Reset on success
+            setRawContent(''); setPdfFile(null); // Reset on success
         } catch (error: any) {
             showToast({ title: 'Dispatch Failed', message: error.message, variant: 'error' });
         } finally {
@@ -105,7 +107,36 @@ export const AdminIngestionJob: React.FC = () => {
                         </div>
                     )}
 
-                    {sourceType !== 'Raw Text' && (
+                    {sourceType === 'PDF' && (
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                                Upload PDF Document
+                            </label>
+                            <div className="h-96 flex flex-col items-center justify-center border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-indigo-500 hover:bg-indigo-50/50 dark:hover:bg-indigo-900/10 transition-colors rounded-xl bg-slate-50 dark:bg-slate-950/50 relative">
+                                <input
+                                    type="file"
+                                    accept="application/pdf"
+                                    onChange={(e) => setPdfFile(e.target.files?.[0] || null)}
+                                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                />
+                                {pdfFile ? (
+                                    <>
+                                        <FileText className="w-12 h-12 text-indigo-500 mb-4" />
+                                        <p className="text-slate-800 dark:text-slate-200 font-medium text-lg">{pdfFile.name}</p>
+                                        <p className="text-slate-500 dark:text-slate-400 mt-2">{(pdfFile.size / 1024 / 1024).toFixed(2)} MB</p>
+                                        <p className="text-indigo-600 dark:text-indigo-400 mt-4 text-sm font-medium hover:underline">Click or drag to replace</p>
+                                    </>
+                                ) : (
+                                    <>
+                                        <UploadCloud className="w-12 h-12 text-slate-400 mb-4" />
+                                        <p className="text-slate-600 dark:text-slate-400 font-medium text-lg">Click or drag PDF to upload</p>
+                                        <p className="text-slate-500 dark:text-slate-500 text-sm mt-2">Maximum file size: 50MB</p>
+                                    </>
+                                )}
+                            </div>
+                        </div>
+                    )}
+                    {sourceType !== 'Raw Text' && sourceType !== 'PDF' && (
                         <div className="h-96 flex flex-col items-center justify-center border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-950/50">
                             <UploadCloud className="w-12 h-12 text-slate-400 mb-4" />
                             <p className="text-slate-600 dark:text-slate-400 font-medium">Upload support for {sourceType} is coming soon.</p>
@@ -249,7 +280,7 @@ export const AdminIngestionJob: React.FC = () => {
 
                 <button
                     type="submit"
-                    disabled={isSubmitting || (sourceType === 'Raw Text' && !rawContent)}
+                    disabled={isSubmitting || (sourceType === 'Raw Text' && !rawContent) || (sourceType === 'PDF' && !pdfFile)}
                     className="w-full flex items-center justify-center gap-2 py-4 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-xl shadow-lg shadow-indigo-200 dark:shadow-none transition-all active:scale-[0.98]"
                 >
                     {isSubmitting ? (
