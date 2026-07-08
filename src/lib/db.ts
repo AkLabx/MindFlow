@@ -723,6 +723,25 @@ export const db = {
     /**
      * Saves Quiz Metadata to cache.
      */
+
+    /**
+     * Deletes explicitly given Quiz Metadata from cache (Soft Deletes Sync).
+     */
+    deleteQuizMetadataCache: async (ids: string[]): Promise<void> => {
+        const dbInstance = await openDB();
+        return new Promise((resolve, reject) => {
+            const transaction = dbInstance.transaction(QUIZ_METADATA_STORE, 'readwrite');
+            const store = transaction.objectStore(QUIZ_METADATA_STORE);
+
+            ids.forEach(id => {
+                store.delete(id);
+            });
+
+            transaction.oncomplete = () => resolve();
+            transaction.onerror = (event) => reject((event.target as IDBRequest).error);
+        });
+    },
+
     saveQuizMetadataCache: async (metadata: any[]): Promise<void> => {
         const dbInstance = await openDB();
         return new Promise((resolve, reject) => {
