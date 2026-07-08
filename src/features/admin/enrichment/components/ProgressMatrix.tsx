@@ -8,21 +8,10 @@ interface ProgressMatrixProps {
 }
 
 export const ProgressMatrix: React.FC<ProgressMatrixProps> = ({ metrics, pipelineConfig }) => {
-    const total = metrics.total_words || 1;
+    const isVocab = pipelineConfig.id === 'vocabulary';
+    const total = isVocab ? (metrics.total_words || 1) : (metrics.total_questions || 1);
 
-    // A helper to map the generic keys from pipelineConfig back to the metric values
-    // Since we temporarily adapted the adapter to output examples_complete for Tier 1, etc.,
-    // we map them here. When the backend is fully unified, this logic will just access metrics[tier.key].
-    const getMetricValue = (key: string): number => {
-        if (pipelineConfig.id === 'question_enrichment') {
-            if (key === 'classification') return metrics.examples_complete || 0;
-            if (key === 'translation') return metrics.synonyms_complete || 0;
-            if (key === 'explanation') return metrics.antonyms_complete || 0;
-        }
-        return (metrics as any)[`${key}_complete`] || 0;
-    };
-
-    const generateBar = (label: string, complete: number) => {
+    const generateBar = (label: string, complete: number = 0) => {
         const percent = Math.min(100, (complete / total) * 100);
         return (
             <div key={label} className="mb-3">
@@ -40,8 +29,7 @@ export const ProgressMatrix: React.FC<ProgressMatrixProps> = ({ metrics, pipelin
         );
     };
 
-    if (pipelineConfig.id === 'vocabulary') {
-        // Render the original 4-tier matrix for Vocabulary
+    if (isVocab) {
         return (
             <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm mb-8">
                 <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-6">Cognitive Completion Matrix</h2>
@@ -77,17 +65,29 @@ export const ProgressMatrix: React.FC<ProgressMatrixProps> = ({ metrics, pipelin
         );
     }
 
-    // Dynamic rendering for other pipelines (Question Enrichment)
     return (
         <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm mb-8">
-            <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-6">Cognitive Completion Matrix</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-8">
-                {pipelineConfig.completionTiers.map((tier) => (
-                     <div key={tier.key}>
-                        <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 mb-4 uppercase tracking-wider text-indigo-500">{tier.label}</h3>
-                        {generateBar('Complete', getMetricValue(tier.key))}
-                     </div>
-                ))}
+            <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-6">Pipeline Granularity Matrix</h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div>
+                    <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 mb-4 uppercase tracking-wider text-indigo-500">Tier 1: Classification</h3>
+                    {generateBar('Subject', metrics.q_subject_complete)}
+                    {generateBar('Topic', metrics.q_topic_complete)}
+                    {generateBar('Subtopic', metrics.q_subtopic_complete)}
+                    {generateBar('Difficulty', metrics.q_difficulty_complete)}
+                    {generateBar('Tags', metrics.q_tags_complete)}
+                </div>
+                <div>
+                    <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 mb-4 uppercase tracking-wider text-blue-500">Tier 2: Localization</h3>
+                    {generateBar('Question (Hindi)', metrics.q_question_hi_complete)}
+                    {generateBar('Options (Hindi)', metrics.q_options_hi_complete)}
+                </div>
+                <div>
+                    <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 mb-4 uppercase tracking-wider text-emerald-500">Tier 3: Tutor Layer</h3>
+                    {generateBar('Explanation Structure', metrics.q_explanation_complete)}
+                    {generateBar('Grounded Search Usage', metrics.q_grounded_search_usage)}
+                    {generateBar('Agentic Validation', metrics.q_agentic_tutor_usage)}
+                </div>
             </div>
         </div>
     );

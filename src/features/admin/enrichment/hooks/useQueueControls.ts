@@ -5,22 +5,24 @@ import {
     emergencyNuclearReset,
     resumePipeline
 } from '../services/enrichmentAdminService';
+import { usePipelineStore } from '../stores/usePipelineStore';
 
 export const useQueueControls = () => {
     const queryClient = useQueryClient();
+    const { selectedPipeline } = usePipelineStore();
 
     const freezeMutation = useMutation({
-        mutationFn: emergencyFreezePipeline,
+        mutationFn: () => emergencyFreezePipeline(selectedPipeline),
         onSuccess: () => queryClient.invalidateQueries({ queryKey: ['enrichment_metrics'] })
     });
 
     const purgeMutation = useMutation({
-        mutationFn: emergencyPurgeQueue,
+        mutationFn: () => emergencyPurgeQueue(selectedPipeline),
         onSuccess: () => queryClient.invalidateQueries({ queryKey: ['enrichment_metrics'] })
     });
 
     const nuclearMutation = useMutation({
-        mutationFn: emergencyNuclearReset,
+        mutationFn: () => emergencyNuclearReset(selectedPipeline),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['enrichment_metrics'] });
             queryClient.invalidateQueries({ queryKey: ['enrichment_dlq'] });
@@ -28,7 +30,7 @@ export const useQueueControls = () => {
     });
 
     const resumeMutation = useMutation({
-        mutationFn: resumePipeline,
+        mutationFn: () => resumePipeline(selectedPipeline),
         onSuccess: () => queryClient.invalidateQueries({ queryKey: ['enrichment_metrics'] })
     });
 
