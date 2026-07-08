@@ -55,21 +55,6 @@ const fetchQuestionEnrichmentMetrics = async (): Promise<EnrichmentDashboardMetr
     let groundedUsage = 0;
 
     const totalQuestions = qStats?.length || 0;
-
-    let subjectComplete = 0;
-    let topicComplete = 0;
-    let subTopicComplete = 0;
-    let difficultyComplete = 0;
-    let tagsComplete = 0;
-
-    let questionHiComplete = 0;
-    let optionsHiComplete = 0;
-
-    let agenticUsage = 0;
-    let groundedUsage = 0;
-
-    const totalQuestions = qStats?.length || 0;
-
     qStats?.forEach(q => {
         const p = q.enrichment_progress as Record<string, boolean>;
         if (p?.classification) classificationComplete++;
