@@ -4,10 +4,12 @@ import { Settings, Save, Power, PowerOff } from 'lucide-react';
 import { getAiTaskConfig, updateAiTaskConfig } from '../services/enrichmentAdminService';
 import { useNotificationStore } from '@/stores/useNotificationStore';
 import type { AiTaskConfig } from '../types/enrichmentAdmin';
+import { usePipelineStore } from '../stores/usePipelineStore';
 
 export const TaskTuningPanel: React.FC = () => {
     const queryClient = useQueryClient();
     const showToast = useNotificationStore(s => s.showToast);
+    const { selectedPipeline } = usePipelineStore();
     const [editingTask, setEditingTask] = useState<string | null>(null);
     const [editForm, setEditForm] = useState<Partial<AiTaskConfig>>({});
 
@@ -47,6 +49,15 @@ export const TaskTuningPanel: React.FC = () => {
 
     if (isLoading) return <div className="p-6">Loading task configs...</div>;
 
+    // Filter tasks based on active pipeline
+    const filteredConfigs = configs?.filter(config => {
+        if (selectedPipeline === 'question_enrichment') {
+            return config.task.startsWith('question_');
+        } else {
+            return !config.task.startsWith('question_') && config.task !== 'ask_ai_tutor' && config.task !== 'chat';
+        }
+    });
+
     return (
         <div className="bg-white dark:bg-slate-900 rounded-xl p-6 border border-slate-200 dark:border-slate-800 mb-8">
             <div className="flex justify-between items-center mb-6">
@@ -70,9 +81,9 @@ export const TaskTuningPanel: React.FC = () => {
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-slate-700 dark:text-slate-300">
-                        {configs?.map((config) => (
+                        {filteredConfigs?.map((config) => (
                             <tr key={config.task} className="hover:bg-slate-50 dark:hover:bg-slate-800/30">
-                                <td className="p-3 font-medium capitalize">{config.task}</td>
+                                <td className="p-3 font-medium">{config.task}</td>
                                 <td className="p-3">
                                     <button
                                         onClick={() => handleToggleEnabled(config)}
@@ -142,9 +153,9 @@ export const TaskTuningPanel: React.FC = () => {
                                 </td>
                             </tr>
                         ))}
-                        {configs?.length === 0 && (
+                        {filteredConfigs?.length === 0 && (
                             <tr>
-                                <td colSpan={6} className="p-4 text-center text-slate-500">No task configurations found.</td>
+                                <td colSpan={6} className="p-4 text-center text-slate-500">No task configurations found for this pipeline.</td>
                             </tr>
                         )}
                     </tbody>

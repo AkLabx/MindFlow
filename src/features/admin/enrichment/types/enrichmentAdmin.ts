@@ -17,6 +17,7 @@ export interface EnrichmentDashboardMetrics {
     gemini_requests_today: number;
     edge_invocations_today: number;
 
+    // Vocabulary Metrics
     examples_complete: number;
     synonyms_complete: number;
     antonyms_complete: number;
@@ -33,6 +34,24 @@ export interface EnrichmentDashboardMetrics {
     register_complete: number;
     total_words: number;
 
+    // Question Enrichment Metrics
+    q_classification_complete?: number;
+    q_subject_complete?: number;
+    q_topic_complete?: number;
+    q_subtopic_complete?: number;
+    q_difficulty_complete?: number;
+    q_tags_complete?: number;
+
+    q_translation_complete?: number;
+    q_question_hi_complete?: number;
+    q_options_hi_complete?: number;
+
+    q_explanation_complete?: number;
+    q_agentic_tutor_usage?: number;
+    q_grounded_search_usage?: number;
+
+    total_questions?: number;
+
     avg_input_tokens: number;
     avg_output_tokens: number;
     consecutive_failures: number;
@@ -48,7 +67,7 @@ export interface EnrichmentDashboardMetrics {
 
 export interface EnrichmentDlqJob {
     id: string;
-    word_id: string;
+    word_id: string; // Used for questions as well
     error_message: string;
     task: string;
     failed_at: string;
