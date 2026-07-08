@@ -143,3 +143,38 @@ export const deleteTest = async (id: string) => {
 
     if (error) throw error;
 };
+
+// VALIDATION
+
+export const validateQuestionIds = async (ids: string[]) => {
+    if (!ids || ids.length === 0) return { valid: [], invalid: [] };
+
+    // Deduplicate array
+    const uniqueIds = Array.from(new Set(ids));
+
+    // Check if they are valid UUID format
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const formatValidIds = uniqueIds.filter(id => uuidRegex.test(id));
+    const formatInvalidIds = uniqueIds.filter(id => !uuidRegex.test(id));
+
+    if (formatValidIds.length === 0) {
+        return { valid: [], invalid: uniqueIds };
+    }
+
+    // Query DB for existing IDs
+    const { data, error } = await supabase
+        .from('questions')
+        .select('id')
+        .in('id', formatValidIds);
+
+    if (error) {
+        console.error("Error validating questions:", error);
+        return { valid: [], invalid: uniqueIds };
+    }
+
+    const existingIds = data.map(q => q.id);
+    const valid = existingIds;
+    const invalid = uniqueIds.filter(id => !existingIds.includes(id));
+
+    return { valid, invalid };
+};
