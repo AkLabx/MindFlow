@@ -41,6 +41,20 @@ const fetchQuestionEnrichmentMetrics = async (): Promise<EnrichmentDashboardMetr
     let classificationComplete = 0;
     let translationComplete = 0;
     let explanationComplete = 0;
+    
+    let subjectComplete = 0;
+    let topicComplete = 0;
+    let subTopicComplete = 0;
+    let difficultyComplete = 0;
+    let tagsComplete = 0;
+    
+    let questionHiComplete = 0;
+    let optionsHiComplete = 0;
+    
+    let agenticUsage = 0;
+    let groundedUsage = 0;
+
+    const totalQuestions = qStats?.length || 0;
 
     let subjectComplete = 0;
     let topicComplete = 0;

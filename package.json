@@ -41,6 +41,7 @@
     "react": "^19.2.1",
     "react-dom": "^19.2.1",
     "react-easy-crop": "^5.5.5",
+    "react-hot-toast": "^2.6.0",
     "react-icons": "^5.5.0",
     "react-intersection-observer": "^10.0.3",
     "react-latex-next": "^3.0.0",

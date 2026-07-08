@@ -33,6 +33,24 @@ export interface EnrichmentDashboardMetrics {
     grammar_complete: number;
     register_complete: number;
     total_words: number;
+    
+    // Question Enrichment Metrics
+    q_classification_complete?: number;
+    q_subject_complete?: number;
+    q_topic_complete?: number;
+    q_subtopic_complete?: number;
+    q_difficulty_complete?: number;
+    q_tags_complete?: number;
+    
+    q_translation_complete?: number;
+    q_question_hi_complete?: number;
+    q_options_hi_complete?: number;
+    
+    q_explanation_complete?: number;
+    q_agentic_tutor_usage?: number;
+    q_grounded_search_usage?: number;
+    
+    total_questions?: number;
 
     // Question Enrichment Metrics
     q_classification_complete?: number;

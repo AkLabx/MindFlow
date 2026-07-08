@@ -56,6 +56,34 @@ export const fetchQuestionMetadata = async (
 ): Promise<Question[]> => {
   let allRows: Partial<QuestionDBRow>[] = [];
   
+
+  // 1a. Fix Deletion Blindspot: Fetch active IDs to prune local cache
+  let activeIds = new Set<string>();
+  try {
+    const { data: idData, error: idError } = await supabase
+      .from('questions')
+      .select('id');
+
+    if (idError) {
+      console.error('Error fetching active IDs:', idError);
+    } else if (idData) {
+      activeIds = new Set(idData.map(r => r.id));
+
+      // Prune local cache
+      const existingCache = await db.getQuizMetadataCache();
+      const validCache = existingCache.filter(item => activeIds.has(item.id));
+
+      // If we found deleted items, update the cache
+      if (validCache.length < existingCache.length) {
+         console.log(`Pruning ${existingCache.length - validCache.length} deleted questions from cache.`);
+         await db.saveQuizMetadataCache(validCache);
+      }
+    }
+  } catch (error) {
+    console.error('Failed to sync deletions:', error);
+  }
+
+
   // 1. Get last sync timestamp
   const lastSync = await db.getSyncTimestamp('quiz_metadata_sync');
 
@@ -81,6 +109,8 @@ export const fetchQuestionMetadata = async (
         while (hasMore) {
           const { data, error } = await supabase
             .rpc('get_filtered_quiz_metadata', { p_last_sync_at: lastSync })
+            .order('updated_at', { ascending: true })
+            .order('id', { ascending: true })
             .range(from, from + limit - 1);
 
           if (error) throw error;
@@ -100,10 +130,11 @@ export const fetchQuestionMetadata = async (
         throw error;
       }
 
-      // Update sync timestamp
-      const newSyncTimestamp = new Date().toISOString();
-      await db.setSyncTimestamp('quiz_metadata_sync', newSyncTimestamp);
   }
+
+  // Update sync timestamp always, to prevent time window creep
+  const newSyncTimestamp = new Date().toISOString();
+  await db.setSyncTimestamp('quiz_metadata_sync', newSyncTimestamp);
 
   // Map the raw DB rows to the internal Question model structure.
   // Note: Content fields like 'question' and 'options' are left empty/default.
