@@ -4,8 +4,6 @@ import { Question } from '@/types/models';
 
 export const fetchFilterOptions = async (): Promise<FilterOptions> => {
     // For Phase 2, we fetch all non-null values and unique them.
-    // In a very large DB, this should ideally be an RPC call returning distinct values.
-    // Given the constraints "Do NOT create lookup tables", we will pull the data.
     const { data, error } = await supabase
         .from('questions')
         .select('subject, difficulty, examName, examYear, topic');
@@ -45,8 +43,8 @@ export const searchQuestions = async (
         .select('id, v1_id, question, subject, difficulty, examName, examYear, questionType, tags, explanation, options, correct', { count: 'exact' });
 
     if (params.search) {
-        // Search across question text and v1_id
-        query = query.or(`question.ilike.%${params.search}%,v1_id.ilike.%${params.search}%`);
+        // Broadened search to include subject and topic
+        query = query.or(`question.ilike.%${params.search}%,v1_id.ilike.%${params.search}%,subject.ilike.%${params.search}%,topic.ilike.%${params.search}%`);
     }
 
     if (params.subject) query = query.eq('subject', params.subject);
