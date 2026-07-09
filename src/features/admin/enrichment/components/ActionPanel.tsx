@@ -6,31 +6,26 @@ import {
     emergencyPurgeQueue
 } from '../services/enrichmentAdminService';
 import { usePipelineStore } from '../stores/usePipelineStore';
+import { useNotificationStore } from '@/stores/useNotificationStore';
 
 export const ActionPanel = ({ isPipelineActive, isMobile }: { isPipelineActive: boolean, isMobile: boolean }) => {
     const { selectedPipeline } = usePipelineStore();
     const [isConfirmingPurge, setIsConfirmingPurge] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
-    // In future iterations, useQueueControls could accept selectedPipeline to toggle different crons,
-    // but for now we rely on the existing hooks/RPCs if they map generally, or just expose the UI switch.
-    const { freeze, isFreezing, resume, isResuming, purge, isPurging, nuclear, isNuclear } = useQueueControls();
-    const showToast = useNotificationStore(s => s.showToast);
-    const [manualId, setManualId] = useState('');
-
-    const isVocab = selectedPipeline === 'vocabulary';
-    const [manualTask, setManualTask] = useState(isVocab ? 'examples' : 'question_taxonomy_v1');
-
-    // Using useWordLineage for the manual enqueue capability (Force Single Record)
-    const { enqueueManualJob } = useWordLineage(manualId);
+    const showToast = useNotificationStore(state => state.showToast);
 
     const handleTogglePipeline = async () => {
         setIsProcessing(true);
         try {
             if (isPipelineActive) {
                 await emergencyFreezePipeline(selectedPipeline);
+                showToast({ variant: 'success', message: `${selectedPipeline} pipeline frozen successfully.` });
             } else {
                 await resumePipeline(selectedPipeline);
+                showToast({ variant: 'success', message: `${selectedPipeline} pipeline resumed successfully.` });
             }
+        } catch (error: any) {
+            showToast({ variant: 'error', message: `Failed to toggle pipeline: ${error.message}` });
         } finally {
             setIsProcessing(false);
         }
@@ -40,6 +35,9 @@ export const ActionPanel = ({ isPipelineActive, isMobile }: { isPipelineActive: 
         setIsProcessing(true);
         try {
             await emergencyPurgeQueue(selectedPipeline);
+            showToast({ variant: 'success', message: `Queue purged for ${selectedPipeline}.` });
+        } catch (error: any) {
+            showToast({ variant: 'error', message: `Failed to purge queue: ${error.message}` });
         } finally {
             setIsProcessing(false);
             setIsConfirmingPurge(false);
