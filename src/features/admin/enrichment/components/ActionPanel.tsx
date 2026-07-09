@@ -11,6 +11,17 @@ export const ActionPanel = ({ isPipelineActive, isMobile }: { isPipelineActive: 
     const { selectedPipeline } = usePipelineStore();
     const [isConfirmingPurge, setIsConfirmingPurge] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
+    // In future iterations, useQueueControls could accept selectedPipeline to toggle different crons,
+    // but for now we rely on the existing hooks/RPCs if they map generally, or just expose the UI switch.
+    const { freeze, isFreezing, resume, isResuming, purge, isPurging, nuclear, isNuclear } = useQueueControls();
+    const showToast = useNotificationStore(s => s.showToast);
+    const [manualId, setManualId] = useState('');
+
+    const isVocab = selectedPipeline === 'vocabulary';
+    const [manualTask, setManualTask] = useState(isVocab ? 'examples' : 'question_taxonomy_v1');
+
+    // Using useWordLineage for the manual enqueue capability (Force Single Record)
+    const { enqueueManualJob } = useWordLineage(manualId);
 
     const handleTogglePipeline = async () => {
         setIsProcessing(true);
