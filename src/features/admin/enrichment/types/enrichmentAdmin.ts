@@ -10,65 +10,39 @@ export interface QueueIntelligenceItem {
 }
 
 export interface EnrichmentDashboardMetrics {
-    pipeline_active: boolean;
-    queue_intelligence: QueueIntelligenceItem[];
-    dlq_count: number;
-    last_success_minutes: number;
-    gemini_requests_today: number;
-    edge_invocations_today: number;
-
-    // Vocabulary Metrics
-    examples_complete: number;
-    synonyms_complete: number;
-    antonyms_complete: number;
-    confusables_complete: number;
-    explanation_complete: number;
-    sense_complete: number;
-    usage_complete: number;
-    scope_complete: number;
-    mnemonic_complete: number;
-    collocations_complete: number;
-    etymology_complete: number;
-    pronunciation_complete: number;
-    grammar_complete: number;
-    register_complete: number;
-    total_words: number;
-    
-    // Question Enrichment Metrics
-    q_classification_complete?: number;
-    q_subject_complete?: number;
-    q_topic_complete?: number;
-    q_subtopic_complete?: number;
-    q_difficulty_complete?: number;
-    q_tags_complete?: number;
-    
-    q_translation_complete?: number;
-    q_question_hi_complete?: number;
-    q_options_hi_complete?: number;
-    
-    q_explanation_complete?: number;
-    q_agentic_tutor_usage?: number;
-    q_grounded_search_usage?: number;
-    
-    total_questions?: number;
-
-
-    avg_input_tokens: number;
-    avg_output_tokens: number;
-    consecutive_failures: number;
-    model_distribution: ModelDistribution;
-    schema_failures: number;
-    prompt_drift_incidents: number;
-
-    queue_depth: number;
-    current_task: string;
-    phase_latency: { [key: string]: { phase_fetch_ms: number; phase_gemini_ms: number; phase_validation_ms: number; phase_db_write_ms: number; latency_ms: number; } };
-    success_rate: { [key: string]: number };
+    pipeline: string;
+    hero: {
+        is_active: boolean;
+        queue_depth: number;
+        dlq_count: number;
+        last_success_minutes: number;
+    };
+    queues: {
+        intelligence: QueueIntelligenceItem[];
+    };
+    progress: {
+        total_items: number;
+        tiers: any; // Dynamic depending on pipeline
+    };
+    telemetry: {
+        requests_today: number;
+        edge_invocations_today: number;
+        avg_input_tokens: number;
+        avg_output_tokens: number;
+        schema_failures: number;
+        prompt_drift: number;
+        consecutive_failures: number;
+    };
+    models: {
+        distribution: ModelDistribution;
+        phase_latency: { [key: string]: { phase_fetch_ms: number; phase_gemini_ms: number; phase_validation_ms: number; phase_db_write_ms: number; latency_ms: number; } };
+        success_rate: { [key: string]: number };
+    };
 }
 
 export interface EnrichmentDlqJob {
     id: string;
-    word_id: string; // Used for questions as well
+    word_id: string; // Used for questions/documents as well
     error_message: string;
     task: string;
     failed_at: string;
