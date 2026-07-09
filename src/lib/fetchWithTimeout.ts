@@ -19,6 +19,11 @@ export const fetchWithTimeout = (url: RequestInfo | URL, options?: RequestInit, 
       timeoutMs = 45000;
   }
 
+  // Extend timeout significantly for Supabase Storage uploads (e.g. large PDFs in Admin)
+  if (urlStr.includes('/storage/v1/object/')) {
+      timeoutMs = 300000; // 5 minutes
+  }
+
 
   // Combine an existing signal (if any) with our timeout signal
   const existingSignal = options?.signal;
@@ -60,11 +65,20 @@ export const fetchWithTimeout = (url: RequestInfo | URL, options?: RequestInit, 
   }
 
 
+  const startTime = performance.now();
   return fetch(url, { ...options, signal: finalSignal })
     .then(res => {
-                return res;
+        const endTime = performance.now();
+        if (urlStr.includes('/storage/v1/object/')) {
+            console.log(`[Storage Upload] ${reqId} completed in ${(endTime - startTime).toFixed(2)}ms for ${urlStr}`);
+        }
+        return res;
     })
     .catch(err => {
-                throw err;
+        const endTime = performance.now();
+        if (urlStr.includes('/storage/v1/object/')) {
+            console.error(`[Storage Upload] ${reqId} failed after ${(endTime - startTime).toFixed(2)}ms for ${urlStr} - ${err.name}: ${err.message}`);
+        }
+        throw err;
     });
 };
