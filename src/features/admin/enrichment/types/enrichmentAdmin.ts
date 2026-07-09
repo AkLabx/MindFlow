@@ -52,6 +52,7 @@ export interface EnrichmentDashboardMetrics {
     
     total_questions?: number;
 
+
     avg_input_tokens: number;
     avg_output_tokens: number;
     consecutive_failures: number;

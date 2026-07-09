@@ -55,22 +55,21 @@ const fetchQuestionEnrichmentMetrics = async (): Promise<EnrichmentDashboardMetr
     let groundedUsage = 0;
 
     const totalQuestions = qStats?.length || 0;
-
     qStats?.forEach(q => {
         const p = q.enrichment_progress as Record<string, boolean>;
         if (p?.classification) classificationComplete++;
         if (p?.translation) translationComplete++;
         if (p?.explanation) explanationComplete++;
-        
+
         if (q.subject) subjectComplete++;
         if (q.topic) topicComplete++;
         if (q.subTopic) subTopicComplete++;
         if (q.difficulty) difficultyComplete++;
         if (q.tags && q.tags.length > 0) tagsComplete++;
-        
+
         if (q.question_hi) questionHiComplete++;
         if (q.options_hi && q.options_hi.length > 0) optionsHiComplete++;
-        
+
         // Agentic / Grounded checks
         const aiMeta = q.ai_metadata as any;
         if (aiMeta?.teacher?.research_model) groundedUsage++;
@@ -135,7 +134,7 @@ const fetchQuestionEnrichmentMetrics = async (): Promise<EnrichmentDashboardMetr
         explanation_complete: explanationComplete, sense_complete: 0, usage_complete: 0, scope_complete: 0,
         mnemonic_complete: 0, collocations_complete: 0, etymology_complete: 0, pronunciation_complete: 0,
         grammar_complete: 0, register_complete: 0, total_words: 0,
-        
+
         // Question Granular Metrics
         q_classification_complete: classificationComplete,
         q_subject_complete: subjectComplete,
@@ -143,15 +142,15 @@ const fetchQuestionEnrichmentMetrics = async (): Promise<EnrichmentDashboardMetr
         q_subtopic_complete: subTopicComplete,
         q_difficulty_complete: difficultyComplete,
         q_tags_complete: tagsComplete,
-        
+
         q_translation_complete: translationComplete,
         q_question_hi_complete: questionHiComplete,
         q_options_hi_complete: optionsHiComplete,
-        
+
         q_explanation_complete: explanationComplete,
         q_agentic_tutor_usage: agenticUsage,
         q_grounded_search_usage: groundedUsage,
-        
+
         total_questions: totalQuestions,
 
         avg_input_tokens: avgIn,
@@ -194,7 +193,7 @@ export const fetchPipelineDlq = async (pipeline: PipelineType): Promise<Enrichme
                  error_message: 'Failed during cascade (Check AI request logs for detail)',
                  task: payload?.task || 'enrich_cascade',
                  failed_at: row.archived_at,
-                 attempt_count: row.vt 
+                 attempt_count: row.vt
              };
         });
     }

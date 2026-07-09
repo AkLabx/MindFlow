@@ -41,7 +41,7 @@ export const enqueueManualJob = async (wordId: string, task: string, promptVersi
     // If it's a question task, we send it to question_ai_jobs. Otherwise, enrichment_jobs.
     // However, the admin_enqueue_manual_job RPC currently only supports enrichment_jobs.
     // For now, we will handle the manual enqueue branching here or in the hook.
-    
+
     // We will update the RPC or handle it appropriately.
     // Assuming admin_enqueue_manual_job handles both based on task prefix or we dispatch it.
     if (task.startsWith('question_')) {

@@ -7,14 +7,14 @@ import { usePipelineStore } from '../stores/usePipelineStore';
 
 export const ActionPanel = ({ isPipelineActive, isMobile }: { isPipelineActive: boolean, isMobile: boolean }) => {
     const { selectedPipeline } = usePipelineStore();
-    // In future iterations, useQueueControls could accept selectedPipeline to toggle different crons, 
+    // In future iterations, useQueueControls could accept selectedPipeline to toggle different crons,
     // but for now we rely on the existing hooks/RPCs if they map generally, or just expose the UI switch.
     const { freeze, isFreezing, resume, isResuming, purge, isPurging, nuclear, isNuclear } = useQueueControls();
     const showToast = useNotificationStore(s => s.showToast);
 
     const [isProcessing, setIsProcessing] = useState(false);
     const [manualId, setManualId] = useState('');
-    
+
     const isVocab = selectedPipeline === 'vocabulary';
     const [manualTask, setManualTask] = useState(isVocab ? 'examples' : 'question_taxonomy_v1');
 
