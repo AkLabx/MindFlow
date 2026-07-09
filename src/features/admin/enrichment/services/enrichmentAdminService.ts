@@ -14,7 +14,7 @@ export const emergencyPurgeQueue = async (pipeline_type: PipelineType) => {
 };
 
 export const emergencyNuclearReset = async (pipeline_type: PipelineType) => {
-    const { data, error } = await supabase.rpc('admin_nuclear_reset', { pipeline_type }); // Keep or deprecate this
+    const { data, error } = await supabase.rpc('admin_nuclear_reset', { pipeline_type }); // Retain if nuclear reset is unchanged
     if (error) throw error;
     return data;
 };
