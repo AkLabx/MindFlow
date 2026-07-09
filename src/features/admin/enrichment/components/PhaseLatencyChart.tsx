@@ -2,11 +2,11 @@ import React from 'react';
 import { EnrichmentDashboardMetrics } from '../types/enrichmentAdmin';
 
 export const PhaseLatencyChart = ({ metrics }: { metrics: EnrichmentDashboardMetrics }) => {
-    if (!metrics.phase_latency || Object.keys(metrics.phase_latency).length === 0) {
+    if (!metrics.models.phase_latency || Object.keys(metrics.models.phase_latency).length === 0) {
         return null;
     }
 
-    const tasks = Object.keys(metrics.phase_latency);
+    const tasks = Object.keys(metrics.models.phase_latency);
 
     return (
         <div className="bg-white dark:bg-slate-900 rounded-xl p-6 border border-slate-200 dark:border-slate-800 mb-8">
@@ -22,7 +22,7 @@ export const PhaseLatencyChart = ({ metrics }: { metrics: EnrichmentDashboardMet
 
             <div className="space-y-6">
                 {tasks.map((task) => {
-                    const data = metrics.phase_latency[task];
+                    const data = metrics.models.phase_latency[task];
                     const total = data.latency_ms || 1; // Prevent div by 0
 
                     const fetchPct = (data.phase_fetch_ms / total) * 100;

@@ -1,65 +1,39 @@
 import { supabase } from '@/lib/supabase';
 import { PipelineType } from '../constants/pipelineRegistry';
 
-export const getEnrichmentDashboardMetrics = async () => {
-    const { data, error } = await supabase.rpc('get_enrichment_dashboard_metrics_v2');
+export const emergencyFreezePipeline = async (pipeline_type: PipelineType) => {
+    const { data, error } = await supabase.rpc('admin_freeze_ai_pipeline', { pipeline_name: pipeline_type });
     if (error) throw error;
     return data;
 };
 
-export const getEnrichmentDlq = async () => {
-    const { data, error } = await supabase.rpc('get_enrichment_dlq');
+export const emergencyPurgeQueue = async (pipeline_type: PipelineType) => {
+    const { data, error } = await supabase.rpc('admin_purge_ai_queue', { pipeline_name: pipeline_type });
     if (error) throw error;
     return data;
 };
 
-export const emergencyFreezePipeline = async (pipeline_type: PipelineType = 'vocabulary') => {
-    const { data, error } = await supabase.rpc('admin_freeze_pipeline', { pipeline_type });
+export const emergencyNuclearReset = async (pipeline_type: PipelineType) => {
+    const { data, error } = await supabase.rpc('admin_nuclear_reset', { pipeline_type }); // Keep or deprecate this
     if (error) throw error;
     return data;
 };
 
-export const emergencyPurgeQueue = async (pipeline_type: PipelineType = 'vocabulary') => {
-    const { data, error } = await supabase.rpc('admin_purge_queue', { pipeline_type });
+export const resumePipeline = async (pipeline_type: PipelineType) => {
+    const { data, error } = await supabase.rpc('admin_resume_ai_pipeline', { pipeline_name: pipeline_type });
     if (error) throw error;
     return data;
 };
 
-export const emergencyNuclearReset = async (pipeline_type: PipelineType = 'vocabulary') => {
-    const { data, error } = await supabase.rpc('admin_nuclear_reset', { pipeline_type });
+export const enqueueManualJob = async (wordId: string, task: string, pipeline_type: string, promptVersion?: string) => {
+    const { data, error } = await supabase.rpc('admin_enqueue_manual_job_v2', {
+        p_id: wordId,
+        p_task: task,
+        p_pipeline: pipeline_type,
+        p_prompt_version: promptVersion || null
+    });
     if (error) throw error;
     return data;
-};
-
-export const resumePipeline = async (pipeline_type: PipelineType = 'vocabulary') => {
-    const { data, error } = await supabase.rpc('admin_resume_pipeline', { pipeline_type });
-    if (error) throw error;
-    return data;
-};
-
-export const enqueueManualJob = async (wordId: string, task: string, promptVersion?: string) => {
-    // If it's a question task, we send it to question_ai_jobs. Otherwise, enrichment_jobs.
-    // However, the admin_enqueue_manual_job RPC currently only supports enrichment_jobs.
-    // For now, we will handle the manual enqueue branching here or in the hook.
-    
-    // We will update the RPC or handle it appropriately.
-    // Assuming admin_enqueue_manual_job handles both based on task prefix or we dispatch it.
-    if (task.startsWith('question_')) {
-        const { data, error } = await supabase.rpc('pgmq_send', {
-            queue_name: 'question_ai_jobs',
-            message: { question_id: wordId, task, source: 'MANUAL_ADMIN', prompt_version: promptVersion || null }
-        });
-        if (error) throw error;
-        return data;
-    } else {
-        const { data, error } = await supabase.rpc('admin_enqueue_manual_job', {
-            p_word_id: wordId,
-            p_task: task,
-            p_prompt_version: promptVersion || null
-        });
-        if (error) throw error;
-        return data;
-    }
 };
 
 export const getWordLineage = async (wordId: string) => {

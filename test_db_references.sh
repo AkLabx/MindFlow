@@ -1,0 +1,1 @@
+grep -E "(ai_request_logs|pgmq.q_question_ai_jobs|pgmq.q_pre_phase_question_jobs|enrichment_progress|extraction_progress)" supabase/migrations/20260801000000_ai_pipeline_observability.sql
