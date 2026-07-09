@@ -225,7 +225,7 @@ export const TestDrawer: React.FC<TestDrawerProps> = ({ isOpen, onClose, test, s
                     </section>
                 </div>
 
-                <div className="fixed bottom-0 right-0 w-full max-w-xl p-6 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-3 z-10 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+                <div className="fixed bottom-0 right-0 w-full max-w-xl p-6 pb-[calc(1.5rem_+_env(safe-area-inset-bottom))] bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-3 z-10 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
                     <button
                         type="button"
                         onClick={onClose}

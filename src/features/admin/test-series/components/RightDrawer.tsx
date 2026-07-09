@@ -20,17 +20,54 @@ export const RightDrawer: React.FC<RightDrawerProps> = ({ isOpen, onClose, title
         full: 'max-w-full lg:max-w-[90vw]'
     };
 
-    // Prevent scrolling when drawer is open
+    const drawerRef = React.useRef<HTMLDivElement>(null);
+
+    // Prevent scrolling and trap focus when drawer is open
     useEffect(() => {
-        if (isOpen) {
-            document.body.style.overflow = 'hidden';
-        } else {
+        if (!isOpen) {
             document.body.style.overflow = 'unset';
+            return;
         }
+
+        document.body.style.overflow = 'hidden';
+
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') {
+                onClose();
+            } else if (e.key === 'Tab') {
+                // Focus trapping
+                if (!drawerRef.current) return;
+
+                const focusableElements = drawerRef.current.querySelectorAll(
+                    'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+                );
+
+                if (focusableElements.length === 0) return;
+
+                const firstElement = focusableElements[0] as HTMLElement;
+                const lastElement = focusableElements[focusableElements.length - 1] as HTMLElement;
+
+                if (e.shiftKey) {
+                    if (document.activeElement === firstElement) {
+                        lastElement.focus();
+                        e.preventDefault();
+                    }
+                } else {
+                    if (document.activeElement === lastElement) {
+                        firstElement.focus();
+                        e.preventDefault();
+                    }
+                }
+            }
+        };
+
+        document.addEventListener('keydown', handleKeyDown);
+
         return () => {
             document.body.style.overflow = 'unset';
+            document.removeEventListener('keydown', handleKeyDown);
         };
-    }, [isOpen]);
+    }, [isOpen, onClose]);
 
     return (
         <AnimatePresence>
@@ -41,7 +78,7 @@ export const RightDrawer: React.FC<RightDrawerProps> = ({ isOpen, onClose, title
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         transition={{ duration: 0.2 }}
-                        className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40"
+                        className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[10010]"
                         onClick={onClose}
                     />
                     <motion.div
@@ -49,9 +86,11 @@ export const RightDrawer: React.FC<RightDrawerProps> = ({ isOpen, onClose, title
                         animate={{ x: 0 }}
                         exit={{ x: '100%' }}
                         transition={{ duration: 0.2, type: 'tween' }}
-                        className={`fixed inset-y-0 right-0 w-full ${widthClasses[width]} bg-white dark:bg-slate-900 shadow-2xl z-50 flex flex-col border-l border-slate-200 dark:border-slate-800`}
+                        ref={drawerRef}
+                        tabIndex={-1}
+                        className={`fixed inset-y-0 right-0 w-full ${widthClasses[width]} bg-white dark:bg-slate-900 shadow-2xl z-[10020] flex flex-col border-l border-slate-200 dark:border-slate-800`}
                     >
-                        <div className="flex items-center justify-between p-6 border-b border-slate-100 dark:border-slate-800">
+                        <div className="flex items-center justify-between p-6 border-b border-slate-100 dark:border-slate-800 pt-[calc(1.5rem_+_env(safe-area-inset-top))]">
                             <h2 className="text-xl font-bold text-slate-900 dark:text-white">{title}</h2>
                             <button
                                 onClick={onClose}
