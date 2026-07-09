@@ -40,9 +40,13 @@ interface QuestionDBRow {
   tags: string[];
   /** JSONB object containing the explanation. */
   explanation: Explanation;
+
   /** updated_at timestamp. */
   updated_at: string;
+  /** deleted_at timestamp for soft deletes */
+  deleted_at?: string | null;
 }
+
 
 /**
  * Fetches lightweight metadata for all available questions.
@@ -56,39 +60,12 @@ export const fetchQuestionMetadata = async (
 ): Promise<Question[]> => {
   let allRows: Partial<QuestionDBRow>[] = [];
   
-
-  // 1a. Fix Deletion Blindspot: Fetch active IDs to prune local cache
-  let activeIds = new Set<string>();
-  try {
-    const { data: idData, error: idError } = await supabase
-      .from('questions')
-      .select('id');
-
-    if (idError) {
-      console.error('Error fetching active IDs:', idError);
-    } else if (idData) {
-      activeIds = new Set(idData.map(r => r.id));
-
-      // Prune local cache
-      const existingCache = await db.getQuizMetadataCache();
-      const validCache = existingCache.filter(item => activeIds.has(item.id));
-
-      // If we found deleted items, update the cache
-      if (validCache.length < existingCache.length) {
-         console.log(`Pruning ${existingCache.length - validCache.length} deleted questions from cache.`);
-         await db.saveQuizMetadataCache(validCache);
-      }
-    }
-  } catch (error) {
-    console.error('Failed to sync deletions:', error);
-  }
-
-
   // 1. Get last sync timestamp
   const lastSync = await db.getSyncTimestamp('quiz_metadata_sync');
 
   // Get Total Count to enable progress tracking (for delta sync we just count what we need to fetch)
   let countQuery = supabase.from('questions').select('*', { count: 'exact', head: true });
+  countQuery = countQuery.is('deleted_at', null);
   if (lastSync) {
       countQuery = countQuery.gt('updated_at', lastSync);
   }
@@ -136,6 +113,7 @@ export const fetchQuestionMetadata = async (
   const newSyncTimestamp = new Date().toISOString();
   await db.setSyncTimestamp('quiz_metadata_sync', newSyncTimestamp);
 
+
   // Map the raw DB rows to the internal Question model structure.
   // Note: Content fields like 'question' and 'options' are left empty/default.
   const mappedRows = allRows.map((row) => ({
@@ -161,13 +139,24 @@ export const fetchQuestionMetadata = async (
     options: [],
     correct: '',
     explanation: {},
-    updated_at: row.updated_at
+    updated_at: row.updated_at,
+    deleted_at: row.deleted_at
   }));
 
-  if (mappedRows.length > 0) {
-      // Save mapped rows to IndexedDB
-      await db.saveQuizMetadataCache(mappedRows);
+  // Handle Delta Deletions and Upserts
+  const upsertRows = mappedRows.filter(row => !row.deleted_at);
+  const deletedIds = mappedRows.filter(row => row.deleted_at).map(row => row.id);
+
+  if (deletedIds.length > 0) {
+      console.log(`Pruning ${deletedIds.length} soft-deleted questions from cache.`);
+      await db.deleteQuizMetadataCache(deletedIds);
   }
+
+  if (upsertRows.length > 0) {
+      // Save mapped rows to IndexedDB
+      await db.saveQuizMetadataCache(upsertRows);
+  }
+
 
   // Return everything from cache to ensure we have the full set
   const cachedData = await db.getQuizMetadataCache();
@@ -195,7 +184,8 @@ export const fetchQuestionsByIds = async (ids: string[]): Promise<Question[]> =>
         const { data, error } = await supabase
           .from('questions')
           .select('*')
-          .in('id', batchIds);
+          .in('id', batchIds)
+          .is('deleted_at', null);
 
         if (error) throw error;
         return data;

@@ -16,7 +16,7 @@ const buildQuery = (baseQuery: any, filters: any[]) => {
 };
 
 export const fetchQuestionsCountByFilter = async (filters: any[]) => {
-    let query: any = supabase.from('questions').select('*', { count: 'exact', head: true });
+    let query: any = supabase.from('questions').select('*', { count: 'exact', head: true }).is('deleted_at', null);
     query = buildQuery(query, filters);
     const { count, error } = await query;
     if (error) throw error;
@@ -47,7 +47,7 @@ export const insertQuestions = async (payload: any[]) => {
 };
 
 export const fetchQuestionByV1Id = async (v1_id: string) => {
-    const { data, error } = await supabase.from('questions').select('*').eq('v1_id', v1_id).single();
+    const { data, error } = await supabase.from('questions').select('*').eq('v1_id', v1_id).is('deleted_at', null).single();
     if (error) throw error;
     return data;
 };
