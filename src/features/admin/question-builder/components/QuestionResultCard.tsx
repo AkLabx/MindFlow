@@ -1,17 +1,26 @@
 import React from 'react';
 import { QuestionLightweight } from '../types/questionBuilder.types';
-import { Eye } from 'lucide-react';
+import { Eye, Check } from 'lucide-react';
 import DOMPurify from "dompurify";
 const renderMathText = (text: string) => DOMPurify.sanitize(text);
 
 interface Props {
     question: QuestionLightweight;
     isSelected: boolean;
+    isLeftSelected?: boolean;
     onToggleSelect: (id: string, checked: boolean) => void;
+    onToggleLeftSelect?: (id: string, checked: boolean) => void;
     onPreview: (id: string) => void;
 }
 
-export const QuestionResultCard: React.FC<Props> = ({ question, isSelected, onToggleSelect, onPreview }) => {
+export const QuestionResultCard: React.FC<Props> = ({
+    question,
+    isSelected,
+    isLeftSelected,
+    onToggleSelect,
+    onToggleLeftSelect,
+    onPreview
+}) => {
 
     // Minimal rendering for the question text
     const truncate = (str: string, max = 120) => str.length > max ? str.substring(0, max) + '...' : str;
@@ -27,16 +36,45 @@ export const QuestionResultCard: React.FC<Props> = ({ question, isSelected, onTo
     if (!hasCorrect) warnings.push("No correct answer");
 
     return (
-        <div className={`p-4 border-b border-slate-100 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors flex gap-4 ${isSelected ? 'bg-indigo-50/30 dark:bg-indigo-900/10' : ''}`}>
+        <div
+            className={`p-4 border-b border-slate-100 dark:border-slate-700/50 transition-all flex gap-4
+            ${isSelected ? 'bg-indigo-50/50 dark:bg-indigo-900/20' : 'hover:bg-slate-50 dark:hover:bg-slate-800/30'}
+            ${isLeftSelected ? 'bg-blue-50/40 dark:bg-blue-900/10' : ''}
+            `}
+        >
+            <div className="pt-1 flex flex-col gap-2 items-center">
+                {/* Left panel bulk select checkbox */}
+                {onToggleLeftSelect && !isSelected && (
+                    <div className="relative flex items-center justify-center">
+                        <input
+                            type="checkbox"
+                            checked={isLeftSelected || false}
+                            onChange={(e) => onToggleLeftSelect(question.id, e.target.checked)}
+                            className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-600 cursor-pointer dark:border-slate-600 dark:bg-slate-800 transition-colors"
+                            title="Select for bulk add"
+                        />
+                    </div>
+                )}
 
-            <div className="pt-1">
-                <div className="relative flex items-center justify-center">
-                    <input
-                        type="checkbox"
-                        checked={isSelected}
-                        onChange={(e) => onToggleSelect(question.id, e.target.checked)}
-                        className="w-5 h-5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-600 cursor-pointer dark:border-slate-600 dark:bg-slate-800"
-                    />
+                {/* Direct Add/Remove checkbox */}
+                <div className="relative flex items-center justify-center mt-auto">
+                    {isSelected ? (
+                        <button
+                            onClick={() => onToggleSelect(question.id, false)}
+                            className="w-5 h-5 rounded-md bg-indigo-600 text-white flex items-center justify-center shadow-sm hover:bg-indigo-700 transition-colors"
+                            title="Remove from test"
+                        >
+                            <Check className="w-3.5 h-3.5" />
+                        </button>
+                    ) : (
+                        <button
+                            onClick={() => onToggleSelect(question.id, true)}
+                            className="w-5 h-5 rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-transparent hover:border-indigo-400 hover:text-indigo-200 transition-colors flex items-center justify-center"
+                            title="Add to test"
+                        >
+                            <Check className="w-3.5 h-3.5" />
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -51,7 +89,7 @@ export const QuestionResultCard: React.FC<Props> = ({ question, isSelected, onTo
 
                     {isSelected && (
                         <span className="px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300 text-[10px] ml-auto font-bold uppercase tracking-wide">
-                            Selected
+                            Added
                         </span>
                     )}
                 </div>
