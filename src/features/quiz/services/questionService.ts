@@ -60,10 +60,27 @@ export const fetchQuestionMetadata = async (
 ): Promise<Question[]> => {
   let allRows: Partial<QuestionDBRow>[] = [];
   
+
   // 1. Get last sync timestamp
-  const lastSync = await db.getSyncTimestamp('quiz_metadata_sync');
+  let lastSync = await db.getSyncTimestamp('quiz_metadata_sync');
+
+  // PRO-TIP: 30-Day Auto-Purge Logic
+  // If the user hasn't synced in 30 days, their local cache is too old, and we should just do a full fresh sync
+  // instead of processing 30 days worth of delta updates and tombstones.
+  if (lastSync) {
+    const lastSyncDate = new Date(lastSync);
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    if (lastSyncDate < thirtyDaysAgo) {
+      console.log('Last sync was over 30 days ago. Wiping cache for a fresh full sync.');
+      await db.clearQuizMetadataCache();
+      lastSync = null; // Forces get_filtered_quiz_metadata to return all active records
+    }
+  }
 
   // Get Total Count to enable progress tracking (for delta sync we just count what we need to fetch)
+
   let countQuery = supabase.from('questions').select('*', { count: 'exact', head: true });
   countQuery = countQuery.is('deleted_at', null);
   if (lastSync) {

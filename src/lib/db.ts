@@ -727,6 +727,22 @@ export const db = {
     /**
      * Deletes explicitly given Quiz Metadata from cache (Soft Deletes Sync).
      */
+
+    /**
+     * Wipes the entire Quiz Metadata cache (used for fresh installs or after 30 days inactivity).
+     */
+    clearQuizMetadataCache: async (): Promise<void> => {
+        const dbInstance = await openDB();
+        return new Promise((resolve, reject) => {
+            const transaction = dbInstance.transaction(QUIZ_METADATA_STORE, 'readwrite');
+            const store = transaction.objectStore(QUIZ_METADATA_STORE);
+            const request = store.clear();
+
+            request.onsuccess = () => resolve();
+            request.onerror = (event) => reject((event.target as IDBRequest).error);
+        });
+    },
+
     deleteQuizMetadataCache: async (ids: string[]): Promise<void> => {
         const dbInstance = await openDB();
         return new Promise((resolve, reject) => {
