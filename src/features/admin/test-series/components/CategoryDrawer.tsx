@@ -98,7 +98,7 @@ export const CategoryDrawer: React.FC<CategoryDrawerProps> = ({ isOpen, onClose,
                     </div>
                 </div>
 
-                <div className="pt-6 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-3">
+                <div className="pt-6 pb-[env(safe-area-inset-bottom)] border-t border-slate-100 dark:border-slate-800 flex justify-end gap-3">
                     <button
                         type="button"
                         onClick={onClose}
