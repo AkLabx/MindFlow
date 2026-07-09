@@ -61,6 +61,8 @@ const AdminTestSeriesDashboard = lazy(() => import('../features/admin/test-serie
 const ExamCategoriesPage = lazy(() => import('../features/mock-tests/pages/ExamCategoriesPage').then(m => ({ default: m.ExamCategoriesPage })));
 const TestSeriesPage = lazy(() => import('../features/mock-tests/pages/TestSeriesPage').then(m => ({ default: m.TestSeriesPage })));
 const TestsListPage = lazy(() => import('../features/mock-tests/pages/TestsListPage').then(m => ({ default: m.TestsListPage })));
+const TestDetailPage = lazy(() => import('../features/mock-tests/pages/TestDetailPage').then(m => ({ default: m.TestDetailPage })));
+const ExamPlaceholderPage = lazy(() => import('../features/mock-tests/pages/ExamPlaceholderPage').then(m => ({ default: m.ExamPlaceholderPage })));
 const AdminNotifications = lazy(() => import('../features/notifications/admin/AdminNotifications').then(m => ({ default: m.AdminNotifications })));
 const NotificationsPage = lazy(() => import('../pages/NotificationsPage').then(m => ({ default: m.NotificationsPage })));
 
@@ -222,6 +224,8 @@ const handleReattempt = async (quizId: string, mode: string) => {
                     <Route path="/mcqs/test-series" element={<Suspense fallback={<SynapticLoader />}><ExamCategoriesPage /></Suspense>} />
                     <Route path="/mcqs/test-series/category/:id" element={<Suspense fallback={<SynapticLoader />}><TestSeriesPage /></Suspense>} />
                     <Route path="/mcqs/test-series/series/:id" element={<Suspense fallback={<SynapticLoader />}><TestsListPage /></Suspense>} />
+                    <Route path="/mcqs/test-series/test/:testId" element={<Suspense fallback={<SynapticLoader />}><TestDetailPage /></Suspense>} />
+                    <Route path="/exam/:testId" element={<Suspense fallback={<SynapticLoader />}><ExamPlaceholderPage /></Suspense>} />
                     <Route path="/about/developer-profile" element={
                         <Suspense fallback={<SynapticLoader />}>
                             <DeveloperProfile />
