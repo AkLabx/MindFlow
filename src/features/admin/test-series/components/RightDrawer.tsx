@@ -3,13 +3,23 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
 
 interface RightDrawerProps {
+    width?: "sm" | "md" | "lg" | "xl" | "full";
     isOpen: boolean;
     onClose: () => void;
     title: string;
     children: React.ReactNode;
 }
 
-export const RightDrawer: React.FC<RightDrawerProps> = ({ isOpen, onClose, title, children }) => {
+export const RightDrawer: React.FC<RightDrawerProps> = ({ isOpen, onClose, title, children, width = "md" }) => {
+
+    const widthClasses = {
+        sm: 'max-w-sm',
+        md: 'max-w-md',
+        lg: 'max-w-2xl',
+        xl: 'max-w-4xl',
+        full: 'max-w-full lg:max-w-[90vw]'
+    };
+
     // Prevent scrolling when drawer is open
     useEffect(() => {
         if (isOpen) {
@@ -39,7 +49,7 @@ export const RightDrawer: React.FC<RightDrawerProps> = ({ isOpen, onClose, title
                         animate={{ x: 0 }}
                         exit={{ x: '100%' }}
                         transition={{ duration: 0.2, type: 'tween' }}
-                        className="fixed inset-y-0 right-0 w-full max-w-md bg-white dark:bg-slate-900 shadow-2xl z-50 flex flex-col border-l border-slate-200 dark:border-slate-800"
+                        className={`fixed inset-y-0 right-0 w-full ${widthClasses[width]} bg-white dark:bg-slate-900 shadow-2xl z-50 flex flex-col border-l border-slate-200 dark:border-slate-800`}
                     >
                         <div className="flex items-center justify-between p-6 border-b border-slate-100 dark:border-slate-800">
                             <h2 className="text-xl font-bold text-slate-900 dark:text-white">{title}</h2>
