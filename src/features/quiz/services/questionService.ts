@@ -61,8 +61,22 @@ export const fetchQuestionMetadata = async (
   let allRows: Partial<QuestionDBRow>[] = [];
   
 
+  // 0. Force Cache Wipe for 9k questions if not already done
+  const CACHE_WIPE_FLAG = 'quiz_metadata_cache_cleared_v12';
+  if (typeof window !== 'undefined' && !window.localStorage.getItem(CACHE_WIPE_FLAG)) {
+    console.log('Forcing global cache wipe for 9k questions...');
+    await db.clearQuizMetadataCache();
+    // Sync timestamp clear omitted, let it fallback to getSyncTimestamp
+    window.localStorage.setItem(CACHE_WIPE_FLAG, 'true');
+  }
+
   // 1. Get last sync timestamp
   let lastSync = await db.getSyncTimestamp('quiz_metadata_sync');
+
+  if (typeof window !== 'undefined' && window.localStorage.getItem('quiz_metadata_cache_cleared_v12_force_sync') !== 'true') {
+     lastSync = null;
+     window.localStorage.setItem('quiz_metadata_cache_cleared_v12_force_sync', 'true');
+  }
 
   // PRO-TIP: 30-Day Auto-Purge Logic
   // If the user hasn't synced in 30 days, their local cache is too old, and we should just do a full fresh sync
@@ -179,7 +193,7 @@ export const fetchQuestionMetadata = async (
   const cachedData = await db.getQuizMetadataCache();
 
   // Deduplicate by v1_id to ensure no duplicate questions in the UI
-  const uniqueRows = Array.from(new Map(cachedData.map(item => [item.v1_id || item.id, item])).values());
+  const uniqueRows = Array.from(new Map(cachedData.map(item => [item.v1_id && item.v1_id.trim() !== '' ? item.v1_id : item.id, item])).values());
   return uniqueRows;
 };
 
@@ -217,7 +231,7 @@ export const fetchQuestionsByIds = async (ids: string[]): Promise<Question[]> =>
 
   // Map the DB rows to the full Question model
   // Deduplicate full questions by v1_id in case there are still DB duplicates
-  const uniqueFullQuestionsById = Array.from(new Map((allData as QuestionDBRow[]).map(item => [item.v1_id || item.id, item])).values());
+  const uniqueFullQuestionsById = Array.from(new Map((allData as QuestionDBRow[]).map(item => [item.v1_id && item.v1_id.trim() !== '' ? item.v1_id : item.id, item])).values());
 
   // Deep deduplication: Filter out questions that have the exact same text content
   // This catches database entry errors where the same question was uploaded twice with different IDs
