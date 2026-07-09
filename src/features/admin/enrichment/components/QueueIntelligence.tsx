@@ -1,5 +1,5 @@
 import React from 'react';
-import { Activity, Clock, AlertTriangle, Layers } from 'lucide-react';
+import { Layers } from 'lucide-react';
 import type { EnrichmentDashboardMetrics } from '../types/enrichmentAdmin';
 import { PipelineConfig } from '../constants/pipelineRegistry';
 
@@ -30,7 +30,7 @@ export const QueueIntelligence: React.FC<QueueIntelligenceProps> = ({ metrics, p
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 dark:divide-slate-800/50">
-                        {metrics.queue_intelligence?.map((q, idx) => (
+                        {metrics.queues.intelligence?.map((q, idx) => (
                             <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-slate-800/20 transition-colors">
                                 <td className="px-4 py-3 text-slate-600 dark:text-slate-400 font-medium">
                                     {pipelineConfig.label}
@@ -66,7 +66,7 @@ export const QueueIntelligence: React.FC<QueueIntelligenceProps> = ({ metrics, p
                         ))}
                     </tbody>
                 </table>
-                {(!metrics.queue_intelligence || metrics.queue_intelligence.length === 0) && (
+                {(!metrics.queues.intelligence || metrics.queues.intelligence.length === 0) && (
                     <div className="py-8 text-center text-slate-500 text-sm">
                         No queue intelligence data available for {pipelineConfig.label}.
                     </div>
