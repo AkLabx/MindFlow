@@ -1,6 +1,9 @@
 -- 1. Add deleted_at column to questions table
 ALTER TABLE questions ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP WITH TIME ZONE;
 
+-- Drop existing function because return type changes
+DROP FUNCTION IF EXISTS get_filtered_quiz_metadata(TIMESTAMP WITH TIME ZONE);
+
 -- 2. Update RPC for delta sync
 CREATE OR REPLACE FUNCTION get_filtered_quiz_metadata(p_last_sync_at TIMESTAMP WITH TIME ZONE DEFAULT NULL)
 RETURNS TABLE (
