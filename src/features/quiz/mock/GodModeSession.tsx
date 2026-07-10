@@ -102,9 +102,6 @@ export const GodModeSession: React.FC<GodModeSessionProps> = ({ questions, initi
 
 
     const handleAnswer = (option: string) => {
-        // Here we could validate via engine, but MockMode validation usually happens at the end
-        // If we want real-time analytics tracking, we'd do it here:
-        // const isCorrect = quizEngine.getPlugin('mcq').validateAnswer(questions[currentIndex], option);
         if (isHapticEnabled && window.navigator && window.navigator.vibrate) window.navigator.vibrate(50);
         setAnswers(prev => ({ ...prev, [questions[currentIndex].id]: option }));
     };
