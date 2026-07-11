@@ -1,4 +1,5 @@
 import React, { useMemo, useEffect } from 'react';
+import { stripHtml } from '../../../utils/html';
 import { MarkdownRenderer } from '../../../components/ui/MarkdownRenderer';
 import { Question } from '../types';
 import { QuizOption } from './QuizOption';
@@ -303,9 +304,7 @@ export function QuizQuestionDisplay({
                                         stop();
                                     } else {
                                         // Strip HTML from Hindi text before sending to TTS engine
-                                        const tempDiv = document.createElement('div');
-                                        tempDiv.innerHTML = question.question_hi || '';
-                                        const textContent = tempDiv.textContent || tempDiv.innerText || '';
+                                        const textContent = stripHtml(question.question_hi);
                                         speak(textContent);
                                     }
                                 }}
