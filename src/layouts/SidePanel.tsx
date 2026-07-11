@@ -18,6 +18,7 @@ interface SidePanelProps {
 
 export const SidePanel: React.FC<SidePanelProps> = ({ isOpen, onClose, onTabChange }) => {
     const { user, profile, signOut } = useAuth();
+    const [imageError, setImageError] = React.useState(false);
   useEffect(() => {
     if (isOpen) useDebugStore.getState().logEvent('SidePanel rendered', { profileExists: !!profile });
   }, [isOpen, user, profile]);
@@ -202,11 +203,20 @@ export const SidePanel: React.FC<SidePanelProps> = ({ isOpen, onClose, onTabChan
 
                                 <div className="flex items-center gap-3 mb-4">
                                     <div className="bg-indigo-600 p-1.5 rounded-xl shadow-inner border border-indigo-500">
-                                        <img src="./mindflow-icon.svg" alt="MindFlow Logo" className="w-6 h-6" onError={(e) => {
-                                            // Fallback to text icon if SVG fails to load
-                                            e.currentTarget.style.display = 'none';
-                                            e.currentTarget.parentElement!.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-white"><path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"/><path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"/><path d="M15 13a4.5 4.5 0 0 1-3-4 4.5 4.5 0 0 1-3 4 4.5 4.5 0 0 1-3-4"/></svg>';
-                                        }} />
+                                        {imageError ? (
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white w-6 h-6">
+                                                <path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"/>
+                                                <path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"/>
+                                                <path d="M15 13a4.5 4.5 0 0 1-3-4 4.5 4.5 0 0 1-3 4 4.5 4.5 0 0 1-3-4"/>
+                                            </svg>
+                                        ) : (
+                                            <img
+                                                src="./mindflow-icon.svg"
+                                                alt="MindFlow Logo"
+                                                className="w-6 h-6"
+                                                onError={() => setImageError(true)}
+                                            />
+                                        )}
                                     </div>
                                     <div>
                                         <h4 className="font-black text-gray-900 dark:text-white tracking-tight">MindFlow</h4>
