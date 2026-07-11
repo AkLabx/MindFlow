@@ -11,6 +11,15 @@ interface SeriesDrawerProps {
 }
 
 export const SeriesDrawer: React.FC<SeriesDrawerProps> = ({ isOpen, onClose, series, categories, onSave }) => {
+    const [initialData, setInitialData] = useState({
+        category_id: '',
+        name: '',
+        slug: '',
+        description: '',
+        is_premium: false,
+        is_published: false
+    });
+
     const [formData, setFormData] = useState({
         category_id: '',
         name: '',
@@ -21,19 +30,27 @@ export const SeriesDrawer: React.FC<SeriesDrawerProps> = ({ isOpen, onClose, ser
     });
     const [loading, setLoading] = useState(false);
 
+    const isDirty = JSON.stringify(formData) !== JSON.stringify(initialData);
+
     useEffect(() => {
-        if (series) {
-            setFormData({
-                category_id: series.category_id || '',
-                name: series.name || '',
-                slug: series.slug || '',
-                description: series.description || '',
-                is_premium: series.is_premium ?? false,
-                is_published: series.is_published ?? false
-            });
-        } else {
-            setFormData({ category_id: categories[0]?.id || '', name: '', slug: '', description: '', is_premium: false, is_published: false });
-        }
+        const data = series ? {
+            category_id: series.category_id || '',
+            name: series.name || '',
+            slug: series.slug || '',
+            description: series.description || '',
+            is_premium: series.is_premium ?? false,
+            is_published: series.is_published ?? false
+        } : {
+            category_id: categories[0]?.id || '',
+            name: '',
+            slug: '',
+            description: '',
+            is_premium: false,
+            is_published: false
+        };
+
+        setInitialData(data);
+        setFormData(data);
     }, [series, isOpen, categories]);
 
     // Auto-generate slug
@@ -59,9 +76,35 @@ export const SeriesDrawer: React.FC<SeriesDrawerProps> = ({ isOpen, onClose, ser
         }
     };
 
+    const drawerFooter = (requestClose: () => void) => (
+        <div className="flex justify-end gap-3">
+            <button
+                type="button"
+                onClick={requestClose}
+                className="px-4 py-2 text-slate-600 dark:text-slate-300 font-medium hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors"
+            >
+                Cancel
+            </button>
+            <button
+                type="submit"
+                form="series-form"
+                disabled={loading || !formData.name.trim() || !formData.category_id}
+                className="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-xl transition-colors disabled:opacity-50"
+            >
+                {loading ? 'Saving...' : 'Save Series'}
+            </button>
+        </div>
+    );
+
     return (
-        <RightDrawer isOpen={isOpen} onClose={onClose} title={series ? "Edit Test Series" : "Create Test Series"}>
-            <form onSubmit={handleSubmit} className="space-y-6 flex flex-col h-full">
+        <RightDrawer
+            isOpen={isOpen}
+            onClose={onClose}
+            title={series ? "Edit Test Series" : "Create Test Series"}
+            isDirty={isDirty}
+            footer={drawerFooter}
+        >
+            <form id="series-form" onSubmit={handleSubmit} className="space-y-6 flex flex-col h-full">
                 <div className="flex-1 space-y-6">
                     <div>
                         <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Category *</label>
@@ -148,23 +191,6 @@ export const SeriesDrawer: React.FC<SeriesDrawerProps> = ({ isOpen, onClose, ser
                             </label>
                         </div>
                     </div>
-                </div>
-
-                <div className="pt-6 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-3">
-                    <button
-                        type="button"
-                        onClick={onClose}
-                        className="px-4 py-2 text-slate-600 dark:text-slate-300 font-medium hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors"
-                    >
-                        Cancel
-                    </button>
-                    <button
-                        type="submit"
-                        disabled={loading || !formData.name.trim() || !formData.category_id}
-                        className="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-xl transition-colors disabled:opacity-50"
-                    >
-                        {loading ? 'Saving...' : 'Save Series'}
-                    </button>
                 </div>
             </form>
         </RightDrawer>
