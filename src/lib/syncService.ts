@@ -251,15 +251,17 @@ export const syncService = {
     if (queue.length === 0) return;
 
     const processedIds: string[] = [];
+    const BATCH_SIZE = 15; // Bounded concurrency to avoid rate limits
 
-    for (const event of queue) {
-      try {
+    for (let i = 0; i < queue.length; i += BATCH_SIZE) {
+      const batch = queue.slice(i, i + BATCH_SIZE);
+
+      const promises = batch.map(async (event) => {
         switch (event.type) {
           case 'flashcard_reviewed':
             // The payload is assumed to be a SynonymInteraction or similar
             await syncService.pushSynonymInteraction(userId, event.payload);
             break;
-
 
           case 'bookmark_toggled':
             if (event.payload.isBookmarked) {
@@ -269,12 +271,19 @@ export const syncService = {
             }
             break;
         }
-        processedIds.push(event.id);
-      } catch (err) {
-        console.error('Failed to sync event:', event, err);
-        // Break early if network fails, keep remaining in queue
-        break;
-      }
+        return event.id;
+      });
+
+      const results = await Promise.allSettled(promises);
+
+      // Collect successfully processed IDs
+      results.forEach(result => {
+        if (result.status === 'fulfilled') {
+          processedIds.push(result.value);
+        } else {
+          console.error('Failed to sync event in batch:', result.reason);
+        }
+      });
     }
 
     if (processedIds.length > 0) {
