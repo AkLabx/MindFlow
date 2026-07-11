@@ -79,14 +79,24 @@ export const useSynonymProgress = () => {
   const markMastered = useCallback(async (wordObj: SynonymWord, clusterWords: string[] = []) => {
       await updateInteraction(wordObj.id, wordObj.word, { masteryLevel: 'mastered' });
 
+      // Deduplicate familiar updates by ID
+      const familiarUpdates = new Map<string, string>(); // ID -> wordString
+
       for (const syn of wordObj.synonyms || []) {
           // Fallback ID for missing IDs from text-only synonyms
-          await updateInteraction(`syn-${syn.text}`, syn.text, { masteryLevel: 'familiar' });
+          familiarUpdates.set(`syn-${syn.text}`, syn.text);
       }
 
       for (const wordStr of clusterWords) {
-          await updateInteraction(`cluster-${wordStr}`, wordStr, { masteryLevel: 'familiar' });
+          familiarUpdates.set(`cluster-${wordStr}`, wordStr);
       }
+
+      // Perform independent familiar updates concurrently
+      await Promise.all(
+          Array.from(familiarUpdates.entries()).map(([id, wordString]) =>
+              updateInteraction(id, wordString, { masteryLevel: 'familiar' })
+          )
+      );
   }, [interactions]);
 
   const markExplanationViewed = useCallback(async (wordObj: SynonymWord) => {
