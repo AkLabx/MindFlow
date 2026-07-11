@@ -32,11 +32,12 @@ export const fetchWithTimeout = (url: RequestInfo | URL, options?: RequestInit, 
         }
 
   let timeoutSignal: AbortSignal;
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
   if (typeof AbortSignal.timeout === 'function') {
       timeoutSignal = AbortSignal.timeout(timeoutMs);
   } else {
       const controller = new AbortController();
-      setTimeout(() => {
+      timeoutId = setTimeout(() => {
                     controller.abort(new Error('TimeoutError'));
       }, timeoutMs);
       timeoutSignal = controller.signal;
@@ -68,6 +69,7 @@ export const fetchWithTimeout = (url: RequestInfo | URL, options?: RequestInit, 
   const startTime = performance.now();
   return fetch(url, { ...options, signal: finalSignal })
     .then(res => {
+        if (timeoutId !== undefined) clearTimeout(timeoutId);
         const endTime = performance.now();
         if (urlStr.includes('/storage/v1/object/')) {
             console.log(`[Storage Upload] ${reqId} completed in ${(endTime - startTime).toFixed(2)}ms for ${urlStr}`);
@@ -75,6 +77,7 @@ export const fetchWithTimeout = (url: RequestInfo | URL, options?: RequestInit, 
         return res;
     })
     .catch(err => {
+        if (timeoutId !== undefined) clearTimeout(timeoutId);
         const endTime = performance.now();
         if (urlStr.includes('/storage/v1/object/')) {
             console.error(`[Storage Upload] ${reqId} failed after ${(endTime - startTime).toFixed(2)}ms for ${urlStr} - ${err.name}: ${err.message}`);
