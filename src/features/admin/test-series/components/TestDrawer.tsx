@@ -12,7 +12,16 @@ interface TestDrawerProps {
 }
 
 export const TestDrawer: React.FC<TestDrawerProps> = ({ isOpen, onClose, test, series, onSave }) => {
-    const [formData, setFormData] = useState({
+    const [initialData, setInitialData] = useState({
+            series_id: '',
+            name: '',
+            question_ids: [],
+            total_marks: 0,
+            duration_minutes: 0,
+            is_published: false
+        });
+
+        const [formData, setFormData] = useState({
         series_id: '',
         name: '',
         description: '',
@@ -225,25 +234,7 @@ export const TestDrawer: React.FC<TestDrawerProps> = ({ isOpen, onClose, test, s
                     </section>
                 </div>
 
-                <div className="fixed bottom-0 right-0 w-full max-w-xl p-6 pb-[calc(1.5rem_+_env(safe-area-inset-bottom))] bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-3 z-10 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
-                    <button
-                        type="button"
-                        onClick={onClose}
-                        className="px-4 py-2 text-slate-600 dark:text-slate-300 font-medium hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors"
-                    >
-                        Cancel
-                    </button>
-                    {/* Allow saving as draft even with errors, but disable if name/series missing completely */}
-                    <button
-                        type="submit"
-                        disabled={loading || !validation.canSaveDraft}
-                        className="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-xl transition-colors disabled:opacity-50 flex items-center gap-2"
-                    >
-                        {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-                        {formData.is_published ? 'Save & Publish' : 'Save Draft'}
-                    </button>
-                </div>
-            </form>
+                </form>
         </RightDrawer>
     );
 };
