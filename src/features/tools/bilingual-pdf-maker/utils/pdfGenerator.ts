@@ -1,3 +1,4 @@
+import DOMPurify from "dompurify";
 
 export interface PDFOptions {
     quizTitle: string;
@@ -99,7 +100,7 @@ export const generateBilingualPdf = async (
         hindiSnippet.style.width = `${customWidth}pt`;
         hindiSnippet.style.fontSize = `${fontSize}pt`;
         hindiSnippet.style.fontWeight = '700';
-        hindiSnippet.textContent = text;
+        hindiSnippet.innerHTML = DOMPurify.sanitize(text);
         hindiSnippet.style.backgroundColor = bgColorHex;
 
         // Small delay to allow DOM to render
@@ -438,6 +439,6 @@ export const generateBilingualPdf = async (
         console.error("PDF Generation Error", e);
         throw e;
     } finally {
-        if (hindiSnippet) hindiSnippet.textContent = '';
+        if (hindiSnippet) hindiSnippet.innerHTML = '';
     }
 };
