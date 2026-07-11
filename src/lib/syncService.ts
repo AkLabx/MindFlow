@@ -8,6 +8,15 @@ import { Question, SavedQuiz, QuizHistoryRecord } from '../features/quiz/types';
  */
 import { useSyncStore } from '../features/quiz/stores/useSyncStore';
 
+
+function chunkArray<T>(array: T[], size: number): T[][] {
+  const chunks: T[][] = [];
+  for (let i = 0; i < array.length; i += size) {
+    chunks.push(array.slice(i, i + size));
+  }
+  return chunks;
+}
+
 let isSyncing = false;
 let lastSyncedUserIdForFullSync: string | null = null;
 
@@ -37,19 +46,56 @@ export const syncService = {
     if (error) console.error('Error pushing chat message:', error);
   },
 
-  syncAIChats: async (userId: string) => {
+  pushAIChatConversationsBatch: async (userId: string, convs: AIChatConversation[]) => {
+    if (convs.length === 0) return;
+    const payloads = convs.map(conv => ({
+      id: conv.id,
+      user_id: userId,
+      title: conv.title,
+      created_at: conv.created_at,
+      updated_at: conv.updated_at
+    }));
+
+    const chunks = chunkArray(payloads, 500);
+    for (const chunk of chunks) {
+      const { error } = await supabase.from('ai_chat_conversations').upsert(chunk, { onConflict: 'id' });
+      if (error) console.error('Error pushing chat conversations batch:', error);
+    }
+  },
+
+  pushAIChatMessagesBatch: async (msgs: AIChatMessage[]) => {
+    if (msgs.length === 0) return;
+    const payloads = msgs.map(msg => ({
+      id: msg.id,
+      conversation_id: msg.conversation_id,
+      role: msg.role,
+      content: msg.content,
+      created_at: msg.created_at
+    }));
+
+    const chunks = chunkArray(payloads, 500);
+    for (const chunk of chunks) {
+      const { error } = await supabase.from('ai_chat_messages').upsert(chunk, { onConflict: 'id' });
+      if (error) console.error('Error pushing chat messages batch:', error);
+    }
+  },
+
+
+    syncAIChats: async (userId: string) => {
     try {
       // 1. Fetch Local Data
       const localConvs = await getChatConversations();
+      if (localConvs.length === 0) return;
 
-      // 2. Push to Supabase
+      const allMsgs: AIChatMessage[] = [];
       for (const conv of localConvs) {
-        await syncService.pushAIChatConversation(userId, conv);
         const msgs = await getChatMessages(conv.id);
-        for (const msg of msgs) {
-            await syncService.pushAIChatMessage(msg);
-        }
+        allMsgs.push(...msgs);
       }
+
+      // 2. Push to Supabase in Batches
+      await syncService.pushAIChatConversationsBatch(userId, localConvs);
+      await syncService.pushAIChatMessagesBatch(allMsgs);
     } catch (err) {
       console.error('Error syncing AI Chats:', err);
     }
