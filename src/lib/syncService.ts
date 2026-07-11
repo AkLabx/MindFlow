@@ -310,16 +310,19 @@ export const syncService = {
     if (queue.length === 0) return;
 
     const processedIds: string[] = [];
+    const BATCH_SIZE = 15; // Bounded concurrency to avoid rate limits
 
-    for (const event of queue) {
-      try {
+    for (let i = 0; i < queue.length; i += BATCH_SIZE) {
+      const batch = queue.slice(i, i + BATCH_SIZE);
+
+      const promises = batch.map(async (event) => {
         switch (event.type) {
           case "flashcard_reviewed":
             // The payload is assumed to be a SynonymInteraction or similar
             await syncService.pushSynonymInteraction(userId, event.payload);
             break;
 
-          case "bookmark_toggled":
+          case 'bookmark_toggled':
             if (event.payload.isBookmarked) {
               await syncService.pushBookmark(userId, event.payload.question);
             } else {
@@ -330,12 +333,19 @@ export const syncService = {
             }
             break;
         }
-        processedIds.push(event.id);
-      } catch (err) {
-        console.error("Failed to sync event:", event, err);
-        // Break early if network fails, keep remaining in queue
-        break;
-      }
+        return event.id;
+      });
+
+      const results = await Promise.allSettled(promises);
+
+      // Collect successfully processed IDs
+      results.forEach(result => {
+        if (result.status === 'fulfilled') {
+          processedIds.push(result.value);
+        } else {
+          console.error('Failed to sync event in batch:', result.reason);
+        }
+      });
     }
 
     if (processedIds.length > 0) {
@@ -453,36 +463,38 @@ export const syncService = {
           (remoteIdioms || []).map((i) => i.idiom_id),
         );
 
-        for (const quiz of localQuizzes) {
-          if (!remoteQuizIds.has(quiz.id)) {
-            await syncService.pushSavedQuiz(userId, quiz);
+        // Helper to process items in chunks concurrently
+        const processInChunks = async <T>(items: T[], action: (item: T) => Promise<any>, chunkSize = 20) => {
+          let hasErrors = false;
+          for (let i = 0; i < items.length; i += chunkSize) {
+            const chunk = items.slice(i, i + chunkSize);
+            await Promise.all(chunk.map(item => action(item).catch(err => {
+               console.error('Error in batch sync action:', err);
+               hasErrors = true;
+            })));
           }
-        }
-        for (const hist of localHistory) {
-          if (!remoteHistoryIds.has(hist.id)) {
-            await syncService.pushQuizHistory(userId, hist);
+          if (hasErrors) {
+             throw new Error('One or more items failed to sync during chunk processing.');
           }
-        }
-        for (const bm of localBookmarks) {
-          if (!remoteBookmarkIds.has(bm.id)) {
-            await syncService.pushBookmark(userId, bm);
-          }
-        }
-        for (const syn of localSynonyms) {
-          if (!remoteSynonymIds.has(syn.wordId)) {
-            await syncService.pushSynonymInteraction(userId, syn);
-          }
-        }
-        for (const ows of localOWS) {
-          if (!remoteOWSIds.has(ows.wordId)) {
-            await syncService.pushOWSInteraction(userId, ows);
-          }
-        }
-        for (const idiom of localIdioms) {
-          if (!remoteIdiomIds.has(idiom.idiomId)) {
-            await syncService.pushIdiomInteraction(userId, idiom);
-          }
-        }
+        };
+
+        const quizzesToPush = localQuizzes.filter(quiz => !remoteQuizIds.has(quiz.id));
+        await processInChunks(quizzesToPush, (quiz) => syncService.pushSavedQuiz(userId, quiz));
+
+        const historyToPush = localHistory.filter(hist => !remoteHistoryIds.has(hist.id));
+        await processInChunks(historyToPush, (hist) => syncService.pushQuizHistory(userId, hist));
+
+        const bookmarksToPush = localBookmarks.filter(bm => !remoteBookmarkIds.has(bm.id));
+        await processInChunks(bookmarksToPush, (bm) => syncService.pushBookmark(userId, bm));
+
+        const synonymsToPush = localSynonyms.filter(syn => !remoteSynonymIds.has(syn.wordId));
+        await processInChunks(synonymsToPush, (syn) => syncService.pushSynonymInteraction(userId, syn));
+
+        const owsToPush = localOWS.filter(ows => !remoteOWSIds.has(ows.wordId));
+        await processInChunks(owsToPush, (ows) => syncService.pushOWSInteraction(userId, ows));
+
+        const idiomsToPush = localIdioms.filter(idiom => !remoteIdiomIds.has(idiom.idiomId));
+        await processInChunks(idiomsToPush, (idiom) => syncService.pushIdiomInteraction(userId, idiom));
 
         // After merging up, clear local to prep for a fresh pull
         await db.clearAllUserData();
