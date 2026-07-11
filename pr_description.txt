@@ -1,0 +1,11 @@
+🎯 **What:** The testing gap addressed
+This PR addresses a testing gap in the `useSound` hook. Previously, there were no automated tests validating the behavior of audio element creation, conditional playback based on settings, or error handling.
+
+📊 **Coverage:** What scenarios are now tested
+- Initialization: Verifies that the Audio element is instantiated properly and a new instance is created only when the URL changes.
+- Playback: Confirms that cloning (`cloneNode()`) is used before playback, allowing overlapping sounds.
+- Settings: Ensures that sounds do not play when global settings (`isSoundEnabled`) are `false`.
+- Error handling: Guarantees that playback rejections (e.g., autoplay policies) don't throw an error to the caller but are gracefully logged.
+
+✨ **Result:** The improvement in test coverage
+The `useSound` hook is now fully covered by unit tests, enhancing codebase reliability and preventing future regressions (e.g. ignoring the user's sound preferences).

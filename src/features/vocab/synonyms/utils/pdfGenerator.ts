@@ -65,7 +65,9 @@ export const generateSynonymPDF = async (data: any[], config: PDFGenerationConfi
   for (let i = 0; i < data.length; i++) {
     const item = data[i];
 
-    await new Promise(resolve => setTimeout(resolve, 0)); // Yield to main thread to prevent UI freeze
+    if (i % 16 === 0) {
+      await new Promise(resolve => setTimeout(resolve, 0)); // Yield to main thread periodically to prevent UI freeze while minimizing overhead
+    }
     const isTop = i % 2 === 0;
 
     if (i > 0 && isTop) {
