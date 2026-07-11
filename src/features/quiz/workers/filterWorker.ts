@@ -43,14 +43,16 @@ self.onmessage = (e: MessageEvent<{ type: 'INIT' | 'CALCULATE', allQuestions?: Q
 
           // Count occurrences of each value for the current category in the filtered set
           const counts: { [key: string]: number } = {};
-          for (const question of tempFilteredQuestions) {
-              const value = getQuestionValue(question, keyToCount as keyof InitialFilters);
+          for (let i = 0; i < tempFilteredQuestions.length; i++) {
+              const value = getQuestionValue(tempFilteredQuestions[i], keyToCount as keyof InitialFilters);
               if (Array.isArray(value)) {
-                  value.forEach((tag: string) => {
+                  // Optimized: Standard for-loop avoids closure allocation in this tight hot loop
+                  for (let j = 0; j < value.length; j++) {
+                      const tag = value[j];
                       counts[tag] = (counts[tag] || 0) + 1;
-                  });
+                  }
               } else if (value) {
-                  counts[value] = (counts[value] || 0) + 1;
+                  counts[value as string] = (counts[value as string] || 0) + 1;
               }
           }
           allCounts[keyToCount] = counts;
