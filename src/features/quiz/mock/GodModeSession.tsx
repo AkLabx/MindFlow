@@ -12,7 +12,6 @@ import { cn } from '../../../utils/cn';
 import { APP_CONFIG } from '../../../constants/config';
 import { useGodSessionTimer } from '../hooks/useGodSessionTimer';
 import { useAntiCheat } from '../hooks/useAntiCheat';
-import { quizEngine } from '../engine';
 
 interface GodModeSessionProps {
     questions: Question[];
