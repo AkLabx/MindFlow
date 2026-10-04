@@ -9,6 +9,7 @@ import {
   BilingualPdfSVG,
   PptGeneratorSVG,
   TextExporterSVG,
+  AsciiArtSVG,
 } from "./ToolsSVGs";
 
 const ToolsHome: React.FC = () => {
@@ -71,7 +72,7 @@ const ToolsHome: React.FC = () => {
       action: () => navigate("/tools/bilingual-pdf-maker"),
       disabled: false,
     },
-    {
+        {
       id: "ppt-generator",
       title: "GK PDF/PPT Generator",
       description:
@@ -81,6 +82,16 @@ const ToolsHome: React.FC = () => {
       action: () => navigate("/tools/quiz-pdf-ppt-generator"),
       disabled: false,
     },
+    {
+      id: "ascii-art",
+      title: "Ascii Art",
+      description:
+        "Create and hide messages with artistic flair using text and numbers.",
+      svg: <AsciiArtSVG />,
+      themeColor: "emerald",
+      action: () => navigate("/tools/ascii-art-hub"),
+      disabled: false,
+    },,
   ];
 
   return (
@@ -141,6 +152,12 @@ const ToolsHome: React.FC = () => {
               shadowColor = "bg-purple-500";
               textColor =
                 "from-purple-600 to-purple-900 dark:from-purple-300 dark:to-purple-100";
+            } else if (tool.themeColor === "emerald") {
+              gradientFrom = "dark:from-emerald-900/20";
+              gradientTo = "dark:to-emerald-900/5";
+              borderColorHover = "border-b-emerald-200/50 dark:border-b-emerald-700/50 group-hover:border-emerald-300 dark:group-hover:border-emerald-500";
+              shadowColor = "bg-emerald-500";
+              textColor = "from-emerald-600 to-emerald-900 dark:from-emerald-300 dark:to-emerald-100";
             } else if (tool.themeColor === "rose") {
               gradientFrom = "dark:from-rose-900/20";
               gradientTo = "dark:to-rose-900/5";
