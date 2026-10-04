@@ -1,7 +1,7 @@
 {
   "name": "mindflow-quiz",
   "private": true,
-  "version": "1.0.197",
+  "version": "1.0.198",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -12,8 +12,11 @@
     "@capacitor/android": "^8.3.1",
     "@capacitor/app": "^8.1.0",
     "@capacitor/camera": "^8.2.0",
+    "@capacitor/clipboard": "^8.0.1",
     "@capacitor/core": "^8.3.1",
+    "@capacitor/filesystem": "^8.1.4",
     "@capacitor/haptics": "^8.0.2",
+    "@capacitor/share": "^8.0.3",
     "@capacitor/splash-screen": "^8.0.1",
     "@capacitor/status-bar": "^8.0.2",
     "@codetrix-studio/capacitor-google-auth": "^3.4.0-rc.4",
