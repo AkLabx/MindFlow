@@ -23,6 +23,7 @@ export interface NumberArtResult {
 
 export const PRESETS: Record<string, string> = {
   num: '0123456789',
+  classic: '17938',
   hex: '0123456789ABCDEF',
   bin: '01',
   blocks: ' ░▒▓█',
