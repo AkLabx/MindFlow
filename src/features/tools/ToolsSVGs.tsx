@@ -141,6 +141,38 @@ export const PptGeneratorSVG = () => (
 );
 
 // 4. Text Exporter (Rose)
+export const AsciiArtSVG = () => (
+  <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-lg" style={{ perspective: "800px" }}>
+    <defs>
+      <linearGradient id="asciiGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stopColor="#10B981" />
+        <stop offset="100%" stopColor="#059669" />
+      </linearGradient>
+      <linearGradient id="artGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stopColor="#6EE7B7" />
+        <stop offset="100%" stopColor="#34D399" />
+      </linearGradient>
+    </defs>
+    <motion.rect
+      x="20" y="25" width="60" height="50" rx="6"
+      fill="url(#asciiGrad)" opacity="0.4"
+      animate={{ rotateZ: [-2, 2, -2], y: [0, -2, 0] }}
+      transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+    />
+    <motion.rect
+      x="25" y="20" width="60" height="50" rx="6"
+      fill="url(#asciiGrad)" opacity="0.9"
+      animate={{ rotateZ: [2, -2, 2], y: [0, 2, 0] }}
+      transition={{ duration: 6, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
+    />
+    <motion.text x="35" y="55" fill="url(#artGrad)" fontSize="30" fontWeight="bold" fontFamily="monospace"
+      animate={{ opacity: [0.7, 1, 0.7] }}
+      transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}>
+      {`{A}`}
+    </motion.text>
+  </svg>
+);
+
 export const TextExporterSVG = () => (
   <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-lg" style={{ perspective: '800px' }}>
     <defs>
