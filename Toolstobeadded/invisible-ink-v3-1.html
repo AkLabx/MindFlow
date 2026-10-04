@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Invisible Ink</title>
+<style>
+:root{--bg:#f3f1fa;--card:#fff;--ink:#17142e;--mute:#6a6784;--line:#dcd8ee;--acc:#f0c030;--accink:#17142e;--focus:#5b4bdb}
+@media (prefers-color-scheme:dark){:root{--bg:#0f0d1f;--card:#1a1731;--ink:#ece9ff;--mute:#9b97bd;--line:#2d2950;--acc:#f2cb4a;--focus:#a99cff}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+main{max-width:620px;margin:0 auto;padding:10px 14px 48px}
+h1{margin:8px 0 2px;font:700 28px/1.15 Georgia,serif}
+.sub{margin:0 0 8px;color:var(--mute)}
+.stage{position:sticky;top:0;z-index:5;background:var(--bg);padding:8px 0 6px}
+.frame{background:#fff;border-radius:14px;padding:10px;border:1px solid var(--line);transition:background .6s}
+.frame.dk{background:#000}
+canvas{display:block;margin:0 auto;max-width:100%;max-height:32vh}
+.seg{display:flex;margin-top:8px;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--card)}
+.seg button{flex:1;border:0;border-radius:0;background:transparent}
+.seg button[aria-pressed=true]{background:var(--ink);color:var(--bg)}
+#st{margin:6px 2px 0;min-height:22px;color:var(--mute);font-size:14px}
+button{padding:11px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink);font:inherit;font-weight:600;cursor:pointer}
+.save{width:100%;background:var(--acc);border-color:var(--acc);color:var(--accink);font-size:16px;margin-top:6px}
+.save:active{transform:scale(.98)}
+details{background:var(--card);border:1px solid var(--line);border-radius:12px;margin:10px 0;padding:2px 14px 12px}
+summary{font-weight:700;padding:11px 0;cursor:pointer}
+label{display:flex;justify-content:space-between;margin:12px 0 4px;font-weight:600}
+output{color:var(--mute);font-weight:400}
+input[type=range]{width:100%;accent-color:var(--focus)}
+input[type=color]{width:100%;height:38px;border:1px solid var(--line);border-radius:8px;background:none;padding:2px}
+textarea,select,input[type=number],input[type=file],input[type=text],input[type=datetime-local]{width:100%;font:inherit;color:var(--ink);background:transparent;border:1px solid var(--line);border-radius:8px;padding:8px}
+select option{color:#000}
+textarea{min-height:64px}
+.ck{justify-content:flex-start;gap:8px;align-items:center}
+.ht{margin:4px 0 0;color:var(--mute);font-size:13px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+.chips button{flex:none;padding:7px 12px;font-size:14px}
+.how{background:var(--card);border-left:4px solid var(--acc);border-radius:8px;padding:8px 14px;margin:10px 0}
+.how ol{margin:4px 0;padding-left:20px}
+.how b{color:var(--ink)}
+.foot{text-align:center;margin-top:16px}
+.foot button{background:none;border:0;color:var(--mute);font-weight:400;text-decoration:underline}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,summary:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){.frame{transition:none}}
+</style>
+</head>
+<body>
+<main>
+<h1>Invisible Ink</h1>
+<p class="sub">A picture with a message nobody can see, until the phone goes dark.</p>
+
+<div class="stage">
+  <div class="frame" id="fr"><canvas id="cv"></canvas></div>
+  <div class="seg" role="group" aria-label="Preview background">
+    <button id="bl" aria-pressed="true">☀ Light mode</button>
+    <button id="bd" aria-pressed="false">☾ Dark mode</button>
+  </div>
+  <div id="st" role="status" aria-live="polite"></div>
+  <button class="save" id="sv">Save PNG</button>
+  <button id="sh" hidden style="width:100%;margin-top:6px">Share file instead (keeps the file name)</button>
+</div>
+
+<div class="how"><b>How to send it</b>
+<ol><li>Save the PNG.</li><li>Send it on WhatsApp as a <b>Document</b>, not a photo.</li><li>Your friend turns on Dark mode and opens the file again.</li></ol></div>
+
+<div id="ctl"></div>
+<div class="foot"><button id="rs">Reset everything</button></div>
+</main>
+
+<script>
+const $ = id => document.getElementById(id);
+const cv = $('cv'), KEY = 'invisible-ink-v3';
+let photo = null, photoUrl = '', photoErr = '', queued = false;
+
+const FONTS = [['sans-serif','Sans'],['Georgia,serif','Serif'],['monospace','Mono'],['"Brush Script MT",cursive','Script'],['Impact,sans-serif','Impact']];
+const STYLES = [
+  ['Sunset','#ff9a8b','#ffe3a3','#5a2d3a'], ['Ocean','#8ec5fc','#e0f7fa','#17406b'],
+  ['Mint','#a8e6cf','#f1fff6','#1d5a46'], ['Lavender','#cdb4ff','#fff0fb','#3c2a73'], ['Plain','#ffffff','#ffffff','#222222']
+];
+// [id, label, type, default, a, b, step]  (ht = hint text)
+const G = [
+ ['1. Secret message', [
+  ['sec','Message nobody can see','ta','Meet me at 6 pm'],
+  ['op','Opacity of hidden text (%)','rg',65,25,100,1],
+  ['_','Higher shows the message clearer in dark mode but makes the picture paler.','ht'],
+  ['sf','Font','sel','sans-serif',FONTS],
+  ['ss','Size','rg',90,10,400,1],
+  ['fit','Shrink to fit the picture','ck',true],
+  ['sb','Bold','ck',true],
+  ['sa','Alignment','sel','center',[['center','Center'],['left','Left'],['right','Right']]],
+  ['sl','Line spacing','rg',1.2,0.8,2.5,0.05],
+  ['sr','Rotation','rg',0,-90,90,1],
+  ['sx','Horizontal position','rg',50,0,100,1],
+  ['sy','Vertical position','rg',50,0,100,1]]],
+ ['2. What everyone sees', [
+  ['__','Pick a style, or fine tune below.','ht'],
+  ['bg','Background','sel','grad',[['solid','Solid colour'],['grad','Gradient'],['photo','Your photo']]],
+  ['c1','Colour 1','cl','#ff9a8b'],
+  ['c2','Colour 2 (gradient)','cl','#ffe3a3'],
+  ['ga','Gradient angle','rg',135,0,360,1],
+  ['ph','Your photo (it will look slightly paler)','fl'],
+  ['dec','Visible text (optional)','ta','Good morning!'],
+  ['___','Keep it away from the hidden message, or that spot will not reveal.','ht'],
+  ['dfn','Visible text font','sel','sans-serif',FONTS],
+  ['ds','Visible text size','rg',70,10,300,1],
+  ['dc','Visible text colour','cl','#5a2d3a'],
+  ['dx','Visible text, horizontal','rg',50,0,100,1],
+  ['dy','Visible text, vertical','rg',14,0,100,1]]],
+ ['3. Picture size', [
+  ['pre','Preset','sel','1080x1080',[['1080x1080','Square 1080 x 1080'],['1080x1920','Story 1080 x 1920'],['1920x1080','Wide 1920 x 1080'],['1280x720','HD 1280 x 720'],['custom','Custom']]],
+  ['w','Width (px)','nm',1080],
+  ['h','Height (px)','nm',1080]]],
+ ['4. File details (what Gallery shows)', [
+  ['_f','Anyone who opens Details can read these, so use them to look natural, not to store secrets.','ht'],
+  ['fn','File name (blank = IMG_date_time)','tx',''],
+  ['fd','Photo date and time','dt',''],
+  ['fx','Description (plain English letters work best)','tx','']]]
+];
+
+const IDS = [];
+G.forEach(([title, fs], n) => {
+  const d = document.createElement('details'); d.open = n < 2;
+  let h = `<summary>${title}</summary>`;
+  if (n === 1) h += `<div class="chips" id="chips">${STYLES.map((s, i) => `<button data-i="${i}">${s[0]}</button>`).join('')}</div>`;
+  fs.forEach(([id, lb, ty, df, a, b, s]) => {
+    if (ty === 'ht') { h += `<p class="ht">${lb}</p>`; return; }
+    if (ty !== 'fl') IDS.push(id);
+    if (ty === 'ck') { h += `<label class="ck"><input type="checkbox" id="${id}" ${df ? 'checked' : ''}> ${lb}</label>`; return; }
+    h += `<label for="${id}">${lb}${ty === 'rg' ? `<output id="${id}o">${df}</output>` : ''}</label>`;
+    if (ty === 'ta') h += `<textarea id="${id}">${df}</textarea>`;
+    if (ty === 'sel') h += `<select id="${id}">${a.map(o => `<option value="${o[0]}" ${o[0] === df ? 'selected' : ''}>${o[1]}</option>`).join('')}</select>`;
+    if (ty === 'rg') h += `<input type="range" id="${id}" min="${a}" max="${b}" step="${s}" value="${df}">`;
+    if (ty === 'cl') h += `<input type="color" id="${id}" value="${df}">`;
+    if (ty === 'nm') h += `<input type="number" id="${id}" value="${df}" min="200" max="4000">`;
+    if (ty === 'fl') h += `<input type="file" id="${id}" accept="image/*">`;
+    if (ty === 'tx') h += `<input type="text" id="${id}" value="${df}" autocomplete="off">`;
+    if (ty === 'dt') h += `<input type="datetime-local" id="${id}">`;
+  });
+  d.innerHTML = h; $('ctl').appendChild(d);
+});
+
+const val = id => $(id).value, num = id => +$(id).value || 0;
+const clamp = v => Math.max(200, Math.min(4000, v || 1080));
+const say = t => { $('st').textContent = t; };
+
+function text(x, W, H, t, o, k) {
+  x.save();
+  x.translate(o.x * W / 100, o.y * H / 100);
+  x.rotate(o.r * Math.PI / 180);
+  let s = o.s * k;
+  const font = p => `${o.b ? 'bold ' : ''}${p}px ${o.f}`;
+  x.font = font(s);
+  const L = t.split('\n');
+  if (o.fit) {
+    const mw = Math.max(1, ...L.map(l => x.measureText(l).width));
+    if (mw > .92 * W) { s *= .92 * W / mw; x.font = font(s); }
+  }
+  x.textAlign = o.a; x.textBaseline = 'middle';
+  L.forEach((l, i) => x.fillText(l, 0, (i - (L.length - 1) / 2) * s * o.l));
+  x.restore();
+}
+
+function render(c, W, H) {
+  c.width = W; c.height = H;
+  const x = c.getContext('2d', { willReadFrequently: true });
+  const k = W / clamp(num('w'));
+  const K = Math.round(255 * num('op') / 100);   // brightness of the hidden text on black
+
+  // 1. visible background
+  const bgt = val('bg');
+  if (bgt === 'photo' && photo) {
+    const f = Math.max(W / photo.width, H / photo.height);
+    x.drawImage(photo, (W - photo.width * f) / 2, (H - photo.height * f) / 2, photo.width * f, photo.height * f);
+  } else if (bgt === 'grad') {
+    const a = num('ga') * Math.PI / 180, r = Math.hypot(W, H) / 2, dx = Math.cos(a) * r, dy = Math.sin(a) * r;
+    const g = x.createLinearGradient(W / 2 - dx, H / 2 - dy, W / 2 + dx, H / 2 + dy);
+    g.addColorStop(0, val('c1')); g.addColorStop(1, val('c2'));
+    x.fillStyle = g; x.fillRect(0, 0, W, H);
+  } else { x.fillStyle = val('c1'); x.fillRect(0, 0, W, H); }
+
+  // 2. lift the picture into [K..255] so the secret can hide underneath it
+  const lf = x.getImageData(0, 0, W, H), ld = lf.data;
+  for (let i = 0; i < ld.length; i += 4)
+    for (let j = 0; j < 3; j++) ld[i + j] = K + (255 - K) * ld[i + j] / 255;
+  x.putImageData(lf, 0, 0);
+
+  // 3. visible text (after the lift, so it keeps its own colour)
+  if (val('dec').trim()) {
+    x.fillStyle = val('dc');
+    text(x, W, H, val('dec'), { x: num('dx'), y: num('dy'), r: 0, s: num('ds'), f: val('dfn'), b: true, a: 'center', l: 1.2, fit: true }, k);
+  }
+
+  // 4. secret text mask
+  const m = document.createElement('canvas'); m.width = W; m.height = H;
+  const mc = m.getContext('2d', { willReadFrequently: true }); mc.fillStyle = '#fff';
+  text(mc, W, H, val('sec'), { x: num('sx'), y: num('sy'), r: num('sr'), s: num('ss'), f: val('sf'), b: $('sb').checked, a: val('sa'), l: num('sl'), fit: $('fit').checked }, k);
+  const a = mc.getImageData(0, 0, W, H).data;
+
+  // 5. colour + transparency: white shows the picture exactly, black shows picture minus D (text has small D, so it glows)
+  const wd = x.getImageData(0, 0, W, H), d = wd.data;
+  for (let i = 0; i < d.length; i += 4) {
+    const r = d[i], g = d[i + 1], b = d[i + 2];
+    const D = Math.max(0, Math.round(Math.min(r, g, b) - K * a[i + 3] / 255));
+    const al = 255 - D;
+    if (al === 0) { d[i] = d[i + 1] = d[i + 2] = d[i + 3] = 0; continue; }
+    d[i] = (r - D) * 255 / al; d[i + 1] = (g - D) * 255 / al; d[i + 2] = (b - D) * 255 / al; d[i + 3] = al;
+  }
+  x.putImageData(wd, 0, 0);
+}
+
+function draw() {
+  queued = false;
+  const bw = clamp(num('w')), bh = clamp(num('h')), s = Math.min(1, 900 / Math.max(bw, bh));  // fast preview, full size on save
+  render(cv, Math.round(bw * s), Math.round(bh * s));
+  if (photoErr) say(photoErr);
+  else if (val('bg') === 'photo' && !photo) say('Choose a photo in step 2, or pick another background.');
+  else if (!val('sec').trim()) say('Type a message in step 1 to hide it.');
+  else say('Flip to Dark mode to check the hidden message.');
+}
+function sched() { if (!queued) { queued = true; requestAnimationFrame(draw); } }
+
+function store() { try { const o = {}; IDS.forEach(i => o[i] = $(i).type === 'checkbox' ? $(i).checked : val(i)); localStorage.setItem(KEY, JSON.stringify(o)); } catch (e) {} }
+function restore() {
+  try {
+    const o = JSON.parse(localStorage.getItem(KEY) || 'null'); if (!o) return;
+    IDS.forEach(i => { if (!(i in o)) return; if ($(i).type === 'checkbox') $(i).checked = o[i]; else $(i).value = o[i]; });
+  } catch (e) {}
+  if (val('bg') === 'photo') {
+    let u = ''; try { u = localStorage.getItem(KEY + '-photo') || ''; } catch (e) {}
+    if (!u) { $('bg').value = 'grad'; return; }
+    const im = new Image(); im.onload = () => { photo = im; sched(); }; im.src = u;
+  }
+}
+function keepPhoto(im) {           // small copy so it survives a page reload
+  try {
+    const k = Math.min(1, 1400 / Math.max(im.width, im.height)), c = document.createElement('canvas');
+    c.width = Math.round(im.width * k); c.height = Math.round(im.height * k);
+    c.getContext('2d').drawImage(im, 0, 0, c.width, c.height);
+    localStorage.setItem(KEY + '-photo', c.toDataURL('image/jpeg', .85));
+  } catch (e) {}
+}
+function outs() { document.querySelectorAll('input[type=range]').forEach(r => $(r.id + 'o').textContent = r.value); }
+
+$('ctl').addEventListener('input', e => {
+  if (e.target.type === 'range') $(e.target.id + 'o').textContent = e.target.value;
+  if (e.target.id === 'w' || e.target.id === 'h') $('pre').value = 'custom';
+  store(); sched();
+});
+$('ctl').addEventListener('change', e => {
+  if (e.target.id === 'pre' && val('pre') !== 'custom') { const [w, h] = val('pre').split('x'); $('w').value = w; $('h').value = h; }
+  if (e.target.id === 'ph' && e.target.files[0]) {
+    const im = new Image();
+    if (photoUrl) URL.revokeObjectURL(photoUrl);
+    photoUrl = URL.createObjectURL(e.target.files[0]);
+    im.onload = () => { photo = im; photoErr = ''; $('bg').value = 'photo'; keepPhoto(im); store(); sched(); };
+    im.onerror = () => { photoErr = 'Could not open that photo (HEIC is not supported). Try a JPG or PNG.'; say(photoErr); };
+    im.src = photoUrl;
+  }
+  store(); sched();
+});
+$('chips').onclick = e => {
+  const b = e.target.closest('button'); if (!b) return;
+  const [, c1, c2, dc] = STYLES[b.dataset.i];
+  if (!(val('bg') === 'photo' && photo)) $('bg').value = c2 === c1 ? 'solid' : 'grad';
+  $('c1').value = c1; $('c2').value = c2; $('dc').value = dc;
+  store(); sched();
+};
+
+function mode(dark) {
+  $('fr').classList.toggle('dk', dark);
+  $('bl').setAttribute('aria-pressed', !dark);
+  $('bd').setAttribute('aria-pressed', dark);
+}
+$('bl').onclick = () => mode(false);
+$('bd').onclick = () => mode(true);
+
+// ---- file details: name + EXIF date/description inside the PNG ----
+const CRC = (() => { const t = []; for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; }
+  return b => { let c = -1; for (const x of b) c = t[(c ^ x) & 255] ^ (c >>> 8); return (~c) >>> 0; }; })();
+
+function exif(desc, dt) {                      // dt = "YYYY:MM:DD HH:MM:SS"
+  const e = new TextEncoder(), D = [...e.encode(desc), 0]; if (D.length % 2) D.push(0);
+  const T = [...e.encode(dt), 0], has = desc.length > 0, n = has ? 3 : 2;
+  let off = 8 + 2 + 12 * n + 4;
+  const dOff = off; if (has) off += D.length;
+  const tOff = off; off += 20;
+  const xOff = off; off += 2 + 24 + 4;
+  const t2 = off; off += 20; const t3 = off; off += 20;
+  const out = new Uint8Array(off), v = new DataView(out.buffer);
+  out.set([0x4D, 0x4D, 0, 42], 0); v.setUint32(4, 8);
+  let p = 8; v.setUint16(p, n); p += 2;
+  const ent = (tag, type, cnt, vo) => { v.setUint16(p, tag); v.setUint16(p + 2, type); v.setUint32(p + 4, cnt); v.setUint32(p + 8, vo); p += 12; };
+  if (has) ent(0x010E, 2, D.length, dOff);
+  ent(0x0132, 2, 20, tOff); ent(0x8769, 4, 1, xOff);
+  v.setUint32(p, 0);
+  if (has) out.set(D, dOff);
+  out.set(T, tOff); out.set(T, t2); out.set(T, t3);
+  p = xOff; v.setUint16(p, 2); p += 2; ent(0x9003, 2, 20, t2); ent(0x9004, 2, 20, t3); v.setUint32(p, 0);
+  return out;
+}
+function addExif(png, ex) {                     // insert an eXIf chunk right after IHDR
+  const ch = new Uint8Array(12 + ex.length), v = new DataView(ch.buffer);
+  v.setUint32(0, ex.length); ch.set([0x65, 0x58, 0x49, 0x66], 4); ch.set(ex, 8);
+  v.setUint32(8 + ex.length, CRC(ch.subarray(4, 8 + ex.length)));
+  const out = new Uint8Array(png.length + ch.length);
+  out.set(png.subarray(0, 33)); out.set(ch, 33); out.set(png.subarray(33), 33 + ch.length);
+  return out;
+}
+const pad = n => String(n).padStart(2, '0');
+const nowLocal = () => { const d = new Date(); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`; };
+function fileInfo() {
+  const [dd, tt] = (val('fd') || nowLocal()).split('T');
+  let name = val('fn').trim().replace(/[\\/:*?"<>|]/g, '');
+  if (!name) name = `IMG_${dd.replace(/-/g, '')}_${tt.replace(':', '')}00`;
+  if (!/\.png$/i.test(name)) name += '.png';
+  return { name, exif: `${dd.replace(/-/g, ':')} ${tt}:00` };
+}
+function makePng() {
+  return new Promise(res => {
+    const c = document.createElement('canvas');
+    render(c, clamp(num('w')), clamp(num('h')));
+    c.toBlob(async b => {
+      const f = fileInfo(), buf = new Uint8Array(await b.arrayBuffer());
+      res({ name: f.name, blob: new Blob([addExif(buf, exif(val('fx').trim(), f.exif))], { type: 'image/png' }) });
+    }, 'image/png');
+  });
+}
+$('sv').onclick = async () => {
+  const { name, blob } = await makePng();
+  const u = URL.createObjectURL(blob), a = document.createElement('a');
+  a.href = u; a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(u), 8000);
+  say(`Saved as ${name}. Send it as a Document.`);
+};
+$('sh').onclick = async () => {
+  const { name, blob } = await makePng();
+  try { await navigator.share({ files: [new File([blob], name, { type: 'image/png' })] }); } catch (e) {}
+};
+try { if (navigator.canShare && navigator.canShare({ files: [new File([], 'a.png', { type: 'image/png' })] })) $('sh').hidden = false; } catch (e) {}
+
+$('rs').onclick = () => { try { localStorage.removeItem(KEY); localStorage.removeItem(KEY + '-photo'); } catch (e) {} location.reload(); };
+
+restore(); $('fd').value = nowLocal(); outs(); draw();
+</script>
+</body>
+</html>

@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>My Stego</title>
+<style>
+:root{--bg:#e9edf1;--card:#fff;--ink:#17202b;--mute:#5d6b7a;--line:#c9d2dc;--acc:#0e7c66;--accink:#fff;--err:#b3261e}
+@media (prefers-color-scheme:dark){:root{--bg:#10161d;--card:#18212b;--ink:#e6edf3;--mute:#8c9bab;--line:#2c3947;--acc:#3ccfa6;--accink:#06251d;--err:#ff8a80}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;padding:16px}
+main{max-width:620px;margin:0 auto}
+h1{font:700 26px/1.2 ui-monospace,Menlo,Consolas,monospace;margin:8px 0 4px;letter-spacing:-.5px}
+p.sub{color:var(--mute);margin:0 0 16px}
+.tabs{display:flex;gap:8px;margin-bottom:12px}
+.tabs button{flex:1;padding:10px;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:8px;font:inherit;font-weight:600;cursor:pointer}
+.tabs button[aria-selected=true]{background:var(--acc);color:var(--accink);border-color:var(--acc)}
+section{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px}
+label{display:block;font-weight:600;margin:14px 0 6px}
+label:first-child{margin-top:0}
+textarea,input[type=file]{width:100%;font:inherit;color:var(--ink);background:transparent;border:1px solid var(--line);border-radius:8px;padding:10px}
+textarea{min-height:110px;resize:vertical}
+.hint{color:var(--mute);font-size:14px;margin:4px 0 0}
+.go{width:100%;margin-top:16px;padding:12px;border:0;border-radius:8px;background:var(--acc);color:var(--accink);font:inherit;font-weight:700;cursor:pointer}
+button:focus-visible,textarea:focus-visible,input:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+#msg{margin-top:14px;font-weight:600}
+#msg.err{color:var(--err)}
+#out{margin-top:12px}
+#out img{max-width:100%;border:1px solid var(--line);border-radius:8px;display:block;margin-bottom:10px}
+#out a{display:inline-block;padding:10px 14px;background:var(--ink);color:var(--bg);border-radius:8px;text-decoration:none;font-weight:600}
+#out textarea{min-height:140px}
+.hide{display:none}
+</style>
+</head>
+<body>
+<main>
+<h1>My Stego</h1>
+<p class="sub">Hide text or a file inside a PNG. Works offline. Nothing leaves this device.</p>
+
+<div class="tabs" role="tablist">
+  <button role="tab" id="t1" aria-selected="true">Hide</button>
+  <button role="tab" id="t2" aria-selected="false">Reveal</button>
+</div>
+
+<section id="hideBox">
+  <label for="cover">Cover image</label>
+  <input type="file" id="cover" accept="image/*">
+  <label for="text">Secret text</label>
+  <textarea id="text" placeholder="Type your message"></textarea>
+  <label for="file">Or secret file</label>
+  <input type="file" id="file">
+  <p class="hint">If you pick a file, it is hidden instead of the text.</p>
+  <button class="go" id="enc">Hide it</button>
+</section>
+
+<section id="revealBox" class="hide">
+  <label for="stego">Image with a hidden secret</label>
+  <input type="file" id="stego" accept="image/png">
+  <button class="go" id="dec">Reveal it</button>
+</section>
+
+<div id="msg" role="status"></div>
+<div id="out"></div>
+</main>
+
+<script>
+const $ = id => document.getElementById(id);
+const MAGIC = [0x4D, 0x59, 0x53, 0x54];          // "MYST"
+const HEADER = 9;                                 // magic(4) + type(1) + length(4)
+
+// Bit k lives in the least significant bit of R, G or B (alpha is skipped).
+const idx = k => ((k / 3) | 0) * 4 + (k % 3);
+
+function note(t, err){ $('msg').textContent = t; $('msg').className = err ? 'err' : ''; }
+
+function load(file){
+  return new Promise((ok, bad) => {
+    const img = new Image();
+    img.onload = () => ok(img);
+    img.onerror = () => bad(new Error('Could not read that image.'));
+    img.src = URL.createObjectURL(file);
+  });
+}
+
+function pixels(img){
+  const c = document.createElement('canvas');
+  c.width = img.naturalWidth; c.height = img.naturalHeight;
+  const x = c.getContext('2d');
+  x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height); // removes transparency so RGB stays exact
+  x.drawImage(img, 0, 0);
+  return { c, x, d: x.getImageData(0, 0, c.width, c.height) };
+}
+
+function writeBytes(data, bytes){
+  for (let k = 0; k < bytes.length * 8; k++){
+    const bit = (bytes[k >> 3] >> (7 - (k & 7))) & 1;
+    const i = idx(k);
+    data[i] = (data[i] & 254) | bit;
+  }
+}
+
+function readBytes(data, start, count){
+  const out = new Uint8Array(count);
+  for (let k = 0; k < count * 8; k++){
+    const bit = data[idx(start * 8 + k)] & 1;
+    out[k >> 3] |= bit << (7 - (k & 7));
+  }
+  return out;
+}
+
+async function bytesFromInputs(){
+  const f = $('file').files[0];
+  if (f){
+    const name = new TextEncoder().encode(f.name).slice(0, 255);
+    const body = new Uint8Array(await f.arrayBuffer());
+    const p = new Uint8Array(1 + name.length + body.length);
+    p[0] = name.length; p.set(name, 1); p.set(body, 1 + name.length);
+    return { type: 1, payload: p };
+  }
+  const t = $('text').value;
+  if (!t) throw new Error('Type a message or choose a file to hide.');
+  return { type: 0, payload: new TextEncoder().encode(t) };
+}
+
+$('enc').onclick = async () => {
+  $('out').innerHTML = '';
+  try {
+    const cf = $('cover').files[0];
+    if (!cf) throw new Error('Choose a cover image first.');
+    const { type, payload } = await bytesFromInputs();
+    const { c, x, d } = pixels(await load(cf));
+    const capacity = Math.floor(c.width * c.height * 3 / 8) - HEADER;
+    if (payload.length > capacity)
+      throw new Error(`Too big. This image holds ${capacity} bytes; your secret is ${payload.length}. Use a larger cover image.`);
+
+    const all = new Uint8Array(HEADER + payload.length);
+    all.set(MAGIC, 0); all[4] = type;
+    new DataView(all.buffer).setUint32(5, payload.length);
+    all.set(payload, HEADER);
+
+    writeBytes(d.data, all);
+    x.putImageData(d, 0, 0);
+    c.toBlob(blob => {
+      const url = URL.createObjectURL(blob);
+      $('out').innerHTML = `<img src="${url}" alt="Result"><a href="${url}" download="hidden.png">Save PNG</a>`;
+      note(`Done. Hid ${payload.length} bytes. Save as PNG and don't edit or screenshot it.`);
+    }, 'image/png');
+  } catch (e){ note(e.message, true); }
+};
+
+$('dec').onclick = async () => {
+  $('out').innerHTML = '';
+  try {
+    const f = $('stego').files[0];
+    if (!f) throw new Error('Choose an image first.');
+    const { c, d } = pixels(await load(f));
+    const capacity = Math.floor(c.width * c.height * 3 / 8);
+    if (capacity < HEADER) throw new Error('Image is too small to hold anything.');
+
+    const h = readBytes(d.data, 0, HEADER);
+    if (!MAGIC.every((m, i) => h[i] === m))
+      throw new Error('No hidden data found. Was it made with this tool and kept as PNG?');
+    const len = new DataView(h.buffer).getUint32(5);
+    if (len > capacity - HEADER) throw new Error('Hidden data looks damaged.');
+
+    const p = readBytes(d.data, HEADER, len);
+    if (h[4] === 0){
+      const ta = document.createElement('textarea');
+      ta.readOnly = true; ta.value = new TextDecoder().decode(p);
+      $('out').appendChild(ta);
+      note('Hidden text found.');
+    } else {
+      const n = p[0];
+      const name = new TextDecoder().decode(p.slice(1, 1 + n)) || 'secret.bin';
+      const url = URL.createObjectURL(new Blob([p.slice(1 + n)]));
+      $('out').innerHTML = `<a href="${url}" download="${name.replace(/"/g, '')}">Save ${name.replace(/[<>&]/g, '')}</a>`;
+      note('Hidden file found.');
+    }
+  } catch (e){ note(e.message, true); }
+};
+
+function tab(n){
+  $('t1').setAttribute('aria-selected', n === 1);
+  $('t2').setAttribute('aria-selected', n === 2);
+  $('hideBox').classList.toggle('hide', n !== 1);
+  $('revealBox').classList.toggle('hide', n !== 2);
+  $('out').innerHTML = ''; note('');
+}
+$('t1').onclick = () => tab(1);
+$('t2').onclick = () => tab(2);
+</script>
+</body>
+</html>
