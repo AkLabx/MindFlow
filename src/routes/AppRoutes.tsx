@@ -38,7 +38,9 @@ const IdiomsConfig = lazy(() => import('../features/vocab/idioms/IdiomsConfig').
 const OWSConfig = lazy(() => import('../features/vocab/ows/OWSConfig').then(m => ({ default: m.OWSConfig })));
 const LiveQuizRoom = lazy(() => import('../features/quiz/live/LiveQuizRoom').then(m => ({ default: m.LiveQuizRoom })));
 const AsciiArtHub = lazy(() => import('../features/tools/ascii-art/AsciiArtHub'));
-const PlaceholderPage = lazy(() => import('../features/tools/ascii-art/PlaceholderPage'));
+const NumberArt = lazy(() => import('../features/tools/ascii-art/number-art/NumberArt'));
+const InvisibleInk = lazy(() => import('../features/tools/ascii-art/invisible-ink/InvisibleInk'));
+const MyStego = lazy(() => import('../features/tools/ascii-art/stego/MyStego'));
 const SynonymsConfig = lazy(() => import('../features/vocab/synonyms/SynonymsConfig').then(m => ({ default: m.SynonymsConfig })));
 const SynonymsHub = lazy(() => import('../features/vocab/synonyms/SynonymsHub').then(m => ({ default: m.SynonymsHub })));
 const OWSHub = lazy(() => import('../features/vocab/ows/OWSHub').then(m => ({ default: m.OWSHub })));
@@ -580,9 +582,9 @@ const handleReattempt = async (quizId: string, mode: string) => {
 
                                                                 <Route path="/tools/flashcard-maker" element={<Suspense fallback={<SynapticLoader />}><FlashcardMaker /></Suspense>} />
                 <Route path="/tools/ascii-art-hub" element={<Suspense fallback={<SynapticLoader />}><AsciiArtHub /></Suspense>} />
-                <Route path="/tools/ascii-art/number" element={<Suspense fallback={<SynapticLoader />}><PlaceholderPage title="Number Art" /></Suspense>} />
-                <Route path="/tools/ascii-art/invisible-ink" element={<Suspense fallback={<SynapticLoader />}><PlaceholderPage title="Invisible Ink" /></Suspense>} />
-                <Route path="/tools/ascii-art/stego" element={<Suspense fallback={<SynapticLoader />}><PlaceholderPage title="My Stego" /></Suspense>} />
+                <Route path="/tools/ascii-art/number" element={<Suspense fallback={<SynapticLoader />}><NumberArt /></Suspense>} />
+                <Route path="/tools/ascii-art/invisible-ink" element={<Suspense fallback={<SynapticLoader />}><InvisibleInk /></Suspense>} />
+                <Route path="/tools/ascii-art/stego" element={<Suspense fallback={<SynapticLoader />}><MyStego /></Suspense>} />
 
                 {/* Fallback Route */}
                 <Route path="*" element={<Navigate to="/" replace />} />
