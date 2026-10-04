@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Upload, Download, Copy, Settings, Image as ImageIcon } from 'lucide-react';
+import { ArrowLeft, Upload, Download, Copy, Settings, ChevronDown, ChevronUp } from 'lucide-react';
 import { buildNumberArt, paintNumberArt, NumberArtConfig, NumberArtResult, getAsText, PRESETS, LH } from '@/lib/tools/numberArt';
 import { saveFile, copyText } from '@/lib/tools/downloadHelper';
 
@@ -20,6 +20,7 @@ export default function NumberArt() {
   });
   const [customChars, setCustomChars] = useState('0123456789');
   const [presetSelection, setPresetSelection] = useState('num');
+  const [expanded, setExpanded] = useState({ letters: true, detail: false, tone: false, output: false });
 
   const [image, setImage] = useState<HTMLImageElement | null>(null);
   const [result, setResult] = useState<NumberArtResult | null>(null);
@@ -133,29 +134,37 @@ export default function NumberArt() {
           </h1>
         </div>
 
-        <div className="flex gap-2">
-           <label className="cursor-pointer p-2 bg-indigo-100 hover:bg-indigo-200 dark:bg-indigo-900/50 dark:hover:bg-indigo-800/50 rounded-full transition-colors text-indigo-600 dark:text-indigo-300">
+      </div>
+
+      {/* Upload Bar */}
+      <div className="w-full bg-indigo-500 text-white p-4 flex items-center justify-center">
+         <label className="cursor-pointer flex items-center gap-2 font-medium hover:text-indigo-100 transition-colors">
             <Upload className="w-5 h-5" />
+            Choose a Picture
             <input type="file" accept="image/*" className="hidden" onChange={handleFileUpload} />
-          </label>
-        </div>
+         </label>
       </div>
 
       <div className="max-w-6xl mx-auto p-4 flex flex-col lg:flex-row gap-6 mt-4">
         {/* Controls Sidebar */}
-        <div className="w-full lg:w-80 flex flex-col gap-4">
+        <div className="w-full lg:w-80 flex flex-col gap-4 order-2 lg:order-1">
           <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-white/5 space-y-5">
 
             {/* 1. Letters */}
             <div>
-              <h3 className="font-bold text-gray-800 dark:text-white mb-3 border-b dark:border-white/10 pb-1">1. Letters</h3>
-              <div className="space-y-3">
+              <div className="flex items-center justify-between cursor-pointer border-b dark:border-white/10 pb-1 mb-3" onClick={() => setExpanded({...expanded, letters: !expanded.letters})}>
+                <h3 className="font-bold text-gray-800 dark:text-white">1. Letters</h3>
+                {expanded.letters ? <ChevronUp className="w-4 h-4 text-gray-500" /> : <ChevronDown className="w-4 h-4 text-gray-500" />}
+              </div>
+              {expanded.letters && (
+                <div className="space-y-3">
                 <select
                   className="w-full p-2 bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-white/10 rounded-lg text-sm text-gray-700 dark:text-gray-300"
                   value={presetSelection}
                   onChange={e => setPresetSelection(e.target.value)}
                 >
-                  <option value="num">Numbers</option>
+                  <option value="num">Digits (0–9)</option>
+                  <option value="classic">Classic (1, 7, 9, 3, 8)</option>
                   <option value="hex">Hexadecimal</option>
                   <option value="bin">Binary 01</option>
                   <option value="blocks">Blocks ░▒▓█</option>
@@ -176,13 +185,18 @@ export default function NumberArt() {
                   <input type="checkbox" checked={config.isBold} onChange={e => setConfig({...config, isBold: e.target.checked})} className="rounded text-indigo-500 focus:ring-indigo-500" />
                   Bold font
                 </label>
-              </div>
+                </div>
+              )}
             </div>
 
             {/* 2. Detail */}
             <div>
-              <h3 className="font-bold text-gray-800 dark:text-white mb-3 border-b dark:border-white/10 pb-1">2. Detail</h3>
-              <div className="space-y-4">
+              <div className="flex items-center justify-between cursor-pointer border-b dark:border-white/10 pb-1 mb-3" onClick={() => setExpanded({...expanded, detail: !expanded.detail})}>
+                <h3 className="font-bold text-gray-800 dark:text-white">2. Detail</h3>
+                {expanded.detail ? <ChevronUp className="w-4 h-4 text-gray-500" /> : <ChevronDown className="w-4 h-4 text-gray-500" />}
+              </div>
+              {expanded.detail && (
+                <div className="space-y-4">
                 <div>
                   <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400 mb-1">
                     <span>Characters across</span>
@@ -200,13 +214,18 @@ export default function NumberArt() {
                   <option value="tone">Tone only (faster)</option>
                 </select>
                 <p className="text-xs text-gray-500">Shape match compares the real outline of each number with the picture.</p>
-              </div>
+                </div>
+              )}
             </div>
 
             {/* 3. Tone */}
             <div>
-               <h3 className="font-bold text-gray-800 dark:text-white mb-3 border-b dark:border-white/10 pb-1">3. Tone</h3>
-               <div className="space-y-4">
+               <div className="flex items-center justify-between cursor-pointer border-b dark:border-white/10 pb-1 mb-3" onClick={() => setExpanded({...expanded, tone: !expanded.tone})}>
+                <h3 className="font-bold text-gray-800 dark:text-white">3. Tone</h3>
+                {expanded.tone ? <ChevronUp className="w-4 h-4 text-gray-500" /> : <ChevronDown className="w-4 h-4 text-gray-500" />}
+              </div>
+              {expanded.tone && (
+                <div className="space-y-4">
                 <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
                   <input type="checkbox" checked={config.autoLevels} onChange={e => setConfig({...config, autoLevels: e.target.checked})} className="rounded text-indigo-500 focus:ring-indigo-500" />
                   Auto levels
@@ -227,13 +246,18 @@ export default function NumberArt() {
                   </div>
                   <input type="range" min="-0.4" max="0.4" step="0.02" value={config.brightness} onChange={e => setConfig({...config, brightness: parseFloat(e.target.value)})} className="w-full accent-indigo-500" />
                 </div>
-               </div>
+                </div>
+              )}
             </div>
 
             {/* 4. Look and Output */}
             <div>
-               <h3 className="font-bold text-gray-800 dark:text-white mb-3 border-b dark:border-white/10 pb-1">4. Output</h3>
-               <div className="space-y-3">
+               <div className="flex items-center justify-between cursor-pointer border-b dark:border-white/10 pb-1 mb-3" onClick={() => setExpanded({...expanded, output: !expanded.output})}>
+                <h3 className="font-bold text-gray-800 dark:text-white">4. Output</h3>
+                {expanded.output ? <ChevronUp className="w-4 h-4 text-gray-500" /> : <ChevronDown className="w-4 h-4 text-gray-500" />}
+              </div>
+              {expanded.output && (
+                <div className="space-y-3">
                 <select
                   className="w-full p-2 bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-white/10 rounded-lg text-sm text-gray-700 dark:text-gray-300"
                   value={config.colorMode}
@@ -253,14 +277,15 @@ export default function NumberArt() {
                   <option value="32">Large Size PNG</option>
                   <option value="48">Huge Size PNG</option>
                 </select>
-               </div>
+                </div>
+              )}
             </div>
 
           </div>
         </div>
 
         {/* Main Preview Area */}
-        <div className="flex-1 flex flex-col gap-4">
+        <div className="flex-1 flex flex-col gap-4 order-1 lg:order-2">
 
           <div className="bg-indigo-50 dark:bg-indigo-900/20 text-indigo-800 dark:text-indigo-200 px-4 py-3 rounded-xl text-sm font-medium border border-indigo-100 dark:border-indigo-800/30 flex items-center justify-between">
             <span className={isWorking ? "animate-pulse" : ""}>{statusMsg}</span>
@@ -274,13 +299,7 @@ export default function NumberArt() {
           <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-gray-100 dark:border-white/5 flex-1 relative overflow-hidden flex flex-col">
 
             {!image ? (
-              <div className="flex-1 flex flex-col items-center justify-center text-gray-400 min-h-[300px] p-8">
-                <ImageIcon className="w-16 h-16 mb-4 opacity-50" />
-                <p>Upload an image to generate art.</p>
-                <label className="mt-4 cursor-pointer bg-indigo-500 hover:bg-indigo-600 text-white px-6 py-2 rounded-xl transition-colors shadow-sm font-medium">
-                  Choose File
-                  <input type="file" accept="image/*" className="hidden" onChange={handleFileUpload} />
-                </label>
+              <div className="flex-1 min-h-[300px] bg-white dark:bg-slate-800 rounded-t-2xl">
               </div>
             ) : (
               <div className="flex-1 overflow-auto p-4 flex items-center justify-center bg-gray-100 dark:bg-slate-900/50 rounded-t-2xl">
