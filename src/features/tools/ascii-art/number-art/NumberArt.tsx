@@ -274,7 +274,7 @@ export default function NumberArt() {
           <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-gray-100 dark:border-white/5 flex-1 relative overflow-hidden flex flex-col">
 
             {!image ? (
-              <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-400">
+              <div className="flex-1 flex flex-col items-center justify-center text-gray-400 min-h-[300px] p-8">
                 <ImageIcon className="w-16 h-16 mb-4 opacity-50" />
                 <p>Upload an image to generate art.</p>
                 <label className="mt-4 cursor-pointer bg-indigo-500 hover:bg-indigo-600 text-white px-6 py-2 rounded-xl transition-colors shadow-sm font-medium">
