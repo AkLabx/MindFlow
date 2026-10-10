@@ -1,9 +1,14 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { IntroProps } from '../../registry/types';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const MinimalFadeIntro: React.FC<IntroProps> = ({ config, onComplete }) => {
   const [isVisible, setIsVisible] = useState(true);
+
+  const onCompleteRef = useRef(onComplete);
+  useEffect(() => {
+    onCompleteRef.current = onComplete;
+  }, [onComplete]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -14,7 +19,7 @@ const MinimalFadeIntro: React.FC<IntroProps> = ({ config, onComplete }) => {
   }, [config.duration]);
 
   return (
-    <AnimatePresence onExitComplete={onComplete}>
+    <AnimatePresence onExitComplete={() => onCompleteRef.current()}>
       {isVisible && (
         <motion.div
           initial={{ opacity: 1 }}
