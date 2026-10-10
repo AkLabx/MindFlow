@@ -4,46 +4,60 @@ import { IntroProps } from '../../registry/types';
 
 const BlueIntro: React.FC<IntroProps> = ({ config, onComplete }) => {
   const [phase, setPhase] = useState<'initial' | 'pre-zoom' | 'expanding' | 'vanishing' | 'done'>('initial');
-  const hasRunRef = useRef(false);
+
+  // Stable ref for onComplete to avoid triggering useEffects on re-renders
+  const onCompleteRef = useRef(onComplete);
+  useEffect(() => {
+    onCompleteRef.current = onComplete;
+  }, [onComplete]);
 
   useEffect(() => {
-    if (hasRunRef.current) return;
-    hasRunRef.current = true;
+    // We intentionally removed hasRunRef to allow React 18 strict mode
+    // to teardown and restart cleanly.
 
     // Use config duration, default to 2000 if not provided or 0
     const initialDuration = config.duration > 0 ? config.duration : 2000;
 
+    let preZoomTimer: NodeJS.Timeout;
+    let revealTimer: NodeJS.Timeout;
+    let doneTimer: NodeJS.Timeout;
+    let raf1: number;
+    let raf2: number;
+
     // Phase 1: Let the logo breathe
-    const preZoomTimer = setTimeout(() => {
+    preZoomTimer = setTimeout(() => {
       setPhase('pre-zoom');
 
       // Phase 2: Grow the overlay circle from logo center
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
+      raf1 = requestAnimationFrame(() => {
+        raf2 = requestAnimationFrame(() => {
           setPhase('expanding');
         });
       });
 
       // Phase 3: Reveal page (clip path transition is ~1.4s)
-      const revealTimer = setTimeout(() => {
+      revealTimer = setTimeout(() => {
         setPhase('vanishing');
 
         // Phase 4: Clean up and tell parent we are done
-        const doneTimer = setTimeout(() => {
+        doneTimer = setTimeout(() => {
           setPhase('done');
-          onComplete();
+          onCompleteRef.current();
         }, 650);
-
-        return () => clearTimeout(doneTimer);
       }, 1400);
-
-      return () => clearTimeout(revealTimer);
     }, initialDuration);
 
+    // Strict Mode cleanup: ensure EVERY timer and raf is cancelled
     return () => {
       clearTimeout(preZoomTimer);
+      clearTimeout(revealTimer);
+      clearTimeout(doneTimer);
+      cancelAnimationFrame(raf1);
+      cancelAnimationFrame(raf2);
     };
-  }, [onComplete, config.duration]);
+  // Intentionally omitting onComplete from deps since we use the ref pattern
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [config.duration]);
 
   if (phase === 'done') return null;
 
