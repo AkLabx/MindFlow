@@ -52,6 +52,7 @@ const ExamBlueprintsHub = lazy(() => import('../pages/ExamBlueprintsHubPage').th
 
 const AdminReportsQueue = lazy(() => import('../features/admin/components/AdminReportsQueue').then(m => ({ default: m.AdminReportsQueue })));
 const AdminHomePage = lazy(() => import('../pages/AdminHomePage').then(m => ({ default: m.AdminHomePage })));
+const AppConfigHub = lazy(() => import('../features/admin/app-config/pages/AppConfigHub').then(m => ({ default: m.AppConfigHub })));
 const AdminManageMaterials = lazy(() => import('../features/admin/components/AdminManageMaterials').then(m => ({ default: m.AdminManageMaterials })));
 const AdminUploadGK = lazy(() => import("../features/admin/components/AdminUploadGK").then(m => ({ default: m.AdminUploadGK })));
 const AdminUploadOWS = lazy(() => import("../features/admin/components/AdminUploadOWS").then(m => ({ default: m.AdminUploadOWS })));
@@ -590,6 +591,7 @@ const handleReattempt = async (quizId: string, mode: string) => {
                 <Route path="*" element={<Navigate to="/" replace />} />
 
                     <Route path="/admin" element={<AdminProtectedRoute><Suspense fallback={<SynapticLoader />}><AdminHomePage /></Suspense></AdminProtectedRoute>} />
+                    <Route path="/admin/app-config" element={<AdminProtectedRoute><Suspense fallback={<SynapticLoader />}><AppConfigHub /></Suspense></AdminProtectedRoute>} />
                     <Route path="/admin/reports" element={<AdminProtectedRoute><Suspense fallback={<SynapticLoader />}><AdminReportsQueue /></Suspense></AdminProtectedRoute>} />
                                         <Route path="/admin/materials" element={<AdminProtectedRoute><Suspense fallback={<SynapticLoader />}><AdminManageMaterials /></Suspense></AdminProtectedRoute>} />
                     <Route path="/admin/upload" element={<AdminProtectedRoute><Suspense fallback={<SynapticLoader />}><AdminUploadMaterials /></Suspense></AdminProtectedRoute>} />
