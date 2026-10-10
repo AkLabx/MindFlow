@@ -30,6 +30,6 @@ export * from './ui/ClaymorphismSwitch';
 export * from './Landing/Typewriter';
 export * from './Landing/DemoCard';
 export * from './Landing/MobileDemoCard';
-export * from './Landing/CinematicIntro';
+
 export * from './Landing/MobileOnboarding';
 export * from './Landing/WelcomeIntro';

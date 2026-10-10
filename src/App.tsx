@@ -5,21 +5,10 @@ import { AppProvider } from './providers/AppProvider';
 import { AppRoutes } from './routes/AppRoutes';
 import { supabase } from './lib/supabase';
 import { SynapticLoader } from './components/ui/SynapticLoader';
-
-/**
- * Root Application Component.
- *
- * Responsibilities:
- * 1. Initializes the Supabase authentication session.
- * 2. Sets up the Router (HashRouter for GitHub Pages compatibility).
- * 3. Wraps the app in the global `AppProvider`.
- * 4. Renders the main `AppRoutes`.
- *
- * @returns {JSX.Element} The mounted application.
- */
 import { PWAUpdateManager } from './components/common/PWAUpdateManager';
 import { PresenceProvider } from './providers/PresenceProvider';
 import { useAppVisibilityReawakening } from './hooks/useAppVisibilityReawakening';
+import { IntroEngine } from './features/intro/IntroEngine';
 
 const AppVisibilityWrapper = () => {
   useAppVisibilityReawakening();
@@ -60,25 +49,23 @@ const App: React.FC = () => {
   }, []);
 
   if (!isReady) {
-    // Show a loading spinner while Supabase initializes, UNLESS we are on the entry page
-    // where the CinematicIntro will handle the initial visual experience.
-    const isEntryPage = window.location.hash === '' || window.location.hash === '#/';
-    if (isEntryPage) {
-      return <div className="h-screen w-screen bg-white dark:bg-slate-900" />;
-    }
-    return <div className="h-screen flex items-center justify-center"><SynapticLoader size="xl" /></div>;
+    // Show a blank screen while initializing.
+    // We defer the loading state visual to the IntroEngine or inner pages
+    return <div className="h-screen w-screen bg-white dark:bg-slate-900" />;
   }
 
   return (
-    <HashRouter>
-      <AppProvider>
-        <AppVisibilityWrapper />
-        <PresenceProvider>
-          <PWAUpdateManager />
-        <AppRoutes />
-        </PresenceProvider>
-      </AppProvider>
-    </HashRouter>
+    <IntroEngine>
+      <HashRouter>
+        <AppProvider>
+          <AppVisibilityWrapper />
+          <PresenceProvider>
+            <PWAUpdateManager />
+            <AppRoutes />
+          </PresenceProvider>
+        </AppProvider>
+      </HashRouter>
+    </IntroEngine>
   );
 };
 

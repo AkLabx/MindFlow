@@ -1,67 +1,49 @@
 import React, { useEffect, useState, useRef } from 'react';
-import './CinematicIntro.css';
+import './BlueIntro.css';
+import { IntroProps } from '../../registry/types';
 
-interface CinematicIntroProps {
-  onReveal: () => void;
-}
-
-export const CinematicIntro: React.FC<CinematicIntroProps> = ({ onReveal }) => {
+const BlueIntro: React.FC<IntroProps> = ({ config, onComplete }) => {
   const [phase, setPhase] = useState<'initial' | 'pre-zoom' | 'expanding' | 'vanishing' | 'done'>('initial');
   const hasRunRef = useRef(false);
 
   useEffect(() => {
-    // Prevent the animation from running multiple times due to re-renders or StrictMode
     if (hasRunRef.current) return;
     hasRunRef.current = true;
 
-    // Check if intro was already played this session
-    const hasSeenIntro = sessionStorage.getItem('mindflow_intro_seen');
+    // Use config duration, default to 2000 if not provided or 0
+    const initialDuration = config.duration > 0 ? config.duration : 2000;
 
-    // If they already saw the intro, jump straight to the content
-    if (hasSeenIntro) {
-      onReveal();
-      setPhase('done');
-      return;
-    }
-
-    // Mark intro as seen for this session
-    sessionStorage.setItem('mindflow_intro_seen', 'true');
-
-    // Phase 1: Let the logo breathe for 2s
+    // Phase 1: Let the logo breathe
     const preZoomTimer = setTimeout(() => {
       setPhase('pre-zoom');
 
       // Phase 2: Grow the overlay circle from logo center
-      // Tiny tick so the browser registers the initial clip-path first
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
           setPhase('expanding');
         });
       });
 
-      // Phase 3: While it's still covering everything, reveal page
-      // 1.4 s = duration of the clip-path transition
+      // Phase 3: Reveal page (clip path transition is ~1.4s)
       const revealTimer = setTimeout(() => {
-        onReveal(); // Signal parent to show actual content
-
-        // Phase 4: Fade the gradient overlay out
         setPhase('vanishing');
 
-        // Phase 5: Clean up
+        // Phase 4: Clean up and tell parent we are done
         const doneTimer = setTimeout(() => {
           setPhase('done');
-        }, 650); // slightly after vanish completes
+          onComplete();
+        }, 650);
 
         return () => clearTimeout(doneTimer);
       }, 1400);
 
       return () => clearTimeout(revealTimer);
-    }, 2000); // initial logo display time
+    }, initialDuration);
 
     return () => {
       clearTimeout(preZoomTimer);
     };
-  }, [onReveal]);
+  }, [onComplete, config.duration]);
 
   if (phase === 'done') return null;
 
@@ -71,13 +53,10 @@ export const CinematicIntro: React.FC<CinematicIntroProps> = ({ onReveal }) => {
 
   return (
     <>
-      {/* ZOOM OVERLAY - pure gradient div, expands via clip-path */}
       <div
         className={`zoom-overlay ${isExpanding ? 'expanding' : ''} ${isVanishing ? 'vanishing' : ''}`}
         style={{ zIndex: 9999 }}
       />
-
-      {/* SPLASH SCREEN */}
       <div
         className={`pwa-splash-screen ${isVanishing ? 'final-vanish' : ''}`}
         style={{ zIndex: 9000 }}
@@ -98,3 +77,5 @@ export const CinematicIntro: React.FC<CinematicIntroProps> = ({ onReveal }) => {
     </>
   );
 };
+
+export default BlueIntro;
