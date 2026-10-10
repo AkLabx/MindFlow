@@ -1,5 +1,5 @@
-import React, { useEffect, useState, ComponentType } from 'react';
-import { useAppConfigStore } from '@/stores/useAppConfigStore';
+import React, { useEffect, useState, ComponentType, useCallback, useRef } from 'react';
+import { useAppConfigStore, IntroConfig } from '../../stores/useAppConfigStore';
 import { getIntroModule } from './registry';
 import { IntroProps } from './registry/types';
 
@@ -9,8 +9,11 @@ export const IntroEngine: React.FC<{ children: React.ReactNode }> = ({ children 
   const [IntroComponent, setIntroComponent] = useState<ComponentType<IntroProps> | null>(null);
   const [isPreviewing, setIsPreviewing] = useState(false);
 
-  // Determine which config is currently active
-  const activeIntroConfig = previewConfig || config.intro;
+  // State for freezing the config during playback so live updates don't reset it
+  const [frozenConfig, setFrozenConfig] = useState<IntroConfig | null>(null);
+
+  // Idempotency ref to ensure completion only runs once
+  const completedRef = useRef(false);
 
   // Initialize and check session on mount
   useEffect(() => {
@@ -22,15 +25,20 @@ export const IntroEngine: React.FC<{ children: React.ReactNode }> = ({ children 
       return;
     }
 
-    if (!activeIntroConfig.enabled) {
+    const startConfig = config.intro;
+    if (!startConfig.enabled) {
       sessionStorage.setItem(sessionKey, 'true');
       setHasPlayed(true);
       return;
     }
 
+    // Freeze config for this run
+    setFrozenConfig(startConfig);
+    completedRef.current = false;
+
     // Mount the component
     let isMounted = true;
-    const activeModule = getIntroModule(activeIntroConfig.active);
+    const activeModule = getIntroModule(startConfig.active);
 
     activeModule.load().then((mod) => {
       if (isMounted) {
@@ -45,13 +53,17 @@ export const IntroEngine: React.FC<{ children: React.ReactNode }> = ({ children 
     });
 
     return () => { isMounted = false; };
-  }, []); // Run once on mount
+  // We intentionally only run this block once on mount
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Watch for preview nonce changes to trigger preview mode
   useEffect(() => {
     if (previewNonce > 0 && previewConfig) {
       setIsPreviewing(true);
       setIntroComponent(null); // Reset component to force re-mount
+      setFrozenConfig(previewConfig); // Freeze the preview config
+      completedRef.current = false;
 
       let isMounted = true;
       const activeModule = getIntroModule(previewConfig.active);
@@ -72,19 +84,45 @@ export const IntroEngine: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   }, [previewNonce, previewConfig, clearPreview]);
 
-  const handleComplete = () => {
+  // Idempotent and stable complete handler
+  const handleComplete = useCallback(() => {
+    if (completedRef.current) return;
+    completedRef.current = true;
+
     if (isPreviewing) {
         setIsPreviewing(false);
         clearPreview();
+        setFrozenConfig(null);
     } else {
         sessionStorage.setItem('mindflow_intro_played_v2', 'true');
         setHasPlayed(true);
+        setFrozenConfig(null);
     }
-  };
+  }, [isPreviewing, clearPreview]);
 
-  const handleSkip = () => {
-     handleComplete();
-  };
+  // Watchdog Timer:
+  // Starts when a component actually mounts to render the intro.
+  // We cap it to a maximum of 8000ms just in case.
+  useEffect(() => {
+    if (!IntroComponent || !frozenConfig) return;
+
+    let watchdogDuration = frozenConfig.duration + 1500;
+    if (watchdogDuration > 8000) {
+      watchdogDuration = 8000;
+    }
+
+    // Minimum sane duration to prevent immediate skip on weird config
+    if (watchdogDuration < 2000) {
+        watchdogDuration = 3000;
+    }
+
+    const watchdogTimer = setTimeout(() => {
+      console.warn(`[IntroEngine] Watchdog timeout triggered after ${watchdogDuration}ms. Forcing completion.`);
+      handleComplete();
+    }, watchdogDuration);
+
+    return () => clearTimeout(watchdogTimer);
+  }, [IntroComponent, frozenConfig, handleComplete]);
 
   // When previewing, we render the children (app) underneath,
   // and the intro as a full screen overlay.
@@ -94,7 +132,7 @@ export const IntroEngine: React.FC<{ children: React.ReactNode }> = ({ children 
   }
 
   // Not played yet, or currently previewing but component not loaded
-  if (!IntroComponent) {
+  if (!IntroComponent || !frozenConfig) {
      return <div className="fixed inset-0 bg-white dark:bg-slate-900 z-[9999]" />;
   }
 
@@ -104,13 +142,13 @@ export const IntroEngine: React.FC<{ children: React.ReactNode }> = ({ children 
       {isPreviewing && children}
 
       <div className="fixed inset-0 z-[99999]">
-          <IntroComponent config={activeIntroConfig} onComplete={handleComplete} />
+          <IntroComponent config={frozenConfig} onComplete={handleComplete} />
 
           {/* Skip Button */}
-          {activeIntroConfig.skipDelay > 0 && activeIntroConfig.skipDelay < activeIntroConfig.duration && (
-            <div style={{ animation: `fadeIn 0.3s ease ${activeIntroConfig.skipDelay}ms both` }} className="fixed bottom-8 right-8 z-[100000]">
+          {frozenConfig.skipDelay > 0 && frozenConfig.skipDelay < frozenConfig.duration && (
+            <div style={{ animation: `fadeIn 0.3s ease ${frozenConfig.skipDelay}ms both` }} className="fixed bottom-8 right-8 z-[100000]">
                <button
-                  onClick={handleSkip}
+                  onClick={handleComplete}
                   className="px-4 py-2 bg-black/20 hover:bg-black/40 text-white rounded-full backdrop-blur-sm text-sm font-medium transition-colors"
                >
                   Skip

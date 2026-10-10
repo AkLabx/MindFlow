@@ -6,6 +6,11 @@ const ParticleIntro: React.FC<IntroProps> = ({ config, onComplete }) => {
   const [isVisible, setIsVisible] = useState(true);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
+  const onCompleteRef = useRef(onComplete);
+  useEffect(() => {
+    onCompleteRef.current = onComplete;
+  }, [onComplete]);
+
   useEffect(() => {
     const timer = setTimeout(() => {
       setIsVisible(false);
@@ -102,7 +107,7 @@ const ParticleIntro: React.FC<IntroProps> = ({ config, onComplete }) => {
   }, []);
 
   return (
-    <AnimatePresence onExitComplete={onComplete}>
+    <AnimatePresence onExitComplete={() => onCompleteRef.current()}>
       {isVisible && (
         <motion.div
           initial={{ opacity: 1 }}
