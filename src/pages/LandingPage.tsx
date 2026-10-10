@@ -13,7 +13,7 @@ import { usePWAInstall } from '@/hooks/usePWAInstall';
 import InstallPwaModal from '@/components/common/InstallPwaModal';
 import type { User } from '@supabase/supabase-js';
 import founderImage from '@/assets/aalok.jpg';
-import { CinematicIntro } from '@/features/quiz';
+
 import { MobileOnboarding } from '@/features/quiz';
 import { WelcomeIntro } from '@/features/quiz';
 
@@ -47,7 +47,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLoginC
   const [showToast, setShowToast] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isFounderImageOpen, setIsFounderImageOpen] = useState(false);
-  const [showMainContent, setShowMainContent] = useState(false);
+  const [showMainContent, setShowMainContent] = useState(true);
   const [showMobileOnboarding, setShowMobileOnboarding] = useState(false);
   const [showWelcomeIntro, setShowWelcomeIntro] = useState(false);
 
@@ -99,7 +99,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLoginC
   return (
     <>
       {/* Intro Animation Layer */}
-      <CinematicIntro onReveal={handleReveal} />
+
 
       {/* Main Content Layer - mount/render when intro allows it */}
       {showMainContent && (
