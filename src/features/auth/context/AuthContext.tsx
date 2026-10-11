@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState, useRef } from 'r
 import { useDebugStore } from '../../../stores/useDebugStore';
 import type { Session, User } from '@supabase/supabase-js';
 import { supabase } from '../../../lib/supabase';
+import { NavigationPolicy } from '../../../lib/navigation/policy';
 import { useQueryClient } from '@tanstack/react-query';
 import { syncService } from '../../../lib/syncService';
 import { db } from '../../../lib/db';
@@ -391,7 +392,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     // 4. Force a hard reload to completely flush React memory, Query cache, and Zustand in-memory states.
     // To ensure the "kicked out" toast survives the reload, we use sessionStorage
     sessionStorage.setItem('mindflow_eviction_notice', 'true');
-    window.location.href = import.meta.env.BASE_URL + '#/dashboard';
+    window.location.href = import.meta.env.BASE_URL + '#' + NavigationPolicy.getLogoutRedirectRoute();
   };
 
   /** Forces an eviction without touching global DB state or other devices (Hijack scenario). */

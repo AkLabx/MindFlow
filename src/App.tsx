@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { HashRouter } from 'react-router-dom';
 import { AppProvider } from './providers/AppProvider';
 import { AppRoutes } from './routes/AppRoutes';
+import { useAppBootstrap } from './hooks/useAppBootstrap';
 import { supabase } from './lib/supabase';
 import { SynapticLoader } from './components/ui/SynapticLoader';
 import { PWAUpdateManager } from './components/common/PWAUpdateManager';
@@ -18,41 +19,25 @@ const AppVisibilityWrapper = () => {
 };
 
 const App: React.FC = () => {
-  const [isReady, setIsReady] = useState(false);
+  const bootstrapState = useAppBootstrap();
 
-  useEffect(() => {
-    // 1. Check for active session on app mount (Before Router mounts completely)
-    const initAuth = async () => {
-      // getSession() parses the URL hash for tokens if present (OAuth redirect)
-      try {
-        await supabase.auth.getSession();
-      } catch (err) {
-        console.error('[AuthStabilization] Initial getSession failed or timed out:', err);
-      }
+  if (bootstrapState.stage === 'ERROR') {
+    return (
+      <div className="h-screen w-screen flex flex-col items-center justify-center bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200">
+        <h2 className="text-xl font-bold mb-2">Startup Failed</h2>
+        <p className="text-sm opacity-70 mb-4">{bootstrapState.error?.message || 'An unknown error occurred.'}</p>
+        <button
+          onClick={() => window.location.reload()}
+          className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
 
-      // Check for Smart Restore after an Auto-Update
-      if (localStorage.getItem('mindflow_auto_updated') === 'true') {
-         localStorage.removeItem('mindflow_auto_updated');
-         // We inject a small delay to ensure providers and stores are mounted
-         setTimeout(() => {
-             useNotificationStore.getState().showToast({
-                 title: "App Updated",
-                 message: "Successfully updated! Resuming your quiz... 😎",
-                 variant: "success"
-             });
-         }, 1000);
-      }
-
-      // Set ready state to render the router
-      setIsReady(true);
-    };
-
-    initAuth();
-  }, []);
-
-  if (!isReady) {
-    // Show a blank screen while initializing.
-    // We defer the loading state visual to the IntroEngine or inner pages
+  if (!bootstrapState.isReady) {
+    // Show a blank screen while initializing to prevent flash.
     return <div className="h-screen w-screen bg-white dark:bg-slate-900" />;
   }
 
