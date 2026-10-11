@@ -156,8 +156,8 @@ const AuthPage: React.FC<AuthPageProps> = ({ onBack }) => {
       } else {
         // Fallback to Web-based OAuth for PWA/Browser
         const redirectURL = import.meta.env.PROD
-          ? 'https://aklabx.github.io/MindFlow/?'
-          : 'http://localhost:3000';
+          ? 'https://aklabx.github.io/MindFlow/'
+          : 'http://localhost:3000/';
 
         const { error } = await supabase.auth.signInWithOAuth({
           provider: 'google',
@@ -175,15 +175,11 @@ const AuthPage: React.FC<AuthPageProps> = ({ onBack }) => {
   };
 
   return (
-    <div className="font-sans text-text-main antialiased relative w-full flex flex-col animate-fade-in py-4 flex-1 px-4 sm:px-6 lg:px-8">
-
-        <button
-         onClick={onBack}
-         className="self-start mb-4 z-20 flex items-center justify-center p-2 rounded-full bg-white/50 dark:bg-gray-800/50 hover:bg-white/80 dark:hover:bg-gray-700/80 text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-100 transition-all shadow-sm backdrop-blur-sm border border-white/20 dark:border-gray-700/30"
-         title="Back to Dashboard"
-        aria-label="Go back">
-         <ArrowLeft className="w-5 h-5" />
-       </button>
+    <div className="font-sans text-text-main antialiased relative w-full min-h-[100dvh] flex flex-col animate-fade-in pt-[calc(1rem+env(safe-area-inset-top))] pb-[calc(1rem+env(safe-area-inset-bottom))] flex-1 px-4 sm:px-6 lg:px-8 bg-bg-main overflow-hidden">
+      {/* Ambient Animated Blobs */}
+      <div className="absolute top-[-10%] left-[-10%] w-[40vw] h-[40vw] rounded-full bg-indigo-500/20 blur-[80px] animate-blob mix-blend-multiply dark:mix-blend-screen pointer-events-none" />
+      <div className="absolute top-[20%] right-[-10%] w-[35vw] h-[35vw] rounded-full bg-purple-500/20 blur-[80px] animate-blob animation-delay-2000 mix-blend-multiply dark:mix-blend-screen pointer-events-none" />
+      <div className="absolute bottom-[-10%] left-[20%] w-[45vw] h-[45vw] rounded-full bg-blue-500/20 blur-[80px] animate-blob animation-delay-4000 mix-blend-multiply dark:mix-blend-screen pointer-events-none" />
        <div className="flex-1 flex items-center justify-center pb-8 relative z-10 w-full">
        <div className="w-full max-w-md">
          <div className="relative group rounded-[32px] sm:rounded-[40px] p-[1px] overflow-hidden">
@@ -251,7 +247,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ onBack }) => {
                    value={fullName}
                    onChange={(e) => setFullName(e.target.value)}
                    placeholder="John Doe"
-                   className="block w-full px-4 py-3 bg-white dark:bg-gray-800 border border-border-color rounded-lg text-text-main placeholder-text-secondary focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition"
+                   className="block w-full px-4 py-3 bg-white dark:bg-gray-800 border border-border-color rounded-lg text-text-main placeholder-text-secondary focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition dark:text-white dark:text-white dark:text-white"
                  />
                </div>
              )}
@@ -280,7 +276,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ onBack }) => {
                    value={password}
                    onChange={(e) => setPassword(e.target.value)}
                    placeholder="••••••••"
-                   className="block w-full px-4 py-3 pr-10 bg-white dark:bg-gray-800 border border-border-color rounded-lg text-text-main placeholder-text-secondary focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition"
+                   className="block w-full px-4 py-3 pr-10 bg-white dark:bg-gray-800 border border-border-color rounded-lg text-text-main placeholder-text-secondary focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition dark:text-white"
                  />
                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-0 flex items-center pr-3 text-text-secondary hover:text-text-main">
                    {showPassword ? (

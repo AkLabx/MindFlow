@@ -31,13 +31,39 @@ export const useAppBootstrap = (): BootstrapState => {
       try {
         if (!isMounted) return;
 
+        // --- INSTRUMENTATION FOR OAUTH DEBUGGING ---
+        console.log('[Bootstrap] Window Location:', window.location.href);
+        console.log('[Bootstrap] Hash:', window.location.hash);
+        console.log('[Bootstrap] Search:', window.location.search);
+
+        // OAuth Hash Interception & Cleanup for HashRouter
+        const currentHash = window.location.hash;
+        if (currentHash && currentHash.includes('access_token=')) {
+          console.log('[Bootstrap] Detected OAuth hash. Delaying router to let Supabase process it.');
+
+          // Let Supabase process the hash before we mount the router
+          await supabase.auth.getSession();
+
+          console.log('[Bootstrap] Supabase processed hash. Cleaning up URL.');
+          // Remove the hash cleanly to prevent HashRouter from treating it as a route
+          window.history.replaceState(null, '', window.location.pathname + window.location.search);
+        }
+        // ------------------------------------------
+
+        console.log('[Bootstrap] Finished preliminary steps (hash interception).');
         // 1. Load Config & Feature Flags
         // (Placeholder for fetching remote config via RPC/Supabase)
         await new Promise(resolve => setTimeout(resolve, 50));
 
         // 2. Initialize Supabase & Restore Session
         try {
-          await supabase.auth.getSession();
+          console.log('[Bootstrap] Initializing Supabase & Restoring Session...');
+          const { data: { session }, error } = await supabase.auth.getSession();
+          if (error) {
+              console.error('[Bootstrap] Supabase getSession error:', error);
+          } else {
+              console.log('[Bootstrap] Supabase getSession success. Has session?', !!session);
+          }
         } catch (authErr) {
           console.error('[Bootstrap] Auth session restore failed, continuing for potential offline/guest logic:', authErr);
         }
