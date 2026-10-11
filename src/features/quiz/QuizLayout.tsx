@@ -19,7 +19,7 @@ export const QuizLayout: React.FC = () => {
     // Determine active tab based on URL
     const getActiveTab = (): TabID => {
         const path = location.pathname;
-        if (path.includes('/login')) return 'login';
+        if (path.includes('/login')) return 'home';
         if (path.includes('/community/search')) return 'search';
         if (path.includes('/community/reels')) return 'reels';
         if (path.includes('/community')) return 'community';
@@ -62,16 +62,13 @@ export const QuizLayout: React.FC = () => {
                     navigate('/profile');
                 } else {
                     enterLogin();
-                    navigate('/login');
+                    navigate('/');
                 }
                 break;
             case 'ai':
                 navigate('/ai');
                 break;
-            case 'login':
-                enterLogin();
-                navigate('/login');
-                break;
+
         }
     };
 
