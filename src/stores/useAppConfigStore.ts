@@ -8,14 +8,33 @@ export interface IntroConfig {
   enabled: boolean;
 }
 
+export interface ThemeConfig {
+  mode: 'system' | 'light' | 'dark';
+  primaryColor: string;
+  fontFamily: string;
+}
+
+export interface BrandingConfig {
+  appName: string;
+  welcomeText: string;
+  tagline: string;
+  logoUrl: string | null;
+  versionNotice: {
+    enabled: boolean;
+    message: string;
+    severity: 'info' | 'warning' | 'error';
+    dismissible: boolean;
+  };
+}
+
 export interface AppConfig {
   id: number;
   version: number;
   intro: IntroConfig;
-  theme: Record<string, any>;
+  theme: ThemeConfig;
   loading: Record<string, any>;
   dashboard: Record<string, any>;
-  branding: Record<string, any>;
+  branding: BrandingConfig;
   updated_at?: string;
 }
 
@@ -28,15 +47,31 @@ export const DEFAULT_CONFIG: AppConfig = {
     skipDelay: 3000,
     enabled: true,
   },
-  theme: {},
+  theme: {
+    mode: 'system',
+    primaryColor: '#4f46e5', // indigo-600
+    fontFamily: 'sans', // Matches Inter
+  },
   loading: {},
   dashboard: {},
-  branding: {},
+  branding: {
+    appName: 'MindFlow',
+    welcomeText: 'Welcome to MindFlow',
+    tagline: 'The ultimate learning platform.',
+    logoUrl: null,
+    versionNotice: {
+      enabled: false,
+      message: 'A new version is available.',
+      severity: 'info',
+      dismissible: true,
+    }
+  },
 };
 
 interface AppConfigState {
   config: AppConfig;
-  previewConfig: IntroConfig | null;
+  // Consolidated preview config containing all previewable sections
+  previewConfig: Partial<AppConfig> | null;
   previewNonce: number;
   isInitialized: boolean;
   isLoading: boolean;
@@ -44,7 +79,7 @@ interface AppConfigState {
 
   initialize: () => Promise<void>;
   updateConfig: (section: keyof Omit<AppConfig, 'id' | 'version' | 'updated_at' | 'updated_by'>, newConfig: any) => Promise<void>;
-  startPreview: (introConfig: IntroConfig) => void;
+  startPreview: (previewConfig: Partial<AppConfig>) => void;
   clearPreview: () => void;
 }
 
@@ -55,7 +90,14 @@ export const useAppConfigStore = create<AppConfigState>((set, get) => ({
     try {
       const cached = localStorage.getItem(LOCAL_STORAGE_KEY);
       if (cached) {
-        return JSON.parse(cached) as AppConfig;
+        // Deep merge with defaults to ensure new fields are populated for old clients
+        const parsed = JSON.parse(cached) as AppConfig;
+        return {
+          ...DEFAULT_CONFIG,
+          ...parsed,
+          theme: { ...DEFAULT_CONFIG.theme, ...(parsed.theme || {}) },
+          branding: { ...DEFAULT_CONFIG.branding, ...(parsed.branding || {}) }
+        };
       }
     } catch (e) {
       console.warn('Failed to parse cached app config', e);
@@ -93,10 +135,11 @@ export const useAppConfigStore = create<AppConfigState>((set, get) => ({
               id: data.id,
               version: data.version,
               intro: data.intro || DEFAULT_CONFIG.intro,
-              theme: data.theme || DEFAULT_CONFIG.theme,
+              // Merge db objects with local defaults to fill in any missing Phase 2 fields if DB has old format
+              theme: { ...DEFAULT_CONFIG.theme, ...(data.theme || {}) },
               loading: data.loading || DEFAULT_CONFIG.loading,
               dashboard: data.dashboard || DEFAULT_CONFIG.dashboard,
-              branding: data.branding || DEFAULT_CONFIG.branding,
+              branding: { ...DEFAULT_CONFIG.branding, ...(data.branding || {}) },
               updated_at: data.updated_at
            };
 
@@ -139,10 +182,10 @@ export const useAppConfigStore = create<AppConfigState>((set, get) => ({
             id: data.id,
             version: data.version,
             intro: data.intro || DEFAULT_CONFIG.intro,
-            theme: data.theme || DEFAULT_CONFIG.theme,
+            theme: { ...DEFAULT_CONFIG.theme, ...(data.theme || {}) },
             loading: data.loading || DEFAULT_CONFIG.loading,
             dashboard: data.dashboard || DEFAULT_CONFIG.dashboard,
-            branding: data.branding || DEFAULT_CONFIG.branding,
+            branding: { ...DEFAULT_CONFIG.branding, ...(data.branding || {}) },
             updated_at: data.updated_at
          };
          localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(finalConfig));
@@ -159,9 +202,12 @@ export const useAppConfigStore = create<AppConfigState>((set, get) => ({
     }
   },
 
-  startPreview: (introConfig) => {
+  startPreview: (previewConfigUpdates) => {
     set((state) => ({
-      previewConfig: introConfig,
+      previewConfig: {
+         ...state.config, // base preview on current config
+         ...previewConfigUpdates // override with preview changes
+      },
       previewNonce: state.previewNonce + 1
     }));
   },

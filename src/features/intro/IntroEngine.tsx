@@ -59,14 +59,14 @@ export const IntroEngine: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Watch for preview nonce changes to trigger preview mode
   useEffect(() => {
-    if (previewNonce > 0 && previewConfig) {
+    if (previewNonce > 0 && previewConfig && previewConfig.intro) {
       setIsPreviewing(true);
       setIntroComponent(null); // Reset component to force re-mount
-      setFrozenConfig(previewConfig); // Freeze the preview config
+      setFrozenConfig(previewConfig.intro); // Freeze the preview config
       completedRef.current = false;
 
       let isMounted = true;
-      const activeModule = getIntroModule(previewConfig.active);
+      const activeModule = getIntroModule(previewConfig.intro.active);
 
       activeModule.load().then((mod) => {
         if (isMounted) {

@@ -9,6 +9,7 @@ import { PWAUpdateManager } from './components/common/PWAUpdateManager';
 import { PresenceProvider } from './providers/PresenceProvider';
 import { useAppVisibilityReawakening } from './hooks/useAppVisibilityReawakening';
 import { IntroEngine } from './features/intro/IntroEngine';
+import { VersionBanner } from './components/common/VersionBanner';
 
 const AppVisibilityWrapper = () => {
   useAppVisibilityReawakening();
@@ -61,6 +62,7 @@ const App: React.FC = () => {
           <AppVisibilityWrapper />
           <PresenceProvider>
             <PWAUpdateManager />
+            <VersionBanner />
             <AppRoutes />
           </PresenceProvider>
         </AppProvider>

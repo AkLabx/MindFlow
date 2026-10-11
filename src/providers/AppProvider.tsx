@@ -1,5 +1,6 @@
 import React from 'react';
 import { AuthProvider } from '../features/auth/context/AuthContext';
+import { ThemeAndBrandingInjector } from './ThemeAndBrandingInjector';
 import { ToastContainer } from '../components/ui/Notification/ToastContainer';
 import { Popup } from '../components/ui/Notification/Popup';
 import { QueryClient, QueryClientProvider, onlineManager } from '@tanstack/react-query';
@@ -50,11 +51,11 @@ onlineManager.subscribe((isOnline) => {
 export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
+      <ThemeAndBrandingInjector><AuthProvider>
       {children}
       <ToastContainer />
       <Popup />
-    </AuthProvider>
+    </AuthProvider></ThemeAndBrandingInjector>
     </QueryClientProvider>
   );
 };
