@@ -145,7 +145,7 @@ export const SidePanel: React.FC<SidePanelProps> = ({ isOpen, onClose, onTabChan
                                                 <h3 className="text-lg font-bold text-gray-900 dark:text-white">Guest User</h3>
                                                 <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">Sign in to sync your progress</p>
                                                 <button
-                                                    onClick={() => handleNavigation('/login', 'login')}
+                                                    onClick={() => handleNavigation('/', 'home')}
                                                     className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-700 hover:to-indigo-600 text-white rounded-xl font-bold shadow-md shadow-indigo-500/20 transition-all active:scale-95"
                                                 >
                                                     <LogIn className="w-4 h-4" />

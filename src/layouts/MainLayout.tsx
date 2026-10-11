@@ -20,7 +20,7 @@ import { SidePanel } from './SidePanel';
 /**
  * Unique identifiers for the main navigation tabs.
  */
-export type TabID = 'home' | 'school' | 'create' | 'profile' | 'login' | 'ai' | 'community' | 'messages' | 'search' | 'reels';
+export type TabID = 'home' | 'school' | 'create' | 'profile' | 'ai' | 'community' | 'messages' | 'search' | 'reels';
 
 /**
  * Props for the MainLayout component.
@@ -96,7 +96,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
       let isAi = false;
       if (activeTab === 'home') activeRef = homeRef;
       else if (activeTab === 'school') activeRef = schoolRef;
-      else if (activeTab === 'profile' || activeTab === 'login') activeRef = profileRef;
+      else if (activeTab === 'profile') activeRef = profileRef;
       else if (activeTab === 'community') activeRef = communityRef;
       else if (activeTab === 'search') activeRef = searchRef;
       else if (activeTab === 'reels') activeRef = reelsRef;
@@ -167,8 +167,6 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
   const handleProfileClick = () => {
     if (user) {
       onTabChange('profile');
-    } else {
-      onTabChange('login');
     }
   };
 
@@ -421,21 +419,12 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
                 buttonRef={communityRef}
               />
 
-              {user ? (
+              {user && (
                 <NavTab
                   id="profile"
                   label="Profile"
                   icon={<User className="w-6 h-6" />}
                   isActive={activeTab === 'profile'}
-                  onClick={handleProfileClick}
-                  buttonRef={profileRef}
-                />
-              ) : (
-                <NavTab
-                  id="login"
-                  label="Sign In"
-                  icon={<LogIn className="w-6 h-6" />}
-                  isActive={activeTab === 'login'}
                   onClick={handleProfileClick}
                   buttonRef={profileRef}
                 />

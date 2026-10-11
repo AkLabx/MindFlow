@@ -21,7 +21,7 @@ export const ShareGatekeeper: React.FC = () => {
 
         // If not logged in, redirect to login page with returnTo parameter
         if (!user) {
-            navigate(`/login?returnTo=/share/${originalQuizId}`, { replace: true });
+            navigate(`/?returnTo=/share/${originalQuizId}`, { replace: true });
             return;
         }
 

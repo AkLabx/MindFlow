@@ -238,7 +238,7 @@ export const IdiomsConfig: React.FC<IdiomsConfigProps> = ({ onStart, onBack }) =
                   </p>
                   <div className="flex gap-3 w-full">
                     <Button onClick={onBack} variant="outline" fullWidth>Back</Button>
-                    <Button onClick={() => window.location.hash = '#/login'} className="bg-indigo-500 hover:bg-indigo-600 text-white border-none" fullWidth>
+                    <Button onClick={() => window.location.hash = '#/'} className="bg-indigo-500 hover:bg-indigo-600 text-white border-none" fullWidth>
                       Sign In
                     </Button>
                   </div>

@@ -67,17 +67,11 @@ export const NavigationManager: React.FC<NavigationManagerProps> = ({ children, 
         }
       }
 
-      // --- 4. Public Policy (Landing Page) ---
+      // --- 4. Public Policy ---
       else if (type === RouteAccessType.PUBLIC) {
-        if (location.pathname === '/') {
-          if (user) {
-            targetRedirect = '/dashboard';
-            reason = 'Authenticated user hitting Public Root';
-          } else if (PlatformPolicy.getGuestEntryRoute() !== '/') {
-            // Native platform bypasses Landing Page completely for guests
-            targetRedirect = PlatformPolicy.getGuestEntryRoute();
-            reason = 'Native app guest bypassing Landing Page';
-          }
+        if (user) {
+          targetRedirect = '/dashboard';
+          reason = 'Authenticated user hitting Public Route';
         }
       }
 
