@@ -10,6 +10,7 @@ import { PresenceProvider } from './providers/PresenceProvider';
 import { useAppVisibilityReawakening } from './hooks/useAppVisibilityReawakening';
 import { IntroEngine } from './features/intro/IntroEngine';
 import { VersionBanner } from './components/common/VersionBanner';
+import { ErrorBoundary } from './providers/ErrorBoundary';
 
 const AppVisibilityWrapper = () => {
   useAppVisibilityReawakening();
@@ -56,8 +57,9 @@ const App: React.FC = () => {
   }
 
   return (
-    <IntroEngine>
-      <HashRouter>
+    <ErrorBoundary>
+      <IntroEngine>
+        <HashRouter>
         <AppProvider>
           <AppVisibilityWrapper />
           <PresenceProvider>
@@ -67,7 +69,8 @@ const App: React.FC = () => {
           </PresenceProvider>
         </AppProvider>
       </HashRouter>
-    </IntroEngine>
+      </IntroEngine>
+    </ErrorBoundary>
   );
 };
 

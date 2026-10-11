@@ -95,7 +95,10 @@ export const useAppConfigStore = create<AppConfigState>((set, get) => ({
         return {
           ...DEFAULT_CONFIG,
           ...parsed,
+          intro: { ...DEFAULT_CONFIG.intro, ...(parsed.intro || {}) },
           theme: { ...DEFAULT_CONFIG.theme, ...(parsed.theme || {}) },
+          loading: { ...DEFAULT_CONFIG.loading, ...(parsed.loading || {}) },
+          dashboard: { ...DEFAULT_CONFIG.dashboard, ...(parsed.dashboard || {}) },
           branding: { ...DEFAULT_CONFIG.branding, ...(parsed.branding || {}) }
         };
       }
@@ -134,11 +137,11 @@ export const useAppConfigStore = create<AppConfigState>((set, get) => ({
            const nextConfig: AppConfig = {
               id: data.id,
               version: data.version,
-              intro: data.intro || DEFAULT_CONFIG.intro,
+              intro: { ...DEFAULT_CONFIG.intro, ...(data.intro || {}) },
               // Merge db objects with local defaults to fill in any missing Phase 2 fields if DB has old format
               theme: { ...DEFAULT_CONFIG.theme, ...(data.theme || {}) },
-              loading: data.loading || DEFAULT_CONFIG.loading,
-              dashboard: data.dashboard || DEFAULT_CONFIG.dashboard,
+              loading: { ...DEFAULT_CONFIG.loading, ...(data.loading || {}) },
+              dashboard: { ...DEFAULT_CONFIG.dashboard, ...(data.dashboard || {}) },
               branding: { ...DEFAULT_CONFIG.branding, ...(data.branding || {}) },
               updated_at: data.updated_at
            };
@@ -181,10 +184,10 @@ export const useAppConfigStore = create<AppConfigState>((set, get) => ({
          const finalConfig: AppConfig = {
             id: data.id,
             version: data.version,
-            intro: data.intro || DEFAULT_CONFIG.intro,
+            intro: { ...DEFAULT_CONFIG.intro, ...(data.intro || {}) },
             theme: { ...DEFAULT_CONFIG.theme, ...(data.theme || {}) },
-            loading: data.loading || DEFAULT_CONFIG.loading,
-            dashboard: data.dashboard || DEFAULT_CONFIG.dashboard,
+            loading: { ...DEFAULT_CONFIG.loading, ...(data.loading || {}) },
+            dashboard: { ...DEFAULT_CONFIG.dashboard, ...(data.dashboard || {}) },
             branding: { ...DEFAULT_CONFIG.branding, ...(data.branding || {}) },
             updated_at: data.updated_at
          };
