@@ -211,10 +211,12 @@ const handleReattempt = async (quizId: string, mode: string) => {
         }>
             <Routes>
                 {/* --- Public / Landing Route --- */}
+                <Route path="/onboarding" element={<NavigationManager type={RouteAccessType.AUTHENTICATED}><OnboardingFlow /></NavigationManager>} />
+
                 <Route path="/" element={
                     <NavigationManager type={RouteAccessType.PUBLIC}>
                         <LandingPage
-                            onGetStarted={() => { enterHome(); navTo('/dashboard'); }}
+                            onGetStarted={() => { if (user) { enterHome(); navTo('/dashboard'); } else { enterLogin(); navTo('/login'); } }}
                             onLoginClick={() => { enterLogin(); navTo('/login'); }}
                             user={user}
                             onProfileClick={() => { enterProfile(); navTo('/profile'); }}
@@ -227,7 +229,6 @@ const handleReattempt = async (quizId: string, mode: string) => {
                 <Route element={<QuizLayout />}>
                                         <Route path="/blueprints" element={<NavigationManager type={RouteAccessType.AUTHENTICATED}><Suspense fallback={<SynapticLoader />}><ExamBlueprintsHub onBack={() => { goHome(); navTo('/dashboard'); }} onLaunchBlueprint={(bp) => { navTo('/blueprints/preview'); }} /></Suspense></NavigationManager>} />
                     <Route path="/blueprints/preview/:id" element={<NavigationManager type={RouteAccessType.AUTHENTICATED}><Suspense fallback={<SynapticLoader />}><BlueprintPreviewWrapper /></Suspense></NavigationManager>} />
-                    <Route path="/onboarding" element={<NavigationManager type={RouteAccessType.AUTHENTICATED}><OnboardingFlow /></NavigationManager>} />
                     <Route path="/dashboard" element={<NavigationManager type={RouteAccessType.AUTHENTICATED}><Suspense fallback={<SynapticLoader />}><Dashboard onBackToIntro={() => { navTo('/dashboard'); }} /></Suspense></NavigationManager>} />
 
                     <Route path="/mcqs" element={<NavigationManager type={RouteAccessType.AUTHENTICATED}><Suspense fallback={<SynapticLoader />}><McqsQuizHome onBack={() => { navTo('/dashboard'); }} /></Suspense></NavigationManager>} />
