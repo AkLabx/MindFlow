@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { useAppConfigStore } from '../stores/useAppConfigStore';
+import { useShallow } from 'zustand/react/shallow';
 import { useSettingsStore } from '../stores/useSettingsStore';
 
 // Tiny utility to adjust color brightness for shades
@@ -28,11 +29,11 @@ function shadeColor(color: string, percent: number) {
 }
 
 export const ThemeAndBrandingInjector: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { config, previewConfig, isPreviewing } = useAppConfigStore((state) => ({
+  const { config, previewConfig, isPreviewing } = useAppConfigStore(useShallow((state) => ({
     config: state.config,
     previewConfig: state.previewConfig,
     isPreviewing: state.previewNonce > 0
-  }));
+  })));
 
   const activeConfig = (isPreviewing && previewConfig) ? previewConfig as typeof config : config;
 
