@@ -205,8 +205,8 @@ const handleReattempt = async (quizId: string, mode: string) => {
     return (
         <Suspense fallback={
             location.pathname === '/'
-                ? <div className="min-h-screen w-full bg-white dark:bg-slate-900" />
-                : <div className="min-h-screen flex items-center justify-center"><SynapticLoader size="xl" /></div>
+                ? <div className="min-h-screen w-full bg-slate-50 dark:bg-slate-950" />
+                : <div className="min-h-screen w-full flex items-center justify-center bg-slate-50 dark:bg-slate-950"><SynapticLoader size="xl" /></div>
         }>
             <Routes>
                 {/* --- Public / Landing Route --- */}
