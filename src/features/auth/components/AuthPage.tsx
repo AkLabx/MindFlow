@@ -379,47 +379,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ onBack }) => {
              </div>
            </form>
 
-           {/* Tertiary: Guest Login Button */}
-           <div className="mt-6">
-             <button
-               type="button"
-               onClick={async () => {
-                 const guestEmail = "mindflow@user.com";
-                 const guestPassword = "Test@1234";
-                 setEmail(guestEmail);
-                 setPassword(guestPassword);
-                 setIsSignUp(false);
-                 setIsEmailLoading(true);
-                 setError(null);
-                 setMessage(null);
-                 try {
-                   const { error } = await supabase.auth.signInWithPassword({
-                     email: guestEmail,
-                     password: guestPassword,
-                   });
-                   if (error) throw error;
-                 } catch (error: any) {
-                   setError(error.error_description || error.message);
-                 } finally {
-                   setIsEmailLoading(false);
-                 }
-               }}
-               disabled={isEmailLoading || isGoogleLoading}
-               className={`w-full group flex justify-center items-center gap-2 bg-gray-50 dark:bg-gray-800/50 text-gray-700 dark:text-gray-300 font-medium py-3 px-4 rounded-xl border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-200 dark:focus:ring-gray-700 transition-all duration-300 ${(isEmailLoading || isGoogleLoading) ? 'opacity-50 cursor-not-allowed' : ''}`}
-             >
-               <span>Continue as Guest</span>
-               <span className="text-xs text-gray-400 dark:text-gray-500 font-normal ml-1">Click Here</span>
-             </button>
-           </div>
-
-
-
-
-         </div>
-         </div>
-       </div>
-     </div>
-   </div>
+           </div></div></div></div></div>
  );
 };
 
