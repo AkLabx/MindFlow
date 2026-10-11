@@ -86,7 +86,7 @@ export const NavigationManager: React.FC<NavigationManagerProps> = ({ children, 
       // We do NOT redirect to onboarding if they are already on the onboarding route itself,
       // or if they are hitting a Public/Guest route (where they shouldn't be anyway, but handled above).
       if (user && !targetRedirect && location.pathname !== '/onboarding' && type !== RouteAccessType.PUBLIC && type !== RouteAccessType.GUEST_ONLY) {
-        if (OnboardingPolicy.shouldRedirectToOnboarding(user.id)) {
+        if (OnboardingPolicy.shouldRedirectToOnboarding(user)) {
            targetRedirect = '/onboarding';
            reason = 'User has not completed Onboarding';
            NavigationAnalytics.track('Onboarding Started');

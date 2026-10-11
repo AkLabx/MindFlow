@@ -22,9 +22,27 @@ export class OnboardingPolicy {
     localStorage.setItem(`onboarding_status_${userId}`, 'COMPLETED');
   }
 
-  static shouldRedirectToOnboarding(userId: string | undefined): boolean {
-    if (!userId) return false;
-    const status = this.getStatus(userId);
-    return status !== 'COMPLETED';
+  static shouldRedirectToOnboarding(user: User | undefined | null): boolean {
+    if (!user) return false;
+
+    const status = this.getStatus(user.id);
+    if (status === 'COMPLETED') {
+        return false;
+    }
+
+    // Check if it's an existing user who just logged in on a new device.
+    // If account was created more than 1 hour ago, treat as an existing user and bypass onboarding.
+    if (user.created_at) {
+        const createdAt = new Date(user.created_at).getTime();
+        const oneHour = 60 * 60 * 1000;
+        const now = Date.now();
+        if (now - createdAt > oneHour) {
+            // Mark it completed so subsequent fast-path checks just return false.
+            this.markCompleted(user.id);
+            return false;
+        }
+    }
+
+    return true;
   }
 }
