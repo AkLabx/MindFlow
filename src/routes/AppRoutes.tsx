@@ -6,9 +6,10 @@ import { useFlashcardStore } from '@/features/quiz';
 import { QuizLayout } from '@/features/quiz';
 import { useAuth } from '@/features/auth';
 import { SynapticLoader } from '../components/ui/SynapticLoader';
-import { ProtectedRoute } from '../providers/ProtectedRoute';
-import { AdminProtectedRoute } from '../providers/AdminProtectedRoute';
+
+
 import { ErrorBoundary } from '../providers/ErrorBoundary';
+import { OnboardingFlow } from '../features/onboarding/pages/OnboardingFlow';
 import { useHardwareBackButton } from '../hooks/useHardwareBackButton';
 import { useNotificationStore } from '../stores/useNotificationStore';
 
@@ -224,16 +225,17 @@ const handleReattempt = async (quizId: string, mode: string) => {
 
                 {/* --- Standard Application Routes (Wrapped in QuizLayout) --- */}
                 <Route element={<QuizLayout />}>
-                                        <Route path="/blueprints" element={<NavigationManager type={RouteAccessType.AUTH_ONLY}><Suspense fallback={<SynapticLoader />}><ExamBlueprintsHub onBack={() => { goHome(); navTo('/dashboard'); }} onLaunchBlueprint={(bp) => { navTo('/blueprints/preview'); }} /></Suspense></NavigationManager>} />
-                    <Route path="/blueprints/preview/:id" element={<NavigationManager type={RouteAccessType.AUTH_ONLY}><Suspense fallback={<SynapticLoader />}><BlueprintPreviewWrapper /></Suspense></NavigationManager>} />
-                    <Route path="/dashboard" element={<NavigationManager type={RouteAccessType.AUTH_ONLY}><Suspense fallback={<SynapticLoader />}><Dashboard onBackToIntro={() => { navTo('/dashboard'); }} /></Suspense></NavigationManager>} />
+                                        <Route path="/blueprints" element={<NavigationManager type={RouteAccessType.AUTHENTICATED}><Suspense fallback={<SynapticLoader />}><ExamBlueprintsHub onBack={() => { goHome(); navTo('/dashboard'); }} onLaunchBlueprint={(bp) => { navTo('/blueprints/preview'); }} /></Suspense></NavigationManager>} />
+                    <Route path="/blueprints/preview/:id" element={<NavigationManager type={RouteAccessType.AUTHENTICATED}><Suspense fallback={<SynapticLoader />}><BlueprintPreviewWrapper /></Suspense></NavigationManager>} />
+                    <Route path="/onboarding" element={<NavigationManager type={RouteAccessType.AUTHENTICATED}><OnboardingFlow /></NavigationManager>} />
+                    <Route path="/dashboard" element={<NavigationManager type={RouteAccessType.AUTHENTICATED}><Suspense fallback={<SynapticLoader />}><Dashboard onBackToIntro={() => { navTo('/dashboard'); }} /></Suspense></NavigationManager>} />
 
-                    <Route path="/mcqs" element={<NavigationManager type={RouteAccessType.AUTH_ONLY}><Suspense fallback={<SynapticLoader />}><McqsQuizHome onBack={() => { navTo('/dashboard'); }} /></Suspense></NavigationManager>} />
-                    <Route path="/mcqs/test-series" element={<NavigationManager type={RouteAccessType.AUTH_ONLY}><Suspense fallback={<SynapticLoader />}><ExamCategoriesPage /></Suspense></NavigationManager>} />
-                    <Route path="/mcqs/test-series/category/:id" element={<NavigationManager type={RouteAccessType.AUTH_ONLY}><Suspense fallback={<SynapticLoader />}><TestSeriesPage /></Suspense></NavigationManager>} />
-                    <Route path="/mcqs/test-series/series/:id" element={<NavigationManager type={RouteAccessType.AUTH_ONLY}><Suspense fallback={<SynapticLoader />}><TestsListPage /></Suspense></NavigationManager>} />
-                    <Route path="/mcqs/test-series/test/:testId" element={<NavigationManager type={RouteAccessType.AUTH_ONLY}><Suspense fallback={<SynapticLoader />}><TestDetailPage /></Suspense></NavigationManager>} />
-                    <Route path="/exam/:testId" element={<NavigationManager type={RouteAccessType.AUTH_ONLY}><Suspense fallback={<SynapticLoader />}><ExamPlaceholderPage /></Suspense></NavigationManager>} />
+                    <Route path="/mcqs" element={<NavigationManager type={RouteAccessType.AUTHENTICATED}><Suspense fallback={<SynapticLoader />}><McqsQuizHome onBack={() => { navTo('/dashboard'); }} /></Suspense></NavigationManager>} />
+                    <Route path="/mcqs/test-series" element={<NavigationManager type={RouteAccessType.AUTHENTICATED}><Suspense fallback={<SynapticLoader />}><ExamCategoriesPage /></Suspense></NavigationManager>} />
+                    <Route path="/mcqs/test-series/category/:id" element={<NavigationManager type={RouteAccessType.AUTHENTICATED}><Suspense fallback={<SynapticLoader />}><TestSeriesPage /></Suspense></NavigationManager>} />
+                    <Route path="/mcqs/test-series/series/:id" element={<NavigationManager type={RouteAccessType.AUTHENTICATED}><Suspense fallback={<SynapticLoader />}><TestsListPage /></Suspense></NavigationManager>} />
+                    <Route path="/mcqs/test-series/test/:testId" element={<NavigationManager type={RouteAccessType.AUTHENTICATED}><Suspense fallback={<SynapticLoader />}><TestDetailPage /></Suspense></NavigationManager>} />
+                    <Route path="/exam/:testId" element={<NavigationManager type={RouteAccessType.AUTHENTICATED}><Suspense fallback={<SynapticLoader />}><ExamPlaceholderPage /></Suspense></NavigationManager>} />
                     <Route path="/about/developer-profile" element={
                         <Suspense fallback={<SynapticLoader />}>
                             <DeveloperProfile />
@@ -271,7 +273,7 @@ const handleReattempt = async (quizId: string, mode: string) => {
                     <Route path="/english" element={<Suspense fallback={<SynapticLoader />}><EnglishHub /></Suspense>} />
 
                     <Route path="/share/:originalQuizId" element={<ShareGatekeeper />} />
-                <Route path="/quiz/library" element={<NavigationManager type={RouteAccessType.AUTH_ONLY}><Suspense fallback={<SynapticLoader />}><QuizLibrary /></Suspense></NavigationManager>} />
+                <Route path="/quiz/library" element={<NavigationManager type={RouteAccessType.AUTHENTICATED}><Suspense fallback={<SynapticLoader />}><QuizLibrary /></Suspense></NavigationManager>} />
                 <Route path="/quiz/saved" element={<Navigate to="/quiz/library?tab=created" replace />} />
                 <Route path="/quiz/attempted" element={<Navigate to="/quiz/library?tab=attempted" replace />} />
                     <Route path="/quiz/analytics" element={<Suspense fallback={<SynapticLoader />}><PerformanceAnalytics /></Suspense>} />
@@ -284,7 +286,7 @@ const handleReattempt = async (quizId: string, mode: string) => {
 
 
 
-                    <Route path="/vocab/synonyms" element={<NavigationManager type={RouteAccessType.AUTH_ONLY}><Navigate to="/english?tab=vocabsynonyms" replace /></NavigationManager>} />
+                    <Route path="/vocab/synonyms" element={<NavigationManager type={RouteAccessType.AUTHENTICATED}><Navigate to="/english?tab=vocabsynonyms" replace /></NavigationManager>} />
                     <Route path="/vocab/ows" element={<Navigate to="/english?tab=vocabows" replace />} />
                     <Route path="/vocab/idioms" element={<Navigate to="/english?tab=vocabidiom" replace />} />
                     <Route path="/vocab/synonyms/config" element={
@@ -302,7 +304,7 @@ const handleReattempt = async (quizId: string, mode: string) => {
 
 
                     <Route path="/profile" element={
-                        <NavigationManager type={RouteAccessType.AUTH_ONLY}>
+                        <NavigationManager type={RouteAccessType.AUTHENTICATED}>
                             <Suspense fallback={<SynapticLoader />}><ProfilePage
                                 onNavigateToSettings={() => navTo('/settings')}
                                 onSignOut={() => { navTo('/dashboard'); }}
@@ -310,31 +312,31 @@ const handleReattempt = async (quizId: string, mode: string) => {
                         </NavigationManager>
                     } />
 
-                    <Route path="/settings/my-reports" element={<NavigationManager type={RouteAccessType.AUTH_ONLY}><Suspense fallback={<SynapticLoader />}><MyReportsPage /></Suspense></NavigationManager>} />
+                    <Route path="/settings/my-reports" element={<NavigationManager type={RouteAccessType.AUTHENTICATED}><Suspense fallback={<SynapticLoader />}><MyReportsPage /></Suspense></NavigationManager>} />
                     <Route path="/settings/deleteaccount" element={
-                        <NavigationManager type={RouteAccessType.AUTH_ONLY}>
+                        <NavigationManager type={RouteAccessType.AUTHENTICATED}>
                             <Suspense fallback={<SynapticLoader />}><DeleteAccountPage /></Suspense>
                         </NavigationManager>
                     } />
                     <Route path="/settings" element={
-                        <NavigationManager type={RouteAccessType.AUTH_ONLY}>
+                        <NavigationManager type={RouteAccessType.AUTHENTICATED}>
                             <Suspense fallback={<SynapticLoader />}><SettingsPage onBack={() => navTo('/profile')} /></Suspense>
                         </NavigationManager>
                     } />
 
                     <Route path="/profile/subscription" element={
-                        <NavigationManager type={RouteAccessType.AUTH_ONLY}>
+                        <NavigationManager type={RouteAccessType.AUTHENTICATED}>
                             <Suspense fallback={<SynapticLoader />}><SubscriptionPage onBack={() => navTo('/profile')} /></Suspense>
                         </NavigationManager>
                     } />
 
                     <Route path="/profile/support" element={
-                        <NavigationManager type={RouteAccessType.AUTH_ONLY}>
+                        <NavigationManager type={RouteAccessType.AUTHENTICATED}>
                             <Suspense fallback={<SynapticLoader />}><SupportPage onBack={() => navTo('/profile')} /></Suspense>
                         </NavigationManager>
                     } />
                     <Route path="/profile/preferences" element={
-                        <NavigationManager type={RouteAccessType.AUTH_ONLY}>
+                        <NavigationManager type={RouteAccessType.AUTHENTICATED}>
                             <Suspense fallback={<SynapticLoader />}><AppPreferencesPage /></Suspense>
                         </NavigationManager>
                     } />
@@ -407,18 +409,18 @@ const handleReattempt = async (quizId: string, mode: string) => {
 
 
                     {/* School Routes */}
-                    <Route path="/community" element={<NavigationManager type={RouteAccessType.AUTH_ONLY}><ErrorBoundary fallbackMessage="The Community feed is temporarily unavailable."><Suspense fallback={<SynapticLoader />}><CommunityFeed /></Suspense></ErrorBoundary></NavigationManager>} />
-                    <Route path="/messages" element={<NavigationManager type={RouteAccessType.AUTH_ONLY}><ErrorBoundary fallbackMessage="Messages are temporarily unavailable."><Suspense fallback={<SynapticLoader />}><ChatRooms /></Suspense></ErrorBoundary></NavigationManager>} />
-                    <Route path="/community/reels" element={<NavigationManager type={RouteAccessType.AUTH_ONLY}><ErrorBoundary fallbackMessage="Reels are temporarily unavailable."><Suspense fallback={<SynapticLoader />}><ReelsFeed /></Suspense></ErrorBoundary></NavigationManager>} />
-                    <Route path="/community/reels/:id/comments" element={<NavigationManager type={RouteAccessType.AUTH_ONLY}><ErrorBoundary fallbackMessage="Comments are temporarily unavailable."><Suspense fallback={<SynapticLoader />}><ReelCommentsPage /></Suspense></ErrorBoundary></NavigationManager>} />
-                    <Route path="/community/search" element={<NavigationManager type={RouteAccessType.AUTH_ONLY}><ErrorBoundary fallbackMessage="Search is temporarily unavailable."><Suspense fallback={<SynapticLoader />}><CommunitySearch /></Suspense></ErrorBoundary></NavigationManager>} />
-                    <Route path="/u/:username" element={<NavigationManager type={RouteAccessType.AUTH_ONLY}><ErrorBoundary><Suspense fallback={<SynapticLoader />}><UserProfile /></Suspense></ErrorBoundary></NavigationManager>} />
-                    <Route path="/community/post/:id" element={<NavigationManager type={RouteAccessType.AUTH_ONLY}><ErrorBoundary><Suspense fallback={<SynapticLoader />}><PostPage /></Suspense></ErrorBoundary></NavigationManager>} />
+                    <Route path="/community" element={<NavigationManager type={RouteAccessType.AUTHENTICATED}><ErrorBoundary fallbackMessage="The Community feed is temporarily unavailable."><Suspense fallback={<SynapticLoader />}><CommunityFeed /></Suspense></ErrorBoundary></NavigationManager>} />
+                    <Route path="/messages" element={<NavigationManager type={RouteAccessType.AUTHENTICATED}><ErrorBoundary fallbackMessage="Messages are temporarily unavailable."><Suspense fallback={<SynapticLoader />}><ChatRooms /></Suspense></ErrorBoundary></NavigationManager>} />
+                    <Route path="/community/reels" element={<NavigationManager type={RouteAccessType.AUTHENTICATED}><ErrorBoundary fallbackMessage="Reels are temporarily unavailable."><Suspense fallback={<SynapticLoader />}><ReelsFeed /></Suspense></ErrorBoundary></NavigationManager>} />
+                    <Route path="/community/reels/:id/comments" element={<NavigationManager type={RouteAccessType.AUTHENTICATED}><ErrorBoundary fallbackMessage="Comments are temporarily unavailable."><Suspense fallback={<SynapticLoader />}><ReelCommentsPage /></Suspense></ErrorBoundary></NavigationManager>} />
+                    <Route path="/community/search" element={<NavigationManager type={RouteAccessType.AUTHENTICATED}><ErrorBoundary fallbackMessage="Search is temporarily unavailable."><Suspense fallback={<SynapticLoader />}><CommunitySearch /></Suspense></ErrorBoundary></NavigationManager>} />
+                    <Route path="/u/:username" element={<NavigationManager type={RouteAccessType.AUTHENTICATED}><ErrorBoundary><Suspense fallback={<SynapticLoader />}><UserProfile /></Suspense></ErrorBoundary></NavigationManager>} />
+                    <Route path="/community/post/:id" element={<NavigationManager type={RouteAccessType.AUTHENTICATED}><ErrorBoundary><Suspense fallback={<SynapticLoader />}><PostPage /></Suspense></ErrorBoundary></NavigationManager>} />
 
-                    <Route path="/school" element={<NavigationManager type={RouteAccessType.AUTH_ONLY}><Suspense fallback={<SynapticLoader />}><SchoolHomePage /></Suspense></NavigationManager>} />
-                    <Route path="/school/download" element={<NavigationManager type={RouteAccessType.AUTH_ONLY}><Suspense fallback={<SynapticLoader />}><SchoolDownloads /></Suspense></NavigationManager>} />
-<Route path="/tools" element={<NavigationManager type={RouteAccessType.AUTH_ONLY}><Suspense fallback={<SynapticLoader />}><ToolsHome /></Suspense></NavigationManager>} />
-                    <Route path="/notification" element={<NavigationManager type={RouteAccessType.AUTH_ONLY}><Suspense fallback={<SynapticLoader />}><NotificationsPage /></Suspense></NavigationManager>} />
+                    <Route path="/school" element={<NavigationManager type={RouteAccessType.AUTHENTICATED}><Suspense fallback={<SynapticLoader />}><SchoolHomePage /></Suspense></NavigationManager>} />
+                    <Route path="/school/download" element={<NavigationManager type={RouteAccessType.AUTHENTICATED}><Suspense fallback={<SynapticLoader />}><SchoolDownloads /></Suspense></NavigationManager>} />
+<Route path="/tools" element={<NavigationManager type={RouteAccessType.AUTHENTICATED}><Suspense fallback={<SynapticLoader />}><ToolsHome /></Suspense></NavigationManager>} />
+                    <Route path="/notification" element={<NavigationManager type={RouteAccessType.AUTHENTICATED}><Suspense fallback={<SynapticLoader />}><NotificationsPage /></Suspense></NavigationManager>} />
                     <Route path="/ai" element={<Suspense fallback={<SynapticLoader />}><AIHome /></Suspense>} />
 
                     <Route path="/ai/chat" element={<Suspense fallback={<SynapticLoader />}><AIChatPage /></Suspense>} />
@@ -482,7 +484,7 @@ const handleReattempt = async (quizId: string, mode: string) => {
 
 
                 {/* Learning Mode: Interactive per-question session */}
-                <Route path="/quiz/live/:id" element={<NavigationManager type={RouteAccessType.AUTH_ONLY}><Suspense fallback={<SynapticLoader />}><LiveQuizRoom /></Suspense></NavigationManager>} />
+                <Route path="/quiz/live/:id" element={<NavigationManager type={RouteAccessType.AUTHENTICATED}><Suspense fallback={<SynapticLoader />}><LiveQuizRoom /></Suspense></NavigationManager>} />
 
                 <Route path="/quiz/session/learning/:quizId" element={
                     <QuizSessionGuard>
@@ -568,9 +570,9 @@ const handleReattempt = async (quizId: string, mode: string) => {
                     />
                 } />
 
-                <Route path="/vocab/synonyms/phase1" element={<NavigationManager type={RouteAccessType.AUTH_ONLY}><Suspense fallback={<SynapticLoader />}><SynonymPhase1Session /></Suspense></NavigationManager>} />
-                <Route path="/vocab/synonyms/list" element={<NavigationManager type={RouteAccessType.AUTH_ONLY}><Suspense fallback={<SynapticLoader />}><SynonymClusterList data={flashcardStore.synonyms} onSelectWord={(word) => { flashcardStore.jumpToCard(flashcardStore.synonyms.findIndex(w => w.id === word.id) || 0); navTo('/vocab/synonyms/session'); }} onExit={() => navTo('/vocab/synonyms')} /></Suspense></NavigationManager>} />
-                <Route path="/vocab/synonyms/quiz" element={<NavigationManager type={RouteAccessType.AUTH_ONLY}><Suspense fallback={<SynapticLoader />}><SynonymQuizSession onExit={() => navTo('/vocab/synonyms')} /></Suspense></NavigationManager>} />
+                <Route path="/vocab/synonyms/phase1" element={<NavigationManager type={RouteAccessType.AUTHENTICATED}><Suspense fallback={<SynapticLoader />}><SynonymPhase1Session /></Suspense></NavigationManager>} />
+                <Route path="/vocab/synonyms/list" element={<NavigationManager type={RouteAccessType.AUTHENTICATED}><Suspense fallback={<SynapticLoader />}><SynonymClusterList data={flashcardStore.synonyms} onSelectWord={(word) => { flashcardStore.jumpToCard(flashcardStore.synonyms.findIndex(w => w.id === word.id) || 0); navTo('/vocab/synonyms/session'); }} onExit={() => navTo('/vocab/synonyms')} /></Suspense></NavigationManager>} />
+                <Route path="/vocab/synonyms/quiz" element={<NavigationManager type={RouteAccessType.AUTHENTICATED}><Suspense fallback={<SynapticLoader />}><SynonymQuizSession onExit={() => navTo('/vocab/synonyms')} /></Suspense></NavigationManager>} />
 
 
                 <Route path="/vocab/ows/session" element={
@@ -586,11 +588,11 @@ const handleReattempt = async (quizId: string, mode: string) => {
                     />
                 } />
 
-                                                                <Route path="/tools/flashcard-maker" element={<NavigationManager type={RouteAccessType.AUTH_ONLY}><Suspense fallback={<SynapticLoader />}><FlashcardMaker /></Suspense></NavigationManager>} />
-                <Route path="/tools/ascii-art-hub" element={<NavigationManager type={RouteAccessType.AUTH_ONLY}><Suspense fallback={<SynapticLoader />}><AsciiArtHub /></Suspense></NavigationManager>} />
-                <Route path="/tools/ascii-art/number" element={<NavigationManager type={RouteAccessType.AUTH_ONLY}><Suspense fallback={<SynapticLoader />}><NumberArt /></Suspense></NavigationManager>} />
-                <Route path="/tools/ascii-art/invisible-ink" element={<NavigationManager type={RouteAccessType.AUTH_ONLY}><Suspense fallback={<SynapticLoader />}><InvisibleInk /></Suspense></NavigationManager>} />
-                <Route path="/tools/ascii-art/stego" element={<NavigationManager type={RouteAccessType.AUTH_ONLY}><Suspense fallback={<SynapticLoader />}><MyStego /></Suspense></NavigationManager>} />
+                                                                <Route path="/tools/flashcard-maker" element={<NavigationManager type={RouteAccessType.AUTHENTICATED}><Suspense fallback={<SynapticLoader />}><FlashcardMaker /></Suspense></NavigationManager>} />
+                <Route path="/tools/ascii-art-hub" element={<NavigationManager type={RouteAccessType.AUTHENTICATED}><Suspense fallback={<SynapticLoader />}><AsciiArtHub /></Suspense></NavigationManager>} />
+                <Route path="/tools/ascii-art/number" element={<NavigationManager type={RouteAccessType.AUTHENTICATED}><Suspense fallback={<SynapticLoader />}><NumberArt /></Suspense></NavigationManager>} />
+                <Route path="/tools/ascii-art/invisible-ink" element={<NavigationManager type={RouteAccessType.AUTHENTICATED}><Suspense fallback={<SynapticLoader />}><InvisibleInk /></Suspense></NavigationManager>} />
+                <Route path="/tools/ascii-art/stego" element={<NavigationManager type={RouteAccessType.AUTHENTICATED}><Suspense fallback={<SynapticLoader />}><MyStego /></Suspense></NavigationManager>} />
 
                 {/* Fallback Route */}
                 <Route path="*" element={<Navigate to="/" replace />} />
