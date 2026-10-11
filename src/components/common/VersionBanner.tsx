@@ -1,14 +1,15 @@
 import React, { useState } from 'react';
 import { useAppConfigStore } from '@/stores/useAppConfigStore';
+import { useShallow } from 'zustand/react/shallow';
 import { Info, AlertTriangle, XCircle, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export const VersionBanner: React.FC = () => {
-    const { config, previewConfig, isPreviewing } = useAppConfigStore((state) => ({
+    const { config, previewConfig, isPreviewing } = useAppConfigStore(useShallow((state) => ({
         config: state.config,
         previewConfig: state.previewConfig,
         isPreviewing: state.previewNonce > 0
-    }));
+    })));
 
     const activeConfig = (isPreviewing && previewConfig) ? previewConfig as typeof config : config;
     const banner = activeConfig.branding?.versionNotice;
