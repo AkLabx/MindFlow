@@ -66,32 +66,39 @@ A layout should **never** know about:
 
 ---
 
-## 2. Routing Layer & Route Registry
+## 2. Centralized Application Registry (`src/config/`)
+
+Currently, strings for routes, branding, local storage keys, and feature toggles are scattered throughout the codebase. This leads to typos, brittle refactoring, and poor autocomplete.
+
+**The Solution: A Single Source of Truth**
+We are establishing a centralized configuration registry in `src/config/`. This is not just for routing, but for *all* application-wide constants.
+
+The registry includes:
+- `routes.ts`: Centralized route definitions supporting dynamic route generators (e.g., `ROUTES.QUIZ.SESSION.learning(id)`).
+- `branding.ts`: App names, taglines, seasonal themes, and ad configurations.
+- `features.ts`: Feature flags for experimental or seasonal features.
+- `storage.ts`: LocalStorage and IndexedDB key names.
+- `api.ts`: Supabase table names, Query Keys, Cache Keys.
+- `permissions.ts`: Role names and permission identifiers.
+- `environment.ts`: Type-safe wrappers for `import.meta.env`.
+- `app.ts`: Global app metadata.
+
+**Objectives:**
+- **Single Source of Truth**: Eliminate duplicated "magic strings".
+- **Type Safety**: Leverage TypeScript to catch errors at compile time.
+- **Easier Refactoring**: Update a path or table name in one place.
+- **Better IDE Autocomplete**: Discoverable constants via `import { ROUTES } from '@/config'`.
+- **Fewer Navigation Bugs**: Guaranteed valid paths.
+- **Easier Onboarding & AI Context**: AI assistants (like Jules or Copilot) and new devs can immediately understand the shape of the app by looking at `src/config/`.
+
+---
+
+## 2.5 Routing Layer
 
 Currently, `AppRoutes.tsx` is an enormous file handling lazy loading, layouts, policies, and auth states simultaneously.
 
-**The Solution: Route Registry & Configuration-Driven Routing**
-Instead of one central routing file declaring every feature route, each feature should declare its own routes internally:
-
-```text
-src/features/dashboard/routes.ts
-src/features/quiz/routes.ts
-src/features/profile/routes.ts
-```
-
-The global application router (`src/app/routes/config.ts`) simply assembles all registered feature routes into the final routing table. This keeps routing ownership inside the feature itself and makes adding/removing features completely modular.
-
-### Route Constants
-Hardcoded strings must be eliminated. A dedicated constants file (`src/shared/constants/routes.ts`) should be introduced:
-
-```typescript
-export const ROUTES = {
-  dashboard: "/dashboard",
-  tools: "/tools",
-  profile: "/profile",
-};
-```
-Usage: `navigate(ROUTES.dashboard)` instead of `navigate("/dashboard")`.
+**The Solution:**
+Instead of one central routing file declaring every feature route, each feature should eventually declare its own routes internally (e.g., `src/features/dashboard/routes.ts`). The global application router (`src/app/routes/config.ts`) simply assembles all registered feature routes into the final routing table using the constants from `src/config/routes.ts`.
 
 ---
 
@@ -160,19 +167,6 @@ Business logic stays inside `features/`. The Shared layer exists only for common
 ---
 
 
-## 8. Branding and Configuration Constants
-
-To support dynamic branding (e.g., custom themes, promotional banners, festive seasons, ad setups), all customizable brand assets and string constants must be strictly centralized.
-
-Instead of hardcoding "MindFlow" or banner images inside individual components, a dedicated constants configuration (e.g., `src/constants/branding.ts` or `src/config/brand.ts`) should be created.
-
-**Responsibilities:**
-- Define Application Names and Taglines.
-- Define Asset URLs for festive overlays or partner branding.
-- Feature flags for seasonal UI components.
-
----
-
 ## 9. Staged Application Bootstrap
 
 Rather than treating startup as one massive, monolithic initialization process (`useAppBootstrap.ts`), the bootstrap sequence must be staged modularly:
@@ -203,7 +197,24 @@ Once the application is stabilized:
 
 ### Phase 3 — Architecture Refactor
 **Only after the application is considered stable** should the architecture blueprint begin implementation.
-- This entire refactor should happen in a dedicated `architecture-refactor` branch rather than on the primary development branch.
-- Sequentially introduce Modular routing, Policy layers, Shared layers, the Route Registry.
-- [x] Route Constants (Initial registry created in `src/constants/routes.ts`).
-- Intent Manager, Feature Isolation, and Bootstrap modularization.
+This refactor happens incrementally.
+
+**Registry Migration Strategy**
+To minimize risk and keep PRs reviewable, the hardcoded strings (like navigation paths) must be migrated incrementally. Do *not* run a global find-and-replace.
+
+- [x] Create centralized Application Registry (`src/config/`)
+- [ ] Migrate `AppRoutes.tsx` to use registry
+- [ ] Migrate `NavigationManager`
+- [ ] Migrate Route Guards and Layouts
+- [ ] Migrate Header / Footer / Shared components
+- [ ] Migrate Feature modules (one feature folder at a time)
+- [ ] Replace `Navigate` components and remove legacy strings
+- [ ] Add ESLint rule to prevent regressions (e.g., restrict literal strings in `navigate`)
+- [ ] Final verification
+
+**Structural Refactoring Strategy**
+- [ ] Modular routing definitions per feature
+- [ ] Policy layer isolation (`src/core/policies`)
+- [ ] Intent Manager implementation (`src/core/navigation`)
+- [ ] Feature isolation (removing cross-feature dependencies)
+- [ ] Bootstrap modularization (`src/app/bootstrap`)
