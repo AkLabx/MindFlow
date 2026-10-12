@@ -159,7 +159,21 @@ Business logic stays inside `features/`. The Shared layer exists only for common
 
 ---
 
-## 8. Staged Application Bootstrap
+
+## 8. Branding and Configuration Constants
+
+To support dynamic branding (e.g., custom themes, promotional banners, festive seasons, ad setups), all customizable brand assets and string constants must be strictly centralized.
+
+Instead of hardcoding "MindFlow" or banner images inside individual components, a dedicated constants configuration (e.g., `src/constants/branding.ts` or `src/config/brand.ts`) should be created.
+
+**Responsibilities:**
+- Define Application Names and Taglines.
+- Define Asset URLs for festive overlays or partner branding.
+- Feature flags for seasonal UI components.
+
+---
+
+## 9. Staged Application Bootstrap
 
 Rather than treating startup as one massive, monolithic initialization process (`useAppBootstrap.ts`), the bootstrap sequence must be staged modularly:
 
@@ -190,4 +204,6 @@ Once the application is stabilized:
 ### Phase 3 — Architecture Refactor
 **Only after the application is considered stable** should the architecture blueprint begin implementation.
 - This entire refactor should happen in a dedicated `architecture-refactor` branch rather than on the primary development branch.
-- Sequentially introduce Modular routing, Policy layers, Shared layers, the Route Registry, Route Constants, Intent Manager, Feature Isolation, and Bootstrap modularization.
+- Sequentially introduce Modular routing, Policy layers, Shared layers, the Route Registry.
+- [x] Route Constants (Initial registry created in `src/constants/routes.ts`).
+- Intent Manager, Feature Isolation, and Bootstrap modularization.
