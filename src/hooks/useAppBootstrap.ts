@@ -41,8 +41,24 @@ export const useAppBootstrap = (): BootstrapState => {
         if (currentHash && currentHash.includes('access_token=')) {
           console.log('[Bootstrap] Detected OAuth hash. Delaying router to let Supabase process it.');
 
-          // Let Supabase process the hash before we mount the router
-          await supabase.auth.getSession();
+          // Manually parse HashRouter format (e.g. #/#access_token=... or #/access_token=...)
+          const hashString = currentHash.replace(/^#\/?#?\/?/, ''); // Removes #/, #/#, etc.
+          const params = new URLSearchParams(hashString);
+          const accessToken = params.get('access_token');
+          const refreshToken = params.get('refresh_token');
+
+          if (accessToken && refreshToken) {
+            console.log('[Bootstrap] Manually setting Supabase session from HashRouter URL parameters.');
+            const { error } = await supabase.auth.setSession({
+              access_token: accessToken,
+              refresh_token: refreshToken
+            });
+            if (error) console.error('[Bootstrap] Manual setSession error:', error);
+            else console.log('[Bootstrap] Manual setSession success.');
+          } else {
+            console.log('[Bootstrap] No access_token/refresh_token found after parsing hash. Calling getSession to let Supabase try.');
+            await supabase.auth.getSession();
+          }
 
           console.log('[Bootstrap] Supabase processed hash. Cleaning up URL.');
           // Remove the hash cleanly to prevent HashRouter from treating it as a route
