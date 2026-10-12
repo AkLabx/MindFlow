@@ -33,7 +33,7 @@ export interface OWSInteraction {
 }
 
 const DB_NAME = 'MindFlowDB';
-const DB_VERSION = 12;
+const DB_VERSION = 13;
 const STORE_NAME = 'saved_quizzes';
 const HISTORY_STORE_NAME = 'quiz_history';
 const BOOKMARKS_STORE_NAME = 'global_bookmarks';
@@ -77,6 +77,9 @@ const openDB = (): Promise<IDBDatabase> => {
             }
             if (!db.objectStoreNames.contains(CHAT_CONVERSATIONS_STORE)) {
                 db.createObjectStore(CHAT_CONVERSATIONS_STORE, { keyPath: 'id' });
+            }
+            if (!db.objectStoreNames.contains(ACTIVE_SESSION_STORE)) {
+                db.createObjectStore(ACTIVE_SESSION_STORE, { keyPath: 'id' });
             }
             if (!db.objectStoreNames.contains(CHAT_MESSAGES_STORE)) {
                 const messageStore = db.createObjectStore(CHAT_MESSAGES_STORE, { keyPath: 'id' });
