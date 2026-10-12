@@ -497,11 +497,11 @@ export const syncService = {
         await processInChunks(idiomsToPush, (idiom) => syncService.pushIdiomInteraction(userId, idiom));
 
         // After merging up, clear local to prep for a fresh pull
-        await db.clearAllUserData();
+        try { await db.clearAllUserData(); } catch (err) { console.error("[SyncService] clearAllUserData failed:", err); }
       } else {
         // --- EXISTING LOGIN FLOW ---
         // 3. Clear local IndexedDB immediately to avoid mixing guest data into existing account
-        await db.clearAllUserData();
+        try { await db.clearAllUserData(); } catch (err) { console.error("[SyncService] clearAllUserData failed:", err); }
       }
 
       // 4. Pull fresh data from Server to Local (Hydration)
