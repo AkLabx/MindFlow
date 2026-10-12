@@ -34,3 +34,4 @@ Welcome to the canonical architectural reference for MindFlow. This documentatio
 - **Strict Hydration & Caching:** Offline-first caching with IndexedDB delta sync.
 - **Idempotency:** UI actions and background queues strictly handle duplicate inputs safely.
 - **Enterprise Native Routing:** Hardware back-button intercepts ensure precise navigation state tracking outside standard React Router memory.
+- [Future Refactor Blueprint](./FUTURE_REFACTOR_BLUEPRINT.md) - A clean, 5-layer architectural target.
