@@ -37,7 +37,7 @@ interface DashboardProps {
   /** Callback to navigate to the English Zone. */
 
   /** Callback to return to the Landing Page intro. */
-  onBackToIntro: () => void;
+  onBackToIntro?: () => void;
 }
 
 /**
