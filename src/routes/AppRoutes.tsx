@@ -223,6 +223,7 @@ const handleReattempt = async (quizId: string, mode: string) => {
                 <Route path="/signup" element={<Navigate to="/" replace />} />
 
                 {/* --- Standard Application Routes (Wrapped in QuizLayout) --- */}
+                    <Route path="/dashboard" element={<NavigationManager type={RouteAccessType.AUTHENTICATED}><Suspense fallback={<SynapticLoader />}><Dashboard /></Suspense></NavigationManager>} />
                 <Route element={<QuizLayout />}>
                     <Route path="/result/:quizId" element={
                         <ErrorBoundary><ResultGuard>
