@@ -189,7 +189,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     const getInitialSession = async () => {
       useDebugStore.getState().logEvent('AuthContext mounted & getInitialSession started');
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: { session }, error } = await supabase.auth.getSession();
+      console.log("[AuthContext Debug] getInitialSession result:", session ? "Session exists" : "null");
+      if (error) console.error("[AuthContext Debug] getInitialSession error:", error);
+      
       setSession(session);
       setUser(session?.user ?? null);
       useDebugStore.getState().logEvent('Initial session loaded', { hasSession: !!session, metadataAvatar: session?.user?.user_metadata?.avatar_url });
@@ -215,6 +218,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     getInitialSession();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log("[AuthContext Debug] onAuthStateChange event:", event, session ? "Session exists" : "null");
       // This logic runs in both the main app and the auth popup.
 
       // If we are in the auth popup (opened by Google OAuth), close it after successful sign-in.

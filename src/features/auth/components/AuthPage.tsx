@@ -57,12 +57,27 @@ const AuthPage: React.FC<AuthPageProps> = ({ onBack }) => {
   const { user } = useAuth();
 
   useEffect(() => {
+    console.log("[AuthPage Debug] Rendered AuthPage. Current user from context:", user?.id || "null");
+    console.log("[AuthPage Debug] location.search:", location.search, "location.hash:", location.hash);
+    
+    const checkSession = async () => {
+      const { data, error } = await supabase.auth.getSession();
+      console.log("[AuthPage Debug] supabase.auth.getSession():", data.session ? "Session exists" : "null", error);
+    };
+    checkSession();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log("[AuthPage Debug] Auth state change event:", event, session ? "Session exists" : "null");
+    });
+
     if (user) {
+      console.log("[AuthPage Debug] User exists, navigating to dashboard...");
       const params = new URLSearchParams(location.search);
       const returnTo = params.get('returnTo');
       const destination = returnTo && returnTo.startsWith('/') ? returnTo : '/dashboard';
       navigate(destination, { replace: true });
     }
+    return () => { subscription.unsubscribe(); }
   }, [user, navigate, location.search]);
 
   /**
