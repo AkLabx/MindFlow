@@ -203,7 +203,7 @@ This refactor happens incrementally.
 To minimize risk and keep PRs reviewable, the hardcoded strings (like navigation paths) must be migrated incrementally. Do *not* run a global find-and-replace.
 
 - [x] Create centralized Application Registry (`src/config/`)
-- [ ] Migrate `AppRoutes.tsx` to use registry
+- [x] Migrate `AppRoutes.tsx` to use registry
 - [ ] Migrate `NavigationManager`
 - [ ] Migrate Route Guards and Layouts
 - [ ] Migrate Header / Footer / Shared components
