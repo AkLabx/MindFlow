@@ -68,59 +68,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     let sessionSub: any = null;
 
     if (user) {
-      const upsertSession = async (token: string) => {
-        const { error } = await supabase
-          .from('user_active_sessions')
-          .upsert({ user_id: user.id, session_token: token, updated_at: new Date().toISOString() }, { onConflict: 'user_id', ignoreDuplicates: false });
-
-        if (error) {
-          console.error("Failed to update active session token:", error);
-        }
-      };
-
-      const setupWatcher = () => {
-        sessionSub = supabase
-          .channel('active_session_watcher')
-          .on(
-            'postgres_changes',
-            {
-              event: '*',
-              schema: 'public',
-              table: 'user_active_sessions',
-              filter: `user_id=eq.${user.id}`
-            },
-            async (payload) => {
-              // Ignore DELETE events to prevent empty payload crashes
-              if (payload.eventType === 'DELETE') return;
-
-              const remoteSessionToken = (payload.new as any).session_token;
-              const currentLocalToken = localStorage.getItem(SESSION_ID_KEY);
-
-              // If the tokens do NOT match, it means another device logged in!
-              if (currentLocalToken && remoteSessionToken !== currentLocalToken) {
-                console.warn("Session hijacked! Another device logged in.");
-
-                // Evict the user
-                await forceEvict();
-
-
-              }
-            }
-          )
-          .subscribe();
-      };
-
       const initSessionTracker = async () => {
         let localSessionId = localStorage.getItem(SESSION_ID_KEY);
-
-        if (sessionStorage.getItem('mindflow_oauth_just_signed_in') === 'true' || !localSessionId) {
-             sessionStorage.removeItem('mindflow_oauth_just_signed_in');
-             localSessionId = crypto.randomUUID();
-             localStorage.setItem(SESSION_ID_KEY, localSessionId);
-             await upsertSession(localSessionId);
-             setupWatcher();
-             return;
-        }
 
         if (localSessionId) {
           // Reopening the app on an existing device
@@ -169,9 +118,47 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
       };
 
+      const upsertSession = async (token: string) => {
+        const { error } = await supabase
+          .from('user_active_sessions')
+          .upsert({ user_id: user.id, session_token: token, updated_at: new Date().toISOString() }, { onConflict: 'user_id', ignoreDuplicates: false });
+
+        if (error) {
+          console.error("Failed to update active session token:", error);
+        }
+      };
+
+      const setupWatcher = () => {
+        sessionSub = supabase
+          .channel('active_session_watcher')
+          .on(
+            'postgres_changes',
+            {
+              event: '*',
+              schema: 'public',
+              table: 'user_active_sessions',
+              filter: `user_id=eq.${user.id}`
+            },
+            async (payload) => {
+              // Ignore DELETE events to prevent empty payload crashes
+              if (payload.eventType === 'DELETE') return;
+
+              const remoteSessionToken = (payload.new as any).session_token;
+              const currentLocalToken = localStorage.getItem(SESSION_ID_KEY);
+
+              // If the tokens do NOT match, it means another device logged in!
+              if (currentLocalToken && remoteSessionToken !== currentLocalToken) {
+                console.warn("Session hijacked! Another device logged in.");
+
+                // Evict the user
+                await forceEvict();
 
 
-
+              }
+            }
+          )
+          .subscribe();
+      };
 
       initSessionTracker();
     }
