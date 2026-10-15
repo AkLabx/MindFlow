@@ -54,7 +54,10 @@ export const useAppBootstrap = (): BootstrapState => {
               refresh_token: refreshToken
             });
             if (error) console.error('[Bootstrap] Manual setSession error:', error);
-            else console.log('[Bootstrap] Manual setSession success.');
+            else {
+              console.log('[Bootstrap] Manual setSession success.');
+              sessionStorage.setItem('mindflow_oauth_just_signed_in', 'true');
+            }
           } else {
             console.log('[Bootstrap] No access_token/refresh_token found after parsing hash. Calling getSession to let Supabase try.');
             await supabase.auth.getSession();

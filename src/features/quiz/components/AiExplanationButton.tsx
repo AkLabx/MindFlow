@@ -253,14 +253,10 @@ Fun Fact: ${data.fun_fact}
                 });
             });
 
-            const startTime = performance.now();
             const { data: resultData, error: invokeError } = await Promise.race([invokePromise, abortPromise]) as any;
-            const endTime = performance.now();
-            const requestDuration = (endTime - startTime).toFixed(2);
 
-            console.log(`[AI Tutor] Request took ${requestDuration}ms`);
-            console.log("[AI Tutor] RAW invoke result:", resultData);
-            console.log("[AI Tutor] RAW invoke error:", invokeError);
+            console.log("RAW invoke result:", resultData);
+            console.log("RAW invoke error:", invokeError);
 
             if (invokeError) {
                 console.error("Function invocation error:", invokeError);
@@ -274,20 +270,12 @@ Fun Fact: ${data.fun_fact}
                 throw new Error("provider_error");
             }
 
-            // Accept both flat JSON and nested .data property for backwards compatibility
-            const actualData = resultData?.data || resultData;
-
-            // Validate against expected schema
-            const isValidResponse = actualData && typeof actualData === 'object' && actualData.correct_answer && actualData.reasoning;
-
-            if (isValidResponse) {
-                console.log("[AI Tutor] Response parser succeeded");
+            if (resultData?.data) {
                 // Prevent state updates if aborted or closed
                 if (!signal.aborted) {
-                    setData(actualData);
+                    setData(resultData.data);
                 }
             } else {
-                console.error("[AI Tutor] Response parser failed. Data:", actualData);
                 throw new Error("empty_response");
             }
 
@@ -316,10 +304,8 @@ Fun Fact: ${data.fun_fact}
                             setError("The AI Tutor is currently down for maintenance. Please check back later.");
                             break;
                         case 'provider_error':
-                            setError("AI Tutor is currently busy or overloaded. Please try again shortly.");
-                            break;
                         case 'empty_response':
-                            setError("AI Tutor returned an unexpected response format.");
+                            setError("AI Tutor is currently busy or overloaded. Please try again shortly.");
                             break;
                         default:
                             setError("Something went wrong loading the explanation.");
