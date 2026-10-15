@@ -5,7 +5,8 @@ export const SUPABASE_URL = 'https://sjcfagpjstbfxuiwhlps.supabase.co';
 export const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNqY2ZhZ3Bqc3RiZnh1aXdobHBzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA5NDQ5OTUsImV4cCI6MjA3NjUyMDk5NX0.8p6tIdBum2uhi0mRYENtF81WryaVlZFCwukwAAwJwJA';
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-  global: { fetch: fetchWithTimeout }
+  global: { fetch: fetchWithTimeout },
+  auth: { detectSessionInUrl: false, persistSession: true, autoRefreshToken: true }
 });
 
 // --- AUTH RUNTIME STABILIZATION: HARD MUTEX TIMEOUTS ---
