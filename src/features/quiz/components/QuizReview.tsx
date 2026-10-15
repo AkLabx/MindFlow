@@ -17,6 +17,7 @@ interface QuizReviewProps {
   bookmarkedQuestions: string[];
   onBackToScore: () => void;
   onGoHome: () => void;
+  initialReviewIndex?: number;
   initialFilter?: 'All' | 'Correct' | 'Incorrect' | 'Bookmarked' | 'Skipped';
 }
 
@@ -39,10 +40,10 @@ export const QuizReview: React.FC<QuizReviewProps> = ({
   bookmarkedQuestions,
   onBackToScore,
   onGoHome,
-  initialFilter = 'All'
+  initialFilter = 'All', initialReviewIndex
 }) => {
   const [filter, setFilter] = useState<string>(initialFilter);
-  const [reviewIndex, setReviewIndex] = useState(0);
+  const [reviewIndex, setReviewIndex] = useState(initialReviewIndex || 0);
   const [isNavOpen, setIsNavOpen] = useState(false);
   const [isHeaderVisible, setIsHeaderVisible] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
