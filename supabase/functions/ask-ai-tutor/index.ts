@@ -48,15 +48,9 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-         return new Response(JSON.stringify({ error: 'Unauthorized (No header)' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401 });
-    }
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
-
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
     if (!user) {
-      return new Response(JSON.stringify({ error: 'Unauthorized (Invalid Token)' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401 });
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401 });
     }
 
     const { questionId, locale = 'en' } = await req.json();

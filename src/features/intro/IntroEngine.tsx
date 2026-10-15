@@ -20,8 +20,9 @@ export const IntroEngine: React.FC<{ children: React.ReactNode }> = ({ children 
     initialize();
 
     const sessionKey = 'mindflow_intro_played_v2';
-    if (sessionStorage.getItem(sessionKey)) {
+    if (sessionStorage.getItem(sessionKey) || sessionStorage.getItem('mindflow_booted') === 'true' || window.location.hash.includes('access_token=')) {
       setHasPlayed(true);
+      sessionStorage.setItem('mindflow_booted', 'true');
       return;
     }
 
@@ -95,6 +96,7 @@ export const IntroEngine: React.FC<{ children: React.ReactNode }> = ({ children 
         setFrozenConfig(null);
     } else {
         sessionStorage.setItem('mindflow_intro_played_v2', 'true');
+        sessionStorage.setItem('mindflow_booted', 'true');
         setHasPlayed(true);
         setFrozenConfig(null);
     }

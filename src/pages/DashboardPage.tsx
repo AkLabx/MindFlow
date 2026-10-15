@@ -1,5 +1,8 @@
 import React, { useEffect } from "react";
 import { motion } from "framer-motion";
+import { useQuizContext } from '@/features/quiz/context/QuizContext';
+import { STARTER_DIAGNOSTIC_QUESTIONS } from '@/features/quiz/data/starterDiagnosticQuestions';
+import { db } from '@/lib/db';
 import { AdminSVG } from "@/features/admin";
 import {
   McqsQuizSVG,
@@ -521,7 +524,8 @@ export const DashboardPage: React.FC<DashboardProps> = ({ onBackToIntro }) => {
             </div>
           </motion.div>
 
-          {/* Card card-7 */}
+          {/* Card card-7 (Hidden permanently per spec, moved to side panel) */}
+          {false && (
           <motion.div
             variants={itemVariants}
             whileHover={{ scale: 1.01 }}
@@ -576,9 +580,11 @@ export const DashboardPage: React.FC<DashboardProps> = ({ onBackToIntro }) => {
               </div>
             </div>
           </motion.div>
+          )}
         </motion.div>
 
-        {/* Footer Link */}
+        {/* Footer Link (Hidden per spec) */}
+        {false && (
         <div className="w-full text-center pb-4">
           <button
             onClick={onBackToIntro}
@@ -587,6 +593,7 @@ export const DashboardPage: React.FC<DashboardProps> = ({ onBackToIntro }) => {
             Back to Intro
           </button>
         </div>
+        )}
       </div>
     </div>
   );
