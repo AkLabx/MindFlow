@@ -30,18 +30,13 @@ export class OnboardingPolicy {
         return false;
     }
 
-    if (user.user_metadata?.onboarding_completed === true) {
-        this.markCompleted(user.id);
-        return false;
-    }
-
     // Check if it's an existing user who just logged in on a new device.
-    // If account was created more than 24 hours ago, treat as a legacy user and bypass onboarding.
+    // If account was created more than 1 hour ago, treat as an existing user and bypass onboarding.
     if (user.created_at) {
         const createdAt = new Date(user.created_at).getTime();
-        const twentyFourHours = 24 * 60 * 60 * 1000;
+        const oneHour = 60 * 60 * 1000;
         const now = Date.now();
-        if (now - createdAt > twentyFourHours) {
+        if (now - createdAt > oneHour) {
             // Mark it completed so subsequent fast-path checks just return false.
             this.markCompleted(user.id);
             return false;

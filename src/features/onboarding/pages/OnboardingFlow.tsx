@@ -4,7 +4,6 @@ import { useAuth } from '@/features/auth';
 import { OnboardingPolicy } from '@/lib/navigation/policies/OnboardingPolicy';
 import { Button } from '@/components/Button/Button';
 import { IntentPolicy } from '@/lib/navigation/policies/IntentPolicy';
-import { supabase } from '@/lib/supabase';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, ArrowRight, ShieldCheck, UserCircle, CheckCircle2 } from 'lucide-react';
 
@@ -55,11 +54,6 @@ export const OnboardingFlow: React.FC = () => {
       setCurrentStepIndex(prev => prev + 1);
     } else {
       if (user) {
-        // Fire and forget, don't block UI navigation
-        supabase.auth.updateUser({
-          data: { onboarding_completed: true }
-        }).catch(err => console.warn('Failed to update onboarding_completed in Supabase:', err));
-
         OnboardingPolicy.markCompleted(user.id);
       }
       const intent = IntentPolicy.popIntent();
