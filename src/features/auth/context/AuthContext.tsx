@@ -196,31 +196,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setSession(session);
       setUser(session?.user ?? null);
       useDebugStore.getState().logEvent('Initial session loaded', { hasSession: !!session, metadataAvatar: session?.user?.user_metadata?.avatar_url });
-      if (session?.user) {
-          const isOAuthSignin = sessionStorage.getItem('mindflow_oauth_just_signed_in') === 'true';
-          const localSessionId = localStorage.getItem(SESSION_ID_KEY);
-
-          if (isOAuthSignin || !localSessionId) {
-             console.log('[AuthContext] Processing as fresh login (OAuth or missing local token after cache clear).');
-             const newLocalSessionId = crypto.randomUUID();
-             localStorage.setItem(SESSION_ID_KEY, newLocalSessionId);
-
-             // Guarantee write before listener kicks in
-             const { error: upsertErr } = await supabase
-               .from('user_active_sessions')
-               .upsert({ user_id: session.user.id, session_token: newLocalSessionId, updated_at: new Date().toISOString() }, { onConflict: 'user_id', ignoreDuplicates: false });
-
-             if (upsertErr) {
-                 console.error("Failed to update active session token during INITIAL_SESSION:", upsertErr);
-             }
-             sessionStorage.removeItem('mindflow_oauth_just_signed_in');
-          }
-
-          if (lastSyncedUserId.current !== session.user.id) {
-             lastSyncedUserId.current = session.user.id;
-             // Run sync on load if user is logged in
-             syncService.syncOnLogin(session.user.id, false);
-          }
+      if (session?.user && lastSyncedUserId.current !== session.user.id) {
+         lastSyncedUserId.current = session.user.id;
+         // Run sync on load if user is logged in
+         syncService.syncOnLogin(session.user.id, false);
       }
       if (session?.user) {
         try {
@@ -267,22 +246,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
         // Check if this is a sign up event (either from explicit event or local flag)
         const isSignup = (event as string) === 'SIGNED_UP' || localStorage.getItem('mindflow_is_signup') === 'true';
-
-        const isOAuthSignin = sessionStorage.getItem('mindflow_oauth_just_signed_in') === 'true';
-        const localSessionId = localStorage.getItem(SESSION_ID_KEY);
-
-        if ((event as string) === 'INITIAL_SESSION' && (isOAuthSignin || !localSessionId)) {
-             console.log('[AuthContext] Processing INITIAL_SESSION as fresh login (OAuth or cache cleared).');
-             const newLocalSessionId = crypto.randomUUID();
-             localStorage.setItem(SESSION_ID_KEY, newLocalSessionId);
-
-             supabase
-               .from('user_active_sessions')
-               .upsert({ user_id: finalUser.id, session_token: newLocalSessionId, updated_at: new Date().toISOString() }, { onConflict: 'user_id', ignoreDuplicates: false })
-               .then(({error}) => { if (error) console.error(error); });
-
-             sessionStorage.removeItem('mindflow_oauth_just_signed_in');
-        }
 
         // Run sync only on explicit sign-in or sign-up, not on token refreshes or user updates
         // We also check lastSyncedUserId to avoid redundant syncs on INITIAL_SESSION if already handled
