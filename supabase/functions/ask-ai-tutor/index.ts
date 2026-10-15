@@ -88,7 +88,20 @@ serve(async (req) => {
     // --- STAGE 1: GROUNDING LAYER ---
     let recentNewsContext = "No major recent news found.";
 
-    const groundingApiKey = Deno.env.get('GROUNDING_API_KEY');
+    const keys = [
+        'GEMINI_API_KEY_v1',
+        'GEMINI_API_KEY_FALLBACK_v1',
+        'enrich-ques-api_v1',
+        'enrich-ques-api-fallback_v1'
+    ];
+    let groundingApiKey = null;
+    for(const key of keys) {
+        const val = Deno.env.get(key);
+        if(val) {
+            groundingApiKey = val;
+            break;
+        }
+    }
 
     if (groundingApiKey) {
         try {
@@ -105,46 +118,17 @@ serve(async (req) => {
                 })
             });
 
-            console.log(`[STAGE 1] Using GROUNDING_MODEL: ${groundingModel}`);
-
-            let groundingData = null;
-            let responseText = '';
-            try {
-                responseText = await groundingResponse.text();
-                groundingData = JSON.parse(responseText);
-            } catch (e) {
-                console.warn(`[STAGE 1] Failed to parse JSON response. Raw text:`, responseText);
-            }
-
-            if (groundingResponse.ok && groundingData) {
+            if (groundingResponse.ok) {
+                const groundingData = await groundingResponse.json();
                 if (groundingData?.candidates?.[0]?.content?.parts?.[0]?.text) {
                     recentNewsContext = groundingData.candidates[0].content.parts[0].text.trim();
-                    console.log(`[STAGE 1] Success. Extracted recentNewsContext: ${recentNewsContext}`);
-                } else {
-                    console.warn(`[STAGE 1] Success but parsing failed or empty candidate. Raw JSON:`, JSON.stringify(groundingData));
                 }
             } else {
-                console.warn(`[STAGE 1] Grounding Failed!`);
-                console.warn(`[STAGE 1] Model used: ${groundingModel}`);
-                console.warn(`[STAGE 1] HTTP Status: ${groundingResponse.status}`);
-                console.warn(`[STAGE 1] Google Error Response:`, JSON.stringify(groundingData || responseText));
-
-                // Detailed logging based on status
-                if (groundingResponse.status === 404) {
-                    console.warn(`[STAGE 1] Failure Reason: 404 NOT_FOUND. The model is likely unavailable to this API key or deprecated.`);
-                } else if (groundingResponse.status === 429) {
-                    console.warn(`[STAGE 1] Failure Reason: 429 RESOURCE_EXHAUSTED. The API key does not have quota for Grounding (or Free Tier limit).`);
-                } else if (groundingResponse.status === 403) {
-                    console.warn(`[STAGE 1] Failure Reason: 403 FORBIDDEN. Invalid API Key or Permission Denied.`);
-                } else if (groundingResponse.status === 400) {
-                     console.warn(`[STAGE 1] Failure Reason: 400 BAD_REQUEST. The model might not support the googleSearch tool.`);
-                }
+                console.warn(`Stage 1 Grounding Failed with status: ${groundingResponse.status}`);
             }
         } catch (e) {
-            console.error("[STAGE 1] Grounding Exception during network fetch:", e);
+            console.error("Stage 1 Grounding Exception:", e);
         }
-    } else {
-        console.warn("[STAGE 1] GROUNDING_API_KEY is not set. Bypassing Grounding layer entirely.");
     }
 
     // --- STAGE 2: GENERATION LAYER ---
