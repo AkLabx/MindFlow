@@ -54,15 +54,20 @@ export const NavigationManager: React.FC<NavigationManagerProps> = ({ children, 
       // --- 3. Guest Only Policy (Login/Register) ---
       else if (type === RouteAccessType.GUEST_ONLY) {
         if (user) {
-          // If auth user hits login, see if they have an intent. If so, fulfill it.
-          const intent = IntentPolicy.popIntent();
-          if (intent) {
-            targetRedirect = intent;
-            reason = 'Restoring intent for Authenticated user hitting Guest Route';
-            NavigationAnalytics.track('Deep Link Restored', { destination: intent });
+          if (OnboardingPolicy.shouldRedirectToOnboarding(user)) {
+             targetRedirect = '/onboarding';
+             reason = 'New authenticated user routed directly to Onboarding';
           } else {
-            targetRedirect = '/dashboard';
-            reason = 'Authenticated user hitting Guest Route';
+            // If auth user hits login, see if they have an intent. If so, fulfill it.
+            const intent = IntentPolicy.popIntent();
+            if (intent) {
+              targetRedirect = intent;
+              reason = 'Restoring intent for Authenticated user hitting Guest Route';
+              NavigationAnalytics.track('Deep Link Restored', { destination: intent });
+            } else {
+              targetRedirect = '/dashboard';
+              reason = 'Authenticated user hitting Guest Route';
+            }
           }
         }
       }
@@ -70,8 +75,13 @@ export const NavigationManager: React.FC<NavigationManagerProps> = ({ children, 
       // --- 4. Public Policy ---
       else if (type === RouteAccessType.PUBLIC) {
         if (user) {
-          targetRedirect = '/dashboard';
-          reason = 'Authenticated user hitting Public Route';
+          if (OnboardingPolicy.shouldRedirectToOnboarding(user)) {
+             targetRedirect = '/onboarding';
+             reason = 'New authenticated user routed directly to Onboarding';
+          } else {
+             targetRedirect = '/dashboard';
+             reason = 'Authenticated user hitting Public Route';
+          }
         }
       }
 

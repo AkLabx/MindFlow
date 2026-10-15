@@ -6,7 +6,9 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../../../lib/supabase';
 import { BrainCircuit, ArrowLeft, Loader2 } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import { STARTER_DIAGNOSTIC_QUESTIONS } from '@/features/quiz/data/starterDiagnosticQuestions';
+import { triggerHaptic } from '@/lib/haptics';
 
 /**
  * Props for the AuthPage component.
@@ -40,6 +42,16 @@ That comment can save hours of debugging later if someone (or future you) is tem
  * @returns {JSX.Element} The rendered authentication page.
  */
 const AuthPage: React.FC<AuthPageProps> = ({ onBack }) => {
+  const [showDemo, setShowDemo] = useState(false);
+  const [demoIndex, setDemoIndex] = useState(0);
+  const [demoLanguage, setDemoLanguage] = useState<'en'|'hi'>('en');
+  const [demoSelectedOption, setDemoSelectedOption] = useState<string | null>(null);
+  const [demoScore, setDemoScore] = useState(0);
+  const [demoFinished, setDemoFinished] = useState(false);
+
+  const demoQuestions = [STARTER_DIAGNOSTIC_QUESTIONS[0], STARTER_DIAGNOSTIC_QUESTIONS[1], STARTER_DIAGNOSTIC_QUESTIONS[5]];
+  const currentDemoQuestion = demoQuestions[demoIndex];
+
   const [isSignUp, setIsSignUp] = useState(false);
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
@@ -201,7 +213,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ onBack }) => {
   };
 
   return (
-
+    <>
     <div className="min-h-[100dvh] font-sans text-text-main antialiased relative w-full flex flex-col animate-fade-in py-4 flex-1 px-4 sm:px-6 lg:px-8 pt-[env(safe-area-inset-top,16px)] pb-[calc(16px+env(safe-area-inset-bottom,16px))] overflow-y-auto">
         {/* Ambient Background Blobs */}
         <div className="absolute top-0 left-1/4 w-[50vw] h-[50vw] max-w-[500px] max-h-[500px] bg-indigo-500/20 dark:bg-indigo-500/10 rounded-full mix-blend-multiply dark:mix-blend-lighten filter blur-3xl opacity-50 animate-blob pointer-events-none z-0"></div>
@@ -266,6 +278,13 @@ const AuthPage: React.FC<AuthPageProps> = ({ onBack }) => {
                )}
              </button>
            </div>
+
+           <button
+             onClick={() => setShowDemo(true)}
+             className="w-full group flex justify-center items-center gap-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-semibold py-3 px-4 rounded-xl transition-all duration-300 shadow-sm border border-slate-200 dark:border-slate-700 mb-6"
+           >
+             <span>⚡ Try 3 Sample Questions First</span>
+           </button>
 
            <div className="relative mb-6">
              <div aria-hidden="true" className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-200 dark:border-gray-700"></div></div>
@@ -412,6 +431,165 @@ const AuthPage: React.FC<AuthPageProps> = ({ onBack }) => {
            </form>
 
            </div></div></div></div></div>
+
+      {/* 3-Question Micro-Demo Drawer */}
+      <AnimatePresence>
+        {showDemo && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowDemo(false)}
+              className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xl"
+            />
+            <motion.div
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              className="fixed bottom-0 left-0 right-0 z-50 bg-white dark:bg-slate-900 rounded-t-3xl sm:rounded-3xl sm:bottom-auto sm:top-1/2 sm:left-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 sm:max-w-md sm:w-full max-h-[90vh] overflow-y-auto flex flex-col shadow-2xl border border-slate-200 dark:border-slate-800"
+            >
+              <div className="p-4 sm:p-6 flex flex-col gap-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-semibold text-slate-500 dark:text-slate-400">
+                    Question {demoIndex + 1} of 3
+                  </span>
+                  <div className="flex gap-2 items-center">
+                    <button
+                      onClick={() => setDemoLanguage(demoLanguage === 'en' ? 'hi' : 'en')}
+                      className="text-xs font-bold bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-full text-slate-700 dark:text-slate-300"
+                    >
+                      {demoLanguage === 'en' ? 'EN' : 'हिं'}
+                    </button>
+                    <button onClick={() => setShowDemo(false)} className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full">
+                      <svg className="w-6 h-6 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
+                  </div>
+                </div>
+
+                {!demoFinished ? (
+                  <>
+                    <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100 mb-2">
+                      {demoLanguage === 'en' ? currentDemoQuestion.question : (currentDemoQuestion.question_hi || currentDemoQuestion.question)}
+                    </h2>
+
+                    <div className="flex flex-col gap-3 mt-4">
+                      {currentDemoQuestion.options.map((opt, idx) => {
+                        const isSelected = demoSelectedOption === opt;
+                        const isCorrect = opt === currentDemoQuestion.correct;
+                        const displayOpt = demoLanguage === 'en' ? opt : (currentDemoQuestion.options_hi?.[idx] || opt);
+
+                        let btnClass = "text-left px-4 py-3 rounded-xl border font-medium transition-colors ";
+                        if (!demoSelectedOption) {
+                          btnClass += "border-slate-200 dark:border-slate-700 hover:border-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 text-slate-700 dark:text-slate-300";
+                        } else {
+                          if (isCorrect) {
+                            btnClass += "border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300";
+                          } else if (isSelected) {
+                            btnClass += "border-rose-500 bg-rose-50 dark:bg-rose-900/20 text-rose-700 dark:text-rose-300";
+                          } else {
+                            btnClass += "border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 opacity-50";
+                          }
+                        }
+
+                        return (
+                          <button
+                            key={opt}
+                            disabled={!!demoSelectedOption}
+                            onClick={() => {
+                              setDemoSelectedOption(opt);
+                              if (isCorrect) {
+                                setDemoScore(s => s + 1);
+                                triggerHaptic('success');
+                              } else {
+                                triggerHaptic('error');
+                              }
+                            }}
+                            className={btnClass}
+                          >
+                            {String.fromCharCode(65 + idx)}. {displayOpt}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    <AnimatePresence>
+                      {demoSelectedOption && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0, marginTop: 0 }}
+                          animate={{ opacity: 1, height: 'auto', marginTop: 16 }}
+                          className="bg-indigo-50 dark:bg-indigo-900/20 rounded-xl p-4 border border-indigo-100 dark:border-indigo-800/50"
+                        >
+                          <div className="flex justify-between items-start mb-2">
+                             <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">Explanation</span>
+                             <span className="text-[10px] font-bold bg-white dark:bg-slate-800 px-2 py-1 rounded text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
+                               {currentDemoQuestion.sourceInfo.examName}
+                             </span>
+                          </div>
+                          <p className="text-sm text-slate-700 dark:text-slate-300 mb-2">
+                            {currentDemoQuestion.explanation.summary}
+                          </p>
+                          {currentDemoQuestion.explanation.fact && (
+                            <p className="text-sm text-indigo-700 dark:text-indigo-300 font-medium flex gap-2 items-start">
+                              <span className="text-lg leading-none">💡</span>
+                              {currentDemoQuestion.explanation.fact}
+                            </p>
+                          )}
+                          <button
+                            onClick={() => {
+                              if (demoIndex < 2) {
+                                setDemoIndex(i => i + 1);
+                                setDemoSelectedOption(null);
+                              } else {
+                                setDemoFinished(true);
+                              }
+                            }}
+                            className="mt-4 w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-xl transition-colors"
+                          >
+                            {demoIndex < 2 ? 'Next Question ->' : 'See Your Score ->'}
+                          </button>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </>
+                ) : (
+                  <div className="text-center py-8">
+                    <div className="text-4xl mb-4">🎉</div>
+                    <h2 className="text-2xl font-black text-slate-900 dark:text-white mb-2">
+                      You scored {demoScore}/3!
+                    </h2>
+                    <p className="text-slate-600 dark:text-slate-400 mb-8">
+                      Save Your Score & Unlock 10,000+ PYQs
+                    </p>
+                    <div className="space-y-3">
+                      <button
+                        onClick={() => {
+                          setShowDemo(false);
+                          handleGoogleSignIn();
+                        }}
+                        className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-4 rounded-xl transition-colors"
+                      >
+                        Continue with Google
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowDemo(false);
+                          if (!isSignUp) setIsSignUp(true);
+                        }}
+                        className="w-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-semibold py-3 px-4 rounded-xl transition-colors"
+                      >
+                        Sign up with Email
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+      </>
  );
 };
 

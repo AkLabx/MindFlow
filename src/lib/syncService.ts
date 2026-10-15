@@ -366,6 +366,14 @@ export const syncService = {
 
     await syncService.processEventQueue(userId);
 
+    // Bypass remote pulls on new signup since there is no remote data
+    if (isSignup) {
+       isSyncing = false;
+       lastSyncedUserIdForFullSync = userId;
+       window.dispatchEvent(new Event("mindflow-sync-complete"));
+       return;
+    }
+
     try {
       // 1. Pull from Supabase
       const [

@@ -1,0 +1,9 @@
+<<<<<<< SEARCH
+// --- Views ---
+const Dashboard = lazy(() => import('../pages/DashboardPage').then(m => ({ default: m.DashboardPage })));
+const AuthPage = lazy(() => import('../features/auth/components/AuthPage'));
+=======
+// --- Views ---
+import { DashboardPage as Dashboard } from '../pages/DashboardPage';
+import AuthPage from '../features/auth/components/AuthPage';
+>>>>>>> REPLACE
