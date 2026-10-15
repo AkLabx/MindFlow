@@ -112,7 +112,7 @@ export const NavigationManager: React.FC<NavigationManagerProps> = ({ children, 
   if (loading || (!isReady && !redirectPath)) {
     // Return minimal skeleton instead of full SynapticLoader to avoid flashes during rapid redirect evaluation
     return (
-       <div className="min-h-screen w-full flex items-center justify-center bg-slate-50 dark:bg-slate-900" />
+       <div className="min-h-screen w-full flex items-center justify-center bg-slate-50 dark:bg-slate-950" />
     );
   }
 

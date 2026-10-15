@@ -53,8 +53,12 @@ export const useAppBootstrap = (): BootstrapState => {
               access_token: accessToken,
               refresh_token: refreshToken
             });
-            if (error) console.error('[Bootstrap] Manual setSession error:', error);
-            else console.log('[Bootstrap] Manual setSession success.');
+            if (error) {
+               console.error('[Bootstrap] Manual setSession error:', error);
+            } else {
+               console.log('[Bootstrap] Manual setSession success.');
+               sessionStorage.setItem('mindflow_oauth_just_signed_in', 'true');
+            }
           } else {
             console.log('[Bootstrap] No access_token/refresh_token found after parsing hash. Calling getSession to let Supabase try.');
             await supabase.auth.getSession();
@@ -65,6 +69,19 @@ export const useAppBootstrap = (): BootstrapState => {
           sessionStorage.setItem('mindflow_booted', 'true');
           window.history.replaceState(null, '', window.location.pathname + window.location.search);
         }
+
+        // Check for ?code= or #code= for PKCE flow
+        const urlParams = new URLSearchParams(window.location.search);
+        const code = urlParams.get('code') || new URLSearchParams(window.location.hash.replace(/^#\/?#?\/?/, '')).get('code');
+        if (code) {
+             console.log('[Bootstrap] Detected PKCE code, exchanging for session.');
+             const { error } = await supabase.auth.exchangeCodeForSession(code);
+             if (!error) {
+                 sessionStorage.setItem('mindflow_oauth_just_signed_in', 'true');
+             }
+             window.history.replaceState(null, '', window.location.pathname);
+        }
+
         // ------------------------------------------
 
         console.log('[Bootstrap] Finished preliminary steps (hash interception).');

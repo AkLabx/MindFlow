@@ -101,7 +101,7 @@ export const DashboardPage: React.FC<DashboardProps> = ({ onBackToIntro }) => {
   };
 
   return (
-    <div className="flex flex-col min-h-screen -m-4 sm:-m-6 lg:-m-8 p-4 sm:p-6 lg:p-8 transition-colors duration-700 relative overflow-hidden">
+    <div className="flex flex-col min-h-screen p-4 sm:p-6 lg:p-8 transition-colors duration-700 relative overflow-hidden">
       <div className="flex-1 flex flex-col space-y-3 py-1 relative z-10 animate-fade-in w-full">
         {/* Greeting Section */}
         <div className="relative text-left w-full mb-2">
