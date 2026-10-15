@@ -62,6 +62,7 @@ export const useAppBootstrap = (): BootstrapState => {
 
           console.log('[Bootstrap] Supabase processed hash. Cleaning up URL.');
           // Remove the hash cleanly to prevent HashRouter from treating it as a route
+          sessionStorage.setItem('mindflow_booted', 'true');
           window.history.replaceState(null, '', window.location.pathname + window.location.search);
         }
         // ------------------------------------------
@@ -69,7 +70,6 @@ export const useAppBootstrap = (): BootstrapState => {
         console.log('[Bootstrap] Finished preliminary steps (hash interception).');
         // 1. Load Config & Feature Flags
         // (Placeholder for fetching remote config via RPC/Supabase)
-        await new Promise(resolve => setTimeout(resolve, 50));
 
         // 2. Initialize Supabase & Restore Session
         try {
