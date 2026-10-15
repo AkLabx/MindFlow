@@ -225,7 +225,7 @@ const handleReattempt = async (quizId: string, mode: string) => {
 
                 {/* --- Standard Application Routes (Wrapped in QuizLayout) --- */}
                 <Route element={<QuizLayout />}>
-                    <Route path={ROUTES.DASHBOARD} element={<NavigationManager type={RouteAccessType.AUTHENTICATED}><Dashboard /></NavigationManager>} />
+                    <Route path={ROUTES.DASHBOARD} element={<NavigationManager type={RouteAccessType.AUTHENTICATED}><Suspense fallback={<SynapticLoader />}><Dashboard /></Suspense></NavigationManager>} />
                     <Route path={ROUTES.MCQS} element={<NavigationManager type={RouteAccessType.AUTHENTICATED}><Suspense fallback={<SynapticLoader />}><McqsQuizHome onBack={() => { navigate(ROUTES.DASHBOARD); }} /></Suspense></NavigationManager>} />
                     <Route path={ROUTES.ENGLISH} element={<NavigationManager type={RouteAccessType.AUTHENTICATED}><Suspense fallback={<SynapticLoader />}><EnglishHub /></Suspense></NavigationManager>} />
                     <Route path={ROUTES.PROFILE.ROOT} element={<NavigationManager type={RouteAccessType.AUTHENTICATED}><Suspense fallback={<SynapticLoader />}><ProfilePage onNavigateToSettings={() => navigate(ROUTES.SETTINGS.ROOT)} onSignOut={() => navigate(ROUTES.DASHBOARD)} /></Suspense></NavigationManager>} />
