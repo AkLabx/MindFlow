@@ -55,14 +55,24 @@ serve(async (req) => {
 
     const { questionId, locale = 'en' } = await req.json();
 
+    // Fetch the question including the ask_ai_explanation cache column
     const { data: dbQuestion, error: qError } = await supabaseAdmin
         .from('questions')
-        .select('question, options, correct')
+        .select('question, options, correct, ask_ai_explanation')
         .eq('id', questionId)
         .single();
 
     if (qError || !dbQuestion) {
         return new Response(JSON.stringify({ error: 'Question not found' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 404 });
+    }
+
+    // --- CACHE CHECK ---
+    // If the database already has the AI explanation saved, return it immediately!
+    if (dbQuestion.ask_ai_explanation) {
+        return new Response(JSON.stringify(dbQuestion.ask_ai_explanation), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 200,
+        });
     }
 
     const questionText = dbQuestion.question;
@@ -118,7 +128,6 @@ serve(async (req) => {
     // --- STAGE 2: GENERATION LAYER ---
     let executionPlan;
     try {
-        // Updated to use correct param name: p_task instead of p_task_name
         executionPlan = await getExecutionPlan(supabaseAdmin, 'ask_ai_tutor');
         if (!executionPlan || !executionPlan.models || executionPlan.models.length === 0) {
             throw new Error("No healthy models available for Ask AI Tutor");
@@ -167,7 +176,6 @@ JSON Schema (Version v1):
 
         const startTime = Date.now();
         try {
-            // Stage 2 Request uses NO tools array
             const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelConfig.model}:generateContent?key=${apiKey}`;
             const response = await fetch(geminiUrl, {
                 method: 'POST',
@@ -196,7 +204,6 @@ JSON Schema (Version v1):
                 continue;
             }
 
-            // Success
             await reportExecution(supabaseAdmin, modelConfig.model, modelConfig.api_key_name, 200, latency);
 
             const rawOutput = responseJson?.candidates?.[0]?.content?.parts?.[0]?.text;
@@ -215,6 +222,19 @@ JSON Schema (Version v1):
             }
 
             finalResult = JSON.parse(cleanJsonStr.trim());
+
+            // --- CACHE THE RESULT ---
+            // Before returning, asynchronously update the database to store this so future requests hit the cache
+            // We use no await here or fire and forget if possible, or await it.
+            try {
+                await supabaseAdmin
+                    .from('questions')
+                    .update({ ask_ai_explanation: finalResult, ask_ai_generated_at: new Date().toISOString() })
+                    .eq('id', questionId);
+            } catch (e) {
+                console.error("Failed to cache AI Tutor response:", e);
+            }
+
             break;
 
         } catch (e: any) {
