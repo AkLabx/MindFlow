@@ -1,55 +1,34 @@
 # AI Tutor Pipeline Architecture
 
-## The Problem
-The `ask-ai-tutor` Edge Function previously relied on Google Search Grounding to fetch recent news about the question's topic. It did this by passing `tools: [{ googleSearch: {} }]` directly in the payload to the primary generation model (e.g., `gemini-3.1-flash-lite`).
+The AI Tutor uses a dual-stage architecture to provide grounded, reliable, and high-quality educational explanations.
 
-However, Google AI restricts the Search Grounding feature on the Free Tier for most `gemini-3.x` and `gemini-4.x` models. Requesting Grounding with these models immediately triggers a `429 RESOURCE_EXHAUSTED` error. The AI Scheduler caught this `429`, matching the word "quota", and incorrectly assumed the API key was completely exhausted for the day (`rpd_exhausted = true`). This resulted in a cascading failure where all AI keys were quarantined, shutting down the entire AI pipeline.
+## Overview
 
-## The Two-Stage Pipeline Solution
+The pipeline is split into two independent stages:
 
-To prevent `429` quota errors while maintaining the required Grounding functionality, we redesigned the `ask-ai-tutor` pipeline into a two-stage architecture.
+1.  **Stage 1: Grounding Layer (Optional Enrichment)**
+    *   **Purpose:** Fetches recent news and context using Google Search grounding.
+    *   **Isolation:** This stage is completely independent of the generation scheduler. It uses its own dedicated API key and model.
+    *   **Failure Handling:** If Stage 1 fails (due to quota, unsupported model, timeout, etc.), it logs the failure but gracefully falls back to `"No recent news available."` and continues to Stage 2. It **never** poisons the scheduler's health metrics.
+2.  **Stage 2: Generation Layer (Core Scheduler)**
+    *   **Purpose:** Uses the context from Stage 1 (or the fallback) to generate the final educational explanation.
+    *   **Scheduler:** Relies on the `get_execution_plan` database RPC to cycle through healthy API keys and models (e.g., `gemini-3.1-flash-lite`).
+    *   **Health Tracking:** Failures in Stage 2 correctly report back to the database (`reportExecution`), updating `health_score` and `rpd_exhausted` quotas.
 
-### Pipeline Diagram
+## Configuration
 
-```mermaid
-sequenceDiagram
-    participant Frontend
-    participant Edge Function
-    participant Stage 1 (Grounding)
-    participant AI Scheduler
-    participant Stage 2 (Generation)
+### Stage 1 (Grounding) Configuration
 
-    Frontend->>Edge Function: POST /ask-ai-tutor { questionId }
-    Edge Function->>Stage 1 (Grounding): Fetch Grounding context using gemini-2.5-flash
-    Stage 1 (Grounding)-->>Edge Function: Return Short News Summary OR "No major recent news found."
-    Edge Function->>AI Scheduler: Request healthy model for generation
-    AI Scheduler-->>Edge Function: Return Execution Plan (e.g., gemini-3.1-flash-lite)
-    Edge Function->>Stage 2 (Generation): Request Final JSON generation with NO Google Search tool (inject Context)
-    Stage 2 (Generation)-->>Edge Function: Return structured JSON explanation
-    Edge Function-->>Frontend: 200 OK (JSON Output)
+Stage 1 is configured entirely via Supabase Edge Function Secrets. No code changes are required to rotate keys or update models.
+
+*   `GROUNDING_API_KEY`: The dedicated Gemini API key used *only* for the Grounding stage. It should ideally be linked to a Google Cloud Project with Grounding capabilities enabled.
+*   `GROUNDING_MODEL`: The model to use for grounding (e.g., `gemini-2.5-flash` or `gemini-3.8-flash`).
+
+**How to change the Grounding model or rotate the key:**
+Update the secrets in your Supabase dashboard or via the CLI and restart the function if necessary.
+```bash
+supabase secrets set GROUNDING_API_KEY=new_key GROUNDING_MODEL=gemini-2.5-flash
 ```
 
-### Stage 1: The Grounding Layer
-
-The exclusive responsibility of this stage is to interact with Google Search Grounding.
-- **Model Used:** It specifically targets older/approved models that support Grounding on the Free Tier. By default, it targets `gemini-2.5-flash`, configurable via the `GROUNDING_MODEL` environment variable.
-- **Payload:** It sends a short, specific prompt requesting a 2-3 sentence news summary along with `tools: [{ googleSearch: {} }]`.
-- **Fallback Strategy:** If Stage 1 fails (e.g., due to model deprecation, network errors, or actual quota limits), it gracefully catches the error, sets the `recentNewsContext` to `"No major recent news found."`, and seamlessly proceeds to Stage 2. It does not throw an exception, nor does it poison the scheduler.
-
-### Stage 2: The Generation Layer
-
-This is the main workhorse that constructs the final JSON payload.
-- **Model Used:** It dynamically retrieves the best, healthiest model from the `get_execution_plan` RPC (typically `gemini-3.1-flash-lite` or whatever is configured in `ai_task_config`).
-- **Payload:** The critical change is the **complete removal** of the `tools: [{ googleSearch: {} }]` object. Instead, the context extracted from Stage 1 (`recentNewsContext`) is securely injected directly into the system instruction prompt.
-- **Result:** The model performs high-quality reasoning without triggering Grounding restrictions, ensuring no false `429` quota blacklisting occurs.
-
-## Why Grounding is Isolated
-
-Isolating Grounding into Stage 1 decouples the high-quality reasoning models (like `gemini-3.x`) from the strict Free Tier billing constraints associated with the Google Search tools. This ensures:
-- **No False Positives:** The scheduler accurately tracks real RPM/RPD limits rather than failing on Grounding access limits.
-- **Future-Proofing:** We can easily upgrade the Generation models to new versions (e.g., `gemini-4.x`) without worrying about whether they support free Grounding.
-
-## Future Maintenance Notes
-
-- **`GROUNDING_MODEL` Env Var:** If Google modifies the Free Tier Grounding models (e.g., deprecating `gemini-2.5-flash`), update the `GROUNDING_MODEL` environment variable in the Supabase Edge Function Secrets to point to the new supported model. No code deployment is required.
-- **Cost vs Performance:** While this uses two API calls, Stage 1 consumes very few tokens, keeping costs negligible. If a paid billing account is attached in the future, Stage 1 can be deprecated, and the tool array can be merged back into Stage 2.
+## Why is Stage 1 Isolated?
+Google Free Tier often restricts the `googleSearch` tool to specific legacy models (like older `gemini-2.5-flash` deployments) or requires a paid billing account. By isolating the Grounding layer to a single configurable secret (`GROUNDING_API_KEY`), administrators can point Grounding to a specific capable Google Cloud Project without affecting the main generation pool, which freely rotates among newer models (`gemini-3.1-flash-lite`) using the primary scheduler.

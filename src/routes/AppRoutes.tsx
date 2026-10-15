@@ -28,7 +28,7 @@ const PostPage = lazy(() => import('../features/community/pages/PostPage').then(
 
 const SchoolHomePage = lazy(() => import('../pages/SchoolHomePage').then(m => ({ default: m.SchoolHomePage })));
 const SchoolDownloads = lazy(() => import('../features/school/SchoolDownloads').then(m => ({ default: m.SchoolDownloads })));
-import { DashboardPage as Dashboard } from '../pages/DashboardPage';
+const Dashboard = lazy(() => import('../pages/DashboardPage').then(m => ({ default: m.DashboardPage })));
 const McqsQuizHome = lazy(() => import('../pages/McqsQuizHomePage').then(m => ({ default: m.McqsQuizHomePage })));
 const EnglishHub = lazy(() => import('../features/english').then(m => ({ default: m.EnglishHub })));
 const QuizConfig = lazy(() => import('../features/quiz/components/QuizConfig').then(m => ({ default: m.QuizConfig })));
@@ -117,7 +117,7 @@ const VocabResult = lazy(() => import('../features/vocab/components/VocabResult'
 
 
 // Auth & User Management
-import AuthPage from '../features/auth/components/AuthPage';
+const AuthPage = lazy(() => import('../features/auth/components/AuthPage'));
 const ProfilePage = lazy(() => import('../features/auth/components/ProfilePage'));
 const SettingsPage = lazy(() => import('../features/auth/components/SettingsPage'));
 const DeleteAccountPage = lazy(() => import('../features/settings/components/DeleteAccountPage').then(m => ({ default: m.DeleteAccountPage })));
