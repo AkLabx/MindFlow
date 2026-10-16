@@ -9,6 +9,7 @@ export class OnboardingPolicy {
 
   static getStatus(userId: string): OnboardingStatus {
     const status = localStorage.getItem(`onboarding_status_${userId}`);
+    // Note: We also rely on user_metadata.onboarding_completed in shouldRedirectToOnboarding
     if (status === 'COMPLETED') return 'COMPLETED';
     if (status === 'IN_PROGRESS') return 'IN_PROGRESS';
     return 'NOT_STARTED';

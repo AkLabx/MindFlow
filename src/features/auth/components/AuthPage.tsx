@@ -31,7 +31,7 @@ interface AuthPageProps {
 // Do not change this without testing the complete OAuth flow.
 //
 // See Navigation Architecture document.
-That comment can save hours of debugging later if someone (or future you) is tempted to "simplify" the URL.
+ * That comment can save hours of debugging later if someone (or future you) is tempted to "simplify" the URL.
  * Supports:
  * - Email/Password authentication.
  * - Google OAuth sign-in.
@@ -49,7 +49,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ onBack }) => {
   const [demoScore, setDemoScore] = useState(0);
   const [demoFinished, setDemoFinished] = useState(false);
 
-  const demoQuestions = [STARTER_DIAGNOSTIC_QUESTIONS[0], STARTER_DIAGNOSTIC_QUESTIONS[1], STARTER_DIAGNOSTIC_QUESTIONS[5]];
+  const demoQuestions = [STARTER_DIAGNOSTIC_QUESTIONS[7], STARTER_DIAGNOSTIC_QUESTIONS[8], STARTER_DIAGNOSTIC_QUESTIONS[9]];
   const currentDemoQuestion = demoQuestions[demoIndex];
 
   const [isSignUp, setIsSignUp] = useState(false);
