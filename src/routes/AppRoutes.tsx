@@ -4,7 +4,7 @@ import React, { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { QuizProvider, useQuizContext } from '@/features/quiz';
 import { useFlashcardStore } from '@/features/quiz';
-import { QuizLayout } from '@/features/quiz';
+import { AppLayout } from '../layouts/AppLayout';
 import { useAuth } from '@/features/auth';
 import { SynapticLoader } from '../components/ui/SynapticLoader';
 
@@ -224,37 +224,38 @@ const handleReattempt = async (quizId: string, mode: string) => {
                 <Route path={ROUTES.SIGNUP} element={<Navigate to={ROUTES.HOME} replace />} />
 
                 {/* --- Standard Application Routes (Wrapped in QuizLayout) --- */}
-                <Route element={<QuizLayout />}>
-                    <Route path={ROUTES.DASHBOARD} element={<NavigationManager type={RouteAccessType.AUTHENTICATED}><Suspense fallback={<SynapticLoader />}><Dashboard /></Suspense></NavigationManager>} />
-                    <Route path={ROUTES.MCQS} element={<NavigationManager type={RouteAccessType.AUTHENTICATED}><Suspense fallback={<SynapticLoader />}><McqsQuizHome onBack={() => { navigate(ROUTES.DASHBOARD); }} /></Suspense></NavigationManager>} />
-                    <Route path={ROUTES.ENGLISH} element={<NavigationManager type={RouteAccessType.AUTHENTICATED}><Suspense fallback={<SynapticLoader />}><EnglishHub /></Suspense></NavigationManager>} />
-                    <Route path={ROUTES.PROFILE.ROOT} element={<NavigationManager type={RouteAccessType.AUTHENTICATED}><Suspense fallback={<SynapticLoader />}><ProfilePage onNavigateToSettings={() => navigate(ROUTES.SETTINGS.ROOT)} onSignOut={() => navigate(ROUTES.DASHBOARD)} /></Suspense></NavigationManager>} />
-                    <Route path={ROUTES.SETTINGS.ROOT} element={<NavigationManager type={RouteAccessType.AUTHENTICATED}><Suspense fallback={<SynapticLoader />}><SettingsPage onBack={() => navigate(ROUTES.PROFILE.ROOT)} /></Suspense></NavigationManager>} />
-                    <Route path={ROUTES.SETTINGS.MY_REPORTS} element={<NavigationManager type={RouteAccessType.AUTHENTICATED}><Suspense fallback={<SynapticLoader />}><PerformanceAnalytics /></Suspense></NavigationManager>} />
-                    <Route path={ROUTES.SETTINGS.DELETE_ACCOUNT} element={<NavigationManager type={RouteAccessType.AUTHENTICATED}><Suspense fallback={<SynapticLoader />}><DeleteAccountPage /></Suspense></NavigationManager>} />
-                    <Route path={ROUTES.PROFILE.SUBSCRIPTION} element={<NavigationManager type={RouteAccessType.AUTHENTICATED}><Suspense fallback={<SynapticLoader />}><SubscriptionPage onBack={() => navigate(ROUTES.PROFILE.ROOT)} /></Suspense></NavigationManager>} />
-                    <Route path={ROUTES.PROFILE.PREFERENCES} element={<NavigationManager type={RouteAccessType.AUTHENTICATED}><Suspense fallback={<SynapticLoader />}><AppPreferencesPage /></Suspense></NavigationManager>} />
-                    <Route path={ROUTES.VOCAB.SYNONYMS.CONFIG} element={<NavigationManager type={RouteAccessType.AUTHENTICATED}><Suspense fallback={<SynapticLoader />}><SynonymsConfig onBack={() => { navigate(ROUTES.ENGLISH); }} onStart={(data: any, filters: any, mode: any) => { flashcardStore.startSynonyms(data, filters, mode); navigate(ROUTES.VOCAB.SYNONYMS.SESSION.root); }} /></Suspense></NavigationManager>} />
-                    <Route path={ROUTES.VOCAB.IDIOMS.CONFIG} element={<NavigationManager type={RouteAccessType.AUTHENTICATED}><Suspense fallback={<SynapticLoader />}><IdiomsConfig onBack={() => { navigate(ROUTES.ENGLISH); }} onStart={(data: any, filters: any, mode: any) => { flashcardStore.startIdioms(data as any, filters, mode as "basic" | "review"); navigate(ROUTES.VOCAB.IDIOMS.SESSION.root); }} /></Suspense></NavigationManager>} />
-                    <Route path={ROUTES.VOCAB.OWS.CONFIG} element={<NavigationManager type={RouteAccessType.AUTHENTICATED}><Suspense fallback={<SynapticLoader />}><OWSConfig onBack={() => { navigate(ROUTES.ENGLISH); }} onStart={(data: any, filters: any, mode: any) => { flashcardStore.startOWS(data, filters, mode as "basic" | "review"); navigate(ROUTES.VOCAB.OWS.SESSION.root); }} /></Suspense></NavigationManager>} />
-                    <Route path={ROUTES.TEST_SERIES.ROOT} element={<NavigationManager type={RouteAccessType.AUTHENTICATED}><Suspense fallback={<SynapticLoader />}><ExamCategoriesPage /></Suspense></NavigationManager>} />
-                    <Route path={ROUTES.TEST_SERIES.CATEGORY(':categoryId')} element={<NavigationManager type={RouteAccessType.AUTHENTICATED}><Suspense fallback={<SynapticLoader />}><TestSeriesPage /></Suspense></NavigationManager>} />
-                    <Route path={ROUTES.TEST_SERIES.SERIES(':seriesId')} element={<NavigationManager type={RouteAccessType.AUTHENTICATED}><Suspense fallback={<SynapticLoader />}><TestsListPage /></Suspense></NavigationManager>} />
-                    <Route path={ROUTES.TEST_SERIES.TEST(':testId')} element={<NavigationManager type={RouteAccessType.AUTHENTICATED}><Suspense fallback={<SynapticLoader />}><TestDetailPage /></Suspense></NavigationManager>} />
-                    <Route path={ROUTES.TEST_SERIES.COMING_SOON} element={<NavigationManager type={RouteAccessType.AUTHENTICATED}><Suspense fallback={<SynapticLoader />}><ExamPlaceholderPage /></Suspense></NavigationManager>} />
-                    <Route path={ROUTES.PROFILE.SUPPORT} element={<NavigationManager type={RouteAccessType.AUTHENTICATED}><Suspense fallback={<SynapticLoader />}><SupportPage onBack={() => navigate(ROUTES.PROFILE.ROOT)} /></Suspense></NavigationManager>} />
-                    <Route path={ROUTES.QUIZ.LIBRARY} element={<NavigationManager type={RouteAccessType.AUTHENTICATED}><Suspense fallback={<SynapticLoader />}><QuizLibrary /></Suspense></NavigationManager>} />
-                    <Route path={ROUTES.QUIZ.ANALYTICS} element={<NavigationManager type={RouteAccessType.AUTHENTICATED}><Suspense fallback={<SynapticLoader />}><PerformanceAnalytics /></Suspense></NavigationManager>} />
-                    <Route path={ROUTES.QUIZ.BOOKMARKS} element={<NavigationManager type={RouteAccessType.AUTHENTICATED}><Suspense fallback={<SynapticLoader />}><BookmarksPage /></Suspense></NavigationManager>} />
-                    <Route path={ROUTES.VOCAB.SYNONYMS.ROOT} element={<NavigationManager type={RouteAccessType.AUTHENTICATED}><Suspense fallback={<SynapticLoader />}><SynonymsHub onBack={() => navigate(ROUTES.ENGLISH)} /></Suspense></NavigationManager>} />
-                    <Route path={ROUTES.VOCAB.OWS.ROOT} element={<NavigationManager type={RouteAccessType.AUTHENTICATED}><Suspense fallback={<SynapticLoader />}><OWSHub onBack={() => navigate(ROUTES.ENGLISH)} /></Suspense></NavigationManager>} />
-                    <Route path={ROUTES.VOCAB.IDIOMS.ROOT} element={<NavigationManager type={RouteAccessType.AUTHENTICATED}><Suspense fallback={<SynapticLoader />}><IdiomsHub onBack={() => navigate(ROUTES.ENGLISH)} /></Suspense></NavigationManager>} />
-                    <Route path={ROUTES.ABOUT.DEVELOPER_PROFILE} element={<NavigationManager type={RouteAccessType.AUTHENTICATED}><Suspense fallback={<SynapticLoader />}><DeveloperProfile /></Suspense></NavigationManager>} />
-                    <Route path={ROUTES.ABOUT.DEVELOPER_PROFILE_AALOK} element={<NavigationManager type={RouteAccessType.AUTHENTICATED}><Suspense fallback={<SynapticLoader />}><AalokProfile /></Suspense></NavigationManager>} />
-                    <Route path={ROUTES.ABOUT.DEVELOPER_PROFILE_DYNAMIC(':id')} element={<NavigationManager type={RouteAccessType.AUTHENTICATED}><Suspense fallback={<SynapticLoader />}><TeamMemberProfile /></Suspense></NavigationManager>} />
-                    <Route path={ROUTES.ABOUT.TERMS_OF_USE} element={<NavigationManager type={RouteAccessType.AUTHENTICATED}><Suspense fallback={<SynapticLoader />}><TermsOfUse /></Suspense></NavigationManager>} />
-                    <Route path={ROUTES.ABOUT.PRIVACY_POLICY} element={<NavigationManager type={RouteAccessType.AUTHENTICATED}><Suspense fallback={<SynapticLoader />}><PrivacyPolicy /></Suspense></NavigationManager>} />
-                    <Route path={ROUTES.ABOUT.ROOT} element={<NavigationManager type={RouteAccessType.AUTHENTICATED}><Suspense fallback={<SynapticLoader />}><AboutUs /></Suspense></NavigationManager>} />
+                <Route element={<NavigationManager type={RouteAccessType.AUTHENTICATED} />}>
+                <Route element={<AppLayout />} >
+                    <Route path={ROUTES.DASHBOARD} element={<Suspense fallback={<SynapticLoader />}><Dashboard /></Suspense>} />
+                    <Route path={ROUTES.MCQS} element={<Suspense fallback={<SynapticLoader />}><McqsQuizHome onBack={() => { navigate(ROUTES.DASHBOARD); }} /></Suspense>} />
+                    <Route path={ROUTES.ENGLISH} element={<Suspense fallback={<SynapticLoader />}><EnglishHub /></Suspense>} />
+                    <Route path={ROUTES.PROFILE.ROOT} element={<Suspense fallback={<SynapticLoader />}><ProfilePage onNavigateToSettings={() => navigate(ROUTES.SETTINGS.ROOT)} onSignOut={() => navigate(ROUTES.DASHBOARD)} /></Suspense>} />
+                    <Route path={ROUTES.SETTINGS.ROOT} element={<Suspense fallback={<SynapticLoader />}><SettingsPage onBack={() => navigate(ROUTES.PROFILE.ROOT)} /></Suspense>} />
+                    <Route path={ROUTES.SETTINGS.MY_REPORTS} element={<Suspense fallback={<SynapticLoader />}><PerformanceAnalytics /></Suspense>} />
+                    <Route path={ROUTES.SETTINGS.DELETE_ACCOUNT} element={<Suspense fallback={<SynapticLoader />}><DeleteAccountPage /></Suspense>} />
+                    <Route path={ROUTES.PROFILE.SUBSCRIPTION} element={<Suspense fallback={<SynapticLoader />}><SubscriptionPage onBack={() => navigate(ROUTES.PROFILE.ROOT)} /></Suspense>} />
+                    <Route path={ROUTES.PROFILE.PREFERENCES} element={<Suspense fallback={<SynapticLoader />}><AppPreferencesPage /></Suspense>} />
+                    <Route path={ROUTES.VOCAB.SYNONYMS.CONFIG} element={<Suspense fallback={<SynapticLoader />}><SynonymsConfig onBack={() => { navigate(ROUTES.ENGLISH); }} onStart={(data: any, filters: any, mode: any) => { flashcardStore.startSynonyms(data, filters, mode); navigate(ROUTES.VOCAB.SYNONYMS.SESSION.root); }} /></Suspense>} />
+                    <Route path={ROUTES.VOCAB.IDIOMS.CONFIG} element={<Suspense fallback={<SynapticLoader />}><IdiomsConfig onBack={() => { navigate(ROUTES.ENGLISH); }} onStart={(data: any, filters: any, mode: any) => { flashcardStore.startIdioms(data as any, filters, mode as "basic" | "review"); navigate(ROUTES.VOCAB.IDIOMS.SESSION.root); }} /></Suspense>} />
+                    <Route path={ROUTES.VOCAB.OWS.CONFIG} element={<Suspense fallback={<SynapticLoader />}><OWSConfig onBack={() => { navigate(ROUTES.ENGLISH); }} onStart={(data: any, filters: any, mode: any) => { flashcardStore.startOWS(data, filters, mode as "basic" | "review"); navigate(ROUTES.VOCAB.OWS.SESSION.root); }} /></Suspense>} />
+                    <Route path={ROUTES.TEST_SERIES.ROOT} element={<Suspense fallback={<SynapticLoader />}><ExamCategoriesPage /></Suspense>} />
+                    <Route path={ROUTES.TEST_SERIES.CATEGORY(':categoryId')} element={<Suspense fallback={<SynapticLoader />}><TestSeriesPage /></Suspense>} />
+                    <Route path={ROUTES.TEST_SERIES.SERIES(':seriesId')} element={<Suspense fallback={<SynapticLoader />}><TestsListPage /></Suspense>} />
+                    <Route path={ROUTES.TEST_SERIES.TEST(':testId')} element={<Suspense fallback={<SynapticLoader />}><TestDetailPage /></Suspense>} />
+                    <Route path={ROUTES.TEST_SERIES.COMING_SOON} element={<Suspense fallback={<SynapticLoader />}><ExamPlaceholderPage /></Suspense>} />
+                    <Route path={ROUTES.PROFILE.SUPPORT} element={<Suspense fallback={<SynapticLoader />}><SupportPage onBack={() => navigate(ROUTES.PROFILE.ROOT)} /></Suspense>} />
+                    <Route path={ROUTES.QUIZ.LIBRARY} element={<Suspense fallback={<SynapticLoader />}><QuizLibrary /></Suspense>} />
+                    <Route path={ROUTES.QUIZ.ANALYTICS} element={<Suspense fallback={<SynapticLoader />}><PerformanceAnalytics /></Suspense>} />
+                    <Route path={ROUTES.QUIZ.BOOKMARKS} element={<Suspense fallback={<SynapticLoader />}><BookmarksPage /></Suspense>} />
+                    <Route path={ROUTES.VOCAB.SYNONYMS.ROOT} element={<Suspense fallback={<SynapticLoader />}><SynonymsHub onBack={() => navigate(ROUTES.ENGLISH)} /></Suspense>} />
+                    <Route path={ROUTES.VOCAB.OWS.ROOT} element={<Suspense fallback={<SynapticLoader />}><OWSHub onBack={() => navigate(ROUTES.ENGLISH)} /></Suspense>} />
+                    <Route path={ROUTES.VOCAB.IDIOMS.ROOT} element={<Suspense fallback={<SynapticLoader />}><IdiomsHub onBack={() => navigate(ROUTES.ENGLISH)} /></Suspense>} />
+                    <Route path={ROUTES.ABOUT.DEVELOPER_PROFILE} element={<Suspense fallback={<SynapticLoader />}><DeveloperProfile /></Suspense>} />
+                    <Route path={ROUTES.ABOUT.DEVELOPER_PROFILE_AALOK} element={<Suspense fallback={<SynapticLoader />}><AalokProfile /></Suspense>} />
+                    <Route path={ROUTES.ABOUT.DEVELOPER_PROFILE_DYNAMIC(':id')} element={<Suspense fallback={<SynapticLoader />}><TeamMemberProfile /></Suspense>} />
+                    <Route path={ROUTES.ABOUT.TERMS_OF_USE} element={<Suspense fallback={<SynapticLoader />}><TermsOfUse /></Suspense>} />
+                    <Route path={ROUTES.ABOUT.PRIVACY_POLICY} element={<Suspense fallback={<SynapticLoader />}><PrivacyPolicy /></Suspense>} />
+                    <Route path={ROUTES.ABOUT.ROOT} element={<Suspense fallback={<SynapticLoader />}><AboutUs /></Suspense>} />
                     <Route path={ROUTES.RESULT.ROOT} element={
                         <ErrorBoundary><ResultGuard>
                             {state.mode === 'mock' ? (
@@ -317,18 +318,18 @@ const handleReattempt = async (quizId: string, mode: string) => {
 
 
                     {/* School Routes */}
-                    <Route path={ROUTES.COMMUNITY} element={<NavigationManager type={RouteAccessType.AUTHENTICATED}><ErrorBoundary fallbackMessage="The Community feed is temporarily unavailable."><Suspense fallback={<SynapticLoader />}><CommunityFeed /></Suspense></ErrorBoundary></NavigationManager>} />
-                    <Route path={ROUTES.MESSAGES} element={<NavigationManager type={RouteAccessType.AUTHENTICATED}><ErrorBoundary fallbackMessage="Messages are temporarily unavailable."><Suspense fallback={<SynapticLoader />}><ChatRooms /></Suspense></ErrorBoundary></NavigationManager>} />
-                    <Route path={ROUTES.SOCIAL.REELS} element={<NavigationManager type={RouteAccessType.AUTHENTICATED}><ErrorBoundary fallbackMessage="Reels are temporarily unavailable."><Suspense fallback={<SynapticLoader />}><ReelsFeed /></Suspense></ErrorBoundary></NavigationManager>} />
-                    <Route path={ROUTES.SOCIAL.REELS_COMMENTS(':id')} element={<NavigationManager type={RouteAccessType.AUTHENTICATED}><ErrorBoundary fallbackMessage="Comments are temporarily unavailable."><Suspense fallback={<SynapticLoader />}><ReelCommentsPage /></Suspense></ErrorBoundary></NavigationManager>} />
-                    <Route path={ROUTES.SOCIAL.SEARCH} element={<NavigationManager type={RouteAccessType.AUTHENTICATED}><ErrorBoundary fallbackMessage="Search is temporarily unavailable."><Suspense fallback={<SynapticLoader />}><CommunitySearch /></Suspense></ErrorBoundary></NavigationManager>} />
-                    <Route path={ROUTES.SOCIAL.USER_PROFILE(':username')} element={<NavigationManager type={RouteAccessType.AUTHENTICATED}><ErrorBoundary><Suspense fallback={<SynapticLoader />}><UserProfile /></Suspense></ErrorBoundary></NavigationManager>} />
-                    <Route path={ROUTES.SOCIAL.POST(':id')} element={<NavigationManager type={RouteAccessType.AUTHENTICATED}><ErrorBoundary><Suspense fallback={<SynapticLoader />}><PostPage /></Suspense></ErrorBoundary></NavigationManager>} />
+                    <Route path={ROUTES.COMMUNITY} element={<ErrorBoundary fallbackMessage="The Community feed is temporarily unavailable."><Suspense fallback={<SynapticLoader />}><CommunityFeed /></Suspense></ErrorBoundary>} />
+                    <Route path={ROUTES.MESSAGES} element={<ErrorBoundary fallbackMessage="Messages are temporarily unavailable."><Suspense fallback={<SynapticLoader />}><ChatRooms /></Suspense></ErrorBoundary>} />
+                    <Route path={ROUTES.SOCIAL.REELS} element={<ErrorBoundary fallbackMessage="Reels are temporarily unavailable."><Suspense fallback={<SynapticLoader />}><ReelsFeed /></Suspense></ErrorBoundary>} />
+                    <Route path={ROUTES.SOCIAL.REELS_COMMENTS(':id')} element={<ErrorBoundary fallbackMessage="Comments are temporarily unavailable."><Suspense fallback={<SynapticLoader />}><ReelCommentsPage /></Suspense></ErrorBoundary>} />
+                    <Route path={ROUTES.SOCIAL.SEARCH} element={<ErrorBoundary fallbackMessage="Search is temporarily unavailable."><Suspense fallback={<SynapticLoader />}><CommunitySearch /></Suspense></ErrorBoundary>} />
+                    <Route path={ROUTES.SOCIAL.USER_PROFILE(':username')} element={<ErrorBoundary><Suspense fallback={<SynapticLoader />}><UserProfile /></Suspense></ErrorBoundary>} />
+                    <Route path={ROUTES.SOCIAL.POST(':id')} element={<ErrorBoundary><Suspense fallback={<SynapticLoader />}><PostPage /></Suspense></ErrorBoundary>} />
 
-                    <Route path={ROUTES.SCHOOL} element={<NavigationManager type={RouteAccessType.AUTHENTICATED}><Suspense fallback={<SynapticLoader />}><SchoolHomePage /></Suspense></NavigationManager>} />
-                    <Route path={ROUTES.SCHOOL_ROUTES.DOWNLOAD} element={<NavigationManager type={RouteAccessType.AUTHENTICATED}><Suspense fallback={<SynapticLoader />}><SchoolDownloads /></Suspense></NavigationManager>} />
-<Route path={ROUTES.TOOLS} element={<NavigationManager type={RouteAccessType.AUTHENTICATED}><Suspense fallback={<SynapticLoader />}><ToolsHome /></Suspense></NavigationManager>} />
-                    <Route path={ROUTES.NOTIFICATION} element={<NavigationManager type={RouteAccessType.AUTHENTICATED}><Suspense fallback={<SynapticLoader />}><NotificationsPage /></Suspense></NavigationManager>} />
+                    <Route path={ROUTES.SCHOOL} element={<Suspense fallback={<SynapticLoader />}><SchoolHomePage /></Suspense>} />
+                    <Route path={ROUTES.SCHOOL_ROUTES.DOWNLOAD} element={<Suspense fallback={<SynapticLoader />}><SchoolDownloads /></Suspense>} />
+<Route path={ROUTES.TOOLS} element={<Suspense fallback={<SynapticLoader />}><ToolsHome /></Suspense>} />
+                    <Route path={ROUTES.NOTIFICATION} element={<Suspense fallback={<SynapticLoader />}><NotificationsPage /></Suspense>} />
                     <Route path={ROUTES.AI} element={<Suspense fallback={<SynapticLoader />}><AIHome /></Suspense>} />
 
                     <Route path={ROUTES.AI_ROUTES.CHAT} element={<Suspense fallback={<SynapticLoader />}><AIChatPage /></Suspense>} />
@@ -336,6 +337,8 @@ const handleReattempt = async (quizId: string, mode: string) => {
                     <Route path={ROUTES.TOOLS_ROUTES.BILINGUAL_PDF_MAKER} element={<Suspense fallback={<SynapticLoader />}><BilingualPdfMaker /></Suspense>} />
                     <Route path={ROUTES.TOOLS_ROUTES.TEXT_EXPORTER} element={<Suspense fallback={<SynapticLoader />}><TextExporter /></Suspense>} />
                     <Route path={ROUTES.TOOLS_ROUTES.QUIZ_PDF_PPT_GENERATOR} element={<Suspense fallback={<SynapticLoader />}><QuizPdfPptGenerator /></Suspense>} />
+
+
                 </Route>
 
                 {/* --- Immersive Session Routes (No Layout, Fullscreen) --- */}
@@ -392,7 +395,7 @@ const handleReattempt = async (quizId: string, mode: string) => {
 
 
                 {/* Learning Mode: Interactive per-question session */}
-                <Route path={ROUTES.QUIZ.live(':id')} element={<NavigationManager type={RouteAccessType.AUTHENTICATED}><Suspense fallback={<SynapticLoader />}><LiveQuizRoom /></Suspense></NavigationManager>} />
+                <Route path={ROUTES.QUIZ.live(':id')} element={<Suspense fallback={<SynapticLoader />}><LiveQuizRoom /></Suspense>} />
 
                 <Route path={ROUTES.QUIZ.SESSION.learning(':quizId')} element={
                     <QuizSessionGuard>
@@ -478,9 +481,9 @@ const handleReattempt = async (quizId: string, mode: string) => {
                     />
                 } />
 
-                <Route path={ROUTES.VOCAB.SYNONYMS.PHASE1} element={<NavigationManager type={RouteAccessType.AUTHENTICATED}><Suspense fallback={<SynapticLoader />}><SynonymPhase1Session /></Suspense></NavigationManager>} />
-                <Route path={ROUTES.VOCAB.SYNONYMS.LIST} element={<NavigationManager type={RouteAccessType.AUTHENTICATED}><Suspense fallback={<SynapticLoader />}><SynonymClusterList data={flashcardStore.synonyms} onSelectWord={(word) => { flashcardStore.jumpToCard(flashcardStore.synonyms.findIndex(w => w.id === word.id) || 0); navTo(ROUTES.VOCAB.SYNONYMS.SESSION.root); }} onExit={() => navTo(ROUTES.VOCAB.SYNONYMS.ROOT)} /></Suspense></NavigationManager>} />
-                <Route path={ROUTES.VOCAB.SYNONYMS.QUIZ} element={<NavigationManager type={RouteAccessType.AUTHENTICATED}><Suspense fallback={<SynapticLoader />}><SynonymQuizSession onExit={() => navTo(ROUTES.VOCAB.SYNONYMS.ROOT)} /></Suspense></NavigationManager>} />
+                <Route path={ROUTES.VOCAB.SYNONYMS.PHASE1} element={<Suspense fallback={<SynapticLoader />}><SynonymPhase1Session /></Suspense>} />
+                <Route path={ROUTES.VOCAB.SYNONYMS.LIST} element={<Suspense fallback={<SynapticLoader />}><SynonymClusterList data={flashcardStore.synonyms} onSelectWord={(word) => { flashcardStore.jumpToCard(flashcardStore.synonyms.findIndex(w => w.id === word.id) || 0); navTo(ROUTES.VOCAB.SYNONYMS.SESSION.root); }} onExit={() => navTo(ROUTES.VOCAB.SYNONYMS.ROOT)} /></Suspense>} />
+                <Route path={ROUTES.VOCAB.SYNONYMS.QUIZ} element={<Suspense fallback={<SynapticLoader />}><SynonymQuizSession onExit={() => navTo(ROUTES.VOCAB.SYNONYMS.ROOT)} /></Suspense>} />
 
 
                 <Route path={ROUTES.VOCAB.OWS.SESSION.root} element={
@@ -496,35 +499,33 @@ const handleReattempt = async (quizId: string, mode: string) => {
                     />
                 } />
 
-                                                                <Route path={ROUTES.TOOLS_ROUTES.FLASHCARD_MAKER} element={<NavigationManager type={RouteAccessType.AUTHENTICATED}><Suspense fallback={<SynapticLoader />}><FlashcardMaker /></Suspense></NavigationManager>} />
-                <Route path={ROUTES.TOOLS_ROUTES.ASCII_ART_HUB} element={<NavigationManager type={RouteAccessType.AUTHENTICATED}><Suspense fallback={<SynapticLoader />}><AsciiArtHub /></Suspense></NavigationManager>} />
-                <Route path={ROUTES.TOOLS_ROUTES.ASCII_ART_NUMBER} element={<NavigationManager type={RouteAccessType.AUTHENTICATED}><Suspense fallback={<SynapticLoader />}><NumberArt /></Suspense></NavigationManager>} />
-                <Route path={ROUTES.TOOLS_ROUTES.ASCII_ART_INVISIBLE_INK} element={<NavigationManager type={RouteAccessType.AUTHENTICATED}><Suspense fallback={<SynapticLoader />}><InvisibleInk /></Suspense></NavigationManager>} />
-                <Route path={ROUTES.TOOLS_ROUTES.ASCII_ART_STEGO} element={<NavigationManager type={RouteAccessType.AUTHENTICATED}><Suspense fallback={<SynapticLoader />}><MyStego /></Suspense></NavigationManager>} />
+                                                                <Route path={ROUTES.TOOLS_ROUTES.FLASHCARD_MAKER} element={<Suspense fallback={<SynapticLoader />}><FlashcardMaker /></Suspense>} />
+                <Route path={ROUTES.TOOLS_ROUTES.ASCII_ART_HUB} element={<Suspense fallback={<SynapticLoader />}><AsciiArtHub /></Suspense>} />
+                <Route path={ROUTES.TOOLS_ROUTES.ASCII_ART_NUMBER} element={<Suspense fallback={<SynapticLoader />}><NumberArt /></Suspense>} />
+                <Route path={ROUTES.TOOLS_ROUTES.ASCII_ART_INVISIBLE_INK} element={<Suspense fallback={<SynapticLoader />}><InvisibleInk /></Suspense>} />
+                <Route path={ROUTES.TOOLS_ROUTES.ASCII_ART_STEGO} element={<Suspense fallback={<SynapticLoader />}><MyStego /></Suspense>} />
+
+
 
                 {/* Fallback Route */}
                 <Route path={ROUTES.FALLBACK} element={<Navigate to={ROUTES.HOME} replace />} />
 
-                    <Route path={ROUTES.ADMIN.ROOT} element={<NavigationManager type={RouteAccessType.ADMIN}><Suspense fallback={<SynapticLoader />}><AdminHomePage /></Suspense></NavigationManager>} />
-                    <Route path={ROUTES.ADMIN.APP_CONFIG} element={<NavigationManager type={RouteAccessType.ADMIN}><Suspense fallback={<SynapticLoader />}><AppConfigHub /></Suspense></NavigationManager>} />
-                    <Route path={ROUTES.ADMIN.REPORTS} element={<NavigationManager type={RouteAccessType.ADMIN}><Suspense fallback={<SynapticLoader />}><AdminReportsQueue /></Suspense></NavigationManager>} />
-                                        <Route path={ROUTES.ADMIN.MATERIALS} element={<NavigationManager type={RouteAccessType.ADMIN}><Suspense fallback={<SynapticLoader />}><AdminManageMaterials /></Suspense></NavigationManager>} />
-                    <Route path={ROUTES.ADMIN.UPLOAD} element={<NavigationManager type={RouteAccessType.ADMIN}><Suspense fallback={<SynapticLoader />}><AdminUploadMaterials /></Suspense></NavigationManager>} />
-                    <Route path={ROUTES.ADMIN.UPLOAD_GK} element={<NavigationManager type={RouteAccessType.ADMIN}><Suspense fallback={<SynapticLoader />}><AdminUploadGK /></Suspense></NavigationManager>} />
-                    <Route path={ROUTES.ADMIN.UPLOAD_OWS} element={<NavigationManager type={RouteAccessType.ADMIN}><Suspense fallback={<SynapticLoader />}><AdminUploadOWS /></Suspense></NavigationManager>} />
-                    <Route path={ROUTES.ADMIN.UPLOAD_IDIOMS} element={<NavigationManager type={RouteAccessType.ADMIN}><Suspense fallback={<SynapticLoader />}><AdminUploadIdioms /></Suspense></NavigationManager>} />
-                    <Route path={ROUTES.ADMIN.UPLOAD_SYNONYMS} element={<NavigationManager type={RouteAccessType.ADMIN}><Suspense fallback={<SynapticLoader />}><AdminUploadSynonyms /></Suspense></NavigationManager>} />
-                    <Route path={ROUTES.ADMIN.ENRICHMENT} element={<NavigationManager type={RouteAccessType.ADMIN}><Suspense fallback={<SynapticLoader />}><AdminEnrichmentControlCenter /></Suspense></NavigationManager>} />
-                    <Route path={ROUTES.ADMIN.TEST_SERIES} element={<NavigationManager type={RouteAccessType.ADMIN}><Suspense fallback={<SynapticLoader />}><AdminTestSeriesDashboard /></Suspense></NavigationManager>} />
-                    <Route path={ROUTES.ADMIN.CONTENT} element={<NavigationManager type={RouteAccessType.ADMIN}><Suspense fallback={<SynapticLoader />}><AdminContentStudio /></Suspense></NavigationManager>} />
-              <Route path={ROUTES.ADMIN.NOTIFICATIONS} element={
-            <NavigationManager type={RouteAccessType.ADMIN}>
-              <Suspense fallback={<div className="flex h-screen items-center justify-center"><SynapticLoader size="md" /></div>}>
-                <AdminNotifications />
-              </Suspense>
-            </NavigationManager>
-          } />
-        </Routes>
+                    <Route path={ROUTES.ADMIN.ROOT} element={<Suspense fallback={<SynapticLoader />}><AdminHomePage /></Suspense>} />
+                    <Route path={ROUTES.ADMIN.APP_CONFIG} element={<Suspense fallback={<SynapticLoader />}><AppConfigHub /></Suspense>} />
+                    <Route path={ROUTES.ADMIN.REPORTS} element={<Suspense fallback={<SynapticLoader />}><AdminReportsQueue /></Suspense>} />
+                                        <Route path={ROUTES.ADMIN.MATERIALS} element={<Suspense fallback={<SynapticLoader />}><AdminManageMaterials /></Suspense>} />
+                    <Route path={ROUTES.ADMIN.UPLOAD} element={<Suspense fallback={<SynapticLoader />}><AdminUploadMaterials /></Suspense>} />
+                    <Route path={ROUTES.ADMIN.UPLOAD_GK} element={<Suspense fallback={<SynapticLoader />}><AdminUploadGK /></Suspense>} />
+                    <Route path={ROUTES.ADMIN.UPLOAD_OWS} element={<Suspense fallback={<SynapticLoader />}><AdminUploadOWS /></Suspense>} />
+                    <Route path={ROUTES.ADMIN.UPLOAD_IDIOMS} element={<Suspense fallback={<SynapticLoader />}><AdminUploadIdioms /></Suspense>} />
+                    <Route path={ROUTES.ADMIN.UPLOAD_SYNONYMS} element={<Suspense fallback={<SynapticLoader />}><AdminUploadSynonyms /></Suspense>} />
+                    <Route path={ROUTES.ADMIN.ENRICHMENT} element={<Suspense fallback={<SynapticLoader />}><AdminEnrichmentControlCenter /></Suspense>} />
+                    <Route path={ROUTES.ADMIN.TEST_SERIES} element={<Suspense fallback={<SynapticLoader />}><AdminTestSeriesDashboard /></Suspense>} />
+                    <Route path={ROUTES.ADMIN.CONTENT} element={<Suspense fallback={<SynapticLoader />}><AdminContentStudio /></Suspense>} />
+              <Route path={ROUTES.ADMIN.NOTIFICATIONS} element={<Suspense fallback={<div className="flex h-screen items-center justify-center"><SynapticLoader size="md" /></div>}><AdminNotifications /></Suspense>} />
+
+        </Route>
+            </Routes>
         </Suspense>
     );
 };
