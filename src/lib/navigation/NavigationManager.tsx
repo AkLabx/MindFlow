@@ -1,6 +1,5 @@
-
 import React, { useEffect, useState } from 'react';
-import { Navigate, useLocation, Outlet } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { RouteAccessType } from './types';
 import { PlatformPolicy } from './policies/PlatformPolicy';
@@ -12,7 +11,7 @@ import { NavigationAnalytics } from './utils/analytics';
 import { SynapticLoader } from '@/components/ui/SynapticLoader';
 
 interface NavigationManagerProps {
-  children?: React.ReactNode;
+  children: React.ReactNode;
   type: RouteAccessType;
 }
 
@@ -121,5 +120,5 @@ export const NavigationManager: React.FC<NavigationManagerProps> = ({ children, 
     return <Navigate to={redirectPath} replace />;
   }
 
-  return children ? <>{children}</> : <Outlet />;
+  return <>{children}</>;
 };

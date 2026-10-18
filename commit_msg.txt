@@ -1,5 +1,0 @@
-fix: Prevent protected UI flash and consolidate auth bootstrap
-
-- Refactored `useAppBootstrap` to remove the redundant session lookup, ensuring `AuthProvider` is the single source of truth for session fetching.
-- Renamed `QuizLayout` to `AppLayout` and moved it out of the `features/quiz` directory to accurately reflect its scope.
-- Updated `AppRoutes` to use `NavigationManager` as a top-level route wrapper. The entire `AppLayout` is now wrapped inside `NavigationManager`, ensuring the protected shell never mounts for unauthenticated users, preventing the brief UI flash.
