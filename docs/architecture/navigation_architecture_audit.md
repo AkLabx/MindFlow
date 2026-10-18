@@ -398,7 +398,7 @@ Once you approve this architecture, the implementation will cleanly address all 
    - Fix `ProfilePage`'s `onSignOut` callback in `AppRoutes.tsx` and clear `IntentPolicy` on explicit sign-out.
 3. [x] **Eliminate the Post-Intro Loader Waterfall (`src/features/intro/IntroEngine.tsx`)**:
    - Render `{children}` underneath the `IntroEngine` overlay while the intro plays so authentication and initial route rendering finish *behind* the intro curtain before it opens.
-4. **GitHub Pages Non-Hash URL Normalization (`public/404.html`)**:
+4. [x] **GitHub Pages Non-Hash URL Normalization (`public/404.html`)**:
    - Add a static `public/404.html` redirector so opening `https://aklabx.github.io/MindFlow/dashboard` (without `#`) automatically normalizes to `https://aklabx.github.io/MindFlow/#/dashboard`.
 5. **Capacitor Deep Link & Admin Role Hardening (`AuthPolicy.ts`, `useAppBootstrap.ts`)**:
    - Check both `user.email === 'admin@mindflow.com'` and `profile?.role === 'admin'` in `AuthPolicy`.
