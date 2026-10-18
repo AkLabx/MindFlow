@@ -403,6 +403,19 @@ export const db = {
         });
     },
 
+
+    getQuizHistory: async (): Promise<any[]> => {
+        const dbInstance = await openDB();
+        return new Promise((resolve, reject) => {
+            const transaction = dbInstance.transaction(HISTORY_STORE_NAME, 'readonly');
+            const store = transaction.objectStore(HISTORY_STORE_NAME);
+            const request = store.getAll();
+
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = () => reject(request.error);
+        });
+    },
+
     clearSavedQuizzes: async (): Promise<void> => {
         const dbInstance = await openDB();
         return new Promise((resolve, reject) => {
