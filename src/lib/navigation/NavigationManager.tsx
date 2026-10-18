@@ -102,6 +102,7 @@ export const NavigationManager: React.FC<NavigationManagerProps> = ({ children, 
         NavigationLogger.log(source, reason, targetRedirect);
         setRedirectPath(targetRedirect);
       } else {
+        setRedirectPath(null);
         setIsReady(true);
       }
     };
