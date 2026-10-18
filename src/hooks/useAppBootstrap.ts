@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { db } from '@/lib/db';
 import { useSettingsStore } from '@/stores/useSettingsStore';
+import { App as CapacitorApp } from '@capacitor/app';
 
 export type BootstrapStage =
   | 'BOOTSTRAPPING'
@@ -25,6 +26,16 @@ export const useAppBootstrap = (): BootstrapState => {
   });
 
   useEffect(() => {
+    // Listen for native Android deep links
+    const appUrlListener = CapacitorApp.addListener('appUrlOpen', data => {
+        console.log('App opened with URL:', data);
+        if (data.url && data.url.includes('mindflow://')) {
+            const path = data.url.split('mindflow://')[1];
+            if (path) {
+                window.location.hash = '#/' + path;
+            }
+        }
+    });
     let isMounted = true;
 
     const bootstrap = async () => {
@@ -127,6 +138,7 @@ export const useAppBootstrap = (): BootstrapState => {
     bootstrap();
 
     return () => {
+      appUrlListener.then(l => l.remove());
       isMounted = false;
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps

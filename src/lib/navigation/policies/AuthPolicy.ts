@@ -8,7 +8,7 @@ export class AuthPolicy {
     return requiresAuth && !user;
   }
 
-  static isAdmin(user: User | null | undefined): boolean {
-    return !!user && user.email === 'admin@mindflow.com';
+  static isAdmin(user: User | null | undefined, profile?: any | null): boolean {
+    return !!user && (user.email === 'admin@mindflow.com' || profile?.role === 'admin');
   }
 }

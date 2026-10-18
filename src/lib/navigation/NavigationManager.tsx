@@ -16,7 +16,7 @@ interface NavigationManagerProps {
 }
 
 export const NavigationManager: React.FC<NavigationManagerProps> = ({ children, type }) => {
-  const { user, loading } = useAuth();
+  const { user, loading, profile } = useAuth();
   const location = useLocation();
 
   if (loading) {
@@ -42,7 +42,7 @@ export const NavigationManager: React.FC<NavigationManagerProps> = ({ children, 
       shouldSaveIntent = true;
       targetRedirect = PlatformPolicy.getGuestEntryRoute();
       reason = 'Unauthenticated access to Admin';
-    } else if (!AuthPolicy.isAdmin(user)) {
+    } else if (!AuthPolicy.isAdmin(user, profile)) {
       targetRedirect = '/dashboard';
       reason = 'Non-admin access to Admin';
     }
