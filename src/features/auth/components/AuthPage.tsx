@@ -5,7 +5,7 @@ import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../../../lib/supabase';
-import { BrainCircuit, ArrowLeft, Loader2 } from 'lucide-react';
+import { BrainCircuit, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { STARTER_DIAGNOSTIC_QUESTIONS } from '@/features/quiz/data/starterDiagnosticQuestions';
 import { triggerHaptic } from '@/lib/haptics';
@@ -13,10 +13,9 @@ import { triggerHaptic } from '@/lib/haptics';
 /**
  * Props for the AuthPage component.
  */
-interface AuthPageProps {
-  /** Callback function to navigate back to the previous screen. */
-  onBack: () => void;
-}
+interface AuthPageProps {}
+  // (Obsolete prop removed)
+
 
 /**
  * Authentication page component handling both Sign In and Sign Up flows. 
@@ -41,7 +40,7 @@ interface AuthPageProps {
  * @param {AuthPageProps} props - The component props.
  * @returns {JSX.Element} The rendered authentication page.
  */
-const AuthPage: React.FC<AuthPageProps> = ({ onBack }) => {
+const AuthPage: React.FC<AuthPageProps> = () => {
   const [showDemo, setShowDemo] = useState(false);
   const [demoIndex, setDemoIndex] = useState(0);
   const [demoLanguage, setDemoLanguage] = useState<'en'|'hi'>('en');
@@ -52,7 +51,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ onBack }) => {
   const demoQuestions = [STARTER_DIAGNOSTIC_QUESTIONS[7], STARTER_DIAGNOSTIC_QUESTIONS[8], STARTER_DIAGNOSTIC_QUESTIONS[9]];
   const currentDemoQuestion = demoQuestions[demoIndex];
 
-  const [isSignUp, setIsSignUp] = useState(false);
+  const [isSignUp, setIsSignUp] = useState(() => new URLSearchParams(window.location.search).get("mode") === "signup");
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -214,25 +213,19 @@ const AuthPage: React.FC<AuthPageProps> = ({ onBack }) => {
 
   return (
     <>
-    <div className="min-h-[100dvh] font-sans text-text-main antialiased relative w-full flex flex-col animate-fade-in py-4 flex-1 px-4 sm:px-6 lg:px-8 pt-[env(safe-area-inset-top,16px)] pb-[calc(16px+env(safe-area-inset-bottom,16px))] overflow-y-auto">
+    <div className="min-h-[100dvh] supports-[min-height:100dvh]:min-h-[100dvh] font-sans text-text-main antialiased relative w-full flex flex-col animate-fade-in py-8 px-4 sm:px-6 lg:px-8 pt-[env(safe-area-inset-top,24px)] pb-[env(safe-area-inset-bottom,24px)] overflow-y-auto">
         {/* Ambient Background Blobs */}
-        <div className="absolute top-0 left-1/4 w-[50vw] h-[50vw] max-w-[500px] max-h-[500px] bg-indigo-500/20 dark:bg-indigo-500/10 rounded-full mix-blend-multiply dark:mix-blend-lighten filter blur-3xl opacity-50 animate-blob pointer-events-none z-0"></div>
-        <div className="absolute top-0 right-1/4 w-[50vw] h-[50vw] max-w-[500px] max-h-[500px] bg-purple-500/20 dark:bg-purple-500/10 rounded-full mix-blend-multiply dark:mix-blend-lighten filter blur-3xl opacity-50 animate-blob animation-delay-2000 pointer-events-none z-0"></div>
-        <div className="absolute -bottom-32 left-1/2 w-[50vw] h-[50vw] max-w-[500px] max-h-[500px] bg-pink-500/20 dark:bg-pink-500/10 rounded-full mix-blend-multiply dark:mix-blend-lighten filter blur-3xl opacity-50 animate-blob animation-delay-4000 pointer-events-none z-0 transform -translate-x-1/2"></div>
+        <div className="absolute top-0 left-1/4 w-[50vw] h-[50vw] max-w-[500px] max-h-[500px] bg-indigo-500/20 dark:bg-indigo-500/10 rounded-full mix-blend-multiply dark:mix-blend-lighten filter blur-3xl opacity-50 animate-blob pointer-events-none z-0 will-change-transform"></div>
+        <div className="absolute top-0 right-1/4 w-[50vw] h-[50vw] max-w-[500px] max-h-[500px] bg-purple-500/20 dark:bg-purple-500/10 rounded-full mix-blend-multiply dark:mix-blend-lighten filter blur-3xl opacity-50 animate-blob animation-delay-2000 pointer-events-none z-0 will-change-transform"></div>
+        <div className="absolute -bottom-32 left-1/2 w-[50vw] h-[50vw] max-w-[500px] max-h-[500px] bg-pink-500/20 dark:bg-pink-500/10 rounded-full mix-blend-multiply dark:mix-blend-lighten filter blur-3xl opacity-50 animate-blob animation-delay-4000 pointer-events-none z-0 transform -translate-x-1/2 will-change-transform"></div>
 
 
-        <button
-         onClick={onBack}
-         className="self-start mb-4 z-20 flex items-center justify-center p-2 rounded-full bg-white/50 dark:bg-gray-800/50 hover:bg-white/80 dark:hover:bg-gray-700/80 text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-100 transition-all shadow-sm backdrop-blur-sm border border-white/20 dark:border-gray-700/30"
-         title="Back to Dashboard"
-        aria-label="Go back">
-         <ArrowLeft className="w-5 h-5" />
-       </button>
-       <div className="flex-1 flex items-center justify-center pb-8 relative z-10 w-full">
+
+       <div className="flex-1 flex items-center justify-center relative z-10 w-full my-auto">
        <div className="w-full max-w-md">
          <div className="relative group rounded-[32px] sm:rounded-[40px] p-[1px] overflow-hidden">
            {/* Glow Background Layer */}
-           <div className="absolute inset-0 bg-white/40 dark:bg-slate-900/40 backdrop-blur-2xl transition-colors duration-300 z-0"></div>
+           <div className="absolute inset-0 bg-white/60 dark:bg-slate-900/60 backdrop-blur-lg transition-colors duration-300 z-0"></div>
            <div className="absolute inset-0 bg-gradient-to-br from-white/60 to-white/10 dark:from-white/10 dark:to-transparent z-0"></div>
 
            {/* Interactive Inner Shadow / Border */}
@@ -246,8 +239,8 @@ const AuthPage: React.FC<AuthPageProps> = ({ onBack }) => {
              <span className="text-2xl font-black tracking-tight text-gray-900 dark:text-white">MindFlow</span>
            </div>
            <div className="flex border-b border-border-color mb-6 md:mb-8 text-center">
-             <button onClick={() => setIsSignUp(false)} className={`w-1/2 pb-3 font-bold ${!isSignUp ? 'text-indigo-600 border-b-2 border-indigo-600' : 'text-text-secondary hover:text-text-main transition-colors'}`}>Sign In</button>
-             <button onClick={() => setIsSignUp(true)} className={`w-1/2 pb-3 font-semibold ${isSignUp ? 'text-indigo-600 border-b-2 border-indigo-600' : 'text-text-secondary hover:text-text-main transition-colors'}`}>Sign Up</button>
+             <button type="button" role="tab" aria-selected={!isSignUp} onClick={() => setIsSignUp(false)} className={`w-1/2 pb-3 font-bold ${!isSignUp ? 'text-indigo-600 border-b-2 border-indigo-600' : 'text-text-secondary hover:text-text-main transition-colors'}`}>Sign In</button>
+             <button type="button" role="tab" aria-selected={isSignUp} onClick={() => setIsSignUp(true)} className={`w-1/2 pb-3 font-semibold ${isSignUp ? 'text-indigo-600 border-b-2 border-indigo-600' : 'text-text-secondary hover:text-text-main transition-colors'}`}>Sign Up</button>
            </div>
 
            {/* Primary: Google Button */}
@@ -256,7 +249,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ onBack }) => {
                type="button"
                onClick={handleGoogleSignIn}
                disabled={isEmailLoading || isGoogleLoading}
-               className={`w-full group relative flex justify-center items-center gap-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-white font-semibold py-3 px-4 rounded-xl border-2 border-indigo-500/50 hover:border-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-600 focus:ring-offset-white dark:focus:ring-offset-gray-900 transition-all duration-300 shadow-sm overflow-hidden ${isEmailLoading ? 'opacity-50 cursor-not-allowed' : (isGoogleLoading ? 'cursor-wait' : '')}`}
+               className={`w-full group relative flex justify-center items-center gap-3 bg-white text-gray-700 font-semibold py-3 px-4 rounded-xl border border-gray-300 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-600 transition-all duration-300 shadow-sm min-h-[52px] ${isEmailLoading ? 'opacity-50 cursor-not-allowed' : (isGoogleLoading ? 'cursor-wait opacity-80' : '')}`}
              >
                {isGoogleLoading ? (
                  <>
@@ -265,14 +258,9 @@ const AuthPage: React.FC<AuthPageProps> = ({ onBack }) => {
                  </>
                ) : (
                  <>
-                   <motion.div
-                     initial={{ rotate: 0 }}
-                     whileHover={{ rotate: 10, scale: 1.1 }}
-                     transition={{ type: "spring", stiffness: 300 }}
-                     className="relative z-10 flex items-center justify-center bg-transparent p-1 rounded-full"
-                   >
+                   <div className="relative z-10 flex items-center justify-center bg-transparent">
                      <svg className="w-6 h-6" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><path d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12s5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24s8.955,20,20,20s20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z" fill="#FFC107"></path><path d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z" fill="#FF3D00"></path><path d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.222,0-9.657-3.356-11.303-7.962l-6.571,4.819C9.656,39.663,16.318,44,24,44z" fill="#4CAF50"></path><path d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.574l6.19,5.238C41.38,34.464,44,29.561,44,24C44,22.659,43.862,21.35,43.611,20.083z" fill="#1976D2"></path></svg>
-                   </motion.div>
+                   </div>
                    <span className="relative z-10 font-bold tracking-wide">Continue with Google</span>
                  </>
                )}
@@ -288,7 +276,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ onBack }) => {
 
            <div className="relative mb-6">
              <div aria-hidden="true" className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-200 dark:border-gray-700"></div></div>
-             <div className="relative flex justify-center text-sm"><span className="px-4 bg-white dark:bg-gray-900 text-gray-500">Or continue with email</span></div>
+             <div className="relative flex justify-center text-sm"><span className="px-4 bg-transparent text-gray-500 font-medium">Or continue with email</span></div>
            </div>
 
            <form onSubmit={handleAuthAction} className="space-y-4 md:space-y-6">
@@ -302,7 +290,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ onBack }) => {
                    value={fullName}
                    onChange={(e) => setFullName(e.target.value)}
                    placeholder="John Doe"
-                   className="block w-full px-4 py-3 bg-white dark:bg-gray-800 border border-border-color rounded-lg text-text-main placeholder-text-secondary focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition"
+                   className={`block w-full px-4 py-3 bg-white dark:bg-gray-800 border rounded-lg text-text-main placeholder-text-secondary focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition ${error && isSignUp && (!fullName) ? 'border-red-500 focus:ring-red-500' : 'border-border-color'}`} aria-invalid={error && isSignUp && (!fullName) ? "true" : "false"}
                  />
                </div>
              )}
@@ -315,7 +303,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ onBack }) => {
                  value={email}
                  onChange={(e) => setEmail(e.target.value)}
                  placeholder="you@example.com"
-                 className="block w-full px-4 py-3 bg-white dark:bg-gray-800 border border-border-color rounded-lg text-text-main placeholder-text-secondary focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition"
+                 className={`block w-full px-4 py-3 bg-white dark:bg-gray-800 border rounded-lg text-text-main placeholder-text-secondary focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition ${error && (!email) ? 'border-red-500 focus:ring-red-500' : 'border-border-color'}`} aria-invalid={error && (!email) ? "true" : "false"}
                />
              </div>
              <div>
@@ -331,9 +319,9 @@ const AuthPage: React.FC<AuthPageProps> = ({ onBack }) => {
                    value={password}
                    onChange={(e) => setPassword(e.target.value)}
                    placeholder="••••••••"
-                   className="block w-full px-4 py-3 pr-10 bg-white dark:bg-gray-800 border border-border-color rounded-lg text-text-main placeholder-text-secondary focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition"
+                   className={`block w-full px-4 py-3 pr-10 bg-white dark:bg-gray-800 border rounded-lg text-text-main placeholder-text-secondary focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition ${error && (!password) ? 'border-red-500 focus:ring-red-500' : 'border-border-color'}`} aria-invalid={error && (!password) ? "true" : "false"}
                  />
-                 <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-0 flex items-center pr-3 text-text-secondary hover:text-text-main">
+                 <button type="button" aria-label={showPassword ? "Hide password" : "Show password"} onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-0 flex items-center pr-3 text-text-secondary hover:text-text-main focus:outline-none focus:text-indigo-600">
                    {showPassword ? (
                      <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a9.97 9.97 0 01-1.563 3.029m-5.858-.908a3 3 0 00-4.243-4.243" /></svg>
                    ) : (
@@ -352,7 +340,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ onBack }) => {
                    value={confirmPassword}
                    onChange={(e) => setConfirmPassword(e.target.value)}
                    placeholder="••••••••"
-                   className="block w-full px-4 py-3 bg-white dark:bg-gray-800 border border-border-color rounded-lg text-text-main placeholder-text-secondary focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition"
+                   className={`block w-full px-4 py-3 bg-white dark:bg-gray-800 border rounded-lg text-text-main placeholder-text-secondary focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition ${error && isSignUp && (password !== confirmPassword) ? 'border-red-500 focus:ring-red-500' : 'border-border-color'}`} aria-invalid={error && isSignUp && (password !== confirmPassword) ? "true" : "false"}
                  />
                </div>
              )}
@@ -363,7 +351,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ onBack }) => {
                    To create an account, please confirm the following:
                  </p>
                  <div className="space-y-3">
-                   <label className="flex items-start gap-3 cursor-pointer group">
+                   <label className="flex items-start gap-3 cursor-pointer group p-2 -ml-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-colors">
                      <div className="flex items-center h-5 mt-0.5">
                        <input
                          type="checkbox"
@@ -377,7 +365,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ onBack }) => {
                      </span>
                    </label>
 
-                   <label className="flex items-start gap-3 cursor-pointer group">
+                   <label className="flex items-start gap-3 cursor-pointer group p-2 -ml-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-colors">
                      <div className="flex items-center h-5 mt-0.5">
                        <input
                          type="checkbox"
@@ -396,13 +384,13 @@ const AuthPage: React.FC<AuthPageProps> = ({ onBack }) => {
                  </div>
                </div>
              )}
-             {error && <p className="text-sm text-red-500 text-center">{error}</p>}
+             {error && <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-sm text-red-600 dark:text-red-400 text-center">{error}</div>}
              {message && <p className="text-sm text-green-500 text-center">{message}</p>}
              <div>
                <button
                  type="submit"
                  disabled={isEmailLoading || isGoogleLoading}
-                 className={`w-full group relative flex justify-center items-center gap-2 bg-indigo-600 dark:bg-indigo-500 text-white font-semibold py-3 px-4 rounded-xl hover:bg-indigo-700 dark:hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-600 focus:ring-offset-white dark:focus:ring-offset-gray-900 transition-all duration-300 shadow-sm overflow-hidden ${isGoogleLoading ? 'opacity-50 cursor-not-allowed' : (isEmailLoading ? 'cursor-wait' : '')}`}
+                 className={`w-full group relative flex justify-center items-center gap-2 bg-indigo-600 dark:bg-indigo-500 text-white font-semibold py-3 px-4 rounded-xl hover:bg-indigo-700 dark:hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-600 focus:ring-offset-white dark:focus:ring-offset-gray-900 transition-all duration-300 shadow-sm overflow-hidden min-h-[52px] ${isGoogleLoading ? 'opacity-50 cursor-not-allowed' : (isEmailLoading ? 'cursor-wait opacity-80' : '')}`}
                >
                  <div className="absolute inset-0 bg-white/20 group-hover:bg-transparent transition-colors duration-300 z-0 pointer-events-none"></div>
                  {isEmailLoading ? (
