@@ -55,6 +55,9 @@ export const useAppBootstrap = (): BootstrapState => {
             });
             if (error) console.error('[Bootstrap] Manual setSession error:', error);
             else console.log('[Bootstrap] Manual setSession success.');
+          } else {
+            console.log('[Bootstrap] No access_token/refresh_token found after parsing hash. Calling getSession to let Supabase try.');
+            await supabase.auth.getSession();
           }
 
           console.log('[Bootstrap] Supabase processed hash. Cleaning up URL.');
@@ -68,7 +71,20 @@ export const useAppBootstrap = (): BootstrapState => {
         // 1. Load Config & Feature Flags
         // (Placeholder for fetching remote config via RPC/Supabase)
 
-        // 2. Initialize IndexedDB
+        // 2. Initialize Supabase & Restore Session
+        try {
+          console.log('[Bootstrap] Initializing Supabase & Restoring Session...');
+          const { data: { session }, error } = await supabase.auth.getSession();
+          if (error) {
+              console.error('[Bootstrap] Supabase getSession error:', error);
+          } else {
+              console.log('[Bootstrap] Supabase getSession success. Has session?', !!session);
+          }
+        } catch (authErr) {
+          console.error('[Bootstrap] Auth session restore failed, continuing for potential offline/guest logic:', authErr);
+        }
+
+        // 3. Initialize IndexedDB
         // Ensure DB is accessible
         try {
            // We perform a benign query to awake IDB
@@ -77,14 +93,14 @@ export const useAppBootstrap = (): BootstrapState => {
            console.warn("IDB init warning, proceeding anyway:", idbErr);
         }
 
-        // 3. Hydrate Zustand Stores & Theme
+        // 4. Hydrate Zustand Stores & Theme
         // Zustand persist handles hydration automatically,
         // but we ensure basic availability here if needed.
 
-        // 4. Initialize Services / AI
+        // 5. Initialize Services / AI
         // (Placeholder for preparing Web Workers if needed)
 
-        // 5. Check App Version & Maintenance
+        // 6. Check App Version & Maintenance
         // (Placeholder for future maintenance screen logic)
         // const isMaintenance = false;
         // if (isMaintenance) {
