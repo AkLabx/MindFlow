@@ -5,7 +5,7 @@ import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../../../lib/supabase';
-import { BrainCircuit, ArrowLeft, Loader2 } from 'lucide-react';
+import { BrainCircuit, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { STARTER_DIAGNOSTIC_QUESTIONS } from '@/features/quiz/data/starterDiagnosticQuestions';
 import { triggerHaptic } from '@/lib/haptics';
@@ -14,8 +14,7 @@ import { triggerHaptic } from '@/lib/haptics';
  * Props for the AuthPage component.
  */
 interface AuthPageProps {
-  /** Callback function to navigate back to the previous screen. */
-  onBack: () => void;
+  onBack?: () => void;
 }
 
 /**
@@ -41,7 +40,7 @@ interface AuthPageProps {
  * @param {AuthPageProps} props - The component props.
  * @returns {JSX.Element} The rendered authentication page.
  */
-const AuthPage: React.FC<AuthPageProps> = ({ onBack }) => {
+const AuthPage: React.FC<AuthPageProps> = () => {
   const [showDemo, setShowDemo] = useState(false);
   const [demoIndex, setDemoIndex] = useState(0);
   const [demoLanguage, setDemoLanguage] = useState<'en'|'hi'>('en');
@@ -68,29 +67,6 @@ const AuthPage: React.FC<AuthPageProps> = ({ onBack }) => {
   const location = useLocation();
   const { user } = useAuth();
 
-  useEffect(() => {
-    console.log("[AuthPage Debug] Rendered AuthPage. Current user from context:", user?.id || "null");
-    console.log("[AuthPage Debug] location.search:", location.search, "location.hash:", location.hash);
-    
-    const checkSession = async () => {
-      const { data, error } = await supabase.auth.getSession();
-      console.log("[AuthPage Debug] supabase.auth.getSession():", data.session ? "Session exists" : "null", error);
-    };
-    checkSession();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log("[AuthPage Debug] Auth state change event:", event, session ? "Session exists" : "null");
-    });
-
-    if (user) {
-      console.log("[AuthPage Debug] User exists, navigating to dashboard...");
-      const params = new URLSearchParams(location.search);
-      const returnTo = params.get('returnTo');
-      const destination = returnTo && returnTo.startsWith('/') ? returnTo : '/dashboard';
-      navigate(destination, { replace: true });
-    }
-    return () => { subscription.unsubscribe(); }
-  }, [user, navigate, location.search]);
 
   /**
    * Validates the form inputs before submission.
@@ -221,13 +197,6 @@ const AuthPage: React.FC<AuthPageProps> = ({ onBack }) => {
         <div className="absolute -bottom-32 left-1/2 w-[50vw] h-[50vw] max-w-[500px] max-h-[500px] bg-pink-500/20 dark:bg-pink-500/10 rounded-full mix-blend-multiply dark:mix-blend-lighten filter blur-3xl opacity-50 animate-blob animation-delay-4000 pointer-events-none z-0 transform -translate-x-1/2"></div>
 
 
-        <button
-         onClick={onBack}
-         className="self-start mb-4 z-20 flex items-center justify-center p-2 rounded-full bg-white/50 dark:bg-gray-800/50 hover:bg-white/80 dark:hover:bg-gray-700/80 text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-100 transition-all shadow-sm backdrop-blur-sm border border-white/20 dark:border-gray-700/30"
-         title="Back to Dashboard"
-        aria-label="Go back">
-         <ArrowLeft className="w-5 h-5" />
-       </button>
        <div className="flex-1 flex items-center justify-center pb-8 relative z-10 w-full">
        <div className="w-full max-w-md">
          <div className="relative group rounded-[32px] sm:rounded-[40px] p-[1px] overflow-hidden">
