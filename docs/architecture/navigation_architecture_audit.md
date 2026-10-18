@@ -388,7 +388,7 @@ sequenceDiagram
 
 Once you approve this architecture, the implementation will cleanly address all findings without touching your guardrailed `<HashRouter>` or OAuth hash interception logic:
 
-1. **Enforce the "Single Door" Across All Routes (`src/routes/AppRoutes.tsx`)**:
+1. [x] **Enforce the "Single Door" Across All Routes (`src/routes/AppRoutes.tsx`)**:
    - Wrap all 25 currently unprotected immersive/fullscreen routes (lines 355–515) inside an authenticated `<Route element={<NavigationManager key="auth-immersive" type={RouteAccessType.AUTHENTICATED}><Outlet /></NavigationManager>}>` group.
    - Remove the duplicate `/vocab/idioms/config` and `/vocab/ows/config` route declarations.
    - Update the `*` fallback route so unknown URLs redirect cleanly without polluting `IntentPolicy`.

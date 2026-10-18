@@ -1,7 +1,7 @@
 import { ROUTES } from '@/config';
 import { NavigationManager, RouteAccessType } from '../lib/navigation';
 import React, { lazy, Suspense } from 'react';
-import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
+import { Routes, Route, Navigate, useNavigate, useLocation, Outlet } from 'react-router-dom';
 import { QuizProvider, useQuizContext } from '@/features/quiz';
 import { useFlashcardStore } from '@/features/quiz';
 import { AppLayout } from '@/layouts/AppLayout';
@@ -351,6 +351,7 @@ const handleReattempt = async (quizId: string, mode: string) => {
 
 
                     {/* Vocab Libraries */}
+                    <Route element={<NavigationManager key="auth-immersive" type={RouteAccessType.AUTHENTICATED}><Outlet /></NavigationManager>}>
                     <Route path={ROUTES.VOCAB.OWS.LIBRARY} element={<Suspense fallback={<SynapticLoader />}><VocabLibraryPage vocabType="ows" onBack={() => navTo(`${ROUTES.ENGLISH}?tab=vocabows`)} onStartDeck={(id) => { navTo(ROUTES.VOCAB.OWS.SESSION.dynamic(id)); }} /></Suspense>} />
                     <Route path={ROUTES.VOCAB.IDIOMS.LIBRARY} element={<Suspense fallback={<SynapticLoader />}><VocabLibraryPage vocabType="idiom" onBack={() => navTo(`${ROUTES.ENGLISH}?tab=vocabidiom`)} onStartDeck={(id) => { navTo(ROUTES.VOCAB.IDIOMS.SESSION.dynamic(id)); }} /></Suspense>} />
                     <Route path={ROUTES.VOCAB.SYNONYMS.LIBRARY} element={<Suspense fallback={<SynapticLoader />}><VocabLibraryPage vocabType="synonym" onBack={() => navTo(`${ROUTES.ENGLISH}?tab=vocabsynonyms`)} onStartDeck={(id) => { navTo(ROUTES.VOCAB.SYNONYMS.SESSION.dynamic(id)); }} /></Suspense>} />
@@ -364,25 +365,9 @@ const handleReattempt = async (quizId: string, mode: string) => {
                     <Route path={ROUTES.VOCAB.IDIOMS.RESULT(':deckId')} element={<Suspense fallback={<SynapticLoader />}><VocabResult vocabType="idiom" /></Suspense>} />
                     <Route path={ROUTES.VOCAB.SYNONYMS.RESULT(':deckId')} element={<Suspense fallback={<SynapticLoader />}><VocabResult vocabType="synonym" /></Suspense>} />
 
-<Route path={ROUTES.VOCAB.IDIOMS.CONFIG} element={
-                        <Suspense fallback={<SynapticLoader />}><IdiomsConfig
-                            onBack={() => { enterEnglishHome(); navTo(`${ROUTES.ENGLISH}?tab=vocabidiom`); }}
-                            onStart={(data, filters, mode) => {
-                                flashcardStore.startIdioms(data as any, filters, mode as 'basic' | 'review');
-                                navTo(ROUTES.VOCAB.IDIOMS.SESSION.root);
-                            }}
-                        /></Suspense>
-                    } />
 
-                    <Route path={ROUTES.VOCAB.OWS.CONFIG} element={
-                        <Suspense fallback={<SynapticLoader />}><OWSConfig
-                            onBack={() => { enterEnglishHome(); navTo(`${ROUTES.ENGLISH}?tab=vocabows`); }}
-                            onStart={(data, filters, mode) => {
-                                flashcardStore.startOWS(data, filters, mode as 'basic' | 'review');
-                                navTo(ROUTES.VOCAB.OWS.SESSION.root);
-                            }}
-                        /></Suspense>
-                    } />
+
+                    
 
 
 
@@ -510,6 +495,7 @@ const handleReattempt = async (quizId: string, mode: string) => {
                 <Route path={ROUTES.TOOLS_ROUTES.ASCII_ART_NUMBER} element={<Suspense fallback={<SynapticLoader />}><NumberArt /></Suspense>} />
                 <Route path={ROUTES.TOOLS_ROUTES.ASCII_ART_INVISIBLE_INK} element={<Suspense fallback={<SynapticLoader />}><InvisibleInk /></Suspense>} />
                 <Route path={ROUTES.TOOLS_ROUTES.ASCII_ART_STEGO} element={<Suspense fallback={<SynapticLoader />}><MyStego /></Suspense>} />
+                </Route>
 
                 {/* Fallback Route */}
                 <Route path={ROUTES.FALLBACK} element={<Navigate to={ROUTES.HOME} replace />} />
