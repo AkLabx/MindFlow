@@ -206,8 +206,19 @@ const handleReattempt = async (quizId: string, mode: string) => {
     return (
         <Suspense fallback={
             location.pathname === '/'
-                ? <div className="min-h-screen w-full bg-slate-50 dark:bg-slate-950" />
-                : <div className="min-h-screen w-full flex items-center justify-center bg-slate-50 dark:bg-slate-950"><SynapticLoader size="xl" /></div>
+                ? (
+                    <div className="min-h-[100dvh] w-full flex flex-col items-center justify-center p-6 bg-slate-50 dark:bg-slate-900 overflow-hidden relative">
+                        <div className="absolute top-0 left-1/4 w-[50vw] h-[50vw] bg-indigo-500/10 rounded-full blur-3xl opacity-50 pointer-events-none"></div>
+                        <div className="absolute top-0 right-1/4 w-[50vw] h-[50vw] bg-purple-500/10 rounded-full blur-3xl opacity-50 pointer-events-none"></div>
+                        <div className="w-full max-w-md animate-pulse">
+                            <div className="h-64 bg-slate-200/50 dark:bg-slate-800/50 rounded-3xl mb-8"></div>
+                            <div className="h-12 bg-slate-200/50 dark:bg-slate-800/50 rounded-xl mb-4"></div>
+                            <div className="h-12 bg-slate-200/50 dark:bg-slate-800/50 rounded-xl mb-4"></div>
+                            <div className="h-12 bg-slate-200/50 dark:bg-slate-800/50 rounded-xl"></div>
+                        </div>
+                    </div>
+                )
+                : <div className="min-h-screen w-full flex items-center justify-center bg-slate-50 dark:bg-slate-900"><SynapticLoader size="xl" /></div>
         }>
             <Routes>
                 {/* --- Public / Landing Route --- */}
