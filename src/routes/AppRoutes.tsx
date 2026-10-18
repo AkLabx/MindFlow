@@ -1,5 +1,6 @@
 import { ROUTES } from '@/config';
 import { NavigationManager, RouteAccessType } from '../lib/navigation';
+import { IntentPolicy } from '../lib/navigation/policies/IntentPolicy';
 import React, { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate, useNavigate, useLocation, Outlet } from 'react-router-dom';
 import { QuizProvider, useQuizContext } from '@/features/quiz';
@@ -237,7 +238,7 @@ const handleReattempt = async (quizId: string, mode: string) => {
                     <Route path={ROUTES.DASHBOARD} element={<Dashboard />} />
                     <Route path={ROUTES.MCQS} element={<Suspense fallback={<SynapticLoader />}><McqsQuizHome onBack={() => { navigate(ROUTES.DASHBOARD); }} /></Suspense>} />
                     <Route path={ROUTES.ENGLISH} element={<Suspense fallback={<SynapticLoader />}><EnglishHub /></Suspense>} />
-                    <Route path={ROUTES.PROFILE.ROOT} element={<Suspense fallback={<SynapticLoader />}><ProfilePage onNavigateToSettings={() => navigate(ROUTES.SETTINGS.ROOT)} onSignOut={() => navigate(ROUTES.DASHBOARD)} /></Suspense>} />
+                    <Route path={ROUTES.PROFILE.ROOT} element={<Suspense fallback={<SynapticLoader />}><ProfilePage onNavigateToSettings={() => navigate(ROUTES.SETTINGS.ROOT)} onSignOut={() => { IntentPolicy.clearIntent(); navigate('/'); }} /></Suspense>} />
                     <Route path={ROUTES.SETTINGS.ROOT} element={<Suspense fallback={<SynapticLoader />}><SettingsPage onBack={() => navigate(ROUTES.PROFILE.ROOT)} /></Suspense>} />
                     <Route path={ROUTES.SETTINGS.MY_REPORTS} element={<Suspense fallback={<SynapticLoader />}><PerformanceAnalytics /></Suspense>} />
                     <Route path={ROUTES.SETTINGS.DELETE_ACCOUNT} element={<Suspense fallback={<SynapticLoader />}><DeleteAccountPage /></Suspense>} />

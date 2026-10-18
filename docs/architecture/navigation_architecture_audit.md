@@ -392,7 +392,7 @@ Once you approve this architecture, the implementation will cleanly address all 
    - Wrap all 25 currently unprotected immersive/fullscreen routes (lines 355–515) inside an authenticated `<Route element={<NavigationManager key="auth-immersive" type={RouteAccessType.AUTHENTICATED}><Outlet /></NavigationManager>}>` group.
    - Remove the duplicate `/vocab/idioms/config` and `/vocab/ows/config` route declarations.
    - Update the `*` fallback route so unknown URLs redirect cleanly without polluting `IntentPolicy`.
-2. **Unify Redirects & Fix Deep-Link Intent Restoration (`AuthPage.tsx`, `ShareGatekeeper.tsx`, `NavigationManager.tsx`)**:
+2. [x] **Unify Redirects & Fix Deep-Link Intent Restoration (`AuthPage.tsx`, `ShareGatekeeper.tsx`, `NavigationManager.tsx`)**:
    - Remove the competing `useEffect` redirect and the non-functional "Back to Dashboard" button from `AuthPage.tsx`, letting `NavigationManager` + `IntentPolicy` + `OnboardingPolicy` handle all post-login routing deterministically.
    - Remove manual `/?returnTo=` from `ShareGatekeeper.tsx` in favor of `NavigationManager` + `IntentPolicy`.
    - Fix `ProfilePage`'s `onSignOut` callback in `AppRoutes.tsx` and clear `IntentPolicy` on explicit sign-out.
