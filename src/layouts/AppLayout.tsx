@@ -1,14 +1,14 @@
 import React, { useState, useContext, Suspense } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { MainLayout, TabID } from '../../layouts/MainLayout';
-import { useSettingsStore } from '../../stores/useSettingsStore';
-import { Fireballs } from '../../components/Background/Fireballs';
-import { SettingsModal } from './components/ui/SettingsModal';
-import { useAuth } from '../auth/context/AuthContext';
-import { useQuizContext } from './context/QuizContext';
-import { SynapticLoader } from '../../components/ui/SynapticLoader';
+import { MainLayout, TabID } from './MainLayout';
+import { useSettingsStore } from '@/stores/useSettingsStore';
+import { Fireballs } from '@/components/Background/Fireballs';
+import { SettingsModal } from '@/features/quiz/components/ui/SettingsModal';
+import { useAuth } from '@/features/auth/context/AuthContext';
+import { useQuizContext } from '@/features/quiz/context/QuizContext';
+import { SynapticLoader } from '@/components/ui/SynapticLoader';
 
-export const QuizLayout: React.FC = () => {
+export const AppLayout: React.FC = () => {
     const areBgAnimationsEnabled = useSettingsStore(state => state.areBgAnimationsEnabled);
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const { user } = useAuth();
