@@ -396,7 +396,7 @@ Once you approve this architecture, the implementation will cleanly address all 
    - Remove the competing `useEffect` redirect and the non-functional "Back to Dashboard" button from `AuthPage.tsx`, letting `NavigationManager` + `IntentPolicy` + `OnboardingPolicy` handle all post-login routing deterministically.
    - Remove manual `/?returnTo=` from `ShareGatekeeper.tsx` in favor of `NavigationManager` + `IntentPolicy`.
    - Fix `ProfilePage`'s `onSignOut` callback in `AppRoutes.tsx` and clear `IntentPolicy` on explicit sign-out.
-3. **Eliminate the Post-Intro Loader Waterfall (`src/features/intro/IntroEngine.tsx`)**:
+3. [x] **Eliminate the Post-Intro Loader Waterfall (`src/features/intro/IntroEngine.tsx`)**:
    - Render `{children}` underneath the `IntroEngine` overlay while the intro plays so authentication and initial route rendering finish *behind* the intro curtain before it opens.
 4. **GitHub Pages Non-Hash URL Normalization (`public/404.html`)**:
    - Add a static `public/404.html` redirector so opening `https://aklabx.github.io/MindFlow/dashboard` (without `#`) automatically normalizes to `https://aklabx.github.io/MindFlow/#/dashboard`.
