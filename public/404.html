@@ -1,28 +1,35 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
   <head>
-    <meta charset="utf-8">
-    <title>MindFlow</title>
-    <script type="text/javascript">
-      // GitHub Pages doesn't natively support SPAs.
-      // When a user requests https://aklabx.github.io/MindFlow/dashboard,
-      // GitHub Pages returns this 404.html file.
-      // This script will immediately redirect the browser to the HashRouter format:
-      // https://aklabx.github.io/MindFlow/#/dashboard
+    <meta charset="utf-8" />
+    <title>MindFlow — Redirecting...</title>
+    <script>
+      // GitHub Pages SPA -> HashRouter Normalizer
+      // Rewrites direct non-hash URLs (e.g. /MindFlow/dashboard) to /MindFlow/#/dashboard
+      (function () {
+        var l = window.location;
+        var basePath = '/MindFlow';
+        var pathname = l.pathname;
+        var subPath = pathname;
 
-      var pathSegmentsToKeep = 1;
+        if (pathname.toLowerCase().indexOf(basePath.toLowerCase()) === 0) {
+          subPath = pathname.slice(basePath.length) || '/';
+        } else {
+          basePath = '';
+        }
 
-      var l = window.location;
-      var repoPath = '/' + l.pathname.split('/')[1]; // usually '/MindFlow'
+        if (!subPath.startsWith('/')) {
+          subPath = '/' + subPath;
+        }
 
-      // Check if we are already correctly formatted (shouldn't happen on a 404, but just in case)
-      if (l.pathname !== repoPath && l.pathname !== repoPath + '/') {
-          var newPath = repoPath + '/#/' + l.pathname.slice(repoPath.length + 1).replace(/^\/+/, '') + l.search + l.hash;
-          l.replace(newPath);
-      }
+        var targetHash = l.hash && l.hash.length > 1
+          ? l.hash
+          : '#' + subPath + (l.search || '');
+
+        var targetUrl = l.protocol + '//' + l.host + (basePath || '') + '/' + targetHash;
+        l.replace(targetUrl);
+      })();
     </script>
   </head>
-  <body>
-    <!-- Redirecting... -->
-  </body>
+  <body style="background-color: #0f172a; margin: 0;"></body>
 </html>
