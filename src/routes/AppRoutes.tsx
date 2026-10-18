@@ -216,14 +216,14 @@ const handleReattempt = async (quizId: string, mode: string) => {
                 <Route path={ROUTES.HOME} element={
                     <NavigationManager type={RouteAccessType.GUEST_ONLY}>
                         <Suspense fallback={<SynapticLoader />}>
-                            <AuthPage />
+                            <AuthPage onBack={() => {}} />
                         </Suspense>
                     </NavigationManager>
                 } />
                 <Route path={ROUTES.LOGIN} element={<Navigate to={ROUTES.HOME} replace />} />
                 <Route path={ROUTES.SIGNUP} element={<Navigate to={ROUTES.HOME} replace />} />
 
-                {/* --- Standard Application Routes (Wrapped in AppLayout) --- */}
+                {/* --- Standard Application Routes (Wrapped in QuizLayout) --- */}
                 <Route element={<NavigationManager type={RouteAccessType.AUTHENTICATED} />}>
                 <Route element={<AppLayout />} >
                     <Route path={ROUTES.DASHBOARD} element={<Suspense fallback={<SynapticLoader />}><Dashboard /></Suspense>} />
