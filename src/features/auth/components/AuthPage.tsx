@@ -42,6 +42,11 @@ interface AuthPageProps {
  * @returns {JSX.Element} The rendered authentication page.
  */
 const AuthPage: React.FC<AuthPageProps> = ({ onBack }) => {
+  useEffect(() => {
+    console.log("[FORENSIC] AuthPage MOUNTED");
+    return () => console.log("[FORENSIC] AuthPage UNMOUNTED");
+  }, []);
+
   const [showDemo, setShowDemo] = useState(false);
   const [demoIndex, setDemoIndex] = useState(0);
   const [demoLanguage, setDemoLanguage] = useState<'en'|'hi'>('en');

@@ -16,6 +16,11 @@ interface NavigationManagerProps {
 }
 
 export const NavigationManager: React.FC<NavigationManagerProps> = ({ children, type }) => {
+  useEffect(() => {
+    console.log(`[FORENSIC] NavigationManager MOUNTED (type: ${type})`);
+    return () => console.log(`[FORENSIC] NavigationManager UNMOUNTED (type: ${type})`);
+  }, [type]);
+
   const { user, loading } = useAuth();
   const location = useLocation();
 

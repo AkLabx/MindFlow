@@ -19,6 +19,27 @@ const AppVisibilityWrapper = () => {
 };
 
 const App: React.FC = () => {
+  useEffect(() => {
+    console.log("[FORENSIC] App MOUNTED");
+    const interval = setInterval(() => {
+      const authPage = document.querySelector(".animate-fade-in");
+      if (authPage) {
+        const computed = window.getComputedStyle(authPage);
+        console.log("[FORENSIC] AuthPage Opacity:", computed.opacity, "Visibility:", computed.visibility, "Display:", computed.display);
+      }
+      const zoomOverlay = document.querySelector(".zoom-overlay");
+      if (zoomOverlay) {
+        const computed = window.getComputedStyle(zoomOverlay);
+        console.log("[FORENSIC] BlueIntro Overlay Opacity:", computed.opacity, "zIndex:", computed.zIndex);
+      }
+      const root = document.getElementById("root");
+      if (root const App: React.FC = () => {const App: React.FC = () => { root.children.length > 0) {
+         console.log("[FORENSIC] Root highest z-index check...");
+      }
+    }, 500);
+    return () => clearInterval(interval);
+  }, []);
+
   const bootstrapState = useAppBootstrap();
 
   if (bootstrapState.stage === 'FAILED') {

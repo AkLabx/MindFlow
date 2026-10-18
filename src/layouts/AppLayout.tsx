@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import React, { useState, useContext, Suspense } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { MainLayout, TabID } from './MainLayout';
@@ -9,6 +10,11 @@ import { useQuizContext } from '@/features/quiz/context/QuizContext';
 import { SynapticLoader } from '@/components/ui/SynapticLoader';
 
 export const AppLayout: React.FC = () => {
+    useEffect(() => {
+        console.log("[FORENSIC] AppLayout MOUNTED");
+        return () => console.log("[FORENSIC] AppLayout UNMOUNTED");
+    }, []);
+
     const areBgAnimationsEnabled = useSettingsStore(state => state.areBgAnimationsEnabled);
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const { user } = useAuth();

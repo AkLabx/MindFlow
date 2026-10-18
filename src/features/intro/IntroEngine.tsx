@@ -4,6 +4,11 @@ import { getIntroModule } from './registry';
 import { IntroProps } from './registry/types';
 
 export const IntroEngine: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  useEffect(() => {
+    console.log("[FORENSIC] IntroEngine MOUNTED");
+    return () => console.log("[FORENSIC] IntroEngine UNMOUNTED");
+  }, []);
+
   const { config, initialize, previewConfig, previewNonce, clearPreview } = useAppConfigStore();
   const [hasPlayed, setHasPlayed] = useState(false);
   const [IntroComponent, setIntroComponent] = useState<ComponentType<IntroProps> | null>(null);

@@ -3,6 +3,11 @@ import './BlueIntro.css';
 import { IntroProps } from '../../registry/types';
 
 const BlueIntro: React.FC<IntroProps> = ({ config, onComplete }) => {
+  useEffect(() => {
+    console.log("[FORENSIC] BlueIntro MOUNTED");
+    return () => console.log("[FORENSIC] BlueIntro UNMOUNTED");
+  }, []);
+
   const [phase, setPhase] = useState<'initial' | 'pre-zoom' | 'expanding' | 'vanishing' | 'done'>('initial');
 
   // Stable ref for onComplete to avoid triggering useEffects on re-renders
