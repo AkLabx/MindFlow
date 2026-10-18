@@ -136,13 +136,18 @@ export const IntroEngine: React.FC<{ children: React.ReactNode }> = ({ children 
   // Not played yet, or currently previewing but component not loaded
   if (!IntroComponent || !frozenConfig) {
      // Use transparent background to not block app loader or auth page if they clash
-     return <div className="fixed inset-0 bg-transparent z-[9999]" />;
+     return (
+       <>
+         {children}
+         <div className="fixed inset-0 bg-transparent z-[9999]" />
+       </>
+     );
   }
 
   return (
     <>
-      {/* If previewing, keep the app running underneath so Admin Hub doesn't unmount */}
-      {isPreviewing && children}
+      {/* Always keep the app running underneath so auth/routing resolves before intro finishes */}
+      {children}
 
       <div className="fixed inset-0 z-[99999]">
           <IntroComponent config={frozenConfig} onComplete={handleComplete} />
