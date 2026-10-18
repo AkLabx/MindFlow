@@ -28,15 +28,14 @@ export class IntentPolicy {
     sessionStorage.setItem(INTENT_STORAGE_KEY, JSON.stringify(intent));
   }
 
-  static popIntent(): string | null {
+  static peekIntent(): string | null {
     const savedStr = sessionStorage.getItem(INTENT_STORAGE_KEY);
     if (!savedStr) return null;
 
     try {
       const intent: SavedIntent = JSON.parse(savedStr);
-      sessionStorage.removeItem(INTENT_STORAGE_KEY);
-
       if (Date.now() > intent.expiresAt) {
+        sessionStorage.removeItem(INTENT_STORAGE_KEY);
         return null;
       }
       return `${intent.pathname}${intent.search}${intent.hash}`;
@@ -44,6 +43,12 @@ export class IntentPolicy {
       sessionStorage.removeItem(INTENT_STORAGE_KEY);
       return null;
     }
+  }
+
+  static popIntent(): string | null {
+    const intent = this.peekIntent();
+    this.clearIntent();
+    return intent;
   }
 
   static clearIntent(): void {

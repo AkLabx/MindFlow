@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { RouteAccessType } from './types';
@@ -19,100 +19,7 @@ export const NavigationManager: React.FC<NavigationManagerProps> = ({ children, 
   const { user, loading } = useAuth();
   const location = useLocation();
 
-  const [isReady, setIsReady] = useState(false);
-  const [redirectPath, setRedirectPath] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (loading) return;
-
-    const evaluatePolicies = () => {
-      const source = location.pathname;
-      let targetRedirect: string | null = null;
-      let reason = '';
-
-      // --- 1. Admin Policy ---
-      if (type === RouteAccessType.ADMIN) {
-        if (!user) {
-          IntentPolicy.saveIntent(location);
-          targetRedirect = PlatformPolicy.getGuestEntryRoute();
-          reason = 'Unauthenticated access to Admin';
-        } else if (!AuthPolicy.isAdmin(user)) {
-          targetRedirect = '/dashboard';
-          reason = 'Non-admin access to Admin';
-        }
-      }
-
-      // --- 2. Authenticated Policy ---
-      else if (type === RouteAccessType.AUTHENTICATED || type === RouteAccessType.OFFLINE_CAPABLE) {
-        if (!user) {
-          IntentPolicy.saveIntent(location);
-          targetRedirect = PlatformPolicy.getGuestEntryRoute();
-          reason = 'Unauthenticated access to Protected Route';
-        }
-      }
-
-      // --- 3. Guest Only Policy (Login/Register) ---
-      else if (type === RouteAccessType.GUEST_ONLY) {
-        if (user) {
-          if (OnboardingPolicy.shouldRedirectToOnboarding(user)) {
-             targetRedirect = '/onboarding';
-             reason = 'New authenticated user routed directly to Onboarding';
-          } else {
-            // If auth user hits login, see if they have an intent. If so, fulfill it.
-            const intent = IntentPolicy.popIntent();
-            if (intent) {
-              targetRedirect = intent;
-              reason = 'Restoring intent for Authenticated user hitting Guest Route';
-              NavigationAnalytics.track('Deep Link Restored', { destination: intent });
-            } else {
-              targetRedirect = '/dashboard';
-              reason = 'Authenticated user hitting Guest Route';
-            }
-          }
-        }
-      }
-
-      // --- 4. Public Policy ---
-      else if (type === RouteAccessType.PUBLIC) {
-        if (user) {
-          if (OnboardingPolicy.shouldRedirectToOnboarding(user)) {
-             targetRedirect = '/onboarding';
-             reason = 'New authenticated user routed directly to Onboarding';
-          } else {
-             targetRedirect = '/dashboard';
-             reason = 'Authenticated user hitting Public Route';
-          }
-        }
-      }
-
-      // --- 5. Onboarding Policy ---
-      // We check this AFTER establishing basic auth routing to prevent loops.
-      // We do NOT redirect to onboarding if they are already on the onboarding route itself,
-      // or if they are hitting a Public/Guest route (where they shouldn't be anyway, but handled above).
-      if (user && !targetRedirect && location.pathname !== '/onboarding' && type !== RouteAccessType.PUBLIC && type !== RouteAccessType.GUEST_ONLY) {
-        if (OnboardingPolicy.shouldRedirectToOnboarding(user)) {
-           targetRedirect = '/onboarding';
-           reason = 'User has not completed Onboarding';
-           NavigationAnalytics.track('Onboarding Started');
-        }
-      }
-
-      // --- Commit Decision ---
-      if (targetRedirect && targetRedirect !== location.pathname) {
-        NavigationLogger.log(source, reason, targetRedirect);
-        setRedirectPath(targetRedirect);
-      } else {
-        setRedirectPath(null);
-        setIsReady(true);
-      }
-    };
-
-    evaluatePolicies();
-  }, [user, loading, location, type]);
-
-  if (loading || (!isReady && !redirectPath)) {
-    // Return minimal skeleton to avoid flashes during rapid redirect evaluation.
-    // If we're hitting a GUEST route and evaluating policies, render transparently to avoid hard dark block clash with IntroEngine.
+  if (loading) {
     if (type === RouteAccessType.GUEST_ONLY || type === RouteAccessType.PUBLIC) {
       return <div className="min-h-screen w-full flex items-center justify-center bg-transparent"><SynapticLoader size="lg" /></div>;
     }
@@ -121,8 +28,94 @@ export const NavigationManager: React.FC<NavigationManagerProps> = ({ children, 
     );
   }
 
-  if (redirectPath) {
-    return <Navigate to={redirectPath} replace />;
+  // --- Synchronous Policy Evaluation ---
+  const source = location.pathname;
+  let targetRedirect: string | null = null;
+  let reason = '';
+  let shouldSaveIntent = false;
+  let restoredIntent: string | null = null;
+  let startedOnboarding = false;
+
+  // 1. Admin Policy
+  if (type === RouteAccessType.ADMIN) {
+    if (!user) {
+      shouldSaveIntent = true;
+      targetRedirect = PlatformPolicy.getGuestEntryRoute();
+      reason = 'Unauthenticated access to Admin';
+    } else if (!AuthPolicy.isAdmin(user)) {
+      targetRedirect = '/dashboard';
+      reason = 'Non-admin access to Admin';
+    }
+  }
+  // 2. Authenticated Policy
+  else if (type === RouteAccessType.AUTHENTICATED || type === RouteAccessType.OFFLINE_CAPABLE) {
+    if (!user) {
+      shouldSaveIntent = true;
+      targetRedirect = PlatformPolicy.getGuestEntryRoute();
+      reason = 'Unauthenticated access to Protected Route';
+    }
+  }
+  // 3. Guest Only Policy (Login/Register)
+  else if (type === RouteAccessType.GUEST_ONLY) {
+    if (user) {
+      if (OnboardingPolicy.shouldRedirectToOnboarding(user)) {
+         targetRedirect = '/onboarding';
+         reason = 'New authenticated user routed directly to Onboarding';
+      } else {
+        const intent = IntentPolicy.peekIntent();
+        if (intent) {
+          targetRedirect = intent;
+          reason = 'Restoring intent for Authenticated user hitting Guest Route';
+          restoredIntent = intent;
+        } else {
+          targetRedirect = '/dashboard';
+          reason = 'Authenticated user hitting Guest Route';
+        }
+      }
+    }
+  }
+  // 4. Public Policy
+  else if (type === RouteAccessType.PUBLIC) {
+    if (user) {
+      if (OnboardingPolicy.shouldRedirectToOnboarding(user)) {
+         targetRedirect = '/onboarding';
+         reason = 'New authenticated user routed directly to Onboarding';
+      } else {
+         targetRedirect = '/dashboard';
+         reason = 'Authenticated user hitting Public Route';
+      }
+    }
+  }
+
+  // 5. Onboarding Policy
+  if (user && !targetRedirect && location.pathname !== '/onboarding' && type !== RouteAccessType.PUBLIC && type !== RouteAccessType.GUEST_ONLY) {
+    if (OnboardingPolicy.shouldRedirectToOnboarding(user)) {
+       targetRedirect = '/onboarding';
+       reason = 'User has not completed Onboarding';
+       startedOnboarding = true;
+    }
+  }
+
+  // --- Handle Side Effects in useEffect ---
+  useEffect(() => {
+    if (shouldSaveIntent) {
+      IntentPolicy.saveIntent(location);
+    }
+    if (restoredIntent) {
+      IntentPolicy.clearIntent();
+      NavigationAnalytics.track('Deep Link Restored', { destination: restoredIntent });
+    }
+    if (startedOnboarding) {
+      NavigationAnalytics.track('Onboarding Started');
+    }
+    if (targetRedirect && targetRedirect !== location.pathname) {
+      NavigationLogger.log(source, reason, targetRedirect);
+    }
+  }, [shouldSaveIntent, restoredIntent, startedOnboarding, targetRedirect, location, source, reason]);
+
+  // --- Immediate Redirect ---
+  if (targetRedirect && targetRedirect !== location.pathname) {
+    return <Navigate to={targetRedirect} replace />;
   }
 
   return <>{children}</>;
