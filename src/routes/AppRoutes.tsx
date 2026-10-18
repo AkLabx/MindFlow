@@ -218,7 +218,7 @@ const handleReattempt = async (quizId: string, mode: string) => {
                         </div>
                     </div>
                 )
-                : <div className="min-h-screen w-full flex items-center justify-center bg-slate-50 dark:bg-slate-900"><SynapticLoader size="xl" /></div>
+                : <div className="min-h-screen w-full flex items-center justify-center bg-transparent"><SynapticLoader size="xl" /></div>
         }>
             <Routes>
                 {/* --- Public / Landing Route --- */}

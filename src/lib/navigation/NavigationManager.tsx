@@ -110,7 +110,11 @@ export const NavigationManager: React.FC<NavigationManagerProps> = ({ children, 
   }, [user, loading, location, type]);
 
   if (loading || (!isReady && !redirectPath)) {
-    // Return minimal skeleton instead of full SynapticLoader to avoid flashes during rapid redirect evaluation
+    // Return minimal skeleton to avoid flashes during rapid redirect evaluation.
+    // If we're hitting a GUEST route and evaluating policies, render transparently to avoid hard dark block clash with IntroEngine.
+    if (type === RouteAccessType.GUEST_ONLY || type === RouteAccessType.PUBLIC) {
+      return <div className="min-h-screen w-full flex items-center justify-center bg-transparent"><SynapticLoader size="lg" /></div>;
+    }
     return (
        <div className="min-h-screen w-full flex items-center justify-center bg-slate-50 dark:bg-slate-900"><SynapticLoader size="lg" /></div>
     );
