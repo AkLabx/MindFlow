@@ -5,3 +5,4 @@ export * from './components/SuggestedDrillCard';
 export * from './components/UserProgressCard';
 export * from './components/ImportantForSscStrip';
 export * from './constants/sscDashboardConfig';
+export * from './components/DashboardGreeting';

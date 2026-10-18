@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth, useProfileStats } from "@/features/auth";
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/lib/supabase';
+import { SavedQuiz } from '@/features/quiz/types';
 import { useNotification } from "@/stores/useNotificationStore";
 import { useQuizContext } from '@/features/quiz/context/QuizContext';
 import { db } from '@/lib/db';
@@ -8,7 +11,7 @@ import { isNativeApp } from "@/utils/platform";
 
 
 import {
-  DashboardHeader,
+  DashboardGreeting,
   SubjectStrip,
   QuickActionsGrid,
   SuggestedDrillCard,
@@ -29,6 +32,49 @@ export const DashboardPage: React.FC<DashboardProps> = ({ onBackToIntro }) => {
   // Dynamic stats
   const { stats, loading: statsLoading } = useProfileStats();
   const [streak, setStreak] = useState(0);
+
+  const { data: latestQuiz } = useQuery({
+    queryKey: ['latest-paused-quiz', user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('saved_quizzes')
+        .select('*, bridge_saved_quiz_questions(question_id, sort_order)')
+        .eq('user_id', user!.id)
+        .is('deleted_at', null)
+        .order('updated_at', { ascending: false });
+
+      if (error) throw error;
+      if (!data || data.length === 0) return null;
+
+      const activeQuizzes = data.filter(rq => rq.status !== 'result');
+      if (activeQuizzes.length === 0) return null;
+
+      const rq = activeQuizzes[0];
+      const bridgeData = rq.bridge_saved_quiz_questions || [];
+      return {
+        id: rq.id,
+        quiz_id: rq.quiz_id,
+        name: rq.name,
+        createdAt: new Date(rq.created_at).getTime(),
+        filters: rq.filters,
+        mode: rq.mode as any,
+        questions: bridgeData
+          .sort((a: any, b: any) => a.sort_order - b.sort_order)
+          .map((b: any) => ({ id: b.question_id })),
+        state: rq.state
+      } as SavedQuiz;
+    }
+  });
+
+  const handleResumeQuiz = (quiz: SavedQuiz) => {
+    if (quiz.mode === 'mock') {
+      navigate(`/quiz/session/mock/${quiz.id}`);
+    } else {
+      navigate(`/quiz/session/learning/${quiz.id}`);
+    }
+  };
+
 
   useEffect(() => {
     // Determine streak (placeholder logic, could be extended based on db)
@@ -132,12 +178,10 @@ export const DashboardPage: React.FC<DashboardProps> = ({ onBackToIntro }) => {
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-3 sm:pt-5 space-y-5 sm:space-y-6 relative z-10">
         {/* Tier 1 */}
-        <DashboardHeader
+        <DashboardGreeting
           user={user}
-          streak={streak}
-          onAvatarClick={() => navigate("/profile")}
-          onNotificationClick={() => navigate("/notifications")}
-          onStreakClick={() => navigate("/quiz-results")}
+          latestQuiz={latestQuiz}
+          onResumeQuiz={handleResumeQuiz}
         />
 
         {/* Tier 2 */}
