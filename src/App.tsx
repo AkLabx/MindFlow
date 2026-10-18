@@ -59,7 +59,7 @@ const App: React.FC = () => {
 
   if (!bootstrapState.isReady && bootstrapState.stage !== 'OFFLINE_INITIALIZATION') {
     // Show a blank screen while initializing to prevent flash.
-    return <div className="h-screen w-screen bg-white dark:bg-slate-900" />;
+    return <div className="h-screen w-screen flex items-center justify-center bg-white dark:bg-slate-900"><SynapticLoader size="xl" /></div>;
   }
 
   return (
