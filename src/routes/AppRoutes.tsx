@@ -226,9 +226,7 @@ const handleReattempt = async (quizId: string, mode: string) => {
 
                 <Route path={ROUTES.HOME} element={
                     <NavigationManager key="guest-home" type={RouteAccessType.GUEST_ONLY}>
-                        <Suspense fallback={<div className="min-h-screen w-full flex items-center justify-center bg-transparent"><SynapticLoader /></div>}>
                             <AuthPage onBack={() => {}} />
-                        </Suspense>
                     </NavigationManager>
                 } />
                 <Route path={ROUTES.LOGIN} element={<Navigate to={ROUTES.HOME} replace />} />
@@ -236,7 +234,7 @@ const handleReattempt = async (quizId: string, mode: string) => {
 
                 {/* --- Standard Application Routes (Wrapped in AppLayout) --- */}
                 <Route element={<NavigationManager key="auth-applayout" type={RouteAccessType.AUTHENTICATED}><AppLayout /></NavigationManager>}>
-                    <Route path={ROUTES.DASHBOARD} element={<Suspense fallback={<SynapticLoader />}><Dashboard /></Suspense>} />
+                    <Route path={ROUTES.DASHBOARD} element={<Dashboard />} />
                     <Route path={ROUTES.MCQS} element={<Suspense fallback={<SynapticLoader />}><McqsQuizHome onBack={() => { navigate(ROUTES.DASHBOARD); }} /></Suspense>} />
                     <Route path={ROUTES.ENGLISH} element={<Suspense fallback={<SynapticLoader />}><EnglishHub /></Suspense>} />
                     <Route path={ROUTES.PROFILE.ROOT} element={<Suspense fallback={<SynapticLoader />}><ProfilePage onNavigateToSettings={() => navigate(ROUTES.SETTINGS.ROOT)} onSignOut={() => navigate(ROUTES.DASHBOARD)} /></Suspense>} />
