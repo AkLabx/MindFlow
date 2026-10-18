@@ -400,7 +400,7 @@ Once you approve this architecture, the implementation will cleanly address all 
    - Render `{children}` underneath the `IntroEngine` overlay while the intro plays so authentication and initial route rendering finish *behind* the intro curtain before it opens.
 4. [x] **GitHub Pages Non-Hash URL Normalization (`public/404.html`)**:
    - Add a static `public/404.html` redirector so opening `https://aklabx.github.io/MindFlow/dashboard` (without `#`) automatically normalizes to `https://aklabx.github.io/MindFlow/#/dashboard`.
-5. **Capacitor Deep Link & Admin Role Hardening (`AuthPolicy.ts`, `useAppBootstrap.ts`)**:
+5. [x] **Capacitor Deep Link & Admin Role Hardening (`AuthPolicy.ts`, `useAppBootstrap.ts`)**:
    - Check both `user.email === 'admin@mindflow.com'` and `profile?.role === 'admin'` in `AuthPolicy`.
    - Add `App.addListener('appUrlOpen')` support for native Android deep links.
 
