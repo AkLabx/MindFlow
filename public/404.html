@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>MindFlow — Redirecting...</title>
+    <script>
+      // GitHub Pages SPA -> HashRouter Normalizer
+      // Rewrites direct non-hash URLs (e.g. /MindFlow/dashboard) to /MindFlow/#/dashboard
+      (function () {
+        var l = window.location;
+        var basePath = '/MindFlow';
+        var pathname = l.pathname;
+        var subPath = pathname;
+
+        if (pathname.toLowerCase().indexOf(basePath.toLowerCase()) === 0) {
+          subPath = pathname.slice(basePath.length) || '/';
+        } else {
+          basePath = '';
+        }
+
+        if (!subPath.startsWith('/')) {
+          subPath = '/' + subPath;
+        }
+
+        var targetHash = l.hash && l.hash.length > 1
+          ? l.hash
+          : '#' + subPath + (l.search || '');
+
+        var targetUrl = l.protocol + '//' + l.host + (basePath || '') + '/' + targetHash;
+        l.replace(targetUrl);
+      })();
+    </script>
+  </head>
+  <body style="background-color: #0f172a; margin: 0;"></body>
+</html>
