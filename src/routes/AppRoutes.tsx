@@ -226,7 +226,7 @@ const handleReattempt = async (quizId: string, mode: string) => {
 
                 <Route path={ROUTES.HOME} element={
                     <NavigationManager type={RouteAccessType.GUEST_ONLY}>
-                        <Suspense fallback={<SynapticLoader />}>
+                        <Suspense fallback={<div className="min-h-screen w-full flex items-center justify-center bg-transparent"><SynapticLoader /></div>}>
                             <AuthPage onBack={() => {}} />
                         </Suspense>
                     </NavigationManager>

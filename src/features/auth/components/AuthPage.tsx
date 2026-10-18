@@ -214,7 +214,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ onBack }) => {
 
   return (
     <>
-    <div className="min-h-[100dvh] font-sans text-text-main antialiased relative w-full flex flex-col animate-fade-in py-4 flex-1 px-4 sm:px-6 lg:px-8 pt-[env(safe-area-inset-top,16px)] pb-[calc(16px+env(safe-area-inset-bottom,16px))] overflow-y-auto">
+    <div className="min-h-[100dvh] font-sans text-text-main antialiased relative w-full flex flex-col animate-fade-in py-4 flex-1 px-4 sm:px-6 lg:px-8 pt-[env(safe-area-inset-top,16px)] pb-[calc(16px+env(safe-area-inset-bottom,16px))] overflow-y-auto bg-slate-50 dark:bg-slate-950">
         {/* Ambient Background Blobs */}
         <div className="absolute top-0 left-1/4 w-[50vw] h-[50vw] max-w-[500px] max-h-[500px] bg-indigo-500/20 dark:bg-indigo-500/10 rounded-full mix-blend-multiply dark:mix-blend-lighten filter blur-3xl opacity-50 animate-blob pointer-events-none z-0"></div>
         <div className="absolute top-0 right-1/4 w-[50vw] h-[50vw] max-w-[500px] max-h-[500px] bg-purple-500/20 dark:bg-purple-500/10 rounded-full mix-blend-multiply dark:mix-blend-lighten filter blur-3xl opacity-50 animate-blob animation-delay-2000 pointer-events-none z-0"></div>
