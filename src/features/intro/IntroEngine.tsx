@@ -135,7 +135,8 @@ export const IntroEngine: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Not played yet, or currently previewing but component not loaded
   if (!IntroComponent || !frozenConfig) {
-     return <div className="fixed inset-0 bg-white dark:bg-slate-900 z-[9999]" />;
+     // Use transparent background to not block app loader or auth page if they clash
+     return <div className="fixed inset-0 bg-transparent z-[9999]" />;
   }
 
   return (
