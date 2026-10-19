@@ -39,10 +39,10 @@ export const ScrollableCapsules = React.memo(function ScrollableCapsules({
   const actualRows = Math.min(maxRows, visibleOptions.length > 0 ? visibleOptions.length : 1);
 
   return (
-    <div className="w-full min-w-0 max-w-full">
+    <div className="w-full min-w-0 max-w-full pb-5 border-b-2 border-gray-200 dark:border-gray-700 last:border-b-0 last:pb-0">
       {label && (
-        <div className="flex items-center gap-1.5 mb-2">
-          <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{label}</label>
+        <div className="flex items-center gap-2 mb-3">
+          <label className="inline-flex items-center px-3 py-1.5 bg-blue-600 text-white dark:bg-blue-500 text-xs font-bold uppercase tracking-wider rounded-md shadow-sm">{label}</label>
           {tooltip && (
             <div className="group relative flex items-center">
               <Info className="w-3.5 h-3.5 text-gray-400 cursor-help hover:text-indigo-500 transition-colors" />
