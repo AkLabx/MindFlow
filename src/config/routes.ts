@@ -15,6 +15,9 @@ export const ROUTES = {
   DASHBOARD: '/dashboard',
   FALLBACK: '*',
 
+  TODAYS_PLAN: '/todays-plan',
+  DAILY_MISSION: '/daily-mission',
+
   // Main Navigation Tabs
   MCQS: '/mcqs',
   ENGLISH: '/english',
