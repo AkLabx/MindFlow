@@ -31,6 +31,8 @@ const SchoolHomePage = lazy(() => import('../pages/SchoolHomePage').then(m => ({
 const SchoolDownloads = lazy(() => import('../features/school/SchoolDownloads').then(m => ({ default: m.SchoolDownloads })));
 import { DashboardPage as Dashboard } from '../pages/DashboardPage';
 const McqsQuizHome = lazy(() => import('../pages/McqsQuizHomePage').then(m => ({ default: m.McqsQuizHomePage })));
+const TodaysPlanPage = lazy(() => import('../pages/TodaysPlanPage').then(m => ({ default: m.TodaysPlanPage })));
+const DailyMissionPage = lazy(() => import('../pages/DailyMissionPage').then(m => ({ default: m.DailyMissionPage })));
 const EnglishHub = lazy(() => import('../features/english').then(m => ({ default: m.EnglishHub })));
 const QuizConfig = lazy(() => import('../features/quiz/components/QuizConfig').then(m => ({ default: m.QuizConfig })));
 const QuizLibrary = lazy(() => import('../features/quiz/components/QuizLibrary').then(m => ({ default: m.QuizLibrary })));
@@ -236,6 +238,8 @@ const handleReattempt = async (quizId: string, mode: string) => {
                 {/* --- Standard Application Routes (Wrapped in AppLayout) --- */}
                 <Route element={<NavigationManager key="auth-applayout" type={RouteAccessType.AUTHENTICATED}><AppLayout /></NavigationManager>}>
                     <Route path={ROUTES.DASHBOARD} element={<Dashboard />} />
+                    <Route path={ROUTES.TODAYS_PLAN} element={<Suspense fallback={<SynapticLoader />}><TodaysPlanPage /></Suspense>} />
+                    <Route path={ROUTES.DAILY_MISSION} element={<Suspense fallback={<SynapticLoader />}><DailyMissionPage /></Suspense>} />
                     <Route path={ROUTES.MCQS} element={<Suspense fallback={<SynapticLoader />}><McqsQuizHome onBack={() => { navigate(ROUTES.DASHBOARD); }} /></Suspense>} />
                     <Route path={ROUTES.ENGLISH} element={<Suspense fallback={<SynapticLoader />}><EnglishHub /></Suspense>} />
                     <Route path={ROUTES.PROFILE.ROOT} element={<Suspense fallback={<SynapticLoader />}><ProfilePage onNavigateToSettings={() => navigate(ROUTES.SETTINGS.ROOT)} onSignOut={() => { IntentPolicy.clearIntent(); navigate('/'); }} /></Suspense>} />
