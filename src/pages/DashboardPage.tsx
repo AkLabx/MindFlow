@@ -42,7 +42,7 @@ export const DashboardPage: React.FC<DashboardProps> = ({ onBackToIntro }) => {
         .select('*, bridge_saved_quiz_questions(question_id, sort_order)')
         .eq('user_id', user!.id)
         .is('deleted_at', null)
-        .order('updated_at', { ascending: false });
+        .order('created_at', { ascending: false });
 
       if (error) throw error;
       if (!data || data.length === 0) return null;
