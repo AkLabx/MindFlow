@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
 
@@ -18,7 +18,7 @@ interface AuthPageProps {
 }
 
 /**
- * Authentication page component handling both Sign In and Sign Up flows. 
+ * Authentication page component handling Sign In flow.
 // IMPORTANT:
 //
 // MindFlow is hosted on GitHub Pages and uses React HashRouter.
@@ -35,7 +35,6 @@ interface AuthPageProps {
  * - Email/Password authentication.
  * - Google OAuth sign-in.
  * - Form validation (matching passwords, required fields).
- * - Toggling between Login and Registration modes.
  *
  * @param {AuthPageProps} props - The component props.
  * @returns {JSX.Element} The rendered authentication page.
@@ -51,22 +50,16 @@ const AuthPage: React.FC<AuthPageProps> = () => {
   const demoQuestions = [STARTER_DIAGNOSTIC_QUESTIONS[7], STARTER_DIAGNOSTIC_QUESTIONS[8], STARTER_DIAGNOSTIC_QUESTIONS[9]];
   const currentDemoQuestion = demoQuestions[demoIndex];
 
-  const [isSignUp, setIsSignUp] = useState(false);
-  const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [isEmailLoading, setIsEmailLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
-  const [ageConfirmed, setAgeConfirmed] = useState(false);
-  const [privacyConfirmed, setPrivacyConfirmed] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
-
 
   /**
    * Validates the form inputs before submission.
@@ -77,148 +70,116 @@ const AuthPage: React.FC<AuthPageProps> = () => {
       setError("Email and password are required.");
       return false;
     }
-    if (isSignUp) {
-      if (!fullName) {
-        setError("Full name is required.");
-        return false;
-      }
-      if (password !== confirmPassword) {
-        setError("Passwords do not match.");
-        return false;
-      }
-      if (!ageConfirmed || !privacyConfirmed) {
-        setError("Please confirm age and privacy policy to sign up.");
-        return false;
-      }
-    }
     setError(null);
     return true;
   };
 
   /**
-   * Handles the form submission for Sign In or Sign Up.
+   * Handles the form submission for Sign In.
    * @param {React.FormEvent} e - The form event.
    */
   const handleAuthAction = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
+    setMessage(null);
+
     if (!validateForm()) return;
 
     setIsEmailLoading(true);
-    setError(null);
-    setMessage(null);
+
     try {
-      if (isSignUp) {
-        localStorage.setItem('mindflow_is_signup', 'true');
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            data: {
-              full_name: fullName,
-            },
-          },
-        });
-        if (error) throw error;
-        setMessage('Check your email for the confirmation link!');
-      } else {
-        const { error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
-        if (error) throw error;
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (signInError) {
+        if (signInError.message === 'Invalid login credentials') {
+            throw new Error("Invalid email or password. Please try again.");
+        }
+        throw signInError;
       }
-    } catch (error: any) {
-      setError(error.error_description || error.message);
-    } finally {
+
+      if (data.session) {
+         triggerHaptic('success');
+      }
+
+    } catch (err: any) {
+      setError(err.message || 'An error occurred during sign in.');
+      triggerHaptic('error');
       setIsEmailLoading(false);
     }
   };
 
   /**
-   * Initiates the Google OAuth sign-in flow.
-   * Handles redirection URL based on the environment (prod vs dev).
+   * Handles Google OAuth sign-in.
    */
   const handleGoogleSignIn = async () => {
     setIsGoogleLoading(true);
     setError(null);
 
-    // Yield to event loop so browser can render loading state
-    await new Promise(resolve => setTimeout(resolve, 100));
-    try {
-      if (isSignUp) {
-        localStorage.setItem('mindflow_is_signup', 'true');
-      }
-
-      // Check if we are running natively on Android/iOS via Capacitor
-      if (Capacitor.isNativePlatform()) {
-        try {
-          // Initialize plugin (often required on some platforms before first use)
-          await GoogleAuth.initialize();
-
-          const googleUser = await GoogleAuth.signIn();
-
-          if (googleUser && googleUser.authentication && googleUser.authentication.idToken) {
-            const { error } = await supabase.auth.signInWithIdToken({
-              provider: 'google',
-              token: googleUser.authentication.idToken,
-            });
-            if (error) throw error;
-          } else {
-             throw new Error("Failed to retrieve ID token from Google.");
-          }
-        } catch (nativeError: any) {
-          console.error("Native Google Sign-In Error:", nativeError);
-          throw new Error(nativeError.message || "Native Google Sign-In failed.");
-        }
-      } else {
-        // Fallback to Web-based OAuth for PWA/Browser
-        const redirectURL = import.meta.env.PROD
-          ? 'https://aklabx.github.io/MindFlow/#/'
-          : 'http://localhost:3000/#/';
-
-        const { error } = await supabase.auth.signInWithOAuth({
+    if (Capacitor.isNativePlatform()) {
+      try {
+        const googleUser = await GoogleAuth.signIn();
+        const { data, error } = await supabase.auth.signInWithIdToken({
           provider: 'google',
-          options: {
-            redirectTo: redirectURL,
-          }
+          token: googleUser.authentication.idToken,
         });
+
         if (error) throw error;
+        triggerHaptic('success');
+
+      } catch (err: any) {
+        console.error('Google Sign-In Error:', err);
+        setError(err.message || 'Google sign in failed');
+        triggerHaptic('error');
+        setIsGoogleLoading(false);
       }
-    } catch (error: any) {
-      setError(error.error_description || error.message);
-      setIsGoogleLoading(false);
+    } else {
+        try {
+          const { error } = await supabase.auth.signInWithOAuth({
+            provider: 'google',
+            options: {
+              redirectTo: window.location.origin + window.location.pathname + '#/'
+            }
+          });
+          if (error) throw error;
+
+          // DO NOT set isGoogleLoading to false here.
+          // The page will redirect before the promise resolves.
+          // If you set it to false, the loading spinner will disappear
+          // just before the redirect happens, causing a UI flicker back to the "Sign in" button.
+
+        } catch (err: any) {
+          setError(err.message || 'Google sign in failed');
+          setIsGoogleLoading(false);
+        }
     }
   };
 
   return (
     <>
-    <div className="min-h-[100dvh] font-sans text-text-main antialiased relative w-full flex flex-col animate-fade-in py-4 flex-1 px-4 sm:px-6 lg:px-8 pt-[env(safe-area-inset-top,16px)] pb-[calc(16px+env(safe-area-inset-bottom,16px))] overflow-y-auto bg-slate-50 dark:bg-slate-950">
-        {/* Ambient Background Blobs */}
-        <div className="absolute top-0 left-1/4 w-[50vw] h-[50vw] max-w-[500px] max-h-[500px] bg-indigo-500/20 dark:bg-indigo-500/10 rounded-full mix-blend-multiply dark:mix-blend-lighten filter blur-3xl opacity-50 animate-blob pointer-events-none z-0"></div>
-        <div className="absolute top-0 right-1/4 w-[50vw] h-[50vw] max-w-[500px] max-h-[500px] bg-purple-500/20 dark:bg-purple-500/10 rounded-full mix-blend-multiply dark:mix-blend-lighten filter blur-3xl opacity-50 animate-blob animation-delay-2000 pointer-events-none z-0"></div>
-        <div className="absolute -bottom-32 left-1/2 w-[50vw] h-[50vw] max-w-[500px] max-h-[500px] bg-pink-500/20 dark:bg-pink-500/10 rounded-full mix-blend-multiply dark:mix-blend-lighten filter blur-3xl opacity-50 animate-blob animation-delay-4000 pointer-events-none z-0 transform -translate-x-1/2"></div>
+    <div className="min-h-full -mx-4 -mt-4 px-4 pt-8 overflow-x-hidden bg-gradient-to-b from-[#EEF2FF] via-[#F5F7FF] to-[#F8FAFC] dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))] flex flex-col items-center justify-center">
+        <div className="absolute top-0 inset-x-0 h-[220px] pointer-events-none z-0"
+             style={{ background: 'radial-gradient(120% 180px at 50% 0%, rgba(99,102,241,0.14) 0%, transparent 100%)' }}
+        ></div>
 
-
-       <div className="flex-1 flex items-center justify-center pb-8 relative z-10 w-full">
-       <div className="w-full max-w-md">
-         <div className="relative group rounded-[32px] sm:rounded-[40px] p-[1px] overflow-hidden">
-           {/* Glow Background Layer */}
-           <div className="absolute inset-0 bg-white/40 dark:bg-slate-900/40 backdrop-blur-2xl transition-colors duration-300 z-0"></div>
-           <div className="absolute inset-0 bg-gradient-to-br from-white/60 to-white/10 dark:from-white/10 dark:to-transparent z-0"></div>
-
-           {/* Interactive Inner Shadow / Border */}
-           <div className="absolute inset-0 rounded-[32px] sm:rounded-[40px] border border-white/60 dark:border-white/10 shadow-[0_8px_32px_0_rgba(31,38,135,0.07)] dark:shadow-[0_8px_32px_0_rgba(0,0,0,0.3)] z-10 transition-all duration-300"></div>
-
-           <div className="relative z-20 bg-transparent p-6 md:p-10">
-           <div className="flex justify-center items-center gap-2 mb-6 md:mb-8">
+       <div className="w-full max-w-md relative z-10">
+           <div className="flex justify-center items-center gap-2 mb-8">
              <div className="bg-indigo-600 p-2 rounded-lg">
-               <BrainCircuit className="h-6 w-6 text-white" />
+               <BrainCircuit className="h-8 w-8 text-white" />
              </div>
-             <span className="text-2xl font-black tracking-tight text-gray-900 dark:text-white">MindFlow</span>
+             <span className="text-3xl font-black tracking-tight text-gray-900 dark:text-white">MindFlow</span>
            </div>
-           <div className="flex border-b border-border-color mb-6 md:mb-8 text-center">
-             <button onClick={() => setIsSignUp(false)} className={`w-1/2 pb-3 font-bold ${!isSignUp ? 'text-indigo-600 border-b-2 border-indigo-600' : 'text-text-secondary hover:text-text-main transition-colors'}`}>Sign In</button>
-             <button onClick={() => setIsSignUp(true)} className={`w-1/2 pb-3 font-semibold ${isSignUp ? 'text-indigo-600 border-b-2 border-indigo-600' : 'text-text-secondary hover:text-text-main transition-colors'}`}>Sign Up</button>
+
+           <div className="text-center mb-8">
+               <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Welcome Back</h1>
+               <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                   New to MindFlow?{' '}
+                   <button onClick={() => navigate('/signup')} className="font-semibold text-indigo-600 hover:text-indigo-500 dark:text-indigo-400">
+                       CREATE ACCOUNT
+                   </button>
+               </p>
            </div>
 
            {/* Primary: Google Button */}
@@ -227,7 +188,7 @@ const AuthPage: React.FC<AuthPageProps> = () => {
                type="button"
                onClick={handleGoogleSignIn}
                disabled={isEmailLoading || isGoogleLoading}
-               className={`w-full group relative flex justify-center items-center gap-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-white font-semibold py-3 px-4 rounded-xl border-2 border-indigo-500/50 hover:border-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-600 focus:ring-offset-white dark:focus:ring-offset-gray-900 transition-all duration-300 shadow-sm overflow-hidden ${isEmailLoading ? 'opacity-50 cursor-not-allowed' : (isGoogleLoading ? 'cursor-wait' : '')}`}
+               className={`w-full group relative flex justify-center items-center gap-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-white font-semibold py-3 px-4 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-600 focus:ring-offset-white dark:focus:ring-offset-gray-900 transition-all duration-300 shadow-sm overflow-hidden ${isEmailLoading ? 'opacity-50 cursor-not-allowed' : (isGoogleLoading ? 'cursor-wait' : '')}`}
              >
                {isGoogleLoading ? (
                  <>
@@ -252,33 +213,19 @@ const AuthPage: React.FC<AuthPageProps> = () => {
 
            <button
              onClick={() => setShowDemo(true)}
-             className="w-full group flex justify-center items-center gap-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-semibold py-3 px-4 rounded-xl transition-all duration-300 shadow-sm border border-slate-200 dark:border-slate-700 mb-6"
+             className="w-full group flex justify-center items-center gap-2 bg-white hover:bg-gray-50 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-900 dark:text-gray-100 font-semibold py-3 px-4 rounded-xl transition-all duration-300 shadow-sm border border-gray-200 dark:border-gray-700 mb-6"
            >
              <span>⚡ Try 3 Sample Questions First</span>
            </button>
 
            <div className="relative mb-6">
              <div aria-hidden="true" className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-200 dark:border-gray-700"></div></div>
-             <div className="relative flex justify-center text-sm"><span className="px-4 bg-white dark:bg-gray-900 text-gray-500">Or continue with email</span></div>
+             <div className="relative flex justify-center text-sm"><span className="px-4 bg-[#F5F7FF] dark:bg-slate-900 text-gray-500">Or continue with email</span></div>
            </div>
 
            <form onSubmit={handleAuthAction} className="space-y-4 md:space-y-6">
-             {isSignUp && (
-               <div>
-                 <label className="block text-sm font-semibold text-text-main mb-2" htmlFor="fullName">Full Name</label>
-                 <input
-                   id="fullName"
-                   name="fullName"
-                   type="text"
-                   value={fullName}
-                   onChange={(e) => setFullName(e.target.value)}
-                   placeholder="John Doe"
-                   className="block w-full px-4 py-3 bg-white dark:bg-gray-800 border border-border-color rounded-lg text-text-main placeholder-text-secondary focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition"
-                 />
-               </div>
-             )}
              <div>
-               <label className="block text-sm font-semibold text-text-main mb-2" htmlFor="email">Email</label>
+               <label className="block text-sm font-semibold text-gray-900 dark:text-gray-200 mb-2" htmlFor="email">Email</label>
                <input
                  id="email"
                  name="email"
@@ -286,13 +233,13 @@ const AuthPage: React.FC<AuthPageProps> = () => {
                  value={email}
                  onChange={(e) => setEmail(e.target.value)}
                  placeholder="you@example.com"
-                 className="block w-full px-4 py-3 bg-white dark:bg-gray-800 border border-border-color rounded-lg text-text-main placeholder-text-secondary focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition"
+                 className="block w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition"
                />
              </div>
              <div>
                <div className="flex justify-between items-baseline mb-2">
-                 <label className="block text-sm font-semibold text-text-main" htmlFor="password">Password</label>
-                 {!isSignUp && <a href="#!" onClick={() => alert('Forgot password functionality to be implemented')} className="text-sm font-semibold text-indigo-600 hover:underline dark:text-indigo-400">Forgot Password?</a>}
+                 <label className="block text-sm font-semibold text-gray-900 dark:text-gray-200" htmlFor="password">Password</label>
+                 <a href="#!" onClick={() => alert('Forgot password functionality to be implemented')} className="text-sm font-semibold text-indigo-600 hover:underline dark:text-indigo-400">Forgot Password?</a>
                </div>
                <div className="relative">
                  <input
@@ -302,9 +249,9 @@ const AuthPage: React.FC<AuthPageProps> = () => {
                    value={password}
                    onChange={(e) => setPassword(e.target.value)}
                    placeholder="••••••••"
-                   className="block w-full px-4 py-3 pr-10 bg-white dark:bg-gray-800 border border-border-color rounded-lg text-text-main placeholder-text-secondary focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition"
+                   className="block w-full px-4 py-3 pr-10 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition"
                  />
-                 <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-0 flex items-center pr-3 text-text-secondary hover:text-text-main">
+                 <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
                    {showPassword ? (
                      <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a9.97 9.97 0 01-1.563 3.029m-5.858-.908a3 3 0 00-4.243-4.243" /></svg>
                    ) : (
@@ -313,60 +260,7 @@ const AuthPage: React.FC<AuthPageProps> = () => {
                  </button>
                </div>
              </div>
-             {isSignUp && (
-               <div>
-                 <label className="block text-sm font-semibold text-text-main mb-2" htmlFor="confirmPassword">Confirm Password</label>
-                 <input
-                   id="confirmPassword"
-                   name="confirmPassword"
-                   type="password"
-                   value={confirmPassword}
-                   onChange={(e) => setConfirmPassword(e.target.value)}
-                   placeholder="••••••••"
-                   className="block w-full px-4 py-3 bg-white dark:bg-gray-800 border border-border-color rounded-lg text-text-main placeholder-text-secondary focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition"
-                 />
-               </div>
-             )}
 
-             {isSignUp && (
-               <div className="bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg p-4 mt-2">
-                 <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-3">
-                   To create an account, please confirm the following:
-                 </p>
-                 <div className="space-y-3">
-                   <label className="flex items-start gap-3 cursor-pointer group">
-                     <div className="flex items-center h-5 mt-0.5">
-                       <input
-                         type="checkbox"
-                         checked={ageConfirmed}
-                         onChange={(e) => setAgeConfirmed(e.target.checked)}
-                         className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-600 dark:focus:ring-indigo-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
-                       />
-                     </div>
-                     <span className="text-sm text-gray-600 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-gray-100 transition-colors">
-                       I am 18 years of age or older.
-                     </span>
-                   </label>
-
-                   <label className="flex items-start gap-3 cursor-pointer group">
-                     <div className="flex items-center h-5 mt-0.5">
-                       <input
-                         type="checkbox"
-                         checked={privacyConfirmed}
-                         onChange={(e) => setPrivacyConfirmed(e.target.checked)}
-                         className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-600 dark:focus:ring-indigo-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
-                       />
-                     </div>
-                     <span className="text-sm text-gray-600 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-gray-100 transition-colors">
-                       I agree to the{" "}
-                       <a href="#/privacy-policy" target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:text-indigo-500 hover:underline dark:text-indigo-400 dark:hover:text-indigo-300 font-medium">
-                         Privacy Policy
-                       </a>.
-                     </span>
-                   </label>
-                 </div>
-               </div>
-             )}
              {error && <p className="text-sm text-red-500 text-center">{error}</p>}
              {message && <p className="text-sm text-green-500 text-center">{message}</p>}
              <div>
@@ -375,15 +269,14 @@ const AuthPage: React.FC<AuthPageProps> = () => {
                  disabled={isEmailLoading || isGoogleLoading}
                  className={`w-full group relative flex justify-center items-center gap-2 bg-indigo-600 dark:bg-indigo-500 text-white font-semibold py-3 px-4 rounded-xl hover:bg-indigo-700 dark:hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-600 focus:ring-offset-white dark:focus:ring-offset-gray-900 transition-all duration-300 shadow-sm overflow-hidden ${isGoogleLoading ? 'opacity-50 cursor-not-allowed' : (isEmailLoading ? 'cursor-wait' : '')}`}
                >
-                 <div className="absolute inset-0 bg-white/20 group-hover:bg-transparent transition-colors duration-300 z-0 pointer-events-none"></div>
                  {isEmailLoading ? (
                    <>
                      <Loader2 className="w-5 h-5 animate-spin relative z-10" />
-                     <span className="relative z-10">{isSignUp ? 'Signing Up...' : 'Signing In...'}</span>
+                     <span className="relative z-10">Signing In...</span>
                    </>
                  ) : (
                    <>
-                     <span className="relative z-10">{isSignUp ? 'Sign Up' : 'Sign In'}</span>
+                     <span className="relative z-10">Sign In</span>
                      <motion.svg
                        className="w-5 h-5 relative z-10"
                        fill="none"
@@ -399,9 +292,15 @@ const AuthPage: React.FC<AuthPageProps> = () => {
                  )}
                </button>
              </div>
-           </form>
 
-           </div></div></div></div></div>
+             <div className="text-center mt-6">
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                    By continuing, you agree to our <a href="#/about/terms-of-use" target="_blank" rel="noopener noreferrer" className="underline hover:text-gray-700 dark:hover:text-gray-300">Terms of Service</a>, <a href="#/privacy-policy" target="_blank" rel="noopener noreferrer" className="underline hover:text-gray-700 dark:hover:text-gray-300">Privacy Policy</a> and Cookie Use.
+                </p>
+             </div>
+           </form>
+       </div>
+    </div>
 
       {/* 3-Question Micro-Demo Drawer */}
       <AnimatePresence>
@@ -554,7 +453,7 @@ const AuthPage: React.FC<AuthPageProps> = () => {
                       <button
                         onClick={() => {
                           setShowDemo(false);
-                          if (!isSignUp) setIsSignUp(true);
+                          navigate('/signup');
                         }}
                         className="w-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-semibold py-3 px-4 rounded-xl transition-colors"
                       >
