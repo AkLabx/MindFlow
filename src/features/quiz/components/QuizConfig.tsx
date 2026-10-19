@@ -75,6 +75,10 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
   const [progress, setProgress] = useState({ current: 0, total: 0 });
   const [showEmptyError, setShowEmptyError] = useState(false);
 
+  const locState = location.state as any;
+  const isFixedSubjectContext = locState?.fixedSubjectContext === true;
+  const fixedSubject = isFixedSubjectContext ? locState?.initialFilters?.subject?.[0] : null;
+
   // 0. Fetch Metadata on Mount
   const loadMetadata = useCallback(async () => {
     try {
@@ -281,6 +285,22 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
     createQuizWithQuestions(filteredMetadata, filters);
   };
 
+  const handleClearFilters = useCallback(() => {
+    if (isFixedSubjectContext && fixedSubject) {
+      setFilters({ ...emptyFilters, subject: [fixedSubject] });
+    } else {
+      setFilters(emptyFilters);
+    }
+  }, [isFixedSubjectContext, fixedSubject]);
+
+  const handleClearClassification = useCallback(() => {
+    if (isFixedSubjectContext && fixedSubject) {
+      setFilters(prev => ({ ...prev, subject: [fixedSubject], topic: [], subTopic: [] }));
+    } else {
+      setFilters(prev => ({ ...prev, subject: [], topic: [], subTopic: [] }));
+    }
+  }, [isFixedSubjectContext, fixedSubject]);
+
   const handleQuickStart = useCallback((type: 'Easy' | 'Medium' | 'Hard' | 'Mix') => {
     let quickFilters = emptyFilters;
     if (type !== 'Mix') {
@@ -371,7 +391,9 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
           <button onClick={onBack} className="flex items-center justify-center p-2 -ml-2 text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:text-indigo-400 transition-colors rounded-full hover:bg-indigo-50 dark:hover:bg-indigo-900/30">
             <ArrowLeft className="w-5 h-5" />
           </button>
-          <h1 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white m-0 leading-none tracking-tight">Create New Quiz</h1>
+          <h1 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white m-0 leading-none tracking-tight">
+            {isFixedSubjectContext && fixedSubject ? `${fixedSubject} Quiz` : 'Create New Quiz'}
+          </h1>
         </div>
       </div>
 
@@ -437,8 +459,9 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
             title="Classification"
             icon={<Layers className="w-5 h-5" />}
             showClearAll={filters.subject.length > 0 || filters.topic.length > 0 || filters.subTopic.length > 0}
-            onClearAll={() => setFilters(prev => ({ ...prev, subject: [], topic: [], subTopic: [] }))}
+            onClearAll={handleClearClassification}
           >
+            {!isFixedSubjectContext && (
             <ScrollableCapsules
               label="Subject"
               tooltip="Filter questions by broad academic discipline"
@@ -454,6 +477,7 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
               hideZeroCount
               maxRows={3}
             />
+            )}
             <ScrollableCapsules
               label="Topic"
               tooltip="Filter by specific topics within the selected subjects"
@@ -566,7 +590,7 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
                <ActiveFiltersBar
                 filters={filters}
                 onRemoveFilter={removeFilter}
-                onClearAll={() => setFilters(emptyFilters)}
+                onClearAll={handleClearFilters}
               />
             </div>
           </>
@@ -589,7 +613,7 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
             </div>
 
             <div className="flex items-center gap-2 w-full sm:w-auto">
-              <Button variant="outline" onClick={() => setFilters(emptyFilters)} className="flex-shrink-0 h-10 px-3">
+              <Button variant="outline" onClick={handleClearFilters} className="flex-shrink-0 h-10 px-3">
                 <RotateCcw className="w-4 h-4" />
               </Button>
 
