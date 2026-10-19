@@ -237,6 +237,10 @@ const handleReattempt = async (quizId: string, mode: string) => {
                 <Route path={ROUTES.LOGIN} element={<Navigate to={ROUTES.HOME} replace />} />
                 <Route path={ROUTES.SIGNUP} element={<NavigationManager key="guest-signup" type={RouteAccessType.GUEST_ONLY}><SignupPage /></NavigationManager>} />
 
+                                {/* --- Legal Routes (Unprotected, No AppLayout) --- */}
+                    <Route path={ROUTES.ABOUT.TERMS_OF_USE} element={<Suspense fallback={<SynapticLoader />}><TermsOfUse /></Suspense>} />
+                    <Route path={ROUTES.ABOUT.PRIVACY_POLICY} element={<Suspense fallback={<SynapticLoader />}><PrivacyPolicy /></Suspense>} />
+
                 {/* --- Standard Application Routes (Wrapped in AppLayout) --- */}
                 <Route element={<NavigationManager key="auth-applayout" type={RouteAccessType.AUTHENTICATED}><AppLayout /></NavigationManager>}>
                                         <Route path={ROUTES.DASHBOARD} element={<Dashboard />} />
@@ -269,8 +273,6 @@ const handleReattempt = async (quizId: string, mode: string) => {
                     <Route path={ROUTES.ABOUT.DEVELOPER_PROFILE} element={<Suspense fallback={<SynapticLoader />}><DeveloperProfile /></Suspense>} />
                     <Route path={ROUTES.ABOUT.DEVELOPER_PROFILE_AALOK} element={<Suspense fallback={<SynapticLoader />}><AalokProfile /></Suspense>} />
                     <Route path={ROUTES.ABOUT.DEVELOPER_PROFILE_DYNAMIC(':id')} element={<Suspense fallback={<SynapticLoader />}><TeamMemberProfile /></Suspense>} />
-                    <Route path={ROUTES.ABOUT.TERMS_OF_USE} element={<Suspense fallback={<SynapticLoader />}><TermsOfUse /></Suspense>} />
-                    <Route path={ROUTES.ABOUT.PRIVACY_POLICY} element={<Suspense fallback={<SynapticLoader />}><PrivacyPolicy /></Suspense>} />
                     <Route path={ROUTES.ABOUT.ROOT} element={<Suspense fallback={<SynapticLoader />}><AboutUs /></Suspense>} />
                     <Route path={ROUTES.RESULT.ROOT} element={
                         <ErrorBoundary><ResultGuard>
