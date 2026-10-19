@@ -141,6 +141,9 @@ const AuthPage: React.FC<AuthPageProps> = () => {
   const handleGoogleSignIn = async () => {
     setIsGoogleLoading(true);
     setError(null);
+
+    // Yield to event loop so browser can render loading state
+    await new Promise(resolve => setTimeout(resolve, 100));
     try {
       if (isSignUp) {
         localStorage.setItem('mindflow_is_signup', 'true');
@@ -230,7 +233,7 @@ const AuthPage: React.FC<AuthPageProps> = () => {
                {isGoogleLoading ? (
                  <>
                    <Loader2 className="w-5 h-5 animate-spin relative z-10 text-indigo-600 dark:text-indigo-400" />
-                   <span className="relative z-10 font-bold">Connecting...</span>
+                   <span className="relative z-10 font-bold">Signing in with Google...</span>
                  </>
                ) : (
                  <>
@@ -242,7 +245,7 @@ const AuthPage: React.FC<AuthPageProps> = () => {
                    >
                      <svg className="w-6 h-6" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><path d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12s5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24s8.955,20,20,20s20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z" fill="#FFC107"></path><path d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z" fill="#FF3D00"></path><path d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.222,0-9.657-3.356-11.303-7.962l-6.571,4.819C9.656,39.663,16.318,44,24,44z" fill="#4CAF50"></path><path d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.574l6.19,5.238C41.38,34.464,44,29.561,44,24C44,22.659,43.862,21.35,43.611,20.083z" fill="#1976D2"></path></svg>
                    </motion.div>
-                   <span className="relative z-10 font-bold tracking-wide">Continue with Google</span>
+                   <span className="relative z-10 font-bold tracking-wide">Sign in with Google</span>
                  </>
                )}
              </button>
@@ -537,9 +540,17 @@ const AuthPage: React.FC<AuthPageProps> = () => {
                           setShowDemo(false);
                           handleGoogleSignIn();
                         }}
-                        className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-4 rounded-xl transition-colors"
+                        disabled={isGoogleLoading || isEmailLoading}
+                        className={`w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-4 rounded-xl transition-colors flex items-center justify-center gap-2 ${(isGoogleLoading || isEmailLoading) ? 'opacity-50 cursor-not-allowed' : ''}`}
                       >
-                        Continue with Google
+                        {isGoogleLoading ? (
+                          <>
+                            <Loader2 className="w-5 h-5 animate-spin" />
+                            <span>Signing in with Google...</span>
+                          </>
+                        ) : (
+                          "Sign in with Google"
+                        )}
                       </button>
                       <button
                         onClick={() => {
