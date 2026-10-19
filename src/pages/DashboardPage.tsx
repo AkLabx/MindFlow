@@ -87,7 +87,7 @@ export const DashboardPage: React.FC<DashboardProps> = ({ onBackToIntro }) => {
     autoStart = false,
     fixedSubjectContext = false
   ) => {
-    navigate("/quiz-config", {
+    navigate("/quiz/config", {
       state: {
         initialFilters: {
           subject: [],
@@ -122,7 +122,7 @@ export const DashboardPage: React.FC<DashboardProps> = ({ onBackToIntro }) => {
         handleNavigateWithFilters({}, 'mock');
         break;
       case 'custom':
-        navigate("/quiz-config");
+        navigate("/quiz/config");
         break;
       case 'english':
         navigate("/english");
