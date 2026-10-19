@@ -1,16 +1,25 @@
-with open("src/routes/AppRoutes.tsx", "r") as f:
+import re
+
+with open('src/routes/AppRoutes.tsx', 'r') as f:
     content = f.read()
 
-# Replace onSignOut callback to clear intent and navigate to '/'
-old_str = "onSignOut={() => navigate(ROUTES.DASHBOARD)}"
-new_str = "onSignOut={() => { IntentPolicy.clearIntent(); navigate('/'); }}"
+# Add the import
+if 'SubjectsPage' not in content:
+    content = re.sub(
+        r"import { DashboardPage as Dashboard } from '\.\./pages/DashboardPage';",
+        "import { DashboardPage as Dashboard } from '../pages/DashboardPage';\nimport { SubjectsPage } from '../features/dashboard';",
+        content
+    )
 
-content = content.replace(old_str, new_str)
+# Add the route
+route_replacement = """                    <Route path={ROUTES.DASHBOARD} element={<Dashboard />} />
+                    <Route path={ROUTES.DASHBOARD_SUBJECTS} element={<Suspense fallback={<SynapticLoader />}><SubjectsPage /></Suspense>} />"""
 
-# Add import for IntentPolicy if not present
-if "IntentPolicy" not in content[:1000]:
-    import_statement = "import { IntentPolicy } from '@/lib/navigation/policies/IntentPolicy';\n"
-    content = content.replace("import { RouteAccessType } from '@/lib/navigation/types';\n", "import { RouteAccessType } from '@/lib/navigation/types';\n" + import_statement)
+content = re.sub(
+    r"<Route path=\{ROUTES\.DASHBOARD\} element=\{<Dashboard />\} />",
+    route_replacement,
+    content
+)
 
-with open("src/routes/AppRoutes.tsx", "w") as f:
+with open('src/routes/AppRoutes.tsx', 'w') as f:
     f.write(content)

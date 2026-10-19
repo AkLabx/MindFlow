@@ -13,6 +13,7 @@ export const ROUTES = {
   SIGNUP: '/signup',
   ONBOARDING: '/onboarding',
   DASHBOARD: '/dashboard',
+  DASHBOARD_SUBJECTS: '/dashboard/subjects',
   FALLBACK: '*',
 
   TODAYS_PLAN: '/todays-plan',
