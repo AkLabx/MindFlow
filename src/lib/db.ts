@@ -214,6 +214,26 @@ export const db = {
      * @param {string} id - The unique identifier of the quiz to retrieve.
      * @returns {Promise<SavedQuiz | undefined>} A promise that resolves to the quiz object if found, or undefined.
      */
+    /**
+     * Saves a new quiz.
+     *
+     * @param {SavedQuiz} quiz - The quiz object to save.
+     * @returns {Promise<void>} A promise that resolves when the save is complete.
+     */
+    saveQuiz: async (quiz: SavedQuiz): Promise<void> => {
+        const dbInstance = await openDB();
+        return new Promise((resolve, reject) => {
+            const transaction = dbInstance.transaction(STORE_NAME, 'readwrite');
+            const store = transaction.objectStore(STORE_NAME);
+
+            const request = store.put(quiz);
+
+            request.onsuccess = () => resolve();
+            request.onerror = () => reject(request.error);
+        });
+    },
+
+
     getQuiz: async (id: string): Promise<SavedQuiz | undefined> => {
         const dbInstance = await openDB();
         return new Promise((resolve, reject) => {
@@ -245,19 +265,24 @@ export const db = {
             const getRequest = store.get(id);
 
             getRequest.onsuccess = () => {
-                const quiz = getRequest.result as SavedQuiz;
-                if (quiz) {
-                    // Update state
-                    quiz.state = state;
-                    const putRequest = store.put(quiz);
-                    putRequest.onsuccess = () => {
-                        // db._pushToSupabase('quiz', quiz); // Removed to prevent API spam, handled by debounced sync in useQuiz.ts
-                        resolve();
+                const existing = getRequest.result as SavedQuiz | undefined;
+                const updated: SavedQuiz = existing
+                  ? { ...existing, state }
+                  : {
+                      id,
+                      name: (state as any)?.quizName || 'Practice Quiz',
+                      createdAt: Date.now(),
+                      filters: state.filters || {},
+                      mode: state.mode || 'learning',
+                      questions: state.activeQuestions || [],
+                      state,
                     };
-                    putRequest.onerror = () => reject(putRequest.error);
-                } else {
-                    reject(new Error(`Quiz with id ${id} not found`));
-                }
+
+                const putRequest = store.put(updated);
+                putRequest.onsuccess = () => {
+                    resolve();
+                };
+                putRequest.onerror = () => reject(putRequest.error);
             };
 
             getRequest.onerror = () => reject(getRequest.error);
