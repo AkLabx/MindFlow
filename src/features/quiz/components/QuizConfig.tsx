@@ -214,6 +214,11 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
         state: newQuiz.state,
       });
 
+      // Save locally to IndexedDB immediately to avoid "Quiz with id... not found" errors
+      await db.saveQuiz(newQuiz).catch((err) => {
+          console.warn("Failed to cache quiz in local IndexedDB:", err);
+      });
+
       if (quizError) {
         console.error('Error saving quiz to Supabase:', quizError);
         useNotificationStore.getState().showToast({ variant: 'error', message: 'Failed to save quiz to server. Please try again.' });

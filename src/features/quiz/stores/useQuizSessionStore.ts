@@ -114,23 +114,17 @@ const enqueueCloudSync = async (state: QuizRuntimeState, set: any, source: strin
             });
             const { activeQuestions, ...stateWithoutQuestions } = stateToSave;
 
-            const endpoint = `${SUPABASE_URL}/rest/v1/saved_quizzes?id=eq.${state.quizId}`;
-
             try {
-                if (isKeepAlive) {
-                    fetchWithTimeout(endpoint, {
-                        method: 'PATCH',
-                        headers: headers,
-                        body: JSON.stringify({ state: stateWithoutQuestions }),
-                        keepalive: true
-                    }).catch(() => {});
-                } else {
-                    await fetchWithTimeout(endpoint, {
-                        method: 'PATCH',
-                        headers: headers,
-                        body: JSON.stringify({ state: stateWithoutQuestions })
-                    });
+                const { error: updateError } = await supabase
+                    .from('saved_quizzes')
+                    .update({ state: stateWithoutQuestions })
+                    .eq('id', state.quizId)
+                    .eq('user_id', session.user.id);
+
+                if (updateError) {
+                    throw updateError;
                 }
+
                 set({ syncStatus: 'synced' });
                 if (isDev) console.log(`[SYNC_SUCCESS] [${source}] ID: ${syncId}`);
             } catch (networkErr: any) {
