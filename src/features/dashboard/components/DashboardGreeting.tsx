@@ -46,55 +46,55 @@ export const DashboardGreeting: React.FC<DashboardGreetingProps> = ({
       <h3 className="text-xl font-extrabold text-slate-900 dark:text-white mb-4">Today</h3>
 
       {/* Action Buttons Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+      <div className="grid grid-cols-4 gap-2 sm:gap-4">
         {/* Today's Plan */}
         <button
           onClick={() => navigate((ROUTES as any).TODAYS_PLAN || '/todays-plan')}
-          className="flex flex-col items-start justify-center p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-800 hover:border-slate-200 dark:hover:border-slate-600 transition-all text-left group"
+          className="flex flex-col items-center sm:items-start justify-center p-1.5 sm:p-2 md:p-3 text-center sm:text-left rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-800 hover:border-slate-200 dark:hover:border-slate-600 transition-all text-left group"
         >
-          <div className="flex items-center gap-2 mb-1 w-full justify-between">
-            <div className="flex items-center gap-2">
+          <div className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 mb-0 sm:mb-1 w-full justify-center sm:justify-between">
+            <div className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2">
               <Calendar className="w-4 h-4 text-indigo-500" />
-              <span className="font-bold text-sm text-slate-800 dark:text-slate-200 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">Today's Plan</span>
+              <span className="font-bold text-[10px] leading-tight sm:text-xs md:text-sm text-slate-800 dark:text-slate-200 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">Today's Plan</span>
             </div>
-            <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-indigo-500 transition-colors opacity-0 group-hover:opacity-100 -translate-x-2 group-hover:translate-x-0" />
+            <ChevronRight className="hidden sm:block w-4 h-4 text-slate-400 group-hover:text-indigo-500 transition-colors opacity-0 group-hover:opacity-100 -translate-x-2 group-hover:translate-x-0" />
           </div>
-          <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">your 5 min plan</span>
+          <span className="hidden sm:block text-xs text-slate-500 dark:text-slate-400 font-medium">your 5 min plan</span>
         </button>
 
         {/* Daily Mission */}
         <button
           onClick={() => navigate((ROUTES as any).DAILY_MISSION || '/daily-mission')}
-          className="flex flex-col items-start justify-center p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-800 hover:border-slate-200 dark:hover:border-slate-600 transition-all text-left group"
+          className="flex flex-col items-center sm:items-start justify-center p-1.5 sm:p-2 md:p-3 text-center sm:text-left rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-800 hover:border-slate-200 dark:hover:border-slate-600 transition-all text-left group"
         >
-          <div className="flex items-center gap-2 mb-1 w-full justify-between">
-             <div className="flex items-center gap-2">
+          <div className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 mb-0 sm:mb-1 w-full justify-center sm:justify-between">
+             <div className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2">
               <Target className="w-4 h-4 text-rose-500" />
-              <span className="font-bold text-sm text-slate-800 dark:text-slate-200 group-hover:text-rose-600 dark:group-hover:text-rose-400 transition-colors">Daily Mission</span>
+              <span className="font-bold text-[10px] leading-tight sm:text-xs md:text-sm text-slate-800 dark:text-slate-200 group-hover:text-rose-600 dark:group-hover:text-rose-400 transition-colors">Daily Mission</span>
             </div>
-            <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-rose-500 transition-colors opacity-0 group-hover:opacity-100 -translate-x-2 group-hover:translate-x-0" />
+            <ChevronRight className="hidden sm:block w-4 h-4 text-slate-400 group-hover:text-rose-500 transition-colors opacity-0 group-hover:opacity-100 -translate-x-2 group-hover:translate-x-0" />
           </div>
-          <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">today's challenge</span>
+          <span className="hidden sm:block text-xs text-slate-500 dark:text-slate-400 font-medium">today's challenge</span>
         </button>
 
         {/* Continue / Resume */}
         <button
           onClick={() => latestQuiz && onResumeQuiz(latestQuiz)}
           disabled={!latestQuiz}
-          className={`flex flex-col items-start justify-center p-3 rounded-xl border transition-all text-left group ${
+          className={`flex flex-col items-center sm:items-start justify-center p-1.5 sm:p-2 md:p-3 rounded-xl border transition-all text-center sm:text-left group ${
             latestQuiz
             ? 'bg-gradient-to-br from-indigo-50 to-violet-50 dark:from-indigo-900/20 dark:to-violet-900/20 border-indigo-100 dark:border-indigo-500/20 hover:border-indigo-200 dark:hover:border-indigo-500/40 cursor-pointer'
             : 'bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-700/50 opacity-60 cursor-not-allowed'
           }`}
         >
-          <div className="flex items-center gap-2 mb-1 w-full justify-between">
-            <div className="flex items-center gap-2">
+          <div className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 mb-0 sm:mb-1 w-full justify-center sm:justify-between">
+            <div className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2">
               <Play className={`w-4 h-4 ${latestQuiz ? 'text-violet-500' : 'text-slate-400'}`} />
-              <span className={`font-bold text-sm transition-colors ${latestQuiz ? 'text-indigo-700 dark:text-indigo-300 group-hover:text-indigo-800 dark:group-hover:text-indigo-200' : 'text-slate-500 dark:text-slate-400'}`}>Continue</span>
+              <span className={`font-bold text-[10px] leading-tight sm:text-xs md:text-sm transition-colors ${latestQuiz ? 'text-indigo-700 dark:text-indigo-300 group-hover:text-indigo-800 dark:group-hover:text-indigo-200' : 'text-slate-500 dark:text-slate-400'}`}>Continue</span>
             </div>
-             {latestQuiz && <ChevronRight className="w-4 h-4 text-indigo-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-300 transition-colors opacity-0 group-hover:opacity-100 -translate-x-2 group-hover:translate-x-0" />}
+             {latestQuiz && <ChevronRight className="hidden sm:block w-4 h-4 text-indigo-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-300 transition-colors opacity-0 group-hover:opacity-100 -translate-x-2 group-hover:translate-x-0" />}
           </div>
-          <span className={`text-xs font-medium truncate w-full ${latestQuiz ? 'text-indigo-600/70 dark:text-indigo-400/70' : 'text-slate-500 dark:text-slate-400'}`}>
+          <span className={`hidden sm:block text-xs font-medium truncate w-full ${latestQuiz ? 'text-indigo-600/70 dark:text-indigo-400/70' : 'text-slate-500 dark:text-slate-400'}`}>
             {latestQuiz ? latestQuiz.name || 'Paused Quiz' : 'no paused quiz'}
           </span>
         </button>
@@ -102,16 +102,16 @@ export const DashboardGreeting: React.FC<DashboardGreetingProps> = ({
         {/* Quiz History */}
         <button
           onClick={() => navigate(`${ROUTES.QUIZ.LIBRARY}?tab=attempted`)}
-          className="flex flex-col items-start justify-center p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-800 hover:border-slate-200 dark:hover:border-slate-600 transition-all text-left group"
+          className="flex flex-col items-center sm:items-start justify-center p-1.5 sm:p-2 md:p-3 text-center sm:text-left rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-800 hover:border-slate-200 dark:hover:border-slate-600 transition-all text-left group"
         >
-           <div className="flex items-center gap-2 mb-1 w-full justify-between">
-            <div className="flex items-center gap-2">
+           <div className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 mb-0 sm:mb-1 w-full justify-center sm:justify-between">
+            <div className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2">
               <History className="w-4 h-4 text-emerald-500" />
-              <span className="font-bold text-sm text-slate-800 dark:text-slate-200 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">Quiz History</span>
+              <span className="font-bold text-[10px] leading-tight sm:text-xs md:text-sm text-slate-800 dark:text-slate-200 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">Quiz History</span>
             </div>
-             <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-emerald-500 transition-colors opacity-0 group-hover:opacity-100 -translate-x-2 group-hover:translate-x-0" />
+             <ChevronRight className="hidden sm:block w-4 h-4 text-slate-400 group-hover:text-emerald-500 transition-colors opacity-0 group-hover:opacity-100 -translate-x-2 group-hover:translate-x-0" />
           </div>
-          <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">attempted quiz</span>
+          <span className="hidden sm:block text-xs text-slate-500 dark:text-slate-400 font-medium">attempted quiz</span>
         </button>
       </div>
     </div>
