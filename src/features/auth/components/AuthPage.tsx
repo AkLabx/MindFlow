@@ -186,7 +186,6 @@ const AuthPage: React.FC<AuthPageProps> = () => {
       }
     } catch (error: any) {
       setError(error.error_description || error.message);
-    } finally {
       setIsGoogleLoading(false);
     }
   };
