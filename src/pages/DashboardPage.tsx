@@ -113,7 +113,7 @@ export const DashboardPage: React.FC<DashboardProps> = ({ onBackToIntro }) => {
   };
 
   const handleViewAllSubjects = () => {
-    navigate("/mcqs");
+    navigate("/dashboard/subjects");
   };
 
   const handleQuickAction = (action: string) => {

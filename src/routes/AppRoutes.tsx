@@ -30,6 +30,7 @@ const PostPage = lazy(() => import('../features/community/pages/PostPage').then(
 const SchoolHomePage = lazy(() => import('../pages/SchoolHomePage').then(m => ({ default: m.SchoolHomePage })));
 const SchoolDownloads = lazy(() => import('../features/school/SchoolDownloads').then(m => ({ default: m.SchoolDownloads })));
 import { DashboardPage as Dashboard } from '../pages/DashboardPage';
+import { SubjectsPage } from '../features/dashboard';
 const McqsQuizHome = lazy(() => import('../pages/McqsQuizHomePage').then(m => ({ default: m.McqsQuizHomePage })));
 const TodaysPlanPage = lazy(() => import('../pages/TodaysPlanPage').then(m => ({ default: m.TodaysPlanPage })));
 const DailyMissionPage = lazy(() => import('../pages/DailyMissionPage').then(m => ({ default: m.DailyMissionPage })));
@@ -237,7 +238,8 @@ const handleReattempt = async (quizId: string, mode: string) => {
 
                 {/* --- Standard Application Routes (Wrapped in AppLayout) --- */}
                 <Route element={<NavigationManager key="auth-applayout" type={RouteAccessType.AUTHENTICATED}><AppLayout /></NavigationManager>}>
-                    <Route path={ROUTES.DASHBOARD} element={<Dashboard />} />
+                                        <Route path={ROUTES.DASHBOARD} element={<Dashboard />} />
+                    <Route path={ROUTES.DASHBOARD_SUBJECTS} element={<Suspense fallback={<SynapticLoader />}><SubjectsPage /></Suspense>} />
                     <Route path={ROUTES.TODAYS_PLAN} element={<Suspense fallback={<SynapticLoader />}><TodaysPlanPage /></Suspense>} />
                     <Route path={ROUTES.DAILY_MISSION} element={<Suspense fallback={<SynapticLoader />}><DailyMissionPage /></Suspense>} />
                     <Route path={ROUTES.MCQS} element={<Suspense fallback={<SynapticLoader />}><McqsQuizHome onBack={() => { navigate(ROUTES.DASHBOARD); }} /></Suspense>} />
