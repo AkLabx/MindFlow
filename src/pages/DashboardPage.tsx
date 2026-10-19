@@ -84,7 +84,8 @@ export const DashboardPage: React.FC<DashboardProps> = ({ onBackToIntro }) => {
   const handleNavigateWithFilters = (
     partialFilters: any,
     mode: 'learning' | 'mock' = 'learning',
-    autoStart = false
+    autoStart = false,
+    fixedSubjectContext = false
   ) => {
     navigate("/quiz-config", {
       state: {
@@ -102,12 +103,13 @@ export const DashboardPage: React.FC<DashboardProps> = ({ onBackToIntro }) => {
         },
         initialMode: mode,
         autoStart,
+        fixedSubjectContext,
       },
     });
   };
 
   const handleSubjectClick = (subjectDbKey: string) => {
-    handleNavigateWithFilters({ subject: [subjectDbKey] }, 'learning');
+    handleNavigateWithFilters({ subject: [subjectDbKey] }, 'learning', false, true);
   };
 
   const handleViewAllSubjects = () => {
@@ -139,7 +141,7 @@ export const DashboardPage: React.FC<DashboardProps> = ({ onBackToIntro }) => {
       handleNavigateWithFilters({ tags: ['Diagnostic'] }, 'learning', true);
     } else if (stats.weakTopics.length > 0) {
       // Weak topic drill
-      handleNavigateWithFilters({ subject: [stats.weakTopics[0]] }, 'learning', true);
+      handleNavigateWithFilters({ subject: [stats.weakTopics[0]] }, 'learning', true, true);
     } else {
       // Challenge
       handleNavigateWithFilters({ difficulty: ['Hard'] }, 'mock', true);
@@ -218,7 +220,7 @@ export const DashboardPage: React.FC<DashboardProps> = ({ onBackToIntro }) => {
 
         {/* Tier 5 */}
         <ImportantForSscStrip
-          onTopicClick={(filters) => handleNavigateWithFilters(filters, 'learning')}
+          onTopicClick={(filters) => handleNavigateWithFilters(filters, 'learning', false, !!filters.subject)}
           onViewAllClick={() => handleNavigateWithFilters({}, 'learning')}
         />
       </div>
