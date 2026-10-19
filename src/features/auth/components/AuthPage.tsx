@@ -159,12 +159,12 @@ const AuthPage: React.FC<AuthPageProps> = () => {
 
   return (
     <>
-    <div className="min-h-full -mx-4 -mt-4 px-4 pt-8 overflow-x-hidden bg-gradient-to-b from-[#EEF2FF] via-[#F5F7FF] to-[#F8FAFC] dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))] flex flex-col items-center justify-center">
+    <div className="min-h-[100dvh] w-full px-4 sm:px-6 py-12 sm:py-16 flex flex-col items-center justify-center overflow-x-hidden bg-gradient-to-b from-[#EEF2FF] via-[#F5F7FF] to-[#F8FAFC] dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
         <div className="absolute top-0 inset-x-0 h-[220px] pointer-events-none z-0"
              style={{ background: 'radial-gradient(120% 180px at 50% 0%, rgba(99,102,241,0.14) 0%, transparent 100%)' }}
         ></div>
 
-       <div className="w-full max-w-md relative z-10">
+       <div className="w-full max-w-md relative z-10 bg-white dark:bg-slate-900/80 p-8 sm:p-10 rounded-3xl shadow-xl border border-slate-200/50 dark:border-slate-800/50 backdrop-blur-xl">
            <div className="flex justify-center items-center gap-2 mb-8">
              <div className="bg-indigo-600 p-2 rounded-lg">
                <BrainCircuit className="h-8 w-8 text-white" />
