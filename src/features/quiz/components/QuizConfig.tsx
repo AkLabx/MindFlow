@@ -112,6 +112,22 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
     loadMetadata();
   }, [loadMetadata]);
 
+  useEffect(() => {
+    const locState = location.state as any;
+    if (locState?.initialFilters && metadata.length > 0 && isLoadingMetadata === false) {
+       setFilters(locState.initialFilters);
+    }
+  }, [location.state, metadata.length, isLoadingMetadata]);
+
+  const hasAutoStarted = React.useRef(false);
+  useEffect(() => {
+    const locState = location.state as any;
+    if (locState?.autoStart && !hasAutoStarted.current && filteredMetadata.length > 0) {
+      hasAutoStarted.current = true;
+      handleCreate();
+    }
+  }, [location.state, filteredMetadata.length]);
+
   // 1. Build Indexes (Performance Optimization)
   const questionIndex = useQuestionIndex(metadata);
 

@@ -305,18 +305,24 @@ export const db = {
             const getRequest = store.get(id);
 
             getRequest.onsuccess = () => {
-                const quiz = getRequest.result as SavedQuiz;
-                if (quiz) {
-                    quiz.name = name;
-                    const putRequest = store.put(quiz);
-                    putRequest.onsuccess = () => {
-                        db._pushToSupabase('quiz', quiz);
-                        resolve();
-                    };
-                    putRequest.onerror = () => reject(putRequest.error);
-                } else {
-                    reject(new Error(`Quiz with id ${id} not found`));
-                }
+                const existing = getRequest.result as SavedQuiz | undefined;
+                const updated: SavedQuiz = existing
+                  ? { ...existing, name }
+                  : {
+                      id,
+                      name,
+                      createdAt: Date.now(),
+                      filters: {} as any,
+                      mode: 'learning',
+                      questions: [],
+                      state: {} as any
+                  };
+                const putRequest = store.put(updated);
+                putRequest.onsuccess = () => {
+                    db._pushToSupabase('quiz', updated);
+                    resolve();
+                };
+                putRequest.onerror = () => reject(putRequest.error);
             };
 
             getRequest.onerror = () => reject(getRequest.error);
