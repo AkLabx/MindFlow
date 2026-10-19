@@ -272,7 +272,7 @@ export const db = {
                       id,
                       name: (state as any)?.quizName || 'Practice Quiz',
                       createdAt: Date.now(),
-                      filters: state.filters || {},
+                      filters: state.filters as any,
                       mode: state.mode || 'learning',
                       questions: state.activeQuestions || [],
                       state,
