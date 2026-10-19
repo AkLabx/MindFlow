@@ -3,7 +3,9 @@ export const SSC_SUBJECTS = [
   { id: 'Polity', label: 'Polity', dbKey: 'Polity', icon: 'Scale', colorClass: 'bg-blue-50 text-blue-600 border-blue-100', bgClass: 'bg-blue-50', textClass: 'text-blue-600' },
   { id: 'Geography', label: 'Geography', dbKey: 'Geography', icon: 'Globe2', colorClass: 'bg-emerald-50 text-emerald-600 border-emerald-100', bgClass: 'bg-emerald-50', textClass: 'text-emerald-600' },
   { id: 'Economy', label: 'Economy', dbKey: 'Economics', icon: 'TrendingUp', colorClass: 'bg-purple-50 text-purple-600 border-purple-100', bgClass: 'bg-purple-50', textClass: 'text-purple-600' },
-  { id: 'Science', label: 'Science', dbKey: 'Science', icon: 'Atom', colorClass: 'bg-cyan-50 text-cyan-600 border-cyan-100', bgClass: 'bg-cyan-50', textClass: 'text-cyan-600' },
+  { id: 'Physics', label: 'Physics', dbKey: 'Physics', icon: 'Atom', colorClass: 'bg-violet-50 text-violet-600 border-violet-100', bgClass: 'bg-violet-50', textClass: 'text-violet-600' },
+  { id: 'Chemistry', label: 'Chemistry', dbKey: 'Chemistry', icon: 'FlaskConical', colorClass: 'bg-fuchsia-50 text-fuchsia-600 border-fuchsia-100', bgClass: 'bg-fuchsia-50', textClass: 'text-fuchsia-600' },
+  { id: 'Biology', label: 'Biology', dbKey: 'Biology', icon: 'Dna', colorClass: 'bg-green-50 text-green-600 border-green-100', bgClass: 'bg-green-50', textClass: 'text-green-600' },
   { id: 'Static GK', label: 'Static GK', dbKey: 'Static GK', icon: 'Award', colorClass: 'bg-rose-50 text-rose-600 border-rose-100', bgClass: 'bg-rose-50', textClass: 'text-rose-600' },
 ];
 

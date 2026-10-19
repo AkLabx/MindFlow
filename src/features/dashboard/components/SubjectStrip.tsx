@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronRight, Landmark, Scale, Globe2, TrendingUp, Atom, Award, Sparkles } from 'lucide-react';
+import { ChevronRight, Landmark, Scale, Globe2, TrendingUp, Atom, Award, Sparkles, FlaskConical, Dna } from 'lucide-react';
 import { SSC_SUBJECTS } from '../constants/sscDashboardConfig';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
@@ -17,6 +17,8 @@ const IconMap: Record<string, React.ElementType> = {
   Atom,
   Award,
   Sparkles,
+  FlaskConical,
+  Dna,
 };
 
 export const SubjectStrip: React.FC<SubjectStripProps> = ({ onSubjectClick, onViewAllClick }) => {
@@ -42,7 +44,7 @@ export const SubjectStrip: React.FC<SubjectStripProps> = ({ onSubjectClick, onVi
         </button>
       </div>
 
-      <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 sm:gap-4">
+      <div className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory no-scrollbar sm:grid sm:grid-cols-4 lg:grid-cols-8 px-1 sm:px-0">
         {SSC_SUBJECTS.map((subject) => {
           const Icon = IconMap[subject.icon] || Sparkles;
           const count = subjectCounts?.[subject.dbKey] || 0;
@@ -51,7 +53,7 @@ export const SubjectStrip: React.FC<SubjectStripProps> = ({ onSubjectClick, onVi
             <button
               key={subject.id}
               onClick={() => onSubjectClick(subject.dbKey)}
-              className="flex flex-col items-center justify-center p-2.5 sm:p-4 text-center rounded-2xl bg-white dark:bg-slate-800/80 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] dark:shadow-none border border-slate-100 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-all group w-full"
+              className="flex flex-col items-center justify-center p-2.5 sm:p-4 text-center rounded-2xl bg-white dark:bg-slate-800/80 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] dark:shadow-none border border-slate-100 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-all group min-w-[100px] snap-start shrink-0 sm:w-full sm:min-w-0 sm:shrink"
             >
               <div className="flex flex-col items-center gap-1 sm:gap-2 mb-0 w-full justify-center">
                 <div className="flex flex-col items-center gap-1 sm:gap-2">
