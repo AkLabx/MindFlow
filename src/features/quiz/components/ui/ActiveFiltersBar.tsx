@@ -12,6 +12,8 @@ interface ActiveFiltersBarProps {
   onRemoveFilter: (key: keyof InitialFilters, value?: string) => void;
   /** Callback to clear all filters. */
   onClearAll: () => void;
+  /** Array of filter keys that cannot be removed by the user. */
+  lockedFilterKeys?: Array<keyof InitialFilters>;
 }
 
 /**
@@ -22,9 +24,12 @@ interface ActiveFiltersBarProps {
  * @param {ActiveFiltersBarProps} props - The component props.
  * @returns {JSX.Element} The rendered ActiveFiltersBar.
  */
-export const ActiveFiltersBar: React.FC<ActiveFiltersBarProps> = ({ filters, onRemoveFilter, onClearAll }) => {
+export const ActiveFiltersBar: React.FC<ActiveFiltersBarProps> = ({ filters, onRemoveFilter, onClearAll, lockedFilterKeys = [] }) => {
   // Explicitly type arr as string[] because Object.values return unknown[]/any[] depending on config
   const hasFilters = Object.values(filters).some((arr: string[]) => arr.length > 0);
+  const hasRemovableFilters = Object.keys(filters).some(key =>
+    (filters[key as keyof InitialFilters] || []).length > 0 && !lockedFilterKeys.includes(key as keyof InitialFilters)
+  );
 
   return (
     <div className="bg-transparent md:bg-white dark:md:bg-gray-800 md:rounded-xl border-y md:border border-gray-200 dark:border-gray-700 p-4 md:p-4 shadow-none md:shadow-sm transition-all">
@@ -32,7 +37,7 @@ export const ActiveFiltersBar: React.FC<ActiveFiltersBarProps> = ({ filters, onR
           <h4 className="text-sm font-bold text-gray-700 dark:text-gray-200 flex items-center gap-2">
             <Filter className="w-4 h-4" /> Active Filters
           </h4>
-          {hasFilters && (
+          {hasRemovableFilters && (
               <button 
                 onClick={onClearAll}
                 className="text-xs font-semibold text-gray-500 hover:text-red-500 transition-colors"
@@ -48,19 +53,26 @@ export const ActiveFiltersBar: React.FC<ActiveFiltersBarProps> = ({ filters, onR
         )}
         
         {Object.keys(filters).map(key => {
+          const isLocked = lockedFilterKeys.includes(key as keyof InitialFilters);
           return (filters[key as keyof InitialFilters] || []).map(val => (
             <div 
               key={`${key}-${val}`} 
-              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-100 text-indigo-700 text-xs font-bold border border-indigo-200 shadow-sm group"
+              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold shadow-sm group ${
+                isLocked
+                  ? 'bg-gray-100 text-gray-700 border border-gray-200'
+                  : 'bg-indigo-100 text-indigo-700 border border-indigo-200'
+              }`}
             >
                <span className="capitalize opacity-70 font-medium mr-0.5">{key}:</span>
                {val} 
-               <button 
-                  onClick={() => onRemoveFilter(key as keyof InitialFilters, val)}
-                  className="bg-indigo-200 rounded-full p-0.5 hover:bg-indigo-300 transition-colors"
-               >
-                  <X className="w-3 h-3" />
-               </button>
+               {!isLocked && (
+                 <button
+                    onClick={() => onRemoveFilter(key as keyof InitialFilters, val)}
+                    className="bg-indigo-200 rounded-full p-0.5 hover:bg-indigo-300 transition-colors"
+                 >
+                    <X className="w-3 h-3" />
+                 </button>
+               )}
             </div>
           ));
         })}
