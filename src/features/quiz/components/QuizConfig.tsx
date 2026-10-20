@@ -326,12 +326,17 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
   }, []);
 
   const removeFilter = useCallback((key: keyof InitialFilters, value?: string) => {
+    // Prevent removing the fixed subject
+    if (isFixedSubjectContext && key === 'subject' && value === fixedSubject) {
+      return;
+    }
+
     if (value) {
       setFilters(prev => ({ ...prev, [key]: (prev[key] || []).filter((item: string) => item !== value) }));
     } else {
       setFilters(prev => ({ ...prev, [key]: [] }));
     }
-  }, []);
+  }, [isFixedSubjectContext, fixedSubject]);
 
   const handleSegmentToggle = useCallback((key: keyof InitialFilters, option: string) => {
     setFilters(prev => {
@@ -591,6 +596,7 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
                 filters={filters}
                 onRemoveFilter={removeFilter}
                 onClearAll={handleClearFilters}
+                lockedFilterKeys={isFixedSubjectContext ? ['subject'] : []}
               />
             </div>
           </>
