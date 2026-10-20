@@ -26,6 +26,7 @@ export type TabID = 'home' | 'school' | 'create' | 'profile' | 'ai' | 'community
  * Props for the MainLayout component.
  */
 interface MainLayoutProps {
+  maxWidthClass?: string;
   /** The main content to render within the layout frame. */
   children: React.ReactNode;
   /** The currently active navigation tab. */
@@ -53,7 +54,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
   activeTab, 
   onTabChange,
   onOpenSettings 
-}) => {
+, maxWidthClass = "max-w-3xl" }) => {
   const { user, profile } = useAuth();
   useEffect(() => {
     useDebugStore.getState().logEvent('MainLayout rendered', { profileExists: !!profile, metadataUrl: user?.user_metadata?.avatar_url });
@@ -208,7 +209,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
         {/* Centered Subtle Glow */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full rounded-full blur-[60px] opacity-20 transition-opacity duration-500 z-0 bg-indigo-500"></div>
 
-        <div className="max-w-3xl mx-auto px-4 h-14 flex items-center justify-between relative z-20">
+        <div className={cn(`${maxWidthClass} mx-auto px-4 h-14 flex items-center justify-between relative z-20`)}>
 
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2 cursor-pointer" onClick={() => onTabChange('home')}>
@@ -261,7 +262,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
         "flex-1 w-full relative z-0",
         (isAIFullScreen || isReelsFullScreen)
             ? "max-w-none p-0 overflow-hidden h-full"
-            : cn("max-w-3xl mx-auto px-4 pt-4", isReviewMode ? "pb-4" : "pb-24")
+            : cn(`${maxWidthClass} mx-auto px-4 pt-4`, isReviewMode ? "pb-4" : "pb-24")
       )}>
         {children}
       </main>
@@ -283,7 +284,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
 
         {/* Centered Subtle Glow */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full rounded-full blur-[60px] opacity-20 transition-opacity duration-500 z-0 bg-indigo-500"></div>
-        <div ref={navRef} role="tablist" className="max-w-3xl mx-auto px-2 h-14 flex items-center justify-around relative z-20">
+        <div ref={navRef} role="tablist" className={cn(`${maxWidthClass} mx-auto px-2 h-14 flex items-center justify-around relative z-20`)}>
           
                     {/* Golden Ring Active Indicator */}
           <motion.div

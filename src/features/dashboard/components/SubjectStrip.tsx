@@ -3,6 +3,7 @@ import { ChevronRight, Landmark, Scale, Globe2, TrendingUp, Atom, Award, Sparkle
 import { SSC_SUBJECTS } from '../constants/sscDashboardConfig';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
+import { Card } from '@/components/ui/Card';
 
 interface SubjectStripProps {
   onSubjectClick: (subjectDbKey: string) => void;
@@ -33,8 +34,8 @@ export const SubjectStrip: React.FC<SubjectStripProps> = ({ onSubjectClick, onVi
   });
 
   return (
-    <div className="flex flex-col gap-3 relative z-10">
-      <div className="flex items-center justify-between px-1">
+    <Card className="flex flex-col gap-3 relative z-10 border border-black/10 dark:border-white/10 dark:bg-slate-900/90 shadow-[0_4px_20px_-2px_rgba(15,23,42,0.05)] p-4 rounded-2xl">
+      <div className="flex items-center justify-between">
         <h2 className="text-[16px] sm:text-[17px] font-bold text-slate-900 dark:text-white">Subjects</h2>
         <button
           onClick={onViewAllClick}
@@ -44,7 +45,7 @@ export const SubjectStrip: React.FC<SubjectStripProps> = ({ onSubjectClick, onVi
         </button>
       </div>
 
-      <div className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory no-scrollbar sm:grid sm:grid-cols-4 lg:grid-cols-8 px-1 sm:px-0">
+      <div className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory no-scrollbar sm:grid sm:grid-cols-4 lg:grid-cols-8">
         {SSC_SUBJECTS.map((subject) => {
           const Icon = IconMap[subject.icon] || Sparkles;
           const count = subjectCounts?.[subject.dbKey] || 0;
@@ -72,6 +73,6 @@ export const SubjectStrip: React.FC<SubjectStripProps> = ({ onSubjectClick, onVi
           );
         })}
       </div>
-    </div>
+    </Card>
   );
 };

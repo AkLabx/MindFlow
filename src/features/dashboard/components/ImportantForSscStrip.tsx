@@ -1,6 +1,7 @@
 import React from 'react';
 import { ChevronRight, Play, Flame } from 'lucide-react';
 import { IMPORTANT_FOR_SSC } from '../constants/sscDashboardConfig';
+import { Card } from '@/components/ui/Card';
 
 interface ImportantForSscStripProps {
   onTopicClick: (filters: any) => void;
@@ -9,8 +10,8 @@ interface ImportantForSscStripProps {
 
 export const ImportantForSscStrip: React.FC<ImportantForSscStripProps> = ({ onTopicClick, onViewAllClick }) => {
   return (
-    <div className="flex flex-col gap-3 relative z-10 pb-4">
-      <div className="flex items-center justify-between px-1">
+    <Card className="flex flex-col gap-3 relative z-10 pb-4 border border-black/10 dark:border-white/10 dark:bg-slate-900/90 shadow-[0_4px_20px_-2px_rgba(15,23,42,0.05)] p-4 rounded-2xl">
+      <div className="flex items-center justify-between">
         <div className="flex items-center gap-1.5">
           <Flame className="w-5 h-5 text-rose-500 fill-rose-500" />
           <h2 className="text-[16px] sm:text-[17px] font-bold text-slate-900 dark:text-white">Important for SSC</h2>
@@ -23,12 +24,12 @@ export const ImportantForSscStrip: React.FC<ImportantForSscStripProps> = ({ onTo
         </button>
       </div>
 
-      <div className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory no-scrollbar sm:grid sm:grid-cols-3 lg:grid-cols-4 px-1 sm:px-0">
+      <div className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory no-scrollbar sm:grid sm:grid-cols-3 lg:grid-cols-4">
         {IMPORTANT_FOR_SSC.map((item) => (
           <div
             key={item.id}
             onClick={() => onTopicClick(item.filter)}
-            className="bg-white dark:bg-slate-900/90 rounded-2xl p-3.5 sm:p-4 border border-slate-200/70 dark:border-slate-800/80 shadow-[0_4px_20px_-2px_rgba(15,23,42,0.05)] dark:shadow-none hover:border-indigo-200 dark:hover:border-indigo-800 transition-all cursor-pointer min-w-[240px] sm:min-w-0 snap-start active:scale-[0.98] group flex flex-col justify-between"
+            className="bg-white dark:bg-slate-900/90 rounded-2xl p-3.5 sm:p-4 border border-black/10 dark:border-white/10 shadow-[0_4px_20px_-2px_rgba(15,23,42,0.05)] dark:shadow-none hover:border-indigo-200 dark:hover:border-indigo-800 transition-all cursor-pointer min-w-[240px] sm:min-w-0 snap-start active:scale-[0.98] group flex flex-col justify-between"
           >
             <div>
               <div className="flex items-center justify-between mb-2">
@@ -55,6 +56,6 @@ export const ImportantForSscStrip: React.FC<ImportantForSscStripProps> = ({ onTo
           </div>
         ))}
       </div>
-    </div>
+    </Card>
   );
 };
