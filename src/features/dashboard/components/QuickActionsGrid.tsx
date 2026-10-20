@@ -25,17 +25,17 @@ export const QuickActionsGrid: React.FC<QuickActionsGridProps> = ({ onActionClic
             <button
               key={item.id}
               onClick={() => onActionClick(item.action)}
-              className="flex flex-col items-center justify-center p-2.5 sm:p-4 text-center rounded-2xl bg-white dark:bg-slate-800/80 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] dark:shadow-none border border-slate-100 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-all group w-full cursor-pointer active:scale-95"
+              className="flex flex-col items-center justify-center p-3 sm:p-5 text-center min-h-[110px] sm:min-h-[140px] rounded-2xl bg-white dark:bg-slate-800/80 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] dark:shadow-none border border-slate-100 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-all group w-full cursor-pointer active:scale-95"
             >
               <div className="flex flex-col items-center gap-1 sm:gap-2 mb-0 w-full justify-center">
                 <div className="flex flex-col items-center gap-1 sm:gap-2">
-                  <Icon className={`w-5 h-5 sm:w-5 sm:h-5 ${item.textClass}`} />
+                  <div className={`p-2.5 sm:p-3 rounded-full mb-1 ${item.bgClass} ${item.textClass}`}><Icon className="w-5 h-5 sm:w-6 sm:h-6" /></div>
                   <span className="font-semibold text-[11px] leading-tight sm:text-sm text-slate-700 dark:text-slate-300 transition-colors">
                     {item.title}
                   </span>
                 </div>
               </div>
-              <span className="block text-[9px] leading-tight sm:text-[10px] text-slate-500 dark:text-slate-400 font-medium mt-1 truncate w-full">
+              <span className="block text-[9px] leading-tight sm:text-[10px] text-slate-500 dark:text-slate-400 font-medium mt-1.5 sm:mt-2 line-clamp-2 w-full whitespace-normal leading-tight">
                 {item.subtitle}
               </span>
             </button>
