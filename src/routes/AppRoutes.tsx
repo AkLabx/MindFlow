@@ -28,6 +28,8 @@ const PostPage = lazy(() => import('../features/community/pages/PostPage').then(
 
 
 const SchoolHomePage = lazy(() => import('../pages/SchoolHomePage').then(m => ({ default: m.SchoolHomePage })));
+const UploadCustomQuizPage = lazy(() => import('../features/quiz/pages/UploadCustomQuizPage').then(m => ({ default: m.UploadCustomQuizPage })));
+
 const SchoolDownloads = lazy(() => import('../features/school/SchoolDownloads').then(m => ({ default: m.SchoolDownloads })));
 import { DashboardPage as Dashboard } from '../pages/DashboardPage';
 import { SubjectsPage } from '../features/dashboard';
@@ -248,6 +250,8 @@ const handleReattempt = async (quizId: string, mode: string) => {
                     <Route path={ROUTES.TODAYS_PLAN} element={<Suspense fallback={<SynapticLoader />}><TodaysPlanPage /></Suspense>} />
                     <Route path={ROUTES.DAILY_MISSION} element={<Suspense fallback={<SynapticLoader />}><DailyMissionPage /></Suspense>} />
                     <Route path={ROUTES.MCQS} element={<Suspense fallback={<SynapticLoader />}><McqsQuizHome onBack={() => { navigate(ROUTES.DASHBOARD); }} /></Suspense>} />
+                    <Route path={ROUTES.MCQS_UPLOAD_CUSTOM} element={<Suspense fallback={<SynapticLoader />}><UploadCustomQuizPage /></Suspense>} />
+
                     <Route path={ROUTES.ENGLISH} element={<Suspense fallback={<SynapticLoader />}><EnglishHub /></Suspense>} />
                     <Route path={ROUTES.PROFILE.ROOT} element={<Suspense fallback={<SynapticLoader />}><ProfilePage onNavigateToSettings={() => navigate(ROUTES.SETTINGS.ROOT)} onSignOut={() => { IntentPolicy.clearIntent(); navigate('/'); }} /></Suspense>} />
                     <Route path={ROUTES.SETTINGS.ROOT} element={<Suspense fallback={<SynapticLoader />}><SettingsPage onBack={() => navigate(ROUTES.PROFILE.ROOT)} /></Suspense>} />
