@@ -168,6 +168,11 @@ const SignupPage: React.FC<SignupPageProps> = () => {
             )}
           </button>
         </div>
+        <div className="text-center mt-3 mb-6">
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+                By continuing, you agree to our <a href="#/about/terms-of-use" target="_blank" rel="noopener noreferrer" className="underline hover:text-gray-700 dark:hover:text-gray-300">Terms of Service</a>, <a href="#/privacy-policy" target="_blank" rel="noopener noreferrer" className="underline hover:text-gray-700 dark:hover:text-gray-300">Privacy Policy</a> and Cookie Use.
+            </p>
+        </div>
 
         <div className="relative mb-6">
           <div aria-hidden="true" className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-200 dark:border-gray-700"></div></div>

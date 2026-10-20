@@ -210,6 +210,12 @@ const AuthPage: React.FC<AuthPageProps> = () => {
                )}
              </button>
            </div>
+           <div className="text-center mt-3 mb-6">
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                  By continuing, you agree to our <a href="#/about/terms-of-use" target="_blank" rel="noopener noreferrer" className="underline hover:text-gray-700 dark:hover:text-gray-300">Terms of Service</a>, <a href="#/privacy-policy" target="_blank" rel="noopener noreferrer" className="underline hover:text-gray-700 dark:hover:text-gray-300">Privacy Policy</a> and Cookie Use.
+              </p>
+           </div>
+
 
            <button
              onClick={() => setShowDemo(true)}
