@@ -17,7 +17,7 @@ export const QuickActionsGrid: React.FC<QuickActionsGridProps> = ({ onActionClic
   return (
     <div className="flex flex-col gap-3 relative z-10">
       <h2 className="text-[16px] sm:text-[17px] font-bold text-slate-900 dark:text-white px-1">Quick Actions</h2>
-      <div className="grid grid-cols-4 gap-2 sm:gap-4">
+      <div className="grid grid-cols-2 gap-2 sm:gap-4">
         {QUICK_ACTIONS.map((item) => {
           const Icon = IconMap[item.icon] || Zap;
           return (
