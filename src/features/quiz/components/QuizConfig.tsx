@@ -353,26 +353,30 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
   if (isLoadingMetadata) {
     const percentage = progress.total > 0 ? (progress.current / progress.total) * 100 : 0;
     return (
-      <CookingLoader
-        progress={percentage}
-        syncedItems={progress.current}
-        totalItems={progress.total}
-      />
+      <div className="bg-white dark:bg-gray-800 min-h-screen md:min-h-0 md:h-auto md:rounded-3xl shadow-sm md:border border-gray-200 dark:border-gray-700 flex flex-col max-w-6xl mx-auto animate-fade-in overflow-hidden relative">
+        <CookingLoader
+          progress={percentage}
+          syncedItems={progress.current}
+          totalItems={progress.total}
+        />
+      </div>
     );
   }
 
   // --- Error State Render ---
   if (error) {
     return (
-      <div className="min-h-[60vh] flex flex-col items-center justify-center space-y-4 bg-white dark:bg-gray-800 md:rounded-3xl w-full max-w-6xl mx-auto md:border border-gray-200 dark:border-gray-700 shadow-sm p-8 text-center animate-fade-in">
-        <div className="p-4 bg-red-50 dark:bg-red-900/20 rounded-full">
-          <AlertCircle className="w-10 h-10 text-red-500" />
-        </div>
-        <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100">Connection Error</h2>
-        <p className="text-gray-500 dark:text-gray-400 max-w-md">{error}</p>
-        <div className="flex gap-4 mt-4">
-          <Button variant="outline" onClick={onBack}>Go Back</Button>
-          <Button onClick={loadMetadata}>Retry</Button>
+      <div className="bg-white dark:bg-gray-800 min-h-screen md:min-h-0 md:h-auto md:rounded-3xl shadow-sm md:border border-gray-200 dark:border-gray-700 flex flex-col max-w-6xl mx-auto animate-fade-in overflow-hidden relative">
+        <div className="min-h-[60vh] flex flex-col items-center justify-center space-y-4 w-full p-8 text-center">
+          <div className="p-4 bg-red-50 dark:bg-red-900/20 rounded-full">
+            <AlertCircle className="w-10 h-10 text-red-500" />
+          </div>
+          <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100">Connection Error</h2>
+          <p className="text-gray-500 dark:text-gray-400 max-w-md">{error}</p>
+          <div className="flex gap-4 mt-4">
+            <Button variant="outline" onClick={onBack}>Go Back</Button>
+            <Button onClick={loadMetadata}>Retry</Button>
+          </div>
         </div>
       </div>
     );
