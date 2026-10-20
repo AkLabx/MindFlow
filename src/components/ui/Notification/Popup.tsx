@@ -115,13 +115,13 @@ export const Popup: React.FC = () => {
               {message}
             </div>
 
-            <div className="flex flex-col-reverse sm:flex-row gap-3 sm:justify-end">
+            <div className="flex flex-col-reverse sm:flex-row gap-4 sm:gap-3 sm:justify-end">
               {actions ? (
                 actions.map((action, index) => {
                   const isPrimary = action.variant === 'primary' || (!action.variant && index === actions.length - 1);
                   const isDanger = action.variant === 'danger';
 
-                  let btnClasses = "px-4 py-2 rounded-xl font-medium text-sm md:text-base transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-slate-800 w-full sm:w-auto text-center";
+                  let btnClasses = "px-4 py-3 rounded-xl font-medium text-sm md:text-base transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-slate-800 w-full sm:w-auto text-center";
 
                   if (isPrimary) {
                     btnClasses += " bg-indigo-600 text-white hover:bg-indigo-700 focus:ring-indigo-500 shadow-sm";
@@ -147,7 +147,7 @@ export const Popup: React.FC = () => {
               ) : (
                 <button
                   onClick={handleClose}
-                  className="px-6 py-2 bg-indigo-600 text-white rounded-xl font-medium text-sm md:text-base hover:bg-indigo-700 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-slate-800 w-full sm:w-auto shadow-sm"
+                  className="px-6 py-3 bg-indigo-600 text-white rounded-xl font-medium text-sm md:text-base hover:bg-indigo-700 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-slate-800 w-full sm:w-auto shadow-sm"
                 >
                   OK
                 </button>
