@@ -15,7 +15,7 @@ export const SuggestedDrillCard: React.FC<SuggestedDrillCardProps> = ({
   onStartDrill,
 }) => {
   return (
-    <div className="bg-white dark:bg-slate-900/90 rounded-2xl p-4 sm:p-5 border border-slate-200/70 dark:border-slate-800/80 shadow-[0_4px_20px_-2px_rgba(15,23,42,0.05)] dark:shadow-none relative overflow-hidden flex flex-col justify-between h-full min-h-[168px]">
+    <div className="bg-white dark:bg-slate-900/90 rounded-2xl p-4 sm:p-5 border border-black/10 dark:border-white/10 shadow-[0_4px_20px_-2px_rgba(15,23,42,0.05)] dark:shadow-none relative overflow-hidden flex flex-col justify-between h-full min-h-[168px]">
       <div>
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-1.5 text-indigo-600 dark:text-indigo-400">

@@ -173,12 +173,12 @@ export const DashboardPage: React.FC<DashboardProps> = ({ onBackToIntro }) => {
   const drillProps = suggestedDrillProps();
 
   return (
-    <div className="min-h-full -mx-4 -mt-4 px-4 pt-4 overflow-x-hidden bg-gradient-to-b from-[#EEF2FF] via-[#F5F7FF] to-[#F8FAFC] dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))]">
+    <div className="min-h-full -mt-4 pt-4 w-full overflow-x-hidden bg-gradient-to-b from-[#EEF2FF] via-[#F5F7FF] to-[#F8FAFC] dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))]">
       <div className="absolute top-0 inset-x-0 h-[220px] pointer-events-none z-0"
            style={{ background: 'radial-gradient(120% 180px at 50% 0%, rgba(99,102,241,0.14) 0%, transparent 100%)' }}
       ></div>
 
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-3 sm:pt-5 space-y-5 sm:space-y-6 relative z-10">
+      <div className="w-full pt-3 sm:pt-5 space-y-4 sm:space-y-4 relative z-10">
         {/* Tier 1 */}
         <DashboardGreeting
           user={user}

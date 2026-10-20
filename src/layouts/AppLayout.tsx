@@ -77,6 +77,7 @@ export const AppLayout: React.FC = () => {
             activeTab={getActiveTab()}
             onTabChange={handleTabChange}
             onOpenSettings={() => setIsSettingsOpen(true)}
+            maxWidthClass={getActiveTab() === "home" ? "max-w-5xl" : "max-w-3xl"}
         >
             <Suspense fallback={<div className="flex justify-center py-12"><SynapticLoader size="lg" /></div>}>
                 {areBgAnimationsEnabled && <Fireballs />}

@@ -24,7 +24,7 @@ export const UserProgressCard: React.FC<UserProgressCardProps> = ({
   return (
     <div
       onClick={onDetailsClick}
-      className="bg-white dark:bg-slate-900/90 rounded-2xl p-4 sm:p-5 border border-slate-200/70 dark:border-slate-800/80 shadow-[0_4px_20px_-2px_rgba(15,23,42,0.05)] dark:shadow-none flex flex-col justify-between cursor-pointer hover:border-indigo-200 dark:hover:border-indigo-800 transition-all h-full min-h-[168px] active:scale-[0.98]"
+      className="bg-white dark:bg-slate-900/90 rounded-2xl p-4 sm:p-5 border border-black/10 dark:border-white/10 shadow-[0_4px_20px_-2px_rgba(15,23,42,0.05)] dark:shadow-none flex flex-col justify-between cursor-pointer hover:border-indigo-200 dark:hover:border-indigo-800 transition-all h-full min-h-[168px] active:scale-[0.98]"
     >
       <div className="flex items-center justify-between mb-2">
         <h3 className="text-sm sm:text-[15px] font-bold text-slate-900 dark:text-white">Your Progress</h3>

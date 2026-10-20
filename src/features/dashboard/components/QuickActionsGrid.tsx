@@ -1,6 +1,7 @@
 import React from 'react';
 import { QUICK_ACTIONS } from '../constants/sscDashboardConfig';
 import { Zap, SlidersHorizontal, BookMarked, Bookmark, ChevronRight } from 'lucide-react';
+import { Card } from '@/components/ui/Card';
 
 interface QuickActionsGridProps {
   onActionClick: (action: string) => void;
@@ -15,8 +16,8 @@ const IconMap: Record<string, React.ElementType> = {
 
 export const QuickActionsGrid: React.FC<QuickActionsGridProps> = ({ onActionClick }) => {
   return (
-    <div className="flex flex-col gap-3 relative z-10">
-      <h2 className="text-[16px] sm:text-[17px] font-bold text-slate-900 dark:text-white px-1">Quick Actions</h2>
+    <Card className="flex flex-col gap-3 relative z-10 border border-black/10 dark:border-white/10 dark:bg-slate-900/90 shadow-[0_4px_20px_-2px_rgba(15,23,42,0.05)] p-4 rounded-2xl">
+      <h2 className="text-[16px] sm:text-[17px] font-bold text-slate-900 dark:text-white ">Quick Actions</h2>
       <div className="grid grid-cols-2 gap-2 sm:gap-4">
         {QUICK_ACTIONS.map((item) => {
           const Icon = IconMap[item.icon] || Zap;
@@ -41,6 +42,6 @@ export const QuickActionsGrid: React.FC<QuickActionsGridProps> = ({ onActionClic
           );
         })}
       </div>
-    </div>
+    </Card>
   );
 };
