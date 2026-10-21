@@ -126,7 +126,7 @@ export const UploadCustomQuizPage: React.FC = () => {
   const handlePlay = (bank: CustomQuizBank) => {
     // Generate fresh session ID to avoid saving over the bank itself
     const sessionId = crypto.randomUUID();
-    const mockFilters = { subject: ['Custom'], difficulty: ['All'], selectedExams: [], selectedTopics: [] };
+    const mockFilters: any = { subject: ['Custom'], difficulty: ['All'], selectedExams: [], selectedTopics: [] };
 
     // Start standard learning mode
     startQuiz(bank.questions, mockFilters, 'learning', sessionId, bank.name);
