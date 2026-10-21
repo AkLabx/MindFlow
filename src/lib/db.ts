@@ -33,7 +33,7 @@ export interface OWSInteraction {
 }
 
 const DB_NAME = 'MindFlowDB';
-const DB_VERSION = 14;
+const DB_VERSION = 15;
 const STORE_NAME = 'saved_quizzes';
 const HISTORY_STORE_NAME = 'quiz_history';
 const BOOKMARKS_STORE_NAME = 'global_bookmarks';
@@ -103,6 +103,9 @@ const openDB = (): Promise<IDBDatabase> => {
             }
             if (!db.objectStoreNames.contains(OWS_METADATA_STORE)) {
                 db.createObjectStore(OWS_METADATA_STORE, { keyPath: 'id' });
+            }
+            if (!db.objectStoreNames.contains(CUSTOM_QUIZ_BANKS_STORE)) {
+                db.createObjectStore(CUSTOM_QUIZ_BANKS_STORE, { keyPath: 'id' });
             }
             if (!db.objectStoreNames.contains(SYNONYM_METADATA_STORE)) {
                 db.createObjectStore(SYNONYM_METADATA_STORE, { keyPath: 'id' });
