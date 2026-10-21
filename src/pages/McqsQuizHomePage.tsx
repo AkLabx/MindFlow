@@ -61,9 +61,16 @@ export const McqsQuizHomePage: React.FC<McqsQuizHomeProps> = ({ onBack }) => {
               MCQs Quiz
             </h1>
 
-            <p className="text-base sm:text-lg text-gray-600 dark:text-gray-300 mb-2 leading-relaxed font-medium">
+            <p className="text-base sm:text-lg text-gray-600 dark:text-gray-300 mb-4 leading-relaxed font-medium">
               Create, resume, or review your mock tests.
             </p>
+
+            <button
+              onClick={() => navigate('/mcqs/uploadcustomquiz')}
+              className="mt-2 bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-xl font-bold transition-all hover:scale-105 active:scale-95 shadow-md border border-indigo-500/50 w-fit"
+            >
+              Upload Your Own Questions
+            </button>
           </div>
         </header>
 

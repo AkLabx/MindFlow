@@ -33,7 +33,7 @@ export interface OWSInteraction {
 }
 
 const DB_NAME = 'MindFlowDB';
-const DB_VERSION = 13;
+const DB_VERSION = 14;
 const STORE_NAME = 'saved_quizzes';
 const HISTORY_STORE_NAME = 'quiz_history';
 const BOOKMARKS_STORE_NAME = 'global_bookmarks';
@@ -48,6 +48,7 @@ const QUIZ_METADATA_STORE = 'quiz_metadata_cache';
 const SYNC_METADATA_STORE = 'sync_metadata';
 const OWS_METADATA_STORE = 'ows_metadata_cache';
 const SYNONYM_METADATA_STORE = 'synonym_metadata_cache';
+const CUSTOM_QUIZ_BANKS_STORE = 'custom_quiz_banks';
 
 /**
  * Opens a connection to the IndexedDB database.
@@ -125,6 +126,54 @@ const openDB = (): Promise<IDBDatabase> => {
  * in the user's browser, allowing for offline persistence of quiz sessions.
  */
 export const db = {
+    // --- Custom Quiz Banks ---
+    saveCustomBank: async (bank: any): Promise<void> => {
+        const dbInstance = await openDB();
+        return new Promise((resolve, reject) => {
+            const transaction = dbInstance.transaction(CUSTOM_QUIZ_BANKS_STORE, 'readwrite');
+            const store = transaction.objectStore(CUSTOM_QUIZ_BANKS_STORE);
+            const request = store.put(bank);
+            request.onsuccess = () => resolve();
+            request.onerror = () => reject(request.error);
+        });
+    },
+
+    getCustomBanks: async (): Promise<any[]> => {
+        const dbInstance = await openDB();
+        return new Promise((resolve, reject) => {
+            const transaction = dbInstance.transaction(CUSTOM_QUIZ_BANKS_STORE, 'readonly');
+            const store = transaction.objectStore(CUSTOM_QUIZ_BANKS_STORE);
+            const request = store.getAll();
+            request.onsuccess = () => {
+                const banks = (request.result as any[]).sort((a, b) => b.createdAt - a.createdAt);
+                resolve(banks);
+            };
+            request.onerror = () => reject(request.error);
+        });
+    },
+
+    getCustomBank: async (id: string): Promise<any> => {
+        const dbInstance = await openDB();
+        return new Promise((resolve, reject) => {
+            const transaction = dbInstance.transaction(CUSTOM_QUIZ_BANKS_STORE, 'readonly');
+            const store = transaction.objectStore(CUSTOM_QUIZ_BANKS_STORE);
+            const request = store.get(id);
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = () => reject(request.error);
+        });
+    },
+
+    deleteCustomBank: async (id: string): Promise<void> => {
+        const dbInstance = await openDB();
+        return new Promise((resolve, reject) => {
+            const transaction = dbInstance.transaction(CUSTOM_QUIZ_BANKS_STORE, 'readwrite');
+            const store = transaction.objectStore(CUSTOM_QUIZ_BANKS_STORE);
+            const request = store.delete(id);
+            request.onsuccess = () => resolve();
+            request.onerror = () => reject(request.error);
+        });
+    },
+
     /**
      * Clears all user-related data (Quizzes, History, Bookmarks, Synonyms) from IndexedDB.
      */
