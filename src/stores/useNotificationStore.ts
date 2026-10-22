@@ -7,7 +7,7 @@ export interface ToastOptions {
   id: string;
   variant: ToastVariant;
   title?: string;
-  message: string;
+  message: React.ReactNode;
   duration?: number; // 0 for persistent
 }
 
