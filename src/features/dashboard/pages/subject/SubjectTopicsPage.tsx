@@ -10,15 +10,11 @@ import { SubjectSkeleton } from '../../components/subject/SubjectSkeleton';
 import { EmptyState } from '../../components/subject/EmptyState';
 import { QuizStartBottomSheet } from '../../components/subject/QuizStartBottomSheet';
 import { useNotificationStore } from '@/stores/useNotificationStore';
-import { db } from '@/lib/db';
-import { supabase } from '@/lib/supabase';
-import { initialState } from '@/features/quiz/stores/useQuizSessionStore';
 
 export const SubjectTopicsPage: React.FC = () => {
   const { subjectName } = useParams<{ subjectName: string }>();
   const navigate = useNavigate();
   const [selectedSubTopic, setSelectedSubTopic] = React.useState<{topic: string, subTopic: string} | null>(null);
-  const [isCreatingQuiz, setIsCreatingQuiz] = React.useState(false);
 
   const setHideGlobalHeader = useLayoutStore((state) => state.setHideGlobalHeader);
 
@@ -53,7 +49,7 @@ export const SubjectTopicsPage: React.FC = () => {
     );
   }
 
-  const navigateToQuiz = (topic: string, subTopic?: string) => {
+  const navigateToQuiz = (topic: string, subTopic?: string, mode: 'learning' | 'mock' = 'learning', autoStart: boolean = false, startImmediately: boolean = false) => {
     navigate(ROUTES.QUIZ.CONFIG, {
       state: {
         initialFilters: {
@@ -67,8 +63,9 @@ export const SubjectTopicsPage: React.FC = () => {
           examDateShift: [],
           tags: [],
         },
-        initialMode: 'learning',
-        autoStart: false,
+        initialMode: mode,
+        autoStart: autoStart,
+        startImmediately: startImmediately,
         fixedSubjectContext: true,
       },
     });
@@ -83,128 +80,6 @@ export const SubjectTopicsPage: React.FC = () => {
     setSelectedSubTopic({ topic, subTopic });
   };
 
-
-  const handleCreateQuiz = async (mode: 'learning' | 'mock', startImmediately: boolean) => {
-    if (!selectedSubTopic) return;
-
-    try {
-      setIsCreatingQuiz(true);
-
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user) {
-         useNotificationStore.getState().showToast({ variant: "error", message: "You must be logged in to create a quiz." });
-         setIsCreatingQuiz(false);
-         return;
-      }
-
-      const userId = session.user.id;
-      const quizId = crypto.randomUUID();
-      const finalName = `${selectedSubTopic.subTopic} Quiz`;
-
-      const cachedMetadata = await db.getQuizMetadataCache();
-      if (!cachedMetadata || cachedMetadata.length === 0) {
-         useNotificationStore.getState().showToast({ variant: "error", message: "Quiz metadata not found. Please sync." });
-         setIsCreatingQuiz(false);
-         return;
-      }
-
-      const filteredQuestions = cachedMetadata.filter(q =>
-        (q.subject ?? q.classification?.subject) === decodedSubject &&
-        (q.topic ?? q.classification?.topic) === selectedSubTopic.topic &&
-        (q.subTopic ?? q.classification?.subTopic) === selectedSubTopic.subTopic
-      );
-
-      if (filteredQuestions.length === 0) {
-        useNotificationStore.getState().showToast({ variant: "error", message: "No questions found for this subtopic." });
-        setIsCreatingQuiz(false);
-        return;
-      }
-
-      const newQuiz: any = {
-        id: quizId,
-        name: finalName,
-        createdAt: Date.now(),
-        filters: {
-          subject: [decodedSubject],
-          topic: [selectedSubTopic.topic],
-          subTopic: [selectedSubTopic.subTopic],
-          difficulty: [],
-          questionType: [],
-          examName: [],
-          examYear: [],
-          examDateShift: [],
-          tags: [],
-        },
-        mode: mode,
-        questions: filteredQuestions,
-        state: {
-          ...initialState,
-          status: 'quiz',
-          mode: mode,
-          startTime: Date.now(),
-        }
-      };
-
-      await db.saveQuiz(newQuiz);
-
-      const { error: quizError } = await supabase.from('saved_quizzes').insert({
-        id: newQuiz.id,
-        user_id: userId,
-        name: newQuiz.name,
-        filters: newQuiz.filters,
-        mode: newQuiz.mode,
-      });
-
-      if (quizError) {
-        console.error('Error saving quiz to Supabase:', quizError);
-        // continue anyway as it's saved locally
-      } else {
-        const bridgeData = newQuiz.questions.map((q: any, index: number) => ({
-          quiz_id: newQuiz.id,
-          question_id: q.id,
-          sort_order: index,
-          user_id: userId
-        }));
-        await supabase.from('bridge_saved_quiz_questions').insert(bridgeData);
-      }
-
-      setSelectedSubTopic(null);
-
-      if (startImmediately) {
-        // Navigate to the library first so it's in the back stack, then to the quiz player
-        navigate('/quiz/library?tab=created', { replace: true });
-        setTimeout(() => {
-          navigate(mode === 'learning' ? ROUTES.QUIZ.SESSION.learning(quizId) : ROUTES.QUIZ.SESSION.mock(quizId));
-        }, 50);
-      } else {
-        useNotificationStore.getState().showToast({
-          variant: "success",
-          duration: 7000,
-          message: (
-            <span>
-              Quiz saved successfully.{' '}
-              <a
-                href="#/quiz/library?tab=created"
-                className="underline font-semibold hover:text-indigo-700 dark:hover:text-indigo-300"
-                onClick={(e) => {
-                  const id = (e.target as any).closest('.relative')?.dataset?.toastId;
-                  if (id) useNotificationStore.getState().removeToast(id);
-                }}
-              >
-                View in Library
-              </a>
-            </span>
-          )
-        });
-      }
-
-    } catch(err) {
-      console.error(err);
-      useNotificationStore.getState().showToast({ variant: "error", message: "Failed to create quiz." });
-    } finally {
-      setIsCreatingQuiz(false);
-    }
-  };
 
   const renderContent = () => {
     if (isLoading) {
@@ -246,16 +121,20 @@ export const SubjectTopicsPage: React.FC = () => {
           topic={selectedSubTopic?.topic || ''}
           subTopic={selectedSubTopic?.subTopic || ''}
           questionCount={selectedSubTopic ? (topicsCounts?.[selectedSubTopic.topic]?.[selectedSubTopic.subTopic] || 0) : 0}
-          onStartQuiz={(mode) => handleCreateQuiz(mode, true)}
-          onSaveForLater={(mode) => handleCreateQuiz(mode, false)}
+          onStartQuiz={(mode) => {
+            if (selectedSubTopic) {
+              navigateToQuiz(selectedSubTopic.topic, selectedSubTopic.subTopic, mode, true, true);
+              setSelectedSubTopic(null);
+            }
+          }}
+          onSaveForLater={(mode) => {
+            if (selectedSubTopic) {
+              navigateToQuiz(selectedSubTopic.topic, selectedSubTopic.subTopic, mode, true, false);
+              setSelectedSubTopic(null);
+            }
+          }}
         />
-        {isCreatingQuiz && (
-          <div className="fixed inset-0 z-[200] bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm flex flex-col items-center justify-center animate-in fade-in duration-300">
-            <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mb-4" />
-            <h3 className="text-xl font-bold text-indigo-900 dark:text-indigo-100">Creating Your Quiz</h3>
-            <p className="text-gray-500 dark:text-gray-400">Saving questions to database...</p>
-          </div>
-        )}
+
         <div className="mt-6">
           {renderContent()}
         </div>

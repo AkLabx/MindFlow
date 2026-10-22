@@ -265,8 +265,14 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
         return;
       }
 
-      // navigate to Saved route to fetch newly created quiz directly from the cloud
-      navigate('/quiz/library?tab=created');
+      // Handle autoStart startImmediately flag
+      const locState = location.state as any;
+      if (locState?.startImmediately) {
+          navigate(mode === 'learning' ? ROUTES.QUIZ.SESSION.learning(quizId) : ROUTES.QUIZ.SESSION.mock(quizId), { replace: true });
+      } else {
+          // navigate to Saved route to fetch newly created quiz directly from the cloud
+          navigate('/quiz/library?tab=created');
+      }
 
     } catch (err) {
       console.error("Failed to create quiz:", err);
