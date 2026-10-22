@@ -62,7 +62,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
   const { isReviewMode } = useQuizContext();
   const { isDarkMode, toggleDarkMode } = useSettingsStore();
   const { isSocialMode, toggleSocialMode } = useSocialStore();
-  const { hideGlobalFooter } = useLayoutStore();
+  const { hideGlobalFooter, hideGlobalHeader } = useLayoutStore();
   const location = useLocation();
   const isAIFullScreen = location.pathname.startsWith('/ai/chat') || location.pathname.startsWith('/ai/talk') || location.pathname.startsWith('/tools/text-exporter') || location.pathname.startsWith('/tools/flashcard-maker');
   const isReelsFullScreen = location.pathname.startsWith('/community/reels');
@@ -197,7 +197,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
     )}>
       
       {/* --- Sticky Top Header --- */}
-      {!isReviewMode && !isAIFullScreen && !isReelsFullScreen && !isSocialMode && (
+      {!isReviewMode && !isAIFullScreen && !isReelsFullScreen && !isSocialMode && !hideGlobalHeader && (
       <header className="sticky top-0 z-40 w-full transition-all duration-300 relative group overflow-visible">
         {/* Glow Background Layer */}
         <div className="absolute inset-0 bg-white/40 dark:bg-slate-900/40 backdrop-blur-2xl transition-colors duration-300 z-0"></div>
