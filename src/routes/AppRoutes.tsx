@@ -33,6 +33,8 @@ const UploadCustomQuizPage = lazy(() => import('../features/quiz/pages/UploadCus
 const SchoolDownloads = lazy(() => import('../features/school/SchoolDownloads').then(m => ({ default: m.SchoolDownloads })));
 import { DashboardPage as Dashboard } from '../pages/DashboardPage';
 import { SubjectsPage } from '../features/dashboard';
+const SubjectHubPage = lazy(() => import('../features/dashboard/pages/subject/SubjectHubPage').then(m => ({ default: m.SubjectHubPage })));
+const SubjectTopicsPage = lazy(() => import('../features/dashboard/pages/subject/SubjectTopicsPage').then(m => ({ default: m.SubjectTopicsPage })));
 const McqsQuizHome = lazy(() => import('../pages/McqsQuizHomePage').then(m => ({ default: m.McqsQuizHomePage })));
 const TodaysPlanPage = lazy(() => import('../pages/TodaysPlanPage').then(m => ({ default: m.TodaysPlanPage })));
 const DailyMissionPage = lazy(() => import('../pages/DailyMissionPage').then(m => ({ default: m.DailyMissionPage })));
@@ -247,6 +249,8 @@ const handleReattempt = async (quizId: string, mode: string) => {
                 <Route element={<NavigationManager key="auth-applayout" type={RouteAccessType.AUTHENTICATED}><AppLayout /></NavigationManager>}>
                                         <Route path={ROUTES.DASHBOARD} element={<Dashboard />} />
                     <Route path={ROUTES.DASHBOARD_SUBJECTS} element={<Suspense fallback={<SynapticLoader />}><SubjectsPage /></Suspense>} />
+                    <Route path={ROUTES.SUBJECT.ROOT} element={<Suspense fallback={<SynapticLoader />}><SubjectHubPage /></Suspense>} />
+                    <Route path={ROUTES.SUBJECT_TOPICS.ROOT} element={<Suspense fallback={<SynapticLoader />}><SubjectTopicsPage /></Suspense>} />
                     <Route path={ROUTES.TODAYS_PLAN} element={<Suspense fallback={<SynapticLoader />}><TodaysPlanPage /></Suspense>} />
                     <Route path={ROUTES.DAILY_MISSION} element={<Suspense fallback={<SynapticLoader />}><DailyMissionPage /></Suspense>} />
                     <Route path={ROUTES.MCQS} element={<Suspense fallback={<SynapticLoader />}><McqsQuizHome onBack={() => { navigate(ROUTES.DASHBOARD); }} /></Suspense>} />

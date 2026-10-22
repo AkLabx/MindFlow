@@ -8,6 +8,7 @@ import { useNotification } from "@/stores/useNotificationStore";
 import { useQuizContext } from '@/features/quiz/context/QuizContext';
 import { db } from '@/lib/db';
 import { isNativeApp } from "@/utils/platform";
+import { ROUTES } from "@/config/routes";
 
 
 import {
@@ -109,7 +110,7 @@ export const DashboardPage: React.FC<DashboardProps> = ({ onBackToIntro }) => {
   };
 
   const handleSubjectClick = (subjectDbKey: string) => {
-    handleNavigateWithFilters({ subject: [subjectDbKey] }, 'learning', false, true);
+    navigate(ROUTES.SUBJECT.view(subjectDbKey));
   };
 
   const handleViewAllSubjects = () => {

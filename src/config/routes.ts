@@ -14,6 +14,14 @@ export const ROUTES = {
   ONBOARDING: '/onboarding',
   DASHBOARD: '/dashboard',
   DASHBOARD_SUBJECTS: '/dashboard/subjects',
+  SUBJECT: {
+    ROOT: '/quiz/subject/:subjectName',
+    view: (subjectName: string) => `/quiz/subject/${encodeURIComponent(subjectName)}`
+  },
+  SUBJECT_TOPICS: {
+    ROOT: '/quiz/subject/:subjectName/topics',
+    view: (subjectName: string) => `/quiz/subject/${encodeURIComponent(subjectName)}/topics`
+  },
   FALLBACK: '*',
 
   TODAYS_PLAN: '/todays-plan',

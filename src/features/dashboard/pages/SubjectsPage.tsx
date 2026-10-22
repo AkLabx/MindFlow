@@ -4,6 +4,7 @@ import { ChevronLeft, Landmark, Scale, Globe2, TrendingUp, Atom, Award, Sparkles
 import { SSC_SUBJECTS } from '../constants/sscDashboardConfig';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
+import { ROUTES } from '@/config/routes';
 
 const IconMap: Record<string, React.ElementType> = {
   Landmark,
@@ -29,24 +30,7 @@ export const SubjectsPage: React.FC = () => {
   });
 
   const handleSubjectClick = (subjectDbKey: string) => {
-    navigate("/quiz/config", {
-      state: {
-        initialFilters: {
-          subject: [subjectDbKey],
-          topic: [],
-          subTopic: [],
-          difficulty: [],
-          questionType: [],
-          examName: [],
-          examYear: [],
-          examDateShift: [],
-          tags: [],
-        },
-        initialMode: 'learning',
-        autoStart: false,
-        fixedSubjectContext: true,
-      },
-    });
+    navigate(ROUTES.SUBJECT.view(subjectDbKey));
   };
 
   return (
