@@ -109,9 +109,9 @@ export const SubjectTopicsPage: React.FC = () => {
       }
 
       const filteredQuestions = cachedMetadata.filter(q =>
-        q.subject === decodedSubject &&
-        q.topic === selectedSubTopic.topic &&
-        q.subTopic === selectedSubTopic.subTopic
+        (q.subject ?? q.classification?.subject) === decodedSubject &&
+        (q.topic ?? q.classification?.topic) === selectedSubTopic.topic &&
+        (q.subTopic ?? q.classification?.subTopic) === selectedSubTopic.subTopic
       );
 
       if (filteredQuestions.length === 0) {
