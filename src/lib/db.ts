@@ -298,6 +298,19 @@ export const db = {
         });
     },
 
+    getAllSavedQuizzes: async (): Promise<SavedQuiz[]> => {
+        const dbInstance = await openDB();
+        return new Promise((resolve, reject) => {
+            const transaction = dbInstance.transaction(STORE_NAME, 'readonly');
+            const store = transaction.objectStore(STORE_NAME);
+            const request = store.getAll();
+
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = () => reject(request.error);
+        });
+    },
+
+
 
 
     /**
