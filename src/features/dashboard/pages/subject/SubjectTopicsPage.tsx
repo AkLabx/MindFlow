@@ -13,7 +13,6 @@ import { useNotificationStore } from '@/stores/useNotificationStore';
 import { db } from '@/lib/db';
 import { supabase } from '@/lib/supabase';
 import { initialState } from '@/features/quiz/stores/useQuizSessionStore';
-import { APP_CONFIG } from '@/constants/config';
 
 export const SubjectTopicsPage: React.FC = () => {
   const { subjectName } = useParams<{ subjectName: string }>();
@@ -143,25 +142,6 @@ export const SubjectTopicsPage: React.FC = () => {
           status: 'quiz',
           mode: mode,
           startTime: Date.now(),
-          activeQuestions: filteredQuestions,
-          filters: {
-            subject: [decodedSubject],
-            topic: [selectedSubTopic.topic],
-            subTopic: [selectedSubTopic.subTopic],
-            difficulty: [],
-            questionType: [],
-            examName: [],
-            examYear: [],
-            examDateShift: [],
-            tags: [],
-          },
-          quizId: quizId,
-          quizTimeRemaining: mode === 'mock'
-            ? Math.max(APP_CONFIG.TIMERS.MOCK_MODE_DEFAULT_PER_QUESTION, filteredQuestions.length * APP_CONFIG.TIMERS.MOCK_MODE_DEFAULT_PER_QUESTION)
-            : 0,
-          remainingTimes: mode === 'learning'
-            ? filteredQuestions.reduce((acc: any, q: any) => ({ ...acc, [q.id]: APP_CONFIG.TIMERS.LEARNING_MODE_DEFAULT }), {})
-            : {}
         }
       };
 
@@ -171,10 +151,8 @@ export const SubjectTopicsPage: React.FC = () => {
         id: newQuiz.id,
         user_id: userId,
         name: newQuiz.name,
-        created_at: newQuiz.createdAt,
         filters: newQuiz.filters,
         mode: newQuiz.mode,
-        state: newQuiz.state,
       });
 
       if (quizError) {
