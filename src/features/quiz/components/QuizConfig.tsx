@@ -37,6 +37,7 @@ import { ScrollableCapsules } from './ui/ScrollableCapsules';
 import { ExamBlueprintsHubPage } from '@/pages/ExamBlueprintsHubPage';
 
 // Optimization Hooks
+import { quizCreationService } from '../services/quizCreationService';
 import { useQuestionIndex, filterQuestionsByIndex } from '../hooks/useQuestionIndex';
 import { useOptimizedFilterCounts } from '../hooks/useOptimizedFilterCounts';
 import { useNotificationStore } from '../../../stores/useNotificationStore';
@@ -188,84 +189,21 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
     try {
       setIsStartingQuiz(true);
 
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user) {
-         useNotificationStore.getState().showToast({ variant: "error", message: "You must be logged in to create a quiz." });
-         setIsStartingQuiz(false);
-         return;
-      }
-
-      const userId = session.user.id;
-      const quizId = crypto.randomUUID();
       const finalName = quizName.trim() || `Quiz ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`;
 
-      // Pass the unhydrated subset of questions (metadata only).
-      // QuizSessionGuard will handle fetching the full content in a sliding window later.
-      // This prevents the initial payload waterfall for massive exams.
-      const newQuiz: SavedQuiz = {
-        id: quizId,
-        name: finalName,
-        createdAt: Date.now(),
-        filters: activeFilters,
-        mode: mode,
-        questions: questionSubset,
-        state: {
-          ...initialState,
-          status: 'quiz',
-          mode: mode,
-          activeQuestions: questionSubset,
-          filters: activeFilters,
-          quizId: quizId,
-          quizTimeRemaining: mode === 'mock'
-            ? Math.max(APP_CONFIG.TIMERS.MOCK_MODE_DEFAULT_PER_QUESTION, questionSubset.length * APP_CONFIG.TIMERS.MOCK_MODE_DEFAULT_PER_QUESTION)
-            : 0,
-          remainingTimes: mode === 'learning'
-            ? questionSubset.reduce((acc, q) => ({ ...acc, [q.id]: APP_CONFIG.TIMERS.LEARNING_MODE_DEFAULT }), {})
-            : {}
-        }
-      };
+      const result = await quizCreationService.createQuiz(questionSubset, activeFilters, mode, finalName);
 
-      // 1. Insert into saved_quizzes
-      const { error: quizError } = await supabase.from('saved_quizzes').insert({
-        id: newQuiz.id,
-        user_id: userId,
-        name: newQuiz.name,
-        created_at: newQuiz.createdAt,
-        filters: newQuiz.filters,
-        mode: newQuiz.mode,
-        state: newQuiz.state,
-      });
-
-      // Save locally to IndexedDB immediately to avoid "Quiz with id... not found" errors
-      await db.saveQuiz(newQuiz).catch((err) => {
-          console.warn("Failed to cache quiz in local IndexedDB:", err);
-      });
-
-      if (quizError) {
-        console.error('Error saving quiz to Supabase:', quizError);
-        useNotificationStore.getState().showToast({ variant: 'error', message: 'Failed to save quiz to server. Please try again.' });
+      if (result.error) {
+        useNotificationStore.getState().showToast({ variant: 'error', message: result.error });
         setIsStartingQuiz(false);
         return;
       }
 
-      // 2. Insert into bridge_saved_quiz_questions
-      const bridgeData = newQuiz.questions.map((q, index) => ({
-        quiz_id: newQuiz.id,
-        question_id: q.id,
-        sort_order: index,
-        user_id: userId // Add user_id so RLS allows the insert
-      }));
-
-      const { error: bridgeError } = await supabase.from('bridge_saved_quiz_questions').insert(bridgeData);
-
-      if (bridgeError) {
-        console.error('Error saving bridge data:', bridgeError);
-        useNotificationStore.getState().showToast({ variant: 'error', message: 'Failed to save quiz questions to server. Please try again.' });
-        setIsStartingQuiz(false);
-        return;
+      if (result.reused) {
+        useNotificationStore.getState().showToast({ variant: 'success', message: 'Resuming existing quiz session' });
       }
 
-      // navigate to Saved route to fetch newly created quiz directly from the cloud
+      // navigate to Saved route to fetch newly created (or reused) quiz directly from the cloud
       navigate('/quiz/library?tab=created');
 
     } catch (err) {

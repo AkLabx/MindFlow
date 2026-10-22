@@ -13,6 +13,7 @@ import { useNotificationStore } from '@/stores/useNotificationStore';
 import { db } from '@/lib/db';
 import { supabase } from '@/lib/supabase';
 import { initialState } from '@/features/quiz/stores/useQuizSessionStore';
+import { quizCreationService } from '@/features/quiz/services/quizCreationService';
 
 export const SubjectTopicsPage: React.FC = () => {
   const { subjectName } = useParams<{ subjectName: string }>();
@@ -84,22 +85,11 @@ export const SubjectTopicsPage: React.FC = () => {
   };
 
 
-  const handleCreateQuiz = async (mode: 'learning' | 'mock', startImmediately: boolean) => {
+    const handleCreateQuiz = async (mode: 'learning' | 'mock', startImmediately: boolean) => {
     if (!selectedSubTopic) return;
 
     try {
       setIsCreatingQuiz(true);
-
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user) {
-         useNotificationStore.getState().showToast({ variant: "error", message: "You must be logged in to create a quiz." });
-         setIsCreatingQuiz(false);
-         return;
-      }
-
-      const userId = session.user.id;
-      const quizId = crypto.randomUUID();
-      const finalName = `${selectedSubTopic.subTopic} Quiz`;
 
       const cachedMetadata = await db.getQuizMetadataCache();
       if (!cachedMetadata || cachedMetadata.length === 0) {
@@ -120,61 +110,38 @@ export const SubjectTopicsPage: React.FC = () => {
         return;
       }
 
-      const newQuiz: any = {
-        id: quizId,
-        name: finalName,
-        createdAt: Date.now(),
-        filters: {
-          subject: [decodedSubject],
-          topic: [selectedSubTopic.topic],
-          subTopic: [selectedSubTopic.subTopic],
-          difficulty: [],
-          questionType: [],
-          examName: [],
-          examYear: [],
-          examDateShift: [],
-          tags: [],
-        },
-        mode: mode,
-        questions: filteredQuestions,
-        state: {
-          ...initialState,
-          status: 'quiz',
-          mode: mode,
-          startTime: Date.now(),
-        }
+      const finalName = `${selectedSubTopic.subTopic} Quiz`;
+
+      const filters = {
+        subject: [decodedSubject],
+        topic: [selectedSubTopic.topic],
+        subTopic: [selectedSubTopic.subTopic],
+        difficulty: [],
+        questionType: [],
+        examName: [],
+        examYear: [],
+        examDateShift: [],
+        tags: [],
       };
 
-      await db.saveQuiz(newQuiz);
+      const result = await quizCreationService.createQuiz(filteredQuestions, filters, mode, finalName);
 
-      const { error: quizError } = await supabase.from('saved_quizzes').insert({
-        id: newQuiz.id,
-        user_id: userId,
-        name: newQuiz.name,
-        filters: newQuiz.filters,
-        mode: newQuiz.mode,
-      });
-
-      if (quizError) {
-        console.error('Error saving quiz to Supabase:', quizError);
-        // continue anyway as it's saved locally
-      } else {
-        const bridgeData = newQuiz.questions.map((q: any, index: number) => ({
-          quiz_id: newQuiz.id,
-          question_id: q.id,
-          sort_order: index,
-          user_id: userId
-        }));
-        await supabase.from('bridge_saved_quiz_questions').insert(bridgeData);
+      if (result.error) {
+        useNotificationStore.getState().showToast({ variant: 'error', message: result.error });
+        setIsCreatingQuiz(false);
+        return;
       }
 
       setSelectedSubTopic(null);
 
       if (startImmediately) {
+        if (result.reused) {
+          useNotificationStore.getState().showToast({ variant: 'success', message: 'Resuming existing quiz session' });
+        }
         // Navigate to the library first so it's in the back stack, then to the quiz player
         navigate('/quiz/library?tab=created', { replace: true });
         setTimeout(() => {
-          navigate(mode === 'learning' ? ROUTES.QUIZ.SESSION.learning(quizId) : ROUTES.QUIZ.SESSION.mock(quizId));
+          navigate(mode === 'learning' ? ROUTES.QUIZ.SESSION.learning(result.quizId) : ROUTES.QUIZ.SESSION.mock(result.quizId));
         }, 50);
       } else {
         useNotificationStore.getState().showToast({
@@ -182,7 +149,7 @@ export const SubjectTopicsPage: React.FC = () => {
           duration: 7000,
           message: (
             <span>
-              Quiz saved successfully.{' '}
+              {result.reused ? 'Resumed existing quiz session.' : 'Quiz saved successfully.'}{' '}
               <a
                 href="#/quiz/library?tab=created"
                 className="underline font-semibold hover:text-indigo-700 dark:hover:text-indigo-300"
@@ -197,27 +164,17 @@ export const SubjectTopicsPage: React.FC = () => {
           )
         });
       }
-
-    } catch(err) {
-      console.error(err);
-      useNotificationStore.getState().showToast({ variant: "error", message: "Failed to create quiz." });
+    } catch (err: any) {
+      console.error("Failed to create quiz:", err);
+      useNotificationStore.getState().showToast({ variant: 'error', message: 'Failed to create quiz. Please try again.' });
     } finally {
       setIsCreatingQuiz(false);
     }
   };
-
   const renderContent = () => {
-    if (isLoading) {
-      return <SubjectSkeleton />;
-    }
-
-    if (error) {
-      return <EmptyState message="Failed to load topics. Please try again." />;
-    }
-
-    if (!topicsHierarchy || Object.keys(topicsHierarchy).length === 0) {
-      return <EmptyState message={`No topics found for ${decodedSubject}.`} />;
-    }
+    if (isLoading) return <SubjectSkeleton />;
+    if (error || !topicsHierarchy) return <EmptyState message="Failed to load topics." />;
+    if (Object.keys(topicsHierarchy).length === 0) return <EmptyState message="No topics found for this subject." />;
 
     return (
       <div className="flex flex-col gap-4">
