@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useEffect } from 'react';
+import { useLayoutStore } from '@/stores/useLayoutStore';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { ROUTES } from '@/config/routes';
@@ -11,6 +12,13 @@ import { EmptyState } from '../../components/subject/EmptyState';
 export const SubjectTopicsPage: React.FC = () => {
   const { subjectName } = useParams<{ subjectName: string }>();
   const navigate = useNavigate();
+
+  const setHideGlobalHeader = useLayoutStore((state) => state.setHideGlobalHeader);
+
+  useEffect(() => {
+    setHideGlobalHeader(true);
+    return () => setHideGlobalHeader(false);
+  }, [setHideGlobalHeader]);
 
   const decodedSubject = subjectName ? decodeURIComponent(subjectName) : '';
 
