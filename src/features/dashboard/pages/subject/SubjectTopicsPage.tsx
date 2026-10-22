@@ -171,11 +171,30 @@ export const SubjectTopicsPage: React.FC = () => {
       setSelectedSubTopic(null);
 
       if (startImmediately) {
-        navigate(`/quiz/library?tab=created`);
+        // Navigate to the library first so it's in the back stack, then to the quiz player
+        navigate('/quiz/library?tab=created', { replace: true });
+        setTimeout(() => {
+          navigate(mode === 'learning' ? ROUTES.QUIZ.SESSION.learning(quizId) : ROUTES.QUIZ.SESSION.mock(quizId));
+        }, 50);
       } else {
         useNotificationStore.getState().showToast({
           variant: "success",
-          message: "Quiz saved successfully. You can find it in your Saved Quizzes."
+          duration: 7000,
+          message: (
+            <span>
+              Quiz saved successfully.{' '}
+              <a
+                href="#/quiz/library?tab=created"
+                className="underline font-semibold hover:text-indigo-700 dark:hover:text-indigo-300"
+                onClick={(e) => {
+                  const id = (e.target as any).closest('.relative')?.dataset?.toastId;
+                  if (id) useNotificationStore.getState().removeToast(id);
+                }}
+              >
+                View in Library
+              </a>
+            </span>
+          )
         });
       }
 
