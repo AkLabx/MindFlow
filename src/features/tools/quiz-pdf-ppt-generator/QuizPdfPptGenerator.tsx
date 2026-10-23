@@ -19,6 +19,7 @@ import { ArrowUp, ArrowDown, X, Plus } from 'lucide-react';
 import { Button } from '../../../components/Button/Button';
 import { fetchQuestionMetadata, fetchQuestionsByIds } from '../../quiz/services/questionService';
 import { Question, InitialFilters } from '../../quiz/types';
+import { useQuestionMetadata } from '../../quiz/hooks/useQuestionMetadata';
 import { cn } from '../../../utils/cn';
 import { useDependentFilters } from '@/features/quiz';
 import { useFilterCounts } from '@/features/quiz';
@@ -64,10 +65,7 @@ export const QuizPdfPptGenerator: React.FC = () => {
   const [sortCriteria, setSortCriteria] = useState<SortCriterion[]>(['examName', 'examDateShift', 'subject']);
 
   // State for Data Fetching & Sync
-  const [metadata, setMetadata] = useState<Question[]>([]);
-  const [isLoadingMetadata, setIsLoadingMetadata] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [progress, setProgress] = useState({ current: 0, total: 0 });
+  const { metadata, isLoading: isLoadingMetadata, error, progress, refresh: loadMetadata } = useQuestionMetadata();
   const [showEmptyError, setShowEmptyError] = useState(false);
 
   // State for Generation
@@ -75,30 +73,6 @@ export const QuizPdfPptGenerator: React.FC = () => {
   const [genType, setGenType] = useState<'PDF' | 'PPT' | 'JSON' | null>(null);
   const [genProgress, setGenProgress] = useState(0);
   const [genDetails, setGenDetails] = useState('');
-
-  // 0. Fetch Metadata on Mount
-  const loadMetadata = useCallback(async () => {
-    try {
-      setIsLoadingMetadata(true);
-      setError(null);
-      setProgress({ current: 0, total: 0 });
-
-      const data = await fetchQuestionMetadata((current, total) => {
-        setProgress({ current, total });
-      });
-
-      setMetadata(data);
-    } catch (err) {
-      console.error("Failed to load questions:", err);
-      setError("Failed to load question bank. Please check your internet connection.");
-    } finally {
-      setIsLoadingMetadata(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    loadMetadata();
-  }, [loadMetadata]);
 
   // 1. Build Classification Map
   const classificationMap = useMemo(() => {

@@ -19,6 +19,7 @@ import {
 import { Button } from '../../../components/Button/Button';
 import { fetchQuestionMetadata, fetchQuestionsByIds } from '../services/questionService';
 import { Question, InitialFilters, QuizMode, SavedQuiz } from '../types';
+import { useQuestionMetadata } from '../hooks/useQuestionMetadata';
 import { cn } from '../../../utils/cn';
 import { useDependentFilters } from '@/features/quiz';
 import { db } from '../../../lib/db';
@@ -69,53 +70,13 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
   const [quizName, setQuizName] = useState('');
 
   // State for Data Fetching & Sync
-  const [metadata, setMetadata] = useState<Question[]>([]);
-  const [isLoadingMetadata, setIsLoadingMetadata] = useState(true);
+  const { metadata, isLoading: isLoadingMetadata, error, progress, refresh: loadMetadata } = useQuestionMetadata();
   const [isStartingQuiz, setIsStartingQuiz] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [progress, setProgress] = useState({ current: 0, total: 0 });
   const [showEmptyError, setShowEmptyError] = useState(false);
 
   const locState = location.state as any;
   const isFixedSubjectContext = locState?.fixedSubjectContext === true;
   const fixedSubject = isFixedSubjectContext ? locState?.initialFilters?.subject?.[0] : null;
-
-  // 0. Fetch Metadata on Mount
-  const loadMetadata = useCallback(async () => {
-    try {
-      setIsLoadingMetadata(true);
-      setError(null);
-      setProgress({ current: 0, total: 0 });
-
-      // 1. Instantly load from cache
-      const cachedMetadata = await db.getQuizMetadataCache();
-      if (cachedMetadata && cachedMetadata.length > 0) {
-        setMetadata(cachedMetadata);
-        setIsLoadingMetadata(false); // Instantly render UI
-      }
-
-      // 2. Fetch delta in the background (or foreground if no cache)
-      const data = await fetchQuestionMetadata((current, total) => {
-        setProgress({ current, total });
-      });
-
-      // 3. Update state
-      setMetadata(data);
-
-      if (data.length === 0) {
-        console.warn("No questions fetched from database.");
-      }
-    } catch (err) {
-      console.error("Failed to load questions:", err);
-      setError("Failed to load question bank. Please check your internet connection.");
-    } finally {
-      setIsLoadingMetadata(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    loadMetadata();
-  }, [loadMetadata]);
 
   useEffect(() => {
     const locState = location.state as any;

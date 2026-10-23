@@ -1,0 +1,3 @@
+The goal was to fix a "Quiz metadata not found" error on the new SubjectTopicsPage. The bug occurred because caching and sync logic (`fetchQuestionMetadata()`) was duplicated inside `QuizConfig.tsx` and other pages, but `SubjectTopicsPage` simply checked the IndexedDB cache and threw an error if it was cold.
+
+I created a `useQuestionMetadata` hook to centralize the metadata fetching and cache hydration logic. Then I refactored 4 components (`QuizConfig.tsx`, `SubjectTopicsPage.tsx`, `BlueprintBuilder.tsx`, and `QuizPdfPptGenerator.tsx`) to replace their redundant fetching logic with a simple call to this new hook.
