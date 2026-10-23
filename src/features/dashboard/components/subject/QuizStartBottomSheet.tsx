@@ -13,6 +13,7 @@ import {
 import { Button } from "@/components/Button/Button";
 import { useSubTopicModeProgress } from "@/features/quiz/hooks/useQuizProgress";
 import { useNavigate } from "react-router-dom";
+import { Question } from "@/features/quiz/types";
 import { ROUTES } from "@/config/routes";
 
 interface QuizStartBottomSheetProps {
@@ -21,9 +22,9 @@ interface QuizStartBottomSheetProps {
   subject: string;
   topic: string;
   subTopic: string;
-  questionCount: number;
-  onStartQuiz: (mode: "learning" | "mock") => void;
-  onSaveForLater: (mode: "learning" | "mock") => void;
+  questions: Question[];
+  onStartQuiz: (mode: "learning" | "mock", difficulty: string) => void;
+  onSaveForLater: (mode: "learning" | "mock", difficulty: string) => void;
 }
 
 export const QuizStartBottomSheet: React.FC<QuizStartBottomSheetProps> = ({
@@ -32,19 +33,45 @@ export const QuizStartBottomSheet: React.FC<QuizStartBottomSheetProps> = ({
   subject,
   topic,
   subTopic,
-  questionCount,
+  questions,
   onStartQuiz,
   onSaveForLater,
 }) => {
   const [mode, setMode] = useState<"learning" | "mock">("learning");
+  const [difficulty, setDifficulty] = useState<string>("All");
   const [showInfo, setShowInfo] = useState(false);
   const navigate = useNavigate();
+
+  React.useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "auto";
+    }
+    return () => {
+      document.body.style.overflow = "auto";
+    };
+  }, [isOpen]);
 
   const { learningStatus, mockStatus, isLoading } = useSubTopicModeProgress(
     subject,
     topic,
     subTopic,
   );
+
+
+  const difficultyCounts = React.useMemo(() => {
+    const counts = { All: questions.length, Easy: 0, Medium: 0, Hard: 0 };
+    questions.forEach((q) => {
+      const diff = q.properties?.difficulty;
+      if (diff === 'Easy' || diff === 'Medium' || diff === 'Hard') {
+        counts[diff]++;
+      }
+    });
+    return counts;
+  }, [questions]);
+
+  const activeQuestionCount = difficultyCounts[difficulty as keyof typeof difficultyCounts] || 0;
 
   const currentStatus = mode === "learning" ? learningStatus : mockStatus;
 
@@ -55,7 +82,7 @@ export const QuizStartBottomSheet: React.FC<QuizStartBottomSheetProps> = ({
       onClose();
     } else {
       // Start or Resume (quizCreationService handles duplicate detection and resuming inherently)
-      onStartQuiz(mode);
+      onStartQuiz(mode, difficulty);
     }
   };
 
@@ -89,7 +116,7 @@ export const QuizStartBottomSheet: React.FC<QuizStartBottomSheetProps> = ({
     return {
       label: "Start Quiz Now",
       icon: <Play className="w-5 h-5" />,
-      disabled: questionCount === 0,
+      disabled: activeQuestionCount === 0,
     };
   };
 
@@ -104,14 +131,14 @@ export const QuizStartBottomSheet: React.FC<QuizStartBottomSheetProps> = ({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 z-[100] bg-black/50 backdrop-blur-sm"
+            className="fixed inset-0 z-[10001] bg-black/50 backdrop-blur-sm"
           />
           <motion.div
             initial={{ y: "100%" }}
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="fixed bottom-0 left-0 right-0 z-[101] bg-white dark:bg-slate-900 rounded-t-3xl shadow-2xl p-6 pb-safe flex flex-col gap-6 max-h-[90vh] overflow-y-auto"
+            className="fixed bottom-0 left-0 right-0 z-[10002] bg-white dark:bg-slate-900 rounded-t-3xl shadow-2xl p-6 pb-[calc(env(safe-area-inset-bottom)+5.5rem)] flex flex-col gap-6 max-h-[90vh] overflow-y-auto"
           >
             {/* Handle Bar */}
             <div className="w-12 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full mx-auto -mt-2 mb-2" />
@@ -142,8 +169,49 @@ export const QuizStartBottomSheet: React.FC<QuizStartBottomSheetProps> = ({
                   Available Questions
                 </p>
                 <p className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">
-                  {questionCount}
+                  {activeQuestionCount}
                 </p>
+              </div>
+            </div>
+
+
+            {/* Difficulty Selector */}
+            <div className="space-y-3">
+              <label className="text-sm font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+                Difficulty
+              </label>
+              <div className="flex gap-2 overflow-x-auto pb-2 -mx-2 px-2 snap-x hide-scrollbar">
+                {["All", "Easy", "Medium", "Hard"].map((level) => {
+                  const count = difficultyCounts[level as keyof typeof difficultyCounts] || 0;
+                  const isDisabled = count === 0 && level !== "All";
+                  const isSelected = difficulty === level;
+
+                  return (
+                    <button
+                      key={level}
+                      onClick={() => !isDisabled && setDifficulty(level)}
+                      disabled={isDisabled}
+                      className={`snap-center shrink-0 flex items-center gap-1.5 px-4 py-2.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${
+                        isSelected
+                          ? "bg-indigo-600 text-white shadow-md shadow-indigo-200 dark:shadow-none"
+                          : isDisabled
+                            ? "bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed opacity-60"
+                            : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700"
+                      }`}
+                    >
+                      {level}
+                      <span className={`text-xs px-1.5 py-0.5 rounded-full ${
+                        isSelected
+                          ? "bg-indigo-500/30 text-indigo-100"
+                          : isDisabled
+                            ? "bg-slate-200 dark:bg-slate-700 text-slate-400 dark:text-slate-500"
+                            : "bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400"
+                      }`}>
+                        {count}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
@@ -238,9 +306,9 @@ export const QuizStartBottomSheet: React.FC<QuizStartBottomSheetProps> = ({
                 <Button
                   variant="outline"
                   size="lg"
-                  onClick={() => onSaveForLater(mode)}
+                  onClick={() => onSaveForLater(mode, difficulty)}
                   disabled={
-                    questionCount === 0 || currentStatus.status === "COMPLETED"
+                    activeQuestionCount === 0 || currentStatus.status === "COMPLETED"
                   }
                   className="w-full flex items-center justify-center gap-2 rounded-xl border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700"
                 >
