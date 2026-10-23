@@ -14,12 +14,14 @@ import { db } from '@/lib/db';
 import { supabase } from '@/lib/supabase';
 import { initialState } from '@/features/quiz/stores/useQuizSessionStore';
 import { quizCreationService } from '@/features/quiz/services/quizCreationService';
+import { useQuestionMetadata } from '@/features/quiz/hooks/useQuestionMetadata';
 
 export const SubjectTopicsPage: React.FC = () => {
   const { subjectName } = useParams<{ subjectName: string }>();
   const navigate = useNavigate();
   const [selectedSubTopic, setSelectedSubTopic] = React.useState<{topic: string, subTopic: string} | null>(null);
   const [isCreatingQuiz, setIsCreatingQuiz] = React.useState(false);
+  const { metadata: cachedMetadata, isLoading: isMetadataLoading } = useQuestionMetadata();
 
   const setHideGlobalHeader = useLayoutStore((state) => state.setHideGlobalHeader);
 
@@ -91,9 +93,8 @@ export const SubjectTopicsPage: React.FC = () => {
     try {
       setIsCreatingQuiz(true);
 
-      const cachedMetadata = await db.getQuizMetadataCache();
       if (!cachedMetadata || cachedMetadata.length === 0) {
-         useNotificationStore.getState().showToast({ variant: "error", message: "Quiz metadata not found. Please sync." });
+         useNotificationStore.getState().showToast({ variant: "error", message: isMetadataLoading ? "Please wait, syncing quiz data..." : "Quiz data is empty. Please check your connection and try again." });
          setIsCreatingQuiz(false);
          return;
       }

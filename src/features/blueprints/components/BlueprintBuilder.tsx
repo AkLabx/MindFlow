@@ -6,6 +6,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { fetchQuestionMetadata } from '@/features/quiz/services/questionService';
 import { useQuestionIndex } from '@/features/quiz/hooks/useQuestionIndex';
 import { Question } from '@/features/quiz/types';
+import { useQuestionMetadata } from '@/features/quiz/hooks/useQuestionMetadata';
 import { CookingLoader } from '@/features/quiz/components/CookingLoader';
 
 interface BlueprintBuilderProps {
