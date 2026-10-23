@@ -35,14 +35,16 @@ const AnimatedCount: React.FC<{ target: number }> = ({ target }) => {
     return () => clearInterval(timer);
   }, [target]);
 
-  return <span>{count} Questions</span>;
+  return <span>{count}Q</span>;
 };
 
 const StatusBadge: React.FC<{ status?: QuizProgressStatus }> = ({ status }) => {
+  const baseClasses = "flex items-center justify-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider min-w-[90px] text-center";
+
   if (!status || status === "NOT_STARTED") {
     return (
-      <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400">
-        <span className="w-1.5 h-1.5 rounded-full bg-slate-400 dark:bg-slate-500"></span>
+      <span className={`${baseClasses} bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400`}>
+        <PlayCircle className="w-3 h-3" />
         Start
       </span>
     );
@@ -50,7 +52,7 @@ const StatusBadge: React.FC<{ status?: QuizProgressStatus }> = ({ status }) => {
 
   if (status === "IN_PROGRESS") {
     return (
-      <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-amber-50 text-amber-600 border border-amber-200/50 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20">
+      <span className={`${baseClasses} bg-amber-50 text-amber-600 border border-amber-200/50 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20`}>
         <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
         Resume
       </span>
@@ -59,7 +61,7 @@ const StatusBadge: React.FC<{ status?: QuizProgressStatus }> = ({ status }) => {
 
   if (status === "COMPLETED") {
     return (
-      <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-50 text-emerald-600 border border-emerald-200/50 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20">
+      <span className={`${baseClasses} bg-emerald-50 text-emerald-600 border border-emerald-200/50 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20`}>
         <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
         Completed
       </span>
@@ -104,43 +106,28 @@ export const TopicCard: React.FC<TopicCardProps> = ({
               <button
                 key={sub}
                 onClick={(e) => onSubTopicClick?.(sub, e)}
-                className="w-full flex items-center justify-between px-4 py-3 rounded-xl border border-slate-900/20 dark:border-slate-100/20 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/80 hover:border-indigo-600/30 dark:hover:border-indigo-400/30 hover:shadow-sm transition-all text-left"
+                className="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl border border-slate-900/20 dark:border-slate-100/20 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/80 hover:border-indigo-600/30 dark:hover:border-indigo-400/30 hover:shadow-sm transition-all text-left min-h-[52px]"
               >
-                <div className="flex items-center gap-3 min-w-0 pr-4">
-                  <span className="text-sm font-semibold truncate">{sub}</span>
-                  {status && <StatusBadge status={status} />}
-                </div>
+                <span className="text-sm font-semibold break-words whitespace-normal flex-grow min-w-0">{sub}</span>
 
-                <div className="flex items-center gap-3 shrink-0 text-slate-500 dark:text-slate-400">
-                  <span className="text-xs font-medium bg-slate-100 dark:bg-slate-900 px-2 py-1 rounded-md">
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="text-[10px] font-bold bg-slate-100 dark:bg-slate-900 text-slate-500 dark:text-slate-400 px-2 py-1 rounded-full min-w-[36px] text-center">
                     {!hasCount ? (
-                      <span className="inline-flex gap-1">
-                        <span
-                          className="animate-bounce"
-                          style={{ animationDelay: "0ms" }}
-                        >
-                          .
-                        </span>
-                        <span
-                          className="animate-bounce"
-                          style={{ animationDelay: "150ms" }}
-                        >
-                          .
-                        </span>
-                        <span
-                          className="animate-bounce"
-                          style={{ animationDelay: "300ms" }}
-                        >
-                          .
-                        </span>
+                      <span className="inline-flex gap-1 justify-center">
+                        <span className="animate-bounce" style={{ animationDelay: "0ms" }}>.</span>
+                        <span className="animate-bounce" style={{ animationDelay: "150ms" }}>.</span>
+                        <span className="animate-bounce" style={{ animationDelay: "300ms" }}>.</span>
                       </span>
                     ) : countVal! > 0 ? (
                       <AnimatedCount target={countVal!} />
                     ) : (
-                      <span>0 Questions</span>
+                      <span>0Q</span>
                     )}
                   </span>
-                  <ChevronRight className="w-4 h-4" />
+
+                  {status && <StatusBadge status={status} />}
+
+                  <ChevronRight className="w-4 h-4 text-slate-400 shrink-0 ml-1" />
                 </div>
               </button>
             );
