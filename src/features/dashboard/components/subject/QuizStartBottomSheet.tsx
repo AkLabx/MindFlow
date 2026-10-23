@@ -138,7 +138,7 @@ export const QuizStartBottomSheet: React.FC<QuizStartBottomSheetProps> = ({
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="fixed bottom-0 left-0 right-0 z-[10002] bg-white dark:bg-slate-900 rounded-t-3xl shadow-2xl p-6 pb-[calc(env(safe-area-inset-bottom)+1.5rem)] flex flex-col gap-6 max-h-[90vh] overflow-y-auto"
+            className="fixed bottom-0 left-0 right-0 z-[10002] bg-white dark:bg-slate-900 rounded-t-3xl shadow-2xl p-6 pb-[calc(env(safe-area-inset-bottom)+5.5rem)] flex flex-col gap-6 max-h-[90vh] overflow-y-auto"
           >
             {/* Handle Bar */}
             <div className="w-12 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full mx-auto -mt-2 mb-2" />
