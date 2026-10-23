@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useMemo } from "react";
 import { useLayoutStore } from "@/stores/useLayoutStore";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -64,6 +64,17 @@ export const SubjectTopicsPage: React.FC = () => {
     );
   }
 
+
+  const filteredQuestionsForSubTopic = useMemo(() => {
+    if (!cachedMetadata || !selectedSubTopic) return [];
+    return cachedMetadata.filter(
+      (q) =>
+        (q.subject ?? q.classification?.subject) === decodedSubject &&
+        (q.topic ?? q.classification?.topic) === selectedSubTopic.topic &&
+        (q.subTopic ?? q.classification?.subTopic) === selectedSubTopic.subTopic
+    );
+  }, [cachedMetadata, decodedSubject, selectedSubTopic]);
+
   const navigateToQuiz = (topic: string, subTopic?: string) => {
     navigate(ROUTES.QUIZ.CONFIG, {
       state: {
@@ -100,6 +111,7 @@ export const SubjectTopicsPage: React.FC = () => {
 
   const handleCreateQuiz = async (
     mode: "learning" | "mock",
+    difficulty: string,
     startImmediately: boolean,
   ) => {
     if (!selectedSubTopic) return;
@@ -120,20 +132,17 @@ export const SubjectTopicsPage: React.FC = () => {
         return;
       }
 
-      const filteredQuestions = cachedMetadata.filter(
-        (q) =>
-          (q.subject ?? q.classification?.subject) === decodedSubject &&
-          (q.topic ?? q.classification?.topic) === selectedSubTopic.topic &&
-          (q.subTopic ?? q.classification?.subTopic) ===
-            selectedSubTopic.subTopic,
-      );
+      let filteredQuestions = filteredQuestionsForSubTopic;
+      if (difficulty !== "All") {
+        filteredQuestions = filteredQuestions.filter(q => q.properties?.difficulty === difficulty);
+      }
 
       if (filteredQuestions.length === 0) {
         useNotificationStore
           .getState()
           .showToast({
             variant: "error",
-            message: "No questions found for this subtopic.",
+            message: `No questions found for this subtopic with ${difficulty} difficulty.`,
           });
         setIsCreatingQuiz(false);
         return;
@@ -145,7 +154,7 @@ export const SubjectTopicsPage: React.FC = () => {
         subject: [decodedSubject],
         topic: [selectedSubTopic.topic],
         subTopic: [selectedSubTopic.subTopic],
-        difficulty: [],
+        difficulty: difficulty === "All" ? [] : [difficulty],
         questionType: [],
         examName: [],
         examYear: [],
@@ -265,15 +274,9 @@ export const SubjectTopicsPage: React.FC = () => {
           subject={decodedSubject}
           topic={selectedSubTopic?.topic || ""}
           subTopic={selectedSubTopic?.subTopic || ""}
-          questionCount={
-            selectedSubTopic
-              ? topicsCounts?.[selectedSubTopic.topic]?.[
-                  selectedSubTopic.subTopic
-                ] || 0
-              : 0
-          }
-          onStartQuiz={(mode) => handleCreateQuiz(mode, true)}
-          onSaveForLater={(mode) => handleCreateQuiz(mode, false)}
+          questions={filteredQuestionsForSubTopic}
+          onStartQuiz={(mode, difficulty) => handleCreateQuiz(mode, difficulty, true)}
+          onSaveForLater={(mode, difficulty) => handleCreateQuiz(mode, difficulty, false)}
         />
         {isCreatingQuiz && (
           <div className="fixed inset-0 z-[200] bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm flex flex-col items-center justify-center animate-in fade-in duration-300">
