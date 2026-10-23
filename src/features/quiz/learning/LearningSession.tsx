@@ -268,10 +268,11 @@ export const LearningSession: React.FC<LearningSessionProps> = ({
 
     // --- RENDER ---
 
+    
     const header = (
         <div className="w-full relative z-20 flex flex-col">
             {/* Primary Quiz Title Bar */}
-            <div className="flex items-center justify-between px-3 sm:px-4 py-3 bg-indigo-600 dark:bg-indigo-900 text-white w-full pt-[max(0.75rem,env(safe-area-inset-top))]">
+            <div className="relative flex items-center justify-between px-3 sm:px-4 py-3 bg-indigo-600 dark:bg-indigo-900 text-white w-full pt-[max(0.75rem,env(safe-area-inset-top))]">
                 <div className="flex items-center gap-3 overflow-hidden flex-1">
                     <button
                         onClick={onGoHome}
@@ -302,6 +303,23 @@ export const LearningSession: React.FC<LearningSessionProps> = ({
                         <Pause className="w-5 h-5 fill-current text-white" />
                     </button>
                 </div>
+                
+                {/* Embedded Timer / Progress Bar */}
+                <div className="absolute bottom-0 left-0 w-full h-[3px] bg-black/10 dark:bg-black/20">
+                    {isTimerEnabled ? (
+                        <div
+                            className={cn(
+                                "h-full transition-all duration-1000 ease-linear",
+                                timeLeft <= 5 ? "bg-red-400" :
+                                timeLeft <= 15 ? "bg-amber-400" :
+                                "bg-white/90"
+                            )}
+                            style={{ width: `${(timeLeft / APP_CONFIG.TIMERS.LEARNING_MODE_DEFAULT) * 100}%` }}
+                        />
+                    ) : (
+                        <div className="h-full bg-white/90 transition-all duration-1000 ease-linear" style={{ width: '100%' }} />
+                    )}
+                </div>
             </div>
 
             {/* Secondary Utility Row (Collapsible) */}
@@ -319,6 +337,8 @@ export const LearningSession: React.FC<LearningSessionProps> = ({
 
                             {/* Tools Group */}
                             <div className="flex items-center gap-2 ml-auto sm:ml-0 overflow-x-auto no-scrollbar flex-nowrap w-full sm:w-auto">
+                                {/* Question Counter */}
+                                <span className="text-xs font-bold text-gray-500 dark:text-gray-400 min-w-[3rem] shrink-0 mr-1">{currentIndex + 1} / {questions.length}</span>
                                 {/* Timer Badge */}
                                 {isTimerEnabled && (
                                     <Badge
@@ -352,28 +372,6 @@ export const LearningSession: React.FC<LearningSessionProps> = ({
                                     <Star className={cn("w-4 h-4", bookmarks.includes(currentQuestion.id) && "fill-current")} />
                                 </button>
                             </div>
-                        </div>
-
-                        {/* Progress Bar Row */}
-                        <div className="flex items-center gap-3 mt-1.5">
-                            <span className="text-xs font-bold text-gray-500 dark:text-gray-400 min-w-[3rem]">{currentIndex + 1} / {questions.length}</span>
-                            {isTimerEnabled ? (
-                                <div className="flex-1 h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden shadow-inner relative">
-                                    <div
-                                        className={cn(
-                                            "h-full transition-all duration-1000 ease-linear rounded-full",
-                                            timeLeft <= 5 ? "bg-red-500" :
-                                            timeLeft <= 15 ? "bg-amber-500" :
-                                            "bg-indigo-500"
-                                        )}
-                                        style={{ width: `${(timeLeft / APP_CONFIG.TIMERS.LEARNING_MODE_DEFAULT) * 100}%` }}
-                                    />
-                                </div>
-                            ) : (
-                                <div className="flex-1 h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden shadow-inner relative">
-                                    <div className="h-full bg-indigo-500 transition-all duration-1000 ease-linear rounded-full" style={{ width: '100%' }} />
-                                </div>
-                            )}
                         </div>
                     </div>
                 </div>
