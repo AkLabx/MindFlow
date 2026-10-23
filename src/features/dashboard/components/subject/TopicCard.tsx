@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import { ChevronRight, ListTree, PlayCircle } from "lucide-react";
-import { Card } from "@/components/ui/Card";
 import { QuizProgressStatus } from "@/features/quiz/services/quizProgressService";
 
 interface TopicCardProps {
@@ -80,7 +79,7 @@ export const TopicCard: React.FC<TopicCardProps> = ({
   onSubTopicClick,
 }) => {
   return (
-    <Card className="group flex flex-col gap-4 p-4 sm:p-5 border border-black/10 dark:border-white/10 dark:bg-slate-900 shadow-[0_4px_20px_-2px_rgba(15,23,42,0.05)] rounded-2xl w-full">
+    <div className="flex flex-col gap-3 w-full mb-2">
       <div
         className="flex items-center justify-between cursor-pointer"
         onClick={onClick}
@@ -96,7 +95,7 @@ export const TopicCard: React.FC<TopicCardProps> = ({
       </div>
 
       {subTopics.length > 0 && (
-        <div className="flex flex-col gap-3 mt-1">
+        <div className="flex flex-col gap-2">
           {subTopics.map((sub) => {
             const hasCount = counts && counts[sub] !== undefined;
             const countVal = hasCount ? counts[sub] : null;
@@ -106,7 +105,7 @@ export const TopicCard: React.FC<TopicCardProps> = ({
               <button
                 key={sub}
                 onClick={(e) => onSubTopicClick?.(sub, e)}
-                className="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl border border-slate-900/20 dark:border-slate-100/20 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/80 hover:border-indigo-600/30 dark:hover:border-indigo-400/30 hover:shadow-sm transition-all text-left min-h-[52px]"
+                className="w-full flex items-center justify-between gap-3 p-3.5 sm:p-4 rounded-2xl bg-white dark:bg-slate-800/80 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] dark:shadow-none border border-slate-100 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-all text-left min-h-[56px] group"
               >
                 <span className="text-sm font-semibold break-words whitespace-normal flex-grow min-w-0">{sub}</span>
 
@@ -134,6 +133,6 @@ export const TopicCard: React.FC<TopicCardProps> = ({
           })}
         </div>
       )}
-    </Card>
+    </div>
   );
 };
