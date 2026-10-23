@@ -7,3 +7,4 @@ export * from './stores/useFlashcardStore';
 export * from './layouts';
 
 export * from './hooks';
+export * from './stores/useQuizSettingsStore';
