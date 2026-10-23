@@ -1,17 +1,19 @@
-import React, { useEffect } from 'react';
-import { useLayoutStore } from '@/stores/useLayoutStore';
-import { useParams, useNavigate } from 'react-router-dom';
-import { SlidersHorizontal, ListTree } from 'lucide-react';
-import { ROUTES } from '@/config/routes';
-import { SubjectHeader } from '../../components/subject/SubjectHeader';
-import { ActionCard } from '../../components/subject/ActionCard';
-import { EmptyState } from '../../components/subject/EmptyState';
+import React, { useEffect } from "react";
+import { useLayoutStore } from "@/stores/useLayoutStore";
+import { useParams, useNavigate } from "react-router-dom";
+import { SlidersHorizontal, ListTree } from "lucide-react";
+import { ROUTES } from "@/config/routes";
+import { SubjectHeader } from "../../components/subject/SubjectHeader";
+import { ActionCard } from "../../components/subject/ActionCard";
+import { EmptyState } from "../../components/subject/EmptyState";
 
 export const SubjectHubPage: React.FC = () => {
   const { subjectName } = useParams<{ subjectName: string }>();
   const navigate = useNavigate();
 
-  const setHideGlobalHeader = useLayoutStore((state) => state.setHideGlobalHeader);
+  const setHideGlobalHeader = useLayoutStore(
+    (state) => state.setHideGlobalHeader,
+  );
 
   useEffect(() => {
     setHideGlobalHeader(true);
@@ -20,9 +22,9 @@ export const SubjectHubPage: React.FC = () => {
 
   if (!subjectName) {
     return (
-        <div className="min-h-full -mx-4 -mt-4 px-4 pt-4 overflow-x-hidden bg-gradient-to-b from-[#EEF2FF] via-[#F5F7FF] to-[#F8FAFC] dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))]">
-            <EmptyState message="Invalid subject selected." />
-        </div>
+      <div className="min-h-full -mx-4 -mt-4 px-4 pt-4 overflow-x-hidden bg-gradient-to-b from-[#EEF2FF] via-[#F5F7FF] to-[#F8FAFC] dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))]">
+        <EmptyState message="Invalid subject selected." />
+      </div>
     );
   }
 
@@ -42,7 +44,7 @@ export const SubjectHubPage: React.FC = () => {
           examDateShift: [],
           tags: [],
         },
-        initialMode: 'learning',
+        initialMode: "learning",
         autoStart: false,
         fixedSubjectContext: true,
       },

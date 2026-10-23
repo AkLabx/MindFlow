@@ -1,7 +1,7 @@
-import React from 'react';
-import { PackageOpen } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import { ROUTES } from '@/config/routes';
+import React from "react";
+import { PackageOpen } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { ROUTES } from "@/config/routes";
 
 interface EmptyStateProps {
   message?: string;
@@ -12,7 +12,7 @@ interface EmptyStateProps {
 export const EmptyState: React.FC<EmptyStateProps> = ({
   message = "No data available at the moment.",
   onAction,
-  actionLabel = "Back to Dashboard"
+  actionLabel = "Back to Dashboard",
 }) => {
   const navigate = useNavigate();
 
