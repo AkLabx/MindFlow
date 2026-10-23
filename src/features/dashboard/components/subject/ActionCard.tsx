@@ -1,6 +1,6 @@
-import React from 'react';
-import { ChevronRight } from 'lucide-react';
-import { Card } from '@/components/ui/Card';
+import React from "react";
+import { ChevronRight } from "lucide-react";
+import { Card } from "@/components/ui/Card";
 
 interface ActionCardProps {
   title: string;
@@ -9,7 +9,12 @@ interface ActionCardProps {
   onClick: () => void;
 }
 
-export const ActionCard: React.FC<ActionCardProps> = ({ title, description, icon, onClick }) => {
+export const ActionCard: React.FC<ActionCardProps> = ({
+  title,
+  description,
+  icon,
+  onClick,
+}) => {
   return (
     <Card
       onClick={onClick}
