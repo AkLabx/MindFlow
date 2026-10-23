@@ -33,3 +33,4 @@ export * from './Landing/MobileDemoCard';
 
 
 export * from './Landing/WelcomeIntro';
+export * from './ui/QuizSettingsModal';

@@ -1,5 +1,5 @@
-import { useCallback, useContext, useRef, useEffect } from 'react';
-import { useSettingsStore } from '@/stores/useSettingsStore';
+import { useCallback, useRef } from 'react';
+import { useSettingsStore } from '../../../stores/useSettingsStore';
 
 /**
  * Custom hook to generate synthesized sound effects for quiz interactions.
@@ -8,13 +8,15 @@ import { useSettingsStore } from '@/stores/useSettingsStore';
  * generate sounds procedurally (Correct, Wrong, Tick). This reduces network requests
  * and allows for dynamic sound manipulation.
  *
+ * @param {boolean} [soundEnabledOverride] - Optional override for sound enabled state.
  * @returns {object} An object containing the play functions:
  * - `playCorrect` {() => void}: Plays a cheerful "ding" sound.
  * - `playWrong` {() => void}: Plays a harsh "buzzer" sound.
  * - `playTick` {() => void}: Plays a sharp "tick" sound (useful for timers).
  */
-export const useQuizSounds = () => {
-  const isSoundEnabled = useSettingsStore(state => state.isSoundEnabled);
+export const useQuizSounds = (soundEnabledOverride?: boolean) => {
+  const globalSoundEnabled = useSettingsStore(state => state.isSoundEnabled);
+  const isSoundEnabled = soundEnabledOverride !== undefined ? soundEnabledOverride : globalSoundEnabled;
   const audioCtxRef = useRef<AudioContext | null>(null);
 
   // Initialize AudioContext lazily to comply with browser autoplay policies

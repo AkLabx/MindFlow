@@ -15,7 +15,8 @@ import { Badge } from '../../../components/ui/Badge';
 import { useSettingsStore } from '../../../stores/useSettingsStore';
 import { useQuizSounds } from '@/features/quiz';
 import { ActiveQuizLayout } from '../layouts/ActiveQuizLayout';
-import { SettingsModal } from '../components/ui/SettingsModal';
+import { QuizSettingsModal } from '../components/ui/QuizSettingsModal';
+import { useQuizSettingsStore } from '../stores/useQuizSettingsStore';
 import { cn } from '../../../utils/cn';
 import { QuizNavigationPanel } from '../components/QuizNavigationPanel';
 import { APP_CONFIG } from '../../../constants/config';
@@ -117,8 +118,12 @@ export const LearningSession: React.FC<LearningSessionProps> = ({
     const progress = ((currentIndex + 1) / questions.length) * 100;
 
     // New Synthesized Sounds
-    const { playCorrect, playWrong, playTick } = useQuizSounds();
-    const isHapticEnabled = useSettingsStore(state => state.isHapticEnabled);
+    const isSoundEnabledLocal = useQuizSettingsStore(state => state.isSoundEnabled);
+    const { playCorrect, playWrong, playTick } = useQuizSounds(isSoundEnabledLocal);
+    const isHapticEnabled = useQuizSettingsStore(state => state.isHapticEnabled);
+    const isSoundEnabled = useQuizSettingsStore(state => state.isSoundEnabled);
+    const isExplanationEnabled = useQuizSettingsStore(state => state.isExplanationEnabled);
+    const isTimerEnabled = useQuizSettingsStore(state => state.isTimerEnabled);
 
 
     const finishSession = () => {
@@ -164,7 +169,7 @@ export const LearningSession: React.FC<LearningSessionProps> = ({
     const { timeLeft, timeLeftRef, formatTime } = useLearningTimer({
         initialTime: remainingTimes[currentQuestion.id] ?? APP_CONFIG.TIMERS.LEARNING_MODE_DEFAULT,
         questionId: currentQuestion.id,
-        isPaused: isPaused || isAnswered,
+        isPaused: isPaused || isAnswered || !isTimerEnabled,
         onTimeUp: handleTimeUp,
         onTick: (time) => {
             // Play tick sound in last 5 seconds
@@ -315,18 +320,20 @@ export const LearningSession: React.FC<LearningSessionProps> = ({
                             {/* Tools Group */}
                             <div className="flex items-center gap-2 ml-auto sm:ml-0 overflow-x-auto no-scrollbar flex-nowrap w-full sm:w-auto">
                                 {/* Timer Badge */}
-                                <Badge
-                                    variant="neutral"
-                                    icon={<Clock className="w-3.5 h-3.5" />}
-                                    className={cn(
-                                        "font-mono font-bold tabular-nums min-w-[4rem] justify-center transition-colors shrink-0",
-                                        timeLeft <= 5 ? "bg-red-50 text-red-600 border-red-200 animate-pulse" :
-                                        timeLeft <= 15 ? "bg-amber-50 text-amber-600 border-amber-200" :
-                                        "bg-gray-50 dark:bg-gray-900"
-                                    )}
-                                >
-                                    {formatTime(timeLeft)}
-                                </Badge>
+                                {isTimerEnabled && (
+                                    <Badge
+                                        variant="neutral"
+                                        icon={<Clock className="w-3.5 h-3.5" />}
+                                        className={cn(
+                                            "font-mono font-bold tabular-nums min-w-[4rem] justify-center transition-colors shrink-0",
+                                            timeLeft <= 5 ? "bg-red-50 text-red-600 border-red-200 animate-pulse" :
+                                            timeLeft <= 15 ? "bg-amber-50 text-amber-600 border-amber-200" :
+                                            "bg-gray-50 dark:bg-gray-900"
+                                        )}
+                                    >
+                                        {formatTime(timeLeft)}
+                                    </Badge>
+                                )}
 
                                 {/* Zoom Controls */}
                                 <div className="flex items-center border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden bg-gray-50 dark:bg-gray-900 shrink-0">
@@ -350,17 +357,23 @@ export const LearningSession: React.FC<LearningSessionProps> = ({
                         {/* Progress Bar Row */}
                         <div className="flex items-center gap-3 mt-1.5">
                             <span className="text-xs font-bold text-gray-500 dark:text-gray-400 min-w-[3rem]">{currentIndex + 1} / {questions.length}</span>
-                            <div className="flex-1 h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden shadow-inner relative">
-                                <div
-                                    className={cn(
-                                        "h-full transition-all duration-1000 ease-linear rounded-full",
-                                        timeLeft <= 5 ? "bg-red-500" :
-                                        timeLeft <= 15 ? "bg-amber-500" :
-                                        "bg-indigo-500"
-                                    )}
-                                    style={{ width: `${(timeLeft / APP_CONFIG.TIMERS.LEARNING_MODE_DEFAULT) * 100}%` }}
-                                />
-                            </div>
+                            {isTimerEnabled ? (
+                                <div className="flex-1 h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden shadow-inner relative">
+                                    <div
+                                        className={cn(
+                                            "h-full transition-all duration-1000 ease-linear rounded-full",
+                                            timeLeft <= 5 ? "bg-red-500" :
+                                            timeLeft <= 15 ? "bg-amber-500" :
+                                            "bg-indigo-500"
+                                        )}
+                                        style={{ width: `${(timeLeft / APP_CONFIG.TIMERS.LEARNING_MODE_DEFAULT) * 100}%` }}
+                                    />
+                                </div>
+                            ) : (
+                                <div className="flex-1 h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden shadow-inner relative">
+                                    <div className="h-full bg-indigo-500 transition-all duration-1000 ease-linear rounded-full" style={{ width: '100%' }} />
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -437,7 +450,7 @@ export const LearningSession: React.FC<LearningSessionProps> = ({
 
     const overlays = (
         <>
-            <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
+            <QuizSettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
             <QuizNavigationPanel
                 isOpen={isNavOpen}
                 onClose={() => setIsNavOpen(false)}
@@ -528,7 +541,7 @@ export const LearningSession: React.FC<LearningSessionProps> = ({
                     isMockMode={false}
                 />
 
-                {isAnswered && (
+                {isAnswered && isExplanationEnabled && (
                     <QuizExplanation explanation={currentQuestion.explanation} zoomLevel={zoomLevel} />
                 )}
             </div>
