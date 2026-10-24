@@ -55,8 +55,7 @@ const performRecovery = async (reason?: string): Promise<boolean> => {
         }
 
         if (!data.session) {
-             // Let the error match standard strings so `RecoveryBanner` knows the session truly expired
-             throw new Error('No active session found. User may have been logged out.');
+             throw Object.assign(new Error('Auth session missing'), { code: 'session_not_found' });
         }
 
         const durationMs = performance.now() - startTime;

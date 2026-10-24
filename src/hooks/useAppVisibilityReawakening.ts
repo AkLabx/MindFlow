@@ -4,6 +4,9 @@ import { App as CapacitorApp } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
 import { useRecoveryStore } from '../stores/useRecoveryStore';
 
+const PWA_UPDATE_THROTTLE_MS = 5 * 60 * 1000; // 5 minutes
+let lastPwaUpdateCheck = 0;
+
 export function useAppVisibilityReawakening() {
   const queryClient = useQueryClient();
 
@@ -17,15 +20,19 @@ export function useAppVisibilityReawakening() {
 
       const { setStatus, status } = useRecoveryStore.getState();
 
-      // Check PWA Update without forcing a reload
+      // Check PWA Update without forcing a reload, with a 5-minute throttle
       if ('serviceWorker' in navigator && !Capacitor.isNativePlatform()) {
-          navigator.serviceWorker.getRegistration().then(reg => {
-              if (reg && reg.waiting) {
-                  // A new SW is waiting, but we let PWAUpdateManager handle the UI prompt
-                  // so we don't interrupt active quizzes. We just ping update() to check.
-                  reg.update();
-              }
-          });
+          const now = Date.now();
+          if (now - lastPwaUpdateCheck > PWA_UPDATE_THROTTLE_MS) {
+              lastPwaUpdateCheck = now;
+              navigator.serviceWorker.getRegistration().then(reg => {
+                  if (reg) {
+                      // Ping update() to check for new service worker without interrupting quizzes.
+                      // PWAUpdateManager handles the UI prompt when a new SW is waiting.
+                      reg.update();
+                  }
+              }).catch(err => console.warn('SW registration fetch failed', err));
+          }
       }
 
       // Update the state machine.
