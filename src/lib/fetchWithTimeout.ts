@@ -13,7 +13,25 @@ import { triggerAppRecovery } from './recovery/RecoveryManager';
 let requestIdCounter = 0;
 
 // Maximum retries per request via the automatic recovery mechanism
-const MAX_AUTO_RETRIES = 1;
+const MAX_AUTO_RETRIES = 2; // Increased to 2 for better backoff
+
+// Explicit allowlist of RPCs that are confirmed safe/idempotent to retry
+const SAFE_RPCS = [
+    'get_filtered_quiz_metadata',
+    'finalize_quiz_session', // Includes upserts guard
+];
+
+const isSafeToRetry = (urlStr: string, options?: RequestInit): boolean => {
+    const method = options?.method?.toUpperCase() || 'GET';
+
+    if (method === 'GET' || method === 'HEAD') return true;
+
+    if (method === 'POST' && urlStr.includes('/rpc/')) {
+        return SAFE_RPCS.some(rpc => urlStr.includes(`/rpc/${rpc}`));
+    }
+
+    return false;
+};
 
 export const fetchWithTimeout = async (url: RequestInfo | URL, options?: RequestInit, timeoutMs: number = 15000, retryCount: number = 0): Promise<Response> => {
   const reqId = `req_${++requestIdCounter}`;
@@ -82,36 +100,49 @@ export const fetchWithTimeout = async (url: RequestInfo | URL, options?: Request
       if (timeoutId !== undefined) clearTimeout(timeoutId);
       const endTime = performance.now();
 
+      // DO NOT confuse our own timeout AbortError with a broken lock AbortError
+      const isOurTimeout = err.message === 'TimeoutError' || (err.name === 'AbortError' && existingSignal?.aborted);
+
       const isNetworkError = err.message === 'Failed to fetch' || err.name === 'TypeError';
-      const isLockError = err.name === 'AbortError' && err.message?.includes('Lock broken');
+      const isLockError = !isOurTimeout && err.name === 'AbortError' && err.message?.includes('Lock broken');
 
-      // Should we attempt auto-recovery?
-      // - We only retry once per request
-      // - We only intercept clear staleness markers: lock breaks and raw network drop errors
-      // - We do not intercept normal API 4xx/5xx errors (those are returned as normal Responses)
-      // - We do not intercept deliberate user aborts (standard AbortError)
       if (retryCount < MAX_AUTO_RETRIES && (isNetworkError || isLockError)) {
-          console.warn(`[Fetch Interceptor] Caught stale session error (${err.name}: ${err.message}). Triggering auto-recovery for ${urlStr}...`);
 
-          const recovered = await triggerAppRecovery(`Intercepted ${err.name} on ${urlStr}`);
-
-          if (recovered) {
-              console.log(`[Fetch Interceptor] Auto-recovery successful. Retrying request ${reqId}...`);
-              // We must not pass the exact same signal because the old one might have been aborted
-              // or timed out. We pass a clean copy of the options, omitting the old aborted signal if needed.
-              // Note: If the caller explicitly aborted the request, we wouldn't be here (it would be a standard AbortError, not a Lock broken / Failed to fetch).
-              const retryOptions = { ...options };
-              // We can keep the same existingSignal if it hasn't fired natively. The next run of fetchWithTimeout will build a new timeout wrapper.
-
-              return fetchWithTimeout(url, retryOptions, timeoutMs, retryCount + 1);
+          if (!isSafeToRetry(urlStr, options)) {
+              console.warn(`[Fetch Interceptor] Caught stale session error but request is not safe to retry automatically: ${options?.method} ${urlStr}`);
+              // Fall through to throw, letting the UI handle the failure friendly
           } else {
-             console.error(`[Fetch Interceptor] Auto-recovery failed. Propagating original error.`);
+              console.warn(`[Fetch Interceptor] Caught stale session error (${err.name}: ${err.message}). Triggering auto-recovery for ${urlStr}...`);
+
+              const recovered = await triggerAppRecovery(`Intercepted ${err.name} on ${urlStr}`);
+
+              if (recovered) {
+                  // Exponential backoff for network stability
+                  const backoffDelay = (retryCount + 1) * 1000;
+                  console.log(`[Fetch Interceptor] Auto-recovery successful. Retrying request ${reqId} in ${backoffDelay}ms...`);
+
+                  await new Promise(r => setTimeout(r, backoffDelay));
+
+                  const retryOptions = { ...options };
+                  return fetchWithTimeout(url, retryOptions, timeoutMs, retryCount + 1);
+              } else {
+                 console.error(`[Fetch Interceptor] Auto-recovery failed. Propagating original error.`);
+              }
           }
       }
 
       if (urlStr.includes('/storage/v1/object/')) {
           console.error(`[Storage Upload] ${reqId} failed after ${(endTime - startTime).toFixed(2)}ms for ${urlStr} - ${err.name}: ${err.message}`);
       }
+
+      // Remap raw technical errors to friendly UI errors for unrecovered/unsafe queries
+      if (err.message === 'Failed to fetch' || err.name === 'TypeError') {
+          throw new Error('Connection lost. Please check your internet and try again.');
+      }
+      if (err.name === 'AbortError' && err.message?.includes('Lock broken')) {
+          throw new Error('Session interrupted. Please refresh the page.');
+      }
+
       throw err;
   }
 };
