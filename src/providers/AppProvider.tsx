@@ -4,17 +4,46 @@ import { ThemeAndBrandingInjector } from './ThemeAndBrandingInjector';
 import { ToastContainer } from '../components/ui/Notification/ToastContainer';
 import { Popup } from '../components/ui/Notification/Popup';
 import { QueryClient, QueryClientProvider, onlineManager } from '@tanstack/react-query';
+import { staleRecoveryManager } from '../features/core/recovery/StaleRecoveryManager';
 
 interface AppProviderProps {
   children: React.ReactNode;
 }
 
+const handleGlobalRetry = (failureCount: number, error: Error) => {
+    // Only intercept and auto-recover on the very first failure of a stale network signature
+    if (failureCount === 0 && staleRecoveryManager.isStaleSessionError(error)) {
+        // Trigger a background recovery, which will resolve before the retry triggers.
+        // Return true to tell React Query to definitely retry this.
+        console.warn(`[ReactQuery Auto-Recovery] Intercepted stale error: ${error.message}. Attempting recovery before retry...`);
+        // We trigger the promise but don't await it here;
+        // React Query's delay function will ensure time passes before the next attempt,
+        // giving the recovery attempt time to complete.
+        staleRecoveryManager.attemptRecovery().catch(console.error);
+        return true;
+    }
+
+    // Default retry logic for subsequent failures
+    return failureCount < 1;
+};
+
+const globalRetryDelay = (attemptIndex: number) => {
+    // If it's the first attempt (index 0 implies failureCount 0 before returning true for retry 1)
+    // we want a longer delay to give StaleRecoveryManager time to refresh the session.
+    return attemptIndex === 0 ? 3000 : Math.min(1000 * 2 ** attemptIndex, 30000);
+};
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       refetchOnWindowFocus: true,
-      retry: 1,
+      retry: handleGlobalRetry,
+      retryDelay: globalRetryDelay,
     },
+    mutations: {
+      retry: handleGlobalRetry,
+      retryDelay: globalRetryDelay,
+    }
   },
 });
 
