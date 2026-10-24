@@ -11,6 +11,7 @@ import { PresenceProvider } from './providers/PresenceProvider';
 import { useAppVisibilityReawakening } from './hooks/useAppVisibilityReawakening';
 import { IntroEngine } from './features/intro/IntroEngine';
 import { VersionBanner } from './components/common/VersionBanner';
+import { RecoveryBanner } from './components/common/RecoveryBanner';
 import { ErrorBoundary } from './providers/ErrorBoundary';
 
 const AppVisibilityWrapper = () => {
@@ -71,6 +72,7 @@ const App: React.FC = () => {
           <PresenceProvider>
             <PWAUpdateManager />
             <VersionBanner />
+            <RecoveryBanner />
             <AppRoutes />
           </PresenceProvider>
         </AppProvider>
