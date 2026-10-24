@@ -27,8 +27,24 @@ interface DashboardProps {
 export const DashboardPage: React.FC<DashboardProps> = ({ onBackToIntro }) => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { showToast } = useNotification();
+  const { showToast, showPopup, closePopup } = useNotification();
   const { startQuiz } = useQuizContext();
+
+  const showComingSoonPopup = () => {
+    showPopup({
+      variant: 'info',
+      title: 'Upcoming Feature',
+      message: 'This feature is coming soon.',
+      actions: [
+        {
+          label: 'Got it',
+          onClick: closePopup,
+        }
+      ],
+      onClose: closePopup
+    });
+  };
+
 
   // Dynamic stats
   const { stats, loading: statsLoading } = useProfileStats();
@@ -120,7 +136,7 @@ export const DashboardPage: React.FC<DashboardProps> = ({ onBackToIntro }) => {
   const handleQuickAction = (action: string) => {
     switch(action) {
       case 'mock':
-        handleNavigateWithFilters({}, 'mock');
+        showComingSoonPopup();
         break;
       case 'custom':
         navigate("/quiz/config");
@@ -129,7 +145,7 @@ export const DashboardPage: React.FC<DashboardProps> = ({ onBackToIntro }) => {
         navigate("/english");
         break;
       case 'bookmarks':
-        navigate("/bookmarks");
+        showComingSoonPopup();
         break;
       default:
         break;
@@ -205,7 +221,7 @@ export const DashboardPage: React.FC<DashboardProps> = ({ onBackToIntro }) => {
               topicTitle={drillProps.topicTitle}
               subtext={drillProps.subtext}
               isDiagnostic={drillProps.isDiagnostic}
-              onStartDrill={handleStartSuggestedDrill}
+              onStartDrill={showComingSoonPopup}
             />
           </div>
           <div className="md:col-span-5">
@@ -214,15 +230,15 @@ export const DashboardPage: React.FC<DashboardProps> = ({ onBackToIntro }) => {
               quizzesCompleted={stats.quizzesCompleted}
               correctAnswers={stats.correctAnswers}
               totalTimeSpentFormatted={stats.totalTimeSpentFormatted}
-              onDetailsClick={() => navigate("/quiz-results")}
+              onDetailsClick={showComingSoonPopup}
             />
           </div>
         </div>
 
         {/* Tier 5 */}
         <ImportantForSscStrip
-          onTopicClick={(filters) => handleNavigateWithFilters(filters, 'learning', false, !!filters.subject)}
-          onViewAllClick={() => handleNavigateWithFilters({}, 'learning')}
+          onTopicClick={showComingSoonPopup}
+          onViewAllClick={showComingSoonPopup}
         />
       </div>
     </div>
