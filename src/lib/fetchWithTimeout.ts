@@ -17,11 +17,22 @@ const MAX_AUTO_RETRIES = 2; // Increased to 2 for better backoff
 
 // Explicit allowlist of RPCs that are confirmed safe/idempotent to retry
 const SAFE_RPCS = [
-    'get_filtered_quiz_metadata',
-    'finalize_quiz_session', // Includes upserts guard
+    'get_filtered_quiz_metadata', // read
+    'get_dashboard_subject_counts', // read
+    'get_filtered_idiom_metadata', // read
+    'get_filtered_ows_metadata', // read
+    'search_profiles_trgm', // read
+    'get_reels_feed', // read
+    'get_blueprint_questions', // read
+    'get_ai_pipeline_dashboard_metrics', // read
+    'get_ai_pipeline_dlq', // read
+    'get_word_lineage', // read
+    'get_pipeline_timeline', // read
+    'get_prompt_registry_metrics', // read
+    'submit_quiz_session', // idempotent upsert guard included
 ];
 
-const isSafeToRetry = (urlStr: string, options?: RequestInit): boolean => {
+export const isSafeToRetry = (urlStr: string, options?: RequestInit): boolean => {
     const method = options?.method?.toUpperCase() || 'GET';
 
     if (method === 'GET' || method === 'HEAD') return true;
@@ -117,7 +128,7 @@ export const fetchWithTimeout = async (url: RequestInfo | URL, options?: Request
               const recovered = await triggerAppRecovery(`Intercepted ${err.name} on ${urlStr}`);
 
               if (recovered) {
-                  // Exponential backoff for network stability
+                  // Exponential backoff for network stability: 1s, then 2s
                   const backoffDelay = (retryCount + 1) * 1000;
                   console.log(`[Fetch Interceptor] Auto-recovery successful. Retrying request ${reqId} in ${backoffDelay}ms...`);
 
@@ -135,14 +146,8 @@ export const fetchWithTimeout = async (url: RequestInfo | URL, options?: Request
           console.error(`[Storage Upload] ${reqId} failed after ${(endTime - startTime).toFixed(2)}ms for ${urlStr} - ${err.name}: ${err.message}`);
       }
 
-      // Remap raw technical errors to friendly UI errors for unrecovered/unsafe queries
-      if (err.message === 'Failed to fetch' || err.name === 'TypeError') {
-          throw new Error('Connection lost. Please check your internet and try again.');
-      }
-      if (err.name === 'AbortError' && err.message?.includes('Lock broken')) {
-          throw new Error('Session interrupted. Please refresh the page.');
-      }
-
+      // We explicitly PRESERVE the original error object (name, message, stack)
+      // so we don't break downstream offline-handlers, while QueryStateHandler maps it to friendly UI.
       throw err;
   }
 };

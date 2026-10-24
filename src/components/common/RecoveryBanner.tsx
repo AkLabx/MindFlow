@@ -1,9 +1,10 @@
 import React from 'react';
 import { useRecoveryStore } from '../../stores/useRecoveryStore';
 import { motion, AnimatePresence } from 'framer-motion';
-import { RefreshCw, WifiOff, AlertCircle } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
+import { RefreshCw, WifiOff } from 'lucide-react';
 import { triggerAppRecovery } from '../../lib/recovery/RecoveryManager';
+import { IntentPolicy } from '../../lib/navigation/policies/IntentPolicy';
+import { PlatformPolicy } from '../../lib/navigation/policies/PlatformPolicy';
 
 export const RecoveryBanner: React.FC = () => {
     const { status } = useRecoveryStore();
@@ -15,9 +16,16 @@ export const RecoveryBanner: React.FC = () => {
 
     // Last Resort Full Screen Overlay
     if (status === 'FAILED') {
-        // Did the session truly expire (401 / No session) vs just a network drop?
-        const lastError = useRecoveryStore.getState().telemetry.slice(-1)[0]?.error;
-        const isSessionExpired = lastError?.includes('active session found') || lastError?.includes('Auth session missing');
+        // Derive isSessionExpired explicitly from the real auth state / error log
+        const lastTelemetry = useRecoveryStore.getState().telemetry.slice(-1)[0];
+        const lastError = lastTelemetry?.error;
+        const lastErrorCode = lastTelemetry?.errorCode;
+
+        // Match specific Supabase auth conditions for dead sessions
+        const isSessionExpired = lastError?.includes('active session found') ||
+                                 lastError?.includes('Auth session missing') ||
+                                 lastErrorCode === 'invalid_grant' ||
+                                 lastErrorCode === 'session_not_found';
 
         return (
             <div className="fixed inset-0 z-[9999] bg-white/90 dark:bg-slate-900/90 backdrop-blur-md flex items-center justify-center p-6 text-slate-800 dark:text-slate-200">
@@ -47,7 +55,7 @@ export const RecoveryBanner: React.FC = () => {
                         <button
                             onClick={() => {
                                 useRecoveryStore.getState().resetStatus();
-                                window.location.href = '/';
+                                window.location.hash = '#' + PlatformPolicy.getGuestEntryRoute();
                             }}
                             className={`w-full py-3 px-4 ${isSessionExpired ? 'bg-indigo-600 hover:bg-indigo-700 text-white' : 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200'} rounded-xl font-medium transition-colors`}
                         >
@@ -57,8 +65,11 @@ export const RecoveryBanner: React.FC = () => {
                         {isSessionExpired && (
                             <button
                                 onClick={() => {
-                                    // Soft redirect to login without triggering full cache wipe (since they are already logged out from Supabase's perspective)
-                                    window.location.href = '/';
+                                    // Navigate using HashRouter mechanism to preserve offline DB state
+                                    // and set intent so they return here after logging back in
+                                    IntentPolicy.saveIntent(window.location);
+                                    useRecoveryStore.getState().resetStatus();
+                                    window.location.hash = '#' + PlatformPolicy.getGuestEntryRoute();
                                 }}
                                 className="w-full py-3 px-4 text-indigo-600 hover:bg-indigo-50 dark:text-indigo-400 dark:hover:bg-indigo-900/20 rounded-xl font-medium transition-colors"
                             >
