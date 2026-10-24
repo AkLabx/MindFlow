@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { fetchWithTimeout } from './fetchWithTimeout';
+import { triggerAppRecovery } from './recovery/RecoveryManager';
 
 export const SUPABASE_URL = 'https://sjcfagpjstbfxuiwhlps.supabase.co';
 export const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNqY2ZhZ3Bqc3RiZnh1aXdobHBzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA5NDQ5OTUsImV4cCI6MjA3NjUyMDk5NX0.8p6tIdBum2uhi0mRYENtF81WryaVlZFCwukwAAwJwJA';
@@ -8,35 +9,59 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   global: { fetch: fetchWithTimeout }
 });
 
-// --- AUTH RUNTIME STABILIZATION: HARD MUTEX TIMEOUTS ---
+// --- AUTH RUNTIME STABILIZATION: HARD MUTEX TIMEOUTS & RECOVERY ---
 // The gotrue-js client uses an internal promise queue (mutex).
 // If an operation (like a background refresh during network transition) silently hangs,
 // it permanently poisons the singleton, blocking all future auth calls (getSession, signOut).
 // We wrap all critical auth methods in a strict Promise.race to force them to reject,
 // preventing the mutex from locking the entire app runtime.
+// Furthermore, we intercept 'AbortError' from broken locks and trigger our RecoveryManager.
 
 const AUTH_TIMEOUT_MS = 8000; // 8 seconds max for any auth operation
 
-const withAuthTimeout = <T>(
+const withAuthTimeout = async <T>(
     operationName: string,
-    operation: () => Promise<T>
+    operation: () => Promise<T>,
+    retryCount: number = 0
 ): Promise<T> => {
-    return new Promise((resolve, reject) => {
-        const timeoutId = setTimeout(() => {
-            console.error(`[AuthStabilization] ${operationName} exceeded ${AUTH_TIMEOUT_MS}ms timeout. Forcing rejection to unblock mutex.`);
-            reject(new Error(`AuthTimeout: ${operationName} hung permanently.`));
-        }, AUTH_TIMEOUT_MS);
+    try {
+        const result = await new Promise<T>((resolve, reject) => {
+            const timeoutId = setTimeout(() => {
+                console.error(`[AuthStabilization] ${operationName} exceeded ${AUTH_TIMEOUT_MS}ms timeout. Forcing rejection to unblock mutex.`);
+                reject(new Error(`AuthTimeout: ${operationName} hung permanently.`));
+            }, AUTH_TIMEOUT_MS);
 
-        operation()
-            .then((res) => {
-                clearTimeout(timeoutId);
-                resolve(res);
-            })
-            .catch((err) => {
-                clearTimeout(timeoutId);
-                reject(err);
-            });
-    });
+            operation()
+                .then((res) => {
+                    clearTimeout(timeoutId);
+                    resolve(res);
+                })
+                .catch((err) => {
+                    clearTimeout(timeoutId);
+                    reject(err);
+                });
+        });
+
+        return result;
+    } catch (err: any) {
+        const isLockBroken = err.name === 'AbortError' && err.message?.includes('Lock broken');
+
+        // If the auth operation failed due to a stolen/broken lock caused by rapid wake cycles,
+        // and we haven't already retried this specific call, trigger a centralized recovery.
+        if (retryCount === 0 && isLockBroken) {
+             console.warn(`[Auth Interceptor] Caught lock broken error in ${operationName}. Triggering auto-recovery...`);
+             const recovered = await triggerAppRecovery(`Auth Lock broken in ${operationName}`);
+
+             if (recovered) {
+                 console.log(`[Auth Interceptor] Auto-recovery successful. Retrying ${operationName}...`);
+                 return withAuthTimeout(operationName, operation, retryCount + 1);
+             } else {
+                 console.error(`[Auth Interceptor] Auto-recovery failed. Propagating original error.`);
+             }
+        }
+
+        throw err;
+    }
 };
 
 const originalGetSession = supabase.auth.getSession.bind(supabase.auth);
