@@ -17,11 +17,26 @@ export function useAppVisibilityReawakening() {
 
       const { setStatus, status } = useRecoveryStore.getState();
 
-      // Update the state machine. We do NOT forcefully refresh the session here anymore.
-      // We lazily rely on the Fetch and Auth Interceptors to trigger RecoveryManager
-      // only if the first outgoing request actually fails due to staleness.
+      // Check PWA Update without forcing a reload
+      if ('serviceWorker' in navigator && !Capacitor.isNativePlatform()) {
+          navigator.serviceWorker.getRegistration().then(reg => {
+              if (reg && reg.waiting) {
+                  // A new SW is waiting, but we let PWAUpdateManager handle the UI prompt
+                  // so we don't interrupt active quizzes. We just ping update() to check.
+                  reg.update();
+              }
+          });
+      }
+
+      // Update the state machine.
       if (status === 'HIDDEN') {
          setStatus('RESUMED', 'App returned to foreground');
+         // Auto-transition to HEALTHY after a short delay if no recovery was triggered
+         setTimeout(() => {
+             if (useRecoveryStore.getState().status === 'RESUMED') {
+                 setStatus('HEALTHY', 'No staleness detected on resume');
+             }
+         }, 3000);
       }
     };
 

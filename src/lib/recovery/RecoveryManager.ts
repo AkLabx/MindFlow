@@ -2,8 +2,15 @@ import { supabase } from '../supabase';
 import { useRecoveryStore } from '../../stores/useRecoveryStore';
 import { setRecoveryPromise, getRecoveryPromise, setRecoveringState } from './recoveryContext';
 import { Capacitor } from '@capacitor/core';
+import { QueryClient } from '@tanstack/react-query';
 
 let isInternalRecoveryCall = false;
+
+// We need a ref to the global queryClient to invalidate queries after a successful recovery
+// It's attached to the window in AppProvider.tsx
+const getQueryClient = (): QueryClient | undefined => {
+    return (window as any).__queryClient;
+}
 
 /**
  * Executes a full session validation and potential refresh.
@@ -15,16 +22,27 @@ const performRecovery = async (reason?: string): Promise<boolean> => {
     try {
         store.setStatus('CHECKING', 'Validating network and session');
 
-        // 1. We no longer explicitly ping `/`. The network adapter check provides a fast-fail,
-        // but the ultimate source of truth (health check) is the actual retried request
-        // handled in `fetchWithTimeout`.
+        // 1. If navigator says offline, wait up to 5 seconds for the 'online' event before failing immediately.
+        // Phones waking up from deep sleep take time to re-establish Wi-Fi/LTE connections.
         if ('onLine' in navigator && !navigator.onLine) {
-             throw new Error('Network offline');
+             console.log('[RecoveryManager] Navigator reports offline. Waiting briefly for online event...');
+             await new Promise<void>((resolve) => {
+                 const onOnline = () => {
+                     window.removeEventListener('online', onOnline);
+                     clearTimeout(timeout);
+                     resolve();
+                 };
+                 const timeout = setTimeout(() => {
+                     window.removeEventListener('online', onOnline);
+                     resolve(); // Proceed anyway, let the retried fetch be the final judge
+                 }, 5000);
+                 window.addEventListener('online', onOnline);
+             });
         }
 
         store.setStatus('RECOVERING', 'Refreshing auth session');
 
-        // Re-entrancy guard: Only wrap the specific auth call that could trigger the interceptor
+        // Re-entrancy guard
         isInternalRecoveryCall = true;
 
         // 2. Validate/Refresh Supabase Session
@@ -37,13 +55,14 @@ const performRecovery = async (reason?: string): Promise<boolean> => {
         }
 
         if (!data.session) {
+             // Let the error match standard strings so `RecoveryBanner` knows the session truly expired
              throw new Error('No active session found. User may have been logged out.');
         }
 
         const durationMs = performance.now() - startTime;
         store.logRecoveryAttempt({ success: true, durationMs, reason });
 
-        // Persist to analytics
+        // Persist to analytics (fire-and-forget, bypassing recovery on fail via the `isSafeToRetry` allowlist)
         supabase.from('analytics_events').insert({
             event_name: 'session_recovery',
             event_data: {
@@ -51,13 +70,24 @@ const performRecovery = async (reason?: string): Promise<boolean> => {
                 duration_ms: durationMs,
                 reason,
                 platform: Capacitor.getPlatform(),
-                version: import.meta.env.VITE_APP_VERSION
+                version: import.meta.env.VITE_APP_VERSION,
             }
         }).then(({ error }) => {
             if (error) console.warn('[RecoveryManager] Failed to persist telemetry', error);
         });
 
         store.setStatus('RECOVERED', 'Session active and network ready');
+
+        // 3. Post-Recovery Global Refetch
+        // We explicitly invalidate all errored or active queries to ensure the UI
+        // repaints correctly without needing a hard refresh.
+        const queryClient = getQueryClient();
+        if (queryClient) {
+             console.log('[RecoveryManager] Invalidating queries to refresh UI state...');
+             queryClient.invalidateQueries({
+                 predicate: (query) => query.state.status === 'error' || query.isActive()
+             });
+        }
 
         // Hide banner after 2 seconds and return to healthy
         setTimeout(() => {
@@ -74,11 +104,15 @@ const performRecovery = async (reason?: string): Promise<boolean> => {
         console.error('[RecoveryManager] Recovery failed:', error);
 
         const errorMessage = error?.message || 'Unknown error';
+        const errorClass = error?.name || 'Error';
+        const errorCode = error?.code || 'unknown'; // AuthApiError codes like 'invalid_grant'
+
         store.logRecoveryAttempt({
             success: false,
             durationMs,
             error: errorMessage,
-            reason: reason || 'Recovery procedure failed'
+            reason: reason || 'Recovery procedure failed',
+            errorCode
         });
 
          // Persist to analytics
@@ -89,6 +123,8 @@ const performRecovery = async (reason?: string): Promise<boolean> => {
                 duration_ms: durationMs,
                 reason,
                 error: errorMessage,
+                error_class: errorClass,
+                error_code: errorCode,
                 platform: Capacitor.getPlatform(),
                 version: import.meta.env.VITE_APP_VERSION
             }
@@ -124,9 +160,6 @@ export const triggerAppRecovery = (reason?: string): Promise<boolean> => {
     // Create the promise and store it BEFORE calling performRecovery to ensure
     // synchronous lock acquisition for the single-flight check.
     const recoveryPromise = new Promise<boolean>((resolve) => {
-        // We defer performRecovery to the microtask queue so that
-        // synchronous subsequent calls to triggerAppRecovery don't trip the `isInternalRecoveryCall` flag
-        // before they have a chance to hit `existingPromise`.
         Promise.resolve().then(() => {
             performRecovery(reason).then(resolve).finally(() => {
                 setRecoveryPromise(null);

@@ -15,6 +15,7 @@ export interface RecoveryTelemetryLog {
   success: boolean;
   reason?: string;
   error?: string;
+  errorCode?: string;
 }
 
 interface RecoveryStore {
