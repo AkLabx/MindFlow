@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { fetchWithTimeout } from './fetchWithTimeout';
-import { triggerAppRecovery } from './recovery/RecoveryManager';
+import { triggerAppRecovery, getIsInternalRecoveryCall } from './recovery/RecoveryManager';
 
 export const SUPABASE_URL = 'https://sjcfagpjstbfxuiwhlps.supabase.co';
 export const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNqY2ZhZ3Bqc3RiZnh1aXdobHBzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA5NDQ5OTUsImV4cCI6MjA3NjUyMDk5NX0.8p6tIdBum2uhi0mRYENtF81WryaVlZFCwukwAAwJwJA';
@@ -44,16 +44,20 @@ const withAuthTimeout = async <T>(
 
         return result;
     } catch (err: any) {
+        // Internal gotrue-js lock breaks throw AbortError with 'Lock broken'
         const isLockBroken = err.name === 'AbortError' && err.message?.includes('Lock broken');
 
         // If the auth operation failed due to a stolen/broken lock caused by rapid wake cycles,
         // and we haven't already retried this specific call, trigger a centralized recovery.
-        if (retryCount === 0 && isLockBroken) {
+        // We ensure we don't trigger recovery if the call was initiated BY the RecoveryManager itself.
+        if (retryCount === 0 && isLockBroken && !getIsInternalRecoveryCall()) {
              console.warn(`[Auth Interceptor] Caught lock broken error in ${operationName}. Triggering auto-recovery...`);
              const recovered = await triggerAppRecovery(`Auth Lock broken in ${operationName}`);
 
              if (recovered) {
-                 console.log(`[Auth Interceptor] Auto-recovery successful. Retrying ${operationName}...`);
+                 const backoffDelay = 1000;
+                 console.log(`[Auth Interceptor] Auto-recovery successful. Retrying ${operationName} in ${backoffDelay}ms...`);
+                 await new Promise(r => setTimeout(r, backoffDelay));
                  return withAuthTimeout(operationName, operation, retryCount + 1);
              } else {
                  console.error(`[Auth Interceptor] Auto-recovery failed. Propagating original error.`);
