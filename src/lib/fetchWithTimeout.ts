@@ -8,6 +8,7 @@
  */
 
 import { triggerAppRecovery } from './recovery/RecoveryManager';
+import { useRecoveryStore } from '../stores/useRecoveryStore';
 
 // Diagnostic counter to track requests
 let requestIdCounter = 0;
@@ -33,6 +34,14 @@ const SAFE_RPCS = [
 ];
 
 export const isSafeToRetry = (urlStr: string, options?: RequestInit): boolean => {
+    // 1. Guard against infinite auth / telemetry loops.
+    // We never want background telemetry or core session checks to trigger a recursive recovery.
+    // /auth/v1/user is excluded to allow explicit intentional fetch retry by the app on stale load,
+    // but analytics_events is fully blocked from initiating recovery.
+    if (urlStr.includes('/auth/v1/token') || urlStr.includes('/rest/v1/analytics_events')) {
+        return false;
+    }
+
     const method = options?.method?.toUpperCase() || 'GET';
 
     if (method === 'GET' || method === 'HEAD') return true;
@@ -118,8 +127,12 @@ export const fetchWithTimeout = async (url: RequestInfo | URL, options?: Request
       const isLockError = !isOurTimeout && err.name === 'AbortError' && err.message?.includes('Lock broken');
 
       if (retryCount < MAX_AUTO_RETRIES && (isNetworkError || isLockError)) {
+          // Telemetry Guard: If a lock broke during getSession *because* telemetry was trying to log,
+          // do NOT let that telemetry log attempt launch the recovery manager.
+          const isBackgroundTelemetryAttempt = urlStr.includes('/rest/v1/analytics_events') ||
+                (urlStr.includes('/auth/v1/user') && useRecoveryStore.getState().status !== 'HEALTHY' && useRecoveryStore.getState().status !== 'RECOVERED');
 
-          if (!isSafeToRetry(urlStr, options)) {
+          if (!isSafeToRetry(urlStr, options) || isBackgroundTelemetryAttempt) {
               console.warn(`[Fetch Interceptor] Caught stale session error but request is not safe to retry automatically: ${options?.method} ${urlStr}`);
               // Fall through to throw, letting the UI handle the failure friendly
           } else {

@@ -1,13 +1,16 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useRecoveryStore } from '../../stores/useRecoveryStore';
 import { motion, AnimatePresence } from 'framer-motion';
 import { RefreshCw, WifiOff } from 'lucide-react';
 import { triggerAppRecovery } from '../../lib/recovery/RecoveryManager';
 import { IntentPolicy } from '../../lib/navigation/policies/IntentPolicy';
 import { PlatformPolicy } from '../../lib/navigation/policies/PlatformPolicy';
+import { ROUTES } from '../../config/routes';
+import { supabase } from '../../lib/supabase';
 
 export const RecoveryBanner: React.FC = () => {
     const { status } = useRecoveryStore();
+    const [isSigningOut, setIsSigningOut] = useState(false);
 
     // Do not show banner for these quiet states
     if (status === 'HEALTHY' || status === 'HIDDEN' || status === 'RESUMED') {
@@ -25,6 +28,9 @@ export const RecoveryBanner: React.FC = () => {
         const isSessionExpired = lastError?.includes('active session found') ||
                                  lastError?.includes('Auth session missing') ||
                                  lastErrorCode === 'invalid_grant' ||
+                                 lastErrorCode === 'refresh_token_not_found' ||
+                                 lastErrorCode === 'refresh_token_already_used' ||
+                                 lastErrorCode === 'session_expired' ||
                                  lastErrorCode === 'session_not_found';
 
         return (
@@ -52,28 +58,49 @@ export const RecoveryBanner: React.FC = () => {
                                 Try Again
                             </button>
                         )}
-                        <button
-                            onClick={() => {
-                                useRecoveryStore.getState().resetStatus();
-                                window.location.hash = '#' + PlatformPolicy.getGuestEntryRoute();
-                            }}
-                            className={`w-full py-3 px-4 ${isSessionExpired ? 'bg-indigo-600 hover:bg-indigo-700 text-white' : 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200'} rounded-xl font-medium transition-colors`}
-                        >
-                            Go to Home
-                        </button>
+                        {!isSessionExpired && (
+                            <button
+                                onClick={() => {
+                                    useRecoveryStore.getState().resetStatus();
+                                    // Use dashboard as the home route for authenticated users
+                                    window.location.hash = '#' + ROUTES.DASHBOARD;
+                                }}
+                                className="w-full py-3 px-4 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl font-medium transition-colors"
+                            >
+                                Go to Home
+                            </button>
+                        )}
 
                         {isSessionExpired && (
                             <button
-                                onClick={() => {
+                                disabled={isSigningOut}
+                                onClick={async () => {
+                                    setIsSigningOut(true);
+
                                     // Navigate using HashRouter mechanism to preserve offline DB state
                                     // and set intent so they return here after logging back in
                                     IntentPolicy.saveIntent(window.location);
+
+                                    // We explicitly bypass supabase.auth.signOut({ scope: 'local' }) here because
+                                    // it triggers the 'SIGNED_OUT' event which wipes IndexedDB (db.clearAllUserData).
+                                    // Instead, we just drop the session token from local storage directly
+                                    // so the AuthProvider boots them out without destroying offline quizzes.
+                                    localStorage.removeItem('sb-sjcfagpjstbfxuiwhlps-auth-token');
+
                                     useRecoveryStore.getState().resetStatus();
                                     window.location.hash = '#' + PlatformPolicy.getGuestEntryRoute();
+                                    window.location.reload(); // Force full reload to cleanly mount auth portal
                                 }}
-                                className="w-full py-3 px-4 text-indigo-600 hover:bg-indigo-50 dark:text-indigo-400 dark:hover:bg-indigo-900/20 rounded-xl font-medium transition-colors"
+                                className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-medium transition-colors disabled:opacity-70"
                             >
-                                Sign In Again
+                                {isSigningOut ? (
+                                    <>
+                                        <RefreshCw className="w-4 h-4 animate-spin" />
+                                        <span>Signing out...</span>
+                                    </>
+                                ) : (
+                                    'Sign In Again'
+                                )}
                             </button>
                         )}
                     </div>

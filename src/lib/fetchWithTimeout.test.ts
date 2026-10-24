@@ -139,3 +139,15 @@ describe('fetchWithTimeout', () => {
         expect(triggerAppRecovery).not.toHaveBeenCalled();
     });
 });
+
+describe('isSafeToRetry (advanced)', () => {
+    it('rejects auth paths to prevent telemetry loops', () => {
+        expect(isSafeToRetry('https://example.com/auth/v1/user')).toBe(false);
+        expect(isSafeToRetry('https://example.com/auth/v1/token')).toBe(false);
+        expect(isSafeToRetry('https://example.com/auth/v1/token', { method: 'POST' })).toBe(false);
+    });
+
+    it('rejects analytics events path to prevent telemetry loops', () => {
+        expect(isSafeToRetry('https://example.com/rest/v1/analytics_events', { method: 'POST' })).toBe(false);
+    });
+});
