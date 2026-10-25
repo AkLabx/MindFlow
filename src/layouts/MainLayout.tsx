@@ -68,6 +68,15 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
   const isReelsFullScreen = location.pathname.startsWith('/community/reels');
   const isMessagingFullScreen = location.pathname.startsWith('/messages');
 
+  const isHeaderHiddenRoute = [
+    '/todays-plan',
+    '/daily-mission',
+    '/mcqs/uploadcustomquiz',
+    '/vocab/synonyms/config',
+    '/vocab/idioms/config',
+    '/vocab/ows/config'
+  ].includes(location.pathname) || location.pathname.startsWith('/about') || location.pathname.startsWith('/result');
+
   // Auto toggle based on pathname if user lands directly on a social route
   useEffect(() => {
     if (location.pathname.startsWith('/community') || location.pathname.startsWith('/messages')) {
@@ -197,7 +206,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
     )}>
       
       {/* --- Sticky Top Header --- */}
-      {!isReviewMode && !isAIFullScreen && !isReelsFullScreen && !isSocialMode && !hideGlobalHeader && (
+      {!isReviewMode && !isAIFullScreen && !isReelsFullScreen && !isSocialMode && !hideGlobalHeader && !isHeaderHiddenRoute && (
       <header className="sticky top-0 z-40 w-full transition-all duration-300 relative group overflow-visible">
         {/* Glow Background Layer */}
         <div className="absolute inset-0 bg-white/40 dark:bg-slate-900/40 backdrop-blur-2xl transition-colors duration-300 z-0"></div>
