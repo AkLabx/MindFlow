@@ -10,6 +10,7 @@ import { AlertTriangle, LogOut, CheckCircle2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNotificationStore } from '../../../stores/useNotificationStore';
 import { useQuizSessionStore } from '../../quiz/stores/useQuizSessionStore';
+import { useRecoveryStore } from '../../../stores/useRecoveryStore';
 
 
 /**
@@ -219,6 +220,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log("[AuthContext Debug] onAuthStateChange event:", event, session ? "Session exists" : "null");
+
+      if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
+          useRecoveryStore.getState().resetStatus();
+      }
       // This logic runs in both the main app and the auth popup.
 
       // If we are in the auth popup (opened by Google OAuth), close it after successful sign-in.

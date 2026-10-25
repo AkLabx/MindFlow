@@ -7,10 +7,28 @@ import { IntentPolicy } from '../../lib/navigation/policies/IntentPolicy';
 import { PlatformPolicy } from '../../lib/navigation/policies/PlatformPolicy';
 import { ROUTES } from '../../config/routes';
 import { supabase } from '../../lib/supabase';
+import { useLocation } from 'react-router-dom';
+import { useAuth } from '../../features/auth/context/AuthContext';
 
 export const RecoveryBanner: React.FC = () => {
     const { status } = useRecoveryStore();
     const [isSigningOut, setIsSigningOut] = useState(false);
+    const location = useLocation();
+    const { signOut } = useAuth();
+
+    // Do not show banner or overlay on guest routes
+    const isGuestRoute = ['/', '/login', '/signup', '/onboarding', '/privacy-policy', '/about/terms-of-use'].includes(location.pathname);
+    if (isGuestRoute) {
+        // If we land on a guest route with a FAILED state (e.g., navigated away manually), reset it
+        if (status !== 'HEALTHY') {
+            setTimeout(() => {
+                if (useRecoveryStore.getState().status !== 'HEALTHY') {
+                    useRecoveryStore.getState().resetStatus();
+                }
+            }, 0);
+        }
+        return null;
+    }
 
     // Do not show banner for these quiet states
     if (status === 'HEALTHY' || status === 'HIDDEN' || status === 'RESUMED') {
@@ -25,9 +43,9 @@ export const RecoveryBanner: React.FC = () => {
         const lastErrorCode = lastTelemetry?.errorCode;
 
         // Match specific Supabase auth conditions for dead sessions
-        const isSessionExpired = lastError?.includes('active session found') ||
-                                 lastError?.includes('Auth session missing') ||
-                                 lastErrorCode === 'invalid_grant' ||
+        // Explicitly check for definitive session death codes, rather than generic missing auth messages
+        // that could happen when a guest naturally has no session.
+        const isSessionExpired = lastErrorCode === 'invalid_grant' ||
                                  lastErrorCode === 'refresh_token_not_found' ||
                                  lastErrorCode === 'refresh_token_already_used' ||
                                  lastErrorCode === 'session_expired' ||
@@ -81,15 +99,16 @@ export const RecoveryBanner: React.FC = () => {
                                     // and set intent so they return here after logging back in
                                     IntentPolicy.saveIntent(window.location);
 
-                                    // We explicitly bypass supabase.auth.signOut({ scope: 'local' }) here because
-                                    // it triggers the 'SIGNED_OUT' event which wipes IndexedDB (db.clearAllUserData).
-                                    // Instead, we just drop the session token from local storage directly
-                                    // so the AuthProvider boots them out without destroying offline quizzes.
-                                    localStorage.removeItem('sb-sjcfagpjstbfxuiwhlps-auth-token');
-
                                     useRecoveryStore.getState().resetStatus();
+
+                                    try {
+                                        await signOut(); // This properly triggers SIGNED_OUT and cleans IndexedDB
+                                    } catch (err) {
+                                        console.error('Error during fallback sign out:', err);
+                                    }
+
                                     window.location.hash = '#' + PlatformPolicy.getGuestEntryRoute();
-                                    window.location.reload(); // Force full reload to cleanly mount auth portal
+                                    // No need to manually reload, AuthContext will handle state transition
                                 }}
                                 className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-medium transition-colors disabled:opacity-70"
                             >
