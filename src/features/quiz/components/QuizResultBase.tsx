@@ -112,9 +112,9 @@ export const QuizResultBase: React.FC<QuizResultBaseProps> = ({
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 pb-safe md:pb-24 pt-safe z-[100] relative">
+    <div className="min-h-screen pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))] bg-slate-50 dark:bg-slate-950 z-[100] relative">
       {/* Top Navigation */}
-      <div className="flex items-center justify-between p-4 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-50">
+      <div className="flex items-center justify-between px-4 py-3 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 sticky top-0 z-50 pt-[max(0.75rem,env(safe-area-inset-top))]">
         <button onClick={onGoHome} className="p-2 -ml-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-700 dark:text-slate-300">
             {/* The screenshot shows a back arrow here, which typically implies going home or back to previous screen */}
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>

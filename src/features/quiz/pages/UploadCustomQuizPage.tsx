@@ -134,9 +134,9 @@ export const UploadCustomQuizPage: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-slate-50 dark:bg-[#0B1120]">
+    <div className="flex flex-col min-h-screen pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))] bg-slate-50 dark:bg-[#0B1120]">
       {/* Header */}
-      <header className="sticky top-0 z-30 bg-white/80 dark:bg-[#0B1120]/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800">
+      <header className="sticky top-0 z-50 bg-white/80 dark:bg-[#0B1120]/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 pt-[max(0.75rem,env(safe-area-inset-top))]">
         <div className="max-w-4xl mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <button

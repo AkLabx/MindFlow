@@ -70,9 +70,9 @@ export const DeveloperProfile: React.FC = () => {
     };
 
     return (
-        <div className="flex flex-col min-h-screen -m-4 sm:-m-6 lg:-m-8 p-4 sm:p-6 lg:p-8 transition-colors duration-700 relative overflow-hidden bg-gray-50 dark:bg-gray-900">
+        <div className="flex flex-col min-h-screen pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))] transition-colors duration-700 relative overflow-hidden bg-gray-50 dark:bg-gray-900">
             {/* Header */}
-            <div className="sticky top-0 z-50 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b border-gray-200 dark:border-gray-800 p-4 flex items-center shadow-sm -mx-4 sm:-mx-6 lg:-mx-8 px-8 mb-6">
+            <div className="sticky top-0 z-50 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b border-gray-200 dark:border-gray-800 px-4 py-3 flex items-center mb-6 pt-[max(0.75rem,env(safe-area-inset-top))]">
                 <button
                     onClick={() => navigate(-1)}
                     className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-gray-700 dark:text-gray-300"

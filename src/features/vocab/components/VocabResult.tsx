@@ -70,7 +70,7 @@ export const VocabResult: React.FC<VocabResultProps> = ({ vocabType }) => {
     const accuracy = totalAnswered > 0 ? Math.round((mastered / totalAnswered) * 100) : 0;
 
     return (
-        <div className="min-h-screen bg-slate-50 dark:bg-slate-900 overflow-hidden relative">
+        <div className="min-h-screen pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))] bg-slate-50 dark:bg-slate-900 overflow-hidden relative">
             <div className="relative z-10 flex flex-col min-h-screen w-full max-w-4xl mx-auto px-4 py-8">
 
                 {/* Header */}
