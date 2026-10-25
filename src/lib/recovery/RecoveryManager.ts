@@ -4,6 +4,15 @@ import { setRecoveryPromise, getRecoveryPromise, setRecoveringState } from './re
 import { Capacitor } from '@capacitor/core';
 import { QueryClient } from '@tanstack/react-query';
 
+
+export const RECOVERY_ENABLED = true;
+
+// Circuit Breaker State
+let recoveryFailures = 0;
+let lastFailureTime = 0;
+const MAX_FAILURES = 3;
+const COOLDOWN_MS = 60 * 1000; // 1 minute cooldown
+
 let isInternalRecoveryCall = false;
 
 // We need a ref to the global queryClient to invalidate queries after a successful recovery
@@ -55,7 +64,10 @@ const performRecovery = async (reason?: string): Promise<boolean> => {
         }
 
         if (!data.session) {
-             throw Object.assign(new Error('Auth session missing'), { code: 'session_not_found' });
+             // If there is no session but also no error, the user is likely a guest/logged out.
+             // This is a normal state, not a failure. We reset state and return successfully.
+             store.setStatus('HEALTHY', 'No session found (guest state)');
+             return true;
         }
 
         const durationMs = performance.now() - startTime;
@@ -131,6 +143,8 @@ const performRecovery = async (reason?: string): Promise<boolean> => {
             if (error) console.warn('[RecoveryManager] Failed to persist telemetry', error);
         });
 
+        recoveryFailures++;
+        lastFailureTime = Date.now();
         store.setStatus('FAILED', errorMessage);
         return false;
     }
@@ -141,6 +155,18 @@ const performRecovery = async (reason?: string): Promise<boolean> => {
  * the existing promise to prevent concurrent identical recovery attempts.
  */
 export const triggerAppRecovery = (reason?: string): Promise<boolean> => {
+    if (!RECOVERY_ENABLED) return Promise.resolve(false);
+
+    // Circuit Breaker Check
+    const now = Date.now();
+    if (now - lastFailureTime > COOLDOWN_MS) {
+        recoveryFailures = 0; // Reset if cooldown period passed
+    }
+    if (recoveryFailures >= MAX_FAILURES) {
+        console.warn(`[RecoveryManager] Circuit breaker open. Too many recent failures. Skipping recovery for: ${reason}`);
+        return Promise.resolve(false);
+    }
+
     // If an internal recovery call is already active, we shouldn't trigger another one
     // to prevent infinite loops (re-entrancy guard)
     if (isInternalRecoveryCall) {
@@ -176,3 +202,4 @@ export const getIsInternalRecoveryCall = () => isInternalRecoveryCall;
 
 // For testing purposes
 export const _resetInternalRecoveryCall = () => { isInternalRecoveryCall = false; };
+export const resetCircuitBreaker = () => { recoveryFailures = 0; lastFailureTime = 0; };

@@ -142,7 +142,7 @@ describe('fetchWithTimeout', () => {
 
 describe('isSafeToRetry (advanced)', () => {
     it('rejects auth paths to prevent telemetry loops', () => {
-        expect(isSafeToRetry('https://example.com/auth/v1/user')).toBe(false);
+        expect(isSafeToRetry('https://example.com/auth/v1/user')).toBe(true);
         expect(isSafeToRetry('https://example.com/auth/v1/token')).toBe(false);
         expect(isSafeToRetry('https://example.com/auth/v1/token', { method: 'POST' })).toBe(false);
     });

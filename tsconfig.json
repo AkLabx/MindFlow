@@ -36,7 +36,7 @@
     // Specify JSX code generation
     "jsx": "react-jsx",
     // Base directory to resolve non-relative module names
-    "baseUrl": ".",
+    "baseUrl": "./",
     // Path mapping for aliases (e.g., @/* -> src/*)
     "paths": {
       "@/*": [

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { triggerAppRecovery, getIsInternalRecoveryCall, _resetInternalRecoveryCall } from './RecoveryManager';
+import { triggerAppRecovery, getIsInternalRecoveryCall, _resetInternalRecoveryCall, resetCircuitBreaker } from './RecoveryManager';
 import { useRecoveryStore } from '../../stores/useRecoveryStore';
 import { supabase } from '../supabase';
 
@@ -19,6 +19,7 @@ describe('RecoveryManager', () => {
         vi.useFakeTimers();
         useRecoveryStore.setState({ status: 'HEALTHY', telemetry: [] });
         _resetInternalRecoveryCall();
+        resetCircuitBreaker();
         vi.clearAllMocks();
 
         Object.defineProperty(navigator, 'onLine', {
@@ -94,13 +95,30 @@ describe('RecoveryManager', () => {
         expect(state2).toBe('HEALTHY');
     });
 
-    it('session expired logic: correctly identifies missing sessions', async () => {
+    it('session expired logic: resolves true for guest users without error', async () => {
         vi.mocked(supabase.auth.getSession).mockResolvedValue({
             data: { session: null },
             error: null
         } as any);
 
-        const result = await triggerAppRecovery('Session Test');
+        const result = await triggerAppRecovery('Guest Test');
+        expect(result).toBe(true);
+
+        const store = useRecoveryStore.getState();
+        expect(store.status).toBe('HEALTHY'); // resets cleanly
+    });
+
+    it('session expired logic: identifies session expired when explicit error returned', async () => {
+        vi.mocked(supabase.auth.getSession).mockResolvedValue({
+            data: { session: null },
+            error: {
+                message: 'Invalid refresh token',
+                code: 'refresh_token_not_found',
+                name: 'AuthApiError'
+            }
+        } as any);
+
+        const result = await triggerAppRecovery('Session Expired Test');
         expect(result).toBe(false);
 
         const store = useRecoveryStore.getState();
@@ -108,8 +126,31 @@ describe('RecoveryManager', () => {
 
         const lastLog = store.telemetry[0];
         expect(lastLog.success).toBe(false);
-        expect(lastLog.errorCode).toBe('session_not_found');
-        expect(lastLog.error).toBe('Auth session missing');
+        expect(lastLog.errorCode).toBe('refresh_token_not_found');
+    });
+
+    it('circuit breaker: stops recovery after multiple failures', async () => {
+        vi.mocked(supabase.auth.getSession).mockResolvedValue({
+            data: { session: null },
+            error: { message: 'Network error', name: 'TypeError' }
+        } as any);
+
+        // First 3 should execute performRecovery and fail
+        expect(await triggerAppRecovery('Fail 1')).toBe(false);
+
+        // Fast-forward so they don't count as re-entrant/single-flight
+        await vi.advanceTimersByTimeAsync(1);
+        expect(await triggerAppRecovery('Fail 2')).toBe(false);
+
+        await vi.advanceTimersByTimeAsync(1);
+        expect(await triggerAppRecovery('Fail 3')).toBe(false);
+
+        expect(supabase.auth.getSession).toHaveBeenCalledTimes(3);
+
+        // 4th should be blocked by circuit breaker
+        await vi.advanceTimersByTimeAsync(1);
+        expect(await triggerAppRecovery('Fail 4 (Blocked)')).toBe(false);
+        expect(supabase.auth.getSession).toHaveBeenCalledTimes(3); // count should not increase
     });
 
     it('navigator offline logic: waits up to 5s for online event', async () => {
