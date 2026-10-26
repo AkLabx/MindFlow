@@ -1,5 +1,8 @@
 {
   "name": "MindFlow Quiz",
-  "description": "A modern, responsive Multiple Choice Question (MCQ) application featuring a modular architecture, clean Tailwind CSS styling, and immediate feedback.",
-  "requestFramePermissions": []
+  "description": "MindFlow by Aalok (Aalok Kumar Sharma) is a premier educational platform and competitive exam preparation app for SSC CGL, RRB NTPC, Banking, BSSC CGL, and BPSC CCE.",
+  "requestFramePermissions": [],
+  "capabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
 }
