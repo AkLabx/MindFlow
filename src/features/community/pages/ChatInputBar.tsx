@@ -69,7 +69,7 @@ export const ChatInputBar: React.FC<ChatInputBarProps> = ({ onSend, onUpload, is
   return (
 
     <KeyboardAwareBottomBar hasGlobalFooter={false} position="relative" className="!px-0 !pt-0 !pb-0 bg-transparent shadow-none border-none">
-    <form onSubmit={handleSubmit} className="p-3 bg-white border-t border-gray-100 pb-3 relative w-full">
+    <form onSubmit={handleSubmit} className="p-2 bg-white border-t border-gray-100 pb-2 relative w-full">
       <div aria-live="polite" aria-atomic="true">
         {isUploading && (
           <div className="absolute -top-8 left-1/2 -translate-x-1/2 text-xs font-semibold text-indigo-500 animate-pulse bg-white/90 backdrop-blur-sm px-4 py-1.5 rounded-full shadow-sm border border-gray-100">
@@ -78,7 +78,7 @@ export const ChatInputBar: React.FC<ChatInputBarProps> = ({ onSend, onUpload, is
         )}
       </div>
 
-      <div className="flex items-end gap-2 bg-gray-100 border border-gray-200 rounded-[28px] p-1.5 pl-4 pr-1.5 relative overflow-hidden focus-within:ring-2 focus-within:ring-indigo-100 focus-within:bg-white transition-all duration-300">
+      <div className="flex items-end gap-1.5 bg-gray-100 border border-gray-200 rounded-[24px] p-1 pl-3 pr-1 relative overflow-hidden focus-within:ring-2 focus-within:ring-indigo-100 focus-within:bg-white transition-all duration-300">
         <input
           type="text"
           value={newMessage}
