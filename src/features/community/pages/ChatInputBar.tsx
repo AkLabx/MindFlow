@@ -42,7 +42,7 @@ export const ChatInputBar: React.FC<ChatInputBarProps> = ({ onSend, onUpload, is
 
   if (isBlocked) {
     return (
-      <KeyboardAwareBottomBar hasGlobalFooter={false} className="!px-3 !pt-2 !pb-3 bg-white border-t border-gray-100 flex items-center justify-center">
+      <KeyboardAwareBottomBar hasGlobalFooter={false} position="relative" className="!px-3 !pt-2 !pb-3 bg-white flex items-center justify-center">
         <div className="bg-gray-100 border border-gray-200 rounded-[28px] p-3 text-center w-full text-[14px] text-gray-600 font-medium h-[52px] flex items-center justify-center">
           You cannot reply to this conversation anymore.
         </div>
@@ -52,7 +52,7 @@ export const ChatInputBar: React.FC<ChatInputBarProps> = ({ onSend, onUpload, is
 
   if (isBlocker) {
     return (
-      <KeyboardAwareBottomBar hasGlobalFooter={false} className="!px-3 !pt-2 !pb-3 bg-white border-t border-gray-100 flex items-center justify-center gap-2">
+      <KeyboardAwareBottomBar hasGlobalFooter={false} position="relative" className="!px-3 !pt-2 !pb-3 bg-white flex items-center justify-center gap-2">
         <div className="bg-gray-100 border border-gray-200 rounded-[28px] px-4 text-center flex-1 text-[14px] text-gray-600 font-medium h-[52px] flex items-center justify-center">
           You have blocked this user. Unblock to send a message.
         </div>
@@ -68,7 +68,7 @@ export const ChatInputBar: React.FC<ChatInputBarProps> = ({ onSend, onUpload, is
 
   return (
 
-    <KeyboardAwareBottomBar hasGlobalFooter={false} className="!px-0 !pt-0 !pb-0 bg-transparent shadow-none border-none">
+    <KeyboardAwareBottomBar hasGlobalFooter={false} position="relative" className="!px-0 !pt-0 !pb-0 bg-transparent shadow-none border-none">
     <form onSubmit={handleSubmit} className="p-3 bg-white border-t border-gray-100 pb-3 relative w-full">
       <div aria-live="polite" aria-atomic="true">
         {isUploading && (
