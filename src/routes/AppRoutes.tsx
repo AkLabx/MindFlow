@@ -19,6 +19,7 @@ import { useNotificationStore } from '../stores/useNotificationStore';
 // Groups: Main UI, Quiz Flow, Flashcard Flow, Auth Flow
 const CommunityFeed = lazy(() => import('../features/community/pages/CommunityFeed').then(m => ({ default: m.CommunityFeed })));
 const ChatRooms = lazy(() => import('../features/community/pages/ChatRooms').then(m => ({ default: m.ChatRooms })));
+const ActiveChatRoom = lazy(() => import('../features/community/pages/ActiveChatRoom').then(m => ({ default: m.ActiveChatRoom })));
 const ReelsFeed = lazy(() => import('../features/community/pages/ReelsFeed').then(m => ({ default: m.ReelsFeed })));
 const ReelCommentsPage = lazy(() => import('../features/community/pages/ReelCommentsPage').then(m => ({ default: m.ReelCommentsPage })));
 const CommunitySearch = lazy(() => import('../features/community/pages/CommunitySearch').then(m => ({ default: m.CommunitySearch })));
@@ -346,6 +347,7 @@ const handleReattempt = async (quizId: string, mode: string) => {
                     {/* School Routes */}
                     <Route path={ROUTES.COMMUNITY} element={<ErrorBoundary fallbackMessage="The Community feed is temporarily unavailable."><Suspense fallback={<SynapticLoader />}><CommunityFeed /></Suspense></ErrorBoundary>} />
                     <Route path={ROUTES.MESSAGES} element={<ErrorBoundary fallbackMessage="Messages are temporarily unavailable."><Suspense fallback={<SynapticLoader />}><ChatRooms /></Suspense></ErrorBoundary>} />
+                    <Route path={ROUTES.MESSAGES_ROOM(':roomId')} element={<ErrorBoundary fallbackMessage="Messages are temporarily unavailable."><Suspense fallback={<SynapticLoader />}><ActiveChatRoom /></Suspense></ErrorBoundary>} />
                     <Route path={ROUTES.SOCIAL.REELS} element={<ErrorBoundary fallbackMessage="Reels are temporarily unavailable."><Suspense fallback={<SynapticLoader />}><ReelsFeed /></Suspense></ErrorBoundary>} />
                     <Route path={ROUTES.SOCIAL.REELS_COMMENTS(':id')} element={<ErrorBoundary fallbackMessage="Comments are temporarily unavailable."><Suspense fallback={<SynapticLoader />}><ReelCommentsPage /></Suspense></ErrorBoundary>} />
                     <Route path={ROUTES.SOCIAL.SEARCH} element={<ErrorBoundary fallbackMessage="Search is temporarily unavailable."><Suspense fallback={<SynapticLoader />}><CommunitySearch /></Suspense></ErrorBoundary>} />

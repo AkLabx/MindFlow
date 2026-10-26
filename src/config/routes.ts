@@ -52,6 +52,7 @@ export const ROUTES = {
 
   NOTIFICATION: '/notification',
   MESSAGES: '/messages',
+  MESSAGES_ROOM: (roomId: string | number) => `/messages/${roomId}`,
 
   // Quiz Feature
   QUIZ: {
