@@ -78,8 +78,8 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = React.memo(({
   return (
     <div className="w-full flex flex-col">
       {showTimeSeparator && (
-        <div className="flex justify-center my-6">
-          <span className="text-[11px] font-semibold text-gray-400 bg-white px-3 py-1 rounded-full shadow-sm border border-gray-100">
+        <div className="flex justify-center my-3">
+          <span className="text-[10px] font-medium text-gray-400 bg-gray-50/80 px-2 py-0.5 rounded-full border border-gray-100/50">
             {timeSeparatorText}
           </span>
         </div>

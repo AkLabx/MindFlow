@@ -202,7 +202,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
   return (
     <div className={cn(
         "flex flex-col transition-colors duration-700 relative bg-gradient-to-br from-indigo-50 via-purple-50 to-white dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 animate-flow",
-        isAIFullScreen || isMessagingFullScreen ? "h-[100dvh] w-screen overflow-hidden fixed inset-0" : isReelsFullScreen ? "h-[calc(100dvh-3.5rem-env(safe-area-inset-bottom))] w-screen overflow-hidden fixed top-0 left-0" : "min-h-screen"
+        isAIFullScreen ? "h-[100dvh] w-screen overflow-hidden fixed inset-0" : isReelsFullScreen ? "h-[calc(100dvh-3.5rem-env(safe-area-inset-bottom))] w-screen overflow-hidden fixed top-0 left-0" : "min-h-screen"
     )}>
       
       {/* --- Sticky Top Header --- */}
@@ -271,7 +271,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
         "flex-1 w-full relative z-0",
         (isAIFullScreen || isReelsFullScreen)
             ? "max-w-none p-0 overflow-hidden h-full"
-            : isHeaderHiddenRoute ? "max-w-none p-0 mx-auto" : cn(`${maxWidthClass} mx-auto px-4 pt-4`, isReviewMode ? "pb-4" : "pb-24")
+            : isMessagingFullScreen ? "max-w-none w-full p-0 mx-auto h-[100dvh] flex flex-col md:h-auto" : isHeaderHiddenRoute ? "max-w-none p-0 mx-auto" : cn(`${maxWidthClass} mx-auto px-4 pt-4`, isReviewMode ? "pb-4" : "pb-24")
       )}>
         {children}
       </main>

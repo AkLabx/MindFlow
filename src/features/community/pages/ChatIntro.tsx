@@ -16,8 +16,8 @@ export const ChatIntro: React.FC<ChatIntroProps> = ({ user }) => {
   const navigate = useNavigate();
 
   return (
-    <div className="flex flex-col items-center justify-center p-8 mt-10 mb-6 text-center">
-      <div className="w-24 h-24 mb-4 rounded-full overflow-hidden shadow-lg border-2 border-white bg-indigo-500">
+    <div className="flex flex-col items-center justify-center p-4 mt-6 mb-4 text-center">
+      <div className="w-16 h-16 mb-2 rounded-full overflow-hidden shadow-md border-2 border-white bg-indigo-500">
         {user.avatar_url ? (
           <img src={user.avatar_url} alt={user.full_name || 'User'} className="w-full h-full object-cover" />
         ) : (
@@ -26,11 +26,11 @@ export const ChatIntro: React.FC<ChatIntroProps> = ({ user }) => {
           </div>
         )}
       </div>
-      <h2 className="text-2xl font-bold text-gray-900 mb-1">{user.full_name || 'Unknown User'}</h2>
+      <h2 className="text-xl font-bold text-gray-900 mb-0.5">{user.full_name || 'Unknown User'}</h2>
       {user.username ? (
-        <p className="text-gray-500 font-medium mb-4">/u/{user.username}</p>
+        <p className="text-gray-500 font-medium text-sm mb-3">/u/{user.username}</p>
       ) : (
-        <p className="text-gray-500 font-medium mb-4">/u/user_{user.user_id.substring(0, 5)}</p>
+        <p className="text-gray-500 font-medium text-sm mb-3">/u/user_{user.user_id.substring(0, 5)}</p>
       )}
 
       <button
