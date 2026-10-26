@@ -271,7 +271,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
         "flex-1 w-full relative z-0",
         (isAIFullScreen || isReelsFullScreen)
             ? "max-w-none p-0 overflow-hidden h-full"
-            : cn(`${maxWidthClass} mx-auto px-4 pt-4`, isReviewMode ? "pb-4" : "pb-24")
+            : isHeaderHiddenRoute ? "max-w-none p-0 mx-auto" : cn(`${maxWidthClass} mx-auto px-4 pt-4`, isReviewMode ? "pb-4" : "pb-24")
       )}>
         {children}
       </main>

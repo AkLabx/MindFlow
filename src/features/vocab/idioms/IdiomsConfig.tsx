@@ -225,7 +225,7 @@ export const IdiomsConfig: React.FC<IdiomsConfigProps> = ({ onStart, onBack }) =
     }
 
     return (
-                <div className="flex flex-col min-h-screen p-4 sm:p-6 lg:p-8 transition-colors duration-700 relative overflow-y-auto bg-slate-50 dark:bg-slate-900">
+                <div className="flex flex-col min-h-screen pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))] transition-colors duration-700 relative overflow-y-auto bg-slate-50 dark:bg-slate-900">
             {!user && (
               <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center p-6 bg-slate-50/95 dark:bg-slate-900/95 backdrop-blur-sm">
                 <div className="bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-2xl flex flex-col items-center text-center max-w-sm border border-slate-200 dark:border-slate-700">
@@ -245,7 +245,7 @@ export const IdiomsConfig: React.FC<IdiomsConfigProps> = ({ onStart, onBack }) =
                 </div>
               </div>
             )}
-            <div className="flex items-center gap-4 mb-6 z-10 sticky top-0 bg-slate-50/90 dark:bg-slate-900/90 backdrop-blur-md pb-4 pt-4 -mt-4 -mx-4 px-4 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8 border-b border-slate-200 dark:border-slate-800">
+            <div className="sticky top-0 z-50 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b border-gray-200 dark:border-gray-800 px-4 py-3 flex items-center gap-4 mb-6 pt-[max(0.75rem,env(safe-area-inset-top))]">
                 <button
                     onClick={onBack}
                     className="p-3 rounded-xl bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-all border border-slate-200 dark:border-slate-700 shadow-sm"
@@ -329,7 +329,7 @@ export const IdiomsConfig: React.FC<IdiomsConfigProps> = ({ onStart, onBack }) =
                                         )}
                                     >
                                         <span className="text-xs font-bold">{letter}</span>
-                                        {count > 0 && !isSelected && <span className="text-[8px] opacity-60 -mt-1">{count}</span>}
+                                        {count > 0 && !isSelected && <span className="text-[8px] opacity-60">{count}</span>}
                                     </button>
                                 )
                             })}
