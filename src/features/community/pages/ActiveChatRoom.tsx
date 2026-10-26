@@ -242,7 +242,7 @@ export const ActiveChatRoom: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col h-full w-full bg-white md:relative md:min-h-[100dvh] md:max-w-3xl md:mx-auto md:border-x md:border-gray-100 md:shadow-sm">
+    <div className="flex flex-col flex-1 h-full w-full bg-white md:relative md:min-h-[100dvh] md:max-w-3xl md:mx-auto md:border-x md:border-gray-100 md:shadow-sm">
       {/* Header */}
       <div className="flex items-center gap-2 px-3 py-2 bg-white/90 backdrop-blur-xl border-b border-gray-200 sticky top-0 z-10">
         <button onClick={onBack} className="p-2 -ml-2 rounded-full hover:bg-gray-100 text-gray-800" aria-label="Go back">
@@ -342,12 +342,13 @@ export const ActiveChatRoom: React.FC = () => {
       </div>
 
       {/* Messages Area (Virtualized) */}
-      <div className="flex-1 min-h-0 overflow-y-auto scrollbar-hide bg-white">
+      <div className="flex-1 min-h-0 overflow-y-auto scrollbar-hide bg-white flex flex-col">
         {isLoading ? (
           <div className="flex justify-center p-10 text-gray-600">Loading messages...</div>
         ) : (
           <Virtuoso
             ref={virtuosoRef}
+            style={{ height: '100%' }}
             components={{
               Header: () => (
                 room.type === 'direct' && otherParticipant ? <ChatIntro user={otherParticipant} /> : <div className="h-4" />

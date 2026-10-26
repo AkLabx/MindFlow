@@ -51,7 +51,7 @@ export const KeyboardAwareBottomBar: React.FC<KeyboardAwareBottomBarProps> = ({
         position === 'fixed'
           ? "fixed left-0 right-0 w-full max-w-3xl mx-auto z-[60] shadow-[0_-10px_20px_rgba(255,255,255,1)] dark:shadow-[0_-10px_20px_rgba(0,0,0,0.5)]"
           : "relative w-full",
-        "bg-white dark:bg-slate-900 border-t border-gray-200 dark:border-slate-800 transition-all duration-200 ease-out",
+        "bg-white dark:bg-slate-900 border-t border-gray-200 dark:border-slate-800 transition-all duration-200 ease-out shrink-0",
         position === 'fixed' && hasGlobalFooter ? "bottom-[calc(56px_+_env(safe-area-inset-bottom))] md:bottom-0" : "",
         position === 'fixed' && !hasGlobalFooter ? "bottom-0" : "",
         "pb-[calc(0.5rem_+_env(safe-area-inset-bottom))] pt-3 px-4",
