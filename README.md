@@ -2,6 +2,12 @@
 
 MindFlow is an intelligent, adaptive learning platform designed to help students master complex subjects through interactive quizzes and flashcards. Built with **React**, **Vite**, **Supabase**, and **Google Gemini AI**, it offers a modern, app-like experience on the web.
 
+## 🌐 Live Demo
+
+**[MindFlow by Aalok - Created by Aalok Kumar (CGL Hustle)](https://aklabx.github.io/MindFlow/)**
+
+👉 https://aklabx.github.io/MindFlow/#
+
 ## 🚀 Features
 
 *   **Adaptive Quizzes:** Create custom quizzes filtered by Subject, Topic, Difficulty, and Exam Source.
