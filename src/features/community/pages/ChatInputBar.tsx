@@ -3,6 +3,7 @@ import { Send, Image as ImageIcon, File, Mic, Sticker } from 'lucide-react';
 import { cn } from '../../../utils/cn';
 import { useNotification } from '../../../hooks/useNotification';
 import { KeyboardAwareBottomBar } from '../../../components/ui/KeyboardAwareBottomBar';
+import { isNativeApp } from '../../../utils/platform';
 
 interface ChatInputBarProps {
   isBlocker?: boolean;
@@ -18,19 +19,50 @@ export const ChatInputBar: React.FC<ChatInputBarProps> = ({ onSend, onUpload, is
   const [newMessage, setNewMessage] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { showToast } = useNotification();
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const submitMessage = () => {
     if (!newMessage.trim() && !isUploading) return;
     onSend(newMessage.trim());
     setNewMessage('');
     onTyping(false);
+
+    // Reset height
+    if (textareaRef.current) {
+      textareaRef.current.style.height = '40px';
+    }
   };
 
-  const handleTyping = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    submitMessage();
+  };
+
+  const handleTyping = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setNewMessage(e.target.value);
     onTyping(e.target.value.length > 0);
+
+    // Auto-resize logic
+    if (textareaRef.current) {
+      textareaRef.current.style.height = '40px'; // Reset to calculate exact shrink
+      const scrollHeight = textareaRef.current.scrollHeight;
+      textareaRef.current.style.height = Math.min(scrollHeight, 120) + 'px';
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    const isMobile = isNativeApp() || (typeof window !== 'undefined' && window.innerWidth <= 768);
+
+    if (!isMobile) {
+      // Desktop: Enter sends, Shift+Enter new line
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        submitMessage();
+      }
+    } else {
+      // Mobile: Enter simply inserts newline (handled natively by textarea)
+    }
   };
 
   const handleComingSoon = () => {
@@ -38,7 +70,6 @@ export const ChatInputBar: React.FC<ChatInputBarProps> = ({ onSend, onUpload, is
   };
 
   const hasText = newMessage.trim().length > 0;
-
 
   if (isBlocked) {
     return (
@@ -67,7 +98,6 @@ export const ChatInputBar: React.FC<ChatInputBarProps> = ({ onSend, onUpload, is
   }
 
   return (
-
     <KeyboardAwareBottomBar hasGlobalFooter={false} position="relative" className="!px-0 !pt-0 !pb-0 bg-transparent shadow-none border-none">
     <form onSubmit={handleSubmit} className="p-2 bg-white border-t border-gray-100 pb-2 relative w-full">
       <div aria-live="polite" aria-atomic="true">
@@ -79,18 +109,21 @@ export const ChatInputBar: React.FC<ChatInputBarProps> = ({ onSend, onUpload, is
       </div>
 
       <div className="flex items-end gap-1.5 bg-gray-100 border border-gray-200 rounded-[24px] p-1 pl-3 pr-1 relative overflow-hidden focus-within:ring-2 focus-within:ring-indigo-100 focus-within:bg-white transition-all duration-300">
-        <input
-          type="text"
+        <textarea
+          ref={textareaRef}
           value={newMessage}
           onChange={handleTyping}
+          onKeyDown={handleKeyDown}
           placeholder="Message..."
-          className="flex-1 bg-transparent border-none text-[15px] text-gray-900 focus:ring-0 outline-none placeholder:text-gray-500 min-h-[40px] py-2 text-base"
+          rows={1}
+          className="flex-1 bg-transparent border-none text-[15px] text-gray-900 focus:ring-0 outline-none placeholder:text-gray-500 min-h-[40px] py-[10px] text-base resize-none overflow-y-auto scrollbar-hide max-h-[120px] leading-tight align-bottom self-center mb-0 mt-0"
+          style={{ height: '40px' }}
         />
 
         <input type="file" ref={imageInputRef} accept="image/*" className="hidden text-base" onChange={(e) => onUpload(e, 'image')} />
         <input type="file" ref={fileInputRef} accept=".pdf,.doc,.docx" className="hidden text-base" onChange={(e) => onUpload(e, 'file')} />
 
-        <div className="flex items-center gap-1.5 h-10 shrink-0">
+        <div className="flex items-center gap-1.5 h-10 shrink-0 self-end mb-0.5">
           {!hasText ? (
             <>
               <button type="button" onClick={handleComingSoon} className="p-2 text-gray-400 hover:text-gray-600 rounded-full transition-colors" aria-label="Toggle microphone">
@@ -107,7 +140,7 @@ export const ChatInputBar: React.FC<ChatInputBarProps> = ({ onSend, onUpload, is
             <button
               type="submit"
               disabled={isUploading}
-              className="px-4 h-full bg-blue-600 text-white font-semibold text-[15px] rounded-full hover:bg-blue-700 shadow-sm disabled:opacity-50 disabled:bg-gray-300 transition-all flex items-center justify-center"
+              className="px-4 h-full bg-blue-600 text-white font-semibold text-[15px] rounded-full hover:bg-blue-700 shadow-sm disabled:opacity-50 disabled:bg-gray-300 transition-all flex items-center justify-center mb-0.5 mt-0.5"
             >
               Send
             </button>
