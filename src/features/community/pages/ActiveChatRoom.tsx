@@ -74,11 +74,7 @@ export const ActiveChatRoom: React.FC = () => {
                 if (old.find(m => m.id === newMsg.id)) return old;
                 return [...old, { ...newMsg, status: 'sent' }];
             });
-            // Smart auto-scroll for incoming: we could check if user is at bottom before scrolling
-            // but for simplicity here we just scroll to bottom when new msg arrives
-            setTimeout(() => {
-               virtuosoRef.current?.scrollToIndex({ index: 'LAST', align: 'end', behavior: 'smooth' });
-            }, 100);
+
         }
       })
       .subscribe();
@@ -108,10 +104,7 @@ export const ActiveChatRoom: React.FC = () => {
         return old ? [...old, optimisticMsg] : [optimisticMsg];
       });
 
-      // Instantly scroll to bottom for our own optimistic message
-      setTimeout(() => {
-        virtuosoRef.current?.scrollToIndex({ index: 'LAST', align: 'end', behavior: 'smooth' });
-      }, 50);
+
 
       return { previousMessages, tempId: optimisticMsg.id };
     },
@@ -342,13 +335,14 @@ export const ActiveChatRoom: React.FC = () => {
       </div>
 
       {/* Messages Area (Virtualized) */}
-      <div className="flex-1 min-h-0 overflow-y-auto scrollbar-hide bg-white dark:bg-slate-950 flex flex-col">
+      <div className="flex-1 min-h-0 bg-white dark:bg-slate-950 flex flex-col">
         {isLoading ? (
           <div className="flex justify-center p-10 text-gray-600 dark:text-slate-400">Loading messages...</div>
         ) : (
           <Virtuoso
             ref={virtuosoRef}
             style={{ height: '100%' }}
+            followOutput="smooth"
             components={{
               Header: () => (
                 room.type === 'direct' && otherParticipant ? <ChatIntro user={otherParticipant} /> : <div className="h-4" />
@@ -428,6 +422,7 @@ export const ActiveChatRoom: React.FC = () => {
         isBlocked={blockStatus?.isBlockedBy}
         onUnblock={() => unblockMutation.mutate()}
         onSend={(text) => {
+          virtuosoRef.current?.scrollToIndex({ index: 'LAST', align: 'end', behavior: 'smooth' });
           sendMutation.mutate({
             room_id: room.id,
             sender_id: user!.id,
