@@ -3,15 +3,15 @@ import { ShimmerBlock } from '../../../components/ui/ShimmerBlock';
 
 export const ChatListSkeleton: React.FC = () => {
   return (
-    <div className="flex flex-col w-full max-w-2xl mx-auto pb-32 px-4">
+    <div className="flex flex-col w-full max-w-2xl mx-auto pb-32 px-4 dark:bg-slate-950">
       {/* Messages Header - Static Text */}
-      <h2 className="text-2xl font-bold text-gray-900 mb-6 mt-4">Messages</h2>
+      <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6 mt-4">Messages</h2>
 
       <div className="space-y-2">
         {Array.from({ length: 5 }).map((_, index) => (
           <div
             key={index}
-            className="flex items-center gap-4 p-4 bg-white rounded-2xl shadow-sm border border-gray-100"
+            className="flex items-center gap-4 p-4 bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-800"
           >
             {/* Avatar Skeleton */}
             <ShimmerBlock className="w-12 h-12 rounded-full shrink-0" />

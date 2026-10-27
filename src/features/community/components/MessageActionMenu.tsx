@@ -78,7 +78,7 @@ export const MessageActionMenu: React.FC<MessageActionMenuProps> = ({
 
       <DropdownMenu.Portal>
         <DropdownMenu.Content
-          className="z-50 min-w-[180px] bg-white rounded-xl shadow-lg border border-gray-100 p-1.5 animate-in fade-in zoom-in-95 duration-100"
+          className="z-50 min-w-[180px] bg-white dark:bg-slate-900 rounded-xl shadow-lg border border-gray-100 dark:border-slate-800 p-1.5 animate-in fade-in zoom-in-95 duration-100"
           sideOffset={8}
           align="start"
         >
@@ -89,9 +89,9 @@ export const MessageActionMenu: React.FC<MessageActionMenuProps> = ({
               className={`
                 flex items-center gap-2.5 px-3 py-2 text-sm font-medium rounded-lg
                 outline-none cursor-pointer select-none transition-colors
-                focus:bg-gray-100 focus:text-gray-900
+                focus:bg-gray-100 dark:focus:bg-slate-800 focus:text-gray-900 dark:focus:text-slate-100
                 data-[disabled]:opacity-50 data-[disabled]:pointer-events-none
-                ${action.destructive ? 'text-red-600 focus:text-red-700 focus:bg-red-50' : 'text-gray-700'}
+                ${action.destructive ? 'text-red-600 dark:text-red-400 focus:text-red-700 dark:focus:text-red-300 focus:bg-red-50 dark:focus:bg-red-900/30' : 'text-gray-700 dark:text-slate-300'}
               `}
             >
               {action.icon && (

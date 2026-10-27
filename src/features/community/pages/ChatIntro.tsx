@@ -26,16 +26,16 @@ export const ChatIntro: React.FC<ChatIntroProps> = ({ user }) => {
           </div>
         )}
       </div>
-      <h2 className="text-xl font-bold text-gray-900 mb-0.5">{user.full_name || 'Unknown User'}</h2>
+      <h2 className="text-xl font-bold text-gray-900 dark:text-slate-100 mb-0.5">{user.full_name || 'Unknown User'}</h2>
       {user.username ? (
-        <p className="text-gray-500 font-medium text-sm mb-3">/u/{user.username}</p>
+        <p className="text-gray-500 dark:text-slate-400 font-medium text-sm mb-3">/u/{user.username}</p>
       ) : (
-        <p className="text-gray-500 font-medium text-sm mb-3">/u/user_{user.user_id.substring(0, 5)}</p>
+        <p className="text-gray-500 dark:text-slate-400 font-medium text-sm mb-3">/u/user_{user.user_id.substring(0, 5)}</p>
       )}
 
       <button
         onClick={() => navigate(`/u/${user.username || user.user_id}`)}
-        className="px-6 py-2 bg-gray-100 hover:bg-gray-200 text-gray-900 font-semibold rounded-full transition-colors text-sm"
+        className="px-6 py-2 bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 text-gray-900 dark:text-slate-100 font-semibold rounded-full transition-colors text-sm"
       >
         View profile
       </button>

@@ -61,7 +61,7 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = React.memo(({
     {
       id: 'like',
       label: isLiked ? 'Unlike' : 'Like',
-      icon: <Heart className={cn("w-4 h-4", isLiked ? "fill-red-500 text-red-500" : "text-gray-600")} />,
+      icon: <Heart className={cn("w-4 h-4", isLiked ? "fill-red-500 text-red-500" : "text-gray-600 dark:text-slate-400")} />,
       onClick: () => handleToggleLike(false) // No big animation for menu click
     }
   ];
@@ -70,7 +70,7 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = React.memo(({
     actions.push({
       id: 'copy',
       label: 'Copy',
-      icon: <Copy className="w-4 h-4 text-gray-600" />,
+      icon: <Copy className="w-4 h-4 text-gray-600 dark:text-slate-400" />,
       onClick: handleCopy
     });
   }
@@ -79,7 +79,7 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = React.memo(({
     <div className="w-full flex flex-col">
       {showTimeSeparator && (
         <div className="flex justify-center my-3">
-          <span className="text-[10px] font-medium text-gray-400 bg-gray-50/80 px-2 py-0.5 rounded-full border border-gray-100/50">
+          <span className="text-[10px] font-medium text-gray-400 bg-gray-50/80 dark:bg-slate-800 dark:border-slate-700 px-2 py-0.5 rounded-full border border-gray-100/50">
             {timeSeparatorText}
           </span>
         </div>
@@ -121,7 +121,7 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = React.memo(({
                 "px-4 py-2.5 relative transition-all duration-200 select-text",
                 isMine
                   ? "bg-blue-600 text-white rounded-2xl rounded-br-sm shadow-sm"
-                  : "bg-gray-100 text-black rounded-2xl rounded-bl-sm",
+                  : "bg-gray-100 dark:bg-slate-800 text-black dark:text-slate-100 rounded-2xl rounded-bl-sm",
                 msg.status === 'sending' && "opacity-60"
               )}
             >
@@ -132,7 +132,7 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = React.memo(({
               )}
               {msg.media_url && msg.media_type === 'file' && (
                 <a href={msg.media_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 p-3 bg-black/5 rounded-xl mb-2 hover:bg-black/10 transition select-none">
-                  <File size={24} className={isMine ? "text-white" : "text-gray-900"} />
+                  <File size={24} className={isMine ? "text-white" : "text-gray-900 dark:text-slate-100"} />
                   <span className="text-sm font-medium underline">Attachment</span>
                 </a>
               )}
@@ -145,7 +145,7 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = React.memo(({
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               className={cn(
-                "absolute -bottom-2 w-6 h-6 bg-white rounded-full flex items-center justify-center shadow-sm border border-gray-100 z-10",
+                "absolute -bottom-2 w-6 h-6 bg-white dark:bg-slate-800 rounded-full flex items-center justify-center shadow-sm border border-gray-100 dark:border-slate-700 z-10",
                 isMine ? "right-1" : "right-1"
               )}
             >
