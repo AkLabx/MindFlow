@@ -73,8 +73,8 @@ export const ChatInputBar: React.FC<ChatInputBarProps> = ({ onSend, onUpload, is
 
   if (isBlocked) {
     return (
-      <KeyboardAwareBottomBar hasGlobalFooter={false} position="relative" className="!px-3 !pt-2 !pb-3 bg-white flex items-center justify-center">
-        <div className="bg-gray-100 border border-gray-200 rounded-[28px] p-3 text-center w-full text-[14px] text-gray-600 font-medium h-[52px] flex items-center justify-center">
+      <KeyboardAwareBottomBar hasGlobalFooter={false} position="relative" className="!px-3 !pt-2 !pb-3 bg-white dark:bg-slate-950 flex items-center justify-center">
+        <div className="bg-gray-100 dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-[28px] p-3 text-center w-full text-[14px] text-gray-600 dark:text-slate-400 font-medium h-[52px] flex items-center justify-center">
           You cannot reply to this conversation anymore.
         </div>
       </KeyboardAwareBottomBar>
@@ -83,8 +83,8 @@ export const ChatInputBar: React.FC<ChatInputBarProps> = ({ onSend, onUpload, is
 
   if (isBlocker) {
     return (
-      <KeyboardAwareBottomBar hasGlobalFooter={false} position="relative" className="!px-3 !pt-2 !pb-3 bg-white flex items-center justify-center gap-2">
-        <div className="bg-gray-100 border border-gray-200 rounded-[28px] px-4 text-center flex-1 text-[14px] text-gray-600 font-medium h-[52px] flex items-center justify-center">
+      <KeyboardAwareBottomBar hasGlobalFooter={false} position="relative" className="!px-3 !pt-2 !pb-3 bg-white dark:bg-slate-950 flex items-center justify-center gap-2">
+        <div className="bg-gray-100 dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-[28px] px-4 text-center flex-1 text-[14px] text-gray-600 dark:text-slate-400 font-medium h-[52px] flex items-center justify-center">
           You have blocked this user. Unblock to send a message.
         </div>
         <button
@@ -99,16 +99,16 @@ export const ChatInputBar: React.FC<ChatInputBarProps> = ({ onSend, onUpload, is
 
   return (
     <KeyboardAwareBottomBar hasGlobalFooter={false} position="relative" className="!px-0 !pt-0 !pb-0 bg-transparent shadow-none border-none">
-    <form onSubmit={handleSubmit} className="p-2 bg-white border-t border-gray-100 pb-2 relative w-full">
+    <form onSubmit={handleSubmit} className="p-2 bg-white dark:bg-slate-950 border-t border-gray-100 dark:border-slate-800 pb-2 relative w-full">
       <div aria-live="polite" aria-atomic="true">
         {isUploading && (
-          <div className="absolute -top-8 left-1/2 -translate-x-1/2 text-xs font-semibold text-indigo-500 animate-pulse bg-white/90 backdrop-blur-sm px-4 py-1.5 rounded-full shadow-sm border border-gray-100">
+          <div className="absolute -top-8 left-1/2 -translate-x-1/2 text-xs font-semibold text-indigo-500 dark:text-indigo-400 animate-pulse bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm px-4 py-1.5 rounded-full shadow-sm border border-gray-100 dark:border-slate-800">
             Uploading media...
           </div>
         )}
       </div>
 
-      <div className="flex items-end gap-1.5 bg-gray-100 border border-gray-200 rounded-[24px] p-1 pl-3 pr-1 relative overflow-hidden focus-within:ring-2 focus-within:ring-indigo-100 focus-within:bg-white transition-all duration-300">
+      <div className="flex items-end gap-1.5 bg-gray-100 dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-[24px] p-1 pl-3 pr-1 relative overflow-hidden focus-within:ring-2 focus-within:ring-indigo-100 dark:focus-within:ring-indigo-900 focus-within:bg-white dark:focus-within:bg-slate-950 transition-all duration-300">
         <textarea
           ref={textareaRef}
           value={newMessage}
@@ -116,7 +116,7 @@ export const ChatInputBar: React.FC<ChatInputBarProps> = ({ onSend, onUpload, is
           onKeyDown={handleKeyDown}
           placeholder="Message..."
           rows={1}
-          className="flex-1 bg-transparent border-none text-[15px] text-gray-900 focus:ring-0 outline-none placeholder:text-gray-500 min-h-[40px] py-[10px] text-base resize-none overflow-y-auto scrollbar-hide max-h-[120px] leading-tight align-bottom self-center mb-0 mt-0"
+          className="flex-1 bg-transparent border-none text-[15px] text-gray-900 dark:text-slate-100 focus:ring-0 outline-none placeholder:text-gray-500 dark:placeholder:text-slate-500 min-h-[40px] py-[10px] text-base resize-none overflow-y-auto scrollbar-hide max-h-[120px] leading-tight align-bottom self-center mb-0 mt-0"
           style={{ height: '40px' }}
         />
 
@@ -126,13 +126,13 @@ export const ChatInputBar: React.FC<ChatInputBarProps> = ({ onSend, onUpload, is
         <div className="flex items-center gap-1.5 h-10 shrink-0 self-end mb-0.5">
           {!hasText ? (
             <>
-              <button type="button" onClick={handleComingSoon} className="p-2 text-gray-400 hover:text-gray-600 rounded-full transition-colors" aria-label="Toggle microphone">
+              <button type="button" onClick={handleComingSoon} className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-slate-300 rounded-full transition-colors" aria-label="Toggle microphone">
                 <Mic size={22} strokeWidth={1.5} />
               </button>
-              <button type="button" onClick={() => imageInputRef.current?.click()} className="p-2 text-gray-400 hover:text-gray-600 rounded-full transition-colors">
+              <button type="button" onClick={() => imageInputRef.current?.click()} className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-slate-300 rounded-full transition-colors">
                 <ImageIcon size={22} strokeWidth={1.5} />
               </button>
-              <button type="button" onClick={handleComingSoon} className="p-2 text-gray-400 hover:text-gray-600 rounded-full transition-colors" aria-label="Perform action">
+              <button type="button" onClick={handleComingSoon} className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-slate-300 rounded-full transition-colors" aria-label="Perform action">
                 <Sticker size={22} strokeWidth={1.5} />
               </button>
             </>

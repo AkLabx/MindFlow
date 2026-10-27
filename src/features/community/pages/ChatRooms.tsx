@@ -42,8 +42,8 @@ export const ChatRooms: React.FC = () => {
   if (isLoading) return <ChatListSkeleton />;
 
   return (
-    <div className="flex flex-col w-full max-w-3xl mx-auto pb-[env(safe-area-inset-bottom)] px-4 sm:px-4 md:px-0">
-      <div className="flex items-center gap-3 mb-6 mt-4"><button onClick={() => navigate('/community')} className="p-2 -ml-2 rounded-full hover:bg-gray-100 text-gray-800"><ArrowLeft size={24} /></button><h2 className="text-2xl font-bold text-gray-900">Messages</h2></div>
+    <div className="flex flex-col w-full max-w-3xl mx-auto pb-[env(safe-area-inset-bottom)] px-4 sm:px-4 md:px-0 dark:bg-slate-950">
+      <div className="flex items-center gap-3 mb-6 mt-4"><button onClick={() => navigate('/community')} className="p-2 -ml-2 rounded-full hover:bg-gray-100 dark:hover:bg-slate-800 text-gray-800 dark:text-slate-300"><ArrowLeft size={24} /></button><h2 className="text-2xl font-bold text-gray-900 dark:text-white">Messages</h2></div>
       <div className="space-y-2">
         {rooms?.map(room => {
           // For direct chats, find the other person
@@ -57,7 +57,7 @@ export const ChatRooms: React.FC = () => {
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               onClick={() => navigate(`/messages/${room.id}`)}
-              className="w-full bg-white backdrop-blur-md border border-gray-200 rounded-2xl p-4 flex items-center gap-4 text-left"
+              className="w-full bg-white dark:bg-slate-900 backdrop-blur-md border border-gray-200 dark:border-slate-800 rounded-2xl p-4 flex items-center gap-4 text-left"
             >
               <div className="w-12 h-12 rounded-full overflow-hidden shrink-0 shadow-sm">
                 <PresenceAvatar
@@ -68,19 +68,19 @@ export const ChatRooms: React.FC = () => {
                 />
               </div>
               <div className="flex-1 min-w-0">
-                <div className="font-semibold text-gray-900 truncate flex items-center gap-2">
+                <div className="font-semibold text-gray-900 dark:text-slate-100 truncate flex items-center gap-2">
                   {title}
                   {room.type === 'direct' && otherParticipant?.user_id && (
                     <PresenceDot userId={otherParticipant.user_id} />
                   )}
                 </div>
-                <div className="text-sm text-gray-500 truncate">Tap to open chat</div>
+                <div className="text-sm text-gray-500 dark:text-slate-400 truncate">Tap to open chat</div>
               </div>
             </motion.button>
           );
         })}
         {rooms?.length === 0 && (
-          <div className="text-gray-500 text-center mt-10">No messages yet.</div>
+          <div className="text-gray-500 dark:text-slate-400 text-center mt-10">No messages yet.</div>
         )}
       </div>
     </div>
