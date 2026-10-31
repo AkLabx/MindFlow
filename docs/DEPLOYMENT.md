@@ -1,4 +1,4 @@
-# Deployment Instructions for Gemini TTS Edge Function
+# Deployment Instructions for Gemini TTS Edge Function (tts-gateway)
 
 ## 1. Prerequisites
 
@@ -8,10 +8,10 @@ Ensure you have the Supabase CLI installed and logged in.
 
 Since we are using the Gemini Native Audio model via the Generative Language API, you need an API key from **Google AI Studio**.
 
-1.  Go to [Google AI Studio](https://aistudio.google.com/).
-2.  Click on **Get API key** in the top-left corner.
-3.  Click **Create API key**.
-4.  Copy the key.
+1. Go to [Google AI Studio](https://aistudio.google.com/).
+2. Click on **Get API key** in the top-left corner.
+3. Click **Create API key**.
+4. Copy the key.
 
 ## 3. Set Secrets in Supabase
 
@@ -30,21 +30,21 @@ supabase secrets list
 
 ## 4. Deploy the Function
 
-Deploy the function to your Supabase project:
+Deploy the `tts-gateway` function to your Supabase project:
 
 ```bash
-supabase functions deploy gemini-tts
+supabase functions deploy tts-gateway
 ```
 
 ## 5. Verify
 
-Once deployed, the frontend application will automatically call this function when you click the speaker icon.
+Once deployed, the frontend application will automatically call this function via `/functions/v1/tts-gateway` when you click the speaker icon.
 
 ## Troubleshooting
 
--   **Error 403/400**:
-    -   Ensure your API key is valid.
-    -   Ensure the model `gemini-2.5-flash-native-audio-preview-09-2025` is available in your region.
--   **No Audio**:
-    -   Check the browser console logs.
-    -   Check the Supabase Dashboard -> Edge Functions -> `gemini-tts` -> Logs.
+- **Error 403/400**:
+  - Ensure your API key is valid.
+  - Ensure the model `gemini-2.5-flash-native-audio-preview-09-2025` is available in your region.
+- **No Audio**:
+  - Check the browser console logs.
+  - Check the Supabase Dashboard -> Edge Functions -> `tts-gateway` -> Logs.

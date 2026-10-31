@@ -1,56 +1,126 @@
 import React from 'react';
-import { ArrowLeft, Clock, AlertCircle } from 'lucide-react';
+import { ArrowLeft, RotateCw, BookOpen, BookA } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { ROUTES } from '@/config/routes';
+import {
+  useTodaysPlan,
+  TodaysPlanHeroCard,
+  MistakeVaultCard,
+  SpacedRetentionCard,
+  ChaptersOf25List,
+  VocabBoosterCard,
+  TodaysPlanSkeleton
+} from '@/features/todays-plan';
 
 export const TodaysPlanPage: React.FC = () => {
   const navigate = useNavigate();
+  const {
+    planState,
+    isLoading,
+    isLaunching,
+    activeTrack,
+    setActiveTrack,
+    startPlanSession,
+    startChapterSession,
+    refreshPlan
+  } = useTodaysPlan();
 
   return (
     <div className="min-h-full w-full overflow-x-hidden bg-gradient-to-b from-[#EEF2FF] via-[#F5F7FF] to-[#F8FAFC] dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))]">
-      {/* Header */}
+      {/* Sticky Header */}
       <div className="sticky top-0 z-50 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-4 py-3 flex items-center justify-between pt-[max(0.75rem,env(safe-area-inset-top))]">
         <button
           onClick={() => navigate(ROUTES.DASHBOARD)}
           className="p-2 -ml-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors"
+          aria-label="Back to Dashboard"
         >
           <ArrowLeft className="w-5 h-5" />
         </button>
+
         <h1 className="text-lg font-bold text-slate-800 dark:text-slate-100 absolute left-1/2 -translate-x-1/2">
           Today's Plan
         </h1>
-        <div className="w-9" /> {/* Spacer */}
+
+        <button
+          onClick={() => refreshPlan()}
+          disabled={isLoading || isLaunching}
+          className="p-2 -mr-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors disabled:opacity-50"
+          aria-label="Refresh Plan"
+        >
+          <RotateCw className={`w-4 h-4 ${isLoading ? 'animate-spin text-indigo-500' : ''}`} />
+        </button>
       </div>
 
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 pt-6 sm:pt-8 space-y-6">
-        {/* Banner */}
-        <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden text-center sm:text-left">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-indigo-500/10 via-violet-500/10 to-transparent blur-3xl -z-10 rounded-full" />
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 pt-5 sm:pt-6 space-y-6">
+        {/* Dual-Track Tabs (GK vs Vocab) */}
+        <div className="flex p-1 bg-slate-200/70 dark:bg-slate-800/80 rounded-2xl max-w-sm mx-auto shadow-inner">
+          <button
+            onClick={() => setActiveTrack('gk')}
+            className={`flex-1 py-2 px-3 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition-all ${
+              activeTrack === 'gk'
+                ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+            }`}
+          >
+            <BookOpen className="w-4 h-4" />
+            <span>GK Revision Plan</span>
+          </button>
 
-          <div className="flex flex-col sm:flex-row items-center gap-4 mb-4">
-            <div className="w-12 h-12 bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 rounded-2xl flex items-center justify-center shrink-0">
-              <Clock className="w-6 h-6" />
-            </div>
-            <div>
-              <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white flex items-center justify-center sm:justify-start gap-2">
-                Your personal revision (!)
-              </h2>
-            </div>
-          </div>
-
-          <p className="text-slate-600 dark:text-slate-300 leading-relaxed text-sm sm:text-base">
-            This is built automatically from your own quizzes - no setup needed. Every word you miss is collected here to fix, and every word you get right comes back later for a quick refresh so it sticks for the exam. Questions are split into Parts of 25 (like a chapter) - Read to study, Test to check yourself.
-          </p>
+          <button
+            onClick={() => setActiveTrack('vocab')}
+            className={`flex-1 py-2 px-3 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition-all ${
+              activeTrack === 'vocab'
+                ? 'bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 shadow-sm'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+            }`}
+          >
+            <BookA className="w-4 h-4" />
+            <span>Vocab Booster</span>
+          </button>
         </div>
 
-        {/* Coming Soon Notice */}
-        <div className="mt-8 flex flex-col items-center justify-center p-8 sm:p-12 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl text-center bg-slate-50/50 dark:bg-slate-800/20">
-          <AlertCircle className="w-12 h-12 text-slate-400 mb-4" />
-          <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200 mb-2">Feature Coming Soon!</h3>
-          <p className="text-slate-500 dark:text-slate-400 max-w-sm">
-            We are working hard to build this feature. It will dynamically list your revision quizzes right here. Stay tuned!
-          </p>
-        </div>
+        {/* Content Body */}
+        {isLoading && !planState ? (
+          <TodaysPlanSkeleton />
+        ) : planState ? (
+          <>
+            {activeTrack === 'gk' ? (
+              <>
+                {/* 1. Hero Card (1-Click Launch 5-min drill) */}
+                <TodaysPlanHeroCard
+                  planState={planState}
+                  onStart={startPlanSession}
+                  isLaunching={isLaunching}
+                />
+
+                {/* 2. Breakout Cards: Mistake Vault & Spaced Retention */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <MistakeVaultCard
+                    mistakeItems={planState.items.filter(i => i.category === 'mistake')}
+                    onStartDrill={startPlanSession}
+                    isLaunching={isLaunching}
+                  />
+
+                  <SpacedRetentionCard
+                    spacedItems={planState.items.filter(i => i.category === 'spaced_repetition')}
+                    onStartDrill={startPlanSession}
+                    isLaunching={isLaunching}
+                  />
+                </div>
+
+                {/* 3. Chapters of 25 (Sequential Syllabus Progression) */}
+                <ChaptersOf25List
+                  chapters={planState.chapters}
+                  onStartChapter={startChapterSession}
+                  isLaunching={isLaunching}
+                />
+              </>
+            ) : (
+              /* English Vocab Booster Track */
+              <VocabBoosterCard vocabItems={planState.vocabItems} />
+            )}
+          </>
+        ) : null}
       </div>
     </div>
   );

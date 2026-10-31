@@ -40,6 +40,8 @@ export const AttemptedQuizzesList: React.FC<AttemptedQuizzesListProps> = ({ view
     const { data: quizzes = [], isLoading: loading, isError, error, refetch } = useQuery({
         queryKey: ['attempted-quizzes', user?.id],
         enabled: !!user && !isAuthTransitioning,
+        staleTime: 1000 * 60 * 5,
+        gcTime: 1000 * 60 * 15,
         queryFn: async () => {
             const { data: { session } } = await supabase.auth.getSession();
             if (!session?.user) return [];

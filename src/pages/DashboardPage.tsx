@@ -53,6 +53,8 @@ export const DashboardPage: React.FC<DashboardProps> = ({ onBackToIntro }) => {
   const { data: latestQuiz } = useQuery({
     queryKey: ['latest-paused-quiz', user?.id],
     enabled: !!user,
+    staleTime: 1000 * 60 * 2,
+    gcTime: 1000 * 60 * 10,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('saved_quizzes')
@@ -136,7 +138,7 @@ export const DashboardPage: React.FC<DashboardProps> = ({ onBackToIntro }) => {
   const handleQuickAction = (action: string) => {
     switch(action) {
       case 'mock':
-        showComingSoonPopup();
+        handleNavigateWithFilters({ tags: ['PYQ'] }, 'mock', true);
         break;
       case 'custom':
         navigate("/quiz/config");
@@ -144,8 +146,11 @@ export const DashboardPage: React.FC<DashboardProps> = ({ onBackToIntro }) => {
       case 'english':
         navigate("/english");
         break;
+      case 'weak-topics':
+        handleStartSuggestedDrill();
+        break;
       case 'bookmarks':
-        showComingSoonPopup();
+        navigate(ROUTES.QUIZ.BOOKMARKS);
         break;
       default:
         break;
@@ -221,7 +226,7 @@ export const DashboardPage: React.FC<DashboardProps> = ({ onBackToIntro }) => {
               topicTitle={drillProps.topicTitle}
               subtext={drillProps.subtext}
               isDiagnostic={drillProps.isDiagnostic}
-              onStartDrill={showComingSoonPopup}
+              onStartDrill={handleStartSuggestedDrill}
             />
           </div>
           <div className="md:col-span-5">
@@ -230,15 +235,15 @@ export const DashboardPage: React.FC<DashboardProps> = ({ onBackToIntro }) => {
               quizzesCompleted={stats.quizzesCompleted}
               correctAnswers={stats.correctAnswers}
               totalTimeSpentFormatted={stats.totalTimeSpentFormatted}
-              onDetailsClick={showComingSoonPopup}
+              onDetailsClick={() => navigate(`${ROUTES.QUIZ.LIBRARY}?tab=attempted`)}
             />
           </div>
         </div>
 
         {/* Tier 5 */}
         <ImportantForSscStrip
-          onTopicClick={showComingSoonPopup}
-          onViewAllClick={showComingSoonPopup}
+          onTopicClick={(filter) => handleNavigateWithFilters(filter, 'learning', true)}
+          onViewAllClick={() => navigate("/quiz/config")}
         />
       </div>
     </div>

@@ -2,7 +2,7 @@ import { supabase } from '../supabase';
 import { useRecoveryStore } from '../../stores/useRecoveryStore';
 import { setRecoveryPromise, getRecoveryPromise, setRecoveringState } from './recoveryContext';
 import { Capacitor } from '@capacitor/core';
-import { QueryClient } from '@tanstack/react-query';
+import { queryClient } from '../queryClient';
 
 
 export const RECOVERY_ENABLED = true;
@@ -17,9 +17,7 @@ let isInternalRecoveryCall = false;
 
 // We need a ref to the global queryClient to invalidate queries after a successful recovery
 // It's attached to the window in AppProvider.tsx
-const getQueryClient = (): QueryClient | undefined => {
-    return (window as any).__queryClient;
-}
+const getQueryClient = () => queryClient;
 
 /**
  * Executes a full session validation and potential refresh.

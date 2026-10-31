@@ -28,7 +28,10 @@ export const useAppBootstrap = (): BootstrapState => {
   useEffect(() => {
     // Listen for native Android deep links
     const appUrlListener = CapacitorApp.addListener('appUrlOpen', data => {
-        console.log('App opened with URL:', data);
+        const sanitizedUrl = data.url
+            ? data.url.replace(/access_token=[^&]+/g, 'access_token=[REDACTED]').replace(/refresh_token=[^&]+/g, 'refresh_token=[REDACTED]')
+            : '';
+        console.log('App opened with URL:', sanitizedUrl);
         if (data.url && data.url.includes('mindflow://')) {
             const path = data.url.split('mindflow://')[1];
             if (path) {
@@ -42,9 +45,10 @@ export const useAppBootstrap = (): BootstrapState => {
       try {
         if (!isMounted) return;
 
-        // --- INSTRUMENTATION FOR OAUTH DEBUGGING ---
-        console.log('[Bootstrap] Window Location:', window.location.href);
-        console.log('[Bootstrap] Hash:', window.location.hash);
+        // --- INSTRUMENTATION FOR OAUTH DEBUGGING (SENSITIVE TOKENS REDACTED) ---
+        const isSensitiveHash = window.location.hash && window.location.hash.includes('access_token=');
+        console.log('[Bootstrap] Window Location:', isSensitiveHash ? window.location.origin + window.location.pathname + '#[OAUTH_TOKENS_REDACTED]' : window.location.href);
+        console.log('[Bootstrap] Hash:', isSensitiveHash ? '#[OAUTH_TOKENS_REDACTED]' : window.location.hash);
         console.log('[Bootstrap] Search:', window.location.search);
 
         // OAuth Hash Interception & Cleanup for HashRouter
@@ -57,6 +61,12 @@ export const useAppBootstrap = (): BootstrapState => {
           const params = new URLSearchParams(hashString);
           const accessToken = params.get('access_token');
           const refreshToken = params.get('refresh_token');
+
+          // Immediately sanitize address bar to protect against live streaming / shoulder-surfing leaks
+          // Remove the hash cleanly to prevent HashRouter from treating it as a route
+          sessionStorage.setItem('mindflow_booted', 'true');
+          window.history.replaceState(null, '', window.location.pathname + window.location.search);
+          console.log('[Bootstrap] Sanitized URL address bar immediately prior to session initialization.');
 
           if (accessToken && refreshToken) {
             console.log('[Bootstrap] Manually setting Supabase session from HashRouter URL parameters.');
@@ -71,10 +81,7 @@ export const useAppBootstrap = (): BootstrapState => {
             await supabase.auth.getSession();
           }
 
-          console.log('[Bootstrap] Supabase processed hash. Cleaning up URL.');
-          // Remove the hash cleanly to prevent HashRouter from treating it as a route
-          sessionStorage.setItem('mindflow_booted', 'true');
-          window.history.replaceState(null, '', window.location.pathname + window.location.search);
+          console.log('[Bootstrap] Supabase processed hash.');
         }
         // ------------------------------------------
 

@@ -1,9 +1,13 @@
+import { supabase } from '@/lib/supabase';
+import { fetchQuestionsByIds } from '@/features/quiz/services/questionService';
 import React from "react";
-import { Play, Calendar, Target, History, ChevronRight } from "lucide-react";
+import { Play, Calendar, Bookmark, FolderClock } from "lucide-react";
 import { User } from "@supabase/supabase-js";
 import { SavedQuiz } from "@/features/quiz/types";
 import { useNavigate } from "react-router-dom";
 import { ROUTES } from "@/config/routes";
+import { useQuery } from "@tanstack/react-query";
+import { db } from "@/lib/db";
 
 interface DashboardGreetingProps {
   user: User | null;
@@ -19,6 +23,30 @@ export const DashboardGreeting: React.FC<DashboardGreetingProps> = ({
   const navigate = useNavigate();
   const firstName =
     user?.user_metadata?.first_name || user?.email?.split("@")[0] || "Aspirant";
+
+  const { data: bookmarkCount = 0 } = useQuery({
+    queryKey: ['dashboard-bookmark-count', user?.id],
+    queryFn: async () => {
+      const all = await db.getAllBookmarks().catch(() => []);
+      if (all && all.length > 0) return all.length;
+      if (user) {
+        const { data: remoteBookmarks } = await supabase
+          .from('user_bookmarks')
+          .select('question_id')
+          .eq('user_id', user.id);
+        if (remoteBookmarks && remoteBookmarks.length > 0) {
+          const ids = remoteBookmarks.map((b: any) => b.question_id);
+          const fullQuestions = await fetchQuestionsByIds(ids);
+          for (const q of fullQuestions) {
+            await db.saveBookmark(q);
+          }
+          return fullQuestions.length;
+        }
+      }
+      return 0;
+    },
+    staleTime: 1000 * 60 * 2,
+  });
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -45,13 +73,13 @@ export const DashboardGreeting: React.FC<DashboardGreetingProps> = ({
         {/* Today's Plan */}
         <button
           onClick={() =>
-            navigate((ROUTES as any).TODAYS_PLAN || "/todays-plan")
+            navigate(ROUTES.TODAYS_PLAN || "/todays-plan")
           }
-          className="flex flex-col items-center justify-center p-2.5 sm:p-4 text-center rounded-2xl bg-white dark:bg-slate-800/80 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] dark:shadow-none border border-slate-100 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-all group w-full"
+          className="flex flex-col items-center justify-center p-2.5 sm:p-4 text-center rounded-2xl bg-white dark:bg-slate-800/80 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] dark:shadow-none border border-slate-100 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-all group w-full cursor-pointer"
         >
           <div className="flex flex-col items-center gap-1 sm:gap-2 mb-0 w-full justify-center">
             <div className="flex flex-col items-center gap-1 sm:gap-2">
-              <Calendar className="w-5 h-5 sm:w-5 sm:h-5 text-indigo-500" />
+              <Calendar className="w-5 h-5 sm:w-5 sm:h-5 text-indigo-500 group-hover:scale-110 transition-transform" />
               <span className="font-semibold text-[11px] leading-tight sm:text-sm text-slate-700 dark:text-slate-300 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
                 Today's Plan
               </span>
@@ -62,27 +90,27 @@ export const DashboardGreeting: React.FC<DashboardGreetingProps> = ({
           </span>
         </button>
 
-        {/* Daily Mission */}
+        {/* Bookmarks */}
         <button
           onClick={() =>
-            navigate((ROUTES as any).DAILY_MISSION || "/daily-mission")
+            navigate(ROUTES.QUIZ.BOOKMARKS)
           }
-          className="flex flex-col items-center justify-center p-2.5 sm:p-4 text-center rounded-2xl bg-white dark:bg-slate-800/80 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] dark:shadow-none border border-slate-100 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-all group w-full"
+          className="flex flex-col items-center justify-center p-2.5 sm:p-4 text-center rounded-2xl bg-white dark:bg-slate-800/80 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] dark:shadow-none border border-slate-100 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-all group w-full cursor-pointer"
         >
           <div className="flex flex-col items-center gap-1 sm:gap-2 mb-0 w-full justify-center">
             <div className="flex flex-col items-center gap-1 sm:gap-2">
-              <Target className="w-5 h-5 sm:w-5 sm:h-5 text-rose-500" />
-              <span className="font-semibold text-[11px] leading-tight sm:text-sm text-slate-700 dark:text-slate-300 group-hover:text-rose-600 dark:group-hover:text-rose-400 transition-colors">
-                Daily Mission
+              <Bookmark className="w-5 h-5 sm:w-5 sm:h-5 text-amber-500 group-hover:scale-110 transition-transform" />
+              <span className="font-semibold text-[11px] leading-tight sm:text-sm text-slate-700 dark:text-slate-300 group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">
+                Bookmarks
               </span>
             </div>
           </div>
           <span className="block text-[9px] leading-tight sm:text-[10px] text-slate-500 dark:text-slate-400 font-medium mt-1">
-            today's challenge
+            {bookmarkCount > 0 ? `${bookmarkCount} saved Qs` : "saved questions"}
           </span>
         </button>
 
-        {/* Continue / Resume */}
+        {/* Resume Quiz */}
         <button
           onClick={() => latestQuiz && onResumeQuiz(latestQuiz)}
           disabled={!latestQuiz}
@@ -95,37 +123,37 @@ export const DashboardGreeting: React.FC<DashboardGreetingProps> = ({
           <div className="flex flex-col items-center gap-1 sm:gap-2 mb-0 w-full justify-center">
             <div className="flex flex-col items-center gap-1 sm:gap-2">
               <Play
-                className={`w-5 h-5 sm:w-5 sm:h-5 ${latestQuiz ? "text-violet-500" : "text-slate-400"}`}
+                className={`w-5 h-5 sm:w-5 sm:h-5 ${latestQuiz ? "text-violet-500 group-hover:scale-110 transition-transform" : "text-slate-400"}`}
               />
               <span
                 className={`font-semibold text-[11px] leading-tight sm:text-sm transition-colors ${latestQuiz ? "text-indigo-700 dark:text-indigo-300 group-hover:text-indigo-800 dark:group-hover:text-indigo-200" : "text-slate-500 dark:text-slate-400"}`}
               >
-                Continue
+                Resume Quiz
               </span>
             </div>
           </div>
           <span
             className={`block text-[9px] leading-tight sm:text-[10px] font-medium truncate w-full mt-1 ${latestQuiz ? "text-indigo-600/70 dark:text-indigo-400/70" : "text-slate-500 dark:text-slate-400"}`}
           >
-            {latestQuiz ? latestQuiz.name || "Paused Quiz" : "no paused quiz"}
+            {latestQuiz ? latestQuiz.name || "Paused Quiz" : "no quiz in progress"}
           </span>
         </button>
 
         {/* Quiz History */}
         <button
           onClick={() => navigate(`${ROUTES.QUIZ.LIBRARY}?tab=attempted`)}
-          className="flex flex-col items-center justify-center p-2.5 sm:p-4 text-center rounded-2xl bg-white dark:bg-slate-800/80 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] dark:shadow-none border border-slate-100 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-all group w-full"
+          className="flex flex-col items-center justify-center p-2.5 sm:p-4 text-center rounded-2xl bg-white dark:bg-slate-800/80 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] dark:shadow-none border border-slate-100 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-all group w-full cursor-pointer"
         >
           <div className="flex flex-col items-center gap-1 sm:gap-2 mb-0 w-full justify-center">
             <div className="flex flex-col items-center gap-1 sm:gap-2">
-              <History className="w-5 h-5 sm:w-5 sm:h-5 text-emerald-500" />
+              <FolderClock className="w-5 h-5 sm:w-5 sm:h-5 text-emerald-500 group-hover:scale-110 transition-transform" />
               <span className="font-semibold text-[11px] leading-tight sm:text-sm text-slate-700 dark:text-slate-300 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
                 Quiz History
               </span>
             </div>
           </div>
           <span className="block text-[9px] leading-tight sm:text-[10px] text-slate-500 dark:text-slate-400 font-medium mt-1">
-            attempted quiz
+            history & saved
           </span>
         </button>
       </div>

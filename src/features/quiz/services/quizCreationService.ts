@@ -1,3 +1,4 @@
+import { queryClient } from '../../../lib/queryClient';
 import { db } from '../../../lib/db';
 import { supabase } from '../../../lib/supabase';
 import { Question, InitialFilters, QuizMode, SavedQuiz } from '../types';
@@ -122,6 +123,8 @@ export const quizCreationService = {
         return { quizId: '', reused: false, error: 'Failed to save quiz questions to server. Please try again.' };
       }
 
+      queryClient.invalidateQueries({ queryKey: ['latest-paused-quiz'] });
+      queryClient.invalidateQueries({ queryKey: ['saved-quizzes'] });
       return { quizId: newQuiz.id, reused: false };
     } catch (err: any) {
       console.error("Failed to create quiz in service:", err);

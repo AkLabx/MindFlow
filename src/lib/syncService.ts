@@ -1,3 +1,4 @@
+import { queryClient } from './queryClient';
 import { supabase } from "./supabase";
 import {
   db,
@@ -371,6 +372,8 @@ export const syncService = {
        isSyncing = false;
        lastSyncedUserIdForFullSync = userId;
        window.dispatchEvent(new Event("mindflow-sync-complete"));
+      queryClient.invalidateQueries({ queryKey: ['bookmarks'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-bookmark-count'] });
        return;
     }
 
