@@ -127,25 +127,62 @@ Welcome, Autonomous AI Agent! This file contains the strict architectural, safet
 
 ---
 
-## 9. Automated GitHub PR & Git Workflow (GitHub CLI)
+## 9. Automated GitHub PR & Git Workflow (GitHub CLI) & Antigravity Working Method
 
+- **Local Execution Truth**: Antigravity operates directly on the user's local disk (`d:\MindFlow-main`). All file edits take effect locally in real time and are immediately hot-reloaded by the local Vite development server (port 3000).
 - **Installed CLI**: The official GitHub CLI is installed at `C:\Program Files\GitHub CLI\gh.exe` and authenticated as `AkLabx`.
 - **Avoid GCM GUI Deadlocks**: Git Credential Manager GUI prompts fail in headless/background agent shells. Always bridge Git through GitHub CLI credentials rather than invoking bare interactive auth.
 - **Git Credential Bridge**: Run `& "C:\Program Files\GitHub CLI\gh.exe" auth setup-git` before pushing to ensure Git seamlessly uses GitHub CLI's stored OAuth token.
-- **Standard PR Creation Ritual**:
-  1. **Verification**: Run `npx tsc --noEmit` and `npm run build` to guarantee 0 TypeScript/build errors.
-  2. **Version Bump Ritual**: Increase version by 0.0.1 (`npm version patch --no-git-tag-version`), and append an entry in `docs/APP_JOURNEY_LOG.md` with the current IST timestamp.
-  3. **Branching**: Create a descriptive feature branch: `git checkout -b feat/<feature-name>-v<version>`.
-  4. **Commit**: `git add .` -> `git commit -m "<structured commit message>"`.
-  5. **Push with GitHub CLI Bridge**:
+
+### Standard Antigravity 4-Step Working Method:
+
+1. **Step 1: Session Start & Pre-Task Branch Sync Ritual**:
+   - At the start of any new conversation or before beginning a new task/fix, always check the current working branch:
      ```powershell
+     git branch --show-current
+     ```
+   - Ensure the local workspace is on `main` and fully synchronized with GitHub remote `main` before starting new work:
+     ```powershell
+     git checkout main
+     git pull origin main
+     ```
+   - Never build a new feature or fix on top of a stale or unmerged feature branch.
+
+2. **Step 2: Isolated Feature Development**:
+   - Create a descriptive feature branch matching the targeted bump version:
+     ```powershell
+     git checkout -b feat/<feature-name>-v<version>
+     ```
+   - Make all changes directly in the workspace. Test with local dev server (`npm run dev` at `http://localhost:3000`).
+
+3. **Step 3: Verification, Version Bump & PR Creation Ritual**:
+   - Verification: Run `npx tsc --noEmit` and `npm run build` (and `npx vitest --run` when applicable) to guarantee 0 errors.
+   - Version Bump: Increase version by 0.0.1 (`npm version patch --no-git-tag-version`), and append an entry in `docs/APP_JOURNEY_LOG.md` with the current IST timestamp.
+   - Commit and push via the GitHub CLI bridge:
+     ```powershell
+     git add .
+     git commit -m "<structured commit message>"
      & "C:\Program Files\GitHub CLI\gh.exe" auth setup-git
      git push -u origin <branch-name>
      ```
-  6. **Open PR via CLI**:
+   - Open PR via CLI:
      ```powershell
      & "C:\Program Files\GitHub CLI\gh.exe" pr create --title "<PR Title>" --body "<PR Summary Markdown>" --base main --head <branch-name>
      ```
      *(Or pass `--body-file "<path_to_markdown_file>"` for rich descriptions).*
+
+4. **Step 4: Post-Merge Local Sync & Housekeeping Ritual**:
+   - Once the PR is merged on GitHub (either by the user in browser or via `gh pr merge`), immediately sync local `main` with remote:
+     ```powershell
+     git checkout main
+     git pull origin main
+     ```
+   - Safely delete the local merged feature branch and prune stale remote tracking references:
+     ```powershell
+     git branch -d <branch-name>
+     git fetch --prune
+     ```
+   - Confirm with `git status` that the working tree is clean and up to date on `main`.
+
 - **Re-Authentication (If Token Ever Expires)**:
   Run `& "C:\Program Files\GitHub CLI\gh.exe" auth login --hostname github.com -p https -w`. This outputs a one-time device code (`XXXX-XXXX`) and points to `https://github.com/login/device` for instant 1-click browser approval.
