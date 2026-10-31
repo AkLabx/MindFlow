@@ -41,6 +41,8 @@ export const SavedQuizzesList: React.FC<SavedQuizzesListProps> = ({ viewMode, se
     const { data: quizzes = [], isLoading: loading, isError, error, refetch } = useQuery({
         queryKey: ['saved-quizzes', user?.id],
         enabled: !!user && !isAuthTransitioning,
+        staleTime: 1000 * 60 * 2,
+        gcTime: 1000 * 60 * 10,
         queryFn: async () => {
             const { data: { session } } = await supabase.auth.getSession();
             if (!session?.user) return [];
@@ -157,6 +159,7 @@ export const SavedQuizzesList: React.FC<SavedQuizzesListProps> = ({ viewMode, se
                 const { error } = await supabase.from('saved_quizzes').update({ deleted_at: new Date().toISOString() }).eq('id', id);
                 if (error) throw error;
                 queryClient.setQueryData(['saved-quizzes', user?.id], (old: SavedQuiz[] = []) => old.filter(q => q.id !== id));
+                queryClient.invalidateQueries({ queryKey: ['latest-paused-quiz'] });
             } catch (error) {
                 console.error("Failed to delete quiz:", error);
                 alert("Failed to delete quiz");

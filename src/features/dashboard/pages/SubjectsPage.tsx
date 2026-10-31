@@ -26,7 +26,8 @@ export const SubjectsPage: React.FC = () => {
       if (error) throw error;
       return data || {};
     },
-    staleTime: 5 * 60 * 1000,
+    staleTime: 1000 * 60 * 30,
+    gcTime: 1000 * 60 * 60,
   });
 
   const handleSubjectClick = (subjectDbKey: string) => {

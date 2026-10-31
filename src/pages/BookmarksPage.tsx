@@ -1,3 +1,6 @@
+import { useAuth } from '@/features/auth';
+import { supabase } from '@/lib/supabase';
+import { fetchQuestionsByIds } from '@/features/quiz/services/questionService';
 import React, { useState, useEffect, useMemo } from 'react';
 import { ChevronLeft, ChevronRight, Star, Trash2, LibraryBig, CheckCircle2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -13,6 +16,7 @@ import { ErrorState } from '@/components/ui/ErrorState';
 export const BookmarksPage: React.FC = () => {
     const navigate = useNavigate();
     const queryClient = useQueryClient();
+    const { user } = useAuth();
     const [selectedSubject, setSelectedSubject] = useState<string>('All');
     const [showToast, setShowToast] = useState(false);
 
@@ -20,7 +24,8 @@ export const BookmarksPage: React.FC = () => {
         if (window.confirm("Are you sure you want to reset all bookmarks? This action cannot be undone.")) {
             try {
                 await db.clearBookmarks();
-                queryClient.setQueryData(['bookmarks'], []);
+                queryClient.setQueryData(['bookmarks', user?.id], []);
+                queryClient.invalidateQueries({ queryKey: ['dashboard-bookmark-count'] });
                 setShowToast(true);
                 setTimeout(() => setShowToast(false), 3000);
             } catch (error) {
@@ -31,9 +36,25 @@ export const BookmarksPage: React.FC = () => {
     };
 
     const { data: bookmarks = [], isLoading, isError, error, refetch } = useQuery({
-        queryKey: ['bookmarks'],
+        queryKey: ['bookmarks', user?.id],
         queryFn: async () => {
-            return await db.getAllBookmarks();
+            const local = await db.getAllBookmarks();
+            if (local && local.length > 0) return local;
+            if (user) {
+                const { data: remoteBookmarks } = await supabase
+                    .from('user_bookmarks')
+                    .select('question_id')
+                    .eq('user_id', user.id);
+                if (remoteBookmarks && remoteBookmarks.length > 0) {
+                    const ids = remoteBookmarks.map((b: any) => b.question_id);
+                    const fullQuestions = await fetchQuestionsByIds(ids);
+                    for (const q of fullQuestions) {
+                        await db.saveBookmark(q);
+                    }
+                    return fullQuestions;
+                }
+            }
+            return [];
         },
         staleTime: 1000 * 60 * 5,
     });
@@ -51,7 +72,8 @@ export const BookmarksPage: React.FC = () => {
     const handleRemoveBookmark = async (id: string) => {
         try {
             await db.removeBookmark(id);
-            queryClient.setQueryData(['bookmarks'], (old: Question[] = []) => old.filter(b => b.id !== id));
+            queryClient.setQueryData(['bookmarks', user?.id], (old: Question[] = []) => old.filter(b => b.id !== id));
+            queryClient.invalidateQueries({ queryKey: ['dashboard-bookmark-count'] });
         } catch (error) {
             console.error("Failed to remove bookmark:", error);
         }

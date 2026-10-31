@@ -1,3 +1,4 @@
+import { queryClient } from '../../../lib/queryClient';
 import { useNotificationStore } from '../../../stores/useNotificationStore';
 import { db } from '../../../lib/db';
 import { syncService } from '../../../lib/syncService';
@@ -126,6 +127,7 @@ const enqueueCloudSync = async (state: QuizRuntimeState, set: any, source: strin
                 }
 
                 set({ syncStatus: 'synced' });
+                queryClient.invalidateQueries({ queryKey: ['latest-paused-quiz'] });
                 if (isDev) console.log(`[SYNC_SUCCESS] [${source}] ID: ${syncId}`);
             } catch (networkErr: any) {
                 // If it fails, mark it dirty so it retries, and break the loop to avoid infinite failure spins
@@ -350,11 +352,20 @@ export const useQuizSessionStore = create<QuizSessionState>((zustandSet, get) =>
 
   resumeQuiz: () => set({ isPaused: false }),
 
-  finishQuiz: () => { set({ status: 'result' }); },
+  finishQuiz: () => {
+    set({ status: 'result' });
+    queryClient.invalidateQueries({ queryKey: ['latest-paused-quiz'] });
+    queryClient.invalidateQueries({ queryKey: ['saved-quizzes'] });
+    queryClient.invalidateQueries({ queryKey: ['attempted-quizzes'] });
+  },
   setFinalizing: () => set({ status: 'finalizing' }),
   setFinalizeFailed: () => set({ status: 'finalize_failed' }),
 
-  submitSessionResults: (results) => { set((state) => ({ answers: results.answers, timeTaken: Object.keys(results.timeTaken).length > 0 ? results.timeTaken : state.timeTaken, score: results.score, bookmarks: results.bookmarks, status: 'result' })); },
+  submitSessionResults: (results) => { set((state) => ({ answers: results.answers, timeTaken: Object.keys(results.timeTaken).length > 0 ? results.timeTaken : state.timeTaken, score: results.score, bookmarks: results.bookmarks, status: 'result' }));
+    queryClient.invalidateQueries({ queryKey: ['latest-paused-quiz'] });
+    queryClient.invalidateQueries({ queryKey: ['saved-quizzes'] });
+    queryClient.invalidateQueries({ queryKey: ['attempted-quizzes'] });
+  },
 
 
   restartQuiz: () => set((state) => {

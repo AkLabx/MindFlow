@@ -3,7 +3,6 @@ import { ChevronRight, Landmark, Scale, Globe2, TrendingUp, Atom, Award, Sparkle
 import { SSC_SUBJECTS } from '../constants/sscDashboardConfig';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
-import { Card } from '@/components/ui/Card';
 
 interface SubjectStripProps {
   onSubjectClick: (subjectDbKey: string) => void;
@@ -30,22 +29,24 @@ export const SubjectStrip: React.FC<SubjectStripProps> = ({ onSubjectClick, onVi
       if (error) throw error;
       return data || {};
     },
-    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    staleTime: 1000 * 60 * 30, // Cache for 30 minutes
+    gcTime: 1000 * 60 * 60,
   });
 
   return (
-    <Card className="flex flex-col gap-3 relative z-10 border border-black/10 dark:border-white/10 dark:bg-slate-900/90 shadow-[0_4px_20px_-2px_rgba(15,23,42,0.05)] p-4 rounded-2xl">
-      <div className="flex items-center justify-between">
-        <h2 className="text-[16px] sm:text-[17px] font-bold text-slate-900 dark:text-white">Subjects</h2>
+    <section className="flex flex-col gap-2 relative z-10">
+      <div className="flex items-center justify-between px-0.5">
+        <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">Subjects</h2>
         <button
           onClick={onViewAllClick}
-          className="text-xs sm:text-sm font-semibold text-indigo-600 dark:text-indigo-400 flex items-center gap-0.5 hover:underline"
+          className="text-xs sm:text-sm font-semibold text-indigo-600 dark:text-indigo-400 flex items-center gap-0.5 hover:underline cursor-pointer"
         >
           View All <ChevronRight className="w-4 h-4" />
         </button>
       </div>
 
-      <div className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory no-scrollbar sm:grid sm:grid-cols-4 lg:grid-cols-8">
+      {/* 2-Row Horizontal Scroll Grid */}
+      <div className="grid grid-rows-2 grid-flow-col auto-cols-[calc(46vw-16px)] sm:auto-cols-[170px] lg:auto-cols-[190px] gap-2.5 overflow-x-auto pb-2 snap-x snap-mandatory no-scrollbar">
         {SSC_SUBJECTS.map((subject) => {
           const Icon = IconMap[subject.icon] || Sparkles;
           const count = subjectCounts?.[subject.dbKey] || 0;
@@ -54,25 +55,23 @@ export const SubjectStrip: React.FC<SubjectStripProps> = ({ onSubjectClick, onVi
             <button
               key={subject.id}
               onClick={() => onSubjectClick(subject.dbKey)}
-              className="flex flex-col items-center justify-center p-2.5 sm:p-4 text-center rounded-2xl bg-white dark:bg-slate-800/80 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] dark:shadow-none border border-slate-100 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-all group min-w-[100px] snap-start shrink-0 sm:w-full sm:min-w-0 sm:shrink"
+              className="flex items-center gap-2.5 sm:gap-3 p-2.5 sm:p-3 text-left rounded-xl bg-white dark:bg-slate-800/80 shadow-[0_2px_8px_-3px_rgba(0,0,0,0.05)] dark:shadow-none border border-slate-100 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-700/50 hover:border-indigo-100 dark:hover:border-indigo-800/50 transition-all group snap-start shrink-0 cursor-pointer active:scale-[0.98]"
             >
-              <div className="flex flex-col items-center gap-1 sm:gap-2 mb-0 w-full justify-center">
-                <div className="flex flex-col items-center gap-1 sm:gap-2">
-                  <div className={`w-10 h-10 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center ${subject.bgClass} ${subject.textClass} border ${subject.colorClass.split(' ').find(c => c.startsWith('border-')) || 'border-transparent'} group-hover:scale-105 transition-transform`}>
-                    <Icon className="w-5 h-5 sm:w-5 sm:h-5" strokeWidth={2.5} />
-                  </div>
-                  <span className="font-semibold text-[11px] leading-tight sm:text-sm text-slate-700 dark:text-slate-300 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
-                    {subject.label}
-                  </span>
-                </div>
+              <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center shrink-0 ${subject.bgClass} ${subject.textClass} border ${subject.colorClass.split(' ').find(c => c.startsWith('border-')) || 'border-transparent'} group-hover:scale-105 transition-transform`}>
+                <Icon className="w-4 h-4 sm:w-5 sm:h-5" strokeWidth={2.2} />
               </div>
-              <span className="block text-[9px] leading-tight sm:text-[10px] text-slate-500 dark:text-slate-400 font-medium mt-1">
-                {isLoading ? '...' : `${count}+ Qs`}
-              </span>
+              <div className="flex flex-col min-w-0 flex-1">
+                <span className="font-semibold text-xs sm:text-sm text-slate-800 dark:text-slate-200 truncate group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                  {subject.label}
+                </span>
+                <span className="text-[11px] sm:text-xs text-slate-400 dark:text-slate-500 font-medium truncate mt-0.5">
+                  {isLoading ? '...' : `${count}+ Qs`}
+                </span>
+              </div>
             </button>
           );
         })}
       </div>
-    </Card>
+    </section>
   );
 };

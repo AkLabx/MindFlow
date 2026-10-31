@@ -27,3 +27,78 @@ scripts/data/all_questions.json
 scripts/data/processed_embeddings.json
 scripts/data/embeddings_batch_1.json
 *.cjs
+powershell.cmd
+
+# ==============================================================================
+# AGENT CONTEXT & MEMORIES (DO NOT COMMIT)
+# ==============================================================================
+# MEMORIES FROM JULES CODING AGENT -
+# (https://jules.google/docs/changelog/#jules-gains-memory)
+# Fixed-bottom UI components should utilize the <KeyboardAwareBottomBar> component (found in src/components/ui/) to automatically handle mobile safe-area insets, global footer offsets, and Android WebView keyboard resizing, avoiding hardcoded bottom positional classes.
+# The application relies on Tailwind CSS variables env(safe-area-inset-top) and env(safe-area-inset-bottom) applied directly within classes (e.g., pb-[env(safe-area-inset-bottom)]) to ensure proper mobile viewport padding and prevent overlap with native UI elements.
+# Global header visibility is centrally managed in src/layouts/MainLayout.tsx. Do not add header hiding logic (hideGlobalHeader) to individual page components; instead, update the route-based exclusion logic (isHeaderHiddenRoute) within the layout layer to scale for specific paths and sub-routes.
+# When generating app release notes (e.g., for Google Play Store), always write them from a user's perspective, focusing on the user experience and avoiding developer jargon.
+# Before starting tasks, engage in a deep planning mode using the request_user_input and message_user tools to ask clarifying questions until expectations are absolutely certain. Only use the set_plan tool once fully aligned, and execute the approved plan autonomously without seeking further confirmation.
+# Strict Guardrail: Do not remove or replace <HashRouter> in src/App.tsx. Do not remove or alter the OAuth hash interception logic in src/hooks/useAppBootstrap.ts (which parses tokens from the hash for Supabase auth and cleans them via window.history.replaceState).
+# Do not perform large-scale architectural refactors at this time. The project is currently stabilizing its OAuth and routing systems (Single Door architecture). Maintain the existing Feature-Sliced Design (FSD) boundaries.
+# Technical Expectations
+# Please implement using existing React + Vite best practices.
+# Specifically:
+# Do not introduce duplicate components.
+# Reuse the existing row/card component where appropriate.
+# Keep styling responsive rather than creating separate mobile/desktop implementations.
+# Prefer Flexbox/Grid with proper wrapping instead of hardcoded widths.
+# Avoid fixed pixel assumptions where unnecessary.
+# Keep the component accessible.
+# Maintain current animations/interactions.
+# Preserve all existing navigation and click behaviour.
+# Ensure the implementation passes "vite build" with zero TypeScript errors and zero ESLint issues.
+# Avoid regressing the desktop layout while optimizing for mobile.
+# The project does not have a configured test or typecheck script in package.json. Attempting to run npm run test or npm run typecheck will fail. Instead, use npx vitest --run to execute tests, npx tsc --noEmit to typecheck, and npx vite build to build the application.
+# Quiz session creation, state initialization, and database persistence (IndexedDB and Supabase) are strictly centralized in src/features/quiz/services/quizCreationService.ts. UI components must not manually construct or persist quiz objects.
+# Question metadata caching and synchronization are centrally orchestrated by the useQuestionMetadata hook. UI components must consume this hook rather than manually reading the IndexedDB cache or invoking delta syncs.
+# When inserting new quiz sessions into the Supabase saved_quizzes table, ensure the payload includes both created_at and a fully initialized state object containing activeQuestions, filters, quizId, quizTimeRemaining, and remainingTimes. Omitting these causes silent fallback failures in QuizSessionGuard when it attempts to resume or hydrate the quiz.
+# The useNotificationStore supports rendering ReactNode inside the message property of ToastOptions, allowing custom, actionable HTML elements like inline links (<a>) or buttons to be presented within success or error toasts.
+# The VITE_APP_VERSION environment variable in vite.config.ts dynamically evaluates process.env.npm_package_version. Executing npm version patch --no-git-tag-version automatically updates this version across the app by modifying package.json without needing manual string replacements in vite.config.ts.
+# Quiz metadata mapped into the IndexedDB cache may store taxonomy fields under a nested classification object (e.g., q.classification.subject, q.classification.topic) rather than at the root level. When querying these fields in UI components, always fallback using the nullish coalescing operator (e.g., q.subject ?? q.classification?.subject) to gracefully support both current and legacy data structures.
+# The Quiz feature utilizes a plugin-based architecture (QuizEngine and QuizPlugin) located in src/features/quiz/engine/ to handle fetching, parsing, and validating different question types (e.g., multiple-choice questions via mcqPlugin).
+# When styling frontend UI components, maintain accessible font sizes and touch targets, avoiding tiny text (e.g., 9px) on mobile viewports for better readability.
+# When reading file contents in bash sessions, output from cat may be truncated at 1000 characters by the tool wrapper. Use the read_file tool or chunked output commands (e.g., tail -n +<line>) instead to ensure complete code inspection and avoid groundedness rule violations.
+# The local Vite development server is configured to run on port 3000 (http://localhost:3000/), not the standard Vite port 5173. Automation scripts or visual verification tools like Playwright must target port 3000 when accessing the local environment.
+# Full-viewport unauthenticated pages (such as AuthPage and SignupPage) are rendered directly into the NavigationManager outside of the MainLayout constraints. Avoid using negative margins on these root containers to prevent screen-edge clipping. Instead, use min-h-[100dvh] w-full with positive padding.
+# When making UI or layout changes in the frontend, verify them locally by writing and executing a temporary Playwright python script (using sync_playwright) to take viewport screenshots before committing the changes.
+# When initiating Supabase OAuth redirects (e.g., supabase.auth.signInWithOAuth), yield to the event loop after setting the loading state so the UI paints. Crucially, do NOT reset the loading state on success or in a finally block, as the function resolves before the browser redirect completes, causing the UI to flicker back to idle. Only reset it in a catch block on error.
+# The public.saved_quizzes table in Supabase does not have an updated_at column. When querying for recent paused quizzes or timestamps, always use the created_at column to prevent SQL 42703 (column does not exist) errors.
+# Local database mutations in IndexedDB (e.g., db.updateQuizProgress, db.updateQuizName) must be upsert-safe (automatically inserting missing records) to maintain resilience against offline seeding delays or sudden network instability.
+# Before implementing requested bug fixes, always investigate the codebase first to verify if the reported issue is currently present or has already been addressed, preventing redundant work or regressions.
+# Background state synchronization must use the Supabase JS client (e.g., supabase.from().update()) rather than raw fetch with keepalive: true to avoid Chromium/WebKit 64KB memory buffer limits and preflight CORS restrictions.
+# The quiz feature follows a strict Offline-First Architecture. Quizzes must be seeded into IndexedDB (e.g., via db.saveQuiz) immediately upon creation before any progress updates can occur to prevent 'not found' state synchronization errors.
+# When using Playwright to visually verify authenticated frontend routes (e.g., #/dashboard), the script must first navigate to the root login page, fill in the email and password inputs, and submit the form to bypass the authentication redirect before navigating or capturing screenshots.
+# For GitHub Pages deployment, the project uses a script in public/404.html to normalize non-hash SPA URLs and rewrite them into HashRouter format (e.g., redirecting /MindFlow/dashboard to /MindFlow/#/dashboard).
+# When installing npm dependencies, use the --legacy-peer-deps flag to bypass ERESOLVE peer dependency conflicts (e.g., related to Capacitor plugins).
+# The main authenticated application shell is AppLayout.tsx (located in src/layouts/). It relies on a single top-level NavigationManager route guard to prevent UI flashes for unauthenticated visitors. Redundant nested guards inside AppLayout should be omitted unless the child route requires different authorization (e.g., Admin-only).
+# When incrementing the application version with npm version patch, use the --no-git-tag-version flag to avoid failures caused by pre-existing git tags.
+# The public Landing Page (/) acts as the single-gate Auth Page (sign in/sign up) strictly for unauthenticated web traffic. Authenticated users are automatically redirected to /dashboard. Native Capacitor apps bypass this page entirely and default to /login for unauthenticated users.
+# Onboarding is implemented as a modular, post-authentication workflow route (/onboarding) backed by a state machine ('NOT_STARTED', 'IN_PROGRESS', 'COMPLETED') instead of a boolean flag, and is completely detached from the public Landing Page.
+# Guest login functionality is strictly prohibited. All users must authenticate with a real account.
+# The project structure maintains separate docs/ and scripts/ directories at the root for non-source files. Global provider components such as PresenceProvider and ErrorBoundary must reside in src/providers/.
+# Navigation is centralized in NavigationManager, acting as an orchestrator that delegates to a Policy Engine (e.g., PlatformPolicy, AuthPolicy, IntentPolicy, OnboardingPolicy). Legacy route guards (AuthGuard, ProtectedRoute, AdminProtectedRoute) have been strictly removed.
+# Saved navigation intents (for deep-linking before authentication) must store the full URL state, explicitly including pathname, search, hash, timestamp, expiresAt, and platform.
+# App Bootstrap (useAppBootstrap.ts) acts as a strict state machine yielding discrete states (BOOTSTRAPPING, READY, FAILED, MAINTENANCE, UPDATE_REQUIRED, OFFLINE_INITIALIZATION) handled centrally in App.tsx instead of returning a generic boolean.
+# The primary AI model for all question enrichment tasks (question_extract_v1, question_taxonomy_v1, question_translation_v1, question_teacher_v1, question_research_v1) in ai_task_config must be set to gemini-3.1-flash-lite (placed first in the model_chain array) by explicit user preference.
+# Because a single question enrichment triggers multiple distinct AI tasks (taxonomy, research, translation, teacher), the batch_size for these tasks in ai_task_config must strictly be 1. This prevents queue workers from pulling multiple jobs simultaneously and bypassing global RPM rate limits.
+# Queue-driven edge functions (like enrich-questions) must implement an 'Admission Controller' check (via get_execution_plan) to verify capacity before fetching jobs. This prevents exhaustion during high load by checking for healthy models and enforcing global RPM limits (e.g., max 5/min) by summing minute_requests across all enabled models in ai_model_runtime.
+# The AI question enrichment pipeline processes approved questions by enqueueing them in the pgmq.q_question_ai_jobs queue. The enrich-questions edge function consumes these jobs, and processed or failed jobs (e.g., those exceeding maximum retries due to model rate limits) are archived in pgmq.a_question_ai_jobs.
+# Background workers processing pgmq queues must be strictly idempotent, using explicit row-level locks (SELECT ... FOR UPDATE) and checking local progress states before initiating external API calls to prevent duplicated work or race conditions.
+# In the AI enrichment pipeline, infrastructure errors (e.g., 429, 503, model timeouts) must never permanently fail a question. They must use exponential backoff by updating the pgmq visibility timeout (vt). The FAILED status is strictly reserved for non-recoverable data problems like invalid schema or bad JSON.
+# The AI enrichment pipeline must record comprehensive telemetry inside the ai_metadata JSONB column for observability, including pipeline_version, worker_version, scheduler_version, retry counts, specific models used, and token metrics.
+# The application uses a global fetch override (fetchWithTimeout) in src/lib/supabase.ts with a default 15,000ms timeout to prevent hanging queries. Extended timeouts are explicitly configured for AI Tutor functions (45s) and Supabase Storage uploads (/storage/v1/object/, 5 minutes) to accommodate large payloads.
+# The AI content ingestion pipeline follows a strict sequence: client-side upload to Supabase Storage (content_studio), insertion into source_documents, triggering an RPC (enqueue_extraction_job), which adds the job to a Postgres pgmq queue (pre_phase_question_jobs) for asynchronous background processing (chunking, OCR, extraction).
+# When building or fixing data pipelines, follow a 'backend-first' architectural approach: establish system correctness, reliability, and observability (e.g., instrumenting raw duration times for uploads) before adding complex UI UX enhancements like XHR progress bars.
+# The question_lifecycle_status Postgres enum does not include a 'DRAFT' state. Valid enum values are 'APPROVED', 'ARCHIVED', 'ENRICHED', 'ENRICHING', 'ENRICHMENT_PENDING', 'EXTRACTED', 'FAILED', 'PENDING_REVIEW', and 'REJECTED'.
+# The options and options_hi columns in the public.questions database table are PostgreSQL text[] arrays (not JSONB). Use array_length(column_name, 1) instead of JSON length functions when querying their size.
+# When modifying the database schema or metadata queries for vocabulary features (e.g., synonyms, OWS, idioms), increment the vocab_cache_cleared_vX flag in localStorage within the frontend config to invalidate clients' IndexedDB caches and force a refetch.
+# When mapping Supabase RPC results to frontend models or reading from IndexedDB caches, explicitly handle potential column aliasing and casing mismatches (e.g., falling back between row.phrase and row.word, or row.source_pdf and row.examName) to prevent UI filter breakages and double-mapping bugs.
+# Every Time You Create a PR update the App Version by Increasing it by 0.0.1 value. In import.meta.env.VITE_APP_VERSION file vite.config.ts .
+# Auth credentials: email: mindflow@user.com , password: Test@1234
+

@@ -1,3 +1,4 @@
+import { queryClient } from '../../../lib/queryClient';
 import { db } from '../../../lib/db';
 import { create } from 'zustand';
 import { Question } from '../types';
@@ -21,6 +22,8 @@ export const useBookmarkStore = create<BookmarkState>((set, get) => ({
     if (isBookmarked) {
       // Remove from global bookmarks db
       db.removeBookmark(question.id);
+      queryClient.invalidateQueries({ queryKey: ['bookmarks'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-bookmark-count'] });
       useSyncStore.getState().addEvent({
         type: 'bookmark_toggled',
         payload: { questionId: question.id, isBookmarked: false }
@@ -32,6 +35,8 @@ export const useBookmarkStore = create<BookmarkState>((set, get) => ({
     } else {
       // Add to global bookmarks db
       db.saveBookmark(question);
+      queryClient.invalidateQueries({ queryKey: ['bookmarks'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-bookmark-count'] });
       useSyncStore.getState().addEvent({
         type: 'bookmark_toggled',
         payload: { questionId: question.id, question, isBookmarked: true }

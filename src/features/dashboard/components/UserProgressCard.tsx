@@ -21,14 +21,17 @@ export const UserProgressCard: React.FC<UserProgressCardProps> = ({
   const strokeDashoffset = circumference - (averageScore / 100) * circumference;
   const isHighAccuracy = averageScore >= 75;
 
+  const goalQuizzes = 3;
+  const progressPct = quizzesCompleted === 0 ? 0 : Math.min(100, Math.round((quizzesCompleted / goalQuizzes) * 100));
+
   return (
     <div
       onClick={onDetailsClick}
-      className="bg-white dark:bg-slate-900/90 rounded-2xl p-4 sm:p-5 border border-black/10 dark:border-white/10 shadow-[0_4px_20px_-2px_rgba(15,23,42,0.05)] dark:shadow-none flex flex-col justify-between cursor-pointer hover:border-indigo-200 dark:hover:border-indigo-800 transition-all h-full min-h-[168px] active:scale-[0.98]"
+      className="bg-white dark:bg-slate-800/80 rounded-2xl p-4 sm:p-5 border border-slate-100 dark:border-slate-700/50 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] dark:shadow-none flex flex-col justify-between cursor-pointer hover:border-indigo-200 dark:hover:border-indigo-800 transition-all h-full min-h-[168px] active:scale-[0.98]"
     >
       <div className="flex items-center justify-between mb-2">
-        <h3 className="text-sm sm:text-[15px] font-bold text-slate-900 dark:text-white">Your Progress</h3>
-        <span className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 flex items-center gap-1">
+        <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">Your Progress</h3>
+        <span className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 flex items-center gap-1 hover:underline">
           Details <BarChart3 className="w-3.5 h-3.5" />
         </span>
       </div>
@@ -63,29 +66,31 @@ export const UserProgressCard: React.FC<UserProgressCardProps> = ({
             <span className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-white leading-none">
               {averageScore}%
             </span>
-            <span className="text-[8px] sm:text-[9px] font-semibold text-slate-400 uppercase mt-0.5">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">
               Accuracy
             </span>
           </div>
         </div>
 
-        <div className="flex flex-col gap-3 flex-1">
+        <div className="flex flex-col gap-2.5 flex-1">
           <div>
             <div className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-white leading-none">
-              {correctAnswers > 0 ? correctAnswers : quizzesCompleted}
+              {correctAnswers > 0 ? `${correctAnswers} Qs` : `${quizzesCompleted} Quizzes`}
             </div>
-            <div className="text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400 font-medium mt-0.5">
+            <div className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-1">
               {correctAnswers > 0 ? 'Correct Answers' : 'Quizzes Completed'}
             </div>
           </div>
           <div>
-            <div className="flex items-center justify-between">
-              <div className="text-xs sm:text-sm font-bold text-indigo-600 dark:text-indigo-400 leading-none">
-                {totalTimeSpentFormatted}
-              </div>
+            <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 font-medium">
+              <span>Goal ({quizzesCompleted}/{goalQuizzes})</span>
+              <span className="font-semibold text-indigo-600 dark:text-indigo-400">{totalTimeSpentFormatted}</span>
             </div>
-            <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden mt-1.5">
-              <div className="h-full bg-indigo-600 dark:bg-indigo-500 rounded-full w-[45%]" />
+            <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden mt-1.5">
+              <div
+                className="h-full bg-gradient-to-r from-indigo-500 to-violet-600 rounded-full transition-all duration-700"
+                style={{ width: `${Math.max(progressPct, 4)}%` }}
+              />
             </div>
           </div>
         </div>
