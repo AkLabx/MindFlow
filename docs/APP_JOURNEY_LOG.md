@@ -26,6 +26,21 @@ This document is the single source of truth for the evolution of the MindFlow ap
 
 ## 🚀 App Journey Changelog
 
+## [v1.0.286] - 31 October 2026, 04:48 PM IST
+
+### Executive Summary
+Unified the Dashboard Greeting and Action Cards into a single compact Hero Strip (Option B) and reduced inter-section vertical gaps globally (Option D), reclaiming ~80px of dead viewport space and elevating core quiz action entry points above the fold.
+
+### ✨ UI/UX Modernization & Whitespace Optimization
+- **Unified Hero Strip (`src/features/dashboard/components/DashboardGreeting.tsx`)**:
+  - Integrated user greeting (`Good Afternoon, Aspirant 👋`) and the 4 action buttons (Today's Plan, Bookmarks, Resume Quiz, Quiz History) into a single translucent card container with backdrop blur and subtle border accent.
+  - Streamlined action button layout with compact icons, tighter text margins, and micro-interaction active press states (`active:scale-95`).
+- **Global Dashboard Spacing Consolidation (`src/pages/DashboardPage.tsx`)**:
+  - Reduced outer container top padding (`-mt-4 pt-4` -> `-mt-4 pt-2`) and inner content offset (`pt-3 sm:pt-5` -> `pt-1 sm:pt-2`).
+  - Tightened vertical rhythm across all dashboard sections (`space-y-4` -> `space-y-2.5`), ensuring Quick Actions (Mock Test, Custom Quiz) remain readily visible on mobile viewports without excessive scrolling.
+
+---
+
 ## [v1.0.285] - 31 October 2026, 04:18 PM IST
 
 ### Executive Summary
