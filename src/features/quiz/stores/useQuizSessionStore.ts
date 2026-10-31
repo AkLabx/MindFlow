@@ -82,6 +82,14 @@ const enqueueCloudSync = async (state: QuizRuntimeState, set: any, source: strin
         return; // Layer 1 (IndexedDB) already saved it, we'll reconcile later.
     }
 
+    // Skip periodic sync if the user is not actively inside a quiz session or if quiz is paused
+    if (source === 'periodic_reconciliation') {
+        const isInsideQuiz = window.location.hash.includes('/quiz/session/');
+        if (!isInsideQuiz || state.isPaused) {
+            return;
+        }
+    }
+
     if (isWriterRunning) {
         pendingDirty = true;
         if (isDev) console.log(`[SYNC_QUEUED] [${source}] Mutation while sync active. Marking dirty.`);
@@ -99,12 +107,6 @@ const enqueueCloudSync = async (state: QuizRuntimeState, set: any, source: strin
 
             const { data: { session } } = await supabase.auth.getSession();
             if (!session?.user) break;
-
-            const token = session.access_token;
-            const headers = new Headers();
-            headers.append("apikey", SUPABASE_ANON_KEY);
-            headers.append("Authorization", `Bearer ${token}`);
-            headers.append("Content-Type", "application/json");
 
             // Strip functions and heavy activeQuestions array
             const stateToSave = { ...state };
@@ -127,7 +129,10 @@ const enqueueCloudSync = async (state: QuizRuntimeState, set: any, source: strin
                 }
 
                 set({ syncStatus: 'synced' });
-                queryClient.invalidateQueries({ queryKey: ['latest-paused-quiz'] });
+                // Only invalidate dashboard query on deliberate pause/mutation, not periodic silent sweep
+                if (source !== 'periodic_reconciliation') {
+                    queryClient.invalidateQueries({ queryKey: ['latest-paused-quiz'] });
+                }
                 if (isDev) console.log(`[SYNC_SUCCESS] [${source}] ID: ${syncId}`);
             } catch (networkErr: any) {
                 // If it fails, mark it dirty so it retries, and break the loop to avoid infinite failure spins
@@ -142,7 +147,9 @@ const enqueueCloudSync = async (state: QuizRuntimeState, set: any, source: strin
         set({ syncStatus: 'sync_failed' });
 
         const now = Date.now();
-        if (now - lastFlushErrorTime > 30000) {
+        const isInsideQuiz = typeof window !== 'undefined' && window.location.hash.includes('/quiz/session/');
+        // Only alert the user if actively in a quiz session and this was a user mutation, not a silent periodic background sweep
+        if (isInsideQuiz && source !== 'periodic_reconciliation' && now - lastFlushErrorTime > 60000) {
             lastFlushErrorTime = now;
             useNotificationStore.getState().showToast({
                 variant: 'error',
@@ -219,7 +226,7 @@ export const useQuizSessionStore = create<QuizSessionState>((zustandSet, get) =>
   resetStore: () => set(initialState),
 
   enterHome: async () => {
-    set({ ...initialState, status: 'idle' });
+    set({ ...initialState, status: 'idle', quizId: undefined });
   },
   enterConfig: () => set({ status: 'config' }),
   enterBlueprints: () => set({ status: 'blueprints' as any }),
@@ -241,18 +248,18 @@ export const useQuizSessionStore = create<QuizSessionState>((zustandSet, get) =>
     const resolvedQuizId = quizId || crypto.randomUUID();
 
     set({
-  ...initialState,
-  status: 'quiz',
-  mode: mode,
-  activeQuestions: questions,
-  filters: filters,
-  quizId: resolvedQuizId,
-  quizName: quizName,
-  quizTimeRemaining: globalTime,
-  remainingTimes: mode === 'learning'
-    ? questions.reduce((acc, q) => ({ ...acc, [q.id]: APP_CONFIG.TIMERS.LEARNING_MODE_DEFAULT }), {})
-    : {}
-});
+      ...initialState,
+      status: 'quiz',
+      mode: mode,
+      activeQuestions: questions,
+      filters: filters,
+      quizId: resolvedQuizId,
+      quizName: quizName,
+      quizTimeRemaining: globalTime,
+      remainingTimes: mode === 'learning'
+        ? questions.reduce((acc, q) => ({ ...acc, [q.id]: APP_CONFIG.TIMERS.LEARNING_MODE_DEFAULT }), {})
+        : {}
+    });
   },
 
   answerQuestion: (questionId, answer, timeTaken) => set((state) => {
@@ -361,12 +368,18 @@ export const useQuizSessionStore = create<QuizSessionState>((zustandSet, get) =>
   setFinalizing: () => set({ status: 'finalizing' }),
   setFinalizeFailed: () => set({ status: 'finalize_failed' }),
 
-  submitSessionResults: (results) => { set((state) => ({ answers: results.answers, timeTaken: Object.keys(results.timeTaken).length > 0 ? results.timeTaken : state.timeTaken, score: results.score, bookmarks: results.bookmarks, status: 'result' }));
+  submitSessionResults: (results) => { 
+    set((state) => ({ 
+      answers: results.answers, 
+      timeTaken: Object.keys(results.timeTaken).length > 0 ? results.timeTaken : state.timeTaken, 
+      score: results.score, 
+      bookmarks: results.bookmarks, 
+      status: 'result' 
+    }));
     queryClient.invalidateQueries({ queryKey: ['latest-paused-quiz'] });
     queryClient.invalidateQueries({ queryKey: ['saved-quizzes'] });
     queryClient.invalidateQueries({ queryKey: ['attempted-quizzes'] });
   },
-
 
   restartQuiz: () => set((state) => {
     const globalTime = (state.mode === 'mock' || state.mode === 'god')
@@ -388,7 +401,7 @@ export const useQuizSessionStore = create<QuizSessionState>((zustandSet, get) =>
   }),
 
   goHome: async () => {
-    set({ ...initialState, status: 'idle' });
+    set({ ...initialState, status: 'idle', quizId: undefined });
   },
 
   reorderActiveQuestions: (newOrder) => set((state) => {

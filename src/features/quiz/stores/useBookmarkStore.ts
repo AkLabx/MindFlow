@@ -17,20 +17,23 @@ export const useBookmarkStore = create<BookmarkState>((set, get) => ({
   bookmarks: [],
 
   toggleBookmark: (question) => set((state) => {
-    const isBookmarked = state.bookmarks.includes(question.id);
+    const isBookmarked = state.bookmarks.includes(question.id) || (Boolean(question.v1_id) && state.bookmarks.includes(question.v1_id!));
 
     if (isBookmarked) {
       // Remove from global bookmarks db
       db.removeBookmark(question.id);
+      if (question.v1_id) {
+        db.removeBookmark(question.v1_id);
+      }
       queryClient.invalidateQueries({ queryKey: ['bookmarks'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard-bookmark-count'] });
       useSyncStore.getState().addEvent({
         type: 'bookmark_toggled',
-        payload: { questionId: question.id, isBookmarked: false }
+        payload: { questionId: question.id, v1Id: question.v1_id, isBookmarked: false }
       });
 
       return {
-        bookmarks: state.bookmarks.filter(id => id !== question.id)
+        bookmarks: state.bookmarks.filter(id => id !== question.id && id !== question.v1_id)
       };
     } else {
       // Add to global bookmarks db

@@ -197,32 +197,78 @@ export const fetchQuestionMetadata = async (
   return uniqueRows;
 };
 
+// UUID v4 pattern for distinguishing UUIDs from legacy v1_ids (e.g., "HIS14", "BIO1")
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export const fetchQuestionsByIds = async (ids: string[]): Promise<Question[]> => {
-  if (ids.length === 0) return [];
+  if (!ids || ids.length === 0) return [];
+
+  // Deduplicate and filter empty/whitespace
+  const uniqueIds = Array.from(new Set(ids.filter(Boolean).map(id => String(id).trim())));
+  if (uniqueIds.length === 0) return [];
+
+  // Separate valid UUIDs (for 'id' column) from legacy non-UUID identifiers (for 'v1_id' column, e.g., "HIS14")
+  const uuidIds = uniqueIds.filter(id => UUID_REGEX.test(id));
+  const legacyIds = uniqueIds.filter(id => !UUID_REGEX.test(id));
 
   // Batch the requests to avoid URL length limits and improve performance for large sets
   const BATCH_SIZE = 200;
-  const batches = [];
-  for (let i = 0; i < ids.length; i += BATCH_SIZE) {
-    batches.push(ids.slice(i, i + BATCH_SIZE));
-  }
+  const makeBatches = (items: string[]) => {
+    const batches: string[][] = [];
+    for (let i = 0; i < items.length; i += BATCH_SIZE) {
+      batches.push(items.slice(i, i + BATCH_SIZE));
+    }
+    return batches;
+  };
 
-  let allData = [];
+  let allData: QuestionDBRow[] = [];
 
   try {
-    const results = await Promise.all(
-      batches.map(async (batchIds) => {
-        const { data, error } = await supabase
-          .from('questions')
-          .select('*')
-          .in('id', batchIds)
-          .is('deleted_at', null);
+    const fetchPromises: Promise<QuestionDBRow[]>[] = [];
 
-        if (error) throw error;
-        return data;
-      })
-    );
+    // 1. Fetch by UUID 'id' column
+    if (uuidIds.length > 0) {
+      for (const batchIds of makeBatches(uuidIds)) {
+        fetchPromises.push(
+          (async () => {
+            const { data, error } = await supabase
+              .from('questions')
+              .select('*')
+              .in('id', batchIds)
+              .is('deleted_at', null);
 
+            if (error) {
+              console.error("Error fetching questions by UUID:", error);
+              throw error;
+            }
+            return (data || []) as QuestionDBRow[];
+          })()
+        );
+      }
+    }
+
+    // 2. Fetch by legacy 'v1_id' column for non-UUID identifiers (e.g., "HIS14", "BIO1")
+    if (legacyIds.length > 0) {
+      for (const batchIds of makeBatches(legacyIds)) {
+        fetchPromises.push(
+          (async () => {
+            const { data, error } = await supabase
+              .from('questions')
+              .select('*')
+              .in('v1_id', batchIds)
+              .is('deleted_at', null);
+
+            if (error) {
+              console.error("Error fetching questions by v1_id:", error);
+              throw error;
+            }
+            return (data || []) as QuestionDBRow[];
+          })()
+        );
+      }
+    }
+
+    const results = await Promise.all(fetchPromises);
     allData = results.flat();
   } catch (error) {
     console.error("Error fetching full questions:", error);
