@@ -124,3 +124,28 @@ Welcome, Autonomous AI Agent! This file contains the strict architectural, safet
 - **AudioWorkletProcessor**: Kept as an inline string blob (`AudioRecorderWorkletCode` in `audio-helpers.ts`) loaded via `URL.createObjectURL(blob)` to prevent bundler path resolution breakages.
 - **Seamless Audio Playback**: Maintain an `audioQueue` with `nextStartTime` cursor using `source.start(Math.max(currentTime, nextStartTime))` to avoid stutter.
 - **Unmount Cleanup**: Always clean up `LiveSession.close()`, `AudioContext.close()`, and `MediaStreamTracks.stop()`.
+
+---
+
+## 9. Automated GitHub PR & Git Workflow (GitHub CLI)
+
+- **Installed CLI**: The official GitHub CLI is installed at `C:\Program Files\GitHub CLI\gh.exe` and authenticated as `AkLabx`.
+- **Avoid GCM GUI Deadlocks**: Git Credential Manager GUI prompts fail in headless/background agent shells. Always bridge Git through GitHub CLI credentials rather than invoking bare interactive auth.
+- **Git Credential Bridge**: Run `& "C:\Program Files\GitHub CLI\gh.exe" auth setup-git` before pushing to ensure Git seamlessly uses GitHub CLI's stored OAuth token.
+- **Standard PR Creation Ritual**:
+  1. **Verification**: Run `npx tsc --noEmit` and `npm run build` to guarantee 0 TypeScript/build errors.
+  2. **Version Bump Ritual**: Increase version by 0.0.1 (`npm version patch --no-git-tag-version`), and append an entry in `docs/APP_JOURNEY_LOG.md` with the current IST timestamp.
+  3. **Branching**: Create a descriptive feature branch: `git checkout -b feat/<feature-name>-v<version>`.
+  4. **Commit**: `git add .` -> `git commit -m "<structured commit message>"`.
+  5. **Push with GitHub CLI Bridge**:
+     ```powershell
+     & "C:\Program Files\GitHub CLI\gh.exe" auth setup-git
+     git push -u origin <branch-name>
+     ```
+  6. **Open PR via CLI**:
+     ```powershell
+     & "C:\Program Files\GitHub CLI\gh.exe" pr create --title "<PR Title>" --body "<PR Summary Markdown>" --base main --head <branch-name>
+     ```
+     *(Or pass `--body-file "<path_to_markdown_file>"` for rich descriptions).*
+- **Re-Authentication (If Token Ever Expires)**:
+  Run `& "C:\Program Files\GitHub CLI\gh.exe" auth login --hostname github.com -p https -w`. This outputs a one-time device code (`XXXX-XXXX`) and points to `https://github.com/login/device` for instant 1-click browser approval.
