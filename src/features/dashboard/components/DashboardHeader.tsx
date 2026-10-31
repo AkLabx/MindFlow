@@ -1,9 +1,11 @@
 import React from 'react';
 import { Flame, Bell, User as UserIcon, ShieldAlert } from 'lucide-react';
 import { User } from '@supabase/supabase-js';
+import { getUserDisplayName } from '@/utils/user';
 
 interface DashboardHeaderProps {
   user: User | null;
+  profile?: any | null;
   streak: number;
   onAvatarClick: () => void;
   onNotificationClick: () => void;
@@ -12,12 +14,13 @@ interface DashboardHeaderProps {
 
 export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
   user,
+  profile,
   streak,
   onAvatarClick,
   onNotificationClick,
   onStreakClick
 }) => {
-  const firstName = user?.user_metadata?.first_name || user?.email?.split('@')[0] || 'Aspirant';
+  const displayName = getUserDisplayName(profile, user, 'Aspirant');
   const isAdmin = user?.email === 'admin@mindflow.com';
 
   return (
@@ -49,7 +52,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
               )}
           </div>
           <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-1">
-            Welcome back, {firstName}
+            Welcome back, {displayName}
           </p>
         </div>
       </div>

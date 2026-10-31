@@ -15,6 +15,7 @@ import { useNavigate } from 'react-router-dom';
 import { useNotificationStore } from "../../../stores/useNotificationStore";
 import { useQueryClient, useQuery } from '@tanstack/react-query';
 import { getCanonicalAvatarUrl } from '../../../utils/avatar';
+import { getUserDisplayName } from '../../../utils/user';
 
 const defaultAvatar = 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix&backgroundColor=e2e8f0';
 
@@ -184,7 +185,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onSignOut, onNavigateToSettin
   const displayAvatarUrl = getCanonicalAvatarUrl(profile, user);
 
   const targetExam = profile?.target_exam || user?.user_metadata?.target_exam || 'Not Set';
-  const fullName = profile?.full_name || user?.user_metadata?.full_name || 'Student';
+  const fullName = getUserDisplayName(profile, user, 'Student');
 
   const { stats: userStats, loading: statsLoading } = useProfileStats();
 

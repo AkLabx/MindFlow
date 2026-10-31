@@ -26,6 +26,23 @@ This document is the single source of truth for the evolution of the MindFlow ap
 
 ## 🚀 App Journey Changelog
 
+## [v1.0.287] - 31 October 2026, 05:37 PM IST
+
+### Executive Summary
+Fixed addressing discrepancy in Dashboard greeting where user was addressed by raw email prefix (`mindflow`) instead of their configured display/full name (`Guest User`). Created a canonical, tested user display name resolution utility with graceful fallbacks.
+
+### 🐛 Bug Fixes & UX Harmonization
+- **Canonical User Display Name Resolver (`src/utils/user.ts`)**:
+  - Implemented `getUserDisplayName` with multi-tier priority resolution: `profile.full_name` -> `user.user_metadata.full_name` -> `user.user_metadata.name` -> `user.user_metadata.display_name` -> `profile.username` -> `user.user_metadata.username` -> `user.user_metadata.given_name` -> email prefix -> fallback (`Aspirant`).
+  - Added unit test suite (`src/utils/user.test.ts`) covering all resolution tiers, empty/whitespace edge cases, and fallback behavior.
+- **Dashboard Greeting Addressing (`src/features/dashboard/components/DashboardGreeting.tsx`, `src/pages/DashboardPage.tsx`)**:
+  - Switched from flawed `user?.user_metadata?.first_name` (which never exists in Supabase auth) to `getUserDisplayName(profile, user, 'Aspirant')`.
+  - Fed canonical `profile` from `useAuth()` into `DashboardGreeting` to dynamically address users by their chosen profile name.
+- **Global Name Consistency (`src/features/dashboard/components/DashboardHeader.tsx`, `src/features/auth/components/ProfilePage.tsx`, `src/layouts/SidePanel.tsx`)**:
+  - Unified user name display across DashboardHeader, Profile page, and SidePanel using `getUserDisplayName`.
+
+---
+
 ## [v1.0.286] - 31 October 2026, 04:48 PM IST
 
 ### Executive Summary
