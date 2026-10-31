@@ -26,7 +26,7 @@ interface DashboardProps {
 
 export const DashboardPage: React.FC<DashboardProps> = ({ onBackToIntro }) => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const { showToast, showPopup, closePopup } = useNotification();
   const { startQuiz } = useQuizContext();
 
@@ -204,6 +204,7 @@ export const DashboardPage: React.FC<DashboardProps> = ({ onBackToIntro }) => {
         {/* Tier 1 */}
         <DashboardGreeting
           user={user}
+          profile={profile}
           latestQuiz={latestQuiz}
           onResumeQuiz={handleResumeQuiz}
         />

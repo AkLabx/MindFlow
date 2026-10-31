@@ -8,21 +8,28 @@ import { useNavigate } from "react-router-dom";
 import { ROUTES } from "@/config/routes";
 import { useQuery } from "@tanstack/react-query";
 import { db } from "@/lib/db";
+import { useAuth } from "@/features/auth";
+import { getUserDisplayName } from "@/utils/user";
 
 interface DashboardGreetingProps {
   user: User | null;
+  profile?: any | null;
   latestQuiz?: SavedQuiz | null;
   onResumeQuiz: (quiz: SavedQuiz) => void;
 }
 
 export const DashboardGreeting: React.FC<DashboardGreetingProps> = ({
-  user,
+  user: propUser,
+  profile: propProfile,
   latestQuiz,
   onResumeQuiz,
 }) => {
   const navigate = useNavigate();
-  const firstName =
-    user?.user_metadata?.first_name || user?.email?.split("@")[0] || "Aspirant";
+  const { user: authUser, profile: authProfile } = useAuth();
+  const user = propUser ?? authUser;
+  const profile = propProfile ?? authProfile;
+
+  const displayName = getUserDisplayName(profile, user, "Aspirant");
 
   const { data: bookmarkCount = 0 } = useQuery({
     queryKey: ['dashboard-bookmark-count', user?.id],
@@ -63,7 +70,7 @@ export const DashboardGreeting: React.FC<DashboardGreetingProps> = ({
         <h2 className="text-[13px] sm:text-base font-medium text-slate-500 dark:text-slate-400 tracking-tight mb-2 sm:mb-2.5 pl-0.5">
           {getGreeting()},{" "}
           <span className="font-bold text-slate-800 dark:text-white">
-            {firstName}
+            {displayName}
           </span>{" "}
           👋
         </h2>

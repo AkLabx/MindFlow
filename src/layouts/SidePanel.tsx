@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { useDebugStore } from '../stores/useDebugStore';
 import { PresenceAvatar } from '../components/ui/PresenceAvatar';
 import { getCanonicalAvatarUrl } from '../utils/avatar';
+import { getUserDisplayName } from '../utils/user';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     X, User, LogIn, Home, LayoutDashboard, Languages,
@@ -123,7 +124,7 @@ export const SidePanel: React.FC<SidePanelProps> = ({ isOpen, onClose, onTabChan
                                             </div>
                                             <div className="flex-1 min-w-0">
                                                 <h3 className="text-lg font-bold text-gray-900 dark:text-white truncate">
-                                                    {user.user_metadata?.full_name || 'MindFlow User'}
+                                                    {getUserDisplayName(profile, user, 'MindFlow User')}
                                                 </h3>
                                                 <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
                                                     {user.email}
