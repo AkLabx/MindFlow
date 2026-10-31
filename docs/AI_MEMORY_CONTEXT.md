@@ -83,14 +83,14 @@ This document serves as a complete backup of the AI Assistant's memory context, 
   - Write temporary Playwright Python scripts (`sync_playwright`) to verify UI changes before committing.
   - Target port 3000.
   - **Protected Routes Login Flow:** For authenticated routes (e.g., `#/dashboard`), the script must first navigate to the root login page (`#/`), submit credentials (`mindflow@user.com` / `Test@1234`), and wait for redirect before navigating or capturing screenshots.
-- **Testing & Build Commands:**
+* **Testing & Build Commands:**
   - Run unit/integration tests: `npx vitest --run`
   - Typecheck: `npx tsc --noEmit`
   - Build application: `npx vite build` (or `npm run build`)
   - Do NOT run `npm run test` or `npm run typecheck` as those scripts are not configured in `package.json`.
-- **Versioning:** `VITE_APP_VERSION` in `vite.config.ts` dynamically evaluates `process.env.npm_package_version`. Update the app version on every PR by increasing it by 0.0.1 using: `npm version patch --no-git-tag-version`.
-- **Inspection Tools:** When reading file contents in bash sessions, output from `cat` may be truncated at 1000 characters by tool wrappers. Use `read_file` or chunked commands instead.
-- **Release Notes:** Always write app release notes (e.g., Google Play Store) from a user's perspective, focusing on user experience, learning benefits, and avoiding developer jargon.
+* **Versioning:** `VITE_APP_VERSION` in `vite.config.ts` dynamically evaluates `process.env.npm_package_version`. Update the app version on every PR by increasing it by 0.0.1 using: `npm version patch --no-git-tag-version`.
+* **Inspection Tools:** When reading file contents in bash sessions, output from `cat` may be truncated at 1000 characters by tool wrappers. Use `read_file` or chunked commands instead.
+* **Release Notes:** Always write app release notes (e.g., Google Play Store) from a user's perspective, focusing on user experience, learning benefits, and avoiding developer jargon.
 
 ### 8. Gemini Multimodal Live API (Real-Time Bidirectional Voice)
 * **Library**: Use the `@google/genai` library with `live.connect()`. Do not use bare WebSockets or raw `fetch`.
@@ -102,3 +102,25 @@ This document serves as a complete backup of the AI Assistant's memory context, 
 * **AudioWorkletProcessor**: Kept as an inline string blob (`AudioRecorderWorkletCode` in `audio-helpers.ts`) loaded via `URL.createObjectURL(blob)` to prevent bundler path resolution breakages.
 * **Seamless Audio Playback**: Maintain an `audioQueue` with `nextStartTime` cursor using `source.start(Math.max(currentTime, nextStartTime))` to avoid stutter.
 * **Unmount Cleanup**: Always clean up `LiveSession.close()`, `AudioContext.close()`, and `MediaStreamTracks.stop()`.
+
+### 9. Automated GitHub PR & Git Workflow (GitHub CLI)
+* **Installed CLI**: The official GitHub CLI is installed at `C:\Program Files\GitHub CLI\gh.exe` and authenticated as `AkLabx`.
+* **Avoid GCM GUI Deadlocks**: Git Credential Manager GUI prompts fail in headless/background agent shells. Always bridge Git through GitHub CLI credentials rather than invoking bare interactive auth.
+* **Git Credential Bridge**: Run `& "C:\Program Files\GitHub CLI\gh.exe" auth setup-git` before pushing to ensure Git seamlessly uses GitHub CLI's stored OAuth token.
+* **Standard PR Creation Ritual**:
+  1. **Verification**: Run `npx tsc --noEmit` and `npm run build` to guarantee 0 TypeScript/build errors.
+  2. **Version Bump Ritual**: Increase version by 0.0.1 (`npm version patch --no-git-tag-version`), and append an entry in `docs/APP_JOURNEY_LOG.md` with the current IST timestamp.
+  3. **Branching**: Create a descriptive feature branch: `git checkout -b feat/<feature-name>-v<version>`.
+  4. **Commit**: `git add .` -> `git commit -m "<structured commit message>"`.
+  5. **Push with GitHub CLI Bridge**:
+     ```powershell
+     & "C:\Program Files\GitHub CLI\gh.exe" auth setup-git
+     git push -u origin <branch-name>
+     ```
+  6. **Open PR via CLI**:
+     ```powershell
+     & "C:\Program Files\GitHub CLI\gh.exe" pr create --title "<PR Title>" --body "<PR Summary Markdown>" --base main --head <branch-name>
+     ```
+     *(Or pass `--body-file "<path_to_markdown_file>"` for rich descriptions).*
+* **Re-Authentication (If Token Ever Expires)**:
+  Run `& "C:\Program Files\GitHub CLI\gh.exe" auth login --hostname github.com -p https -w`. This outputs a one-time device code (`XXXX-XXXX`) and points to `https://github.com/login/device` for instant 1-click browser approval.

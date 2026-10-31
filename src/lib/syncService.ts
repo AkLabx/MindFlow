@@ -276,11 +276,14 @@ export const syncService = {
     if (error) console.error("Error pushing Idiom interaction:", error);
   },
 
-  removeBookmark: async (userId: string, questionId: string) => {
-    const { error } = await supabase
-      .from("user_bookmarks")
-      .delete()
-      .match({ user_id: userId, question_id: questionId });
+  removeBookmark: async (userId: string, questionId: string, v1Id?: string) => {
+    let query = supabase.from("user_bookmarks").delete().eq("user_id", userId);
+    if (v1Id && v1Id !== questionId) {
+      query = query.in("question_id", [questionId, v1Id]);
+    } else {
+      query = query.eq("question_id", questionId);
+    }
+    const { error } = await query;
 
     if (error) console.error("Error removing bookmark from Supabase:", error);
   },
@@ -330,6 +333,7 @@ export const syncService = {
               await syncService.removeBookmark(
                 userId,
                 event.payload.questionId,
+                event.payload.v1Id,
               );
             }
             break;
@@ -495,7 +499,7 @@ export const syncService = {
         const historyToPush = localHistory.filter(hist => !remoteHistoryIds.has(hist.id));
         await processInChunks(historyToPush, (hist) => syncService.pushQuizHistory(userId, hist));
 
-        const bookmarksToPush = localBookmarks.filter(bm => !remoteBookmarkIds.has(bm.id));
+        const bookmarksToPush = localBookmarks.filter(bm => !remoteBookmarkIds.has(bm.id) && (!bm.v1_id || !remoteBookmarkIds.has(bm.v1_id)));
         await processInChunks(bookmarksToPush, (bm) => syncService.pushBookmark(userId, bm));
 
         const synonymsToPush = localSynonyms.filter(syn => !remoteSynonymIds.has(syn.wordId));
@@ -575,7 +579,7 @@ export const syncService = {
       }
 
       if (remoteBookmarks && remoteBookmarks.length > 0) {
-        const localBookmarkIds = new Set(localBookmarks.map((b) => b.id));
+        const localBookmarkIds = new Set(localBookmarks.flatMap((b) => [b.id, b.v1_id].filter(Boolean)));
         const missingBookmarkIds = remoteBookmarks
           .map((b) => b.question_id)
           .filter((id) => !localBookmarkIds.has(id));

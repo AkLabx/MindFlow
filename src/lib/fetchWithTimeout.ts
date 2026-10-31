@@ -50,6 +50,11 @@ export const isSafeToRetry = (urlStr: string, options?: RequestInit): boolean =>
         return SAFE_RPCS.some(rpc => urlStr.includes(`/rpc/${rpc}`));
     }
 
+    // PATCH to saved_quizzes is an idempotent background quiz state update
+    if (method === 'PATCH' && urlStr.includes('/rest/v1/saved_quizzes')) {
+        return true;
+    }
+
     return false;
 };
 

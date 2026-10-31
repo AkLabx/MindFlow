@@ -49,15 +49,33 @@ export const useQuiz = () => {
       };
 
       // 1. Stable Heartbeat (Layer 3 Periodic Sweep)
-      // Checks for desyncs every 15 seconds (reduced from 3 seconds since Layer 2 handles immediate writes)
+      // Checks for desyncs every 15 seconds (ONLY when actively taking an unpaused quiz inside a session route)
       intervalId = setInterval(() => {
-          reconcileWithCloud('periodic_reconciliation', false);
+          const currentState = latestStateRef.current;
+          const isInsideQuizSession = typeof window !== 'undefined' && window.location.hash.includes('/quiz/session/');
+          if (isInsideQuizSession && currentState.status === 'quiz' && !currentState.isPaused && currentState.quizId) {
+              reconcileWithCloud('periodic_reconciliation', false);
+          }
       }, 15000);
 
       // 2. Ironclad Safety Nets using refs (immune to stale closures)
-      const handleBeforeUnload = (e: BeforeUnloadEvent) => { reconcileWithCloud(e ? e.type : 'visibilitychange', true); };
+      const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+          const currentState = latestStateRef.current;
+          const isInsideQuizSession = typeof window !== 'undefined' && window.location.hash.includes('/quiz/session/');
+          if (isInsideQuizSession && currentState.status === 'quiz' && !currentState.isPaused && currentState.quizId) {
+              reconcileWithCloud(e ? e.type : 'visibilitychange', true);
+          }
+      };
 
-      const handleVisibilityChange = () => { if (document.visibilityState === 'hidden') { reconcileWithCloud('visibilitychange', true); } };
+      const handleVisibilityChange = () => {
+          if (document.visibilityState === 'hidden') {
+              const currentState = latestStateRef.current;
+              const isInsideQuizSession = typeof window !== 'undefined' && window.location.hash.includes('/quiz/session/');
+              if (isInsideQuizSession && currentState.status === 'quiz' && !currentState.isPaused && currentState.quizId) {
+                  reconcileWithCloud('visibilitychange', true);
+              }
+          }
+      };
 
       window.addEventListener('beforeunload', handleBeforeUnload);
       document.addEventListener('visibilitychange', handleVisibilityChange);

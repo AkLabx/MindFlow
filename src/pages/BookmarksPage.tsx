@@ -1,8 +1,9 @@
 import { useAuth } from '@/features/auth';
 import { supabase } from '@/lib/supabase';
 import { fetchQuestionsByIds } from '@/features/quiz/services/questionService';
+import { syncService } from '@/lib/syncService';
 import React, { useState, useEffect, useMemo } from 'react';
-import { ChevronLeft, ChevronRight, Star, Trash2, LibraryBig, CheckCircle2 } from 'lucide-react';
+import { ChevronRight, Star, Trash2, LibraryBig, CheckCircle2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { db } from '@/lib/db';
 import { Question } from '@/features/quiz';
@@ -24,6 +25,9 @@ export const BookmarksPage: React.FC = () => {
         if (window.confirm("Are you sure you want to reset all bookmarks? This action cannot be undone.")) {
             try {
                 await db.clearBookmarks();
+                if (user?.id) {
+                    await supabase.from('user_bookmarks').delete().eq('user_id', user.id);
+                }
                 queryClient.setQueryData(['bookmarks', user?.id], []);
                 queryClient.invalidateQueries({ queryKey: ['dashboard-bookmark-count'] });
                 setShowToast(true);
@@ -41,12 +45,18 @@ export const BookmarksPage: React.FC = () => {
             const local = await db.getAllBookmarks();
             if (local && local.length > 0) return local;
             if (user) {
-                const { data: remoteBookmarks } = await supabase
+                const { data: remoteBookmarks, error: remoteError } = await supabase
                     .from('user_bookmarks')
                     .select('question_id')
                     .eq('user_id', user.id);
+
+                if (remoteError) {
+                    console.error("Failed to load remote bookmarks:", remoteError);
+                    throw remoteError;
+                }
+
                 if (remoteBookmarks && remoteBookmarks.length > 0) {
-                    const ids = remoteBookmarks.map((b: any) => b.question_id);
+                    const ids = remoteBookmarks.map((b: any) => b.question_id).filter(Boolean);
                     const fullQuestions = await fetchQuestionsByIds(ids);
                     for (const q of fullQuestions) {
                         await db.saveBookmark(q);
@@ -69,10 +79,18 @@ export const BookmarksPage: React.FC = () => {
         };
     }, [refetch]);
 
-    const handleRemoveBookmark = async (id: string) => {
+    const handleRemoveBookmark = async (question: Question) => {
         try {
-            await db.removeBookmark(id);
-            queryClient.setQueryData(['bookmarks', user?.id], (old: Question[] = []) => old.filter(b => b.id !== id));
+            await db.removeBookmark(question.id);
+            if (question.v1_id) {
+                await db.removeBookmark(question.v1_id);
+            }
+            if (user?.id) {
+                await syncService.removeBookmark(user.id, question.id, question.v1_id);
+            }
+            queryClient.setQueryData(['bookmarks', user?.id], (old: Question[] = []) =>
+                old.filter(b => b.id !== question.id && b.id !== question.v1_id)
+            );
             queryClient.invalidateQueries({ queryKey: ['dashboard-bookmark-count'] });
         } catch (error) {
             console.error("Failed to remove bookmark:", error);
@@ -155,7 +173,6 @@ export const BookmarksPage: React.FC = () => {
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-4">
-
                     <div>
                         <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Your Bookmarks</h1>
                         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Review saved questions sorted by subject.</p>
@@ -257,7 +274,7 @@ export const BookmarksPage: React.FC = () => {
                         {/* Actions */}
                         <div className="flex sm:flex-col justify-end sm:justify-start gap-2">
                             <button
-                                onClick={() => handleRemoveBookmark(question.id)}
+                                onClick={() => handleRemoveBookmark(question)}
                                 className="p-2 text-gray-400 dark:text-slate-500 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-colors flex items-center gap-2 sm:w-full justify-center"
                                 title="Remove Bookmark"
                             >

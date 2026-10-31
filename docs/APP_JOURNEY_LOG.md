@@ -26,6 +26,46 @@ This document is the single source of truth for the evolution of the MindFlow ap
 
 ## 🚀 App Journey Changelog
 
+## [v1.0.285] - 31 October 2026, 04:18 PM IST
+
+### Executive Summary
+Resolved recurring background sync red alert popups ("Background sync failed. Retrying automatically...") by strictly scoping the 15-second heartbeat reconciliation timer, route transitions, and auto-retry rules to active quiz sessions.
+
+### 🐛 Bug Fixes & Resilience
+- **Quiz Periodic Sync Heartbeat Scoping (`src/features/quiz/hooks/useQuiz.ts`)**:
+  - Restructured the 15-second periodic reconciliation timer, `beforeunload`, and `visibilitychange` window event listeners to only fire when actively inside an unpaused quiz route (`window.location.hash.includes('/quiz/session/') && currentState.status === 'quiz' && !currentState.isPaused && currentState.quizId`).
+  - Stopped periodic sync cycles from executing when users pause quizzes or navigate back to the Dashboard or other routes.
+- **Sync Queue & Error Toast Hardening (`src/features/quiz/stores/useQuizSessionStore.ts`)**:
+  - Guarded `enqueueCloudSync('periodic_reconciliation')` to automatically no-op if called outside active quiz session routes or during paused states.
+  - Eliminated repetitive `queryClient.invalidateQueries({ queryKey: ['latest-paused-quiz'] })` calls during routine 15s heartbeats, preventing continuous background Supabase queries.
+  - Suppressed alarmist red error toast notifications for non-critical background periodic sync sweeps while preserving notifications for explicit user pause/complete actions.
+  - Updated `goHome()` to explicitly clear `quizId: undefined` so navigation to the Dashboard terminates lingering quiz references.
+- **Idempotent Retry Policy (`src/lib/fetchWithTimeout.ts`)**:
+  - Updated `isSafeToRetry` to allow safe, exponential backoff retries for idempotent `PATCH` calls to `/rest/v1/saved_quizzes`, gracefully recovering from transient network drops or token refreshes without throwing error toasts.
+
+---
+
+## [v1.0.284] - 31 October 2026, 03:56 PM IST
+
+### Executive Summary
+Fixed critical database type mismatch error (`invalid input syntax for type uuid: "HIS14"`) affecting the Bookmarks view and state synchronization when handling questions with legacy alphanumeric identifiers.
+
+### 🐛 Bug Fixes & System Hardening
+- **Question Hydration by ID (`src/features/quiz/services/questionService.ts`)**:
+  - Implemented smart ID partitioning via `UUID_REGEX` to isolate standard UUIDs from legacy alphanumeric identifiers (such as `"HIS14"`, `"BIO1"`).
+  - Queried Supabase `questions` table using `.in('id', ...)` for UUIDs and `.in('v1_id', ...)` for legacy IDs, eliminating Postgres type casting errors (Postgres error `22P02`).
+  - Wrapped batch queries in safe async executors to prevent unhandled promise rejections.
+- **Bookmarks Page Resilience (`src/pages/BookmarksPage.tsx`)**:
+  - Enhanced `useQuery` query function with error logging and graceful fallback.
+  - Upgraded bookmark removal to delete both `question.id` (UUID) and `question.v1_id` from local IndexedDB and Supabase backend.
+  - Enhanced "Reset Bookmarks" action to cleanly wipe bookmarks from both local IndexedDB and remote `user_bookmarks` table.
+- **Background Sync Service (`src/lib/syncService.ts` & `src/features/quiz/stores/useBookmarkStore.ts`)**:
+  - Updated `removeBookmark` API to accept and purge both `questionId` and optional `v1Id`.
+  - Upgraded remote bookmark hydration to track both `id` and `v1_id`, preventing duplicate hydrations and redundant push events.
+  - Hardened store bookmark toggle logic to check and filter both standard UUIDs and legacy IDs.
+
+---
+
 ## [v1.0.283] - 31 October 2026, 12:16 PM IST
 
 ### Executive Summary
