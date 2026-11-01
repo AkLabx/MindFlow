@@ -26,6 +26,33 @@ This document is the single source of truth for the evolution of the MindFlow ap
 
 ## 🚀 App Journey Changelog
 
+## [v1.0.288] - 01 November 2026, 10:46 AM IST
+
+### Executive Summary
+Re-architected the Subject & Topic navigation pipeline to eliminate twin redundant REST queries with a high-performance PostgreSQL taxonomy summary RPC (~15ms, 1.5 KB payload), introduced intelligent 3-tier caching (RAM -> IndexedDB -> Server RPC), and eliminated cold-start blocking via zero-block Just-In-Time (JIT) subtopic question preparation for mobile and fast-tapping users.
+
+### ⚡ Performance & Refactoring
+- **Postgres Taxonomy Aggregation RPC (`supabase/migrations/20261101000000_subject_topics_summary_rpc.sql`)**:
+  - Implemented `get_subject_topics_summary(p_subject)` returning nested `{ topic: { total, subtopics: { [subTopic]: count } } }` directly from PostgreSQL in ~15ms.
+  - Reduced network payload from ~200 KB (over 4,200 raw JSON objects across twin calls) to ~1.5 KB.
+  - Added partial index `idx_questions_subject_taxonomy` on `(subject, topic, "subTopic") WHERE deleted_at IS NULL` for lightning-fast aggregation scans.
+  - Created targeted subtopic metadata RPC `get_subtopic_quiz_metadata(p_subject, p_topic, p_subtopic)` to fetch lightweight question taxonomy for single subtopics on demand.
+- **3-Tier Unified Subject Service (`src/features/dashboard/services/subjectService.ts`)**:
+  - Implemented `fetchSubjectTaxonomy` with local-first priority: checks IndexedDB `quiz_metadata_cache` first (0ms offline), falling back to `get_subject_topics_summary` server RPC on cold start.
+  - Implemented `fetchSubtopicMetadata` for JIT targeted subtopic hydration, caching returned items into IndexedDB for subsequent offline use.
+  - Re-routed legacy `fetchSubjectTopics` and `fetchSubjectTopicCounts` adapters to share the unified taxonomy result, preventing duplicate network requests.
+- **Subject Hub Prefetching (`src/features/dashboard/pages/subject/SubjectHubPage.tsx`)**:
+  - Added background prefetching of subject taxonomy on mount of `SubjectHubPage` using `queryClient.prefetchQuery`, ensuring data is already hot in memory before the user taps "Topic-wise Practice".
+
+### 📱 Mobile UX & Resilient Fallbacks
+- **Zero-Block JIT Subtopic Preparation (`src/features/dashboard/pages/subject/SubjectTopicsPage.tsx`, `src/features/dashboard/components/subject/QuizStartBottomSheet.tsx`)**:
+  - Eliminated the blocking error toast ("Please wait, syncing quiz data...") for cold-cache and fast-tapping visitors.
+  - Added eager JIT subtopic metadata fetching as the bottom sheet animates into view.
+  - Added graceful fallback to targeted subtopic metadata fetching upon tapping "Start Quiz", allowing users on slow networks or cold starts to start practicing in ~150ms without waiting for other subjects' metadata.
+  - Extended TanStack Query caching for subject taxonomy (`staleTime: 30 mins`, `gcTime: 24 hours`) to provide instantaneous 0ms re-entry for returning users and prevent skeleton layout jank.
+
+---
+
 ## [v1.0.287] - 31 October 2026, 05:37 PM IST
 
 ### Executive Summary

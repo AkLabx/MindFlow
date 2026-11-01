@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useLayoutStore } from "@/stores/useLayoutStore";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -10,22 +10,22 @@ import { SubjectSkeleton } from "../../components/subject/SubjectSkeleton";
 import { EmptyState } from "../../components/subject/EmptyState";
 import { QuizStartBottomSheet } from "../../components/subject/QuizStartBottomSheet";
 import { useNotificationStore } from "@/stores/useNotificationStore";
-import { db } from "@/lib/db";
-import { supabase } from "@/lib/supabase";
-import { initialState } from "@/features/quiz/stores/useQuizSessionStore";
 import { quizCreationService } from "@/features/quiz/services/quizCreationService";
 import { useQuestionMetadata } from "@/features/quiz/hooks/useQuestionMetadata";
+import { Question } from "@/features/quiz/types";
 
 export const SubjectTopicsPage: React.FC = () => {
   const { subjectName } = useParams<{ subjectName: string }>();
   const navigate = useNavigate();
-  const [selectedSubTopic, setSelectedSubTopic] = React.useState<{
+  const [selectedSubTopic, setSelectedSubTopic] = useState<{
     topic: string;
     subTopic: string;
   } | null>(null);
-  const [isCreatingQuiz, setIsCreatingQuiz] = React.useState(false);
-  const { metadata: cachedMetadata, isLoading: isMetadataLoading } =
-    useQuestionMetadata();
+  const [isCreatingQuiz, setIsCreatingQuiz] = useState(false);
+  const [isJitLoading, setIsJitLoading] = useState(false);
+  const [jitQuestions, setJitQuestions] = useState<Question[]>([]);
+
+  const { metadata: cachedMetadata } = useQuestionMetadata();
 
   const setHideGlobalHeader = useLayoutStore(
     (state) => state.setHideGlobalHeader,
@@ -38,23 +38,66 @@ export const SubjectTopicsPage: React.FC = () => {
 
   const decodedSubject = subjectName ? decodeURIComponent(subjectName) : "";
 
+  // Unified Taxonomy Query (Hierarchy + Counts + Total) with 24h memory retention
   const {
-    data: topicsHierarchy,
+    data: taxonomy,
     isLoading,
     error,
   } = useQuery({
-    queryKey: ["subject-topics", decodedSubject],
-    queryFn: () => subjectService.fetchSubjectTopics(decodedSubject),
+    queryKey: ["subject-taxonomy", decodedSubject],
+    queryFn: () => subjectService.fetchSubjectTaxonomy(decodedSubject),
     enabled: !!decodedSubject,
-    staleTime: 10 * 60 * 1000,
+    staleTime: 1000 * 60 * 30, // 30 minutes fresh
+    gcTime: 1000 * 60 * 60 * 24, // 24 hours in memory
   });
 
-  const { data: topicsCounts } = useQuery({
-    queryKey: ["subject-topics-counts", decodedSubject],
-    queryFn: () => subjectService.fetchSubjectTopicCounts(decodedSubject),
-    enabled: !!decodedSubject,
-    staleTime: 10 * 60 * 1000,
-  });
+  const filteredQuestionsForSubTopic = useMemo(() => {
+    if (!cachedMetadata || !selectedSubTopic) return [];
+    return cachedMetadata.filter(
+      (q) =>
+        (q.subject ?? q.classification?.subject) === decodedSubject &&
+        (q.topic ?? q.classification?.topic) === selectedSubTopic.topic &&
+        ((q.subTopic ?? q.classification?.subTopic) === selectedSubTopic.subTopic ||
+          (selectedSubTopic.subTopic === "General" && !(q.subTopic ?? q.classification?.subTopic)))
+    );
+  }, [cachedMetadata, decodedSubject, selectedSubTopic]);
+
+  // Eager JIT fetch for fast-tappers when local metadata isn't warm yet
+  useEffect(() => {
+    let isCancelled = false;
+
+    if (selectedSubTopic && filteredQuestionsForSubTopic.length === 0) {
+      setIsJitLoading(true);
+      subjectService
+        .fetchSubtopicMetadata(
+          decodedSubject,
+          selectedSubTopic.topic,
+          selectedSubTopic.subTopic,
+        )
+        .then((qs) => {
+          if (!isCancelled) {
+            setJitQuestions(qs);
+            setIsJitLoading(false);
+          }
+        })
+        .catch((err) => {
+          console.error("[SubjectTopicsPage] JIT subtopic fetch failed:", err);
+          if (!isCancelled) setIsJitLoading(false);
+        });
+    } else {
+      setJitQuestions([]);
+      setIsJitLoading(false);
+    }
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [selectedSubTopic, filteredQuestionsForSubTopic.length, decodedSubject]);
+
+  const effectiveQuestions =
+    filteredQuestionsForSubTopic.length > 0
+      ? filteredQuestionsForSubTopic
+      : jitQuestions;
 
   if (!decodedSubject) {
     return (
@@ -63,17 +106,6 @@ export const SubjectTopicsPage: React.FC = () => {
       </div>
     );
   }
-
-
-  const filteredQuestionsForSubTopic = useMemo(() => {
-    if (!cachedMetadata || !selectedSubTopic) return [];
-    return cachedMetadata.filter(
-      (q) =>
-        (q.subject ?? q.classification?.subject) === decodedSubject &&
-        (q.topic ?? q.classification?.topic) === selectedSubTopic.topic &&
-        (q.subTopic ?? q.classification?.subTopic) === selectedSubTopic.subTopic
-    );
-  }, [cachedMetadata, decodedSubject, selectedSubTopic]);
 
   const navigateToQuiz = (topic: string, subTopic?: string) => {
     navigate(ROUTES.QUIZ.CONFIG, {
@@ -119,31 +151,39 @@ export const SubjectTopicsPage: React.FC = () => {
     try {
       setIsCreatingQuiz(true);
 
-      if (!cachedMetadata || cachedMetadata.length === 0) {
-        useNotificationStore
-          .getState()
-          .showToast({
-            variant: "error",
-            message: isMetadataLoading
-              ? "Please wait, syncing quiz data..."
-              : "Quiz data is empty. Please check your connection and try again.",
-          });
+      let targetQuestions = effectiveQuestions;
+
+      // JIT fallback: if user tapped Start Quiz before eager fetch resolved
+      if (targetQuestions.length === 0) {
+        targetQuestions = await subjectService.fetchSubtopicMetadata(
+          decodedSubject,
+          selectedSubTopic.topic,
+          selectedSubTopic.subTopic,
+        );
+      }
+
+      if (targetQuestions.length === 0) {
+        useNotificationStore.getState().showToast({
+          variant: "error",
+          message:
+            "No questions found for this subtopic. Please check your connection and try again.",
+        });
         setIsCreatingQuiz(false);
         return;
       }
 
-      let filteredQuestions = filteredQuestionsForSubTopic;
+      let filteredQuestions = targetQuestions;
       if (difficulty !== "All") {
-        filteredQuestions = filteredQuestions.filter(q => q.properties?.difficulty === difficulty);
+        filteredQuestions = filteredQuestions.filter(
+          (q) => q.properties?.difficulty === difficulty,
+        );
       }
 
       if (filteredQuestions.length === 0) {
-        useNotificationStore
-          .getState()
-          .showToast({
-            variant: "error",
-            message: `No questions found for this subtopic with ${difficulty} difficulty.`,
-          });
+        useNotificationStore.getState().showToast({
+          variant: "error",
+          message: `No questions found for this subtopic with ${difficulty} difficulty.`,
+        });
         setIsCreatingQuiz(false);
         return;
       }
@@ -181,12 +221,10 @@ export const SubjectTopicsPage: React.FC = () => {
 
       if (startImmediately) {
         if (result.reused) {
-          useNotificationStore
-            .getState()
-            .showToast({
-              variant: "success",
-              message: "Resuming existing quiz session",
-            });
+          useNotificationStore.getState().showToast({
+            variant: "success",
+            message: "Resuming existing quiz session",
+          });
         }
         // Navigate to the library first so it's in the back stack, then to the quiz player
         navigate("/quiz/library?tab=created", { replace: true });
@@ -222,35 +260,34 @@ export const SubjectTopicsPage: React.FC = () => {
         });
       }
     } catch (err: any) {
-      console.error("Failed to create quiz:", err);
-      useNotificationStore
-        .getState()
-        .showToast({
-          variant: "error",
-          message: "Failed to create quiz. Please try again.",
-        });
+      console.error("[SubjectTopicsPage] Failed to create quiz:", err);
+      useNotificationStore.getState().showToast({
+        variant: "error",
+        message: "Failed to create quiz. Please try again.",
+      });
     } finally {
       setIsCreatingQuiz(false);
     }
   };
+
   const renderContent = () => {
     if (isLoading) return <SubjectSkeleton />;
-    if (error || !topicsHierarchy)
-      return <EmptyState message="Failed to load topics." />;
-    if (Object.keys(topicsHierarchy).length === 0)
+    if (error || !taxonomy)
+      return <EmptyState message="Failed to load topics. Please check your connection." />;
+    if (Object.keys(taxonomy.hierarchy).length === 0)
       return <EmptyState message="No topics found for this subject." />;
 
     return (
       <div className="flex flex-col gap-4">
-        {Object.entries(topicsHierarchy)
+        {Object.entries(taxonomy.hierarchy)
           .sort(([a], [b]) => a.localeCompare(b))
-          .map(([topic, subTopicsSet]) => (
+          .map(([topic, subTopicsList]) => (
             <TopicCardContainer
               key={topic}
               subject={decodedSubject}
               topic={topic}
-              subTopics={Array.from(subTopicsSet).sort()}
-              counts={topicsCounts?.[topic]}
+              subTopics={subTopicsList}
+              counts={taxonomy.counts[topic]}
               onClick={() => handleTopicClick(topic)}
               onSubTopicClick={(subTopic, e) =>
                 handleSubTopicClick(topic, subTopic, e)
@@ -260,6 +297,11 @@ export const SubjectTopicsPage: React.FC = () => {
       </div>
     );
   };
+
+  const expectedSubtopicCount =
+    (selectedSubTopic &&
+      taxonomy?.counts?.[selectedSubTopic.topic]?.[selectedSubTopic.subTopic]) ||
+    0;
 
   return (
     <div className="min-h-full -mx-4 -mt-4 px-4 pt-4 overflow-x-hidden bg-gradient-to-b from-[#EEF2FF] via-[#F5F7FF] to-[#F8FAFC] dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))]">
@@ -274,9 +316,15 @@ export const SubjectTopicsPage: React.FC = () => {
           subject={decodedSubject}
           topic={selectedSubTopic?.topic || ""}
           subTopic={selectedSubTopic?.subTopic || ""}
-          questions={filteredQuestionsForSubTopic}
-          onStartQuiz={(mode, difficulty) => handleCreateQuiz(mode, difficulty, true)}
-          onSaveForLater={(mode, difficulty) => handleCreateQuiz(mode, difficulty, false)}
+          questions={effectiveQuestions}
+          expectedCount={expectedSubtopicCount}
+          isPreparing={isJitLoading || isCreatingQuiz}
+          onStartQuiz={(mode, difficulty) =>
+            handleCreateQuiz(mode, difficulty, true)
+          }
+          onSaveForLater={(mode, difficulty) =>
+            handleCreateQuiz(mode, difficulty, false)
+          }
         />
         {isCreatingQuiz && (
           <div className="fixed inset-0 z-[200] bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm flex flex-col items-center justify-center animate-in fade-in duration-300">
