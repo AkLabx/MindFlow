@@ -3,6 +3,8 @@ import { useLayoutStore } from "@/stores/useLayoutStore";
 import { useParams, useNavigate } from "react-router-dom";
 import { SlidersHorizontal, ListTree } from "lucide-react";
 import { ROUTES } from "@/config/routes";
+import { queryClient } from "@/lib/queryClient";
+import { subjectService } from "../../services/subjectService";
 import { SubjectHeader } from "../../components/subject/SubjectHeader";
 import { ActionCard } from "../../components/subject/ActionCard";
 import { EmptyState } from "../../components/subject/EmptyState";
@@ -20,6 +22,19 @@ export const SubjectHubPage: React.FC = () => {
     return () => setHideGlobalHeader(false);
   }, [setHideGlobalHeader]);
 
+  const decodedSubject = subjectName ? decodeURIComponent(subjectName) : "";
+
+  // Eager prefetch of topic taxonomy while user considers action cards
+  useEffect(() => {
+    if (decodedSubject) {
+      queryClient.prefetchQuery({
+        queryKey: ["subject-taxonomy", decodedSubject],
+        queryFn: () => subjectService.fetchSubjectTaxonomy(decodedSubject),
+        staleTime: 1000 * 60 * 30,
+      });
+    }
+  }, [decodedSubject]);
+
   if (!subjectName) {
     return (
       <div className="min-h-full -mx-4 -mt-4 px-4 pt-4 overflow-x-hidden bg-gradient-to-b from-[#EEF2FF] via-[#F5F7FF] to-[#F8FAFC] dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))]">
@@ -27,8 +42,6 @@ export const SubjectHubPage: React.FC = () => {
       </div>
     );
   }
-
-  const decodedSubject = decodeURIComponent(subjectName);
 
   const handleCustomQuiz = () => {
     navigate(ROUTES.QUIZ.CONFIG, {

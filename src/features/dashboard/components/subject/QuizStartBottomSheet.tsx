@@ -23,6 +23,8 @@ interface QuizStartBottomSheetProps {
   topic: string;
   subTopic: string;
   questions: Question[];
+  expectedCount?: number;
+  isPreparing?: boolean;
   onStartQuiz: (mode: "learning" | "mock", difficulty: string) => void;
   onSaveForLater: (mode: "learning" | "mock", difficulty: string) => void;
 }
@@ -34,6 +36,8 @@ export const QuizStartBottomSheet: React.FC<QuizStartBottomSheetProps> = ({
   topic,
   subTopic,
   questions,
+  expectedCount = 0,
+  isPreparing = false,
   onStartQuiz,
   onSaveForLater,
 }) => {
@@ -59,7 +63,6 @@ export const QuizStartBottomSheet: React.FC<QuizStartBottomSheetProps> = ({
     subTopic,
   );
 
-
   const difficultyCounts = React.useMemo(() => {
     const counts = { All: questions.length, Easy: 0, Medium: 0, Hard: 0 };
     questions.forEach((q) => {
@@ -68,8 +71,14 @@ export const QuizStartBottomSheet: React.FC<QuizStartBottomSheetProps> = ({
         counts[diff]++;
       }
     });
+
+    // Fallback if questions metadata is still streaming in but expected count is known
+    if (questions.length === 0 && expectedCount > 0) {
+      counts.All = expectedCount;
+    }
+
     return counts;
-  }, [questions]);
+  }, [questions, expectedCount]);
 
   const activeQuestionCount = difficultyCounts[difficulty as keyof typeof difficultyCounts] || 0;
 
@@ -77,19 +86,17 @@ export const QuizStartBottomSheet: React.FC<QuizStartBottomSheetProps> = ({
 
   const handlePrimaryAction = () => {
     if (currentStatus.status === "COMPLETED" && currentStatus.quizId) {
-      // Route to results
       navigate(ROUTES.RESULT.view(currentStatus.quizId));
       onClose();
     } else {
-      // Start or Resume (quizCreationService handles duplicate detection and resuming inherently)
       onStartQuiz(mode, difficulty);
     }
   };
 
   const getPrimaryButtonConfig = () => {
-    if (isLoading) {
+    if (isLoading || isPreparing) {
       return {
-        label: "Loading...",
+        label: isPreparing ? "Preparing Questions..." : "Loading...",
         icon: (
           <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
         ),
@@ -173,7 +180,6 @@ export const QuizStartBottomSheet: React.FC<QuizStartBottomSheetProps> = ({
                 </p>
               </div>
             </div>
-
 
             {/* Difficulty Selector */}
             <div className="space-y-3">
@@ -308,7 +314,7 @@ export const QuizStartBottomSheet: React.FC<QuizStartBottomSheetProps> = ({
                   size="lg"
                   onClick={() => onSaveForLater(mode, difficulty)}
                   disabled={
-                    activeQuestionCount === 0 || currentStatus.status === "COMPLETED"
+                    activeQuestionCount === 0 || isPreparing || currentStatus.status === "COMPLETED"
                   }
                   className="w-full flex items-center justify-center gap-2 rounded-xl border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700"
                 >
