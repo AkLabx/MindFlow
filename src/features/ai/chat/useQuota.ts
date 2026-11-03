@@ -1,31 +1,27 @@
 import { useState, useEffect } from 'react';
 
-// Define limits based on user specs
+// Verified quotas directly from Google AI Studio Dashboard
 export const MODEL_CONFIGS = {
-  'gemini-3.1-flash-lite-preview': {
-    id: 'gemini-3.1-flash-lite-preview',
-    displayName: 'Fast 3x',
+  'gemini-3.1-flash-lite': {
+    id: 'gemini-3.1-flash-lite',
+    displayName: 'Fast',
+    fullTitle: 'Gemini 3.1 Flash Lite',
     rpm: 15,
     tpm: 250000,
     rpd: 500
   },
-  'gemini-2.5-flash-lite': {
-    id: 'gemini-2.5-flash-lite',
+  'gemini-3.5-flash-lite': {
+    id: 'gemini-3.5-flash-lite',
     displayName: 'Fast 2x',
-    rpm: 10,
+    fullTitle: 'Gemini 3.5 Flash Lite',
+    rpm: 15,
     tpm: 250000,
-    rpd: 20
+    rpd: 500
   },
-  'gemini-2.5-flash': {
-    id: 'gemini-2.5-flash',
-    displayName: 'Fast',
-    rpm: 5,
-    tpm: 250000,
-    rpd: 20
-  },
-  'gemini-3-flash-preview': {
-    id: 'gemini-3-flash-preview',
-    displayName: 'Pro model',
+  'gemini-3.8-flash': {
+    id: 'gemini-3.8-flash',
+    displayName: 'Pro',
+    fullTitle: 'Gemini 3.8 Flash (Thinking)',
     rpm: 5,
     tpm: 250000,
     rpd: 20
@@ -60,7 +56,7 @@ const getInitialQuota = (modelId: string): QuotaState => {
 
 export const useQuota = (modelId: ModelId) => {
   const [quota, setQuota] = useState<QuotaState>(() => getInitialQuota(modelId));
-  const config = MODEL_CONFIGS[modelId];
+  const config = MODEL_CONFIGS[modelId] || MODEL_CONFIGS['gemini-3.1-flash-lite'];
 
   useEffect(() => {
     const today = new Date().toDateString();

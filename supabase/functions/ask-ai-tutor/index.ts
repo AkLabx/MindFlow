@@ -99,7 +99,7 @@ serve(async (req) => {
 
     if (groundingApiKey) {
         try {
-            const groundingModel = Deno.env.get('GROUNDING_MODEL') || 'gemini-2.5-flash';
+            const groundingModel = Deno.env.get('GROUNDING_MODEL') || 'gemini-2.5';
             const groundingUrl = `https://generativelanguage.googleapis.com/v1beta/models/${groundingModel}:generateContent?key=${groundingApiKey}`;
             const groundingPrompt = `Provide a very short summary (2-3 sentences) of the most recent news related to this topic if applicable: "${questionText}". Today is ${new Date().toISOString().split('T')[0]}. If no significant news exists, say exactly "No major recent news found."`;
 

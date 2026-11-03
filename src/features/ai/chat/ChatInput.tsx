@@ -243,7 +243,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
  disabled={isLoading || disabled}
  className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-gray-500 hover:bg-gray-100 :bg-gray-800 rounded-full transition-colors"
  >
- <span className="truncate max-w-[60px]">{MODEL_CONFIGS[activeModel as keyof typeof MODEL_CONFIGS]?.displayName || 'Model'}</span>
+ <span className="truncate max-w-[70px]">{MODEL_CONFIGS[activeModel as keyof typeof MODEL_CONFIGS]?.displayName || 'Model'}</span>
  <ChevronUp className="h-3 w-3" />
  </button>
  )}
