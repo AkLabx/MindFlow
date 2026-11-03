@@ -13,7 +13,6 @@ export const QUICK_ACTIONS = [
   { id: 'daily-pyq', title: 'Daily PYQ Drill', subtitle: '25 Qs • 15 Mins', icon: 'Zap', bgClass: 'bg-indigo-50', textClass: 'text-indigo-600', action: 'mock' },
   { id: 'custom-quiz', title: 'Custom Quiz', subtitle: 'Filter by Topic', icon: 'SlidersHorizontal', bgClass: 'bg-blue-50', textClass: 'text-blue-600', action: 'custom' },
   { id: 'mistake-notebook', title: 'Mistake Notebook', subtitle: 'Error Revision Drill', icon: 'RotateCcw', bgClass: 'bg-amber-50', textClass: 'text-amber-600', action: 'mistake-notebook' },
-  { id: 'weak-topics', title: 'Weak Areas', subtitle: 'Targeted Practice', icon: 'Target', bgClass: 'bg-rose-50', textClass: 'text-rose-600', action: 'weak-topics' },
 ];
 
 export const IMPORTANT_FOR_SSC = [

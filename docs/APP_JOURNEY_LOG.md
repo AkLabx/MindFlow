@@ -26,6 +26,25 @@ This document is the single source of truth for the evolution of the MindFlow ap
 
 ## 🚀 App Journey Changelog
 
+## [v1.0.297] - 04 November 2026, 01:45 AM IST
+
+### Executive Summary
+Streamlined the main Dashboard visual and navigation hierarchy by permanently removing the Suggested Drill section and the Weak Areas action button from Quick Actions for all user states, resulting in a cleaner, distraction-free student dashboard.
+
+### ⚡ Performance & Refactoring
+- **Dashboard Streamlining (`src/pages/DashboardPage.tsx`)**:
+  - Removed `SuggestedDrillCard` and associated diagnostic/challenge drill selection logic from the Dashboard.
+  - Promoted `UserProgressCard` to a clean full-width insight widget under Tier 5.
+  - Removed deprecated `weak-topics` handler from `handleQuickAction`.
+- **Quick Actions Optimization (`src/features/dashboard/`)**:
+  - Removed `weak-topics` ("Weak Areas") from `QUICK_ACTIONS` in `sscDashboardConfig.ts`.
+  - Upgraded `QuickActionsGrid.tsx` with responsive grid layout (`grid-cols-2 sm:grid-cols-3`), allowing the 3 core actions (Daily PYQ Drill, Custom Quiz, Mistake Notebook) to span cleanly on both mobile and desktop without gaps.
+
+### Impacted Scope
+- `src/features/dashboard/constants/sscDashboardConfig.ts`
+- `src/features/dashboard/components/QuickActionsGrid.tsx`
+- `src/pages/DashboardPage.tsx`
+
 ## [v1.0.296] - 04 November 2026, 01:20 AM IST
 
 ### Executive Summary
