@@ -159,7 +159,7 @@ const AuthPage: React.FC<AuthPageProps> = () => {
 
   return (
     <>
-    <div className="min-h-[100dvh] w-full px-4 sm:px-6 py-12 sm:py-16 flex flex-col items-center justify-center overflow-x-hidden bg-gradient-to-b from-[#EEF2FF] via-[#F5F7FF] to-[#F8FAFC] dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+    <main id="main-content" role="main" className="min-h-[100dvh] w-full px-4 sm:px-6 py-12 sm:py-16 flex flex-col items-center justify-center overflow-x-hidden bg-gradient-to-b from-[#EEF2FF] via-[#F5F7FF] to-[#F8FAFC] dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
         <div className="absolute top-0 inset-x-0 h-[220px] pointer-events-none z-0"
              style={{ background: 'radial-gradient(120% 180px at 50% 0%, rgba(99,102,241,0.14) 0%, transparent 100%)' }}
         ></div>
@@ -257,7 +257,14 @@ const AuthPage: React.FC<AuthPageProps> = () => {
                    placeholder="••••••••"
                    className="block w-full px-4 py-3 pr-10 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition"
                  />
-                 <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+                 <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    title={showPassword ? "Hide password" : "Show password"}
+                    className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                  >
+                    <span className="sr-only">{showPassword ? "Hide password" : "Show password"}</span>
                    {showPassword ? (
                      <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a9.97 9.97 0 01-1.563 3.029m-5.858-.908a3 3 0 00-4.243-4.243" /></svg>
                    ) : (
@@ -306,7 +313,7 @@ const AuthPage: React.FC<AuthPageProps> = () => {
              </div>
            </form>
        </div>
-    </div>
+    </main>
 
       {/* 3-Question Micro-Demo Drawer */}
       <AnimatePresence>

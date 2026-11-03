@@ -32,9 +32,19 @@ export default defineConfig(({ mode }) => {
 
       build: {
         chunkSizeWarningLimit: 1500,
+        modulePreload: {
+          resolveDependencies: (filename, deps, { hostType }) => {
+            if (hostType === 'html') {
+              // Prevent heavy document export (1.37MB) and markdown/KaTeX (1.05MB) from being injected as initial HTML modulepreloads
+              return deps.filter(dep => !dep.includes('vendor-export') && !dep.includes('vendor-markdown'));
+            }
+            return deps;
+          }
+        },
         rollupOptions: {
           output: {
-                        manualChunks: (id) => {
+            manualChunks: (id) => {
+              if (id.includes('vite/preload-helper') || id.includes('commonjsHelpers')) return 'vendor-react';
               if (id.includes('node_modules/@supabase')) return 'vendor-supabase';
               if (id.includes('node_modules/jspdf') || id.includes('node_modules/pptxgenjs') || id.includes('node_modules/html2canvas') || id.includes('node_modules/jszip') || id.includes('node_modules/mammoth')) return 'vendor-export';
               if (id.includes('node_modules/react-markdown') || id.includes('node_modules/remark-gfm') || id.includes('node_modules/remark-math') || id.includes('node_modules/rehype-katex') || id.includes('node_modules/katex') || id.includes('node_modules/react-syntax-highlighter')) return 'vendor-markdown';
