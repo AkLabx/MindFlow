@@ -45,7 +45,7 @@ export const DashboardGreeting: React.FC<DashboardGreetingProps> = ({
           const ids = remoteBookmarks.map((b: any) => b.question_id);
           const fullQuestions = await fetchQuestionsByIds(ids);
           for (const q of fullQuestions) {
-            await db.saveBookmark(q);
+            await db.saveBookmark(q, { skipRemotePush: true });
           }
           return fullQuestions.length;
         }

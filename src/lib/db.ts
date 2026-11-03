@@ -32,6 +32,10 @@ export interface OWSInteraction {
   lastInteractedAt: string;
 }
 
+export interface DBSaveOptions {
+  skipRemotePush?: boolean;
+}
+
 const DB_NAME = 'MindFlowDB';
 const DB_VERSION = 15;
 const STORE_NAME = 'saved_quizzes';
@@ -272,7 +276,7 @@ export const db = {
      * @param {SavedQuiz} quiz - The quiz object to save.
      * @returns {Promise<void>} A promise that resolves when the save is complete.
      */
-    saveQuiz: async (quiz: SavedQuiz): Promise<void> => {
+    saveQuiz: async (quiz: SavedQuiz, options?: DBSaveOptions): Promise<void> => {
         const dbInstance = await openDB();
         return new Promise((resolve, reject) => {
             const transaction = dbInstance.transaction(STORE_NAME, 'readwrite');
@@ -361,7 +365,7 @@ export const db = {
      * @param {string} name - The new name for the quiz.
      * @returns {Promise<void>} A promise that resolves when the name is updated.
      */
-    updateQuizName: async (id: string, name: string): Promise<void> => {
+    updateQuizName: async (id: string, name: string, options?: DBSaveOptions): Promise<void> => {
         const dbInstance = await openDB();
         return new Promise((resolve, reject) => {
             const transaction = dbInstance.transaction(STORE_NAME, 'readwrite');
@@ -384,7 +388,9 @@ export const db = {
                   };
                 const putRequest = store.put(updated);
                 putRequest.onsuccess = () => {
-                    db._pushToSupabase('quiz', updated);
+                    if (!options?.skipRemotePush) {
+                        db._pushToSupabase('quiz', updated);
+                    }
                     resolve();
                 };
                 putRequest.onerror = () => reject(putRequest.error);
@@ -400,7 +406,7 @@ export const db = {
      * @param {QuizHistoryRecord} record - The history record to save.
      * @returns {Promise<void>}
      */
-    saveQuizHistory: async (record: QuizHistoryRecord): Promise<void> => {
+    saveQuizHistory: async (record: QuizHistoryRecord, options?: DBSaveOptions): Promise<void> => {
         const dbInstance = await openDB();
         return new Promise((resolve, reject) => {
             const transaction = dbInstance.transaction(HISTORY_STORE_NAME, 'readwrite');
@@ -408,7 +414,9 @@ export const db = {
             const request = store.put(record);
 
             request.onsuccess = () => {
-                db._pushToSupabase('history', record);
+                if (!options?.skipRemotePush) {
+                    db._pushToSupabase('history', record);
+                }
                 resolve();
             };
             request.onerror = () => reject(request.error);
@@ -423,7 +431,7 @@ export const db = {
      * @param {Question} question - The question object to bookmark.
      * @returns {Promise<void>}
      */
-    saveBookmark: async (question: Question): Promise<void> => {
+    saveBookmark: async (question: Question, options?: DBSaveOptions): Promise<void> => {
         const dbInstance = await openDB();
         return new Promise((resolve, reject) => {
             const transaction = dbInstance.transaction(BOOKMARKS_STORE_NAME, 'readwrite');
@@ -431,7 +439,9 @@ export const db = {
             const request = store.put(question);
 
             request.onsuccess = () => {
-                db._pushToSupabase('bookmark', question);
+                if (!options?.skipRemotePush) {
+                    db._pushToSupabase('bookmark', question);
+                }
                 resolve();
             };
             request.onerror = () => reject(request.error);
@@ -550,7 +560,7 @@ export const db = {
     /**
      * Saves a synonym interaction.
      */
-    saveSynonymInteraction: async (interaction: SynonymInteraction): Promise<void> => {
+    saveSynonymInteraction: async (interaction: SynonymInteraction, options?: DBSaveOptions): Promise<void> => {
         const dbInstance = await openDB();
         return new Promise((resolve, reject) => {
             const transaction = dbInstance.transaction(SYNONYM_STORE_NAME, 'readwrite');
@@ -558,7 +568,9 @@ export const db = {
             const request = store.put(interaction);
 
             request.onsuccess = () => {
-                db._pushToSupabase('synonym_interaction', interaction);
+                if (!options?.skipRemotePush) {
+                    db._pushToSupabase('synonym_interaction', interaction);
+                }
                 resolve();
             };
             request.onerror = () => reject(request.error);
@@ -643,7 +655,7 @@ export const db = {
     /**
      * Saves an OWS interaction.
      */
-    saveOWSInteraction: async (interaction: OWSInteraction): Promise<void> => {
+    saveOWSInteraction: async (interaction: OWSInteraction, options?: DBSaveOptions): Promise<void> => {
         const dbInstance = await openDB();
         return new Promise((resolve, reject) => {
             const transaction = dbInstance.transaction(OWS_STORE_NAME, 'readwrite');
@@ -651,7 +663,9 @@ export const db = {
             const request = store.put(interaction);
 
             request.onsuccess = () => {
-                db._pushToSupabase('ows_interaction', interaction);
+                if (!options?.skipRemotePush) {
+                    db._pushToSupabase('ows_interaction', interaction);
+                }
                 resolve();
             };
             request.onerror = () => reject(request.error);
@@ -782,7 +796,7 @@ export const db = {
     /**
      * Saves an Idiom interaction.
      */
-    saveIdiomInteraction: async (interaction: IdiomInteraction): Promise<void> => {
+    saveIdiomInteraction: async (interaction: IdiomInteraction, options?: DBSaveOptions): Promise<void> => {
         const dbInstance = await openDB();
         return new Promise((resolve, reject) => {
             const transaction = dbInstance.transaction(IDIOM_STORE_NAME, 'readwrite');
@@ -790,7 +804,9 @@ export const db = {
             const request = store.put(interaction);
 
             request.onsuccess = () => {
-                db._pushToSupabase('idiom_interaction', interaction);
+                if (!options?.skipRemotePush) {
+                    db._pushToSupabase('idiom_interaction', interaction);
+                }
                 resolve();
             };
             request.onerror = () => reject(request.error);

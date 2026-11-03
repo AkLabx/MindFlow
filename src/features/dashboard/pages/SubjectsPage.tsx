@@ -21,10 +21,27 @@ export const SubjectsPage: React.FC = () => {
 
   const { data: subjectCounts, isLoading } = useQuery({
     queryKey: ['dashboard-subject-counts'],
+    initialData: () => {
+      try {
+        const raw = localStorage.getItem('mindflow_subject_counts');
+        if (!raw) return undefined;
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === 'object') {
+          const sanitized: Record<string, number> = {};
+          for (const [k, v] of Object.entries(parsed)) {
+            sanitized[k] = Number(v) || 0;
+          }
+          return sanitized;
+        }
+      } catch {}
+      return undefined;
+    },
     queryFn: async () => {
       const { data, error } = await supabase.rpc('get_dashboard_subject_counts');
       if (error) throw error;
-      return data || {};
+      const counts = data || {};
+      try { localStorage.setItem('mindflow_subject_counts', JSON.stringify(counts)); } catch {}
+      return counts;
     },
     staleTime: 1000 * 60 * 30,
     gcTime: 1000 * 60 * 60,

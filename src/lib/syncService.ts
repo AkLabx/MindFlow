@@ -359,145 +359,198 @@ export const syncService = {
   },
 
   syncOnLogin: async (userId: string, isSignup: boolean = false) => {
-    // If a full sync has already completed for this user in this session, skip the blocking UI sync
-    // but still flush any offline queue silently
-    if (lastSyncedUserIdForFullSync === userId && !isSignup) {
+    // Check cross-tab sync cooldown (15 minutes) to prevent redundant network bursts on new tabs
+    const SYNC_COOLDOWN_MS = 15 * 60 * 1000;
+    const lastSyncKey = `mindflow_last_full_sync_${userId}`;
+    let lastSyncTime = 0;
+    try {
+      lastSyncTime = Number(localStorage.getItem(lastSyncKey) || '0');
+      // Protect against corrupted future timestamps
+      if (lastSyncTime > Date.now()) {
+        lastSyncTime = 0;
+        localStorage.removeItem(lastSyncKey);
+      }
+    } catch {
+      // storage unavailable
+    }
+
+    const isCooldownActive = Date.now() - lastSyncTime < SYNC_COOLDOWN_MS;
+
+    // If already fully synced in this runtime or another tab within cooldown, only flush local offline queue
+    if ((lastSyncedUserIdForFullSync === userId || isCooldownActive) && !isSignup) {
       await syncService.processEventQueue(userId);
       return;
     }
+
     if (isSyncing) return;
     isSyncing = true;
     window.dispatchEvent(new Event("mindflow-sync-start"));
 
-    // Safety watchdog: guarantees isSyncing is never left permanently true under network freezes/failures
-    const syncWatchdog = setTimeout(() => {
-      if (isSyncing) {
-        console.warn("[SyncService] Sync watchdog timeout (10s) triggered. Force-resetting isSyncing.");
-        isSyncing = false;
-        window.dispatchEvent(new Event("mindflow-sync-complete"));
-      }
-    }, 10000);
-
-    try {
-      await syncService.processEventQueue(userId);
-
-      // Bypass remote pulls on new signup since there is no remote data
-      if (isSignup) {
-        lastSyncedUserIdForFullSync = userId;
-        queryClient.invalidateQueries({ queryKey: ['bookmarks'] });
-        queryClient.invalidateQueries({ queryKey: ['dashboard-bookmark-count'] });
-        return;
-      }
-
-      // 1. Pull lightweight metadata from Supabase (excluding heavy quiz data)
-      const [
-        { data: remoteHistory },
-        { data: remoteBookmarks },
-        { data: remoteSynonyms },
-        { data: remoteOWS },
-        { data: remoteIdioms },
-      ] = await Promise.all([
-        supabase.from("quiz_history").select("*").eq("user_id", userId),
-        supabase
-          .from("user_bookmarks")
-          .select("question_id")
-          .eq("user_id", userId),
-        supabase
-          .from("user_synonym_interactions")
-          .select("*")
-          .eq("user_id", userId),
-        supabase
-          .from("user_ows_interactions")
-          .select("*")
-          .eq("user_id", userId),
-        supabase
-          .from("user_idiom_interactions")
-          .select("*")
-          .eq("user_id", userId),
-      ]);
-
-      // 2. Fetch local data
-      const localBookmarks = await db.getAllBookmarks();
-
-      // 3. Clear local IndexedDB immediately to avoid stale data
-      try { await db.clearAllUserData(); } catch (err) { console.error("[SyncService] clearAllUserData failed:", err); }
-
-      // 4. Hydrate quiz history
-      if (remoteHistory) {
-        for (const remote of remoteHistory) {
-          await db.saveQuizHistory({
-            id: remote.id,
-            date: remote.date,
-            totalQuestions: remote.total_questions,
-            totalCorrect: remote.total_correct,
-            totalIncorrect: remote.total_incorrect,
-            totalSkipped: remote.total_skipped,
-            totalTimeSpent: remote.total_time_spent,
-            overallAccuracy: remote.overall_accuracy,
-            difficulty: remote.difficulty,
-            subjectStats: remote.subject_stats,
-          });
+    // Multi-tab sync coordination: ensure only one tab executes the cloud delta sync at once
+    const executeSync = async () => {
+      // Safety watchdog: guarantees isSyncing is never left permanently true under network freezes/failures
+      const syncWatchdog = setTimeout(() => {
+        if (isSyncing) {
+          console.warn("[SyncService] Sync watchdog timeout (10s) triggered. Force-resetting isSyncing.");
+          isSyncing = false;
+          window.dispatchEvent(new Event("mindflow-sync-complete"));
         }
-      }
+      }, 10000);
 
-      // 5. Hydrate missing remote bookmarks
-      if (remoteSynonyms) {
-        for (const remote of remoteSynonyms) {
-          await db.saveSynonymInteraction({
-            wordId: (remote as any).word_id,
-            wordString: "", // Missing string data from backend, relies on UI hydrating it later
-            masteryLevel: (remote as any).mastery_level,
-            dailyChallengeScore: (remote as any).daily_challenge_score,
-            gamificationScore: (remote as any).gamification_score,
-            viewedExplanation: (remote as any).viewed_explanation,
-            viewedWordFamily: (remote as any).viewed_word_family,
-            lastInteractedAt: (remote as any).last_interacted_at,
-          });
+      try {
+        await syncService.processEventQueue(userId);
+
+        // Bypass remote pulls on new signup since there is no remote data
+        if (isSignup) {
+          lastSyncedUserIdForFullSync = userId;
+          try { localStorage.setItem(lastSyncKey, Date.now().toString()); } catch {}
+          queryClient.invalidateQueries({ queryKey: ['bookmarks'] });
+          queryClient.invalidateQueries({ queryKey: ['dashboard-bookmark-count'] });
+          return;
         }
-      }
 
-      if (remoteOWS && remoteOWS.length > 0) {
-        for (const remote of remoteOWS) {
-          await db.saveOWSInteraction({
-            wordId: remote.word_id,
-            known_ows: remote.is_read,
-            lastInteractedAt: remote.updated_at,
-          });
-        }
-      }
+        // 1. Pull remote metadata from Supabase
+        const [
+          { data: remoteHistory },
+          { data: remoteBookmarks },
+          { data: remoteSynonyms },
+          { data: remoteOWS },
+          { data: remoteIdioms },
+          { data: remoteSavedQuizzes },
+        ] = await Promise.all([
+          supabase.from("quiz_history").select("*").eq("user_id", userId),
+          supabase.from("user_bookmarks").select("question_id").eq("user_id", userId),
+          supabase.from("user_synonym_interactions").select("*").eq("user_id", userId),
+          supabase.from("user_ows_interactions").select("*").eq("user_id", userId),
+          supabase.from("user_idiom_interactions").select("*").eq("user_id", userId),
+          supabase
+            .from("saved_quizzes")
+            .select("id, name, created_at, mode, filters, state, bridge_saved_quiz_questions(question_id, sort_order)")
+            .eq("user_id", userId)
+            .neq("status", "result")
+            .is("deleted_at", null)
+            .order("created_at", { ascending: false })
+            .limit(10),
+        ]);
 
-      if (remoteIdioms && remoteIdioms.length > 0) {
-        for (const remote of remoteIdioms) {
-          await db.saveIdiomInteraction({
-            idiomId: remote.idiom_id,
-            known_ows: remote.is_read,
-            lastInteractedAt: remote.updated_at,
-          });
-        }
-      }
+        // 2. Fetch local data
+        const localBookmarks = await db.getAllBookmarks();
 
-      if (remoteBookmarks && remoteBookmarks.length > 0) {
-        const localBookmarkIds = new Set(localBookmarks.flatMap((b) => [b.id, b.v1_id].filter(Boolean)));
-        const missingBookmarkIds = remoteBookmarks
-          .map((b) => b.question_id)
-          .filter((id) => !localBookmarkIds.has(id));
-
-        if (missingBookmarkIds.length > 0) {
-          // Fetch the full question objects for bookmarks since local DB needs the full object
-          const fullQuestions = await fetchQuestionsByIds(missingBookmarkIds);
-          for (const q of fullQuestions) {
-            await db.saveBookmark(q);
+        // 3. Hydrate quiz history (using skipRemotePush: true to eliminate outbound echo loop)
+        if (remoteHistory) {
+          for (const remote of remoteHistory) {
+            await db.saveQuizHistory({
+              id: remote.id,
+              date: remote.date,
+              totalQuestions: remote.total_questions,
+              totalCorrect: remote.total_correct,
+              totalIncorrect: remote.total_incorrect,
+              totalSkipped: remote.total_skipped,
+              totalTimeSpent: remote.total_time_spent,
+              overallAccuracy: remote.overall_accuracy,
+              difficulty: remote.difficulty,
+              subjectStats: remote.subject_stats,
+            }, { skipRemotePush: true });
           }
         }
+
+        // 4. Hydrate remote vocabulary interactions (skipRemotePush: true)
+        if (remoteSynonyms) {
+          for (const remote of remoteSynonyms) {
+            await db.saveSynonymInteraction({
+              wordId: (remote as any).word_id,
+              wordString: "",
+              masteryLevel: (remote as any).mastery_level,
+              dailyChallengeScore: (remote as any).daily_challenge_score,
+              gamificationScore: (remote as any).gamification_score,
+              viewedExplanation: (remote as any).viewed_explanation,
+              viewedWordFamily: (remote as any).viewed_word_family,
+              lastInteractedAt: (remote as any).last_interacted_at,
+            }, { skipRemotePush: true });
+          }
+        }
+
+        if (remoteOWS && remoteOWS.length > 0) {
+          for (const remote of remoteOWS) {
+            await db.saveOWSInteraction({
+              wordId: remote.word_id,
+              known_ows: remote.is_read,
+              lastInteractedAt: remote.updated_at,
+            }, { skipRemotePush: true });
+          }
+        }
+
+        if (remoteIdioms && remoteIdioms.length > 0) {
+          for (const remote of remoteIdioms) {
+            await db.saveIdiomInteraction({
+              idiomId: remote.idiom_id,
+              known_ows: remote.is_read,
+              lastInteractedAt: remote.updated_at,
+            }, { skipRemotePush: true });
+          }
+        }
+
+        // 5. Hydrate remote saved quizzes (skipRemotePush: true)
+        if (remoteSavedQuizzes && remoteSavedQuizzes.length > 0) {
+          for (const rq of remoteSavedQuizzes) {
+            const bridgeData = (rq.bridge_saved_quiz_questions as any) || [];
+            const quizObj: SavedQuiz = {
+              id: rq.id,
+              name: rq.name,
+              createdAt: new Date(rq.created_at).getTime(),
+              filters: rq.filters,
+              mode: rq.mode as any,
+              questions: bridgeData
+                .sort((a: any, b: any) => a.sort_order - b.sort_order)
+                .map((b: any) => ({ id: b.question_id })),
+              state: rq.state
+            };
+            await db.saveQuiz(quizObj, { skipRemotePush: true });
+          }
+        }
+
+        // 6. Hydrate missing remote bookmarks (skipRemotePush: true)
+        if (remoteBookmarks && remoteBookmarks.length > 0) {
+          const localBookmarkIds = new Set(localBookmarks.flatMap((b) => [b.id, b.v1_id].filter(Boolean)));
+          const missingBookmarkIds = remoteBookmarks
+            .map((b) => b.question_id)
+            .filter((id) => !localBookmarkIds.has(id));
+
+          if (missingBookmarkIds.length > 0) {
+            const fullQuestions = await fetchQuestionsByIds(missingBookmarkIds);
+            for (const q of fullQuestions) {
+              await db.saveBookmark(q, { skipRemotePush: true });
+            }
+          }
+        }
+
+        // Mark sync completed timestamp in localStorage for cross-tab sharing
+        try {
+          localStorage.setItem(lastSyncKey, Date.now().toString());
+        } catch {}
+
+      } catch (error) {
+        console.error("Error during initial sync:", error);
+      } finally {
+        clearTimeout(syncWatchdog);
+        isSyncing = false;
+        lastSyncedUserIdForFullSync = userId;
+        window.dispatchEvent(new Event("mindflow-sync-complete"));
       }
-    } catch (error) {
-      console.error("Error during initial sync:", error);
-    } finally {
-      clearTimeout(syncWatchdog);
-      isSyncing = false;
-      lastSyncedUserIdForFullSync = userId;
-      // Dispatch event to notify UI components that sync has completed
-      window.dispatchEvent(new Event("mindflow-sync-complete"));
+    };
+
+    if (typeof navigator !== 'undefined' && 'locks' in navigator) {
+      await navigator.locks.request('mindflow_cloud_sync_lock', { ifAvailable: true }, async (lock) => {
+        if (!lock) {
+          console.log('[SyncService] Another tab is currently synchronizing. Yielding to active sync.');
+          await syncService.processEventQueue(userId);
+          isSyncing = false;
+          return;
+        }
+        await executeSync();
+      });
+    } else {
+      await executeSync();
     }
   },
 };

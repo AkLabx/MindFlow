@@ -26,6 +26,34 @@ This document is the single source of truth for the evolution of the MindFlow ap
 
 ## 🚀 App Journey Changelog
 
+## [v1.0.295] - 03 November 2026, 10:48 PM IST
+
+### Executive Summary
+Eliminated the 50–60 second new-tab dashboard freeze by fundamentally resolving the root-level "Pull-Wipe-Resync Echo Loop" in the storage and synchronization layers. Decoupled local IndexedDB writes from outbound network pushes via `skipRemotePush`, eradicated destructive startup database wipes, implemented cross-tab Web Lock synchronization deduplication, and delivered instant 0ms local-first hydration for paused quizzes and GK subject counts with multi-account isolation.
+
+### ⚡ Performance & Refactoring
+- **Storage Layer Decoupling (`src/lib/db.ts`)**:
+  - Introduced `DBSaveOptions` with `skipRemotePush?: boolean` across `saveQuiz`, `updateQuizName`, `saveQuizHistory`, `saveBookmark`, `saveSynonymInteraction`, `saveOWSInteraction`, and `saveIdiomInteraction`.
+  - Prevented local IndexedDB persistence operations from automatically firing outbound HTTP `_pushToSupabase` side-effects during background sync operations.
+- **Instant Paused Quiz Hydration (`src/pages/DashboardPage.tsx`)**:
+  - Implemented eager local-first hydration from IndexedDB (`db.getAllSavedQuizzes()`), illuminating the "Resume Quiz" button in **0ms** upon tab mount.
+  - Quietly synchronizes remote query updates into IndexedDB in the background with `skipRemotePush: true`.
+- **Instant GK Subject Counts (`src/features/dashboard/components/SubjectStrip.tsx`, `SubjectsPage.tsx`)**:
+  - Implemented sanitized and schema-validated `localStorage` caching (`mindflow_subject_counts`).
+  - Provides `initialData` to TanStack Query so GK subject cards display `1,200+ Qs` instantly on tab boot without displaying loading indicators (`...`).
+- **Dashboard Bookmark Resilience (`src/features/dashboard/components/DashboardGreeting.tsx`)**:
+  - Passed `skipRemotePush: true` during local bookmark hydration, preventing redundant bookmark sync echoes.
+
+### 🔒 Security & Architecture
+- **Eradication of Destructive Startup Wipes (`src/lib/syncService.ts`)**:
+  - Permanently removed `db.clearAllUserData()` from `syncOnLogin()`. Background synchronization now performs non-destructive, key-matched atomic upserts, preserving offline-first quiz state and preventing database thrashing.
+  - Added remote `saved_quizzes` hydration during sync so active quiz sessions synchronize seamlessly across user devices.
+- **Cross-Tab Web Lock Coordination & Cooldown (`src/lib/syncService.ts`)**:
+  - Introduced a 15-minute sync cooldown (`mindflow_last_full_sync_${userId}`) shared across tabs in `localStorage`, protecting against corrupted future timestamps.
+  - Gated cloud delta synchronization behind a non-blocking Web Lock (`navigator.locks.request('mindflow_cloud_sync_lock', { ifAvailable: true })`), guaranteeing that only one tab synchronizes with Supabase at any moment while peer tabs yield cleanly.
+- **Multi-Account Storage Boundary Isolation (`src/features/auth/context/AuthContext.tsx`)**:
+  - Implemented `mindflow_last_auth_user_id` tracking. If a different user authenticates on a shared machine, previous user caches and IndexedDB records are wiped immediately before new user session hydration, preventing cross-user data leakage.
+
 ## [v1.0.294] - 03 November 2026, 09:20 PM IST
 
 ### Executive Summary
