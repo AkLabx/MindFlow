@@ -26,6 +26,48 @@ This document is the single source of truth for the evolution of the MindFlow ap
 
 ## 🚀 App Journey Changelog
 
+## [v1.0.292] - 03 November 2026, 01:10 PM IST
+
+### Executive Summary
+Engineered the Centralized Mastery & Memory Engine (CMME) and Panacea Mistake Notebook. Pushes past conventional error notebooks by introducing Memory Vulnerability Indexing (MVI), spaced verification for first-time lucky guesses (तुक्का vs mastery), escalating cognitive error tiers (Fresh Slip 1x, Repeated Error 2x, Critical Trap 3x+), automated historical quiz backfilling, and 1-click targeted retention drills across GK/GS, English, and all future subjects.
+
+### ✨ Features & Architecture
+- **Universal Mastery Engine Schema & RPCs (`supabase/migrations/20261103120000_create_centralized_mastery_engine.sql`)**:
+  - Created `public.user_question_mastery` table with composite uniqueness on `(user_id, question_id)`, tracking interaction counts, consecutive streaks, MVI (0-100), cognitive tiers, and spaced review timestamps.
+  - Implemented `record_question_interactions(p_interactions JSONB)` RPC with algorithmic vulnerability tier evaluation:
+    - `CRITICAL_ERROR` (MVI 95-100, $\ge 3$ consecutive/total failures, 1-day spaced repetition).
+    - `REPEATED_ERROR` (MVI 70-80, 2 failures, concept traps, 2-day spaced repetition).
+    - `FRESH_SLIP` (MVI 45-55, 1 mistake, 3-day spaced repetition).
+    - `UNVERIFIED_GUESS` (MVI 30-35, 1st-time correct answer flagged for spaced verification).
+    - `FAMILIAR` (MVI 10-15, 2 consecutive correct answers).
+    - `MASTERED` (MVI 0, 3 consecutive correct answers, graduated).
+  - Implemented resilient `backfill_user_question_mastery()` RPC parsing historical attempt logs from all completed quizzes, populating 235 initial questions into the mastery table.
+- **Mastery Service (`src/features/quiz/services/masteryService.ts`)**:
+  - Centralized manager for querying summaries, filtering questions by cognitive tier/subject, saving personal concept notes, manual graduation, and launching revision drills.
+- **Asynchronous Interaction Logging in Quiz Pipeline (`src/features/quiz/hooks/useQuiz.ts`)**:
+  - Integrated with `submit_quiz_session` in `useQuiz.ts` to automatically record all question interactions into the CMME engine asynchronously upon session completion.
+- **Command Center Mistake Notebook UI (`src/features/mistakes/`)**:
+  - `MistakeNotebookPage.tsx`: Full-fledged error revision dashboard mounted at `/mistake-notebook` with multi-subject filtering and real-time search.
+  - `CognitiveSummaryDeck.tsx`: Memory Vulnerability Index meter and interactive 6-tier filter buttons (All Mistakes, Critical Traps, Repeated, Fresh Slips, Lucky Guesses?, Mastered).
+  - `MasteryDrillBar.tsx`: 1-click retention drill launchers ("Kill Critical Traps", "Verify Lucky Guesses", and "Quick 10-Q Sweep").
+  - `MistakeQuestionCard.tsx`: Deep solution cards featuring bilingual EN/HI question toggles, option comparison (student choice vs correct answer), official explanations, private concept takeaway note persistence, AiExplanation modal integration, single-question practice drills, and "Mark as Mastered" graduation toggles.
+- **Routing & Navigation (`src/config/routes.ts`, `src/routes/AppRoutes.tsx`, `src/pages/DashboardPage.tsx`, `src/layouts/MainLayout.tsx`)**:
+  - Added `ROUTES.MISTAKE_NOTEBOOK = '/mistake-notebook'` and `ROUTES.QUIZ.MISTAKES = '/quiz/mistakes'`.
+  - Wired Dashboard Quick Actions tile "Mistake Notebook" to route directly to `/mistake-notebook`.
+  - Added header suppression in `MainLayout.tsx` for clean sticky navbar presentation.
+
+### Impacted Scope
+- `supabase/migrations/20261103120000_create_centralized_mastery_engine.sql`
+- `src/features/quiz/services/masteryService.ts`
+- `src/features/quiz/hooks/useQuiz.ts`
+- `src/features/mistakes/`
+- `src/config/routes.ts`
+- `src/routes/AppRoutes.tsx`
+- `src/pages/DashboardPage.tsx`
+- `src/layouts/MainLayout.tsx`
+- `package.json`
+- `docs/APP_JOURNEY_LOG.md`
+
 ## [v1.0.291] - 03 November 2026, 11:20 AM IST
 
 ### Executive Summary
