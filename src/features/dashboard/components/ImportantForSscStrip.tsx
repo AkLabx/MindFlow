@@ -9,7 +9,7 @@ interface ImportantForSscStripProps {
 
 export const ImportantForSscStrip: React.FC<ImportantForSscStripProps> = ({ onTopicClick, onViewAllClick }) => {
   return (
-    <section className="flex flex-col gap-2.5 relative z-10 pb-2">
+    <section className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.06)] dark:shadow-none p-3.5 sm:p-4.5 flex flex-col gap-3 relative z-10 mb-2">
       <div className="flex items-center justify-between px-0.5">
         <div className="flex items-center gap-1.5">
           <Flame className="w-4 h-4 sm:w-5 sm:h-5 text-rose-500 fill-rose-500" />
@@ -23,16 +23,16 @@ export const ImportantForSscStrip: React.FC<ImportantForSscStripProps> = ({ onTo
         </button>
       </div>
 
-      <div className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory no-scrollbar sm:grid sm:grid-cols-3 lg:grid-cols-6">
+      <div className="flex gap-2.5 overflow-x-auto pb-1 snap-x snap-mandatory no-scrollbar sm:grid sm:grid-cols-3 lg:grid-cols-6">
         {IMPORTANT_FOR_SSC.map((item) => (
           <div
             key={item.id}
             onClick={() => onTopicClick(item.filter)}
-            className="bg-white dark:bg-slate-800/80 rounded-2xl p-3.5 sm:p-4 border border-slate-100 dark:border-slate-700/50 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] dark:shadow-none hover:border-indigo-200 dark:hover:border-indigo-800 transition-all cursor-pointer min-w-[220px] sm:min-w-0 snap-start active:scale-[0.98] group flex flex-col justify-between"
+            className="bg-slate-50/80 dark:bg-slate-800/60 rounded-xl p-3 sm:p-3.5 border border-slate-200/90 dark:border-slate-700/70 shadow-xs hover:bg-white dark:hover:bg-slate-700/80 hover:border-indigo-300 dark:hover:border-indigo-600/70 transition-all cursor-pointer min-w-[210px] sm:min-w-0 snap-start active:scale-[0.98] group flex flex-col justify-between"
           >
             <div>
               <div className="flex items-center justify-between mb-2">
-                <span className={`px-2 py-0.5 rounded-md text-xs font-bold ${item.subjectBg}`}>
+                <span className={`px-2 py-0.5 rounded-md text-xs font-bold ${item.subjectBg} border border-slate-200/60 dark:border-transparent`}>
                   {item.subjectLabel}
                 </span>
                 <span className="text-xs font-semibold text-slate-400">
@@ -48,7 +48,7 @@ export const ImportantForSscStrip: React.FC<ImportantForSscStripProps> = ({ onTo
               <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
                 {item.tag}
               </span>
-              <div className="w-7 h-7 rounded-full bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 group-hover:bg-indigo-600 group-hover:text-white transition-colors flex items-center justify-center">
+              <div className="w-7 h-7 rounded-full bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 border border-indigo-200/70 dark:border-indigo-800/60 group-hover:bg-indigo-600 group-hover:text-white group-hover:border-transparent transition-colors flex items-center justify-center">
                 <Play className="w-3.5 h-3.5 ml-0.5" />
               </div>
             </div>

@@ -15,14 +15,14 @@ export const SuggestedDrillCard: React.FC<SuggestedDrillCardProps> = ({
   onStartDrill,
 }) => {
   return (
-    <div className="bg-white dark:bg-slate-800/80 rounded-2xl p-4 sm:p-5 border border-slate-100 dark:border-slate-700/50 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] dark:shadow-none relative overflow-hidden flex flex-col justify-between h-full min-h-[168px]">
+    <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md rounded-2xl p-3.5 sm:p-4.5 border border-slate-200/90 dark:border-slate-800 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.06)] dark:shadow-none relative overflow-hidden flex flex-col justify-between h-full min-h-[168px]">
       <div>
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-1.5 text-indigo-600 dark:text-indigo-400">
             <Target className="w-4 h-4" />
             <span className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">Suggested Drill</span>
           </div>
-          <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-800">
+          <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800">
             {isDiagnostic ? 'Diagnostic' : 'Weak Area'}
           </span>
         </div>
@@ -35,13 +35,13 @@ export const SuggestedDrillCard: React.FC<SuggestedDrillCardProps> = ({
         </p>
 
         <div className="flex items-center gap-2 mt-3 overflow-x-auto no-scrollbar pb-1">
-          <div className="flex items-center gap-1 text-xs font-semibold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700/60 px-2.5 py-1 rounded-lg shrink-0">
+          <div className="flex items-center gap-1 text-xs font-semibold text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/60 px-2.5 py-1 rounded-lg shrink-0">
             <Clock className="w-3.5 h-3.5 text-slate-500" /> 15 Qs
           </div>
-          <div className="flex items-center gap-1 text-xs font-semibold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700/60 px-2.5 py-1 rounded-lg shrink-0">
+          <div className="flex items-center gap-1 text-xs font-semibold text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/60 px-2.5 py-1 rounded-lg shrink-0">
             <Timer className="w-3.5 h-3.5 text-slate-500" /> 10 Mins
           </div>
-          <div className="flex items-center gap-1 text-xs font-semibold text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 px-2.5 py-1 rounded-lg shrink-0">
+          <div className="flex items-center gap-1 text-xs font-semibold text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 border border-amber-200/80 dark:border-amber-800/60 px-2.5 py-1 rounded-lg shrink-0">
             <Flame className="w-3.5 h-3.5" /> PYQ Focus
           </div>
         </div>

@@ -65,9 +65,9 @@ export const DashboardGreeting: React.FC<DashboardGreetingProps> = ({
   return (
     <div className="relative z-10 w-full">
       {/* Hero Strip — Greeting + Action Buttons in one unified card */}
-      <div className="bg-white/70 dark:bg-slate-800/50 backdrop-blur-sm rounded-2xl border border-slate-200/60 dark:border-slate-700/50 shadow-[0_2px_16px_-6px_rgba(99,102,241,0.10)] dark:shadow-none p-3 sm:p-4">
+      <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.06)] dark:shadow-none p-3.5 sm:p-4.5">
         {/* Compact Greeting */}
-        <h2 className="text-[13px] sm:text-base font-medium text-slate-500 dark:text-slate-400 tracking-tight mb-2 sm:mb-2.5 pl-0.5">
+        <h2 className="text-[13px] sm:text-base font-bold text-slate-700 dark:text-slate-300 tracking-tight mb-2.5 sm:mb-3 pl-0.5">
           {getGreeting()},{" "}
           <span className="font-bold text-slate-800 dark:text-white">
             {displayName}
@@ -82,7 +82,7 @@ export const DashboardGreeting: React.FC<DashboardGreetingProps> = ({
             onClick={() =>
               navigate(ROUTES.TODAYS_PLAN || "/todays-plan")
             }
-            className="flex flex-col items-center justify-center p-2 sm:p-3 text-center rounded-xl bg-slate-50/80 dark:bg-slate-700/40 hover:bg-indigo-50 dark:hover:bg-slate-600/50 transition-all group w-full cursor-pointer active:scale-95"
+            className="flex flex-col items-center justify-center p-2 sm:p-3 text-center rounded-xl bg-slate-50/80 dark:bg-slate-800/60 hover:bg-indigo-50 dark:hover:bg-slate-700/80 border border-slate-200/90 dark:border-slate-700/70 hover:border-indigo-300 dark:hover:border-indigo-600/70 shadow-xs transition-all group w-full cursor-pointer active:scale-95"
           >
             <Calendar className="w-5 h-5 text-indigo-500 group-hover:scale-110 transition-transform mb-1" />
             <span className="font-semibold text-[10px] leading-tight sm:text-xs text-slate-700 dark:text-slate-300 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
@@ -98,7 +98,7 @@ export const DashboardGreeting: React.FC<DashboardGreetingProps> = ({
             onClick={() =>
               navigate(ROUTES.QUIZ.BOOKMARKS)
             }
-            className="flex flex-col items-center justify-center p-2 sm:p-3 text-center rounded-xl bg-slate-50/80 dark:bg-slate-700/40 hover:bg-amber-50 dark:hover:bg-slate-600/50 transition-all group w-full cursor-pointer active:scale-95"
+            className="flex flex-col items-center justify-center p-2 sm:p-3 text-center rounded-xl bg-slate-50/80 dark:bg-slate-800/60 hover:bg-amber-50 dark:hover:bg-slate-700/80 border border-slate-200/90 dark:border-slate-700/70 hover:border-amber-300 dark:hover:border-amber-600/70 shadow-xs transition-all group w-full cursor-pointer active:scale-95"
           >
             <Bookmark className="w-5 h-5 text-amber-500 group-hover:scale-110 transition-transform mb-1" />
             <span className="font-semibold text-[10px] leading-tight sm:text-xs text-slate-700 dark:text-slate-300 group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">
@@ -115,8 +115,8 @@ export const DashboardGreeting: React.FC<DashboardGreetingProps> = ({
             disabled={!latestQuiz}
             className={`flex flex-col items-center justify-center p-2 sm:p-3 rounded-xl transition-all text-center group w-full active:scale-95 ${
               latestQuiz
-                ? "bg-gradient-to-br from-indigo-50/80 to-violet-50/80 dark:from-indigo-900/30 dark:to-violet-900/30 hover:from-indigo-100 hover:to-violet-100 dark:hover:from-indigo-900/50 dark:hover:to-violet-900/50 cursor-pointer"
-                : "bg-slate-50/80 dark:bg-slate-700/40 opacity-50 cursor-not-allowed"
+                ? "bg-gradient-to-br from-indigo-50/90 to-violet-50/90 dark:from-indigo-950/40 dark:to-violet-950/40 border border-indigo-200 dark:border-indigo-800 hover:border-indigo-400 cursor-pointer shadow-xs"
+                : "bg-slate-50/80 dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-700/50 opacity-50 cursor-not-allowed"
             }`}
           >
             <Play
@@ -137,7 +137,7 @@ export const DashboardGreeting: React.FC<DashboardGreetingProps> = ({
           {/* Quiz History */}
           <button
             onClick={() => navigate(`${ROUTES.QUIZ.LIBRARY}?tab=attempted`)}
-            className="flex flex-col items-center justify-center p-2 sm:p-3 text-center rounded-xl bg-slate-50/80 dark:bg-slate-700/40 hover:bg-emerald-50 dark:hover:bg-slate-600/50 transition-all group w-full cursor-pointer active:scale-95"
+            className="flex flex-col items-center justify-center p-2 sm:p-3 text-center rounded-xl bg-slate-50/80 dark:bg-slate-800/60 hover:bg-emerald-50 dark:hover:bg-slate-700/80 border border-slate-200/90 dark:border-slate-700/70 hover:border-emerald-300 dark:hover:border-emerald-600/70 shadow-xs transition-all group w-full cursor-pointer active:scale-95"
           >
             <FolderClock className="w-5 h-5 text-emerald-500 group-hover:scale-110 transition-transform mb-1" />
             <span className="font-semibold text-[10px] leading-tight sm:text-xs text-slate-700 dark:text-slate-300 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">

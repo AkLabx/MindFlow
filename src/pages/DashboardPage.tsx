@@ -198,7 +198,7 @@ export const DashboardPage: React.FC<DashboardProps> = ({ onBackToIntro }) => {
            style={{ background: 'radial-gradient(120% 180px at 50% 0%, rgba(99,102,241,0.14) 0%, transparent 100%)' }}
       ></div>
 
-      <div className="w-full pt-1 sm:pt-2 space-y-2.5 relative z-10">
+      <div className="w-full pt-1 sm:pt-2 space-y-3 sm:space-y-4 relative z-10">
         {/* Tier 1 */}
         <DashboardGreeting
           user={user}

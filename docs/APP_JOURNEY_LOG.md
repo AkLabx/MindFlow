@@ -26,6 +26,31 @@ This document is the single source of truth for the evolution of the MindFlow ap
 
 ## 🚀 App Journey Changelog
 
+## [v1.0.290] - 03 November 2026, 09:25 AM IST
+
+### Executive Summary
+Redesigned the Dashboard visual hierarchy with rounded-corner section containers and crisp boundary distinction for all buttons and interactive cards across light and dark modes. Solved low-contrast washed-out card boundaries by enclosing each section (Hero Strip, Subjects, Quick Actions, Suggested Drill, Your Progress, Important for SSC) within its own visible container card with refined borders, subtle elevation, and distinct inner button states.
+
+### ✨ Visual Polish & UI/UX Improvements
+- **Section-Level Container Architecture (`src/features/dashboard/components/`, `src/pages/DashboardPage.tsx`)**:
+  - Enclosed each dashboard section (`SubjectStrip`, `QuickActionsGrid`, `ImportantForSscStrip`, `SuggestedDrillCard`, `UserProgressCard`, and `DashboardGreeting`) inside rounded-corner rectangular container cards (`rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.06)] backdrop-blur-md`).
+  - Integrated section headers and "View All" actions cleanly within each container card header.
+  - Adjusted dashboard tier spacing to `space-y-3 sm:space-y-4` for a clean, cohesive visual cadence.
+- **Crisp Button & Inner Card Boundaries**:
+  - Replaced low-contrast `border-slate-100` with high-clarity `border-slate-200/90 dark:border-slate-700/70` and subtle `bg-slate-50/80 dark:bg-slate-800/60` background fills on all subject chips, quick action buttons, greeting quick-actions, and SSC cards.
+  - Enhanced hover states with crisp border accents (`hover:border-indigo-300 dark:hover:border-indigo-600/70`) and active micro-scaling.
+  - Standardized badge and chip boundaries across `SuggestedDrillCard` and `ImportantForSscStrip`.
+
+### Impacted Scope
+- `src/features/dashboard/components/DashboardGreeting.tsx`
+- `src/features/dashboard/components/SubjectStrip.tsx`
+- `src/features/dashboard/components/QuickActionsGrid.tsx`
+- `src/features/dashboard/components/SuggestedDrillCard.tsx`
+- `src/features/dashboard/components/UserProgressCard.tsx`
+- `src/features/dashboard/components/ImportantForSscStrip.tsx`
+- `src/pages/DashboardPage.tsx`
+- `package.json`
+
 ## [v1.0.289] - 03 November 2026, 08:45 AM IST
 
 ### Executive Summary
