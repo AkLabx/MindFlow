@@ -58,22 +58,20 @@ export const DashboardPage: React.FC<DashboardProps> = ({ onBackToIntro }) => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('saved_quizzes')
-        .select('*, bridge_saved_quiz_questions(question_id, sort_order)')
+        .select('id, name, created_at, mode, filters, state, bridge_saved_quiz_questions(question_id, sort_order)')
         .eq('user_id', user!.id)
+        .neq('status', 'result')
         .is('deleted_at', null)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(1);
 
       if (error) throw error;
       if (!data || data.length === 0) return null;
 
-      const activeQuizzes = data.filter(rq => rq.status !== 'result');
-      if (activeQuizzes.length === 0) return null;
-
-      const rq = activeQuizzes[0];
-      const bridgeData = rq.bridge_saved_quiz_questions || [];
+      const rq = data[0];
+      const bridgeData = (rq.bridge_saved_quiz_questions as any) || [];
       return {
         id: rq.id,
-        quiz_id: rq.quiz_id,
         name: rq.name,
         createdAt: new Date(rq.created_at).getTime(),
         filters: rq.filters,

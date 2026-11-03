@@ -93,6 +93,8 @@ export const quizCreationService = {
       });
 
       // 4. Cloud Persistence (saved_quizzes)
+      // Exclude heavy activeQuestions from remote state payload; questions are normalized in bridge_saved_quiz_questions
+      const { activeQuestions, ...stateWithoutQuestions } = (newQuiz.state as any) || {};
       const { error: quizError } = await supabase.from('saved_quizzes').insert({
         id: newQuiz.id,
         user_id: userId,
@@ -100,7 +102,7 @@ export const quizCreationService = {
         created_at: newQuiz.createdAt,
         filters: newQuiz.filters,
         mode: newQuiz.mode,
-        state: newQuiz.state,
+        state: stateWithoutQuestions,
       });
 
       if (quizError) {

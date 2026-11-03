@@ -14,6 +14,7 @@ import { QuizLibraryToolbar } from './QuizLibraryToolbar';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../auth/context/AuthContext';
 import { ErrorState, QueryStateHandler } from '../../../components/ui/ErrorState';
+import { QuizLibrarySkeleton } from './QuizLibrarySkeleton';
 
 /**
  * Screen for managing saved quizzes.
@@ -44,13 +45,13 @@ export const SavedQuizzesList: React.FC<SavedQuizzesListProps> = ({ viewMode, se
         staleTime: 1000 * 60 * 2,
         gcTime: 1000 * 60 * 10,
         queryFn: async () => {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (!session?.user) return [];
+            if (!user?.id) return [];
 
             const { data, error } = await supabase
               .from('saved_quizzes')
-              .select('*, bridge_saved_quiz_questions(question_id, sort_order)')
-              .eq('user_id', session.user.id)
+              .select('id, name, created_at, mode, status, filters, state, bridge_saved_quiz_questions(count)')
+              .eq('user_id', user.id)
+              .neq('status', 'result')
               .is('deleted_at', null)
               .order('created_at', { ascending: false });
 
@@ -61,11 +62,10 @@ export const SavedQuizzesList: React.FC<SavedQuizzesListProps> = ({ viewMode, se
 
             if (!data || data.length === 0) return [];
 
-            const activeQuizzes = data.filter(rq => rq.status !== 'result');
-            return activeQuizzes.map(rq => {
-                const bridgeData = rq.bridge_saved_quiz_questions || [];
-                const questionsCount = bridgeData.length;
-                let questions = new Array(questionsCount).fill({});
+            return data.map(rq => {
+                const countObj = (rq.bridge_saved_quiz_questions as any)?.[0];
+                const questionsCount = typeof countObj?.count === 'number' ? countObj.count : 0;
+                const questions = new Array(questionsCount).fill({});
 
                 let parsedState: any = {};
                 try {
@@ -101,25 +101,18 @@ export const SavedQuizzesList: React.FC<SavedQuizzesListProps> = ({ viewMode, se
     const [editName, setEditName] = useState('');
 
     useEffect(() => {
-        queryClient.invalidateQueries({ queryKey: ['saved-quizzes', user?.id] });
-
         const handleSyncStart = () => {
             setIsSyncing(true);
         };
 
         const handleSyncComplete = () => {
-            // Add a small delay to ensure IndexedDB transactions are fully committed
-            // before we try to read the hydrated data.
-            setTimeout(async () => {
-                await queryClient.invalidateQueries({ queryKey: ['saved-quizzes', user?.id] });
-                setIsSyncing(false);
-            }, 100);
+            queryClient.invalidateQueries({ queryKey: ['saved-quizzes', user?.id] });
+            setIsSyncing(false);
         };
 
         window.addEventListener('mindflow-sync-start', handleSyncStart);
         window.addEventListener('mindflow-sync-complete', handleSyncComplete);
 
-        // Also check if sync started right before component mounted
         if (syncService.getIsSyncing()) {
             setIsSyncing(true);
         }
@@ -128,7 +121,7 @@ export const SavedQuizzesList: React.FC<SavedQuizzesListProps> = ({ viewMode, se
             window.removeEventListener('mindflow-sync-start', handleSyncStart);
             window.removeEventListener('mindflow-sync-complete', handleSyncComplete);
         };
-    }, []);
+    }, [user?.id, queryClient]);
 
 
 
@@ -229,16 +222,6 @@ export const SavedQuizzesList: React.FC<SavedQuizzesListProps> = ({ viewMode, se
         });
     }, [quizzes, sortMethod]);
 
-
-    if (loading || isSyncing) {
-        return (
-            <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-slate-900">
-                <SynapticLoader size="lg" />
-            </div>
-        );
-    }
-
-
     const containerVariants = {
         hidden: { opacity: 0 },
         visible: {
@@ -252,13 +235,13 @@ export const SavedQuizzesList: React.FC<SavedQuizzesListProps> = ({ viewMode, se
         visible: { opacity: 1, y: 0 }
     };
 
-        return (
+    return (
         <QueryStateHandler
-            isLoading={loading}
+            isLoading={loading || (isSyncing && quizzes.length === 0)}
             isError={isError}
             error={error}
             onRetry={refetch}
-            loadingComponent={<div className="flex items-center justify-center min-h-[60vh]"><SynapticLoader size="lg" /></div>}
+            loadingComponent={<QuizLibrarySkeleton count={3} viewMode={viewMode} />}
         >
         <div className="w-full h-full animate-fade-in pb-8">
             {sortedQuizzes.length === 0 ? (
