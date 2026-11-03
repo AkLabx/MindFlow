@@ -56,8 +56,8 @@ const ConfusablesSchema = z.array(
 const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
 const MODELS = [
   "gemini-3.1-flash-lite",
-  "gemini-2.5-flash",
-  "gemma-4-31b"
+  "gemini-3.5-flash-lite",
+  "gemma-4-31b-it"
 ];
 const VISIBILITY_TIMEOUT = 300;
 

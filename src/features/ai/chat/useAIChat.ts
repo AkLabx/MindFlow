@@ -29,7 +29,7 @@ export type GroundingState = 'auto' | 'always' | 'off';
 
 export const useAIChat = () => {
     const [messages, setMessages] = useState<AIChatMessage[]>([]);
-    const [activeModel, setActiveModel] = useState<ModelId>('gemini-2.5-flash');
+    const [activeModel, setActiveModel] = useState<ModelId>('gemini-3.1-flash-lite');
     const [groundingState, setGroundingState] = useState<GroundingState>('auto');
     const quota = useQuota(activeModel);
     const [includeAppData, setIncludeAppData] = useState(false);

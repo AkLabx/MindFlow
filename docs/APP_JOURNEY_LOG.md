@@ -26,6 +26,38 @@ This document is the single source of truth for the evolution of the MindFlow ap
 
 ## 🚀 App Journey Changelog
 
+## [v1.0.296] - 04 November 2026, 01:20 AM IST
+
+### Executive Summary
+Re-aligned MindFlow's AI infrastructure with active Google AI Studio production tiers and quotas (`gemini-3.1-flash-lite`, `gemini-3.5-flash-lite`, `gemini-3.8-flash`, and `gemma-4` batch workhorses), replacing deprecated `gemini-2.5-flash` references. Re-architected Edge Function execution planners with prioritized candidate matching and guaranteed non-terminating fallback so AI chats and tutor requests never fail when individual models are degraded.
+
+### ✨ Features Added
+- **Production Google AI Model Alignment**:
+  - Synced client and server AI orchestration to use `gemini-3.1-flash-lite` (500 RPD, 15 RPM), `gemini-3.5-flash-lite` (500 RPD, 15 RPM), and `gemini-3.8-flash` (20 RPD, 5 RPM).
+  - Configured batch enrichment pipelines (`explanation`, `etymology`, `mnemonic`, `grammar`) to leverage high-volume `gemma-4-31b-it` and `gemma-4-26b-a4b-it` (14,400 RPD) alongside flash models.
+- **Frontend Quota & Model Selection (`src/features/ai/chat/`)**:
+  - Updated `MODEL_CONFIGS` in `useQuota.ts` with accurate RPD/RPM limits and tier labels ("Fast", "Fast 2x", "Pro").
+  - Defaulted active AI Chat model in `useAIChat.ts` to `gemini-3.1-flash-lite`.
+  - Polished model badge and dropdown presentation in `ChatInput.tsx` and `AIChatPage.tsx`.
+
+### 🐛 Bug Fixes
+- **Resolved AI Chat 500 Failure ("All scheduled models failed")**:
+  - Fixed rigid model filtering in `supabase/functions/chat-ai/index.ts` where execution plan candidates were discarded if their model did not strictly match the requested model ID.
+  - Implemented priority sorting `[...matchingCandidates, ...fallbackCandidates]` ensuring requests gracefully fall back to active healthy models instead of throwing an unhandled exception.
+- **Search Grounding Fallback (`supabase/functions/ask-ai-tutor/index.ts`)**:
+  - Aligned Search Grounding fallback from deprecated `gemini-2.5-flash` to `gemini-2.5` to conform to Google AI Studio's 1,500 daily free grounding queries.
+- **Synonyms Enrichment Model Update (`supabase/functions/enrich-synonyms/index.ts`)**:
+  - Replaced legacy `gemini-2.5-flash` with `gemini-3.1-flash-lite`, `gemini-3.5-flash-lite`, and `gemma-4-31b-it`.
+
+### 🔒 Security & Architecture
+- **Multi-Key Edge Runtime Synchronization (`public.ai_model_runtime`)**:
+  - Provisioned and enabled `gemini-3.5-flash-lite` and `gemini-3.8-flash` across all active and fallback API keys (`GEMINI_API_KEY_v1`, `GEMINI_API_KEY_FALLBACK_v1`, `enrich-ques-api_v1`, `enrich-ques-api-fallback_v1`).
+- **Dynamic Task Configuration Alignment (`public.ai_feature_config`, `public.ai_task_config`)**:
+  - Updated model chains for `chat`, `ask_ai_tutor`, and `planner` to prioritize `["gemini-3.1-flash-lite", "gemini-3.5-flash-lite", "gemini-3.8-flash"]`.
+- **Edge Deployment Verification**:
+  - Deployed updated `chat-ai` Edge Function bundle to Supabase production environment.
+
+
 ## [v1.0.295] - 03 November 2026, 10:48 PM IST
 
 ### Executive Summary
