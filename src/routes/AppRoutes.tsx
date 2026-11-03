@@ -42,6 +42,7 @@ const DailyMissionPage = lazy(() => import('../pages/DailyMissionPage').then(m =
 const EnglishHub = lazy(() => import('../features/english').then(m => ({ default: m.EnglishHub })));
 const QuizConfig = lazy(() => import('../features/quiz/components/QuizConfig').then(m => ({ default: m.QuizConfig })));
 const QuizLibrary = lazy(() => import('../features/quiz/components/QuizLibrary').then(m => ({ default: m.QuizLibrary })));
+const MistakeNotebookPage = lazy(() => import('../features/mistakes').then(m => ({ default: m.MistakeNotebookPage })));
 
 const PerformanceAnalytics = lazy(() => import('../features/quiz/components/PerformanceAnalytics').then(m => ({ default: m.PerformanceAnalytics })));
 const BookmarksPage = lazy(() => import('../pages/BookmarksPage').then(m => ({ default: m.BookmarksPage })));
@@ -276,6 +277,8 @@ const handleReattempt = async (quizId: string, mode: string) => {
                     <Route path={ROUTES.QUIZ.LIBRARY} element={<Suspense fallback={<SynapticLoader />}><QuizLibrary /></Suspense>} />
                     <Route path={ROUTES.QUIZ.ANALYTICS} element={<Suspense fallback={<SynapticLoader />}><PerformanceAnalytics /></Suspense>} />
                     <Route path={ROUTES.QUIZ.BOOKMARKS} element={<Suspense fallback={<SynapticLoader />}><BookmarksPage /></Suspense>} />
+                    <Route path={ROUTES.MISTAKE_NOTEBOOK} element={<Suspense fallback={<SynapticLoader />}><MistakeNotebookPage /></Suspense>} />
+                    <Route path={ROUTES.QUIZ.MISTAKES} element={<Suspense fallback={<SynapticLoader />}><MistakeNotebookPage /></Suspense>} />
                     <Route path={ROUTES.VOCAB.SYNONYMS.ROOT} element={<Suspense fallback={<SynapticLoader />}><SynonymsHub onBack={() => navigate(ROUTES.ENGLISH)} /></Suspense>} />
                     <Route path={ROUTES.VOCAB.OWS.ROOT} element={<Suspense fallback={<SynapticLoader />}><OWSHub onBack={() => navigate(ROUTES.ENGLISH)} /></Suspense>} />
                     <Route path={ROUTES.VOCAB.IDIOMS.ROOT} element={<Suspense fallback={<SynapticLoader />}><IdiomsHub onBack={() => navigate(ROUTES.ENGLISH)} /></Suspense>} />

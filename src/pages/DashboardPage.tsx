@@ -143,7 +143,7 @@ export const DashboardPage: React.FC<DashboardProps> = ({ onBackToIntro }) => {
         navigate("/quiz/config");
         break;
       case 'mistake-notebook':
-        navigate(`${ROUTES.QUIZ.LIBRARY}?tab=attempted`);
+        navigate(ROUTES.MISTAKE_NOTEBOOK);
         break;
       case 'weak-topics':
         handleStartSuggestedDrill();

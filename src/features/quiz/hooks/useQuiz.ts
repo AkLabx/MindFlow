@@ -8,6 +8,7 @@ import { Question, InitialFilters, QuizMode, Idiom, OneWord, SynonymWord, QuizRu
 import { db } from '../../../lib/db';
 import { v4 as uuidv4 } from 'uuid';
 import { supabase } from '../../../lib/supabase';
+import { masteryService } from '../services/masteryService';
 
 /**
  * Custom hook to manage the global quiz application state.
@@ -211,6 +212,29 @@ export const useQuiz = () => {
                 throw new Error(rpcError.message || 'Failed to submit quiz session');
             } else {
                 console.log("Atomic submission successful. New history ID:", newHistoryId);
+                // Centralized Mastery & Memory Engine: Record question interactions
+                try {
+                    const interactions = state.activeQuestions.map((q) => {
+                        const selected = results.answers[q.id];
+                        const isCorrect = selected === q.correct;
+                        return {
+                            question_id: q.id,
+                            subject: q.subject || q.classification?.subject || 'General',
+                            topic: q.topic || q.classification?.topic,
+                            difficulty: q.properties?.difficulty || 'Medium',
+                            is_correct: isCorrect,
+                            selected_option: selected || null,
+                            correct_option: q.correct,
+                            quiz_id: state.quizId
+                        };
+                    });
+                    masteryService.recordInteractions(interactions).catch((err) => {
+                        console.warn("[CMME] Background mastery record warning:", err);
+                    });
+                } catch (mErr) {
+                    console.warn("[CMME] Failed to map interactions:", mErr);
+                }
+
                 // Only mark fully completed locally once the server confirms
                 state.submitSessionResults(results);
             }

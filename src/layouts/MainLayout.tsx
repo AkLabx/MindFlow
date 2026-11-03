@@ -74,7 +74,9 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
     '/mcqs/uploadcustomquiz',
     '/vocab/synonyms/config',
     '/vocab/idioms/config',
-    '/vocab/ows/config'
+    '/vocab/ows/config',
+    '/mistake-notebook',
+    '/quiz/mistakes'
   ].includes(location.pathname) || location.pathname.startsWith('/about') || location.pathname.startsWith('/result');
 
   // Auto toggle based on pathname if user lands directly on a social route

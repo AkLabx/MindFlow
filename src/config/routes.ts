@@ -26,6 +26,7 @@ export const ROUTES = {
 
   TODAYS_PLAN: '/todays-plan',
   DAILY_MISSION: '/daily-mission',
+  MISTAKE_NOTEBOOK: '/mistake-notebook',
 
   // Main Navigation Tabs
   MCQS: '/mcqs',
@@ -60,6 +61,7 @@ export const ROUTES = {
     ANALYTICS: '/quiz/analytics',
     BOOKMARKS: '/quiz/bookmarks',
     CONFIG: '/quiz/config',
+    MISTAKES: '/mistake-notebook',
 
     SESSION: {
       learning: (id: string | number) => `/quiz/session/learning/${id}`,
