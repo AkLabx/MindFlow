@@ -26,6 +26,40 @@ This document is the single source of truth for the evolution of the MindFlow ap
 
 ## 🚀 App Journey Changelog
 
+## [v1.0.293] - 03 November 2026, 08:55 PM IST
+
+### Executive Summary
+Executed a comprehensive Lighthouse performance and accessibility overhaul targeting the unauthenticated login portal (`https://aklabx.github.io/MindFlow/`). Eliminated massive initial JS over-bundling (~2.4 MB uncompressed JS dropped from login modulepreloads), decoupled render-blocking Google Fonts, resolved WCAG accessibility violations (button accessible names and landmark elements), and split core routes to achieve optimal First Contentful Paint (FCP) and Largest Contentful Paint (LCP) on mobile and desktop without regressing HashRouter, OAuth, or Capacitor native flows.
+
+### ⚡ Performance & Bundle Optimization
+- **Vite ModulePreload Dependency Decoupling (`vite.config.ts`)**:
+  - Implemented `build.modulePreload.resolveDependencies` filter to strictly exclude heavyweight markdown and export vendor bundles (`vendor-export`, `vendor-markdown`) from initial entry HTML modulepreloads.
+  - Consolidated Rollup chunking rules to route `vite/preload-helper` directly to `vendor-react`, preventing Rollup from co-locating the dynamic import runtime helper inside `vendor-export` (which was triggering a cascading preload of `pdfmake`, `xlsx`, and `html2canvas` on the login page).
+  - Shrunk entry bundle `index.js` from 501.8 kB to 428.6 kB and eliminated ~2.4 MB of uncompressed JavaScript from the initial unauthenticated network waterfall.
+- **Route Code-Splitting & Barrel Decoupling (`src/routes/AppRoutes.tsx`)**:
+  - Converted `DashboardPage`, `SubjectsPage`, and `AppPreferencesPage` into lazy-loaded chunks (`React.lazy()`).
+  - Decoupled `AppRoutes.tsx` from the top-level `@/features/quiz` barrel export, directly importing `QuizProvider` and `useFlashcardStore` from their atomic files to avoid pulling heavy quiz session/plugin machinery into the initial route map.
+  - Imported `QuizSessionGuard`, `ResultGuard`, and `ShareGatekeeper` directly from their respective component paths.
+- **Non-Blocking Asynchronous Typography (`index.html`)**:
+  - Maintained preconnect for `fonts.googleapis.com` and `fonts.gstatic.com`.
+  - Loaded primary UI font (`Inter`) synchronously with `display=swap`.
+  - Converted secondary and non-critical font families (`Crimson Text`, `Noto Sans Devanagari`, `Playfair Display`, `Poppins`) to load asynchronously via `media="print" onload="this.media='all'"` with `<noscript>` fallback, removing render-blocking latency on the critical rendering path.
+
+### ♿ Accessibility & Semantic UX
+- **WCAG Landmark & Screen Reader Fixes (`src/features/auth/components/AuthPage.tsx`, `src/features/auth/components/SignupPage.tsx`)**:
+  - Replaced root `<div>` containers with semantic `<main id="main-content" role="main">` landmarks, eliminating the Lighthouse "Document does not have a main landmark" audit error.
+  - Added explicit `aria-label={showPassword ? "Hide password" : "Show password"}` and `<span className="sr-only">` accessible text to password visibility toggle buttons, resolving the "Buttons do not have an accessible name" audit violation.
+  - Preserved responsive keyboard-aware layout and positive viewport constraints (`min-h-[100dvh]`).
+
+### Impacted Scope
+- `index.html`
+- `vite.config.ts`
+- `src/routes/AppRoutes.tsx`
+- `src/features/auth/components/AuthPage.tsx`
+- `src/features/auth/components/SignupPage.tsx`
+- `package.json` & `package-lock.json`
+- `docs/APP_JOURNEY_LOG.md`
+
 ## [v1.0.292] - 03 November 2026, 01:10 PM IST
 
 ### Executive Summary

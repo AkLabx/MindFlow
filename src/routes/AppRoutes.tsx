@@ -3,8 +3,8 @@ import { NavigationManager, RouteAccessType } from '../lib/navigation';
 import { IntentPolicy } from '../lib/navigation/policies/IntentPolicy';
 import React, { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate, useNavigate, useLocation, Outlet } from 'react-router-dom';
-import { QuizProvider, useQuizContext } from '@/features/quiz';
-import { useFlashcardStore } from '@/features/quiz';
+import { QuizProvider, useQuizContext } from '@/features/quiz/context/QuizContext';
+import { useFlashcardStore } from '@/features/quiz/stores/useFlashcardStore';
 import { AppLayout } from '@/layouts/AppLayout';
 import { useAuth } from '@/features/auth';
 import { SynapticLoader } from '../components/ui/SynapticLoader';
@@ -32,8 +32,8 @@ const SchoolHomePage = lazy(() => import('../pages/SchoolHomePage').then(m => ({
 const UploadCustomQuizPage = lazy(() => import('../features/quiz/pages/UploadCustomQuizPage').then(m => ({ default: m.UploadCustomQuizPage })));
 
 const SchoolDownloads = lazy(() => import('../features/school/SchoolDownloads').then(m => ({ default: m.SchoolDownloads })));
-import { DashboardPage as Dashboard } from '../pages/DashboardPage';
-import { SubjectsPage } from '../features/dashboard';
+const Dashboard = lazy(() => import('../pages/DashboardPage').then(m => ({ default: m.DashboardPage })));
+const SubjectsPage = lazy(() => import('../features/dashboard').then(m => ({ default: m.SubjectsPage })));
 const SubjectHubPage = lazy(() => import('../features/dashboard/pages/subject/SubjectHubPage').then(m => ({ default: m.SubjectHubPage })));
 const SubjectTopicsPage = lazy(() => import('../features/dashboard/pages/subject/SubjectTopicsPage').then(m => ({ default: m.SubjectTopicsPage })));
 const McqsQuizHome = lazy(() => import('../pages/McqsQuizHomePage').then(m => ({ default: m.McqsQuizHomePage })));
@@ -140,12 +140,11 @@ const SupportPage = lazy(() => import('../features/auth/components/SupportPage')
  *
  * Maps URL paths to components and connects navigation actions from the `useQuizContext` hook.
  */
-import { AppPreferencesPage } from '@/features/settings';
-import { MyReportsPage } from '@/features/settings';
-import { QuizSessionGuard } from '@/features/quiz';
-import { ResultGuard } from '@/features/quiz';
+const AppPreferencesPage = lazy(() => import('@/features/settings').then(m => ({ default: m.AppPreferencesPage })));
+import { QuizSessionGuard } from '@/features/quiz/components/QuizSessionGuard';
+import { ResultGuard } from '@/features/quiz/components/ResultGuard';
 import { supabase } from '../lib/supabase';
-import { ShareGatekeeper } from '@/features/quiz';
+import { ShareGatekeeper } from '@/features/quiz/components/ShareGatekeeper';
 
 const AppRoutesContent: React.FC = () => {
     // Destructure all necessary state and actions from the global store
