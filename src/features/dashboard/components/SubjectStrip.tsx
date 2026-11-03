@@ -36,7 +36,7 @@ export const SubjectStrip: React.FC<SubjectStripProps> = ({ onSubjectClick, onVi
   return (
     <section className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.06)] dark:shadow-none p-3.5 sm:p-4.5 flex flex-col gap-3 relative z-10">
       <div className="flex items-center justify-between px-0.5">
-        <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">Subjects</h2>
+        <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">GK / GS Subjects</h2>
         <button
           onClick={onViewAllClick}
           className="text-xs sm:text-sm font-semibold text-indigo-600 dark:text-indigo-400 flex items-center gap-0.5 hover:underline cursor-pointer"

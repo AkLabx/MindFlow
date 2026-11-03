@@ -1,5 +1,6 @@
 export * from './components/DashboardHeader';
 export * from './components/SubjectStrip';
+export * from './components/EnglishSection';
 export * from './components/QuickActionsGrid';
 export * from './components/SuggestedDrillCard';
 export * from './components/UserProgressCard';

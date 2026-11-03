@@ -14,6 +14,7 @@ import { ROUTES } from "@/config/routes";
 import {
   DashboardGreeting,
   SubjectStrip,
+  EnglishSection,
   QuickActionsGrid,
   SuggestedDrillCard,
   UserProgressCard,
@@ -141,8 +142,8 @@ export const DashboardPage: React.FC<DashboardProps> = ({ onBackToIntro }) => {
       case 'custom':
         navigate("/quiz/config");
         break;
-      case 'english':
-        navigate("/english");
+      case 'mistake-notebook':
+        navigate(`${ROUTES.QUIZ.LIBRARY}?tab=attempted`);
         break;
       case 'weak-topics':
         handleStartSuggestedDrill();
@@ -207,18 +208,23 @@ export const DashboardPage: React.FC<DashboardProps> = ({ onBackToIntro }) => {
           onResumeQuiz={handleResumeQuiz}
         />
 
-        {/* Tier 2 */}
+        {/* Tier 2: GK / GS Subjects */}
         <SubjectStrip
           onSubjectClick={handleSubjectClick}
           onViewAllClick={handleViewAllSubjects}
         />
 
-        {/* Tier 3 */}
+        {/* Tier 3: English & Vocabulary */}
+        <EnglishSection
+          onOpenHub={() => navigate(ROUTES.ENGLISH)}
+        />
+
+        {/* Tier 4: Quick Actions */}
         <QuickActionsGrid
           onActionClick={handleQuickAction}
         />
 
-        {/* Tier 4 */}
+        {/* Tier 5: Suggested Drill & Progress */}
         <div className="grid grid-cols-1 md:grid-cols-12 gap-3.5 sm:gap-4 z-10 relative">
           <div className="md:col-span-7">
             <SuggestedDrillCard
@@ -239,7 +245,7 @@ export const DashboardPage: React.FC<DashboardProps> = ({ onBackToIntro }) => {
           </div>
         </div>
 
-        {/* Tier 5 */}
+        {/* Tier 6: Important for SSC */}
         <ImportantForSscStrip
           onTopicClick={(filter) => handleNavigateWithFilters(filter, 'learning', true)}
           onViewAllClick={() => navigate("/quiz/config")}
