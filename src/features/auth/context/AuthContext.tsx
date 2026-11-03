@@ -197,10 +197,22 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setSession(session);
       setUser(session?.user ?? null);
       useDebugStore.getState().logEvent('Initial session loaded', { hasSession: !!session, metadataAvatar: session?.user?.user_metadata?.avatar_url });
-      if (session?.user && lastSyncedUserId.current !== session.user.id) {
-         lastSyncedUserId.current = session.user.id;
-         // Run sync on load if user is logged in
-         syncService.syncOnLogin(session.user.id, false);
+      if (session?.user) {
+        // Multi-account security: if switching accounts on the same device, wipe previous user's local caches first
+        try {
+          const lastAuthUserId = localStorage.getItem('mindflow_last_auth_user_id');
+          if (lastAuthUserId && lastAuthUserId !== session.user.id) {
+            console.warn('[AuthContext] Detected different user ID than previous local session. Clearing previous user caches.');
+            await db.clearAllUserData();
+          }
+          localStorage.setItem('mindflow_last_auth_user_id', session.user.id);
+        } catch {}
+
+        if (lastSyncedUserId.current !== session.user.id) {
+          lastSyncedUserId.current = session.user.id;
+          // Run sync on load if user is logged in
+          syncService.syncOnLogin(session.user.id, false);
+        }
       }
       if (session?.user) {
         try {

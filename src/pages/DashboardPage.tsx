@@ -51,6 +51,26 @@ export const DashboardPage: React.FC<DashboardProps> = ({ onBackToIntro }) => {
   const { stats, loading: statsLoading } = useProfileStats();
   const [streak, setStreak] = useState(0);
 
+  // Eager local hydration from IndexedDB for instant (0ms) render on new tabs
+  const [localLatestQuiz, setLocalLatestQuiz] = useState<SavedQuiz | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    db.getAllSavedQuizzes().then(quizzes => {
+      if (!isMounted) return;
+      if (quizzes && quizzes.length > 0) {
+        // Find most recent active/paused quiz
+        const paused = quizzes
+          .filter(q => (q as any).status !== 'result' && !(q as any).deleted_at)
+          .sort((a, b) => ((b.createdAt || 0) - (a.createdAt || 0)))[0];
+        if (paused) {
+          setLocalLatestQuiz(paused);
+        }
+      }
+    }).catch(console.error);
+    return () => { isMounted = false; };
+  }, []);
+
   const { data: latestQuiz } = useQuery({
     queryKey: ['latest-paused-quiz', user?.id],
     enabled: !!user,
@@ -71,7 +91,7 @@ export const DashboardPage: React.FC<DashboardProps> = ({ onBackToIntro }) => {
 
       const rq = data[0];
       const bridgeData = (rq.bridge_saved_quiz_questions as any) || [];
-      return {
+      const remoteQuiz: SavedQuiz = {
         id: rq.id,
         name: rq.name,
         createdAt: new Date(rq.created_at).getTime(),
@@ -81,9 +101,14 @@ export const DashboardPage: React.FC<DashboardProps> = ({ onBackToIntro }) => {
           .sort((a: any, b: any) => a.sort_order - b.sort_order)
           .map((b: any) => ({ id: b.question_id })),
         state: rq.state
-      } as SavedQuiz;
+      };
+      // Keep local IndexedDB updated silently
+      db.saveQuiz(remoteQuiz, { skipRemotePush: true }).catch(console.error);
+      return remoteQuiz;
     }
   });
+
+  const activeLatestQuiz = latestQuiz !== undefined ? latestQuiz : localLatestQuiz;
 
   const handleResumeQuiz = (quiz: SavedQuiz) => {
     if (quiz.mode === 'mock') {
@@ -204,7 +229,7 @@ export const DashboardPage: React.FC<DashboardProps> = ({ onBackToIntro }) => {
         <DashboardGreeting
           user={user}
           profile={profile}
-          latestQuiz={latestQuiz}
+          latestQuiz={activeLatestQuiz}
           onResumeQuiz={handleResumeQuiz}
         />
 
