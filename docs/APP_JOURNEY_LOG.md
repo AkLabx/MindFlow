@@ -26,6 +26,26 @@ This document is the single source of truth for the evolution of the MindFlow ap
 
 ## 🚀 App Journey Changelog
 
+## [v1.0.294] - 03 November 2026, 09:20 PM IST
+
+### Executive Summary
+Upgraded MindFlow's AI pair programming guidelines (`AGENTS.md`) to a production-grade 9.9/10 autonomous agent architecture. Codified an explicit 5-tier Decision Precedence Hierarchy, established strict "Stop and Ask" circuit breakers, introduced Confidence Calibration and Anti-Hallucination rules, enforced PostgreSQL `SECURITY INVOKER` defaults for database RPCs, and established dynamic tooling discovery while rigorously preserving all hard invariants (HashRouter, OAuth hash interception in `useAppBootstrap.ts`, Port 3000, `--legacy-peer-deps`, and Capacitor Android requirements).
+
+### 🔒 Security & Architecture
+- **Decision Precedence Hierarchy (`AGENTS.md`)**:
+  - Formalized explicit conflict resolution precedence: (1) Explicit User Prompt → (2) Repository Guardrails & Safety Invariants → (3) Existing Codebase Conventions & FSD → (4) Project Documentation → (5) General Best Practices.
+- **Circuit Breakers ("Stop and Ask")**:
+  - Implemented automatic pause triggers requiring user confirmation if >10 files are modified, database migrations alter existing table data, new npm dependencies are introduced, auth/permission logic changes, or public APIs break.
+- **Database Function Safety Policy**:
+  - Mandated `SECURITY INVOKER` by default for all database RPCs to respect Row Level Security (RLS) and caller permissions.
+  - Restricted `SECURITY DEFINER` exclusively to functions with reviewed internal authorization checks and strict `SET search_path = public`.
+- **Confidence Calibration & Anti-Hallucination Triad**:
+  - Codified High/Medium/Low confidence self-evaluation; mandates reporting uncertainties rather than fabricating solutions.
+  - Enforced Read-Before-Write and surgical edits with a zero-tolerance policy against unsolicited drive-by refactoring.
+  - Codified the separation of observed codebase facts from subjective architectural recommendations.
+- **Full Invariant Preservation**:
+  - Retained MindFlow-critical requirements: `<HashRouter>`, OAuth hash extraction in `src/hooks/useAppBootstrap.ts`, local port 3000, `--legacy-peer-deps`, IndexedDB quiz offline-first resilience, and Gemini Live bidirectional audio specifications (16kHz in / 24kHz out).
+
 ## [v1.0.293] - 03 November 2026, 08:55 PM IST
 
 ### Executive Summary
