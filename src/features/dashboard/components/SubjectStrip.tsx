@@ -34,7 +34,7 @@ export const SubjectStrip: React.FC<SubjectStripProps> = ({ onSubjectClick, onVi
   });
 
   return (
-    <section className="flex flex-col gap-2 relative z-10">
+    <section className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.06)] dark:shadow-none p-3.5 sm:p-4.5 flex flex-col gap-3 relative z-10">
       <div className="flex items-center justify-between px-0.5">
         <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">Subjects</h2>
         <button
@@ -46,7 +46,7 @@ export const SubjectStrip: React.FC<SubjectStripProps> = ({ onSubjectClick, onVi
       </div>
 
       {/* 2-Row Horizontal Scroll Grid */}
-      <div className="grid grid-rows-2 grid-flow-col auto-cols-[calc(46vw-16px)] sm:auto-cols-[170px] lg:auto-cols-[190px] gap-2.5 overflow-x-auto pb-2 snap-x snap-mandatory no-scrollbar">
+      <div className="grid grid-rows-2 grid-flow-col auto-cols-[calc(44vw-16px)] sm:auto-cols-[165px] lg:auto-cols-[185px] gap-2.5 overflow-x-auto pb-1 snap-x snap-mandatory no-scrollbar">
         {SSC_SUBJECTS.map((subject) => {
           const Icon = IconMap[subject.icon] || Sparkles;
           const count = subjectCounts?.[subject.dbKey] || 0;
@@ -55,7 +55,7 @@ export const SubjectStrip: React.FC<SubjectStripProps> = ({ onSubjectClick, onVi
             <button
               key={subject.id}
               onClick={() => onSubjectClick(subject.dbKey)}
-              className="flex items-center gap-2.5 sm:gap-3 p-2.5 sm:p-3 text-left rounded-xl bg-white dark:bg-slate-800/80 shadow-[0_2px_8px_-3px_rgba(0,0,0,0.05)] dark:shadow-none border border-slate-100 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-700/50 hover:border-indigo-100 dark:hover:border-indigo-800/50 transition-all group snap-start shrink-0 cursor-pointer active:scale-[0.98]"
+              className="flex items-center gap-2.5 sm:gap-3 p-2.5 sm:p-3 text-left rounded-xl bg-slate-50/80 dark:bg-slate-800/60 shadow-xs border border-slate-200/90 dark:border-slate-700/70 hover:bg-white dark:hover:bg-slate-700/80 hover:border-indigo-300 dark:hover:border-indigo-600/70 transition-all group snap-start shrink-0 cursor-pointer active:scale-[0.98]"
             >
               <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center shrink-0 ${subject.bgClass} ${subject.textClass} border ${subject.colorClass.split(' ').find(c => c.startsWith('border-')) || 'border-transparent'} group-hover:scale-105 transition-transform`}>
                 <Icon className="w-4 h-4 sm:w-5 sm:h-5" strokeWidth={2.2} />
