@@ -83,12 +83,29 @@ export const QuizLibrary: React.FC = () => {
 
                 {/* Tab Content Container */}
                 <div className="flex-1 relative">
-                    <div style={{ display: activeTab === 'created' ? 'block' : 'none' }}>
-                        <SavedQuizzesList viewMode={viewMode} setViewMode={setViewMode} sortMethod={sortMethod as any} setSortMethod={setSortMethod as any} />
-                    </div>
-                    <div style={{ display: activeTab === 'attempted' ? 'block' : 'none' }}>
-                        <AttemptedQuizzesList viewMode={viewMode} setViewMode={setViewMode} sortMethod={sortMethod} setSortMethod={setSortMethod} />
-                    </div>
+                    <AnimatePresence mode="wait">
+                        {activeTab === 'created' ? (
+                            <motion.div
+                                key="created-tab"
+                                initial={{ opacity: 0, y: 8 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -8 }}
+                                transition={{ duration: 0.18, ease: "easeOut" }}
+                            >
+                                <SavedQuizzesList viewMode={viewMode} setViewMode={setViewMode} sortMethod={sortMethod as any} setSortMethod={setSortMethod as any} />
+                            </motion.div>
+                        ) : (
+                            <motion.div
+                                key="attempted-tab"
+                                initial={{ opacity: 0, y: 8 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -8 }}
+                                transition={{ duration: 0.18, ease: "easeOut" }}
+                            >
+                                <AttemptedQuizzesList viewMode={viewMode} setViewMode={setViewMode} sortMethod={sortMethod} setSortMethod={setSortMethod} />
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
                 </div>
             </div>
 

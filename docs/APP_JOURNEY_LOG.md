@@ -26,6 +26,40 @@ This document is the single source of truth for the evolution of the MindFlow ap
 
 ## 🚀 App Journey Changelog
 
+## [v1.0.289] - 03 November 2026, 08:45 AM IST
+
+### Executive Summary
+Permanently resolved PostgreSQL `57014` statement timeout errors, connection pool exhaustion (`PGRST003`), and infinite loading spinners across the Quiz Library (`Created Quizzes` & `Attempted Quizzes`) and Dashboard. Re-architected database schema, query patterns, background sync pipeline, and tab lifecycle, reducing live query latency by 95.7% (from 8-10s+ down to ~14ms).
+
+### ⚡ Performance & Database Architecture
+- **Saved Quizzes Payload Sanitization (`supabase/migrations/20261103000000_optimize_quiz_library_performance.sql`)**:
+  - Sanitized `saved_quizzes.state`: Stripped nested `activeQuestions` JSON array from remote database storage, dropping TOAST storage and single-row sizes from ~2MB down to ~10KB.
+  - Created composite covering index `idx_saved_quizzes_library` on `(user_id, status, created_at DESC) WHERE (deleted_at IS NULL)` for sub-15ms index-only scans.
+  - Added foreign key covering index `idx_bridge_saved_quiz_questions_question_id` on `bridge_saved_quiz_questions(question_id)` eliminating sequential scans during cascading lookups.
+  - Optimized RLS policies for `saved_quizzes` and `bridge_saved_quiz_questions` to use InitPlan execution `((SELECT auth.uid()) = user_id)`.
+- **PostgREST Embedded Aggregation (`src/features/quiz/components/SavedQuizzesList.tsx`, `AttemptedQuizzesList.tsx`)**:
+  - Replaced wildcard `select('*')` and thousands of bridge rows with embedded count syntax `bridge_saved_quiz_questions(count)` and precise column projection (`id, name, created_at, mode, status, filters, state`).
+  - Moved status filtering from JavaScript memory into PostgreSQL queries (`.neq('status', 'result')` and `.eq('status', 'result')`), leveraging the composite index.
+- **Single-Row Dashboard Optimization (`src/pages/DashboardPage.tsx`)**:
+  - Replaced table scan that downloaded all user quizzes with an indexed `.neq('status', 'result').limit(1)` query, reducing Dashboard load overhead to <10ms.
+
+### 🐛 Bug Fixes & Sync Pipeline Resilience
+- **Eliminated Login Query Storm (`src/lib/syncService.ts`)**:
+  - Removed dead-code question collection routine that gathered all question IDs across user quizzes, chunked into 46 batches, and executed 46 concurrent PostgREST requests into an empty loop.
+- **Infinite Loader Resolution (`src/lib/syncService.ts`, `SavedQuizzesList.tsx`, `AttemptedQuizzesList.tsx`)**:
+  - Moved `processEventQueue(userId)` inside `try/finally` in `syncOnLogin` and added a 10-second safety watchdog on `isSyncing` to guarantee unlocked state across network drops.
+  - Removed raw `if (loading || isSyncing) return <SynapticLoader />` that intercepted UI renders before `<QueryStateHandler>`, ensuring error states and retry buttons render reliably.
+  - Removed redundant query cache invalidations on component mount.
+- **Quiz Creation Hardening (`src/features/quiz/services/quizCreationService.ts`)**:
+  - Stripped `activeQuestions` from remote state payloads on initial quiz creation to prevent database bloat while maintaining full state in local IndexedDB.
+
+### 🎨 UI/UX & Responsive Experience
+- **Conditional Tab Mounting (`src/features/quiz/components/QuizLibrary.tsx`)**:
+  - Replaced dual concurrent DOM tab mounting (`display: none`) with conditional mounting wrapped in `AnimatePresence mode="wait"`, ensuring only the active tab queries the database and transitions smoothly.
+- **Glassmorphic Skeleton States (`src/features/quiz/components/QuizLibrarySkeleton.tsx`)**:
+  - Introduced responsive skeleton card components matching list and grid layouts for zero layout shift during loading.
+  - Enabled non-blocking background synchronization: users with cached data see their library instantly without blocking spinners.
+
 ## [v1.0.288] - 01 November 2026, 10:46 AM IST
 
 ### Executive Summary

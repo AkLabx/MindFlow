@@ -13,6 +13,7 @@ import { QuizLibraryToolbar } from './QuizLibraryToolbar';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../auth/context/AuthContext';
 import { ErrorState, QueryStateHandler } from '../../../components/ui/ErrorState';
+import { QuizLibrarySkeleton } from './QuizLibrarySkeleton';
 
 /**
  * Screen for managing attempted (completed) quizzes.
@@ -43,13 +44,13 @@ export const AttemptedQuizzesList: React.FC<AttemptedQuizzesListProps> = ({ view
         staleTime: 1000 * 60 * 5,
         gcTime: 1000 * 60 * 15,
         queryFn: async () => {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (!session?.user) return [];
+            if (!user?.id) return [];
 
             const { data, error } = await supabase
               .from('saved_quizzes')
-              .select('*, bridge_saved_quiz_questions(question_id, sort_order)')
-              .eq('user_id', session.user.id)
+              .select('id, name, created_at, mode, status, filters, state, bridge_saved_quiz_questions(count)')
+              .eq('user_id', user.id)
+              .eq('status', 'result')
               .is('deleted_at', null)
               .order('created_at', { ascending: false });
 
@@ -60,14 +61,24 @@ export const AttemptedQuizzesList: React.FC<AttemptedQuizzesListProps> = ({ view
 
             if (!data || data.length === 0) return [];
 
-            const completedQuizzes = data.filter(rq => rq.status === 'result');
-            return completedQuizzes.map(rq => {
-                const bridgeData = rq.bridge_saved_quiz_questions || [];
-                const questionsCount = bridgeData.length;
+            return data.map(rq => {
+                const countObj = (rq.bridge_saved_quiz_questions as any)?.[0];
+                const questionsCount = typeof countObj?.count === 'number' ? countObj.count : 0;
                 let questions = new Array(questionsCount).fill({});
 
-                const parsedState = typeof rq.state === 'string' ? JSON.parse(rq.state) : (rq.state || {});
-                const parsedFilters = typeof rq.filters === 'string' ? JSON.parse(rq.filters) : (rq.filters || {});
+                let parsedState: any = {};
+                try {
+                    parsedState = typeof rq.state === 'string' ? JSON.parse(rq.state) : (rq.state || {});
+                } catch (e) {
+                    console.error("Failed to parse state jsonb for attempted quiz", rq.id, e);
+                }
+
+                let parsedFilters: any = {};
+                try {
+                    parsedFilters = typeof rq.filters === 'string' ? JSON.parse(rq.filters) : (rq.filters || {});
+                } catch (e) {
+                    console.error("Failed to parse filters jsonb for attempted quiz", rq.id, e);
+                }
 
                 return {
                     id: rq.id,
@@ -89,27 +100,27 @@ export const AttemptedQuizzesList: React.FC<AttemptedQuizzesListProps> = ({ view
     const [editName, setEditName] = useState('');
 
     useEffect(() => {
-        queryClient.invalidateQueries({ queryKey: ['attempted-quizzes', user?.id] });
-
         const handleSyncStart = () => {
             setIsSyncing(true);
         };
 
         const handleSyncComplete = () => {
-            setTimeout(async () => {
-                await queryClient.invalidateQueries({ queryKey: ['attempted-quizzes', user?.id] });
-                setIsSyncing(false);
-            }, 100);
+            queryClient.invalidateQueries({ queryKey: ['attempted-quizzes', user?.id] });
+            setIsSyncing(false);
         };
 
         window.addEventListener('mindflow-sync-start', handleSyncStart);
         window.addEventListener('mindflow-sync-complete', handleSyncComplete);
 
+        if (syncService.getIsSyncing()) {
+            setIsSyncing(true);
+        }
+
         return () => {
             window.removeEventListener('mindflow-sync-start', handleSyncStart);
             window.removeEventListener('mindflow-sync-complete', handleSyncComplete);
         };
-    }, []);
+    }, [user?.id, queryClient]);
 
 
 
@@ -167,21 +178,13 @@ export const AttemptedQuizzesList: React.FC<AttemptedQuizzesListProps> = ({ view
         }
     };
 
-    if (loading) {
-        return (
-            <div className="flex items-center justify-center min-h-screen bg-slate-50 dark:bg-slate-900">
-                <SynapticLoader size="lg" />
-            </div>
-        );
-    }
-
-        return (
+    return (
         <QueryStateHandler
-            isLoading={loading}
+            isLoading={loading || (isSyncing && quizzes.length === 0)}
             isError={isError}
             error={error}
             onRetry={refetch}
-            loadingComponent={<div className="flex items-center justify-center min-h-[60vh]"><SynapticLoader size="lg" /></div>}
+            loadingComponent={<QuizLibrarySkeleton count={3} viewMode={viewMode} />}
         >
         <div className="w-full h-full animate-fade-in pb-8">
             {sortedQuizzes.length === 0 ? (

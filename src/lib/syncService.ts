@@ -369,33 +369,34 @@ export const syncService = {
     isSyncing = true;
     window.dispatchEvent(new Event("mindflow-sync-start"));
 
-    await syncService.processEventQueue(userId);
-
-    // Bypass remote pulls on new signup since there is no remote data
-    if (isSignup) {
-       isSyncing = false;
-       lastSyncedUserIdForFullSync = userId;
-       window.dispatchEvent(new Event("mindflow-sync-complete"));
-      queryClient.invalidateQueries({ queryKey: ['bookmarks'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard-bookmark-count'] });
-       return;
-    }
+    // Safety watchdog: guarantees isSyncing is never left permanently true under network freezes/failures
+    const syncWatchdog = setTimeout(() => {
+      if (isSyncing) {
+        console.warn("[SyncService] Sync watchdog timeout (10s) triggered. Force-resetting isSyncing.");
+        isSyncing = false;
+        window.dispatchEvent(new Event("mindflow-sync-complete"));
+      }
+    }, 10000);
 
     try {
-      // 1. Pull from Supabase
+      await syncService.processEventQueue(userId);
+
+      // Bypass remote pulls on new signup since there is no remote data
+      if (isSignup) {
+        lastSyncedUserIdForFullSync = userId;
+        queryClient.invalidateQueries({ queryKey: ['bookmarks'] });
+        queryClient.invalidateQueries({ queryKey: ['dashboard-bookmark-count'] });
+        return;
+      }
+
+      // 1. Pull lightweight metadata from Supabase (excluding heavy quiz data)
       const [
-        { data: remoteQuizzesData },
         { data: remoteHistory },
         { data: remoteBookmarks },
         { data: remoteSynonyms },
         { data: remoteOWS },
         { data: remoteIdioms },
       ] = await Promise.all([
-        supabase
-          .from("saved_quizzes")
-          .select("*, bridge_saved_quiz_questions(question_id, sort_order)")
-          .eq("user_id", userId)
-          .is("deleted_at", null),
         supabase.from("quiz_history").select("*").eq("user_id", userId),
         supabase
           .from("user_bookmarks")
@@ -415,116 +416,13 @@ export const syncService = {
           .eq("user_id", userId),
       ]);
 
-      let remoteQuizzes = remoteQuizzesData || [];
-      if (remoteQuizzes.length > 0) {
-        // Collect all distinct question IDs needed across all quizzes
-        const allQuestionIds = new Set<string>();
-        remoteQuizzes.forEach((rq) => {
-          const bridgeData = rq.bridge_saved_quiz_questions || [];
-          bridgeData.forEach((bq: any) => allQuestionIds.add(bq.question_id));
-        });
-
-        // Fetch the actual question data
-        const idArray = Array.from(allQuestionIds);
-        const fetchedQuestions = await fetchQuestionsByIds(idArray);
-        const questionsMap = new Map(fetchedQuestions.map((q) => [q.id, q]));
-
-        // Reconstruct full questions and state.activeQuestions for each remote quiz
-        remoteQuizzes = remoteQuizzes.map((rq) => {
-          let questions: Question[] = [];
-          const bridgeData = rq.bridge_saved_quiz_questions || [];
-          bridgeData.sort((a: any, b: any) => a.sort_order - b.sort_order);
-          bridgeData.forEach((bq: any) => {
-            const q = questionsMap.get(bq.question_id);
-            if (q) questions.push(q);
-          });
-
-          const fullQuiz = {
-            ...rq,
-            questions: questions,
-            state: {
-              ...(rq.state || {}),
-              activeQuestions: questions,
-            },
-          };
-          delete fullQuiz.bridge_saved_quiz_questions;
-          return fullQuiz;
-        });
-      }
-
       // 2. Fetch local data
-      const localQuizzes: any[] = [];
-      const localHistory: any[] = [];
       const localBookmarks = await db.getAllBookmarks();
-      const localSynonyms = await db.getAllSynonymInteractions();
-      const localOWS = await db.getAllOWSInteractions();
-      const localIdioms = await db.getAllIdiomInteractions();
 
-      if (isSignup) {
-        // --- NEW SIGNUP FLOW ---
-        // 3. Push all Local Data up to the Server to merge guest progress
-        const remoteQuizIds = new Set((remoteQuizzes || []).map((q) => q.id));
-        const remoteHistoryIds = new Set(
-          (remoteHistory || []).map((h) => h.id),
-        );
-        const remoteBookmarkIds = new Set(
-          (remoteBookmarks || []).map((b) => b.question_id),
-        );
-        const remoteSynonymIds = new Set(
-          (remoteSynonyms || []).map((s: any) => s.word_id),
-        );
-        const remoteOWSIds = new Set((remoteOWS || []).map((o) => o.word_id));
-        const remoteIdiomIds = new Set(
-          (remoteIdioms || []).map((i) => i.idiom_id),
-        );
+      // 3. Clear local IndexedDB immediately to avoid stale data
+      try { await db.clearAllUserData(); } catch (err) { console.error("[SyncService] clearAllUserData failed:", err); }
 
-        // Helper to process items in chunks concurrently
-        const processInChunks = async <T>(items: T[], action: (item: T) => Promise<any>, chunkSize = 20) => {
-          let hasErrors = false;
-          for (let i = 0; i < items.length; i += chunkSize) {
-            const chunk = items.slice(i, i + chunkSize);
-            await Promise.all(chunk.map(item => action(item).catch(err => {
-               console.error('Error in batch sync action:', err);
-               hasErrors = true;
-            })));
-          }
-          if (hasErrors) {
-             throw new Error('One or more items failed to sync during chunk processing.');
-          }
-        };
-
-        const quizzesToPush = localQuizzes.filter(quiz => !remoteQuizIds.has(quiz.id));
-        await processInChunks(quizzesToPush, (quiz) => syncService.pushSavedQuiz(userId, quiz));
-
-        const historyToPush = localHistory.filter(hist => !remoteHistoryIds.has(hist.id));
-        await processInChunks(historyToPush, (hist) => syncService.pushQuizHistory(userId, hist));
-
-        const bookmarksToPush = localBookmarks.filter(bm => !remoteBookmarkIds.has(bm.id) && (!bm.v1_id || !remoteBookmarkIds.has(bm.v1_id)));
-        await processInChunks(bookmarksToPush, (bm) => syncService.pushBookmark(userId, bm));
-
-        const synonymsToPush = localSynonyms.filter(syn => !remoteSynonymIds.has(syn.wordId));
-        await processInChunks(synonymsToPush, (syn) => syncService.pushSynonymInteraction(userId, syn));
-
-        const owsToPush = localOWS.filter(ows => !remoteOWSIds.has(ows.wordId));
-        await processInChunks(owsToPush, (ows) => syncService.pushOWSInteraction(userId, ows));
-
-        const idiomsToPush = localIdioms.filter(idiom => !remoteIdiomIds.has(idiom.idiomId));
-        await processInChunks(idiomsToPush, (idiom) => syncService.pushIdiomInteraction(userId, idiom));
-
-        // After merging up, clear local to prep for a fresh pull
-        try { await db.clearAllUserData(); } catch (err) { console.error("[SyncService] clearAllUserData failed:", err); }
-      } else {
-        // --- EXISTING LOGIN FLOW ---
-        // 3. Clear local IndexedDB immediately to avoid mixing guest data into existing account
-        try { await db.clearAllUserData(); } catch (err) { console.error("[SyncService] clearAllUserData failed:", err); }
-      }
-
-      // 4. Pull fresh data from Server to Local (Hydration)
-      if (remoteQuizzes) {
-        for (const remote of remoteQuizzes) {
-        }
-      }
-
+      // 4. Hydrate quiz history
       if (remoteHistory) {
         for (const remote of remoteHistory) {
           await db.saveQuizHistory({
@@ -595,6 +493,7 @@ export const syncService = {
     } catch (error) {
       console.error("Error during initial sync:", error);
     } finally {
+      clearTimeout(syncWatchdog);
       isSyncing = false;
       lastSyncedUserIdForFullSync = userId;
       // Dispatch event to notify UI components that sync has completed
