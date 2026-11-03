@@ -1,6 +1,6 @@
 import React from 'react';
 import { QUICK_ACTIONS } from '../constants/sscDashboardConfig';
-import { Zap, SlidersHorizontal, BookMarked, Bookmark, Target, ChevronRight } from 'lucide-react';
+import { Zap, SlidersHorizontal, BookMarked, Bookmark, Target, ChevronRight, RotateCcw } from 'lucide-react';
 
 interface QuickActionsGridProps {
   onActionClick: (action: string) => void;
@@ -12,6 +12,7 @@ const IconMap: Record<string, React.ElementType> = {
   BookMarked,
   Bookmark,
   Target,
+  RotateCcw,
 };
 
 export const QuickActionsGrid: React.FC<QuickActionsGridProps> = ({ onActionClick }) => {

@@ -26,6 +26,31 @@ This document is the single source of truth for the evolution of the MindFlow ap
 
 ## 🚀 App Journey Changelog
 
+## [v1.0.291] - 03 November 2026, 11:20 AM IST
+
+### Executive Summary
+Restructured Dashboard curriculum architecture: renamed the ambiguous "Subjects" group to "GK / GS Subjects", established a dedicated "English & Vocabulary" hub section (Concept A with 3 core pillars + interactive vocab game pills), and repurposed the vacated Quick Actions tile to "Mistake Notebook" for instant error revision.
+
+### ✨ Features & UI/UX Improvements
+- **GK / GS Subjects Renaming (`src/features/dashboard/components/SubjectStrip.tsx`)**:
+  - Renamed the header title to `GK / GS Subjects` to accurately reflect its General Studies content (History, Polity, Geography, Economics, Science, Static GK).
+- **Dedicated English & Vocabulary Section (`src/features/dashboard/components/EnglishSection.tsx`)**:
+  - Created a dedicated `rounded-2xl` container card housing English as a first-class subject hub.
+  - Built 3 core pillar cards: **Synonyms & Antonyms** (`/english?tab=vocabsynonyms`), **One Word Substitution** (`/english?tab=vocabows`), and **Idioms & Phrases** (`/english?tab=vocabidiom`).
+  - Added an interactive micro-game booster bar for instant practice: **The Imposter Trap**, **Tap & Connect**, and **Speed Match**.
+  - Added header action `Open Hub →` linking directly to the full English Hub (`/english`).
+- **Mistake Notebook in Quick Actions (`src/features/dashboard/constants/sscDashboardConfig.ts`, `QuickActionsGrid.tsx`, `DashboardPage.tsx`)**:
+  - Replaced the vacated English tile in Quick Actions with `Mistake Notebook` (`RotateCcw` icon, amber theme) linking directly to Attempted Quizzes and error solutions (`/quiz/library?tab=attempted`).
+
+### Impacted Scope
+- `src/features/dashboard/components/SubjectStrip.tsx`
+- `src/features/dashboard/components/EnglishSection.tsx`
+- `src/features/dashboard/components/QuickActionsGrid.tsx`
+- `src/features/dashboard/constants/sscDashboardConfig.ts`
+- `src/features/dashboard/index.ts`
+- `src/pages/DashboardPage.tsx`
+- `package.json`
+
 ## [v1.0.290] - 03 November 2026, 09:25 AM IST
 
 ### Executive Summary
