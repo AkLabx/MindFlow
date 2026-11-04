@@ -184,7 +184,7 @@ export const AttemptedQuizzesList: React.FC<AttemptedQuizzesListProps> = ({ view
             isError={isError}
             error={error}
             onRetry={refetch}
-            loadingComponent={<QuizLibrarySkeleton count={3} viewMode={viewMode} />}
+            loadingComponent={<QuizLibrarySkeleton viewMode={viewMode} />}
         >
         <div className="w-full h-full animate-fade-in pb-8">
             {sortedQuizzes.length === 0 ? (

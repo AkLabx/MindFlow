@@ -241,7 +241,7 @@ export const SavedQuizzesList: React.FC<SavedQuizzesListProps> = ({ viewMode, se
             isError={isError}
             error={error}
             onRetry={refetch}
-            loadingComponent={<QuizLibrarySkeleton count={3} viewMode={viewMode} />}
+            loadingComponent={<QuizLibrarySkeleton viewMode={viewMode} />}
         >
         <div className="w-full h-full animate-fade-in pb-8">
             {sortedQuizzes.length === 0 ? (
