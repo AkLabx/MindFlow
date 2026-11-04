@@ -41,17 +41,20 @@ export const QueryStateHandler: React.FC<QueryStateHandlerProps> = ({
   // If a recovery is active, show the friendly loading state instead of raw errors
   if (recoveryStatus === 'CHECKING' || recoveryStatus === 'RECOVERING' || isManualRecovering) {
       return (
-          <div className="flex flex-col justify-center items-center h-48 w-full gap-4 text-slate-500">
-              {loadingComponent || <SynapticLoader />}
+          <div className="flex flex-col justify-center items-center min-h-[12rem] w-full gap-4 text-slate-500">
+              <SynapticLoader />
               <p className="text-sm font-medium">Reconnecting and refreshing data...</p>
           </div>
       );
   }
 
   if (isLoading) {
+    if (loadingComponent) {
+      return <div className="w-full">{loadingComponent}</div>;
+    }
     return (
       <div className="flex justify-center items-center h-48 w-full">
-        {loadingComponent || <SynapticLoader />}
+        <SynapticLoader />
       </div>
     );
   }

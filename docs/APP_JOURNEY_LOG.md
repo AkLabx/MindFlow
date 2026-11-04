@@ -26,6 +26,30 @@ This document is the single source of truth for the evolution of the MindFlow ap
 
 ## 🚀 App Journey Changelog
 
+## [v1.0.298] - 04 November 2026, 08:58 AM IST
+
+### Executive Summary
+Fixed the Quiz Library shimmer skeleton loading layout by eliminating the constrained centering box in `QueryStateHandler` and aligning `QuizLibrarySkeleton` with the full page structure, responsive grid, and toolbar placement for seamless, zero-layout-shift loading.
+
+### 🐛 Bug Fixes
+- **Full-Width Skeleton Presentation (`src/components/ui/ErrorState/QueryStateHandler.tsx`)**:
+  - Removed restrictive fixed-height (`h-48`) and flex-centering wrapper when a custom `loadingComponent` is provided, preventing skeletons from collapsing into a distorted compact box in the center of the viewport.
+- **Quiz Library Skeleton Alignment (`src/features/quiz/components/QuizLibrarySkeleton.tsx`)**:
+  - Replaced basic pulse boxes with animated gradient light-sweep shimmer (`animate-shimmer` with `bg-[length:200%_100%]`).
+  - Added an integrated Toolbar skeleton placeholder matching `QuizLibraryToolbar` to eliminate layout shift when data finishes loading.
+  - Aligned grid and list container classes (`grid gap-4 sm:gap-6 z-20 ${viewMode === 'list' ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'}`) with actual saved and attempted quiz cards.
+  - Dynamic count adaptation based on active view mode (6 for grid, 3 for list).
+- **Component Consumption (`src/features/quiz/components/SavedQuizzesList.tsx`, `AttemptedQuizzesList.tsx`, `index.ts`)**:
+  - Updated `loadingComponent` invocations to pass dynamic `viewMode` directly into `QuizLibrarySkeleton`.
+  - Exported `QuizLibrarySkeleton` in the quiz components public index.
+
+### Impacted Scope
+- `src/components/ui/ErrorState/QueryStateHandler.tsx`
+- `src/features/quiz/components/QuizLibrarySkeleton.tsx`
+- `src/features/quiz/components/SavedQuizzesList.tsx`
+- `src/features/quiz/components/AttemptedQuizzesList.tsx`
+- `src/features/quiz/components/index.ts`
+
 ## [v1.0.297] - 04 November 2026, 01:45 AM IST
 
 ### Executive Summary
