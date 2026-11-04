@@ -16,7 +16,6 @@ import {
   SubjectStrip,
   EnglishSection,
   QuickActionsGrid,
-  SuggestedDrillCard,
   UserProgressCard,
   ImportantForSscStrip
 } from "@/features/dashboard";
@@ -170,9 +169,6 @@ export const DashboardPage: React.FC<DashboardProps> = ({ onBackToIntro }) => {
       case 'mistake-notebook':
         navigate(ROUTES.MISTAKE_NOTEBOOK);
         break;
-      case 'weak-topics':
-        handleStartSuggestedDrill();
-        break;
       case 'bookmarks':
         navigate(ROUTES.QUIZ.BOOKMARKS);
         break;
@@ -180,43 +176,6 @@ export const DashboardPage: React.FC<DashboardProps> = ({ onBackToIntro }) => {
         break;
     }
   };
-
-  const handleStartSuggestedDrill = () => {
-    if (stats.quizzesCompleted === 0) {
-      // Diagnostic drill
-      handleNavigateWithFilters({ tags: ['Diagnostic'] }, 'learning', true);
-    } else if (stats.weakTopics.length > 0) {
-      // Weak topic drill
-      handleNavigateWithFilters({ subject: [stats.weakTopics[0]] }, 'learning', true, true);
-    } else {
-      // Challenge
-      handleNavigateWithFilters({ difficulty: ['Hard'] }, 'mock', true);
-    }
-  };
-
-  const suggestedDrillProps = () => {
-    if (stats.quizzesCompleted === 0) {
-      return {
-        topicTitle: "SSC GK Diagnostic Drill",
-        subtext: "Find your baseline score across all 6 GK subjects",
-        isDiagnostic: true
-      };
-    }
-    if (stats.weakTopics.length > 0) {
-      return {
-        topicTitle: `${stats.weakTopics[0]}: High-Yield Revision`,
-        subtext: `Based on your recent accuracy. Practice 15 Qs.`,
-        isDiagnostic: false
-      };
-    }
-    return {
-      topicTitle: "SSC CGL Tier-2 Challenge",
-      subtext: "Tough Shift / Hard PYQs",
-      isDiagnostic: false
-    };
-  };
-
-  const drillProps = suggestedDrillProps();
 
   return (
     <div className="min-h-full -mt-4 pt-2 w-full overflow-x-hidden bg-gradient-to-b from-[#EEF2FF] via-[#F5F7FF] to-[#F8FAFC] dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))]">
@@ -249,25 +208,15 @@ export const DashboardPage: React.FC<DashboardProps> = ({ onBackToIntro }) => {
           onActionClick={handleQuickAction}
         />
 
-        {/* Tier 5: Suggested Drill & Progress */}
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-3.5 sm:gap-4 z-10 relative">
-          <div className="md:col-span-7">
-            <SuggestedDrillCard
-              topicTitle={drillProps.topicTitle}
-              subtext={drillProps.subtext}
-              isDiagnostic={drillProps.isDiagnostic}
-              onStartDrill={handleStartSuggestedDrill}
-            />
-          </div>
-          <div className="md:col-span-5">
-            <UserProgressCard
-              averageScore={stats.averageScore}
-              quizzesCompleted={stats.quizzesCompleted}
-              correctAnswers={stats.correctAnswers}
-              totalTimeSpentFormatted={stats.totalTimeSpentFormatted}
-              onDetailsClick={() => navigate(`${ROUTES.QUIZ.LIBRARY}?tab=attempted`)}
-            />
-          </div>
+        {/* Tier 5: User Progress */}
+        <div className="z-10 relative">
+          <UserProgressCard
+            averageScore={stats.averageScore}
+            quizzesCompleted={stats.quizzesCompleted}
+            correctAnswers={stats.correctAnswers}
+            totalTimeSpentFormatted={stats.totalTimeSpentFormatted}
+            onDetailsClick={() => navigate(`${ROUTES.QUIZ.LIBRARY}?tab=attempted`)}
+          />
         </div>
 
         {/* Tier 6: Important for SSC */}
@@ -279,3 +228,4 @@ export const DashboardPage: React.FC<DashboardProps> = ({ onBackToIntro }) => {
     </div>
   );
 };
+export default DashboardPage;
