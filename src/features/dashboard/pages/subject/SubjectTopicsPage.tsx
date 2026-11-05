@@ -13,6 +13,8 @@ import { useNotificationStore } from "@/stores/useNotificationStore";
 import { quizCreationService } from "@/features/quiz/services/quizCreationService";
 import { useQuestionMetadata } from "@/features/quiz/hooks/useQuestionMetadata";
 import { Question } from "@/features/quiz/types";
+import { useExamContextStore } from "@/stores/useExamContextStore";
+import { CANONICAL_EXAMS } from "../../constants/examRegistry";
 
 export const SubjectTopicsPage: React.FC = () => {
   const { subjectName } = useParams<{ subjectName: string }>();
@@ -108,6 +110,10 @@ export const SubjectTopicsPage: React.FC = () => {
   }
 
   const navigateToQuiz = (topic: string, subTopic?: string) => {
+    const activeExamId = useExamContextStore.getState().activeExamId;
+    const activeExam = CANONICAL_EXAMS.find((e) => e.id === activeExamId);
+    const examNames = activeExam ? activeExam.dbExamNames : [];
+
     navigate(ROUTES.QUIZ.CONFIG, {
       state: {
         initialFilters: {
@@ -116,7 +122,7 @@ export const SubjectTopicsPage: React.FC = () => {
           subTopic: subTopic ? [subTopic] : [],
           difficulty: [],
           questionType: [],
-          examName: [],
+          examName: examNames,
           examYear: [],
           examDateShift: [],
           tags: [],
@@ -190,13 +196,17 @@ export const SubjectTopicsPage: React.FC = () => {
 
       const finalName = `${selectedSubTopic.subTopic} Quiz`;
 
+      const activeExamId = useExamContextStore.getState().activeExamId;
+      const activeExam = CANONICAL_EXAMS.find((e) => e.id === activeExamId);
+      const examNames = activeExam ? activeExam.dbExamNames : [];
+
       const filters = {
         subject: [decodedSubject],
         topic: [selectedSubTopic.topic],
         subTopic: [selectedSubTopic.subTopic],
         difficulty: difficulty === "All" ? [] : [difficulty],
         questionType: [],
-        examName: [],
+        examName: examNames,
         examYear: [],
         examDateShift: [],
         tags: [],
@@ -226,15 +236,12 @@ export const SubjectTopicsPage: React.FC = () => {
             message: "Resuming existing quiz session",
           });
         }
-        // Navigate to the library first so it's in the back stack, then to the quiz player
-        navigate("/quiz/library?tab=created", { replace: true });
-        setTimeout(() => {
-          navigate(
-            mode === "learning"
-              ? ROUTES.QUIZ.SESSION.learning(result.quizId)
-              : ROUTES.QUIZ.SESSION.mock(result.quizId),
-          );
-        }, 50);
+        // Launch directly into active quiz session
+        navigate(
+          mode === "learning"
+            ? ROUTES.QUIZ.SESSION.learning(result.quizId)
+            : ROUTES.QUIZ.SESSION.mock(result.quizId),
+        );
       } else {
         useNotificationStore.getState().showToast({
           variant: "success",

@@ -4,6 +4,7 @@ import { Trash2, Play, Clock, BookOpen, Edit2, Check, X, Mic, CheckCircle, Loade
 import { motion, AnimatePresence, useAnimation } from 'framer-motion';
 import { useNotification } from '@/stores/useNotificationStore';
 import { SavedQuiz } from '../types';
+import { CANONICAL_EXAMS } from '@/features/dashboard';
 
 interface SavedQuizCardProps {
     quiz: SavedQuiz;
@@ -31,6 +32,12 @@ export const SavedQuizCard: React.FC<SavedQuizCardProps> = ({ quiz, index, onRes
     }, []);
 
     const isQuizFinished = quiz.state?.status === 'result';
+
+    const matchedExam = React.useMemo(() => {
+        const examFilters = (quiz.filters as any)?.examName;
+        if (!examFilters || examFilters.length === 0) return null;
+        return CANONICAL_EXAMS.find(e => e.dbExamNames.some(name => examFilters.includes(name)));
+    }, [quiz.filters]);
 
     const handleShare = async (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -213,7 +220,12 @@ export const SavedQuizCard: React.FC<SavedQuizCardProps> = ({ quiz, index, onRes
                                 />
                             ) : (
                                 <div className="flex items-center justify-between flex-1 min-w-0">
-                                    <div className="flex items-center gap-2 min-w-0">
+                                    <div className="flex items-center gap-2 min-w-0 flex-wrap">
+                                        {matchedExam && (
+                                            <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold ${matchedExam.badgeColor} shrink-0`}>
+                                                🎯 {matchedExam.shortCode}
+                                            </span>
+                                        )}
                                         <h3 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-700 dark:from-white dark:to-slate-300 group-hover:from-indigo-600 group-hover:to-indigo-800 dark:group-hover:from-indigo-300 dark:group-hover:to-indigo-100 transition-all duration-300 truncate">
                                             {quiz.name || 'Untitled Quiz'}
                                         </h3>

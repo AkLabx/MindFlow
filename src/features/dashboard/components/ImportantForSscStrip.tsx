@@ -1,6 +1,8 @@
 import React from 'react';
 import { ChevronRight, Play, Flame } from 'lucide-react';
 import { IMPORTANT_FOR_SSC } from '../constants/sscDashboardConfig';
+import { useExamContextStore } from '@/stores/useExamContextStore';
+import { CANONICAL_EXAMS } from '../constants/examRegistry';
 
 interface ImportantForSscStripProps {
   onTopicClick: (filters: any) => void;
@@ -8,12 +10,15 @@ interface ImportantForSscStripProps {
 }
 
 export const ImportantForSscStrip: React.FC<ImportantForSscStripProps> = ({ onTopicClick, onViewAllClick }) => {
+  const activeExamId = useExamContextStore((s) => s.activeExamId);
+  const activeExam = CANONICAL_EXAMS.find((e) => e.id === activeExamId);
+  const sectionTitle = activeExam ? `Important for ${activeExam.displayName}` : 'Important for SSC';
   return (
     <section className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.06)] dark:shadow-none p-3.5 sm:p-4.5 flex flex-col gap-3 relative z-10 mb-2">
       <div className="flex items-center justify-between px-0.5">
         <div className="flex items-center gap-1.5">
           <Flame className="w-4 h-4 sm:w-5 sm:h-5 text-rose-500 fill-rose-500" />
-          <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">Important for SSC</h2>
+          <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">{sectionTitle}</h2>
         </div>
         <button
           onClick={onViewAllClick}
@@ -27,7 +32,10 @@ export const ImportantForSscStrip: React.FC<ImportantForSscStripProps> = ({ onTo
         {IMPORTANT_FOR_SSC.map((item) => (
           <div
             key={item.id}
-            onClick={() => onTopicClick(item.filter)}
+            onClick={() => {
+              const examFilter = activeExam ? { examName: activeExam.dbExamNames } : {};
+              onTopicClick({ ...item.filter, ...examFilter });
+            }}
             className="bg-slate-50/80 dark:bg-slate-800/60 rounded-xl p-3 sm:p-3.5 border border-slate-200/90 dark:border-slate-700/70 shadow-xs hover:bg-white dark:hover:bg-slate-700/80 hover:border-indigo-300 dark:hover:border-indigo-600/70 transition-all cursor-pointer min-w-[210px] sm:min-w-0 snap-start active:scale-[0.98] group flex flex-col justify-between"
           >
             <div>
