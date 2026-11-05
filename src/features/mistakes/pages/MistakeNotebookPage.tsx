@@ -20,6 +20,8 @@ import { MistakeQuestionCard } from '../components/MistakeQuestionCard';
 import { useNotificationStore } from '../../../stores/useNotificationStore';
 import { useAuth } from '../../auth';
 import { cn } from '../../../utils/cn';
+import { useExamContextStore } from '@/stores/useExamContextStore';
+import { CANONICAL_EXAMS, matchesCanonicalExam } from '@/features/dashboard';
 
 export const MistakeNotebookPage: React.FC = () => {
   const navigate = useNavigate();
@@ -32,7 +34,9 @@ export const MistakeNotebookPage: React.FC = () => {
   const [allQuestions, setAllQuestions] = useState<UserQuestionMasteryRecord[]>([]);
 
   // Filters
+  const activeExamId = useExamContextStore((s) => s.activeExamId);
   const [activeTier, setActiveTier] = useState<ActiveTierFilter>('all_mistakes');
+  const [selectedExam, setSelectedExam] = useState<string>('all');
   const [selectedSubject, setSelectedSubject] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
 
@@ -71,6 +75,25 @@ export const MistakeNotebookPage: React.FC = () => {
     }
   }, [user]);
 
+  // Collect available canonical exams from questions
+  const availableExams = useMemo(() => {
+    const examMap = new Map<string, { id: string; name: string; count: number }>();
+    allQuestions.forEach((q) => {
+      const rawExam = q.question?.examName || q.question?.sourceInfo?.examName || (q.question as any)?.properties?.examName;
+      if (rawExam) {
+        for (const exam of CANONICAL_EXAMS) {
+          if (matchesCanonicalExam(exam, rawExam)) {
+            const current = examMap.get(exam.id) || { id: exam.id, name: exam.shortCode, count: 0 };
+            current.count += 1;
+            examMap.set(exam.id, current);
+            break;
+          }
+        }
+      }
+    });
+    return Array.from(examMap.values());
+  }, [allQuestions]);
+
   // Collect available subjects from questions & summary
   const availableSubjects = useMemo(() => {
     const subs = new Set<string>();
@@ -102,6 +125,15 @@ export const MistakeNotebookPage: React.FC = () => {
         return false;
       }
 
+      // 1.5. Exam filtering
+      if (selectedExam !== 'all') {
+        const rawExam = q.question?.examName || q.question?.sourceInfo?.examName || (q.question as any)?.properties?.examName;
+        const targetExam = CANONICAL_EXAMS.find((e) => e.id === selectedExam);
+        if (!targetExam || !matchesCanonicalExam(targetExam, rawExam)) {
+          return false;
+        }
+      }
+
       // 2. Subject filtering
       if (selectedSubject !== 'all' && q.subject !== selectedSubject) {
         return false;
@@ -119,7 +151,7 @@ export const MistakeNotebookPage: React.FC = () => {
 
       return true;
     });
-  }, [allQuestions, activeTier, selectedSubject, searchQuery]);
+  }, [allQuestions, activeTier, selectedExam, selectedSubject, searchQuery]);
 
   // Handle Practice Solo (1-Question drill)
   const handlePracticeSolo = async (record: UserQuestionMasteryRecord) => {
@@ -234,6 +266,45 @@ export const MistakeNotebookPage: React.FC = () => {
                   </button>
                 )}
               </div>
+
+              {/* Exam Chips Horizontal Scroll */}
+              {availableExams.length > 0 && (
+                <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 pl-1 shrink-0">
+                    Exam:
+                  </span>
+                  <button
+                    onClick={() => setSelectedExam('all')}
+                    className={cn(
+                      "px-2.5 py-1 rounded-xl text-xs font-semibold shrink-0 transition-all border",
+                      selectedExam === 'all'
+                        ? "bg-slate-900 text-white dark:bg-white dark:text-slate-900 border-transparent shadow-sm"
+                        : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800"
+                    )}
+                  >
+                    All Exams
+                  </button>
+                  {availableExams.map((exam) => {
+                    const isUserTarget = exam.id === activeExamId;
+                    return (
+                      <button
+                        key={exam.id}
+                        onClick={() => setSelectedExam(exam.id)}
+                        className={cn(
+                          "px-2.5 py-1 rounded-xl text-xs font-semibold shrink-0 transition-all border flex items-center gap-1",
+                          selectedExam === exam.id
+                            ? "bg-indigo-600 text-white border-transparent shadow-sm"
+                            : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800"
+                        )}
+                      >
+                        <span>{isUserTarget ? '🎯' : '📄'}</span>
+                        <span>{exam.name}</span>
+                        <span className="text-[10px] opacity-75 font-normal">({exam.count})</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
 
               {/* Subject Chips Horizontal Scroll */}
               <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">

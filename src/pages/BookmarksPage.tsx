@@ -13,11 +13,15 @@ import { cn } from '@/utils/cn';
 import { SynapticLoader } from '@/components/ui/SynapticLoader';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ErrorState } from '@/components/ui/ErrorState';
+import { useExamContextStore } from '@/stores/useExamContextStore';
+import { CANONICAL_EXAMS, matchesCanonicalExam } from '@/features/dashboard';
 
 export const BookmarksPage: React.FC = () => {
     const navigate = useNavigate();
     const queryClient = useQueryClient();
     const { user } = useAuth();
+    const activeExamId = useExamContextStore((s) => s.activeExamId);
+    const [selectedExam, setSelectedExam] = useState<string>('All');
     const [selectedSubject, setSelectedSubject] = useState<string>('All');
     const [showToast, setShowToast] = useState(false);
 
@@ -97,6 +101,24 @@ export const BookmarksPage: React.FC = () => {
         }
     };
 
+    const availableExams = useMemo(() => {
+        const examMap = new Map<string, { id: string; name: string; count: number }>();
+        bookmarks.forEach(q => {
+            const rawExam = q.examName || q.sourceInfo?.examName || (q as any)?.properties?.examName;
+            if (rawExam) {
+                for (const exam of CANONICAL_EXAMS) {
+                    if (matchesCanonicalExam(exam, rawExam)) {
+                        const current = examMap.get(exam.id) || { id: exam.id, name: exam.shortCode, count: 0 };
+                        current.count += 1;
+                        examMap.set(exam.id, current);
+                        break;
+                    }
+                }
+            }
+        });
+        return Array.from(examMap.values());
+    }, [bookmarks]);
+
     const subjects = useMemo(() => {
         const subs = new Set<string>();
         bookmarks.forEach(q => {
@@ -106,9 +128,20 @@ export const BookmarksPage: React.FC = () => {
     }, [bookmarks]);
 
     const filteredBookmarks = useMemo(() => {
-        if (selectedSubject === 'All') return bookmarks;
-        return bookmarks.filter(q => (q.subject ?? q.classification?.subject) === selectedSubject);
-    }, [bookmarks, selectedSubject]);
+        return bookmarks.filter(q => {
+            if (selectedSubject !== 'All' && (q.subject ?? q.classification?.subject) !== selectedSubject) {
+                return false;
+            }
+            if (selectedExam !== 'All') {
+                const rawExam = q.examName || q.sourceInfo?.examName || (q as any)?.properties?.examName;
+                const targetExam = CANONICAL_EXAMS.find(e => e.id === selectedExam);
+                if (!targetExam || !matchesCanonicalExam(targetExam, rawExam)) {
+                    return false;
+                }
+            }
+            return true;
+        });
+    }, [bookmarks, selectedSubject, selectedExam]);
 
     if (isError) {
         return (
@@ -198,6 +231,45 @@ export const BookmarksPage: React.FC = () => {
                 </div>
             )}
 
+            {/* Exam Filters (Capsule Type) */}
+            {availableExams.length > 0 && (
+                <div className="flex overflow-x-auto py-1 -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-hide items-center space-x-2">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 pl-1 shrink-0">
+                        Exam:
+                    </span>
+                    <button
+                        onClick={() => setSelectedExam('All')}
+                        className={cn(
+                            "whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-semibold transition-colors duration-200 border",
+                            selectedExam === 'All'
+                                ? "bg-gray-900 text-white dark:bg-white dark:text-gray-900 border-transparent shadow-sm"
+                                : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700"
+                        )}
+                    >
+                        All Exams
+                    </button>
+                    {availableExams.map(exam => {
+                        const isUserTarget = exam.id === activeExamId;
+                        return (
+                            <button
+                                key={exam.id}
+                                onClick={() => setSelectedExam(exam.id)}
+                                className={cn(
+                                    "whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-semibold transition-colors duration-200 border flex items-center gap-1",
+                                    selectedExam === exam.id
+                                        ? "bg-indigo-600 text-white border-transparent shadow-sm"
+                                        : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700"
+                                )}
+                            >
+                                <span>{isUserTarget ? '🎯' : '📄'}</span>
+                                <span>{exam.name}</span>
+                                <span className="text-[10px] opacity-75 font-normal">({exam.count})</span>
+                            </button>
+                        );
+                    })}
+                </div>
+            )}
+
             {/* Subject Filters (Capsule Type) */}
             <div className="flex overflow-x-auto py-2 -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-hide space-x-2">
                 {subjects.map(subject => (
@@ -221,7 +293,21 @@ export const BookmarksPage: React.FC = () => {
                 {filteredBookmarks.map((question, index) => (
                     <Card key={question.id} className="p-5 flex flex-col sm:flex-row gap-4 group transition-shadow hover:shadow-md">
                         <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-2">
+                            <div className="flex items-center gap-2 mb-2 flex-wrap">
+                                {(() => {
+                                    const rawExam = question.examName || question.sourceInfo?.examName || (question as any)?.properties?.examName;
+                                    const matched = rawExam ? CANONICAL_EXAMS.find(e => matchesCanonicalExam(e, rawExam)) : null;
+                                    if (!matched) return null;
+                                    return (
+                                        <span className={cn(
+                                            "text-xs font-bold px-2 py-0.5 rounded tracking-wider border",
+                                            matched.badgeColor,
+                                            matched.borderClass
+                                        )}>
+                                            🎯 {matched.shortCode}
+                                        </span>
+                                    );
+                                })()}
                                 <span className="text-xs font-bold px-2 py-1 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400 rounded uppercase tracking-wider">
                                     {(question.subject ?? question.classification?.subject) || 'General'}
                                 </span>

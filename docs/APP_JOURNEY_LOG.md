@@ -26,6 +26,25 @@ This document is the single source of truth for the evolution of the MindFlow ap
 
 ## 🚀 App Journey Changelog
 
+## [v1.0.303] - 06 November 2026, 03:08 AM IST
+
+### Executive Summary
+Delivered Phase 3 of the Exam-First Architecture: introduced granular exam filtering and canonical badges across the Mistake Notebook and Bookmarks pages, empowering students preparing for specific examinations (such as SSC CGL or BPSC) to review errors and saved questions targeted to their active exam.
+
+### ✨ Features Added
+- **Mistake Notebook Exam Filtering (`MistakeNotebookPage.tsx`)**:
+  - Integrated dynamic Exam filter chips above the subject filters, allowing students to filter cognitive mistake records by exam (e.g. `🎯 SSC CGL (14)`, `📄 BPSC (3)`).
+  - Scoped retention drills triggered via `MasteryDrillBar` to respect the active exam filter.
+- **Canonical Exam Badge in Mistake Cards (`MistakeQuestionCard.tsx`)**:
+  - Resolved and rendered canonical exam badges (e.g. `🎯 SSC CGL`, `🎯 BPSC`) directly on mistake question cards alongside cognitive vulnerability status badges.
+- **Bookmarks Exam Filtering & Badges (`BookmarksPage.tsx`)**:
+  - Added horizontal exam filter chips to filter saved bookmarks by canonical exam alongside subject filters.
+  - Rendered canonical exam badges directly on bookmark cards for immediate visual identification.
+
+### ⚡ Performance & Refactoring
+- **Reactive Fast-Switching**:
+  - Implemented zero-latency client-side memoized filter matching (`matchesCanonicalExam`) to ensure instantaneous filter switching on low-end mobile devices without triggering network round-trips.
+
 ## [v1.0.302] - 06 November 2026, 02:52 AM IST
 
 ### Executive Summary
