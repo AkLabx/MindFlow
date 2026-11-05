@@ -188,8 +188,18 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
   const examNamesJR = useMemo(() => allExamNames.filter(name => /^[j-rJ-R]/.test(name)), [allExamNames]);
   const examNamesSZ = useMemo(() => allExamNames.filter(name => /^[s-zS-Z]/.test(name)), [allExamNames]);
   const examNamesOther = useMemo(() => allExamNames.filter(name => !/^[a-zA-Z]/.test(name)), [allExamNames]);
-  const allExamYears = useMemo(() => Array.from(new Set(metadata.map(q => String(q.examYear ?? q.sourceInfo?.examYear)))).filter(Boolean).sort(), [metadata]);
-  const allExamShifts = useMemo(() => Array.from(new Set(metadata.map(q => (q.examDateShift ?? q.sourceInfo?.examDateShift) || ''))).filter(Boolean).sort(), [metadata]);
+  const scopedMetadataForSource = useMemo(() => {
+    if (filters.examName && filters.examName.length > 0) {
+      return metadata.filter((q) => {
+        const exam = q.examName ?? q.sourceInfo?.examName;
+        return exam && filters.examName.includes(exam);
+      });
+    }
+    return metadata;
+  }, [metadata, filters.examName]);
+
+  const allExamYears = useMemo(() => Array.from(new Set(scopedMetadataForSource.map(q => String(q.examYear ?? q.sourceInfo?.examYear)))).filter(Boolean).sort(), [scopedMetadataForSource]);
+  const allExamShifts = useMemo(() => Array.from(new Set(scopedMetadataForSource.map(q => (q.examDateShift ?? q.sourceInfo?.examDateShift) || ''))).filter(Boolean).sort(), [scopedMetadataForSource]);
   const allTags = useMemo(() => Array.from(new Set(metadata.flatMap(q => q.tags))).filter(Boolean).sort(), [metadata]);
 
   // 5. Final Filtered Metadata Calculation using O(1) Set Intersections
@@ -218,7 +228,8 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
     try {
       setIsStartingQuiz(true);
 
-      const finalName = quizName.trim() || `Quiz ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`;
+      const defaultPrefix = activeExamInfo ? `${activeExamInfo.displayName} Practice` : 'Quiz';
+      const finalName = quizName.trim() || `${defaultPrefix} • ${new Date().toLocaleDateString([], { month: 'short', day: 'numeric' })} ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
 
       const result = await quizCreationService.createQuiz(questionSubset, activeFilters, mode, finalName);
 
@@ -232,8 +243,8 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
         useNotificationStore.getState().showToast({ variant: 'success', message: 'Resuming existing quiz session' });
       }
 
-      // navigate to Saved route to fetch newly created (or reused) quiz directly from the cloud
-      navigate('/quiz/library?tab=created');
+      // Launch directly into the interactive session (Zero-Library Friction)
+      navigate(`/quiz/session/${mode}/${result.quizId}`);
 
     } catch (err) {
       console.error("Failed to create quiz:", err);
@@ -252,13 +263,18 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
     createQuizWithQuestions(filteredMetadata, filters);
   };
 
+  const isFixedExamContext = locState?.fixedExamContext === true || Boolean(activeExamInfo);
+  const currentExamNames = activeExamInfo?.dbExamNames || filters.examName;
+
   const handleClearFilters = useCallback(() => {
-    if (isFixedSubjectContext && fixedSubject) {
-      setFilters({ ...emptyFilters, subject: [fixedSubject] });
-    } else {
-      setFilters(emptyFilters);
-    }
-  }, [isFixedSubjectContext, fixedSubject]);
+    const preservedSubject = isFixedSubjectContext && fixedSubject ? [fixedSubject] : [];
+    const preservedExam = isFixedExamContext && currentExamNames && currentExamNames.length > 0 ? currentExamNames : [];
+    setFilters({
+      ...emptyFilters,
+      subject: preservedSubject,
+      examName: preservedExam,
+    });
+  }, [isFixedSubjectContext, fixedSubject, isFixedExamContext, currentExamNames]);
 
   const handleClearClassification = useCallback(() => {
     if (isFixedSubjectContext && fixedSubject) {
@@ -269,14 +285,25 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
   }, [isFixedSubjectContext, fixedSubject]);
 
   const handleQuickStart = useCallback((type: 'Easy' | 'Medium' | 'Hard' | 'Mix') => {
-    let quickFilters = emptyFilters;
+    const baseExamFilters = filters.examName && filters.examName.length > 0 ? { examName: filters.examName } : {};
+    let quickFilters: InitialFilters = {
+      ...emptyFilters,
+      ...baseExamFilters,
+    };
     if (type !== 'Mix') {
-      quickFilters = { ...emptyFilters, difficulty: [type] };
+      quickFilters = { ...quickFilters, difficulty: [type] };
     }
 
+    const candidatePool = filters.examName && filters.examName.length > 0
+      ? metadata.filter((q) => {
+          const exam = q.examName ?? q.sourceInfo?.examName;
+          return exam && filters.examName.includes(exam);
+        })
+      : metadata;
+
     const subset = type === 'Mix'
-      ? metadata
-      : metadata.filter(q => (q.properties?.difficulty) === type);
+      ? candidatePool
+      : candidatePool.filter((q) => (q.properties?.difficulty) === type);
 
     const shuffled = [...subset].sort(() => 0.5 - Math.random()).slice(0, 25);
 
@@ -286,7 +313,7 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
     }
 
     createQuizWithQuestions(shuffled, quickFilters);
-  }, [metadata]);
+  }, [metadata, filters.examName, mode, quizName]);
 
   const handleFilterChange = useCallback((key: keyof InitialFilters, selected: string[]) => {
     setFilters(prev => ({ ...prev, [key]: selected }));
@@ -583,6 +610,9 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
             <Accordion title="Advanced Filters">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-0 md:gap-6">
                 <FilterGroup title="Source" icon={<FileText className="w-5 h-5" />}>
+                  {/* Deduplicate controls: Hide raw exam selector capsules when active exam context is set */}
+                  {!activeExamInfo && (
+                    <>
                   {examNamesAI.length > 0 && (
                     <ScrollableCapsules
                       label="Exam Name [A-I]"
@@ -650,6 +680,8 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
                       hideZeroCount
                       maxRows={3}
                     />
+                  )}
+                    </>
                   )}
 
                   {allExamYears.length > 0 && (

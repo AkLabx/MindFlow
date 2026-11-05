@@ -8,6 +8,8 @@ import { subjectService } from "../../services/subjectService";
 import { SubjectHeader } from "../../components/subject/SubjectHeader";
 import { ActionCard } from "../../components/subject/ActionCard";
 import { EmptyState } from "../../components/subject/EmptyState";
+import { useExamContextStore } from "@/stores/useExamContextStore";
+import { CANONICAL_EXAMS } from "../../constants/examRegistry";
 
 export const SubjectHubPage: React.FC = () => {
   const { subjectName } = useParams<{ subjectName: string }>();
@@ -44,6 +46,9 @@ export const SubjectHubPage: React.FC = () => {
   }
 
   const handleCustomQuiz = () => {
+    const activeExamId = useExamContextStore.getState().activeExamId;
+    const activeExam = CANONICAL_EXAMS.find((e) => e.id === activeExamId);
+    const examNames = activeExam ? activeExam.dbExamNames : [];
     navigate(ROUTES.QUIZ.CONFIG, {
       state: {
         initialFilters: {
@@ -52,7 +57,7 @@ export const SubjectHubPage: React.FC = () => {
           subTopic: [],
           difficulty: [],
           questionType: [],
-          examName: [],
+          examName: examNames,
           examYear: [],
           examDateShift: [],
           tags: [],
@@ -60,6 +65,8 @@ export const SubjectHubPage: React.FC = () => {
         initialMode: "learning",
         autoStart: false,
         fixedSubjectContext: true,
+        fixedExamContext: Boolean(activeExam),
+        canonicalExamId: activeExamId,
       },
     });
   };

@@ -26,6 +26,34 @@ This document is the single source of truth for the evolution of the MindFlow ap
 
 ## 🚀 App Journey Changelog
 
+## [v1.0.302] - 06 November 2026, 02:52 AM IST
+
+### Executive Summary
+Executed Phase 1 & 2 of the approved Exam-First Architecture Audit: eliminated duplicate exam controls in `QuizConfig.tsx`, enabled zero-library friction direct quiz session launches, resolved state leakage in QuickStart and filter resets, propagated active exam context to Subject Hubs, and introduced canonical exam badges on saved and attempted quiz cards.
+
+### ⚡ Performance & Refactoring
+- **One Concept, One Control (`QuizConfig.tsx`)**:
+  - Hidden raw alphabetical exam capsules (`[A-I]`, `[J-R]`, `[S-Z]`, `[Other]`) inside "Advanced Filters" whenever an active exam context is present, establishing the top banner as the sole authoritative controller.
+  - Dynamically scoped `allExamYears` and `allExamShifts` so only shifts and years relevant to the active target exam are rendered.
+- **Zero-Library Friction Direct Launch (`QuizConfig.tsx`)**:
+  - Replaced post-creation redirect to `/quiz/library?tab=created` with direct session launch (`navigate('/quiz/session/${mode}/${result.quizId}')`), eliminating redundant navigation steps.
+- **State Leak & Reset Hardening (`QuizConfig.tsx`)**:
+  - Hardened `handleQuickStart` to sample only from the active exam question pool instead of resetting to global database metadata.
+  - Fixed `handleClearFilters` to preserve the user's active target exam context upon clearing ad-hoc topic and difficulty filters.
+  - Contextualized default quiz titles to `${activeExamInfo.displayName} Practice • {Date}`.
+
+### ✨ Features Added
+- **Subject Hub & Topics Exam Context Preservation (`SubjectHubPage.tsx`, `SubjectTopicsPage.tsx`)**:
+  - Propagated active exam state when launching custom quizzes and direct subtopic drills from Subject Hub and Subject Topics pages, preventing unintended question leakage across exams.
+  - Eliminated delayed library navigation flicker in `SubjectTopicsPage.tsx`, launching directly into active quiz sessions.
+- **Canonical Exam Badges on Quiz Cards (`SavedQuizCard.tsx`, `AttemptedQuizCard.tsx`)**:
+  - Resolved and rendered branded exam pills (e.g. `🎯 SSC CGL`, `🎯 BPSC`) directly on library cards for instant visual identification.
+- **Dynamic Exam Adaptability in Dashboard (`ImportantForSscStrip.tsx`)**:
+  - Adapted the strip title and topic clicks to the active target exam (`Important for {activeExam}`), preventing hardcoded bias toward SSC for BPSC/Railways aspirants.
+
+### 🔒 Security & Architecture
+- Verified 0 TypeScript errors (`npx tsc --noEmit`) and successful production build with clean asset chunking.
+
 ## [v1.0.301] - 06 November 2026, 01:46 AM IST
 
 ### Executive Summary
