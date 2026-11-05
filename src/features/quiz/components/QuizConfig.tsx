@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import {
   ArrowLeft,
   Layers,
@@ -14,8 +14,11 @@ import {
   Timer,
   Check,
   Save,
-  Crown
+  Crown,
+  Target
 } from 'lucide-react';
+import { CANONICAL_EXAMS, CanonicalExam } from '@/features/dashboard';
+import { useExamContextStore } from '@/stores/useExamContextStore';
 import { Button } from '../../../components/Button/Button';
 import { fetchQuestionMetadata, fetchQuestionsByIds } from '../services/questionService';
 import { Question, InitialFilters, QuizMode, SavedQuiz } from '../types';
@@ -65,6 +68,8 @@ const emptyFilters: InitialFilters = {
 export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
+  const examQueryParam = searchParams.get('exam');
   const [mode, setMode] = useState<QuizMode>((location.state as any)?.initialMode || 'learning');
   const [filters, setFilters] = useState<InitialFilters>(emptyFilters);
   const [quizName, setQuizName] = useState('');
@@ -82,8 +87,67 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
     const locState = location.state as any;
     if (locState?.initialFilters && metadata.length > 0 && isLoadingMetadata === false) {
        setFilters(locState.initialFilters);
+    } else if (examQueryParam && metadata.length > 0 && isLoadingMetadata === false) {
+      const match = CANONICAL_EXAMS.find((e) => e.id === examQueryParam);
+      if (match) {
+        setFilters((prev) => ({
+          ...prev,
+          examName: match.dbExamNames,
+        }));
+      }
     }
-  }, [location.state, metadata.length, isLoadingMetadata]);
+  }, [location.state, examQueryParam, metadata.length, isLoadingMetadata]);
+
+  const activeExamInfo = useMemo(() => {
+    if (examQueryParam) {
+      const match = CANONICAL_EXAMS.find((e) => e.id === examQueryParam);
+      if (match) return match;
+    }
+    if (locState?.canonicalExamId) {
+      const match = CANONICAL_EXAMS.find((e) => e.id === locState.canonicalExamId);
+      if (match) return match;
+    }
+    if (filters.examName && filters.examName.length > 0) {
+      const match = CANONICAL_EXAMS.find((e) =>
+        e.dbExamNames.some((name) => filters.examName.includes(name))
+      );
+      if (match) return match;
+      return {
+        id: 'custom_exam',
+        displayName: filters.examName.join(', '),
+        shortCode: 'Exam',
+        subtitle: 'Filtered by Selected Exam',
+      } as any;
+    }
+    return null;
+  }, [examQueryParam, locState?.canonicalExamId, filters.examName]);
+
+  const handleClearExamContext = useCallback(() => {
+    setFilters((prev) => ({ ...prev, examName: [] }));
+  }, []);
+
+  const { pinnedExamIds } = useExamContextStore();
+
+  const pinnedExamsToAdd = useMemo(() => {
+    return pinnedExamIds
+      .map((id) => CANONICAL_EXAMS.find((e) => e.id === id))
+      .filter((e): e is CanonicalExam => Boolean(e));
+  }, [pinnedExamIds]);
+
+  const handleToggleCombinedExam = useCallback((exam: CanonicalExam) => {
+    setFilters((prev) => {
+      const isIncluded = exam.dbExamNames.some((name) =>
+        prev.examName.includes(name)
+      );
+      const nextExamNames = isIncluded
+        ? prev.examName.filter((name) => !exam.dbExamNames.includes(name))
+        : [...prev.examName, ...exam.dbExamNames];
+      return {
+        ...prev,
+        examName: Array.from(new Set(nextExamNames)),
+      };
+    });
+  }, []);
 
 
 
@@ -311,6 +375,71 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
 
       {/* Scrollable Config Content */}
       <div className="p-4 md:p-6 pb-32 md:space-y-6 bg-gray-50 dark:bg-gray-900/50 flex-1 overflow-y-auto pt-6 md:pt-6">
+
+        {/* Active Exam Context Banner (Exam-First Quick Access with Multi-Exam Support) */}
+        {activeExamInfo && (
+          <div className="mb-4 sm:mb-6 p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-indigo-500/5 border border-indigo-200/90 dark:border-indigo-800/60 shadow-xs flex flex-col gap-2.5">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                  <Target className="w-5 h-5" />
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
+                      Target Exam Active
+                    </span>
+                    <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-950/80 text-indigo-700 dark:text-indigo-300">
+                      {filteredMetadata.length} Qs Available
+                    </span>
+                  </div>
+                  <h2 className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-white truncate mt-0.5">
+                    {activeExamInfo.displayName}
+                  </h2>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={handleClearExamContext}
+                  className="text-xs font-semibold px-3 py-1.5 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition-all cursor-pointer"
+                >
+                  Clear Exam
+                </button>
+              </div>
+            </div>
+
+            {/* Multi-Exam Combination Pills */}
+            {pinnedExamsToAdd.length > 1 && (
+              <div className="flex items-center gap-1.5 flex-wrap pt-2 border-t border-indigo-100 dark:border-indigo-900/40">
+                <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mr-1">
+                  Combine with:
+                </span>
+                {pinnedExamsToAdd.map((pinnedExam) => {
+                  const isIncluded = pinnedExam.dbExamNames.some((name) =>
+                    filters.examName.includes(name)
+                  );
+                  return (
+                    <button
+                      key={pinnedExam.id}
+                      type="button"
+                      onClick={() => handleToggleCombinedExam(pinnedExam)}
+                      className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                        isIncluded
+                          ? 'bg-indigo-600 text-white shadow-xs'
+                          : 'bg-white/80 dark:bg-slate-800 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 hover:bg-indigo-50 dark:hover:bg-indigo-950/50'
+                      }`}
+                    >
+                      <span>{isIncluded ? '✓' : '+'}</span>
+                      <span>{pinnedExam.shortCode}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Header actions (Mode & Quick Start) inline Filter Bar */}
         <div className="flex flex-row items-center justify-between gap-2 sm:gap-3 mb-6 relative z-20 min-w-0 pb-4 border-b border-gray-200 dark:border-gray-700 md:border-none md:pb-0">

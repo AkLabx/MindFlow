@@ -26,6 +26,35 @@ This document is the single source of truth for the evolution of the MindFlow ap
 
 ## 🚀 App Journey Changelog
 
+## [v1.0.301] - 06 November 2026, 01:46 AM IST
+
+### Executive Summary
+Introduced the Exam-First Quick Access architecture on the Dashboard with multi-exam preparation support, establishing a Canonical Exam Registry (`examRegistry.ts`), dedicated persistent multi-exam context store (`useExamContextStore.ts`), horizontal swipeable target exam cards (`ExamQuickAccessStrip.tsx`), a goal management modal (`ManageTargetExamsModal.tsx`), and pre-scoped `QuizConfig` deep-linking.
+
+### ✨ Features Added
+- **Canonical Exam Registry (`src/features/dashboard/constants/examRegistry.ts`)**:
+  - Implemented declarative exam mapping matching user-facing brands (SSC CGL, BPSC, RRB NTPC, IB ACIO, UPSC CDS, Bihar Police) to raw database values (`questions.examName`), resolving database alias variations (e.g. `'CGL PRE'` and `'SSC CGL'`).
+  - Added $O(N)$ lightweight client metadata count computation (`computeExamCounts`).
+- **Multi-Exam Context Store (`src/stores/useExamContextStore.ts`)**:
+  - Built persistent Zustand store managing active exam focus (`activeExamId`) and user-pinned multi-exam target list (`pinnedExamIds`).
+  - Enables seamless multi-exam preparation (e.g. candidates preparing simultaneously for SSC CGL and BPSC).
+- **Exam Quick Access Strip (`src/features/dashboard/components/ExamQuickAccessStrip.tsx`)**:
+  - Embedded responsive horizontal snap carousel at Tier 1.5 of the Dashboard.
+  - Implemented 1-tap "Configure Quiz" and express "⚡ 25 Qs Drill" actions.
+- **Manage Target Exams Modal (`src/features/dashboard/components/ManageTargetExamsModal.tsx`)**:
+  - Bottom sheet on mobile / modal on desktop for exploring all exam categories, pinning/unpinning target goals, and inspecting question counts.
+- **Quiz Config Exam Context Banner (`src/features/quiz/components/QuizConfig.tsx`)**:
+  - Added URL parameter (`?exam=<id>`) and navigation state hydration.
+  - Rendered sticky "Target Exam Active" header banner with available question counts and one-click "Clear Exam" CTA.
+
+### ⚡ Performance & Refactoring
+- **Pre-computed Offline Question Counts**: Cached exam question counts in `localStorage` (`mindflow_exam_counts_cache_v1`) for instant 0ms rendering upon app launch.
+- **Zero-Count Topic Pruning**: Leveraged existing index counts so subject/topic capsules automatically hide when 0 questions exist for the active exam.
+
+### 🔒 Security & Architecture
+- **Preserved Existing Routes & Capabilities**: Unconstrained "Custom Quiz" builder and GK/GS subject hubs remain completely intact.
+- **Zero-Dependency Footprint**: Leveraged existing Zustand, Lucide, and Tailwind primitives without introducing third-party packages.
+
 ## [v1.0.300] - 06 November 2026, 12:49 AM IST
 
 ### Executive Summary
