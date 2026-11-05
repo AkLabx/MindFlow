@@ -24,13 +24,16 @@ export const QuickActionsGrid: React.FC<QuickActionsGridProps> = ({ onActionClic
             <button
               key={item.id}
               onClick={() => onActionClick(item.action)}
-              className={`flex flex-col items-start justify-between p-3.5 sm:p-4.5 min-h-[105px] sm:min-h-[125px] text-left rounded-xl bg-slate-50/80 dark:bg-slate-800/60 shadow-xs border border-slate-200/90 dark:border-slate-700/70 hover:bg-white dark:hover:bg-slate-700/80 hover:border-indigo-300 dark:hover:border-indigo-600/70 transition-all group w-full cursor-pointer active:scale-95 relative overflow-hidden ${
+              className={`group relative flex flex-col items-start justify-between p-3.5 sm:p-4.5 min-h-[105px] sm:min-h-[125px] text-left rounded-xl bg-white dark:bg-slate-900 shadow-xs hover:shadow-sm border ${item.borderClass} ${item.hoverBorder} transition-all w-full cursor-pointer active:scale-95 overflow-hidden ${
                 isLastOdd ? 'col-span-2 sm:col-span-1' : ''
               }`}
             >
-              <div className="flex items-start justify-between w-full">
-                <div className={`p-2 sm:p-2.5 rounded-xl ${item.bgClass} dark:bg-slate-700/50`}>
-                  <Icon className={`w-5 h-5 sm:w-6 sm:h-6 ${item.textClass}`} />
+              <div
+                className={`absolute inset-0 rounded-xl bg-gradient-to-br ${item.gradient} pointer-events-none opacity-80`}
+              />
+              <div className="relative z-10 flex items-start justify-between w-full">
+                <div className={`p-2 sm:p-2.5 rounded-xl ${item.bgClass} border ${item.borderClass} shadow-xs group-hover:scale-105 transition-transform`}>
+                  <Icon className={`w-5 h-5 sm:w-6 sm:h-6 ${item.textClass}`} strokeWidth={2.2} />
                 </div>
               </div>
               <div className="flex flex-col items-start mt-auto w-full pt-2.5 relative z-10">

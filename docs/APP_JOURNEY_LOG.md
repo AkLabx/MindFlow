@@ -26,6 +26,24 @@ This document is the single source of truth for the evolution of the MindFlow ap
 
 ## 🚀 App Journey Changelog
 
+## [v1.0.304] - 06 November 2026, 03:35 AM IST
+
+### Executive Summary
+Unified the visual design language across the entire MindFlow Dashboard by extending the acclaimed atmospheric ambient gradient and tinted border design system from the Exam Target Cards to all dashboard sections (Greeting Actions, GK/GS Subjects, English Vocabulary Pillars, Quick Actions, User Progress, and Important Drills) with strict semantic color congruency.
+
+### ✨ Features Added
+- **Atmospheric Ambient Gradients & Tinted Borders Across Dashboard**:
+  - **Hero Greeting Strip (`DashboardGreeting.tsx`)**: Replaced flat grey action buttons with themed cards featuring atmospheric gradients, squircle icon tiles, and glowing hover states for Today's Plan (Indigo), Bookmarks (Amber), Resume Quiz (Violet), and Quiz History (Emerald).
+  - **GK / GS Subjects (`SubjectStrip.tsx`)**: Replaced standard grey subject buttons with semantic tinted cards featuring delicate ambient gradient overlays, elevated squircle icon containers, and color-matched borders across all 8 core subjects (History, Polity, Geography, Economy, Physics, Chemistry, Biology, Static GK).
+  - **English & Vocabulary (`EnglishSection.tsx`)**: Elevated Synonyms, One Word Substitution, and Idioms pillar cards with ambient gradient washes and elevated icon tiles. Upgraded mini-game buttons (Imposter Trap, Tap & Connect, Speed Match) with semantic pill washes and borders.
+  - **Quick Actions Grid (`QuickActionsGrid.tsx`)**: Styled Daily PYQ, Custom Quiz, and Mistake Notebook cards with the signature ambient glow and squircle icon badges.
+  - **User Progress Card (`UserProgressCard.tsx`)**: Harmonized the progress card with an Indigo/Blue ambient wash and tinted border to match the surrounding dashboard cards.
+  - **Important Drills Strip (`ImportantForSscStrip.tsx`)**: Upgraded drill cards with subject-correlated ambient washes and elevated play button squircles.
+
+### ⚡ Performance & Refactoring
+- **Token Consolidation (`sscDashboardConfig.ts`)**:
+  - Centralized gradient tokens, structural border classes, and hover borders across `SSC_SUBJECTS`, `QUICK_ACTIONS`, and `IMPORTANT_FOR_SSC` to maintain design system consistency.
+
 ## [v1.0.303] - 06 November 2026, 03:08 AM IST
 
 ### Executive Summary

@@ -82,13 +82,16 @@ export const DashboardGreeting: React.FC<DashboardGreetingProps> = ({
             onClick={() =>
               navigate(ROUTES.TODAYS_PLAN || "/todays-plan")
             }
-            className="flex flex-col items-center justify-center p-2 sm:p-3 text-center rounded-xl bg-slate-50/80 dark:bg-slate-800/60 hover:bg-indigo-50 dark:hover:bg-slate-700/80 border border-slate-200/90 dark:border-slate-700/70 hover:border-indigo-300 dark:hover:border-indigo-600/70 shadow-xs transition-all group w-full cursor-pointer active:scale-95"
+            className="group relative flex flex-col items-center justify-center p-2 sm:p-3 text-center rounded-xl bg-white dark:bg-slate-900 border border-indigo-200/80 dark:border-indigo-800/60 hover:border-indigo-400 dark:hover:border-indigo-600 shadow-xs hover:shadow-sm transition-all w-full cursor-pointer active:scale-95 overflow-hidden"
           >
-            <Calendar className="w-5 h-5 text-indigo-500 group-hover:scale-110 transition-transform mb-1" />
-            <span className="font-semibold text-[10px] leading-tight sm:text-xs text-slate-700 dark:text-slate-300 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+            <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/10 via-violet-500/5 to-transparent pointer-events-none" />
+            <div className="relative z-10 w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border border-indigo-200/70 dark:border-indigo-800/50 bg-white dark:bg-slate-800 shadow-xs group-hover:scale-105 transition-transform mb-1.5">
+              <Calendar className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+            </div>
+            <span className="relative z-10 font-bold text-[10px] leading-tight sm:text-xs text-slate-800 dark:text-slate-200 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
               Today's Plan
             </span>
-            <span className="block text-[8px] leading-tight sm:text-[9px] text-slate-400 dark:text-slate-500 font-medium mt-0.5">
+            <span className="relative z-10 block text-[8px] leading-tight sm:text-[9px] text-slate-400 dark:text-slate-500 font-medium mt-0.5">
               your 5 min plan
             </span>
           </button>
@@ -98,13 +101,16 @@ export const DashboardGreeting: React.FC<DashboardGreetingProps> = ({
             onClick={() =>
               navigate(ROUTES.QUIZ.BOOKMARKS)
             }
-            className="flex flex-col items-center justify-center p-2 sm:p-3 text-center rounded-xl bg-slate-50/80 dark:bg-slate-800/60 hover:bg-amber-50 dark:hover:bg-slate-700/80 border border-slate-200/90 dark:border-slate-700/70 hover:border-amber-300 dark:hover:border-amber-600/70 shadow-xs transition-all group w-full cursor-pointer active:scale-95"
+            className="group relative flex flex-col items-center justify-center p-2 sm:p-3 text-center rounded-xl bg-white dark:bg-slate-900 border border-amber-200/80 dark:border-amber-800/60 hover:border-amber-400 dark:hover:border-amber-600 shadow-xs hover:shadow-sm transition-all w-full cursor-pointer active:scale-95 overflow-hidden"
           >
-            <Bookmark className="w-5 h-5 text-amber-500 group-hover:scale-110 transition-transform mb-1" />
-            <span className="font-semibold text-[10px] leading-tight sm:text-xs text-slate-700 dark:text-slate-300 group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">
+            <div className="absolute inset-0 bg-gradient-to-br from-amber-500/10 via-yellow-500/5 to-transparent pointer-events-none" />
+            <div className="relative z-10 w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border border-amber-200/70 dark:border-amber-800/50 bg-white dark:bg-slate-800 shadow-xs group-hover:scale-105 transition-transform mb-1.5">
+              <Bookmark className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+            </div>
+            <span className="relative z-10 font-bold text-[10px] leading-tight sm:text-xs text-slate-800 dark:text-slate-200 group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">
               Bookmarks
             </span>
-            <span className="block text-[8px] leading-tight sm:text-[9px] text-slate-400 dark:text-slate-500 font-medium mt-0.5">
+            <span className="relative z-10 block text-[8px] leading-tight sm:text-[9px] text-slate-400 dark:text-slate-500 font-medium mt-0.5">
               {bookmarkCount > 0 ? `${bookmarkCount} saved Qs` : "saved questions"}
             </span>
           </button>
@@ -113,22 +119,29 @@ export const DashboardGreeting: React.FC<DashboardGreetingProps> = ({
           <button
             onClick={() => latestQuiz && onResumeQuiz(latestQuiz)}
             disabled={!latestQuiz}
-            className={`flex flex-col items-center justify-center p-2 sm:p-3 rounded-xl transition-all text-center group w-full active:scale-95 ${
+            className={`group relative flex flex-col items-center justify-center p-2 sm:p-3 rounded-xl transition-all text-center w-full active:scale-95 overflow-hidden ${
               latestQuiz
-                ? "bg-gradient-to-br from-indigo-50/90 to-violet-50/90 dark:from-indigo-950/40 dark:to-violet-950/40 border border-indigo-200 dark:border-indigo-800 hover:border-indigo-400 cursor-pointer shadow-xs"
+                ? "bg-white dark:bg-slate-900 border border-violet-200/80 dark:border-violet-800/60 hover:border-violet-400 dark:hover:border-violet-600 cursor-pointer shadow-xs hover:shadow-sm"
                 : "bg-slate-50/80 dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-700/50 opacity-50 cursor-not-allowed"
             }`}
           >
-            <Play
-              className={`w-5 h-5 mb-1 ${latestQuiz ? "text-violet-500 group-hover:scale-110 transition-transform" : "text-slate-400"}`}
-            />
+            {latestQuiz && (
+              <div className="absolute inset-0 bg-gradient-to-br from-violet-500/12 via-indigo-500/5 to-transparent pointer-events-none" />
+            )}
+            <div className={`relative z-10 w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border ${
+              latestQuiz
+                ? "border-violet-200/70 dark:border-violet-800/50 bg-white dark:bg-slate-800 shadow-xs group-hover:scale-105 text-violet-600 dark:text-violet-400"
+                : "border-slate-200/60 dark:border-slate-700/40 bg-slate-100 dark:bg-slate-800/60 text-slate-400"
+            } transition-transform mb-1.5`}>
+              <Play className="w-4 h-4 fill-current ml-0.5" />
+            </div>
             <span
-              className={`font-semibold text-[10px] leading-tight sm:text-xs transition-colors ${latestQuiz ? "text-indigo-700 dark:text-indigo-300 group-hover:text-indigo-800 dark:group-hover:text-indigo-200" : "text-slate-500 dark:text-slate-400"}`}
+              className={`relative z-10 font-bold text-[10px] leading-tight sm:text-xs transition-colors ${latestQuiz ? "text-slate-800 dark:text-slate-200 group-hover:text-violet-600 dark:group-hover:text-violet-400" : "text-slate-500 dark:text-slate-400"}`}
             >
               Resume Quiz
             </span>
             <span
-              className={`block text-[8px] leading-tight sm:text-[9px] font-medium truncate w-full mt-0.5 ${latestQuiz ? "text-indigo-500/70 dark:text-indigo-400/70" : "text-slate-400 dark:text-slate-500"}`}
+              className={`relative z-10 block text-[8px] leading-tight sm:text-[9px] font-medium truncate w-full mt-0.5 ${latestQuiz ? "text-violet-600/80 dark:text-violet-400/80" : "text-slate-400 dark:text-slate-500"}`}
             >
               {latestQuiz ? latestQuiz.name || "Paused Quiz" : "no quiz in progress"}
             </span>
@@ -137,13 +150,16 @@ export const DashboardGreeting: React.FC<DashboardGreetingProps> = ({
           {/* Quiz History */}
           <button
             onClick={() => navigate(`${ROUTES.QUIZ.LIBRARY}?tab=attempted`)}
-            className="flex flex-col items-center justify-center p-2 sm:p-3 text-center rounded-xl bg-slate-50/80 dark:bg-slate-800/60 hover:bg-emerald-50 dark:hover:bg-slate-700/80 border border-slate-200/90 dark:border-slate-700/70 hover:border-emerald-300 dark:hover:border-emerald-600/70 shadow-xs transition-all group w-full cursor-pointer active:scale-95"
+            className="group relative flex flex-col items-center justify-center p-2 sm:p-3 text-center rounded-xl bg-white dark:bg-slate-900 border border-emerald-200/80 dark:border-emerald-800/60 hover:border-emerald-400 dark:hover:border-emerald-600 shadow-xs hover:shadow-sm transition-all w-full cursor-pointer active:scale-95 overflow-hidden"
           >
-            <FolderClock className="w-5 h-5 text-emerald-500 group-hover:scale-110 transition-transform mb-1" />
-            <span className="font-semibold text-[10px] leading-tight sm:text-xs text-slate-700 dark:text-slate-300 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
+            <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 via-teal-500/5 to-transparent pointer-events-none" />
+            <div className="relative z-10 w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border border-emerald-200/70 dark:border-emerald-800/50 bg-white dark:bg-slate-800 shadow-xs group-hover:scale-105 transition-transform mb-1.5">
+              <FolderClock className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+            </div>
+            <span className="relative z-10 font-bold text-[10px] leading-tight sm:text-xs text-slate-800 dark:text-slate-200 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
               Quiz History
             </span>
-            <span className="block text-[8px] leading-tight sm:text-[9px] text-slate-400 dark:text-slate-500 font-medium mt-0.5">
+            <span className="relative z-10 block text-[8px] leading-tight sm:text-[9px] text-slate-400 dark:text-slate-500 font-medium mt-0.5">
               history & saved
             </span>
           </button>
