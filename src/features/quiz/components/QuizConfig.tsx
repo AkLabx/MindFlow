@@ -120,6 +120,10 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
   // 4. Derived Lists for Dropdown Options
   const allSubjects = useMemo(() => Array.from(classificationMap.keys()).filter(Boolean).sort(), [classificationMap]);
   const allExamNames = useMemo(() => Array.from(new Set(metadata.map(q => q.examName ?? q.sourceInfo?.examName))).filter(Boolean).sort(), [metadata]);
+  const examNamesAI = useMemo(() => allExamNames.filter(name => /^[a-iA-I]/.test(name)), [allExamNames]);
+  const examNamesJR = useMemo(() => allExamNames.filter(name => /^[j-rJ-R]/.test(name)), [allExamNames]);
+  const examNamesSZ = useMemo(() => allExamNames.filter(name => /^[s-zS-Z]/.test(name)), [allExamNames]);
+  const examNamesOther = useMemo(() => allExamNames.filter(name => !/^[a-zA-Z]/.test(name)), [allExamNames]);
   const allExamYears = useMemo(() => Array.from(new Set(metadata.map(q => String(q.examYear ?? q.sourceInfo?.examYear)))).filter(Boolean).sort(), [metadata]);
   const allExamShifts = useMemo(() => Array.from(new Set(metadata.map(q => (q.examDateShift ?? q.sourceInfo?.examDateShift) || ''))).filter(Boolean).sort(), [metadata]);
   const allTags = useMemo(() => Array.from(new Set(metadata.flatMap(q => q.tags))).filter(Boolean).sort(), [metadata]);
@@ -450,33 +454,110 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
             <Accordion title="Advanced Filters">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-0 md:gap-6">
                 <FilterGroup title="Source" icon={<FileText className="w-5 h-5" />}>
-                  <MultiSelectDropdown
-                    label="Exam Name"
-                    options={allExamNames}
-                    selectedOptions={filters.examName}
-                    onSelectionChange={(sel) => handleFilterChange('examName', sel)}
-                    placeholder="Select Exams"
-                    counts={filterCounts.examName || {}}
-                    hideZeroCount
-                  />
-                  <MultiSelectDropdown
-                    label="Exam Year"
-                    options={allExamYears}
-                    selectedOptions={filters.examYear}
-                    onSelectionChange={(sel) => handleFilterChange('examYear', sel)}
-                    placeholder="Select Years"
-                    counts={filterCounts.examYear || {}}
-                    hideZeroCount
-                  />
-                  <MultiSelectDropdown
-                    label="Exam Shift"
-                    options={allExamShifts}
-                    selectedOptions={filters.examDateShift}
-                    onSelectionChange={(sel) => handleFilterChange('examDateShift', sel)}
-                    placeholder="Select Shifts"
-                    counts={filterCounts.examDateShift || {}}
-                    hideZeroCount
-                  />
+                  {examNamesAI.length > 0 && (
+                    <ScrollableCapsules
+                      label="Exam Name [A-I]"
+                      tooltip="Filter questions by Exam Name starting with A to I"
+                      options={examNamesAI}
+                      selectedOptions={filters.examName}
+                      onOptionToggle={(opt) => {
+                        const newSelection = filters.examName.includes(opt)
+                          ? filters.examName.filter(item => item !== opt)
+                          : [...filters.examName, opt];
+                        handleFilterChange('examName', newSelection);
+                      }}
+                      counts={filterCounts.examName || {}}
+                      hideZeroCount
+                      maxRows={3}
+                    />
+                  )}
+                  {examNamesJR.length > 0 && (
+                    <ScrollableCapsules
+                      label="Exam Name [J-R]"
+                      tooltip="Filter questions by Exam Name starting with J to R"
+                      options={examNamesJR}
+                      selectedOptions={filters.examName}
+                      onOptionToggle={(opt) => {
+                        const newSelection = filters.examName.includes(opt)
+                          ? filters.examName.filter(item => item !== opt)
+                          : [...filters.examName, opt];
+                        handleFilterChange('examName', newSelection);
+                      }}
+                      counts={filterCounts.examName || {}}
+                      hideZeroCount
+                      maxRows={3}
+                    />
+                  )}
+                  {examNamesSZ.length > 0 && (
+                    <ScrollableCapsules
+                      label="Exam Name [S-Z]"
+                      tooltip="Filter questions by Exam Name starting with S to Z"
+                      options={examNamesSZ}
+                      selectedOptions={filters.examName}
+                      onOptionToggle={(opt) => {
+                        const newSelection = filters.examName.includes(opt)
+                          ? filters.examName.filter(item => item !== opt)
+                          : [...filters.examName, opt];
+                        handleFilterChange('examName', newSelection);
+                      }}
+                      counts={filterCounts.examName || {}}
+                      hideZeroCount
+                      maxRows={3}
+                    />
+                  )}
+                  {examNamesOther.length > 0 && (
+                    <ScrollableCapsules
+                      label="Exam Name [Other]"
+                      tooltip="Filter questions by Exam Name"
+                      options={examNamesOther}
+                      selectedOptions={filters.examName}
+                      onOptionToggle={(opt) => {
+                        const newSelection = filters.examName.includes(opt)
+                          ? filters.examName.filter(item => item !== opt)
+                          : [...filters.examName, opt];
+                        handleFilterChange('examName', newSelection);
+                      }}
+                      counts={filterCounts.examName || {}}
+                      hideZeroCount
+                      maxRows={3}
+                    />
+                  )}
+
+                  {allExamYears.length > 0 && (
+                    <ScrollableCapsules
+                      label="Exam Year"
+                      tooltip="Filter by specific exam years"
+                      options={allExamYears}
+                      selectedOptions={filters.examYear}
+                      onOptionToggle={(opt) => {
+                        const newSelection = filters.examYear.includes(opt)
+                          ? filters.examYear.filter(item => item !== opt)
+                          : [...filters.examYear, opt];
+                        handleFilterChange('examYear', newSelection);
+                      }}
+                      counts={filterCounts.examYear || {}}
+                      hideZeroCount
+                      maxRows={3}
+                    />
+                  )}
+
+                  {allExamShifts.length > 0 && (
+                    <ScrollableCapsules
+                      label="Exam Shift"
+                      tooltip="Filter by specific exam shifts"
+                      options={allExamShifts}
+                      selectedOptions={filters.examDateShift}
+                      onOptionToggle={(opt) => {
+                        const newSelection = filters.examDateShift.includes(opt)
+                          ? filters.examDateShift.filter(item => item !== opt)
+                          : [...filters.examDateShift, opt];
+                        handleFilterChange('examDateShift', newSelection);
+                      }}
+                      counts={filterCounts.examDateShift || {}}
+                      hideZeroCount
+                      maxRows={3}
+                    />
+                  )}
                 </FilterGroup>
 
                 <FilterGroup title="Tags" icon={<Tag className="w-5 h-5" />}>
