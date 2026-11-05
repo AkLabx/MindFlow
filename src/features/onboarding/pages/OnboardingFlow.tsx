@@ -8,6 +8,7 @@ import { supabase } from '@/lib/supabase';
 import { motion } from 'framer-motion';
 import { Sparkles, ArrowRight } from 'lucide-react';
 import { useNotification } from '@/stores/useNotificationStore';
+import { useExamContextStore } from '@/stores/useExamContextStore';
 
 export const OnboardingFlow: React.FC = () => {
   const { user } = useAuth();
@@ -33,6 +34,14 @@ export const OnboardingFlow: React.FC = () => {
     }
 
     setIsSubmitting(true);
+    // Sync to MindFlow multi-exam context store
+    const examMap: Record<string, string> = {
+      ssc: 'ssc_cgl',
+      state_psc: 'bpsc',
+      railways: 'rrb_ntpc',
+    };
+    const canonicalId = examMap[targetExam] || 'ssc_cgl';
+    useExamContextStore.getState().setActiveExam(canonicalId);
     if (user) {
       try {
         await supabase.auth.updateUser({
