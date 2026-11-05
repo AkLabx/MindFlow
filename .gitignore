@@ -102,3 +102,5 @@ powershell.cmd
 # Every Time You Create a PR update the App Version by Increasing it by 0.0.1 value. In import.meta.env.VITE_APP_VERSION file vite.config.ts .
 # Auth credentials: email: mindflow@user.com , password: Test@1234
 
+
+powershell.bat
