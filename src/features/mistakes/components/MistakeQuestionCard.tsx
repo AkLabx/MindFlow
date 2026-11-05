@@ -18,6 +18,7 @@ import { masteryService } from '../../quiz/services/masteryService';
 import { AiExplanationButton } from '../../quiz/components/AiExplanationButton';
 import { useNotificationStore } from '../../../stores/useNotificationStore';
 import { cn } from '../../../utils/cn';
+import { CANONICAL_EXAMS, matchesCanonicalExam } from '@/features/dashboard';
 
 interface MistakeQuestionCardProps {
   record: UserQuestionMasteryRecord;
@@ -41,6 +42,12 @@ export const MistakeQuestionCard: React.FC<MistakeQuestionCardProps> = ({
 
   const question = record.question;
   const showToast = useNotificationStore((s) => s.showToast);
+
+  const matchedExam = React.useMemo(() => {
+    const rawExam = question?.examName || question?.sourceInfo?.examName || (question as any)?.properties?.examName;
+    if (!rawExam) return null;
+    return CANONICAL_EXAMS.find((e) => matchesCanonicalExam(e, rawExam)) || null;
+  }, [question]);
 
   if (!question) {
     return (
@@ -164,6 +171,17 @@ export const MistakeQuestionCard: React.FC<MistakeQuestionCardProps> = ({
           <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
             #{displayIndex}
           </span>
+
+          {/* Canonical Exam Badge */}
+          {matchedExam && (
+            <span className={cn(
+              "text-xs font-bold px-2 py-0.5 rounded-full tracking-wider border",
+              matchedExam.badgeColor,
+              matchedExam.borderClass
+            )}>
+              🎯 {matchedExam.shortCode}
+            </span>
+          )}
 
           {/* Subject Chip */}
           <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
