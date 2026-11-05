@@ -108,6 +108,15 @@ This document serves as a complete backup of the AI Assistant's memory context, 
 * **Installed CLI**: The official GitHub CLI is installed at `C:\Program Files\GitHub CLI\gh.exe` and authenticated as `AkLabx`.
 * **Avoid GCM GUI Deadlocks**: Git Credential Manager GUI prompts fail in headless/background agent shells. Always bridge Git through GitHub CLI credentials rather than invoking bare interactive auth.
 * **Git Credential Bridge**: Run `& "C:\Program Files\GitHub CLI\gh.exe" auth setup-git` before pushing to ensure Git seamlessly uses GitHub CLI's stored OAuth token.
+* **Antigravity Windows Shell Runner (`exebox`) Workaround**:
+  - *Symptom*: Commands fail instantly with `Command failed to run: The system cannot find the file specified..` or `failed to start PTY command via exebox: The system cannot find the file specified.`
+  - *Root Cause*: In Antigravity on Windows, `exebox` resolves the bare shell name `powershell` relative to the workspace root (`d:\MindFlow-main\powershell`).
+  - *Mandatory Fix*: Ensure `d:\MindFlow-main\powershell.bat` exists in the workspace root with the content:
+    ```cmd
+    @echo off
+    C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe %*
+    ```
+  - *Git Hygiene*: `powershell.bat` and `powershell.cmd` MUST remain in `.gitignore` so they are never staged or committed to remote.
 
 #### Standard Antigravity 4-Step Working Method:
 1. **Step 1: Session Start & Pre-Task Branch Sync Ritual**:

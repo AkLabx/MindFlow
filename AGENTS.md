@@ -97,6 +97,15 @@ Before executing planned changes, **STOP and ask the user for confirmation** if:
 - **Local Execution Truth**: Antigravity operates directly on the user's local disk (`d:\MindFlow-main`). All file edits take effect locally in real time and are hot-reloaded by the Vite development server (port 3000).
 - **Installed CLI**: The official GitHub CLI is installed at `C:\Program Files\GitHub CLI\gh.exe` and authenticated as `AkLabx`.
 - **Git Credential Bridge**: Run `& "C:\Program Files\GitHub CLI\gh.exe" auth setup-git` before pushing to avoid interactive GCM GUI deadlocks in background shells.
+- **Antigravity Windows Shell Runner (`exebox`) Workaround**:
+  - *Symptom*: Commands fail instantly with `Command failed to run: The system cannot find the file specified..` or `failed to start PTY command via exebox: The system cannot find the file specified.`
+  - *Root Cause*: In Antigravity on Windows, `exebox` resolves the bare shell name `powershell` relative to the workspace root (`d:\MindFlow-main\powershell`).
+  - *Mandatory Fix*: Ensure `d:\MindFlow-main\powershell.bat` exists in the workspace root with the content:
+    ```cmd
+    @echo off
+    C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe %*
+    ```
+  - *Git Hygiene*: `powershell.bat` and `powershell.cmd` MUST remain in `.gitignore` so they are never staged or committed to remote.
 
 ### Standard 4-Step Working Method:
 

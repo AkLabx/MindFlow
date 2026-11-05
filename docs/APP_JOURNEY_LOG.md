@@ -26,6 +26,46 @@ This document is the single source of truth for the evolution of the MindFlow ap
 
 ## 🚀 App Journey Changelog
 
+## [v1.0.300] - 06 November 2026, 12:49 AM IST
+
+### Executive Summary
+Documented the Windows Antigravity shell runner (`exebox`) relative path resolution workaround across all AI agent operational rules, established the permanent repository `.gitignore` hygiene for local batch forwarders, and synchronized the missing `v1.0.299` app journey changelog entry.
+
+### 🔒 Security & Architecture
+- **Antigravity Shell Runner (`exebox`) Workaround Documentation (`AGENTS.md`, `docs/AI_MEMORY_CONTEXT.md`)**:
+  - Documented the root cause of the Windows `failed to start PTY command via exebox: The system cannot find the file specified` bug (where Antigravity resolves bare `powershell` relative to the workspace directory `d:\MindFlow-main\powershell`).
+  - Added instructions for the `powershell.bat` local environment bridge forwarding calls directly to Windows PowerShell with system path injection.
+  - Added strict Git hygiene rules requiring `powershell.bat` and `powershell.cmd` to remain uncommitted in `.gitignore`.
+- **Git Hygiene (`.gitignore`)**:
+  - Ensured `powershell.bat` and `powershell.cmd` are persistently ignored by version control.
+- **App Journey History Synchronization (`docs/APP_JOURNEY_LOG.md`)**:
+  - Backfilled the missing changelog entry for `v1.0.299` documenting the Quiz Configuration exam categorization and scrollable capsule refactor.
+
+### Impacted Scope
+- `.gitignore`
+- `AGENTS.md`
+- `docs/AI_MEMORY_CONTEXT.md`
+- `docs/APP_JOURNEY_LOG.md`
+- `package.json` (bumped to 1.0.300)
+
+## [v1.0.299] - 05 November 2026, 07:33 PM IST
+
+### Executive Summary
+Refactored the Quiz Configuration advanced filters by replacing static multi-select dropdowns with responsive, categorized `ScrollableCapsules` for Exam Names (split alphabetically into `[A-I]`, `[J-R]`, `[S-Z]`, and `[Other]`), Exam Years, and Exam Shifts, significantly improving touch ergonomics and filter discoverability on mobile viewports.
+
+### ✨ Features Added
+- **Alphabetical Exam Categorization (`src/features/quiz/components/QuizConfig.tsx`)**:
+  - Segmented `allExamNames` into 4 memoized subsets: `examNamesAI` (`[A-I]`), `examNamesJR` (`[J-R]`), `examNamesSZ` (`[S-Z]`), and `examNamesOther` (non-alphabetic/special prefixes).
+  - Replaced legacy `MultiSelectDropdown` with dynamic `ScrollableCapsules` for each alphabetical partition with count badges (`filterCounts.examName`), zero-count hiding (`hideZeroCount`), and multi-row capsule wrapping (`maxRows={3}`).
+- **Scrollable Capsule Filters for Years & Shifts (`src/features/quiz/components/QuizConfig.tsx`)**:
+  - Migrated `Exam Year` and `Exam Shift` filters from dropdown menus into touch-friendly horizontal `ScrollableCapsules`.
+  - Added contextual tooltips (`tooltip`) and multi-select toggle handlers (`onOptionToggle`) allowing swift multi-year and multi-shift selection.
+
+### Impacted Scope
+- `src/features/quiz/components/QuizConfig.tsx`
+- `package.json` (bumped to 1.0.299)
+- `package-lock.json`
+
 ## [v1.0.298] - 04 November 2026, 08:58 AM IST
 
 ### Executive Summary
