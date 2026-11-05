@@ -10,14 +10,15 @@ import { db } from '@/lib/db';
 import { isNativeApp } from "@/utils/platform";
 import { ROUTES } from "@/config/routes";
 
-
 import {
   DashboardGreeting,
   SubjectStrip,
   EnglishSection,
   QuickActionsGrid,
   UserProgressCard,
-  ImportantForSscStrip
+  ImportantForSscStrip,
+  ExamQuickAccessStrip,
+  CanonicalExam,
 } from "@/features/dashboard";
 
 interface DashboardProps {
@@ -44,7 +45,6 @@ export const DashboardPage: React.FC<DashboardProps> = ({ onBackToIntro }) => {
       onClose: closePopup
     });
   };
-
 
   // Dynamic stats
   const { stats, loading: statsLoading } = useProfileStats();
@@ -117,7 +117,6 @@ export const DashboardPage: React.FC<DashboardProps> = ({ onBackToIntro }) => {
     }
   };
 
-
   useEffect(() => {
     // Determine streak (placeholder logic, could be extended based on db)
     setStreak(stats.quizzesCompleted > 0 ? 1 : 0);
@@ -148,6 +147,34 @@ export const DashboardPage: React.FC<DashboardProps> = ({ onBackToIntro }) => {
         fixedSubjectContext,
       },
     });
+  };
+
+  const handleSelectExam = (exam: CanonicalExam) => {
+    navigate(`/quiz/config?exam=${exam.id}`, {
+      state: {
+        initialFilters: {
+          subject: [],
+          topic: [],
+          subTopic: [],
+          difficulty: [],
+          questionType: [],
+          examName: exam.dbExamNames,
+          examYear: [],
+          examDateShift: [],
+          tags: [],
+        },
+        canonicalExamId: exam.id,
+        fixedExamContext: true,
+      },
+    });
+  };
+
+  const handleExamQuickDrill = (exam: CanonicalExam) => {
+    handleNavigateWithFilters(
+      { examName: exam.dbExamNames },
+      'learning',
+      true
+    );
   };
 
   const handleSubjectClick = (subjectDbKey: string) => {
@@ -190,6 +217,12 @@ export const DashboardPage: React.FC<DashboardProps> = ({ onBackToIntro }) => {
           profile={profile}
           latestQuiz={activeLatestQuiz}
           onResumeQuiz={handleResumeQuiz}
+        />
+
+        {/* Tier 1.5: Target Exams Quick Access (Multi-Exam Support) */}
+        <ExamQuickAccessStrip
+          onSelectExam={handleSelectExam}
+          onQuickDrill={handleExamQuickDrill}
         />
 
         {/* Tier 2: GK / GS Subjects */}
