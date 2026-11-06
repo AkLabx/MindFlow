@@ -26,6 +26,26 @@ This document is the single source of truth for the evolution of the MindFlow ap
 
 ## 🚀 App Journey Changelog
 
+## [v1.0.311] - 06 November 2026, 11:05 AM IST
+
+### Executive Summary
+Implemented Phase 4 of the Constitution Implementation Plan: Engine & Architecture Optimization. Delivered smart filter pruning and reverse PYQ year ordering in `QuizConfig`, high-precision Dashboard FCP SLA instrumentation, IndexedDB cache performance tracking, resilient offline sync retry queue preservation, and vitest test timeout stabilization for CI/sandboxes.
+
+### ⚡ Performance & Refactoring
+- **Smart Filter Pruning & PYQ Ordering (`src/features/quiz/components/QuizConfig.tsx`)**:
+  - Dynamically pruned stale exam years and shifts when switching active exams or subjects, eliminating dead-end zero-question queries (Constitution Section 6.1).
+  - Reversed PYQ years list (`.sort().reverse()`) to surface recent exam papers first.
+  - Scoped available tags and filter chips strictly to active exam and subject metadata.
+- **Dashboard First Contentful Paint SLA Telemetry (`src/pages/DashboardPage.tsx`)**:
+  - Injected `dashboard_fcp` SLA budget tracking (`PERF_BUDGETS.DASHBOARD_FCP = 1000ms`) via `performanceTracker.startMark()` and `endMark()` in `requestAnimationFrame` on initial render.
+- **IndexedDB Metadata Cache Hit Instrumentation (`src/features/quiz/hooks/useQuestionMetadata.ts`)**:
+  - Added millisecond-level telemetry tracking (`perf_quiz_metadata_cached_ms` vs `perf_quiz_metadata_fetch_ms`) measuring cache hit efficiency against Constitution Section 8 performance budgets.
+- **Resilient Offline Sync Retry Queue (`src/lib/syncService.ts`)**:
+  - Configured `pushBookmark`, `removeBookmark`, and `pushSynonymInteraction` to support `throwOnError = true` when dispatched by `processEventQueue`.
+  - Ensures network errors in background sync queue prevent failed items from being prematurely purged from `useSyncStore`, preserving offline mutations until successful cloud synchronization (Constitution Section 5).
+- **Vitest Windows Sandbox Test Timeout Stabilization (`vitest.config.ts`)**:
+  - Configured `testTimeout: 15000` to prevent CPU throttling false-positive timeouts during concurrent test runs on Windows virtual sandboxes.
+
 ## [v1.0.310] - 06 November 2026, 10:29 AM IST
 
 ### Executive Summary

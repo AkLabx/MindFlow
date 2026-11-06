@@ -10,6 +10,7 @@ import { db } from '@/lib/db';
 import { isNativeApp } from "@/utils/platform";
 import { ROUTES } from "@/config/routes";
 import { telemetry } from '@/lib/telemetry';
+import { performanceTracker, PERF_BUDGETS } from '@/lib/performance/performanceMetrics';
 
 import {
   DashboardGreeting,
@@ -53,6 +54,17 @@ export const DashboardPage: React.FC<DashboardProps> = ({ onBackToIntro }) => {
 
   // Eager local hydration from IndexedDB for instant (0ms) render on new tabs
   const [localLatestQuiz, setLocalLatestQuiz] = useState<SavedQuiz | null>(null);
+
+  // Performance SLA Budget Tracking (Constitution Section 8)
+  useEffect(() => {
+    performanceTracker.startMark('dashboard_fcp');
+    const rafId = requestAnimationFrame(() => {
+      performanceTracker.endMark('dashboard_fcp', PERF_BUDGETS.DASHBOARD_FCP, {
+        hasLocalQuiz: !!localLatestQuiz,
+      });
+    });
+    return () => cancelAnimationFrame(rafId);
+  }, []);
 
   useEffect(() => {
     let isMounted = true;

@@ -30,10 +30,15 @@ export const useQuestionMetadata = (): UseQuestionMetadataReturn => {
       setError(null);
       setProgress({ current: 0, total: 0 });
 
-      // 1. Instantly load from cache
+      // 1. Instantly load from cache (0ms offline-first per Constitution Section 5)
       if (!forceRefresh) {
+        const cacheStart = performance.now();
         const cachedMetadata = await db.getQuizMetadataCache();
         if (cachedMetadata && cachedMetadata.length > 0) {
+          const duration = Math.round(performance.now() - cacheStart);
+          if (import.meta.env.DEV) {
+            console.log(`[useQuestionMetadata] IndexedDB cache hit: ${cachedMetadata.length} items in ${duration}ms`);
+          }
           setMetadata(cachedMetadata);
           setIsLoading(false); // Instantly render UI for fast cache hit
         }
