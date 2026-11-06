@@ -277,7 +277,7 @@ export const AnswerKeyCalculator: React.FC = () => {
                   <div className="space-y-1">
                     <p className="font-semibold">{errorMessage}</p>
                     <p className="text-rose-600/80 dark:text-rose-400/80">
-                      <strong>How to fix:</strong> Make sure the copied URL begins with <code className="font-mono bg-rose-100 dark:bg-rose-900 px-1 py-0.5 rounded">https://ssc.digialm.com/</code> or download your response sheet as an HTML file using Ctrl+S and use the file upload option.
+                      <strong>How to fix:</strong> Make sure the copied URL is from an official portal (<code className="font-mono bg-rose-100 dark:bg-rose-900 px-1 py-0.5 rounded">*.digialm.com</code> or <code className="font-mono bg-rose-100 dark:bg-rose-900 px-1 py-0.5 rounded">*.cbexams.com</code>) or upload your response sheet using the file option.
                     </p>
                   </div>
                 </div>

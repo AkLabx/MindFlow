@@ -26,6 +26,33 @@ This document is the single source of truth for the evolution of the MindFlow ap
 
 ## 🚀 App Journey Changelog
 
+## [v1.0.317] - 06 November 2026, 09:20 PM IST
+
+### Executive Summary
+Resolved live Edge Function execution error (`Failed to send a request to the Edge Function`) by executing the production deployment ritual for the `parse-exam-sheet` Edge Function and PostgreSQL database migrations on the live Supabase project (`sjcfagpjstbfxuiwhlps`). Fixed Eduquity candidate roll number extraction against CSS watermark style matches, resolved database submission re-run upsert conflicts, and aligned frontend validation guidance with multi-vendor portal support.
+
+### 🐛 Bug Fixes & Hidden Gotchas Solved
+- **Live Supabase Edge Function Deployment**:
+  - Identified that while `parse-exam-sheet` was merged into the repository, GitHub Actions only builds static frontend assets for GitHub Pages and does not deploy Edge Functions to Supabase.
+  - Successfully deployed `parse-exam-sheet` (v4) with JWT bypass for public parsing endpoints to the live production Supabase instance (`sjcfagpjstbfxuiwhlps`).
+- **PostgreSQL Analytics Engine Migration Applied**:
+  - Applied migration `20261106130000_create_exam_analytics_engine.sql` containing `exam_configs`, `exam_submissions`, `exam_stats_snapshots`, `official_answer_keys` tables and `get_candidate_live_rankings` RPC to the live database.
+- **Watermark Text Extraction Regex Refinement (`EduquityAdapter.ts` & `supabase/functions/parse-exam-sheet/index.ts`)**:
+  - Fixed a regex vulnerability where `.watermark-text { position: absolute; ... }` inside `<style>` blocks was erroneously matched instead of candidate DOM elements, resulting in empty roll numbers.
+  - Hardened regex to strictly target `<div class='watermark-text'...>([0-9]+)</div>`.
+- **Submission Upsert Conflict Constraint Alignment**:
+  - Resolved `uq_exam_user` constraint collision during repeated candidate submissions by explicitly targeting `onConflict: 'exam_id,user_id'` in `exam_submissions` upsert queries.
+- **Frontend Guidance & Error UI (`AnswerKeyCalculator.tsx`)**:
+  - Clarified error state hint text to inform users of both supported vendor portals (`*.digialm.com` and `*.cbexams.com`) or the offline HTML dropzone option.
+
+### ⚡ Performance & Verification
+- End-to-end verified live URL execution against `https://sscexams.cbexams.com/CGLE2026jsdgheQchallengemshetsOct13/ViewCandResponse.aspx?EncKey=...`.
+- Verified live response: 136.0 / 200 marks (Reasoning: 40.5, GK: 17.0, Maths: 33.5, English: 45.0) with live candidate ranking calculation.
+- Passed full TypeScript compile (`npx tsc --noEmit`) and Vite production build (`npx vite build`) with zero errors.
+
+---
+
+
 ## [v1.0.316] - 06 November 2026, 08:35 PM IST
 
 ### Executive Summary

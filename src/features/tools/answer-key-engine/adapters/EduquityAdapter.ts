@@ -110,7 +110,7 @@ export class EduquityAdapter implements ExamParserAdapter {
 
   private extractDetails(html: string) {
     // Watermark holds the unique Roll / Registration Number in Eduquity sheets
-    const watermarkMatch = html.match(/watermark-text[^>]*>([^<]+)</i);
+    const watermarkMatch = html.match(/class=['"]?watermark-text['"]?[^>]*>([0-9]+)<\/div>/i);
     const rollNumber = watermarkMatch ? watermarkMatch[1].trim() : '326' + Math.floor(100000000 + Math.random() * 900000000);
 
     // Exam Date from URL / path / header if present

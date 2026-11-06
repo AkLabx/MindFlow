@@ -319,7 +319,7 @@ serve(async (req) => {
       const overallAccuracy = totalAttempted > 0 ? Number(((totalCorrect / totalAttempted) * 100).toFixed(1)) : 0;
 
       // Extract candidate roll number from watermark text
-      const watermarkMatch = htmlA.match(/watermark-text[^>]*>([^<]+)</i);
+      const watermarkMatch = htmlA.match(/class=['"]?watermark-text['"]?[^>]*>([0-9]+)<\/div>/i);
       const rollNumber = watermarkMatch ? watermarkMatch[1].trim() : '326' + Math.floor(100000000 + Math.random() * 900000000);
 
       let examDate = '2026-10-13';
@@ -547,7 +547,7 @@ serve(async (req) => {
           question_responses: parsedResult.questionResponses,
           url_hash: urlHash,
           parse_status: parsedResult.parseStatus,
-        }, { onConflict: 'exam_id,roll_number' })
+        }, { onConflict: 'exam_id,user_id' })
         .select('id')
         .single();
 
