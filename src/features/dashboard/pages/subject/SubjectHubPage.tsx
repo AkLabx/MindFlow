@@ -1,7 +1,7 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useMemo } from "react";
 import { useLayoutStore } from "@/stores/useLayoutStore";
 import { useParams, useNavigate } from "react-router-dom";
-import { SlidersHorizontal, ListTree } from "lucide-react";
+import { SlidersHorizontal, ListTree, Target } from "lucide-react";
 import { ROUTES } from "@/config/routes";
 import { queryClient } from "@/lib/queryClient";
 import { subjectService } from "../../services/subjectService";
@@ -14,6 +14,8 @@ import { CANONICAL_EXAMS } from "../../constants/examRegistry";
 export const SubjectHubPage: React.FC = () => {
   const { subjectName } = useParams<{ subjectName: string }>();
   const navigate = useNavigate();
+  const activeExamId = useExamContextStore((s) => s.activeExamId);
+  const activeExam = useMemo(() => CANONICAL_EXAMS.find((e) => e.id === activeExamId), [activeExamId]);
 
   const setHideGlobalHeader = useLayoutStore(
     (state) => state.setHideGlobalHeader,
@@ -81,6 +83,29 @@ export const SubjectHubPage: React.FC = () => {
     <div className="min-h-full -mx-4 -mt-4 px-4 pt-4 overflow-x-hidden bg-gradient-to-b from-[#EEF2FF] via-[#F5F7FF] to-[#F8FAFC] dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))]">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 pt-3 sm:pt-5 space-y-6 relative z-10">
         <SubjectHeader subjectName={decodedSubject} />
+
+        {activeExam && (
+          <div className="flex items-center justify-between p-3 sm:p-3.5 rounded-2xl bg-white/80 dark:bg-slate-900/70 border border-indigo-200/80 dark:border-indigo-800/60 shadow-xs backdrop-blur-xs">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200/60 dark:border-indigo-800/40 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
+                <Target className="w-4 h-4" />
+              </div>
+              <div>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
+                    Target Exam
+                  </span>
+                </div>
+                <span className="text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-100">
+                  {activeExam.displayName}
+                </span>
+              </div>
+            </div>
+            <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/80 text-indigo-700 dark:text-indigo-300 border border-indigo-200/50 dark:border-indigo-800/40">
+              Active Focus
+            </span>
+          </div>
+        )}
 
         <div className="mt-8 flex flex-col gap-4">
           <ActionCard

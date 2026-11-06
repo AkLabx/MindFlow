@@ -12,6 +12,9 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/Button/Button";
 import { useSubTopicModeProgress } from "@/features/quiz/hooks/useQuizProgress";
+import { useExamContextStore } from "@/stores/useExamContextStore";
+import { CANONICAL_EXAMS } from "../../constants/examRegistry";
+import { Target } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Question } from "@/features/quiz/types";
 import { ROUTES } from "@/config/routes";
@@ -45,6 +48,8 @@ export const QuizStartBottomSheet: React.FC<QuizStartBottomSheetProps> = ({
   const [difficulty, setDifficulty] = useState<string>("All");
   const [showInfo, setShowInfo] = useState(false);
   const navigate = useNavigate();
+  const activeExamId = useExamContextStore((s) => s.activeExamId);
+  const activeExam = React.useMemo(() => CANONICAL_EXAMS.find((e) => e.id === activeExamId), [activeExamId]);
 
   React.useEffect(() => {
     if (isOpen) {
@@ -155,8 +160,14 @@ export const QuizStartBottomSheet: React.FC<QuizStartBottomSheetProps> = ({
                 <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-1">
                   {subTopic}
                 </h2>
-                <p className="text-sm text-slate-500 dark:text-slate-400">
-                  {subject} • {topic}
+                <p className="text-sm text-slate-500 dark:text-slate-400 flex items-center gap-2 flex-wrap">
+                  <span>{subject} • {topic}</span>
+                  {activeExam && (
+                    <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-950/80 text-indigo-700 dark:text-indigo-300">
+                      <Target className="w-3 h-3" />
+                      {activeExam.shortCode}
+                    </span>
+                  )}
                 </p>
               </div>
               <button

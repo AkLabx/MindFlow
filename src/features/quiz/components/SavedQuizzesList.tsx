@@ -5,6 +5,9 @@ import { db } from '../../../lib/db';
 import { supabase } from '../../../lib/supabase';
 import { SavedQuiz } from '../types';
 import { SavedQuizCard } from './SavedQuizCard';
+import { useExamContextStore } from '@/stores/useExamContextStore';
+import { CANONICAL_EXAMS, CanonicalExam } from '@/features/dashboard';
+import { Target } from 'lucide-react';
 import { useQuizContext } from '../context/QuizContext';
 import { useSyncStore } from '../stores/useSyncStore';
 import { syncService } from '../../../lib/syncService';
@@ -39,6 +42,17 @@ export const SavedQuizzesList: React.FC<SavedQuizzesListProps> = ({ viewMode, se
     const navigate = useNavigate();
     const queryClient = useQueryClient();
     const { user, isAuthTransitioning } = useAuth();
+    const activeExamId = useExamContextStore((s) => s.activeExamId);
+    const pinnedExamIds = useExamContextStore((s) => s.pinnedExamIds);
+    const [selectedExamId, setSelectedExamId] = useState<string>('all');
+
+    const availableExams = useMemo(() => {
+        return pinnedExamIds
+            .map(id => CANONICAL_EXAMS.find(e => e.id === id))
+            .filter((e): e is CanonicalExam => Boolean(e));
+    }, [pinnedExamIds]);
+
+    
     const { data: quizzes = [], isLoading: loading, isError, error, refetch } = useQuery({
         queryKey: ['saved-quizzes', user?.id],
         enabled: !!user && !isAuthTransitioning,
@@ -205,6 +219,23 @@ export const SavedQuizzesList: React.FC<SavedQuizzesListProps> = ({ viewMode, se
     };
 
     /** Helper to determine if "Start" or "Resume" label should be shown. */
+    const examCounts = useMemo(() => {
+        const counts: Record<string, number> = { all: quizzes.length };
+        availableExams.forEach(e => { counts[e.id] = 0; });
+
+        quizzes.forEach(quiz => {
+            const examFilters = (quiz.filters as any)?.examName || (quiz.state as any)?.filters?.examName;
+            if (!examFilters || examFilters.length === 0) return;
+            for (const exam of availableExams) {
+                if (exam.dbExamNames.some(name => examFilters.includes(name))) {
+                    counts[exam.id] = (counts[exam.id] || 0) + 1;
+                    break;
+                }
+            }
+        });
+        return counts;
+    }, [quizzes, availableExams]);
+
     const sortedQuizzes = useMemo(() => {
         return [...quizzes].sort((a, b) => {
             switch (sortMethod) {
@@ -221,6 +252,18 @@ export const SavedQuizzesList: React.FC<SavedQuizzesListProps> = ({ viewMode, se
             }
         });
     }, [quizzes, sortMethod]);
+
+    const filteredQuizzes = useMemo(() => {
+        if (selectedExamId === 'all') return sortedQuizzes;
+        const targetExam = CANONICAL_EXAMS.find(e => e.id === selectedExamId);
+        if (!targetExam) return sortedQuizzes;
+
+        return sortedQuizzes.filter(quiz => {
+            const examFilters = (quiz.filters as any)?.examName || (quiz.state as any)?.filters?.examName;
+            if (!examFilters || examFilters.length === 0) return false;
+            return targetExam.dbExamNames.some(name => examFilters.includes(name));
+        });
+    }, [sortedQuizzes, selectedExamId]);
 
     const containerVariants = {
         hidden: { opacity: 0 },
@@ -294,16 +337,51 @@ export const SavedQuizzesList: React.FC<SavedQuizzesListProps> = ({ viewMode, se
                         className="flex flex-col gap-6"
                     >
                         <QuizLibraryToolbar
-                            count={sortedQuizzes.length}
+                            count={filteredQuizzes.length}
                             label="Created"
                             viewMode={viewMode}
                             setViewMode={setViewMode}
                             sortMethod={sortMethod}
                             setSortMethod={setSortMethod}
                             showScoreSort={false}
+                            selectedExamId={selectedExamId}
+                            onSelectExamId={setSelectedExamId}
+                            availableExams={availableExams}
+                            examCounts={examCounts}
                         />
+                        {filteredQuizzes.length === 0 && (
+                            <div className="flex flex-col items-center justify-center p-8 bg-white/60 dark:bg-slate-800/60 rounded-3xl border border-indigo-100 dark:border-slate-700 text-center space-y-4 my-4">
+                                <div className="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+                                    <BookOpen className="w-6 h-6" />
+                                </div>
+                                <div>
+                                    <h3 className="text-base font-bold text-slate-800 dark:text-slate-100">
+                                        No saved quizzes for {CANONICAL_EXAMS.find(e => e.id === selectedExamId)?.displayName || 'this exam'}
+                                    </h3>
+                                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-sm">
+                                        You have not saved any quizzes matching this target exam filter yet.
+                                    </p>
+                                </div>
+                                <div className="flex items-center gap-3 pt-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => setSelectedExamId('all')}
+                                        className="px-4 py-2 rounded-xl text-xs font-bold bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-200 transition-colors"
+                                    >
+                                        View All Quizzes
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => navigate(`/quiz/config?exam=${selectedExamId}`)}
+                                        className="px-4 py-2 rounded-xl text-xs font-bold bg-indigo-600 text-white hover:bg-indigo-700 transition-colors shadow-xs"
+                                    >
+                                        Create Quiz
+                                    </button>
+                                </div>
+                            </div>
+                        )}
                         <div className={`grid gap-4 sm:gap-6 z-20 ${viewMode === 'list' ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'}`}>
-                        {sortedQuizzes.map((quiz, index) => (
+                        {filteredQuizzes.map((quiz, index) => (
                             <SavedQuizCard
                                 key={quiz.id}
                                 quiz={quiz}
