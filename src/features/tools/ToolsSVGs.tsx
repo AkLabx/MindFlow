@@ -233,3 +233,45 @@ export const TextExporterSVG = () => (
 
   </svg>
 );
+
+// 6. Answer Key & Score Calculator (Cyan / Sky)
+export const AnswerKeyCalculatorSVG = () => (
+  <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-lg">
+    <defs>
+      <linearGradient id="calcGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stopColor="#06B6D4" />
+        <stop offset="100%" stopColor="#0284C7" />
+      </linearGradient>
+      <linearGradient id="calcDocGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stopColor="#E0F2FE" />
+        <stop offset="100%" stopColor="#BAE6FD" />
+      </linearGradient>
+    </defs>
+
+    {/* Background Document / Scorecard */}
+    <motion.rect
+      x="22" y="18" width="56" height="64" rx="8"
+      fill="url(#calcGrad)" opacity="0.9"
+      animate={{ y: [0, -2, 0], rotateZ: [-1, 1, -1] }}
+      transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+    />
+
+    {/* Bar Chart inside Document */}
+    <motion.rect x="32" y="55" width="6" height="15" rx="3" fill="url(#calcDocGrad)"
+      animate={{ height: [15, 20, 15], y: [55, 50, 55] }} transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }} />
+    <motion.rect x="42" y="42" width="6" height="28" rx="3" fill="url(#calcDocGrad)"
+      animate={{ height: [28, 32, 28], y: [42, 38, 42] }} transition={{ duration: 3, repeat: Infinity, ease: "easeInOut", delay: 0.2 }} />
+    <motion.rect x="52" y="35" width="6" height="35" rx="3" fill="url(#calcDocGrad)"
+      animate={{ height: [35, 30, 35], y: [35, 40, 35] }} transition={{ duration: 3, repeat: Infinity, ease: "easeInOut", delay: 0.4 }} />
+    <motion.rect x="62" y="48" width="6" height="22" rx="3" fill="url(#calcDocGrad)"
+      animate={{ height: [22, 26, 22], y: [48, 44, 48] }} transition={{ duration: 3, repeat: Infinity, ease: "easeInOut", delay: 0.6 }} />
+
+    {/* Checkmark Badge */}
+    <motion.circle cx="68" cy="28" r="9" fill="#10B981"
+      animate={{ scale: [1, 1.1, 1] }} transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }} />
+    <motion.path
+      d="M64 28 L67 31 L73 25"
+      fill="none" stroke="#FFFFFF" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+    />
+  </svg>
+);

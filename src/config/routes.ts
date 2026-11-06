@@ -144,6 +144,7 @@ export const ROUTES = {
 
   // Tools
   TOOLS_ROUTES: {
+    ANSWER_KEY_CALCULATOR: '/tools/answer-key-calculator',
     FLASHCARD_MAKER: '/tools/flashcard-maker',
     BILINGUAL_PDF_MAKER: '/tools/bilingual-pdf-maker',
     TEXT_EXPORTER: '/tools/text-exporter',

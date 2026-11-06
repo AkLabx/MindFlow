@@ -109,6 +109,7 @@ const QuizPdfPptGenerator = lazy(() => import('../features/tools/quiz-pdf-ppt-ge
 const FlashcardMaker = lazy(() => import('../features/tools/flashcard-maker/FlashcardMaker'));
 const BilingualPdfMaker = lazy(() => import('../features/tools/bilingual-pdf-maker/BilingualPdfMaker'));
 const TextExporter = lazy(() => import('../features/tools/text-exporter/TextExporter'));
+const AnswerKeyCalculator = lazy(() => import('../features/tools/answer-key-engine').then(m => ({ default: m.AnswerKeyCalculator })));
 
 // Immersive Session Views (No standard layout)
 const LearningSession = lazy(() => import('../features/quiz/learning/LearningSession').then(m => ({ default: m.LearningSession })));
@@ -367,6 +368,7 @@ const handleReattempt = async (quizId: string, mode: string) => {
                     <Route path={ROUTES.TOOLS_ROUTES.BILINGUAL_PDF_MAKER} element={<Suspense fallback={<SynapticLoader />}><BilingualPdfMaker /></Suspense>} />
                     <Route path={ROUTES.TOOLS_ROUTES.TEXT_EXPORTER} element={<Suspense fallback={<SynapticLoader />}><TextExporter /></Suspense>} />
                     <Route path={ROUTES.TOOLS_ROUTES.QUIZ_PDF_PPT_GENERATOR} element={<Suspense fallback={<SynapticLoader />}><QuizPdfPptGenerator /></Suspense>} />
+                    <Route path={ROUTES.TOOLS_ROUTES.ANSWER_KEY_CALCULATOR} element={<Suspense fallback={<SynapticLoader />}><AnswerKeyCalculator /></Suspense>} />
                 </Route>
 
                 {/* --- Immersive Session Routes (No Layout, Fullscreen) --- */}
