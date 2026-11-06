@@ -10,6 +10,7 @@ import { useQuery } from "@tanstack/react-query";
 import { db } from "@/lib/db";
 import { useAuth } from "@/features/auth";
 import { getUserDisplayName } from "@/utils/user";
+import { CANONICAL_EXAMS, matchesCanonicalExam } from '@/features/dashboard';
 
 interface DashboardGreetingProps {
   user: User | null;
@@ -30,6 +31,33 @@ export const DashboardGreeting: React.FC<DashboardGreetingProps> = ({
   const profile = propProfile ?? authProfile;
 
   const displayName = getUserDisplayName(profile, user, "Aspirant");
+
+  const latestQuizExam = React.useMemo(() => {
+    if (!latestQuiz) return null;
+    const examFilters = (latestQuiz.filters as any)?.examName || (latestQuiz.state as any)?.filters?.examName;
+    if (examFilters) {
+      const filterNames = Array.isArray(examFilters) ? examFilters : [examFilters];
+      for (const exam of CANONICAL_EXAMS) {
+        if (exam.dbExamNames.some(name => filterNames.includes(name))) {
+          return exam;
+        }
+      }
+    }
+    const questions = latestQuiz.questions || (latestQuiz.state as any)?.activeQuestions || [];
+    if (questions.length > 0) {
+      for (const q of questions) {
+        const rawExam = q.examName || q.sourceInfo?.examName || (q as any)?.properties?.examName;
+        if (rawExam) {
+          for (const exam of CANONICAL_EXAMS) {
+            if (matchesCanonicalExam(exam, rawExam)) {
+              return exam;
+            }
+          }
+        }
+      }
+    }
+    return null;
+  }, [latestQuiz]);
 
   const { data: bookmarkCount = 0 } = useQuery({
     queryKey: ['dashboard-bookmark-count', user?.id],
@@ -128,6 +156,13 @@ export const DashboardGreeting: React.FC<DashboardGreetingProps> = ({
             {latestQuiz && (
               <div className="absolute inset-0 bg-gradient-to-br from-violet-500/12 via-indigo-500/5 to-transparent pointer-events-none" />
             )}
+            {latestQuiz && latestQuizExam && (
+              <div className="absolute top-1 right-1 z-20">
+                <span className="text-[7px] font-bold px-1.5 py-0.5 rounded-full bg-violet-100 dark:bg-violet-900/60 text-violet-700 dark:text-violet-300 border border-violet-200/50">
+                  {latestQuizExam.shortCode}
+                </span>
+              </div>
+            )}
             <div className={`relative z-10 w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border ${
               latestQuiz
                 ? "border-violet-200/70 dark:border-violet-800/50 bg-white dark:bg-slate-800 shadow-xs group-hover:scale-105 text-violet-600 dark:text-violet-400"
@@ -143,7 +178,7 @@ export const DashboardGreeting: React.FC<DashboardGreetingProps> = ({
             <span
               className={`relative z-10 block text-[8px] leading-tight sm:text-[9px] font-medium truncate w-full mt-0.5 ${latestQuiz ? "text-violet-600/80 dark:text-violet-400/80" : "text-slate-400 dark:text-slate-500"}`}
             >
-              {latestQuiz ? latestQuiz.name || "Paused Quiz" : "no quiz in progress"}
+              {latestQuiz ? (latestQuizExam ? `${latestQuizExam.shortCode} • ${latestQuiz.name || "Paused Quiz"}` : latestQuiz.name || "Paused Quiz") : "no quiz in progress"}
             </span>
           </button>
 

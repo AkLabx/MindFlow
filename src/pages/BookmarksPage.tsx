@@ -4,7 +4,7 @@ import { fetchQuestionsByIds } from '@/features/quiz/services/questionService';
 import { syncService } from '@/lib/syncService';
 import React, { useState, useEffect, useMemo } from 'react';
 import { ChevronRight, Star, Trash2, LibraryBig, CheckCircle2 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { db } from '@/lib/db';
 import { Question } from '@/features/quiz';
 import { Button } from '@/components/Button/Button';
@@ -18,12 +18,23 @@ import { CANONICAL_EXAMS, matchesCanonicalExam } from '@/features/dashboard';
 
 export const BookmarksPage: React.FC = () => {
     const navigate = useNavigate();
+    const location = useLocation();
     const queryClient = useQueryClient();
     const { user } = useAuth();
     const activeExamId = useExamContextStore((s) => s.activeExamId);
     const [selectedExam, setSelectedExam] = useState<string>('All');
+    const [hasInitializedExam, setHasInitializedExam] = useState(false);
     const [selectedSubject, setSelectedSubject] = useState<string>('All');
     const [showToast, setShowToast] = useState(false);
+
+    const handleBack = () => {
+        const returnTo = (location.state as any)?.returnTo || (location.state as any)?.from;
+        if (returnTo && typeof returnTo === 'string') {
+            navigate(returnTo);
+        } else {
+            navigate('/dashboard');
+        }
+    };
 
     const handleResetBookmarks = async () => {
         if (window.confirm("Are you sure you want to reset all bookmarks? This action cannot be undone.")) {
@@ -119,6 +130,15 @@ export const BookmarksPage: React.FC = () => {
         return Array.from(examMap.values());
     }, [bookmarks]);
 
+    useEffect(() => {
+        if (!hasInitializedExam && availableExams.length > 0) {
+            setHasInitializedExam(true);
+            if (activeExamId && availableExams.some(e => e.id === activeExamId)) {
+                setSelectedExam(activeExamId);
+            }
+        }
+    }, [availableExams, activeExamId, hasInitializedExam]);
+
     const subjects = useMemo(() => {
         const subs = new Set<string>();
         bookmarks.forEach(q => {
@@ -170,11 +190,11 @@ export const BookmarksPage: React.FC = () => {
                     <p className="text-gray-500 dark:text-gray-400 max-w-md mb-8">
                         Tap the star icon during a quiz to save questions here for later review.
                     </p>
-                    <Button onClick={() => navigate('/dashboard')} className="bg-indigo-600 hover:bg-indigo-700 mb-4">
+                    <Button onClick={handleBack} className="bg-indigo-600 hover:bg-indigo-700 mb-4">
                         Back to Dashboard
                     </Button>
                     <button
-                        onClick={() => navigate('/dashboard')}
+                        onClick={handleBack}
                         className="text-gray-500 hover:text-indigo-600 dark:hover:text-indigo-400 flex items-center transition-colors font-semibold uppercase tracking-widest text-xs w-fit"
                     >
                         <ChevronRight className="w-4 h-4 rotate-180 mr-1" />
@@ -197,7 +217,7 @@ export const BookmarksPage: React.FC = () => {
     return (
         <div className="max-w-4xl mx-auto p-4 sm:p-6 pb-24 space-y-6 animate-fade-in">
             <button
-                onClick={() => navigate('/dashboard')}
+                onClick={handleBack}
                 className="text-gray-500 hover:text-indigo-600 dark:hover:text-indigo-400 flex items-center transition-colors font-semibold uppercase tracking-widest text-xs w-fit mb-4"
             >
                 <ChevronRight className="w-4 h-4 rotate-180 mr-1" />
@@ -289,8 +309,49 @@ export const BookmarksPage: React.FC = () => {
             </div>
 
             {/* Bookmark List */}
-            <div className="space-y-4">
-                {filteredBookmarks.map((question, index) => (
+            {filteredBookmarks.length === 0 ? (
+                <div className="text-center py-12 px-4 rounded-2xl bg-white dark:bg-slate-800/60 border border-dashed border-slate-200 dark:border-slate-700 max-w-lg mx-auto">
+                    <div className="w-12 h-12 rounded-full bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mx-auto mb-3">
+                        <Star className="w-6 h-6" />
+                    </div>
+                    <h3 className="text-base font-semibold text-slate-800 dark:text-slate-100 mb-1">
+                        No Bookmarks Match Current Filter
+                    </h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mb-5 leading-relaxed">
+                        {selectedExam !== 'All' && selectedSubject !== 'All'
+                            ? `No bookmarked questions found for ${selectedExam.toUpperCase()} under ${selectedSubject}.`
+                            : selectedExam !== 'All'
+                            ? `No bookmarked questions found matching your selected exam filter.`
+                            : `No bookmarked questions found for ${selectedSubject}.`}
+                    </p>
+                    <div className="flex flex-wrap items-center justify-center gap-2">
+                        {selectedExam !== 'All' && (
+                            <button
+                                onClick={() => setSelectedExam('All')}
+                                className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white transition-colors"
+                            >
+                                View All Exams
+                            </button>
+                        )}
+                        {selectedSubject !== 'All' && (
+                            <button
+                                onClick={() => setSelectedSubject('All')}
+                                className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 transition-colors"
+                            >
+                                Clear Subject Filter
+                            </button>
+                        )}
+                        <button
+                            onClick={() => navigate('/quiz/config')}
+                            className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-indigo-200 dark:border-indigo-800 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 transition-colors"
+                        >
+                            Start Practice Quiz
+                        </button>
+                    </div>
+                </div>
+            ) : (
+                <div className="space-y-4">
+                    {filteredBookmarks.map((question, index) => (
                     <Card key={question.id} className="p-5 flex flex-col sm:flex-row gap-4 group transition-shadow hover:shadow-md">
                         <div className="flex-1">
                             <div className="flex items-center gap-2 mb-2 flex-wrap">
@@ -370,7 +431,8 @@ export const BookmarksPage: React.FC = () => {
                         </div>
                     </Card>
                 ))}
-            </div>
+                </div>
+            )}
         </div>
     );
 };

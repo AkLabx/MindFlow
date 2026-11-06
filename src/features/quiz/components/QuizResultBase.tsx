@@ -6,6 +6,7 @@ import { Question } from '../../../types/models';
 import { cn } from '../../../utils/cn';
 import { QuestionSolutionCard } from './QuestionSolutionCard';
 import { QuizReview } from './QuizReview';
+import { CANONICAL_EXAMS, matchesCanonicalExam } from '@/features/dashboard';
 
 export interface QuizResultBaseProps {
   quizName?: string;
@@ -90,6 +91,21 @@ export const QuizResultBase: React.FC<QuizResultBaseProps> = ({
 
   const theme = getThemeClasses();
 
+  const matchedExam = React.useMemo(() => {
+    if (!questions || questions.length === 0) return null;
+    for (const q of questions) {
+      const rawExam = q.examName || q.sourceInfo?.examName || (q as any)?.properties?.examName;
+      if (rawExam) {
+        for (const exam of CANONICAL_EXAMS) {
+          if (matchesCanonicalExam(exam, rawExam)) {
+            return exam;
+          }
+        }
+      }
+    }
+    return null;
+  }, [questions]);
+
   // Format time as MM:SS (e.g. 00:36)
   const formattedTimeSpent = `${Math.floor(timeSpent / 60).toString().padStart(2, '0')}:${Math.floor(timeSpent % 60).toString().padStart(2, '0')}`;
 
@@ -137,6 +153,18 @@ export const QuizResultBase: React.FC<QuizResultBaseProps> = ({
                     <Trophy className="w-6 h-6 md:w-8 md:h-8 text-amber-500" />
                 </div>
 
+                {matchedExam && (
+                  <div className="flex items-center justify-center gap-1.5 mb-2">
+                    <span className={cn(
+                      "text-xs font-bold px-2.5 py-0.5 rounded-full border flex items-center gap-1",
+                      matchedExam.badgeColor,
+                      matchedExam.borderClass
+                    )}>
+                      <span>🎯</span>
+                      <span>{matchedExam.shortCode}</span>
+                    </span>
+                  </div>
+                )}
                 <h2 className="text-base md:text-lg font-bold text-slate-800 dark:text-slate-100 mb-2">{quizName}</h2>
 
                 <div className="flex items-baseline justify-center gap-1.5 md:gap-2 mb-5 md:mb-6">
