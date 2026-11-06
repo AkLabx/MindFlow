@@ -47,6 +47,8 @@ import { useOptimizedFilterCounts } from '../hooks/useOptimizedFilterCounts';
 import { useNotificationStore } from '../../../stores/useNotificationStore';
 import { supabase } from '../../../lib/supabase';
 import { syncService } from '../../../lib/syncService';
+import { telemetry } from '@/lib/telemetry';
+import { performanceTracker, PERF_BUDGETS } from '@/lib/performance';
 
 interface QuizConfigProps {
   onStart: (questions: Question[], filters?: InitialFilters, mode?: QuizMode, quizName?: string) => void;
@@ -204,7 +206,11 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
 
   // 5. Final Filtered Metadata Calculation using O(1) Set Intersections
   const filteredMetadata = useMemo(() => {
-    return filterQuestionsByIndex(metadata, questionIndex, filters);
+    return performanceTracker.measureSync(
+      'filter_recalculation',
+      PERF_BUDGETS.FILTER_RECALCULATION,
+      () => filterQuestionsByIndex(metadata, questionIndex, filters)
+    );
   }, [metadata, questionIndex, filters]);
 
   // Clear "No questions found" error when filters change
@@ -274,7 +280,11 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
       subject: preservedSubject,
       examName: preservedExam,
     });
-  }, [isFixedSubjectContext, fixedSubject, isFixedExamContext, currentExamNames]);
+    telemetry.emit('filters_cleared', {
+      preservedExamId: activeExamInfo?.id,
+      clearedFields: ['topic', 'subTopic', 'difficulty', 'questionType', 'examYear', 'examDateShift', 'tags'],
+    });
+  }, [isFixedSubjectContext, fixedSubject, isFixedExamContext, currentExamNames, activeExamInfo]);
 
   const handleClearClassification = useCallback(() => {
     if (isFixedSubjectContext && fixedSubject) {

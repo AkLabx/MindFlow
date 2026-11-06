@@ -26,6 +26,33 @@ This document is the single source of truth for the evolution of the MindFlow ap
 
 ## 🚀 App Journey Changelog
 
+## [v1.0.306] - 06 November 2026, 09:00 AM IST
+
+### Executive Summary
+Implemented Phase 1 Foundation Infrastructure: established the Canonical State Ownership Registry, developed the centralized privacy-first Diagnostic Telemetry Service, and introduced the Performance Budget Tracking Engine strictly enforcing Sections 3, 8, and 11 of the MindFlow Constitution.
+
+### ⚡ Performance & Refactoring
+- **Performance Budget Engine (`src/lib/performance/`)**:
+  - Implemented `performanceTracker` instrumented with Constitution Section 8 quantitative SLA thresholds: Filter Recalculation (< 16ms / 60fps), Quiz Generation (< 300ms), Route Transition (< 150ms), and AI Response (< 2.5s).
+  - Instrumented `QuizConfig.tsx` to benchmark dynamic filter calculation against the 16ms SLA budget on every user filter change.
+  - Instrumented `quizCreationService.ts` to measure quiz session generation latency against the 300ms SLA budget.
+  - Automatic emission of `perf_budget_exceeded` telemetry events and styled developer console warnings whenever operations exceed budgets.
+
+### 🔒 Security & Architecture
+- **State Ownership Registry (`src/lib/state/`)**:
+  - Implemented `stateOwnershipRegistry.ts` registering all 10 canonical state slices with their sole owner store, primary storage medium, authorized consumers, and prohibited anti-patterns.
+  - Implemented runtime consumer assertion `assertStateConsumer` to detect and warn against shadow local state mutations in dev mode.
+- **Diagnostic Telemetry Service (`src/lib/telemetry/`)**:
+  - Implemented `telemetryService.ts` and `useTelemetry()` React hook enforcing Section 11 of the Constitution.
+  - Built-in zero-PII sanitizer stripping sensitive user details and an in-memory 50-item ring buffer for live diagnostics.
+  - Wired foundational telemetry events across the application:
+    - `exam_selected`: Emitted in `useExamContextStore.ts` upon exam selection with source tag (`strip`, `modal`, `hub`, `banner`).
+    - `quiz_generated` / `quiz_generation_failed`: Emitted in `quizCreationService.ts` with execution time and reuse state.
+    - `filters_cleared`: Emitted in `QuizConfig.tsx` when user resets secondary filters while preserving the active exam and subject context.
+    - `resume_quiz`: Emitted in `DashboardPage.tsx` with progress metrics when continuing paused learning/mock sessions.
+- **Automated Verification**:
+  - Created unit test suites for `telemetryService.test.ts`, `performanceMetrics.test.ts`, and `stateOwnershipRegistry.test.ts` (10/10 passing).
+
 ## [v1.0.305] - 06 November 2026, 08:35 AM IST
 
 ### Executive Summary
