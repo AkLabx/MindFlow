@@ -14,6 +14,8 @@ export interface TelemetryPayloads {
   recovery_action_clicked: { view: string; actionChosen: string };
   perf_budget_exceeded: { metric: string; actualMs: number; budgetMs: number; route?: string };
   offline_sync_completed: { recordsSynced: number; durationMs: number };
+  vulnerability_diagnosed: { examId: string; primaryTopic: string; errorCount: number; isDiagnostic: boolean };
+  ai_drill_launched: { examId: string; topic: string; mode: string; isDiagnostic: boolean };
 }
 
 export type TelemetryEventName = keyof TelemetryPayloads;
