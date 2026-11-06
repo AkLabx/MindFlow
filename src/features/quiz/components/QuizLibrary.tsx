@@ -43,9 +43,9 @@ export const QuizLibrary: React.FC = () => {
                 <div className="flex flex-col gap-3 sm:gap-6 mb-2 sm:mb-6">
                     <div className="flex items-center gap-3 sm:gap-4">
                         <button
-                            onClick={() => navigate('/mcqs')}
+                            onClick={() => navigate('/dashboard')}
                             className="z-20 flex items-center justify-center p-2 rounded-full bg-white/50 dark:bg-gray-800/50 hover:bg-white/80 dark:hover:bg-gray-700/80 text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-100 transition-all shadow-sm backdrop-blur-sm border border-white/20 dark:border-gray-700/30"
-                            title="Back to MCQs"
+                            title="Back to Dashboard"
                         >
                             <ArrowLeft className="w-5 h-5" />
                         </button>

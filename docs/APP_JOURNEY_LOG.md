@@ -26,6 +26,27 @@ This document is the single source of truth for the evolution of the MindFlow ap
 
 ## 🚀 App Journey Changelog
 
+## [v1.0.309] - 06 November 2026, 10:05 AM IST
+
+### Executive Summary
+Implemented Phase 3A of the Constitution Implementation Plan: Platform Consistency across Quiz Library and Subject Hub. Established target exam scoping, contextual filter bars, exam-aware recovery empty states, and visual context banners adhering to the MindFlow Constitution (Sections 2.1, 4.1 & 6.4).
+
+### ✨ Features Added
+- **Quiz Library Target Exam Scoping Toolbar (`src/features/quiz/components/QuizLibraryToolbar.tsx`)**:
+  - Added horizontal scrollable Target Exam Filter pill bar (`All` + pinned user exams with dynamic count badges).
+  - Synchronized selection with `useExamContextStore` while allowing ad-hoc examination scoping within the library.
+- **Exam-Scoping in Saved & Attempted Quizzes (`src/features/quiz/components/SavedQuizzesList.tsx`, `src/features/quiz/components/AttemptedQuizzesList.tsx`)**:
+  - Filtered saved drafts and completed quiz sessions by selected exam context.
+  - Added Constitution Section 7 compliant actionable recovery empty states when no quizzes match the active exam, providing direct actions to clear the exam filter or launch a new quiz.
+- **Subject Hub & Topics Exam Context Focus (`src/features/dashboard/pages/subject/SubjectHubPage.tsx`, `src/features/dashboard/pages/subject/SubjectTopicsPage.tsx`)**:
+  - Added Active Target Exam Focus banner below the subject header, displaying the active exam's badge and full title.
+- **Quiz Start BottomSheet Exam Scoping Badge (`src/features/dashboard/components/subject/QuizStartBottomSheet.tsx`)**:
+  - Surface active target exam badge directly beside the subject/topic subtitle, preserving context prior to session generation.
+
+### ⚡ Performance & Refactoring
+- **Quiz Library Logical Back Navigation (`src/features/quiz/components/QuizLibrary.tsx`)**:
+  - Aligned back button to return to `/dashboard` instead of legacy `/mcqs`, strictly honoring Constitution Section 6.2 hierarchical navigation.
+
 ## [v1.0.308] - 06 November 2026, 09:41 AM IST
 
 ### Executive Summary

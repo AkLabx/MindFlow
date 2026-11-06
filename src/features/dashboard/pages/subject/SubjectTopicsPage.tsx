@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useLayoutStore } from "@/stores/useLayoutStore";
 import { useParams, useNavigate } from "react-router-dom";
+import { Target } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { ROUTES } from "@/config/routes";
 import { subjectService } from "../../services/subjectService";
@@ -19,6 +20,8 @@ import { CANONICAL_EXAMS } from "../../constants/examRegistry";
 export const SubjectTopicsPage: React.FC = () => {
   const { subjectName } = useParams<{ subjectName: string }>();
   const navigate = useNavigate();
+  const activeExamId = useExamContextStore((s) => s.activeExamId);
+  const activeExam = useMemo(() => CANONICAL_EXAMS.find((e) => e.id === activeExamId), [activeExamId]);
   const [selectedSubTopic, setSelectedSubTopic] = useState<{
     topic: string;
     subTopic: string;
@@ -319,6 +322,19 @@ export const SubjectTopicsPage: React.FC = () => {
           subjectName={decodedSubject}
           onBack={() => navigate(ROUTES.SUBJECT.view(decodedSubject))}
         />
+        {activeExam && (
+          <div className="flex items-center justify-between p-2.5 sm:p-3 rounded-2xl bg-white/80 dark:bg-slate-900/70 border border-indigo-200/80 dark:border-indigo-800/60 shadow-xs backdrop-blur-xs">
+            <div className="flex items-center gap-2">
+              <Target className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+              <span className="text-xs font-medium text-slate-600 dark:text-slate-300">
+                Topics filtered for <strong className="font-bold text-slate-900 dark:text-white">{activeExam.displayName}</strong>
+              </span>
+            </div>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/80 text-indigo-700 dark:text-indigo-300 border border-indigo-200/50 dark:border-indigo-800/40">
+              {activeExam.shortCode}
+            </span>
+          </div>
+        )}
         <QuizStartBottomSheet
           isOpen={!!selectedSubTopic}
           onClose={() => setSelectedSubTopic(null)}
