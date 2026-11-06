@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, ArrowDown, ChevronDown, Brain, Plus, Trash2, MessageSquare, Loader2, Search, Download, Zap, Settings, X, Globe } from 'lucide-react';
+import { ArrowLeft, ArrowDown, ChevronDown, Brain, Plus, Trash2, MessageSquare, Loader2, Search, Download, Zap, Settings, X, Globe, Target, Sparkles } from 'lucide-react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { ChatMessage } from './ChatMessage';
@@ -35,7 +35,8 @@ export const AIChatPage: React.FC = () => {
  activeModel,
  setActiveModel,
  quota,
- appendTranscript
+ appendTranscript,
+ activeExam
  } = useAIChat();
 
  const [inputValue, setInputValue] = useState('');
@@ -131,12 +132,12 @@ export const AIChatPage: React.FC = () => {
  };
 
 
- const quickStarters = [
- "Explain quantum computing in simple terms.",
- "Give me a 5-question vocabulary quiz.",
- "How do I prepare for the UPSC exam?",
- "What are some common English idioms?"
- ];
+ const quickStarters = useMemo(() => [
+   `What are the highest-scoring topics in ${activeExam.shortCode}?`,
+   `Give me 3 tough practice questions for ${activeExam.shortCode} with explanations.`,
+   `Explain key short tricks for ${activeExam.shortCode} quantitative/reasoning.`,
+   `Create an effective 7-day revision strategy for ${activeExam.displayName}.`
+ ], [activeExam]);
 
  const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -412,9 +413,26 @@ export const AIChatPage: React.FC = () => {
  >
  <Settings className="h-5 w-5" />
  </button>
- </header>
+  </header>
 
- {/* Messages Scroll Area */}
+  {/* Target Exam Ambient Context Bar (Constitution Section 10) */}
+  <div className="bg-indigo-50/90 dark:bg-slate-900/90 border-b border-indigo-100 dark:border-slate-800 px-4 py-2 flex items-center justify-between text-xs z-10 shrink-0">
+    <div className="flex items-center gap-1.5 text-indigo-700 dark:text-indigo-300 font-semibold truncate">
+      <Target className="w-3.5 h-3.5 shrink-0" />
+      <span className="truncate">Active Goal: {activeExam.displayName}</span>
+      <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-indigo-100 dark:bg-indigo-900/50 text-indigo-800 dark:text-indigo-200 font-bold uppercase shrink-0">
+        {activeExam.shortCode}
+      </span>
+    </div>
+    <button
+      onClick={() => navigate('/dashboard')}
+      className="text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 font-medium transition-colors shrink-0 text-[11px]"
+    >
+      Change Focus →
+    </button>
+  </div>
+
+  {/* Messages Scroll Area */}
  <div ref={chatScrollContainerRef} onScroll={handleScroll} className="flex-1 overflow-y-auto overflow-x-hidden relative scroll-smooth">
  <div ref={chatContainerRef} className="flex flex-col min-h-full">
  {messages.length === 0 ? (

@@ -26,6 +26,27 @@ This document is the single source of truth for the evolution of the MindFlow ap
 
 ## 🚀 App Journey Changelog
 
+## [v1.0.313] - 06 November 2026, 12:20 PM IST
+
+### Executive Summary
+Implemented Phase 5B of the Constitution Implementation Plan: Intelligence Layer (Pre-Grounded Conversational Tutor & Adaptive AI Quiz Generator). Bound `useAIChat` to the active target exam context (`useExamContextStore`), added an ambient Active Goal header in `AIChatPage` with dynamic exam-scoped quick starters, and launched the `AIAdaptiveQuizModal` in `AIHome` with 3 personalized practice strategies.
+
+### ✨ Features Added
+- **Pre-Grounded Conversational AI Tutor (`src/features/ai/chat/useAIChat.ts`)**:
+  - Automatically ingests `activeExam` (`useExamContextStore`) into the system prompt and initial request payload, enforcing Constitution Section 10 (*The AI must never ask: "What exam are you studying for?"*).
+  - Automatically tailors tone, syllabus references, difficulty, and mnemonics to the active target exam and PYQs.
+  - Retains and combines user profile mastery context seamlessly when enabled.
+- **Ambient Target Exam Context Bar & Smart Quick Starters (`src/features/ai/chat/AIChatPage.tsx`)**:
+  - Surfaced an ambient `Active Goal: {exam.displayName} ({exam.shortCode})` bar at the top of the chat area with a 1-tap shortcut to change focus on the Dashboard.
+  - Dynamically computes high-yield quick starters tailored to the user's active exam (e.g., top-scoring topics, hard practice questions, short tricks, 7-day revision strategies).
+- **AI Adaptive Quiz Generator Modal (`src/features/ai/components/AIAdaptiveQuizModal.tsx` & `src/features/ai/AIHome.tsx`)**:
+  - Activated the "Generate Quiz with AI" card on `AIHome` with a rich, interactive modal.
+  - Offers 3 adaptive strategies:
+    1. *Target Weak Areas (Adaptive Sprint)*: Focuses on diagnosed weak topics from `useVulnerabilityEngine`.
+    2. *High-Yield PYQ Sprint*: Focuses on frequently repeated previous year questions for the active exam.
+    3. *Balanced Mixed Simulation*: Multi-subject coverage across the entire syllabus.
+  - Provides 10, 15, and 25-question length selection with direct 0ms session launch (`autoStart: true`).
+
 ## [v1.0.312] - 06 November 2026, 11:58 AM IST
 
 ### Executive Summary

@@ -4,17 +4,22 @@ import { useNavSpinner } from '../../hooks/useNavSpinner';
 import { Loader2, ArrowLeft, Brain } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { ChatWithAISVG, TalkToAISVG, GenerateQuizAISVG, AIStudyPlannerSVG } from './AIHomeSVGs';
+import { AIAdaptiveQuizModal } from './components/AIAdaptiveQuizModal';
 
 export const AIHome: React.FC = () => {
  const navigate = useNavigate();
  const { loadingId, handleNavigation } = useNavSpinner();
  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
+ const [isAdaptiveModalOpen, setIsAdaptiveModalOpen] = useState(false);
+
  const handleFeatureClick = (featureId: string, featureName: string) => {
  if (featureId === 'chat') {
  handleNavigation(featureId, () => navigate('/ai/chat'));
  } else if (featureId === 'talk') {
  handleNavigation(featureId, () => navigate('/ai/talk'));
+ } else if (featureId === 'quiz') {
+ setIsAdaptiveModalOpen(true);
  } else {
  setToastMessage(`"${featureName}" is coming soon!`);
  setTimeout(() => setToastMessage(null), 3000);
@@ -281,6 +286,11 @@ export const AIHome: React.FC = () => {
 
  </motion.div>
  </div>
+
+ <AIAdaptiveQuizModal
+ isOpen={isAdaptiveModalOpen}
+ onClose={() => setIsAdaptiveModalOpen(false)}
+ />
  </div>
  );
 };
