@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { telemetry } from './telemetryService';
 
 describe('telemetryService', () => {
@@ -11,10 +11,13 @@ describe('telemetryService', () => {
 
     const history = telemetry.getHistory();
     expect(history).toHaveLength(1);
-    expect(history[0].name).toBe('exam_selected');
-    expect(history[0].payload.examId).toBe('ssc_cgl');
-    expect(history[0].payload.source).toBe('strip');
-    expect(history[0].timestamp).toBeGreaterThan(0);
+    const first = history[0];
+    expect(first.name).toBe('exam_selected');
+    if (first.name === 'exam_selected') {
+      expect(first.payload.examId).toBe('ssc_cgl');
+      expect(first.payload.source).toBe('strip');
+    }
+    expect(first.timestamp).toBeGreaterThan(0);
   });
 
   it('bounds buffer size to 50 entries', () => {
@@ -25,8 +28,14 @@ describe('telemetryService', () => {
     const history = telemetry.getHistory();
     expect(history).toHaveLength(50);
     // Oldest 10 entries should have been evicted
-    expect(history[0].payload.examId).toBe('exam_10');
-    expect(history[49].payload.examId).toBe('exam_59');
+    const oldest = history[0];
+    const newest = history[49];
+    if (oldest.name === 'exam_selected') {
+      expect(oldest.payload.examId).toBe('exam_10');
+    }
+    if (newest.name === 'exam_selected') {
+      expect(newest.payload.examId).toBe('exam_59');
+    }
   });
 
   it('clears buffer on clear()', () => {
