@@ -5,6 +5,7 @@ import { Loader2, ArrowLeft, Brain } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { ChatWithAISVG, TalkToAISVG, GenerateQuizAISVG, AIStudyPlannerSVG } from './AIHomeSVGs';
 import { AIAdaptiveQuizModal } from './components/AIAdaptiveQuizModal';
+import { AIStudyPlannerModal } from './components/AIStudyPlannerModal';
 
 export const AIHome: React.FC = () => {
  const navigate = useNavigate();
@@ -12,6 +13,7 @@ export const AIHome: React.FC = () => {
  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
  const [isAdaptiveModalOpen, setIsAdaptiveModalOpen] = useState(false);
+ const [isPlannerModalOpen, setIsPlannerModalOpen] = useState(false);
 
  const handleFeatureClick = (featureId: string, featureName: string) => {
  if (featureId === 'chat') {
@@ -20,6 +22,8 @@ export const AIHome: React.FC = () => {
  handleNavigation(featureId, () => navigate('/ai/talk'));
  } else if (featureId === 'quiz') {
  setIsAdaptiveModalOpen(true);
+ } else if (featureId === 'planner') {
+ setIsPlannerModalOpen(true);
  } else {
  setToastMessage(`"${featureName}" is coming soon!`);
  setTimeout(() => setToastMessage(null), 3000);
@@ -290,6 +294,11 @@ export const AIHome: React.FC = () => {
  <AIAdaptiveQuizModal
  isOpen={isAdaptiveModalOpen}
  onClose={() => setIsAdaptiveModalOpen(false)}
+ />
+
+ <AIStudyPlannerModal
+ isOpen={isPlannerModalOpen}
+ onClose={() => setIsPlannerModalOpen(false)}
  />
  </div>
  );
