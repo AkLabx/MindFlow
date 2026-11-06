@@ -1,7 +1,9 @@
 import { ProcessedDocument } from './utils/fileProcessing';
 import { useQuota, MODEL_CONFIGS, ModelId } from './useQuota';
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useProfileStats } from '../../auth/hooks/useProfileStats';
+import { useExamContextStore } from '../../../stores/useExamContextStore';
+import { CANONICAL_EXAMS } from '../../dashboard/constants/examRegistry';
 import { v4 as uuidv4 } from 'uuid';
 import { supabase, SUPABASE_URL } from '../../../lib/supabase';
 import { RUNTIME_CONFIG } from '../../../lib/runtimeConfig';
@@ -34,6 +36,10 @@ export const useAIChat = () => {
     const quota = useQuota(activeModel);
     const [includeAppData, setIncludeAppData] = useState(false);
     const { stats } = useProfileStats();
+    const activeExamId = useExamContextStore((s) => s.activeExamId);
+    const activeExam = useMemo(() => {
+        return CANONICAL_EXAMS.find(e => e.id === activeExamId) || CANONICAL_EXAMS[0];
+    }, [activeExamId]);
     const [conversations, setConversations] = useState<AIChatConversation[]>([]);
     const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
@@ -372,15 +378,28 @@ try {
 
             let finalSystemPrompt = SYSTEM_PROMPT;
 
+            // Ingest target exam context (Constitution Section 10)
+            const examContextStr = `\n\nTARGET EXAM CONTEXT:\nThe student is preparing for ${activeExam.displayName} (${activeExam.shortCode} - ${activeExam.subtitle}). Automatically tailor your explanations, difficulty level, syllabus focus, and mnemonics to ${activeExam.displayName} and its previous years questions (PYQs). Never ask the student what exam they are preparing for, as this context is already established.`;
+            finalSystemPrompt += examContextStr;
+
             if (includeAppData && stats) {
                 const contextStr = `\n\nUSER PROFILE CONTEXT:\nThe user has completed ${stats.quizzesCompleted} quizzes.\nTotal Correct: ${stats.correctAnswers}\nAverage Score: ${Math.round(stats.averageScore)}%\nWeak Topics: ${stats.weakTopics.join(', ')}\nUse this context to personalize your advice and point out areas of improvement if relevant.`;
                 finalSystemPrompt += contextStr;
             }
 
-                        const requestBody: any = {
-                messages: historyToSent.map(h => ({ role: h.role, content: h.parts[0].text })),
+            const requestBody: any = {
+                messages: historyToSent.map((h, idx) => {
+                    if (idx === 0 && h.role === 'user' && !h.parts[0].text.includes('[TARGET EXAM:')) {
+                        return {
+                            role: h.role,
+                            content: `[TARGET EXAM: ${activeExam.displayName} (${activeExam.shortCode})]\n${h.parts[0].text}`
+                        };
+                    }
+                    return { role: h.role, content: h.parts[0].text };
+                }),
                 sessionId: activeConvId,
-                requestedModel: activeModel
+                requestedModel: activeModel,
+                systemInstruction: finalSystemPrompt
             };
 
             const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
@@ -510,6 +529,7 @@ try {
         activeModel,
         setActiveModel,
         quota,
-        appendTranscript
+        appendTranscript,
+        activeExam
     };
 };
