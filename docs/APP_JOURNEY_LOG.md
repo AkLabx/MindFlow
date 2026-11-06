@@ -26,6 +26,42 @@ This document is the single source of truth for the evolution of the MindFlow ap
 
 ## 🚀 App Journey Changelog
 
+## [v1.0.315] - 06 November 2026, 01:32 PM IST
+
+### Executive Summary
+Delivered Phase 1 (MVP) and core architectural skeleton for the MindFlow Exam Intelligence, Answer Key & Rank Prediction Engine. Introduced dual-input response sheet parsing (online URL fetching via SSRF-safeguarded Supabase Edge Function and 0ms offline browser HTML parsing via `TcsIonAdapter`), section-wise metrics, question review filters, indexed PostgreSQL database schema with RLS and `SECURITY DEFINER` live ranking RPC stubs, and responsive scorecard dashboard in MindFlow Toolbox (`/tools/answer-key-calculator`).
+
+### ✨ Features Added
+- **Answer Key & Score Calculator Tool (`src/features/tools/answer-key-engine/`)**:
+  - Registered new tool in Toolbox Hub (`src/features/tools/ToolsHome.tsx`) with animated Cyan/Sky SVG token (`AnswerKeyCalculatorSVG`).
+  - Seamlessly inherits active exam context from `useExamContextStore` (Constitution Section 1, Commandment 2).
+  - Offers dual input modes:
+    1. *Paste URL Link*: Fetches official TCS iON response sheet via Edge Function without exposing client tokens.
+    2. *Upload HTML (Offline)*: Parses downloaded response sheet 100% in-browser with 0ms latency.
+  - Generates comprehensive scorecard featuring Total Raw Score, Accuracy %, Correct/Negative marks, and 4-subject breakdown (Reasoning, GK, Math, English).
+  - Provides detailed Question-by-Question review filterable by status (`All`, `Wrong Only`, `Unattempted`, `Correct`) and by subject.
+  - Implements honest community disclaimer banner and sample-gated UI tabs for future phases (Rank Matrix, Shift Difficulty & Normalization, AI Weakness Insights).
+- **Pure TypeScript Resilient Parser (`src/features/tools/answer-key-engine/adapters/ExamParserAdapter.ts`)**:
+  - Resilient `TcsIonAdapter` matching official TCS iON Question IDs and Option IDs rather than fragile question sequence indices.
+  - Shared design compatible with both browser DOM parsing and server-side Edge Functions.
+- **Client Caching & Offline Hydration (`src/features/tools/answer-key-engine/services/answerKeyService.ts`)**:
+  - Automatically caches the most recent scorecard in local storage for instant 0ms restoration upon revisiting the tool.
+  - Implements PII masking utilities (`maskRollNumber`, `maskName`) protecting candidate privacy in shared environments.
+
+### 🔒 Security & Architecture
+- **Enterprise PostgreSQL Schema (`supabase/migrations/20261106130000_create_exam_analytics_engine.sql`)**:
+  - `exam_configs`: Config-driven exam rules, positive/negative marking (+2.0 / -0.5), and section weights.
+  - `exam_submissions`: Stores candidate submissions with dedicated BTree-indexed numeric columns (`score_reasoning`, `score_gk`, `score_math`, `score_english`) for sub-millisecond ranking sorting.
+  - `exam_stats_snapshots`: Asynchronous precomputed snapshot table preventing full-table scan bottlenecks during traffic spikes.
+  - Row Level Security (RLS) ensuring students only read/write their own submission (`auth.uid() = user_id`).
+  - `get_candidate_live_rankings` RPC configured with `SECURITY DEFINER` and `SET search_path = public`, returning aggregate counts and ranks without exposing other users' personal records.
+- **SSRF-Safeguarded Edge Function (`supabase/functions/parse-exam-sheet/index.ts`)**:
+  - Validates domain against allowlist (`*.digialm.com`, `*.ssc.nic.in`), blocks private IP ranges/metadata endpoints, enforces 8s timeout, and prevents open redirects (`redirect: 'error'`).
+  - Never logs or stores raw URLs containing authentication tokens; securely stores SHA-256 hash for deduplication.
+- **Feature Flags (`src/config/features.ts`)**:
+  - Added `EXAM_ANALYTICS` flags isolating Phase 1 (MVP) while maintaining skeletons for Phase 2, 3, and 4.
+
+
 ## [v1.0.314] - 06 November 2026, 12:44 PM IST
 
 ### Executive Summary

@@ -10,6 +10,7 @@ import {
   PptGeneratorSVG,
   TextExporterSVG,
   AsciiArtSVG,
+  AnswerKeyCalculatorSVG,
 } from "./ToolsSVGs";
 
 const ToolsHome: React.FC = () => {
@@ -42,6 +43,16 @@ const ToolsHome: React.FC = () => {
   };
 
   const tools = [
+    {
+      id: "answer-key-calculator",
+      title: "Answer Key & Score Calculator",
+      description:
+        "Instant raw score, accuracy, and sectional breakdown from your SSC answer key link or file.",
+      svg: <AnswerKeyCalculatorSVG />,
+      themeColor: "cyan",
+      action: () => navigate("/tools/answer-key-calculator"),
+      disabled: false,
+    },
     {
       id: "text-exporter",
       title: "Text Exporter",
@@ -91,7 +102,7 @@ const ToolsHome: React.FC = () => {
       themeColor: "emerald",
       action: () => navigate("/tools/ascii-art-hub"),
       disabled: false,
-    },,
+    },
   ];
 
   return (
