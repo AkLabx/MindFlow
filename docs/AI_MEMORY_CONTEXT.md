@@ -162,3 +162,12 @@ This document serves as an operational reference of the AI Assistant's memory co
 
 * **Re-Authentication (If Token Ever Expires)**:
   Run `& "C:\Program Files\GitHub CLI\gh.exe" auth login --hostname github.com -p https -w`. This outputs a one-time device code (`XXXX-XXXX`) and points to `https://github.com/login/device` for instant 1-click browser approval.
+
+### 10. Multi-Vendor CBT Exam Engine (TCS iON & Eduquity)
+* **TCS iON (`digialm.com`):** Standard single-page DOM with all 100 questions, text options, and candidate meta table (`Candidate Roll No`, `Test Date`, etc.).
+* **Eduquity (`cbexams.com`):**
+  - Renders question statements and options as image tags (`<img src="qimg/..." />`).
+  - Scoring state is represented via HTML table cell background colors: `green` (+2.0, correct answer selected), `red` (-0.5, incorrect answer selected), `yellow` (official correct option when candidate failed or unattempted), and `gray` (not answered, 0.0).
+  - Multi-part navigation is driven by ASP.NET WebForms postbacks (`P1`, `P2`, `P3`, `P4`).
+  - **Critical Invariant - Anti-Chaining Rule:** NEVER chain ASP.NET postbacks sequentially (`A -> B -> C -> D`). Doing so causes `__EVENTVALIDATION` mismatches that silently re-render Part A (Reasoning) instead of Part C (Maths), producing duplicate scores without throwing errors. Always dispatch direct parallel postbacks using Part A's root session tokens (`A -> P2`, `A -> P3`, `A -> P4`).
+  - Candidate Roll/Reg No is parsed from watermark text tags (`<div class='watermark-text'>...</div>`).

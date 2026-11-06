@@ -233,11 +233,11 @@ export const AnswerKeyCalculator: React.FC = () => {
               {inputMode === 'url' ? (
                 <div>
                   <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">
-                    TCS iON Response Sheet URL
+                    Official Response Sheet URL (TCS iON / Eduquity)
                   </label>
                   <input
                     type="url"
-                    placeholder="https://ssc.digialm.com///per/g01/pub/.../index.html?token=..."
+                    placeholder="https://ssc.digialm.com/... or https://sscexams.cbexams.com/..."
                     value={urlInput}
                     onChange={(e) => setUrlInput(e.target.value)}
                     className="w-full px-4 py-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 text-slate-900 dark:text-white placeholder-slate-400 focus:ring-2 focus:ring-indigo-500 outline-none text-sm font-mono transition-all"

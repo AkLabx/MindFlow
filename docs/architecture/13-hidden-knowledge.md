@@ -33,3 +33,10 @@ This section captures critical assumptions, unspoken rules, and "gotchas" that a
 ## 7. Versioning
 - **The Rule:** App versions are updated via `npm version patch --no-git-tag-version`.
 - **Why:** `vite.config.ts` dynamically reads `process.env.npm_package_version`. This avoids manual string replacements.
+
+## 8. Multi-Vendor CBT Exam Parsing (TCS iON vs Eduquity ASP.NET Postbacks)
+- **The Issue:** SSC uses multiple exam conduction vendors (TCS iON via `digialm.com` and Eduquity via `cbexams.com`). While TCS iON renders all 100 questions on a single static HTML page with selectable text options, Eduquity:
+  1. Renders question statements and options as high-resolution images (`<img src="qimg/..." />`), utilizing a color-coded HTML table cell layout (`bgcolor='green'`, `bgcolor='red'`, `bgcolor='yellow'`, `bgcolor='gray'`) for scoring state.
+  2. Partitions the 100 questions into 4 sections (Part A Reasoning, Part B GK, Part C Maths, Part D English) driven by ASP.NET WebForms postbacks (`P1`, `P2`, `P3`, `P4`).
+  3. **The Silent Rollback Trap:** If a crawler or parser attempts chained sequential postbacks (`Part A -> Part B -> Part C -> Part D`), ASP.NET's `__EVENTVALIDATION` and `__VIEWSTATE` mismatch on Part C. Crucially, the server does not throw a 500 error; it **silently re-renders Part A (Reasoning)**. This causes Quantitative Aptitude (Part C) to become an exact duplicate of Reasoning (e.g. duplicating 40.5 marks instead of the candidate's actual 33.5 marks).
+- **The Fix:** Always execute **direct parallel postbacks from Part A's baseline session tokens** (`A -> P2` for GK, `A -> P3` for Maths, `A -> P4` for English). Never chain postback tokens sequentially.

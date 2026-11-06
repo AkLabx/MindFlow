@@ -1,12 +1,6 @@
-import { CandidateCategory, ExamConfig, ParsedExamResult, ParsedQuestion, SectionMetric } from '../types';
+import { CandidateCategory, ExamConfig, ExamParserAdapter, ParsedExamResult, ParsedQuestion, SectionMetric } from '../types';
 
-export interface ExamParserAdapter {
-  readonly id: string;
-  readonly name: string;
-  readonly version: string;
-  canParse(html: string, url?: string): boolean;
-  parse(html: string, config: ExamConfig, selectedCategory?: CandidateCategory): ParsedExamResult;
-}
+
 
 /**
  * Robust TCS iON Answer Key Parser Adapter
@@ -363,3 +357,5 @@ export class TcsIonAdapter implements ExamParserAdapter {
     return config.sections[config.sections.length - 1]?.id || 'reasoning';
   }
 }
+
+export { EduquityAdapter } from './EduquityAdapter';

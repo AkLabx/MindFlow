@@ -26,6 +26,38 @@ This document is the single source of truth for the evolution of the MindFlow ap
 
 ## 🚀 App Journey Changelog
 
+## [v1.0.316] - 06 November 2026, 08:35 PM IST
+
+### Executive Summary
+Engineered complete Multi-Vendor CBT Exam Answer Key parsing support for SSC's newly adopted vendor, Eduquity (`*.cbexams.com`). Solved the critical ASP.NET WebForms postback silent rollback defect via direct parallel session token requests (`A -> P2`, `A -> P3`, `A -> P4`), introduced `EduquityAdapter` for image-based CBT sheets with HTML table cell color matrix decoding (`bgcolor='green'`, `red`, `yellow`, `gray`), watermark candidate extraction, and updated the SSRF-guarded Edge Function and Toolbox UI.
+
+### ✨ Features Added
+- **Eduquity CBT Adapter (`src/features/tools/answer-key-engine/adapters/EduquityAdapter.ts`)**:
+  - Implements `ExamParserAdapter` interface for Eduquity CBT response sheets.
+  - Decodes table background color rules: `green` (+2.0 correct answer selected), `red` (-0.5 incorrect answer selected), `yellow` (official correct option when unattempted or failed), and `gray` (0.0 unattempted).
+  - Handles image-based question statement and option tags (`qimg/...`) without fragile text dependencies.
+  - Extracts candidate Roll / Registration Number directly from embedded watermark text layers (`<div class='watermark-text'>...</div>`).
+- **Vendor-Neutral Edge Function (`supabase/functions/parse-exam-sheet/index.ts`)**:
+  - Updated SSRF domain allowlist to permit `*.cbexams.com` alongside `*.digialm.com` and `*.ssc.nic.in`.
+  - Added parallel multi-part postback fetching for Eduquity: concurrently fetches Part B (`P2`, General Awareness), Part C (`P3`, Quantitative Aptitude), and Part D (`P4`, English) using Part A's root session tokens.
+  - Seamlessly persists candidate submission to `exam_submissions` table in PostgreSQL.
+- **Toolbox UI & Client Service Updates (`AnswerKeyCalculator.tsx`, `answerKeyService.ts`)**:
+  - Allowed `cbexams.com` URLs in client-side pre-validation.
+  - Automatically routes uploaded HTML or pasted URLs to either `TcsIonAdapter` or `EduquityAdapter` based on structural detection.
+  - Refined input placeholders and helper text to indicate multi-vendor compatibility (TCS iON / Eduquity).
+
+### 🐛 Bug Fixes & Hidden Gotchas Solved
+- **ASP.NET WebForms Postback Silent Rollback Fix**:
+  - *Symptom*: Sequential chained postbacks (`A -> B -> C -> D`) caused Quantitative Aptitude (Part C / Maths) to silently duplicate Reasoning (Part A / 40.5 marks instead of 33.5 marks) due to server-side `__EVENTVALIDATION` mismatches without throwing 500 errors.
+  - *Fix*: Strictly enforced direct parallel postbacks from Part A's root session tokens (`A -> P2`, `A -> P3`, `A -> P4`), successfully producing 100% accurate scores verified against the real exam answer key.
+- **TypeScript Circular Export Disambiguation**:
+  - Centralized `ExamParserAdapter` interface in `src/features/tools/answer-key-engine/types.ts` to prevent TS2308 export collision between types and adapters.
+
+### 🔒 Security & Architecture
+- Documented multi-vendor CBT exam architecture, image parsing protocols, and ASP.NET postback gotchas in `docs/architecture/13-hidden-knowledge.md` (Section 8) and `docs/AI_MEMORY_CONTEXT.md` (Section 10).
+
+---
+
 ## [v1.0.315] - 06 November 2026, 01:32 PM IST
 
 ### Executive Summary
