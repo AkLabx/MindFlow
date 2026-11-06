@@ -9,6 +9,7 @@ import { useQuizContext } from '@/features/quiz/context/QuizContext';
 import { db } from '@/lib/db';
 import { isNativeApp } from "@/utils/platform";
 import { ROUTES } from "@/config/routes";
+import { telemetry } from '@/lib/telemetry';
 
 import {
   DashboardGreeting,
@@ -110,6 +111,12 @@ export const DashboardPage: React.FC<DashboardProps> = ({ onBackToIntro }) => {
   const activeLatestQuiz = latestQuiz !== undefined ? latestQuiz : localLatestQuiz;
 
   const handleResumeQuiz = (quiz: SavedQuiz) => {
+    telemetry.emit('resume_quiz', {
+      quizId: quiz.id,
+      progressPct: quiz.state?.activeQuestions?.length
+        ? Math.round((Object.keys(quiz.state.answers || {}).length / quiz.state.activeQuestions.length) * 100)
+        : undefined,
+    });
     if (quiz.mode === 'mock') {
       navigate(`/quiz/session/mock/${quiz.id}`);
     } else {

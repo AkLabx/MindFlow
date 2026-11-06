@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { CANONICAL_EXAMS } from '@/features/dashboard/constants/examRegistry';
+import { telemetry } from '@/lib/telemetry';
 
 export interface ExamContextState {
   /** Active single exam focus (e.g., 'ssc_cgl') */
@@ -8,7 +9,7 @@ export interface ExamContextState {
   /** List of user-pinned target exams for quick switching (multi-exam preparation) */
   pinnedExamIds: string[];
 
-  setActiveExam: (examId: string) => void;
+  setActiveExam: (examId: string, source?: 'strip' | 'modal' | 'banner' | 'hub' | 'config') => void;
   pinExam: (examId: string) => void;
   unpinExam: (examId: string) => void;
   togglePinExam: (examId: string) => void;
@@ -21,7 +22,7 @@ export const useExamContextStore = create<ExamContextState>()(
       activeExamId: 'ssc_cgl',
       pinnedExamIds: ['ssc_cgl', 'bpsc'], // Default to the top 2 exams in MindFlow
 
-      setActiveExam: (examId: string) => {
+      setActiveExam: (examId: string, source = 'strip') => {
         const { pinnedExamIds } = get();
         // Automatically pin if it was not already pinned
         const nextPinned = pinnedExamIds.includes(examId)
@@ -32,6 +33,8 @@ export const useExamContextStore = create<ExamContextState>()(
           activeExamId: examId,
           pinnedExamIds: nextPinned,
         });
+
+        telemetry.emit('exam_selected', { examId, source });
       },
 
       pinExam: (examId: string) => {

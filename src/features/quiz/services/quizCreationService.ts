@@ -4,6 +4,8 @@ import { supabase } from '../../../lib/supabase';
 import { Question, InitialFilters, QuizMode, SavedQuiz } from '../types';
 import { APP_CONFIG } from '../../../constants/config';
 import { initialState } from '../stores/useQuizSessionStore';
+import { telemetry } from '../../../lib/telemetry';
+import { performanceTracker, PERF_BUDGETS } from '../../../lib/performance';
 
 export interface QuizCreationResult {
   quizId: string;
@@ -15,6 +17,7 @@ export interface QuizCreationResult {
  * Shared service for creating and persisting quiz sessions.
  * This is the canonical source of truth for generating a new quiz state,
  * preventing duplicate sessions, and saving to IndexedDB/Supabase.
+ * Enforces SLA budgets and emits telemetry per MindFlow Constitution Sections 8 & 11.
  */
 export const quizCreationService = {
   /**
@@ -32,10 +35,15 @@ export const quizCreationService = {
     mode: QuizMode,
     quizName?: string
   ): Promise<QuizCreationResult> => {
+    performanceTracker.startMark('quiz_generation');
+
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user) {
-        return { quizId: '', reused: false, error: "You must be logged in to create a quiz." };
+        performanceTracker.endMark('quiz_generation');
+        const error = "You must be logged in to create a quiz.";
+        telemetry.emit('quiz_generation_failed', { reason: error, filterIntersection: filters });
+        return { quizId: '', reused: false, error };
       }
       const userId = session.user.id;
 
@@ -54,9 +62,23 @@ export const quizCreationService = {
         // Check if the ordered question list is exactly identical
         const existingQuestionIds = (existingQuiz.questions || []).map(q => q.id).join(',');
         if (existingQuestionIds === targetQuestionIds) {
-           // We found a logical match, so reuse this quiz session
-           console.log(`[quizCreationService] Reusing existing quiz session: ${existingQuiz.id}`);
-           return { quizId: existingQuiz.id, reused: true };
+          // We found a logical match, so reuse this quiz session
+          console.log(`[quizCreationService] Reusing existing quiz session: ${existingQuiz.id}`);
+          const durationMs = Math.round(
+            performanceTracker.endMark('quiz_generation', PERF_BUDGETS.QUIZ_GENERATION, {
+              mode,
+              count: questions.length,
+              reused: true,
+            })
+          );
+          telemetry.emit('quiz_generated', {
+            examId: filters.examName?.[0],
+            mode,
+            count: questions.length,
+            durationMs,
+            reusedSession: true,
+          });
+          return { quizId: existingQuiz.id, reused: true };
         }
       }
 
@@ -107,7 +129,10 @@ export const quizCreationService = {
 
       if (quizError) {
         console.error('Error saving quiz to Supabase:', quizError);
-        return { quizId: '', reused: false, error: 'Failed to save quiz to server. Please try again.' };
+        performanceTracker.endMark('quiz_generation');
+        const error = 'Failed to save quiz to server. Please try again.';
+        telemetry.emit('quiz_generation_failed', { reason: error, filterIntersection: filters });
+        return { quizId: '', reused: false, error };
       }
 
       // 5. Cloud Persistence (bridge table mappings)
@@ -122,15 +147,37 @@ export const quizCreationService = {
 
       if (bridgeError) {
         console.error('Error saving bridge data:', bridgeError);
-        return { quizId: '', reused: false, error: 'Failed to save quiz questions to server. Please try again.' };
+        performanceTracker.endMark('quiz_generation');
+        const error = 'Failed to save quiz questions to server. Please try again.';
+        telemetry.emit('quiz_generation_failed', { reason: error, filterIntersection: filters });
+        return { quizId: '', reused: false, error };
       }
 
       queryClient.invalidateQueries({ queryKey: ['latest-paused-quiz'] });
       queryClient.invalidateQueries({ queryKey: ['saved-quizzes'] });
+
+      const durationMs = Math.round(
+        performanceTracker.endMark('quiz_generation', PERF_BUDGETS.QUIZ_GENERATION, {
+          mode,
+          count: questions.length,
+          reused: false,
+        })
+      );
+      telemetry.emit('quiz_generated', {
+        examId: filters.examName?.[0],
+        mode,
+        count: questions.length,
+        durationMs,
+        reusedSession: false,
+      });
+
       return { quizId: newQuiz.id, reused: false };
     } catch (err: any) {
       console.error("Failed to create quiz in service:", err);
-      return { quizId: '', reused: false, error: err.message || 'An unexpected error occurred.' };
+      performanceTracker.endMark('quiz_generation');
+      const errorMsg = err.message || 'An unexpected error occurred.';
+      telemetry.emit('quiz_generation_failed', { reason: errorMsg, filterIntersection: filters });
+      return { quizId: '', reused: false, error: errorMsg };
     }
   }
 };
