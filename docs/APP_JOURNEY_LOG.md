@@ -26,6 +26,31 @@ This document is the single source of truth for the evolution of the MindFlow ap
 
 ## 🚀 App Journey Changelog
 
+## [v1.0.312] - 06 November 2026, 11:58 AM IST
+
+### Executive Summary
+Implemented Phase 5A of the Constitution Implementation Plan: Intelligence Layer (Vulnerability Engine & Ambient AI Study Coach). Introduced `useVulnerabilityEngine` for local 0ms offline mistake & topic vulnerability aggregation scoped to the active target exam, injected the non-disruptive `AIPrescriptionCard` on the Dashboard, added one-tap remedial and diagnostic drill launches, and added diagnostic telemetry.
+
+### ✨ Features Added
+- **Algorithmic Vulnerability & Weakness Engine (`src/features/ai/hooks/useVulnerabilityEngine.ts`)**:
+  - Dynamically scopes mistake and error history to the user's active canonical exam (`useExamContextStore`).
+  - Aggregates errors by subject and topic, weighting repeat and critical mistakes to identify the top vulnerable area.
+  - Implements offline-first fallback: seamlessly aggregates from local IndexedDB `saved_quizzes` if remote mastery sync is unavailable.
+  - Emits `vulnerability_diagnosed` and `ai_drill_launched` diagnostic telemetry events.
+- **Ambient AI Study Prescription Card (`src/features/ai/components/AIPrescriptionCard.tsx`)**:
+  - Embedded seamlessly on `DashboardPage.tsx` directly beneath the `ExamQuickAccessStrip` (Constitution Section 10).
+  - Automatically updates its pedagogical diagnosis in real-time whenever the user switches their active target exam.
+  - Provides a 1-tap "Start Targeted Drill" (or "Start Diagnostic Drill") button that directly initiates a focused 10-Q learning session.
+  - Displays a contextual "Review Mistakes" shortcut with badge counter when mistakes exist for the active exam.
+- **Diagnostic Baseline Mode (Constitution Section 7 Zero Dead Ends)**:
+  - If a user has 0 recorded mistakes for a newly selected exam, provides an intelligent diagnostic invitation to establish their baseline via PYQ drill, eliminating blank empty states.
+
+### ⚡ Performance & Refactoring
+- **Exam Matching Prefix Support (`src/features/dashboard/constants/examRegistry.ts`)**:
+  - Added `matchPrefix: 'SSC CGL'` to canonical exam definitions to reliably associate all multi-tier question variants.
+- **Vitest Path Resolution (`vitest.config.ts`)**:
+  - Added `@` alias configuration resolving to `./src` for test execution parity with Vite bundler.
+
 ## [v1.0.311] - 06 November 2026, 11:05 AM IST
 
 ### Executive Summary

@@ -9,9 +9,10 @@ import { useQuizContext } from '@/features/quiz/context/QuizContext';
 import { db } from '@/lib/db';
 import { isNativeApp } from "@/utils/platform";
 import { ROUTES } from "@/config/routes";
-import { telemetry } from '@/lib/telemetry';
+import { telemetry } from '@/lib/telemetry/index';
 import { performanceTracker, PERF_BUDGETS } from '@/lib/performance/performanceMetrics';
 
+import { AIPrescriptionCard } from "@/features/ai/components/AIPrescriptionCard";
 import {
   DashboardGreeting,
   SubjectStrip,
@@ -245,6 +246,9 @@ export const DashboardPage: React.FC<DashboardProps> = ({ onBackToIntro }) => {
           onSelectExam={handleSelectExam}
           onQuickDrill={handleExamQuickDrill}
         />
+
+        {/* Tier 1.8: AI Study Prescription (Phase 5A Intelligence Layer) */}
+        <AIPrescriptionCard />
 
         {/* Tier 2: GK / GS Subjects */}
         <SubjectStrip

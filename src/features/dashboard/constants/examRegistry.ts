@@ -27,6 +27,7 @@ export const CANONICAL_EXAMS: CanonicalExam[] = [
     borderClass: 'border-blue-200/90 dark:border-blue-800/60',
     textClass: 'text-blue-600 dark:text-blue-400',
     dbExamNames: ['CGL PRE', 'SSC CGL'],
+    matchPrefix: 'SSC CGL',
     isDefaultFeatured: true,
   },
   {
