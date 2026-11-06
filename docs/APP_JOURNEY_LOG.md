@@ -26,6 +26,28 @@ This document is the single source of truth for the evolution of the MindFlow ap
 
 ## 🚀 App Journey Changelog
 
+## [v1.0.308] - 06 November 2026, 09:41 AM IST
+
+### Executive Summary
+Implemented Phase 2 Core UX: codified the 3-Tier Progressive Disclosure system in `QuizConfig.tsx`, established Context-Aware Logical Back Navigation across all views, and aligned hardware back button handling with the MindFlow Constitution (Sections 6.2 & 6.3).
+
+### ✨ Features Added
+- **QuizConfig 3-Tier Progressive Disclosure (`src/features/quiz/components/QuizConfig.tsx`)**:
+  - **Tier 1 (Core Essentials)**: Default open viewport with Active Target Exam banner, mode selector, quick start pills, subject/topic classification, and difficulty selection.
+  - **Tier 2 (PYQ & Examination Scoping)**: Single-tap accordion with dynamic active filter counters (`activeBadge`), encapsulating exam years, exam date shifts, and question format options.
+  - **Tier 3 (Deep Diagnostics & Tags)**: Structured secondary accordion for granular tags and metadata search without cognitive overload.
+- **Enhanced Accordion Component (`src/features/quiz/components/ui/Accordion.tsx`)**:
+  - Added support for semantic subtitles, active count badges (`activeBadge`), and Constitution Section 9 atmospheric styling.
+
+### ⚡ Performance & Refactoring
+- **Context-Aware Logical Back Navigation Engine (`src/features/quiz/components/QuizConfig.tsx`, `src/routes/AppRoutes.tsx`)**:
+  - Replaced legacy hardcoded redirects (`ROUTES.MCQS`) with intelligent hierarchical back resolution checking `location.state.returnTo`, `location.state.from`, active subject context, and defaulting safely to `/dashboard`.
+  - Propagated contextual `returnTo` and `from` state in `DashboardPage.tsx`, `SubjectHubPage.tsx`, and `SubjectTopicsPage.tsx`.
+- **Session Pause Exit Alignment (`src/features/quiz/learning/LearningSession.tsx`, `src/routes/AppRoutes.tsx`)**:
+  - Replaced legacy redirect to `/quiz/library` on session pause with return to `/dashboard`, surfacing the active paused session immediately on the Dashboard "Resume Quiz" tile.
+- **Android Hardware Back Alignment (`src/hooks/useHardwareBackButton.ts`)**:
+  - Updated level 2 nested routing to redirect `/quiz/config`, `/quiz/create`, and `/quiz/library` to `/dashboard` instead of legacy `/mcqs`.
+
 ## [v1.0.307] - 06 November 2026, 09:16 AM IST
 
 ### Executive Summary

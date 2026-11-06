@@ -397,7 +397,6 @@ const handleReattempt = async (quizId: string, mode: string) => {
 
                     <Route path={ROUTES.QUIZ.CONFIG} element={
                         <Suspense fallback={<SynapticLoader />}><QuizConfig
-                            onBack={() => { navTo(ROUTES.MCQS); }}
                             onStart={(questions, filters, mode, quizName) => {
                                 // Note: QuizConfig uses saveQuiz directly and navigates, so this might not be hit, but we pass random UUID just in case
                                 startQuiz(questions, filters || ({} as any), mode, crypto.randomUUID(), quizName);
@@ -447,7 +446,7 @@ const handleReattempt = async (quizId: string, mode: string) => {
                             onPause={(timeLeft) => {
                                 syncGlobalTimer(timeLeft);
                                 pauseQuiz();
-                                setTimeout(() => navTo(`${ROUTES.QUIZ.LIBRARY}?tab=created`), 100);
+                                setTimeout(() => navTo('/dashboard'), 100);
                             }}
                             onComplete={async (results: any) => await handleQuizComplete(results, state.quizId!)}
                         />

@@ -116,6 +116,8 @@ export const SubjectTopicsPage: React.FC = () => {
 
     navigate(ROUTES.QUIZ.CONFIG, {
       state: {
+        returnTo: ROUTES.SUBJECT_TOPICS.view(decodedSubject),
+        from: ROUTES.SUBJECT_TOPICS.view(decodedSubject),
         initialFilters: {
           subject: [decodedSubject],
           topic: [topic],

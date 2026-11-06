@@ -191,7 +191,7 @@ export const LearningSession: React.FC<LearningSessionProps> = ({
         // Small delay to allow the immediate DB save in useQuiz to trigger before we navigate away
         // and potentially load the old state from DB in SavedQuizzes
         setTimeout(() => {
-            navigate('/quiz/library?tab=created');
+            navigate('/dashboard');
         }, 100);
     };
 

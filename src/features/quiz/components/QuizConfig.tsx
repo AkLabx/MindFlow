@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
+import { ROUTES } from '@/config/routes';
 import {
   ArrowLeft,
   Layers,
@@ -52,7 +53,7 @@ import { performanceTracker, PERF_BUDGETS } from '@/lib/performance';
 
 interface QuizConfigProps {
   onStart: (questions: Question[], filters?: InitialFilters, mode?: QuizMode, quizName?: string) => void;
-  onBack: () => void;
+  onBack?: () => void;
 }
 
 const emptyFilters: InitialFilters = {
@@ -83,7 +84,28 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
 
   const locState = location.state as any;
   const isFixedSubjectContext = locState?.fixedSubjectContext === true;
-  const fixedSubject = isFixedSubjectContext ? locState?.initialFilters?.subject?.[0] : null;
+    const fixedSubject = isFixedSubjectContext ? locState?.initialFilters?.subject?.[0] : null;
+
+  const handleBack = useCallback(() => {
+    if (onBack) {
+      onBack();
+      return;
+    }
+    const st = location.state as any;
+    if (st?.returnTo) {
+      navigate(st.returnTo);
+      return;
+    }
+    if (st?.from) {
+      navigate(st.from);
+      return;
+    }
+    if (isFixedSubjectContext && fixedSubject) {
+      navigate(ROUTES.SUBJECT.view(fixedSubject));
+      return;
+    }
+    navigate(ROUTES.DASHBOARD || '/dashboard');
+  }, [onBack, location.state, isFixedSubjectContext, fixedSubject, navigate]);
 
   useEffect(() => {
     const locState = location.state as any;
@@ -124,9 +146,18 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
     return null;
   }, [examQueryParam, locState?.canonicalExamId, filters.examName]);
 
-  const handleClearExamContext = useCallback(() => {
+    const handleClearExamContext = useCallback(() => {
     setFilters((prev) => ({ ...prev, examName: [] }));
   }, []);
+
+  const tier2ActiveCount = useMemo(() => {
+    return (
+      filters.examYear.length +
+      filters.examDateShift.length +
+      filters.questionType.length +
+      (activeExamInfo ? 0 : filters.examName.length)
+    );
+  }, [filters.examYear, filters.examDateShift, filters.questionType, filters.examName, activeExamInfo]);
 
   const { pinnedExamIds } = useExamContextStore();
 
@@ -401,7 +432,7 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
       {/* Header */}
       <div className="px-4 md:px-6 pt-4 md:pt-6 pb-4 border-b border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-800 z-10 md:relative flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <button onClick={onBack} className="flex items-center justify-center p-2 -ml-2 text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:text-indigo-400 transition-colors rounded-full hover:bg-indigo-50 dark:hover:bg-indigo-900/30">
+          <button onClick={handleBack} className="flex items-center justify-center p-2 -ml-2 text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:text-indigo-400 transition-colors rounded-full hover:bg-indigo-50 dark:hover:bg-indigo-900/30">
             <ArrowLeft className="w-5 h-5" />
           </button>
           <h1 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white m-0 leading-none tracking-tight">
@@ -602,22 +633,18 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
               counts={filterCounts.difficulty || {}}
               hideZeroCount
             />
-            <SegmentedControl
-              label="Question Type"
-              tooltip="Filter by question format (e.g., Multiple Choice)"
-              options={['MCQ']}
-              selectedOptions={filters.questionType}
-              onOptionToggle={(opt) => handleSegmentToggle('questionType', opt)}
-              counts={filterCounts.questionType || {}}
-              hideZeroCount
-            />
           </FilterGroup>
         </div>
 
         {mode !== 'god' && (
           <>
-            {/* Progressive Disclosure: Advanced Filters Accordion */}
-            <Accordion title="Advanced Filters">
+            {/* Progressive Disclosure Tier 2: PYQ & Examination Scoping */}
+            <Accordion
+              title="PYQ & Examination Scoping"
+              subtitle="Filter by year, shift, and question format"
+              activeBadge={tier2ActiveCount > 0 ? tier2ActiveCount : null}
+              className="mt-6"
+            >
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-0 md:gap-6">
                 <FilterGroup title="Source" icon={<FileText className="w-5 h-5" />}>
                   {/* Deduplicate controls: Hide raw exam selector capsules when active exam context is set */}
@@ -731,6 +758,28 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
                   )}
                 </FilterGroup>
 
+                <FilterGroup title="Format & Question Type" icon={<Settings className="w-5 h-5" />}>
+                  <SegmentedControl
+                    label="Question Type"
+                    tooltip="Filter by question format (e.g., Multiple Choice)"
+                    options={['MCQ']}
+                    selectedOptions={filters.questionType}
+                    onOptionToggle={(opt) => handleSegmentToggle('questionType', opt)}
+                    counts={filterCounts.questionType || {}}
+                    hideZeroCount
+                  />
+                </FilterGroup>
+              </div>
+            </Accordion>
+
+            {/* Progressive Disclosure Tier 3: Deep Diagnostics & Tags */}
+            <Accordion
+              title="Deep Diagnostics & Tags"
+              subtitle="Filter by PYQ tags and granular question metadata"
+              activeBadge={filters.tags.length > 0 ? filters.tags.length : null}
+              className="mt-4 mb-24"
+            >
+              <div className="max-w-xl">
                 <FilterGroup title="Tags" icon={<Tag className="w-5 h-5" />}>
                   <MultiSelectDropdown
                     label="Search Tags"

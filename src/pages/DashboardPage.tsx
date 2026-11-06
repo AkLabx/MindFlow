@@ -159,6 +159,8 @@ export const DashboardPage: React.FC<DashboardProps> = ({ onBackToIntro }) => {
   const handleSelectExam = (exam: CanonicalExam) => {
     navigate(`/quiz/config?exam=${exam.id}`, {
       state: {
+        returnTo: "/dashboard",
+        from: "/dashboard",
         initialFilters: {
           subject: [],
           topic: [],

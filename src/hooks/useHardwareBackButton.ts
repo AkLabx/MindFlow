@@ -113,7 +113,7 @@ export const useHardwareBackButton = () => {
                          currentPath.startsWith('/quiz/session/') ||
                          currentPath.startsWith('/quiz/results/') ||
                          currentPath.startsWith('/quiz/config')) {
-                    targetPath = '/mcqs';
+                    targetPath = '/dashboard';
                 }
                 else if (currentPath.startsWith('/idioms') ||
                          currentPath.startsWith('/synonyms') ||

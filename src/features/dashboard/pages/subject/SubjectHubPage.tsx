@@ -51,6 +51,8 @@ export const SubjectHubPage: React.FC = () => {
     const examNames = activeExam ? activeExam.dbExamNames : [];
     navigate(ROUTES.QUIZ.CONFIG, {
       state: {
+        returnTo: ROUTES.SUBJECT.view(decodedSubject),
+        from: ROUTES.SUBJECT.view(decodedSubject),
         initialFilters: {
           subject: [decodedSubject],
           topic: [],
