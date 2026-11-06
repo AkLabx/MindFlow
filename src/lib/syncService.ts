@@ -194,7 +194,7 @@ export const syncService = {
   /**
    * Pushes a single bookmark to Supabase.
    */
-  pushBookmark: async (userId: string, question: Question) => {
+  pushBookmark: async (userId: string, question: Question, throwOnError = false) => {
     const { error } = await supabase.from("user_bookmarks").upsert(
       {
         user_id: userId,
@@ -203,7 +203,10 @@ export const syncService = {
       { onConflict: "user_id, question_id" },
     );
 
-    if (error) console.error("Error pushing bookmark:", error);
+    if (error) {
+      console.error("Error pushing bookmark:", error);
+      if (throwOnError) throw error;
+    }
   },
 
   /**
@@ -217,6 +220,7 @@ export const syncService = {
   pushSynonymInteraction: async (
     userId: string,
     interaction: SynonymInteraction,
+    throwOnError = false,
   ) => {
     const { error } = await supabase.from("user_synonym_interactions").upsert(
       {
@@ -236,7 +240,10 @@ export const syncService = {
       { onConflict: "user_id, word_id" },
     );
 
-    if (error) console.error("Error pushing synonym interaction:", error);
+    if (error) {
+      console.error("Error pushing synonym interaction:", error);
+      if (throwOnError) throw error;
+    }
   },
 
   /**
@@ -276,7 +283,7 @@ export const syncService = {
     if (error) console.error("Error pushing Idiom interaction:", error);
   },
 
-  removeBookmark: async (userId: string, questionId: string, v1Id?: string) => {
+  removeBookmark: async (userId: string, questionId: string, v1Id?: string, throwOnError = false) => {
     let query = supabase.from("user_bookmarks").delete().eq("user_id", userId);
     if (v1Id && v1Id !== questionId) {
       query = query.in("question_id", [questionId, v1Id]);
@@ -285,7 +292,10 @@ export const syncService = {
     }
     const { error } = await query;
 
-    if (error) console.error("Error removing bookmark from Supabase:", error);
+    if (error) {
+      console.error("Error removing bookmark from Supabase:", error);
+      if (throwOnError) throw error;
+    }
   },
 
   /**
@@ -323,17 +333,18 @@ export const syncService = {
         switch (event.type) {
           case "flashcard_reviewed":
             // The payload is assumed to be a SynonymInteraction or similar
-            await syncService.pushSynonymInteraction(userId, event.payload);
+            await syncService.pushSynonymInteraction(userId, event.payload, true);
             break;
 
           case 'bookmark_toggled':
             if (event.payload.isBookmarked) {
-              await syncService.pushBookmark(userId, event.payload.question);
+              await syncService.pushBookmark(userId, event.payload.question, true);
             } else {
               await syncService.removeBookmark(
                 userId,
                 event.payload.questionId,
                 event.payload.v1Id,
+                true
               );
             }
             break;

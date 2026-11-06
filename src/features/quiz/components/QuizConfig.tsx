@@ -222,18 +222,44 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
   const examNamesSZ = useMemo(() => allExamNames.filter(name => /^[s-zS-Z]/.test(name)), [allExamNames]);
   const examNamesOther = useMemo(() => allExamNames.filter(name => !/^[a-zA-Z]/.test(name)), [allExamNames]);
   const scopedMetadataForSource = useMemo(() => {
+    let result = metadata;
     if (filters.examName && filters.examName.length > 0) {
-      return metadata.filter((q) => {
+      result = result.filter((q) => {
         const exam = q.examName ?? q.sourceInfo?.examName;
         return exam && filters.examName.includes(exam);
       });
     }
-    return metadata;
-  }, [metadata, filters.examName]);
+    if (filters.subject && filters.subject.length > 0) {
+      result = result.filter((q) => {
+        const sub = q.classification?.subject;
+        return sub && filters.subject.includes(sub);
+      });
+    }
+    return result;
+  }, [metadata, filters.examName, filters.subject]);
 
-  const allExamYears = useMemo(() => Array.from(new Set(scopedMetadataForSource.map(q => String(q.examYear ?? q.sourceInfo?.examYear)))).filter(Boolean).sort(), [scopedMetadataForSource]);
+  const allExamYears = useMemo(() => Array.from(new Set(scopedMetadataForSource.map(q => String(q.examYear ?? q.sourceInfo?.examYear)))).filter(Boolean).sort().reverse(), [scopedMetadataForSource]);
   const allExamShifts = useMemo(() => Array.from(new Set(scopedMetadataForSource.map(q => (q.examDateShift ?? q.sourceInfo?.examDateShift) || ''))).filter(Boolean).sort(), [scopedMetadataForSource]);
-  const allTags = useMemo(() => Array.from(new Set(metadata.flatMap(q => q.tags))).filter(Boolean).sort(), [metadata]);
+  const allTags = useMemo(() => Array.from(new Set(scopedMetadataForSource.flatMap(q => q.tags || []))).filter(Boolean).sort(), [scopedMetadataForSource]);
+
+  // Smart Filter Pruning: Discard stale year or shift selections that have 0 questions under newly selected exam/subject
+  useEffect(() => {
+    if (filters.examYear.length > 0 && allExamYears.length > 0) {
+      const validYears = filters.examYear.filter(y => allExamYears.includes(y));
+      if (validYears.length !== filters.examYear.length) {
+        setFilters(prev => ({ ...prev, examYear: validYears }));
+      }
+    }
+  }, [allExamYears, filters.examYear]);
+
+  useEffect(() => {
+    if (filters.examDateShift.length > 0 && allExamShifts.length > 0) {
+      const validShifts = filters.examDateShift.filter(s => allExamShifts.includes(s));
+      if (validShifts.length !== filters.examDateShift.length) {
+        setFilters(prev => ({ ...prev, examDateShift: validShifts }));
+      }
+    }
+  }, [allExamShifts, filters.examDateShift]);
 
   // 5. Final Filtered Metadata Calculation using O(1) Set Intersections
   const filteredMetadata = useMemo(() => {
