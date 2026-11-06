@@ -26,6 +26,25 @@ This document is the single source of truth for the evolution of the MindFlow ap
 
 ## 🚀 App Journey Changelog
 
+## [v1.0.305] - 06 November 2026, 08:35 AM IST
+
+### Executive Summary
+Established Phase 0 Repository Governance: ratified and enshrined the MindFlow Constitution as the supreme architectural and product standard, introduced Architecture Decision Records (ADRs 0001–0004), established the Product Decisions Log, updated AI agent operating instructions, and integrated the mandatory Constitution Compliance Checklist into the engineering lifecycle.
+
+### 🔒 Security & Architecture
+- **Ratification of the MindFlow Constitution (`docs/MINDFLOW_CONSTITUTION.md`)**:
+  - Enshrined the 10 Immutable Product Commandments (One Concept → One Control, Never Ask Twice, Context Preservation, Logical Back Navigation, Offline-First 0ms Hydration, Zero Dead-End Empty States).
+  - Established the Global State Ownership Matrix assigning every piece of application state to a single authoritative store.
+  - Formalized the Unidirectional Data Flow Charter, Core Product Contracts (Quiz Gen, Context Switch, Back Navigation), and Quantitative Performance Budgets.
+- **Architecture Decision Records (ADRs) Framework (`docs/ADR/*`, `docs/PRODUCT_DECISIONS.md`)**:
+  - `ADR-0001`: Exam-First Architecture & Canonical Exam Registry.
+  - `ADR-0002`: Logical Back Navigation & Direct Session Launch.
+  - `ADR-0003`: Single State Ownership & Protected Context Clears.
+  - `ADR-0004`: Offline-First Zero-Latency Hydration via IndexedDB.
+- **AI Agent Directives & Compliance Checklist (`AGENTS.md`, `docs/AI_MEMORY_CONTEXT.md`)**:
+  - Elevated the Constitution to priority level #2 (directly below explicit user prompt) in the Decision Precedence Hierarchy.
+  - Embedded the Constitution Compliance Checklist for all future Pull Requests and implementation verification passes.
+
 ## [v1.0.304] - 06 November 2026, 03:35 AM IST
 
 ### Executive Summary
