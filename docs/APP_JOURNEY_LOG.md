@@ -26,6 +26,29 @@ This document is the single source of truth for the evolution of the MindFlow ap
 
 ## 🚀 App Journey Changelog
 
+## [v1.0.310] - 06 November 2026, 10:29 AM IST
+
+### Executive Summary
+Implemented Phase 3B of the Constitution Implementation Plan: Platform Consistency across Bookmarks, Mistake Notebook, Dashboard Greeting, and Post-Quiz Review Scorecard. Preserved target exam context across memory modules, added actionable Section 7 recovery empty states, and surfaced canonical exam scoping badges.
+
+### ✨ Features Added
+- **Bookmarks Page Target Exam Preservation & Empty Recovery (`src/pages/BookmarksPage.tsx`)**:
+  - Automatically scopes bookmarks to `activeExamId` when questions exist for the active exam, preserving aspirant context on launch.
+  - Implemented Constitution Section 7 compliant actionable recovery empty state when filter combinations yield zero bookmarks, providing direct one-tap recovery actions (`View All Exams`, `Clear Subject Filter`, `Start Practice Quiz`).
+  - Context-aware logical back navigation using `location.state.returnTo` / `from` with safe fallback to `/dashboard`.
+- **Mistake Notebook Target Exam Scoping & Recovery (`src/features/mistakes/pages/MistakeNotebookPage.tsx`)**:
+  - Automatically initializes exam filter to `activeExamId` when mistakes exist for the user's active exam.
+  - Added comprehensive recovery empty state offering contextual buttons to clear exam filters, clear subject filters, or reset all filters.
+  - Aligned hierarchical back navigation with `handleBack` routing.
+- **Dashboard Paused Quiz Canonical Exam Scoping (`src/features/dashboard/components/DashboardGreeting.tsx`)**:
+  - Added canonical exam shortcode badge (`🎯 SSC CGL`, `🎯 BPSC`, etc.) at the top-right corner of the active "Resume Quiz" tile.
+  - Prefixed paused quiz title with the matched canonical exam shortCode to provide instant contextual recognition.
+- **Review Flow Exam Scoping Badge (`src/features/quiz/components/QuizResultBase.tsx`)**:
+  - Surfaced matched canonical exam badge directly above the quiz title in the main scorecard hero section.
+
+### ⚡ Performance & Refactoring
+- Preserved single source of truth across all 4 modules (`useExamContextStore`), ensuring 0ms offline-first in-memory filtering without extra database roundtrips.
+
 ## [v1.0.309] - 06 November 2026, 10:05 AM IST
 
 ### Executive Summary
