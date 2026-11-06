@@ -26,6 +26,24 @@ This document is the single source of truth for the evolution of the MindFlow ap
 
 ## 🚀 App Journey Changelog
 
+## [v1.0.314] - 06 November 2026, 12:44 PM IST
+
+### Executive Summary
+Implemented Phase 5C of the Constitution Implementation Plan: Intelligence Layer (Predictive Exam Readiness & Spaced Repetition Revision Planner). Introduced the `useExamReadiness` engine calculating coverage, accuracy, and readiness scores scoped to the active target exam, activated the `AIStudyPlannerModal` on `AIHome` with Ebbinghaus spaced retention schedules, and surfaced the predictive readiness index directly on the Dashboard `UserProgressCard`.
+
+### ✨ Features Added
+- **Predictive Exam Readiness Engine (`src/features/ai/hooks/useExamReadiness.ts`)**:
+  - Dynamically calculates readiness percentage (0–100%) against historical syllabus requirements for the user's active canonical exam.
+  - Weights syllabus coverage (50%), question accuracy (50%), and subtracts deductions for unresolved critical mistakes.
+  - Classifies readiness into actionable tiers (`Exam Ready`, `On Track`, `Developing`, `Foundational`) with tailored study guidance.
+  - Emits `readiness_computed` and `revision_plan_generated` diagnostic telemetry events.
+- **Spaced Repetition Revision Planner Modal (`src/features/ai/components/AIStudyPlannerModal.tsx` & `src/features/ai/AIHome.tsx`)**:
+  - Activated the fourth and final card ("AI Study Planner") in `AIHome` with an interactive, rich revision modal.
+  - Analyzes attempted topics against the Ebbinghaus forgetting curve, flagging topics unpracticed for $>3$ days or having sub-optimal accuracy.
+  - Provides a 1-tap "Drill" button per topic or an "All Due Revisions" sprint launcher with 0ms direct execution.
+- **Dashboard Predictive Readiness Integration (`src/features/dashboard/components/UserProgressCard.tsx`)**:
+  - Embedded a dynamic target exam readiness pill directly on the Dashboard `UserProgressCard` (e.g. `🎯 SSC CGL 68% Ready`), connecting high-level progress with active exam preparation.
+
 ## [v1.0.313] - 06 November 2026, 12:20 PM IST
 
 ### Executive Summary

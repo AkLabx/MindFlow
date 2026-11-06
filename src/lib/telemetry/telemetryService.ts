@@ -16,6 +16,8 @@ export interface TelemetryPayloads {
   offline_sync_completed: { recordsSynced: number; durationMs: number };
   vulnerability_diagnosed: { examId: string; primaryTopic: string; errorCount: number; isDiagnostic: boolean };
   ai_drill_launched: { examId: string; topic: string; mode: string; isDiagnostic: boolean };
+  readiness_computed: { examId: string; readinessScore: number; coveragePct: number; tier: string };
+  revision_plan_generated: { examId: string; topicsDueCount: number };
 }
 
 export type TelemetryEventName = keyof TelemetryPayloads;

@@ -1,5 +1,6 @@
 import React from 'react';
 import { BarChart3 } from 'lucide-react';
+import { useExamReadiness } from '../../ai/hooks/useExamReadiness';
 
 interface UserProgressCardProps {
   averageScore: number;
@@ -16,6 +17,7 @@ export const UserProgressCard: React.FC<UserProgressCardProps> = ({
   totalTimeSpentFormatted,
   onDetailsClick,
 }) => {
+  const { readinessScore, activeExam } = useExamReadiness();
   const radius = 32;
   const circumference = 2 * Math.PI * radius;
   const strokeDashoffset = circumference - (averageScore / 100) * circumference;
@@ -33,7 +35,12 @@ export const UserProgressCard: React.FC<UserProgressCardProps> = ({
         className="absolute inset-0 rounded-2xl bg-gradient-to-br from-indigo-500/10 via-blue-500/5 to-transparent pointer-events-none opacity-80"
       />
       <div className="relative z-10 flex items-center justify-between mb-2">
-        <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">Your Progress</h3>
+        <div className="flex items-center gap-2">
+          <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">Your Progress</h3>
+          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200/80 dark:border-indigo-800/80">
+            {activeExam.shortCode} {readinessScore > 0 ? `${readinessScore}% Ready` : 'Foundational'}
+          </span>
+        </div>
         <span className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 flex items-center gap-1 hover:underline">
           Details <BarChart3 className="w-3.5 h-3.5" />
         </span>
