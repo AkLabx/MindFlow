@@ -47,9 +47,11 @@ describe('performanceMetrics', () => {
     const history = telemetry.getHistory();
     const violation = history.find(e => e.name === 'perf_budget_exceeded');
     expect(violation).toBeDefined();
-    expect(violation?.payload.metric).toBe('test_violation');
-    expect(violation?.payload.budgetMs).toBe(10);
-    expect(violation?.payload.actualMs).toBe(50);
+    if (violation && violation.name === 'perf_budget_exceeded') {
+      expect(violation.payload.metric).toBe('test_violation');
+      expect(violation.payload.budgetMs).toBe(10);
+      expect(violation.payload.actualMs).toBe(50);
+    }
 
     nowSpy.mockRestore();
   });

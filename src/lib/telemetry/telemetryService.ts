@@ -18,11 +18,13 @@ export interface TelemetryPayloads {
 
 export type TelemetryEventName = keyof TelemetryPayloads;
 
-export interface TelemetryRecord<K extends TelemetryEventName = TelemetryEventName> {
-  name: K;
-  payload: TelemetryPayloads[K];
-  timestamp: number;
-}
+export type TelemetryRecord = {
+  [K in TelemetryEventName]: {
+    name: K;
+    payload: TelemetryPayloads[K];
+    timestamp: number;
+  };
+}[TelemetryEventName];
 
 class TelemetryService {
   private buffer: TelemetryRecord[] = [];
@@ -32,14 +34,14 @@ class TelemetryService {
    * Emits a privacy-first diagnostic event.
    */
   emit<K extends TelemetryEventName>(name: K, payload: TelemetryPayloads[K]): void {
-    const record: TelemetryRecord<K> = {
+    const record = {
       name,
       payload: this.sanitizePayload(payload),
       timestamp: Date.now(),
-    };
+    } as TelemetryRecord;
 
     // Maintain in-memory ring buffer for runtime diagnostics
-    this.buffer.push(record as TelemetryRecord);
+    this.buffer.push(record);
     if (this.buffer.length > this.maxBufferSize) {
       this.buffer.shift();
     }

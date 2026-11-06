@@ -26,6 +26,18 @@ This document is the single source of truth for the evolution of the MindFlow ap
 
 ## 🚀 App Journey Changelog
 
+## [v1.0.307] - 06 November 2026, 09:16 AM IST
+
+### Executive Summary
+Fixed CI build pipeline failures by converting `TelemetryRecord` into a strict discriminated union and adding type narrowing in unit test suites for `telemetryService` and `performanceMetrics`.
+
+### 🐛 Bug Fixes
+- **TypeScript Discriminated Union for Telemetry (`src/lib/telemetry/`)**:
+  - Converted `TelemetryRecord` from generic payload lookup to a distributed mapped discriminated union on `name: K`.
+  - Resolved `TS2339: Property does not exist on type union` compiler failures encountered during CI `npm run build` (`tsc && vite build`).
+  - Added type-guard narrowing in `telemetryService.test.ts` and `performanceMetrics.test.ts`.
+  - Re-verified with local `npm run build` and `npx vitest --run` (all 10 tests green).
+
 ## [v1.0.306] - 06 November 2026, 09:00 AM IST
 
 ### Executive Summary
