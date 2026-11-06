@@ -8,10 +8,32 @@ Welcome, Autonomous AI Agent! This file contains the prioritized architectural, 
 
 When conflicting instructions or ambiguous choices arise, strictly follow this order of priority:
 1. **Explicit User Prompt** (The user's direct instruction in chat).
-2. **Repository Guardrails & Safety** (This file and Section 2 Critical Invariants).
-3. **Existing Codebase Conventions & Feature-Sliced Architecture** (`src/features/*`).
-4. **Project Documentation** (`docs/AI_MEMORY_CONTEXT.md` and `docs/APP_JOURNEY_LOG.md`).
-5. **General Best Practices** (Industry standards).
+2. **MindFlow Product Constitution** (`docs/MINDFLOW_CONSTITUTION.md` — Supreme product, UX & state standard).
+3. **Repository Guardrails & Safety** (This file and Section 2 Critical Invariants).
+4. **Architecture Decision Records & Design Logs** (`docs/PRODUCT_DECISIONS.md`, `docs/ADR/*`).
+5. **Existing Codebase Conventions & Feature-Sliced Architecture** (`src/features/*`).
+6. **Project Documentation** (`docs/AI_MEMORY_CONTEXT.md` and `docs/APP_JOURNEY_LOG.md`).
+7. **General Best Practices** (Industry standards).
+
+---
+
+## 0.1 MindFlow Product Constitution & Compliance Checklist
+
+All autonomous agents, pair programmers, and contributors must read and strictly adhere to **`docs/MINDFLOW_CONSTITUTION.md`** before proposing, drafting, or implementing any architectural, state, navigation, or UX modifications.
+
+Every Pull Request and implementation verification report MUST verify against the **Constitution Compliance Checklist**:
+
+### Constitution Compliance Checklist
+- [ ] **One Concept → One Control → One Location:** Single authoritative controller for every state dimension; zero duplicate controls.
+- [ ] **Context Preserved:** Downstream screens inherit active exam, subject, and mode without redundant prompts or resetting on clear.
+- [ ] **Logical Back Respected:** In-app `<ArrowLeft />` returns to hierarchical logical parent; Android HW back follows topmost interceptor.
+- [ ] **Offline-First:** Immediate 0ms local render from IndexedDB; network acts purely as background synchronization.
+- [ ] **State Owner Defined:** Every new or modified state slice is registered to exactly one owning store in the State Ownership Matrix.
+- [ ] **Unidirectional Data Flow:** No component-to-component shadow state or two-way sync loops.
+- [ ] **Performance Budget Respected:** Verifies against Section 8 budgets (Dashboard FCP <1s, filter calculation <16ms, quiz gen <300ms).
+- [ ] **Accessibility Reviewed:** Minimum 44x44px touch targets, WCAG 2.1 AA contrast ratio, screen-reader labels.
+- [ ] **Telemetry Events Added:** Meaningful diagnostic events emitted without PII (`exam_selected`, `quiz_generated`, etc.).
+- [ ] **Empty & Error States Implemented:** Actionable diagnostics and one-tap recovery buttons provided; zero dead ends.
 
 ---
 

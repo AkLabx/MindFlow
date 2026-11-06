@@ -1,6 +1,9 @@
 # MindFlow Memory Context & Repository Guidelines
 
-This document serves as a complete backup of the AI Assistant's memory context, rules, technical expectations, and repository metadata (including `AGENTS.md` and `README.md` contents) for the MindFlow project.
+> [!IMPORTANT]
+> **Supreme Governance Authority:** All architectural, state management, and UX design decisions in MindFlow are permanently governed by the **[MindFlow Constitution](./MINDFLOW_CONSTITUTION.md)** and the **[Product Decisions Log](./PRODUCT_DECISIONS.md)**. This document serves as an operational reference manual supporting the Constitution.
+
+This document serves as an operational reference of the AI Assistant's memory context, technical expectations, and repository metadata for the MindFlow project.
 
 ## AI Assistant Memory Context & Rules
 
