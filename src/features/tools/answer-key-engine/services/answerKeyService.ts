@@ -1,6 +1,6 @@
 import { supabase } from '@/lib/supabase';
 import { CandidateCategory, CandidateRankings, ExamConfig, ParsedExamResult } from '../types';
-import { TcsIonAdapter } from '../adapters/ExamParserAdapter';
+import { TcsIonAdapter, EduquityAdapter } from '../adapters/ExamParserAdapter';
 
 export const SUPPORTED_EXAMS: ExamConfig[] = [
   {
@@ -38,7 +38,8 @@ export const SUPPORTED_EXAMS: ExamConfig[] = [
 const LOCAL_STORAGE_CACHE_KEY = 'mindflow_last_exam_scorecard';
 
 export class AnswerKeyService {
-  private static adapter = new TcsIonAdapter();
+  private static tcsAdapter = new TcsIonAdapter();
+  private static eduquityAdapter = new EduquityAdapter();
 
   /**
    * PII Protection: Masks roll number (e.g., 2201019284 -> 2201******84)
@@ -70,7 +71,8 @@ export class AnswerKeyService {
     config: ExamConfig,
     category: CandidateCategory = 'UR'
   ): ParsedExamResult {
-    const result = this.adapter.parse(html, config, category);
+    const adapter = this.eduquityAdapter.canParse(html) ? this.eduquityAdapter : this.tcsAdapter;
+    const result = adapter.parse(html, config, category);
     this.cacheScorecardLocally(result);
     return result;
   }
@@ -90,8 +92,13 @@ export class AnswerKeyService {
       throw new Error('Please enter a valid HTTP or HTTPS answer key link.');
     }
 
-    if (!cleanUrl.includes('digialm.com') && !cleanUrl.includes('ssc.nic.in')) {
-      throw new Error('Only official TCS iON / SSC answer key URLs (*.digialm.com) are supported.');
+    const isAllowedDomain =
+      cleanUrl.includes('digialm.com') ||
+      cleanUrl.includes('ssc.nic.in') ||
+      cleanUrl.includes('cbexams.com');
+
+    if (!isAllowedDomain) {
+      throw new Error('Only official SSC response key URLs (*.digialm.com, *.cbexams.com) are supported.');
     }
 
     const { data: { session } } = await supabase.auth.getSession();

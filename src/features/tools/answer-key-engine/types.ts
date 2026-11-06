@@ -107,3 +107,11 @@ export interface CandidateRankings {
     sample_size: number;
   };
 }
+
+export interface ExamParserAdapter {
+  readonly id: string;
+  readonly name: string;
+  readonly version: string;
+  canParse(html: string, url?: string): boolean;
+  parse(html: string, config: ExamConfig, selectedCategory?: CandidateCategory): ParsedExamResult;
+}
