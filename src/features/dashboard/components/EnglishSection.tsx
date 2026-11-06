@@ -27,8 +27,10 @@ export const EnglishSection: React.FC<EnglishSectionProps> = ({ onOpenHub }) => 
       badge: 'Word Clusters',
       icon: Languages,
       colorClass: 'text-indigo-600 dark:text-indigo-400',
-      bgClass: 'bg-indigo-50 dark:bg-indigo-950/40',
-      borderClass: 'border-indigo-100 dark:border-indigo-900/60',
+      bgClass: 'bg-indigo-50 dark:bg-indigo-950/50',
+      borderClass: 'border-indigo-200/90 dark:border-indigo-800/60',
+      hoverBorder: 'hover:border-indigo-400 dark:hover:border-indigo-600',
+      gradient: 'from-indigo-500/10 via-violet-500/5 to-transparent',
       route: `${ROUTES.ENGLISH}?tab=vocabsynonyms`,
     },
     {
@@ -39,8 +41,10 @@ export const EnglishSection: React.FC<EnglishSectionProps> = ({ onOpenHub }) => 
       badge: 'High-Yield PYQ',
       icon: FileText,
       colorClass: 'text-emerald-600 dark:text-emerald-400',
-      bgClass: 'bg-emerald-50 dark:bg-emerald-950/40',
-      borderClass: 'border-emerald-100 dark:border-emerald-900/60',
+      bgClass: 'bg-emerald-50 dark:bg-emerald-950/50',
+      borderClass: 'border-emerald-200/90 dark:border-emerald-800/60',
+      hoverBorder: 'hover:border-emerald-400 dark:hover:border-emerald-600',
+      gradient: 'from-emerald-500/10 via-teal-500/5 to-transparent',
       route: `${ROUTES.ENGLISH}?tab=vocabows`,
     },
     {
@@ -51,8 +55,10 @@ export const EnglishSection: React.FC<EnglishSectionProps> = ({ onOpenHub }) => 
       badge: 'Repeated PYQ',
       icon: BookOpen,
       colorClass: 'text-amber-600 dark:text-amber-400',
-      bgClass: 'bg-amber-50 dark:bg-amber-950/40',
-      borderClass: 'border-amber-100 dark:border-amber-900/60',
+      bgClass: 'bg-amber-50 dark:bg-amber-950/50',
+      borderClass: 'border-amber-200/90 dark:border-amber-800/60',
+      hoverBorder: 'hover:border-amber-400 dark:hover:border-amber-600',
+      gradient: 'from-amber-500/10 via-orange-500/5 to-transparent',
       route: `${ROUTES.ENGLISH}?tab=vocabidiom`,
     },
   ];
@@ -63,6 +69,9 @@ export const EnglishSection: React.FC<EnglishSectionProps> = ({ onOpenHub }) => 
       label: 'The Imposter Trap',
       icon: ShieldAlert,
       iconColor: 'text-rose-500',
+      bgClass: 'bg-rose-50/80 dark:bg-rose-950/40',
+      borderClass: 'border-rose-200/80 dark:border-rose-800/60 hover:border-rose-300',
+      textClass: 'text-rose-700 dark:text-rose-300',
       route: '/vocab/synonyms/quiz?mode=imposter',
     },
     {
@@ -70,6 +79,9 @@ export const EnglishSection: React.FC<EnglishSectionProps> = ({ onOpenHub }) => 
       label: 'Tap & Connect',
       icon: Link2,
       iconColor: 'text-violet-500',
+      bgClass: 'bg-violet-50/80 dark:bg-violet-950/40',
+      borderClass: 'border-violet-200/80 dark:border-violet-800/60 hover:border-violet-300',
+      textClass: 'text-violet-700 dark:text-violet-300',
       route: '/vocab/synonyms/quiz?mode=connect',
     },
     {
@@ -77,6 +89,9 @@ export const EnglishSection: React.FC<EnglishSectionProps> = ({ onOpenHub }) => 
       label: 'Speed Match',
       icon: Zap,
       iconColor: 'text-amber-500',
+      bgClass: 'bg-amber-50/80 dark:bg-amber-950/40',
+      borderClass: 'border-amber-200/80 dark:border-amber-800/60 hover:border-amber-300',
+      textClass: 'text-amber-700 dark:text-amber-300',
       route: '/vocab/synonyms/quiz?mode=speed',
     },
   ];
@@ -109,23 +124,26 @@ export const EnglishSection: React.FC<EnglishSectionProps> = ({ onOpenHub }) => 
             <button
               key={pillar.id}
               onClick={() => navigate(pillar.route)}
-              className="flex flex-col items-start justify-between p-2.5 sm:p-3.5 text-left rounded-xl bg-slate-50/80 dark:bg-slate-800/60 shadow-xs border border-slate-200/90 dark:border-slate-700/70 hover:bg-white dark:hover:bg-slate-700/80 hover:border-indigo-300 dark:hover:border-indigo-600/70 transition-all group cursor-pointer active:scale-[0.98] min-h-[95px] sm:min-h-[110px]"
+              className={`group relative flex flex-col items-start justify-between p-2.5 sm:p-3.5 text-left rounded-xl bg-white dark:bg-slate-900 shadow-xs hover:shadow-sm border ${pillar.borderClass} ${pillar.hoverBorder} transition-all cursor-pointer active:scale-[0.98] min-h-[95px] sm:min-h-[110px] overflow-hidden`}
             >
-              <div className="flex items-center justify-between w-full">
+              <div
+                className={`absolute inset-0 rounded-xl bg-gradient-to-br ${pillar.gradient} pointer-events-none opacity-80`}
+              />
+              <div className="relative z-10 flex items-center justify-between w-full">
                 <div
                   className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center shrink-0 ${pillar.bgClass} ${pillar.colorClass} border ${pillar.borderClass} group-hover:scale-105 transition-transform`}
                 >
                   <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 </div>
-                <span className="hidden sm:inline-block text-[10px] font-bold text-slate-400 dark:text-slate-500">
+                <span className="hidden sm:inline-block text-[10px] font-bold text-slate-500 dark:text-slate-400">
                   {pillar.badge}
                 </span>
               </div>
-              <div className="flex flex-col min-w-0 w-full mt-2">
+              <div className="relative z-10 flex flex-col min-w-0 w-full mt-2">
                 <span className="font-bold text-[10px] sm:text-xs text-slate-800 dark:text-slate-200 leading-tight line-clamp-2 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
                   {pillar.shortTitle}
                 </span>
-                <span className="text-[9px] sm:text-[11px] text-slate-400 dark:text-slate-500 font-medium truncate mt-0.5">
+                <span className="text-[9px] sm:text-[11px] text-slate-500 dark:text-slate-400 font-medium truncate mt-0.5">
                   {pillar.count}
                 </span>
               </div>
@@ -147,7 +165,7 @@ export const EnglishSection: React.FC<EnglishSectionProps> = ({ onOpenHub }) => 
               <button
                 key={game.id}
                 onClick={() => navigate(game.route)}
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-100/80 dark:bg-slate-800/80 hover:bg-indigo-50 dark:hover:bg-slate-700/90 border border-slate-200/80 dark:border-slate-700/70 hover:border-indigo-300 dark:hover:border-indigo-600/70 text-[11px] font-semibold text-slate-700 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all cursor-pointer active:scale-95"
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full ${game.bgClass} border ${game.borderClass} text-[11px] font-bold ${game.textClass} shadow-2xs transition-all cursor-pointer active:scale-95`}
               >
                 <GameIcon className={`w-3 h-3 ${game.iconColor}`} />
                 <span>{game.label}</span>

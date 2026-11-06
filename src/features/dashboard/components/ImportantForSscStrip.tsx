@@ -36,14 +36,17 @@ export const ImportantForSscStrip: React.FC<ImportantForSscStripProps> = ({ onTo
               const examFilter = activeExam ? { examName: activeExam.dbExamNames } : {};
               onTopicClick({ ...item.filter, ...examFilter });
             }}
-            className="bg-slate-50/80 dark:bg-slate-800/60 rounded-xl p-3 sm:p-3.5 border border-slate-200/90 dark:border-slate-700/70 shadow-xs hover:bg-white dark:hover:bg-slate-700/80 hover:border-indigo-300 dark:hover:border-indigo-600/70 transition-all cursor-pointer min-w-[210px] sm:min-w-0 snap-start active:scale-[0.98] group flex flex-col justify-between"
+            className={`group relative flex flex-col justify-between p-3 sm:p-3.5 rounded-xl bg-white dark:bg-slate-900 border ${item.borderClass} hover:border-indigo-400 dark:hover:border-indigo-600 shadow-xs hover:shadow-sm transition-all cursor-pointer min-w-[210px] sm:min-w-0 snap-start active:scale-[0.98] overflow-hidden`}
           >
-            <div>
+            <div
+              className={`absolute inset-0 rounded-xl bg-gradient-to-br ${item.gradient} pointer-events-none opacity-80`}
+            />
+            <div className="relative z-10">
               <div className="flex items-center justify-between mb-2">
-                <span className={`px-2 py-0.5 rounded-md text-xs font-bold ${item.subjectBg} border border-slate-200/60 dark:border-transparent`}>
+                <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${item.subjectBg}`}>
                   {item.subjectLabel}
                 </span>
-                <span className="text-xs font-semibold text-slate-400">
+                <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
                   {item.qs}
                 </span>
               </div>
@@ -52,11 +55,11 @@ export const ImportantForSscStrip: React.FC<ImportantForSscStripProps> = ({ onTo
               </h3>
             </div>
 
-            <div className="flex items-center justify-between mt-3 pt-1">
-              <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
+            <div className="relative z-10 flex items-center justify-between mt-3 pt-1">
+              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
                 {item.tag}
               </span>
-              <div className="w-7 h-7 rounded-full bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 border border-indigo-200/70 dark:border-indigo-800/60 group-hover:bg-indigo-600 group-hover:text-white group-hover:border-transparent transition-colors flex items-center justify-center">
+              <div className="w-7 h-7 rounded-full bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 border border-indigo-200/70 dark:border-indigo-800/60 shadow-xs group-hover:bg-indigo-600 group-hover:text-white group-hover:border-transparent transition-colors flex items-center justify-center">
                 <Play className="w-3.5 h-3.5 ml-0.5" />
               </div>
             </div>

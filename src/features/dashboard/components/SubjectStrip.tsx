@@ -80,16 +80,21 @@ export const SubjectStrip: React.FC<SubjectStripProps> = ({ onSubjectClick, onVi
             <button
               key={subject.id}
               onClick={() => onSubjectClick(subject.dbKey)}
-              className="flex items-center gap-2.5 sm:gap-3 p-2.5 sm:p-3 text-left rounded-xl bg-slate-50/80 dark:bg-slate-800/60 shadow-xs border border-slate-200/90 dark:border-slate-700/70 hover:bg-white dark:hover:bg-slate-700/80 hover:border-indigo-300 dark:hover:border-indigo-600/70 transition-all group snap-start shrink-0 cursor-pointer active:scale-[0.98]"
+              className={`group relative flex items-center gap-2.5 sm:gap-3 p-2.5 sm:p-3 text-left rounded-xl bg-white dark:bg-slate-900 shadow-xs hover:shadow-sm border ${subject.borderClass} ${subject.hoverBorder} transition-all snap-start shrink-0 cursor-pointer active:scale-[0.98] overflow-hidden`}
             >
-              <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center shrink-0 ${subject.bgClass} ${subject.textClass} border ${subject.colorClass.split(' ').find(c => c.startsWith('border-')) || 'border-transparent'} group-hover:scale-105 transition-transform`}>
+              <div
+                className={`absolute inset-0 rounded-xl bg-gradient-to-br ${subject.gradient} pointer-events-none opacity-80`}
+              />
+              <div
+                className={`relative z-10 w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shrink-0 border ${subject.borderClass} ${subject.bgClass} ${subject.textClass} shadow-xs group-hover:scale-105 transition-transform`}
+              >
                 <Icon className="w-4 h-4 sm:w-5 sm:h-5" strokeWidth={2.2} />
               </div>
-              <div className="flex flex-col min-w-0 flex-1">
-                <span className="font-semibold text-xs sm:text-sm text-slate-800 dark:text-slate-200 truncate group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+              <div className="relative z-10 flex flex-col min-w-0 flex-1">
+                <span className="font-bold text-xs sm:text-sm text-slate-800 dark:text-slate-200 truncate group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
                   {subject.label}
                 </span>
-                <span className="text-[11px] sm:text-xs text-slate-400 dark:text-slate-500 font-medium truncate mt-0.5">
+                <span className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 font-medium truncate mt-0.5">
                   {isLoading ? '...' : `${count}+ Qs`}
                 </span>
               </div>
