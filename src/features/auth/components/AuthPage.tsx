@@ -6,6 +6,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../../../lib/supabase';
 import { BrainCircuit, Loader2 } from 'lucide-react';
+import { BrandLogo, BrandSpinner } from '@/components/brand';
 import { motion, AnimatePresence } from 'framer-motion';
 import { STARTER_DIAGNOSTIC_QUESTIONS } from '@/features/quiz/data/starterDiagnosticQuestions';
 import { triggerHaptic } from '@/lib/haptics';
@@ -165,11 +166,8 @@ const AuthPage: React.FC<AuthPageProps> = () => {
         ></div>
 
        <div className="w-full max-w-md relative z-10 bg-white dark:bg-slate-900/80 p-8 sm:p-10 rounded-3xl shadow-xl border border-slate-200/50 dark:border-slate-800/50 backdrop-blur-xl">
-           <div className="flex justify-center items-center gap-2 mb-8">
-             <div className="bg-indigo-600 p-2 rounded-lg">
-               <BrainCircuit className="h-8 w-8 text-white" />
-             </div>
-             <span className="text-3xl font-black tracking-tight text-gray-900 dark:text-white">MindFlow</span>
+           <div className="flex justify-center items-center mb-8">
+             <BrandLogo variant="wordmark" size="lg" />
            </div>
 
            <div className="text-center mb-8">
@@ -192,7 +190,7 @@ const AuthPage: React.FC<AuthPageProps> = () => {
              >
                {isGoogleLoading ? (
                  <>
-                   <Loader2 className="w-5 h-5 animate-spin relative z-10 text-indigo-600 dark:text-indigo-400" />
+                   <BrandSpinner variant="inline" size="sm" className="relative z-10 text-indigo-600 dark:text-indigo-400" />
                    <span className="relative z-10 font-bold">Signing in with Google...</span>
                  </>
                ) : (
@@ -284,7 +282,7 @@ const AuthPage: React.FC<AuthPageProps> = () => {
                >
                  {isEmailLoading ? (
                    <>
-                     <Loader2 className="w-5 h-5 animate-spin relative z-10" />
+                     <BrandSpinner variant="inline" size="sm" className="relative z-10" />
                      <span className="relative z-10">Signing In...</span>
                    </>
                  ) : (
@@ -456,7 +454,7 @@ const AuthPage: React.FC<AuthPageProps> = () => {
                       >
                         {isGoogleLoading ? (
                           <>
-                            <Loader2 className="w-5 h-5 animate-spin" />
+                            <BrandSpinner variant="inline" size="sm" />
                             <span>Signing in with Google...</span>
                           </>
                         ) : (

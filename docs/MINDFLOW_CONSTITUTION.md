@@ -206,6 +206,25 @@ sequenceDiagram
 
 ---
 
+### 5.4 The Application Launch & First-Impression Contract
+
+The launch sequence of MindFlow must guarantee both cinematic polish and zero cognitive waiting time.
+
+1. **The Parallel Mounting Law (Zero-Waterfall Curtain):**
+   - The application tree (`{children}`) **must always mount underneath** the `<IntroEngine>` overlay curtain.
+   - Route resolution, authentication checks, and page component evaluation must occur concurrently with intro playback ($t = 0\text{ms} \rightarrow 2000\text{ms}$).
+   - The intro must NEVER block child mounting or introduce post-intro loading waterfalls (`SynapticLoader` flashes).
+
+2. **Remote-Decoupled Intro Orchestration:**
+   - Client bundles maintain an offline fallback intro (`BlueIntro`), ensuring instant, crash-free launch even when completely offline.
+   - Remote UI configurations (`public.app_ui_config`) take precedence on subsequent launches without requiring an APK update or app redeployment.
+   - Intro playback is strictly single-session per device (`sessionStorage.getItem('mindflow_intro_played_v2')`) and must provide a bypass/skip touch target.
+
+3. **Native OS Splash Coexistence:**
+   - Respect platform-native launch behaviors (Android 12+ Splash Screen API). Never artificially delay native handoff to the web engine beyond genuine asset preparation.
+
+---
+
 ## 6. Global UX Operating System & Progressive Disclosure
 
 ### 6.1 The Three-Tier Disclosure Ladder

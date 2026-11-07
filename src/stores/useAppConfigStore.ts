@@ -27,12 +27,18 @@ export interface BrandingConfig {
   };
 }
 
+export interface LoadingConfig {
+  activeVariant: 'halo' | 'morphing';
+  speed: 'normal' | 'snappy' | 'relaxed';
+  showEmblem: boolean;
+}
+
 export interface AppConfig {
   id: number;
   version: number;
   intro: IntroConfig;
   theme: ThemeConfig;
-  loading: Record<string, any>;
+  loading: LoadingConfig;
   dashboard: Record<string, any>;
   branding: BrandingConfig;
   updated_at?: string;
@@ -52,7 +58,11 @@ export const DEFAULT_CONFIG: AppConfig = {
     primaryColor: '#4f46e5', // indigo-600
     fontFamily: 'sans', // Matches Inter
   },
-  loading: {},
+  loading: {
+    activeVariant: 'halo',
+    speed: 'normal',
+    showEmblem: true,
+  },
   dashboard: {},
   branding: {
     appName: 'MindFlow',
