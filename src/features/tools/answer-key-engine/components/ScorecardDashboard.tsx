@@ -74,12 +74,14 @@ export const ScorecardDashboard: React.FC<ScorecardDashboardProps> = ({
         candidate_name: result.candidateDetails.candidateName,
         roll_number: result.candidateDetails.rollNumber,
         category: result.category || 'UR',
+        gender: result.candidateDetails.gender || 'MALE',
+        state: result.candidateDetails.state || 'BIHAR',
         exam_date: result.candidateDetails.examDate,
-        exam_time: '9:00 AM - 10:00 AM',
+        exam_time: result.candidateDetails.examTime || result.candidateDetails.shiftName || '10:00 AM (Shift-1)',
         shift_name: result.candidateDetails.shiftName,
         shift_code: result.candidateDetails.shiftCode || 'shift_1',
         venue_name: result.candidateDetails.venueName,
-        exam_name: 'SSC CGL 2026 Tier 1',
+        exam_name: result.candidateDetails.examName || result.candidateDetails.subject || 'Combined Graduate Level Examination, 2026',
       },
       score_summary: {
         raw_score: result.metrics.rawScore,
@@ -166,7 +168,7 @@ export const ScorecardDashboard: React.FC<ScorecardDashboardProps> = ({
   }, [result.questionResponses, sectionFilter, questionFilter]);
 
   return (
-    <div className="space-y-6">
+    <div className="w-full space-y-4 sm:space-y-6">
       {/* 1. Header & Navigation */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-5 rounded-2xl bg-white dark:bg-card-dark border border-slate-200/80 dark:border-white/10 shadow-sm">
         <div className="flex items-center gap-3">
@@ -260,7 +262,7 @@ export const ScorecardDashboard: React.FC<ScorecardDashboardProps> = ({
 
       {/* TAB 1: 8-SECTION RESULT DASHBOARD & ANALYTICS */}
       {activeTab === 'analytics' && (
-        <div className="space-y-6">
+        <div className="w-full space-y-4 sm:space-y-6">
           {/* Section 1: Candidate Details Card */}
           <CandidateDetailsSection candidate={activeDashboard.candidate} />
 

@@ -69,10 +69,16 @@ export class AnswerKeyService {
   static parseHtmlOffline(
     html: string,
     config: ExamConfig,
-    category: CandidateCategory = 'UR'
+    category: CandidateCategory = 'UR',
+    gender: string = 'Male',
+    state: string = 'Bihar'
   ): ParsedExamResult {
     const adapter = this.eduquityAdapter.canParse(html) ? this.eduquityAdapter : this.tcsAdapter;
-    const result = adapter.parse(html, config, category);
+    const result = adapter.parse(html, config, category, { gender, state });
+    if (result.candidateDetails) {
+      result.candidateDetails.gender = gender;
+      result.candidateDetails.state = state || result.candidateDetails.state || 'Bihar';
+    }
     this.cacheScorecardLocally(result);
     return result;
   }
@@ -83,7 +89,9 @@ export class AnswerKeyService {
   static async parseUrlViaEdge(
     url: string,
     config: ExamConfig,
-    category: CandidateCategory = 'UR'
+    category: CandidateCategory = 'UR',
+    gender: string = 'Male',
+    state: string = 'Bihar'
   ): Promise<ParsedExamResult> {
     const cleanUrl = url.trim();
 
@@ -112,6 +120,8 @@ export class AnswerKeyService {
         url: cleanUrl,
         examId: config.id,
         category,
+        gender,
+        state,
       },
     });
 
@@ -125,6 +135,10 @@ export class AnswerKeyService {
     }
 
     const result = data.result as ParsedExamResult;
+    if (result.candidateDetails) {
+      result.candidateDetails.gender = gender;
+      result.candidateDetails.state = state || result.candidateDetails.state || 'Bihar';
+    }
     this.cacheScorecardLocally(result);
     return result;
   }
@@ -151,6 +165,9 @@ export class AnswerKeyService {
         shift_code: result.candidateDetails.shiftCode,
         venue_name: result.candidateDetails.venueName,
         category: result.category,
+        gender: result.candidateDetails.gender || 'Male',
+        state: result.candidateDetails.state || 'Bihar',
+        exam_time: result.candidateDetails.examTime || result.candidateDetails.shiftName,
         raw_score: result.metrics.rawScore,
         score_reasoning: result.metrics.scoreReasoning,
         score_gk: result.metrics.scoreGk,

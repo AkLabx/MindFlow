@@ -171,7 +171,7 @@ serve(async (req) => {
     }
 
     const body = await req.json();
-    const { url, examId = 'ssc_cgl_tier1', category = 'UR' } = body;
+    const { url, examId = 'ssc_cgl_tier1', category = 'UR', gender = 'Male', state = 'Bihar' } = body;
 
     if (!url || typeof url !== 'string') {
       return new Response(JSON.stringify({ error: 'Valid URL is required' }), {
@@ -336,6 +336,12 @@ serve(async (req) => {
           shiftName: 'Shift 1',
           shiftCode: `${examDate}_S1`,
           venueName: 'Eduquity CBT Center',
+          category,
+          gender: gender || 'Male',
+          state: state || 'Bihar',
+          examName: 'Combined Graduate Level Examination, 2026',
+          subject: 'Combined Graduate Level Examination, 2026',
+          examTime: '10:00 AM (Shift-1)',
         },
         category,
         metrics: {
@@ -396,6 +402,8 @@ serve(async (req) => {
       const venueMatch = html.match(/(?:Venue|Test\s*Center)\s*Name\s*<\/td>\s*<td[^>]*>([^<]+)<\/td>/i);
       const dateMatch = html.match(/Test\s*Date\s*<\/td>\s*<td[^>]*>([^<]+)<\/td>/i);
       const timeMatch = html.match(/Test\s*Time\s*<\/td>\s*<td[^>]*>([^<]+)<\/td>/i);
+      const subjectMatch = html.match(/Subject\s*<\/td>\s*<td[^>]*>([^<]+)<\/td>/i);
+      const subjectName = subjectMatch ? subjectMatch[1].trim() : 'Combined Graduate Level Examination, 2026';
 
       const rollNumber = rollMatch ? rollMatch[1].trim() : '220' + Math.floor(1000000 + Math.random() * 9000000);
       const candidateName = nameMatch ? nameMatch[1].trim() : 'Candidate';
@@ -496,6 +504,12 @@ serve(async (req) => {
           shiftName,
           shiftCode,
           venueName,
+          category,
+          gender: gender || 'Male',
+          state: state || 'Bihar',
+          examName: subjectName,
+          subject: subjectName,
+          examTime: shiftName,
         },
         category,
         metrics: {
@@ -535,6 +549,9 @@ serve(async (req) => {
           shift_code: parsedResult.candidateDetails.shiftCode,
           venue_name: parsedResult.candidateDetails.venueName,
           category,
+          gender: parsedResult.candidateDetails.gender,
+          state: parsedResult.candidateDetails.state,
+          exam_time: parsedResult.candidateDetails.shiftName,
           raw_score: parsedResult.metrics.rawScore,
           score_reasoning: parsedResult.metrics.scoreReasoning,
           score_gk: parsedResult.metrics.scoreGk,
