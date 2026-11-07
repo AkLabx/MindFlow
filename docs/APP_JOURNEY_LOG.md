@@ -26,6 +26,28 @@ This document is the single source of truth for the evolution of the MindFlow ap
 
 ## 🚀 App Journey Changelog
 
+## [v1.0.321] - 07 November 2026, 02:30 PM IST
+
+### Executive Summary
+Expanded the Brand & Motion System to include the 4th purposeful variants: the ultra-compact **Morphing Synapse** spinner (`<BrandSpinner variant="morphing" />`) and the standalone **Smooth Brain Glyph** (`<BrandLogo variant="glyph" />`). Restored the user's signature compact Google Play-style morphing gradient spinner with inner pulsing brain to the official design system and integrated it into `AppConfigHub` with dynamic variant switching.
+
+### ✨ Features Added
+- **Morphing Synapse Spinner Variant (`variant="morphing"`)**:
+  - Encapsulated the 140x140 Google Play-style morphing path and animated coordinate values (`MORPHING_SYNAPSE_PATHS`) into `brandTokens.ts`.
+  - Added ultra-compact sizing tokens (`xs: 24px`, `sm: 32px`, `md: 48px`, `lg: 64px`, `xl: 96px`) allowing the morphing spinner to fit inside compact chips, badges, and table rows.
+  - Centered the pulsing smooth brain emblem inside the morphing gradient loop with full dark/light theme support.
+- **Bare Vector Smooth Brain Glyph (`<BrandLogo variant="glyph" />`)**:
+  - Added standalone glyph variant that renders the canonical smooth brain emblem without the squircle background badge, ideal for tight spaces and inline typography.
+- **4-Variant Motion Studio in `AppConfigHub`**:
+  - Expanded `LoadingConfigPanel` to showcase live interactive previews for all 4 variants: Halo Ring, Morphing Synapse, Inline Arc, and Neural Skeleton.
+  - Added an active app-wide spinner selector allowing administrators to toggle between the full-screen Halo Ring and the compact Morphing Synapse.
+
+### ⚡ Performance & Refactoring
+- **SynapticLoader Backwards Compatibility**:
+  - Enhanced `<SynapticLoader />` to accept `variant` and `size` while defaulting to the active remote configuration or morphing loader for compact layouts.
+- **Store & Schema Modernization**:
+  - Updated `useAppConfigStore.ts` with strongly typed `LoadingConfig` supporting `'synaptic' | 'morphing' | 'inline' | 'skeleton'`.
+
 ## [v1.0.320] - 07 November 2026, 01:25 PM IST
 
 ### Executive Summary
