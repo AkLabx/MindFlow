@@ -9,7 +9,7 @@ import { useNotification } from '../../../stores/useNotificationStore';
 
 export const AalokProfile: React.FC = () => {
     const navigate = useNavigate();
-    const { user } = useAuth();
+    const { user, isAdmin } = useAuth();
     const { showToast } = useNotification();
 
     const [email, setEmail] = useState('');
@@ -54,7 +54,7 @@ export const AalokProfile: React.FC = () => {
             <div className="flex-1 flex flex-col space-y-8 relative z-10 animate-fade-in w-full max-w-4xl mx-auto">
 
                 {/* Admin Login Segment (Only show if not logged in or not admin) */}
-                {(!user || user.email !== 'admin@mindflow.com') && (
+                {(!user || !isAdmin) && (
                     <motion.div
                         initial={{ y: 20, opacity: 0 }}
                         animate={{ y: 0, opacity: 1 }}

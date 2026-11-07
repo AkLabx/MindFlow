@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { RouteAccessType } from './types';
+import type { AppRole } from '@/config/permissions';
 import { PlatformPolicy } from './policies/PlatformPolicy';
 import { IntentPolicy } from './policies/IntentPolicy';
 import { OnboardingPolicy } from './policies/OnboardingPolicy';
@@ -13,10 +14,11 @@ import { SynapticLoader } from '@/components/ui/SynapticLoader';
 interface NavigationManagerProps {
   children: React.ReactNode;
   type: RouteAccessType;
+  requiredRoles?: AppRole[];
 }
 
-export const NavigationManager: React.FC<NavigationManagerProps> = ({ children, type }) => {
-  const { user, loading, profile } = useAuth();
+export const NavigationManager: React.FC<NavigationManagerProps> = ({ children, type, requiredRoles }) => {
+  const { user, loading, profile, roles, isAdmin, hasRole } = useAuth();
   const location = useLocation();
 
   // --- Synchronous Policy Evaluation ---
@@ -28,13 +30,22 @@ export const NavigationManager: React.FC<NavigationManagerProps> = ({ children, 
   let startedOnboarding = false;
 
   if (!loading) {
-    // 1. Admin Policy
-    if (type === RouteAccessType.ADMIN) {
+    // 1. Admin & Role-Based Access Policy
+    if (requiredRoles && requiredRoles.length > 0) {
+      if (!user) {
+        shouldSaveIntent = true;
+        targetRedirect = PlatformPolicy.getGuestEntryRoute();
+        reason = 'Unauthenticated access to Role-Protected Route';
+      } else if (!hasRole(requiredRoles)) {
+        targetRedirect = '/dashboard';
+        reason = `User lacks required role(s): ${requiredRoles.join(', ')}`;
+      }
+    } else if (type === RouteAccessType.ADMIN) {
       if (!user) {
         shouldSaveIntent = true;
         targetRedirect = PlatformPolicy.getGuestEntryRoute();
         reason = 'Unauthenticated access to Admin';
-      } else if (!AuthPolicy.isAdmin(user, profile)) {
+      } else if (!isAdmin && !AuthPolicy.isAdmin(user, profile, roles)) {
         targetRedirect = '/dashboard';
         reason = 'Non-admin access to Admin';
       }

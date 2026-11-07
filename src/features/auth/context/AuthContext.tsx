@@ -11,6 +11,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useNotificationStore } from '../../../stores/useNotificationStore';
 import { useQuizSessionStore } from '../../quiz/stores/useQuizSessionStore';
 import { useRecoveryStore } from '../../../stores/useRecoveryStore';
+import type { AppRole } from '../../../config/permissions';
+import { PERMISSIONS } from '../../../config/permissions';
+import { AuthPolicy } from '../../../lib/navigation/policies/AuthPolicy';
 
 
 /**
@@ -29,6 +32,18 @@ interface AuthContextType {
   loading: boolean;
   isAuthTransitioning: boolean;
   /** Function to sign out the current user. */
+  /** Active user roles from PostgreSQL RBAC store */
+  roles: AppRole[];
+  /** Computed admin privilege flag */
+  isAdmin: boolean;
+  /** Computed moderator privilege flag */
+  isModerator: boolean;
+  /** Computed content creator privilege flag */
+  isContentCreator: boolean;
+  /** Helper to verify if user has one or more required roles */
+  hasRole: (required: AppRole | AppRole[]) => boolean;
+  /** Function to manually refresh user roles from the server */
+  refreshRoles: (userId?: string) => Promise<void>;
   signOut: () => Promise<void>;
   /** Function to manually refresh user data from the server. */
   refreshUser: () => Promise<void>;
@@ -59,6 +74,50 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [profile, setProfile] = useState<any | null>(null);
   const [profileStatus, setProfileStatus] = useState<string | null>(null);
   const [deleteRequestedAt, setDeleteRequestedAt] = useState<string | null>(null);
+  const ROLES_CACHE_KEY = 'mindflow_cached_user_roles';
+  const [roles, setRoles] = useState<AppRole[]>(() => {
+    try {
+      const cached = localStorage.getItem(ROLES_CACHE_KEY);
+      return cached ? JSON.parse(cached) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const refreshRoles = async (userId?: string) => {
+    const targetUserId = userId || user?.id;
+    if (!targetUserId) {
+      setRoles([]);
+      localStorage.removeItem(ROLES_CACHE_KEY);
+      return;
+    }
+    try {
+      const { data, error } = await supabase.rpc('get_my_roles');
+      if (!error && Array.isArray(data) && data.length > 0) {
+        setRoles(data as AppRole[]);
+        localStorage.setItem(ROLES_CACHE_KEY, JSON.stringify(data));
+      } else {
+        const { data: roleRows } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', targetUserId);
+        if (roleRows && roleRows.length > 0) {
+          const mappedRoles = roleRows.map((r: any) => r.role as AppRole);
+          setRoles(mappedRoles);
+          localStorage.setItem(ROLES_CACHE_KEY, JSON.stringify(mappedRoles));
+        } else if (user?.email === PERMISSIONS.TRANSITIONAL_ADMIN_EMAIL) {
+          const fallbackRoles: AppRole[] = ['super_admin', 'admin'];
+          setRoles(fallbackRoles);
+          localStorage.setItem(ROLES_CACHE_KEY, JSON.stringify(fallbackRoles));
+        }
+      }
+    } catch (e) {
+      console.warn('[AuthContext] Error fetching roles:', e);
+      if (user?.email === PERMISSIONS.TRANSITIONAL_ADMIN_EMAIL) {
+        setRoles(['super_admin', 'admin']);
+      }
+    }
+  };
   const [loading, setLoading] = useState(true);
   const [isAuthTransitioning, setIsAuthTransitioning] = useState(false);
   const [sessionConflict, setSessionConflict] = useState(false);
@@ -224,6 +283,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 setDeleteRequestedAt(data.delete_requested_at);
             }
         } catch (e) { console.error('Error fetching profile:', e); }
+        await refreshRoles(session.user.id);
       }
       setLoading(false);
     };
@@ -260,6 +320,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 setDeleteRequestedAt(data.delete_requested_at);
             }
         } catch (e) { console.error('Error fetching profile on auth change:', e); }
+        refreshRoles(finalUser.id).catch(console.error);
 
         // Check if this is a sign up event (either from explicit event or local flag)
         const isSignup = (event as string) === 'SIGNED_UP' || localStorage.getItem('mindflow_is_signup') === 'true';
@@ -278,6 +339,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setUser(null);
         setProfileStatus(null);
         setDeleteRequestedAt(null);
+        setRoles([]);
+        localStorage.removeItem(ROLES_CACHE_KEY);
         lastSyncedUserId.current = null;
 
         // If explicitly signed out by Supabase event (e.g. session expired, logged out elsewhere)
@@ -480,6 +543,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
 
+  const isAdmin = AuthPolicy.isAdmin(user, profile, roles);
+  const isModerator = AuthPolicy.hasRequiredRole(user, roles, 'moderator');
+  const isContentCreator = AuthPolicy.hasRequiredRole(user, roles, 'content_creator');
+  const hasRole = (required: AppRole | AppRole[]) => AuthPolicy.hasRequiredRole(user, roles, required);
+
   const value = {
     profileStatus,
     deleteRequestedAt,
@@ -489,6 +557,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     user,
     loading,
     isAuthTransitioning,
+    roles,
+    isAdmin,
+    isModerator,
+    isContentCreator,
+    hasRole,
+    refreshRoles,
     signOut,
     refreshUser,
   };
