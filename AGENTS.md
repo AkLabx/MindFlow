@@ -108,6 +108,14 @@ Before executing planned changes, **STOP and ask the user for confirmation** if:
   - Headers are centralized in `src/layouts/MainLayout.tsx`; use route-based exclusion logic (`isHeaderHiddenRoute`).
   - Full-viewport pages: `min-h-[100dvh] w-full` with positive padding. Safe-area insets: `pb-[env(safe-area-inset-bottom)]`.
 
+- **App Launch Lifecycle & Intro Diagnostics**:
+  - When diagnosing startup animations, splash screens, or visual launch bugs, **NEVER assume the hardcoded client `DEFAULT_CONFIG` is active**.
+  - Always check the live database table `public.app_ui_config` in Supabase (`project_id: sjcfagpjstbfxuiwhlps`), as remote configuration overrides client defaults after the initial bootstrap.
+  - Distinguish between the three launch visual layers:
+    1. *Android System Splash Screen:* OS-level adaptive icon launch screen.
+    2. *Blue Splash Reveal (`BlueIntro`):* Orbital spinning halo ring around the logo with "MindFlow" text, followed by the circular aperture zoom reveal.
+    3. *AI Particle Intro (`ParticleIntro`):* Interconnected neural particle mesh with "MINDFLOW" text overlaid over the eager-mounted UI.
+
 ### [OPTIONAL] Recommendations
 - Suggest performance optimizations (memoization, route-level code splitting) when tangible bottlenecks exist.
 - Recommend clean component composition over deep prop drilling.

@@ -26,6 +26,35 @@ This document is the single source of truth for the evolution of the MindFlow ap
 
 ## 🚀 App Journey Changelog
 
+## [v1.0.320] - 07 November 2026, 01:25 PM IST
+
+### Executive Summary
+Established the unified MindFlow Brand Identity, Logo, and Motion System. Consolidated fragmented brain icons and ad-hoc loaders across the repository into canonical `<BrandLogo />` and `<BrandSpinner />` components. Promoted the orbital halo spinner from BlueIntro to the application's universal signature brand loader, backed by a live control panel in `AppConfigHub` (`/#/admin/app-config`) and remote configuration via Supabase.
+
+### ✨ Features Added
+- **Canonical Brand Identity Layer (`src/components/brand/`)**:
+  - `brandTokens.ts`: Canonical vector definitions for the Smooth Brain Glyph with Neural Lobes, circuit brain paths, standard gradient anchors, and sizing tokens.
+  - `BrandLogo.tsx`: Authoritative brand logo component supporting 3 purposeful variants (`icon`, `wordmark`, `animated`) across light, dark, and auto modes.
+  - `BrandSpinner.tsx`: Unified loader system featuring 3 purposeful variants:
+    - `synaptic`: Signature rotating orbital gradient halo ring with centered pulsing brand emblem.
+    - `inline`: Clean, single-stroke geometric arc that inherits `currentColor` for buttons, chips, and input adornments.
+    - `skeleton`: Neural card and row shimmer.
+- **Admin Motion Control Center (`src/features/admin/app-config/`)**:
+  - `AppConfigHub.tsx`: Replaced stubbed loading tab with a production `LoadingConfigPanel` offering live side-by-side previews of halo, inline, and skeleton loaders, halo rotation speed controls (`Snappy (0.9s)`, `Normal (1.5s)`, `Relaxed (2.2s)`), and a center emblem toggle.
+  - One-tap "Publish Config" dynamically synchronizing loading preferences to Supabase `public.app_ui_config`.
+  - `useAppConfigStore.ts`: Extended configuration schema with strongly typed `LoadingConfig` interface and local caching.
+
+### ⚡ Performance & Refactoring
+- **Backwards Compatibility**: Re-exported `<BrandSpinner variant="synaptic" />` from `src/components/ui/SynapticLoader.tsx` to instantly upgrade 30+ legacy call sites without breaking API contracts.
+- **Auth Flow Standardization**: Migrated `AuthPage.tsx` and `SignupPage.tsx` from raw Lucide `BrainCircuit` and `Loader2` to `<BrandLogo variant="wordmark" size="lg" />` and `<BrandSpinner variant="inline" size="sm" />`.
+- **Intro Engine Unification**: Refactored `BlueIntro.tsx` to consume `<BrandLogo variant="icon" />` in its core logo squircle, eliminating 20+ lines of duplicate inline brain SVG markup.
+
+### 🔒 Security & Architecture
+- **Architecture Documentation Persistence**:
+  - `docs/AI_MEMORY_CONTEXT.md`: Added comprehensive App Launch Lifecycle & Dynamic Intro Pipeline reference.
+  - `docs/MINDFLOW_CONSTITUTION.md`: Added Section 5.4 Application Launch & First-Impression Contract governing zero-waterfall parallel mounting and remote-decoupled intro orchestration.
+  - `AGENTS.md`: Added App Launch Lifecycle & Intro Diagnostics invariants for autonomous pair programmers.
+
 ## [v1.0.319] - 07 November 2026, 11:55 AM IST
 
 ### Executive Summary

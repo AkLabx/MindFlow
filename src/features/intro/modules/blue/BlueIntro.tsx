@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import './BlueIntro.css';
 import { IntroProps } from '../../registry/types';
+import { BrandLogo } from '@/components/brand';
 
 const BlueIntro: React.FC<IntroProps> = ({ config, onComplete }) => {
   const [phase, setPhase] = useState<'initial' | 'pre-zoom' | 'expanding' | 'vanishing' | 'done'>('initial');
@@ -78,10 +79,7 @@ const BlueIntro: React.FC<IntroProps> = ({ config, onComplete }) => {
         <div className="mf-orbital-system">
           <div className={`mf-halo-ring ${isFadeEarly ? 'fade-early' : ''}`}></div>
           <div className="mf-core-logo">
-            <svg className="mf-brain-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-              <path className="mf-brain-path" d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 1.98-3A2.5 2.5 0 0 1 9.5 2Z"/>
-              <path className="mf-brain-path" style={{ animationDelay: '0.3s' }} d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-1.98-3A2.5 2.5 0 0 0 14.5 2Z"/>
-            </svg>
+            <BrandLogo variant="icon" size={48} showSquircle={false} className="text-white" />
           </div>
         </div>
         <div className={`mf-brand-name ${isFadeEarly ? 'fade-early' : ''}`}>

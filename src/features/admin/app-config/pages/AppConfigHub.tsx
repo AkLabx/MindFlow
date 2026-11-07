@@ -9,6 +9,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAppConfigStore } from '@/stores/useAppConfigStore';
 import { useNotificationStore } from '@/stores/useNotificationStore';
 import { getAllIntroModules } from '@/features/intro/registry';
+import { BrandLogo, BrandSpinner } from '@/components/brand';
 
 // Subcomponents for tabs
 const IntroConfigPanel = () => {
@@ -324,7 +325,7 @@ const BrandingConfigPanel = () => {
                             {branding.logoUrl ? (
                                 <img src={branding.logoUrl} alt="Logo" className="w-full h-full object-contain" />
                             ) : (
-                                <Image className="w-6 h-6 text-slate-400" />
+                                <BrandLogo variant="icon" size="sm" />
                             )}
                         </div>
                         <div className="flex-1">
@@ -427,6 +428,131 @@ const BrandingConfigPanel = () => {
     );
 };
 
+const LoadingConfigPanel = () => {
+  const { config, updateConfig, isLoading } = useAppConfigStore();
+  const showToast = useNotificationStore(state => state.showToast);
+
+  const [speed, setSpeed] = useState<'normal' | 'snappy' | 'relaxed'>(config.loading?.speed || 'normal');
+  const [showEmblem, setShowEmblem] = useState<boolean>(config.loading?.showEmblem !== false);
+  const [activeVariant, setActiveVariant] = useState<'halo' | 'morphing'>(config.loading?.activeVariant || 'halo');
+
+  const handleSave = async () => {
+    try {
+      await updateConfig('loading', {
+        activeVariant,
+        speed,
+        showEmblem,
+      });
+      showToast({ title: 'Saved', message: 'Loading spinner configuration updated remotely', variant: 'success' });
+    } catch (e) {
+      showToast({ title: 'Error', message: 'Failed to update loading configuration', variant: 'error' });
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-xl font-bold text-slate-800 dark:text-slate-200">Loading & Motion System</h3>
+          <p className="text-sm text-slate-500">Configure signature brand halo animations, inline button loaders, and pulse transitions.</p>
+        </div>
+      </div>
+
+      {/* Live Previews */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* Signature Halo Spinner */}
+        <div className="bg-slate-50 dark:bg-slate-800/50 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 flex flex-col items-center justify-center text-center">
+          <span className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-6">Signature Brand Halo</span>
+          <div className="py-4">
+            <BrandSpinner variant="synaptic" size="lg" speed={speed} showEmblem={showEmblem} />
+          </div>
+          <span className="text-xs text-slate-500 mt-4">Full-screen boot, route transitions & quiz generator</span>
+        </div>
+
+        {/* Inline Button Spinner */}
+        <div className="bg-slate-50 dark:bg-slate-800/50 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 flex flex-col items-center justify-center text-center">
+          <span className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-6">Inline Button Loader</span>
+          <div className="py-6 flex flex-col gap-3 items-center">
+            <button className="px-5 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-semibold flex items-center gap-2 shadow-sm pointer-events-none">
+              <BrandSpinner variant="inline" size="sm" />
+              <span>Authenticating...</span>
+            </button>
+            <button className="px-5 py-2.5 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-sm font-semibold flex items-center gap-2 shadow-sm pointer-events-none">
+              <BrandSpinner variant="inline" size="sm" />
+              <span>Generating Quiz...</span>
+            </button>
+          </div>
+          <span className="text-xs text-slate-500 mt-2">Single-stroke geometric arc inheriting text color</span>
+        </div>
+
+        {/* Neural Pulse Shimmer */}
+        <div className="bg-slate-50 dark:bg-slate-800/50 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 flex flex-col items-center justify-center text-center">
+          <span className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-6">Neural Pulse Shimmer</span>
+          <div className="w-full space-y-2 py-4">
+            <BrandSpinner variant="skeleton" className="h-6 w-3/4 mx-auto rounded-lg" />
+            <BrandSpinner variant="skeleton" className="h-10 w-full rounded-xl" />
+            <BrandSpinner variant="skeleton" className="h-4 w-1/2 mx-auto rounded-md" />
+          </div>
+          <span className="text-xs text-slate-500 mt-2">Content-aware placeholder shimmers</span>
+        </div>
+      </div>
+
+      {/* Control Options */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-50 dark:bg-slate-800/50 p-6 rounded-2xl border border-slate-100 dark:border-slate-800">
+        <div>
+          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+            Halo Rotation Speed
+          </label>
+          <div className="grid grid-cols-3 gap-2">
+            {(['snappy', 'normal', 'relaxed'] as const).map((s) => (
+              <button
+                key={s}
+                type="button"
+                onClick={() => setSpeed(s)}
+                className={`py-2 px-3 rounded-xl text-xs font-bold capitalize transition-all ${
+                  speed === s
+                    ? 'bg-indigo-600 text-white shadow-sm'
+                    : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:border-indigo-400'
+                }`}
+              >
+                {s === 'snappy' ? 'Snappy (0.9s)' : s === 'normal' ? 'Normal (1.5s)' : 'Relaxed (2.2s)'}
+              </button>
+            ))}
+          </div>
+          <p className="text-xs text-slate-500 mt-2">Controls the orbital spin duration of the signature brand halo.</p>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+            Halo Center Emblem
+          </label>
+          <div className="flex items-center justify-between p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700">
+            <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Display Brain Emblem</span>
+            <input
+              type="checkbox"
+              checked={showEmblem}
+              onChange={(e) => setShowEmblem(e.target.checked)}
+              className="toggle-checkbox h-5 w-5 text-indigo-600 rounded"
+            />
+          </div>
+          <p className="text-xs text-slate-500 mt-2">Shows the pulsing MindFlow squircle emblem inside the rotating ring.</p>
+        </div>
+      </div>
+
+      <div className="flex justify-end pt-4 border-t border-slate-200 dark:border-slate-800">
+        <button
+          onClick={handleSave}
+          disabled={isLoading}
+          className="px-6 py-2.5 rounded-xl font-bold bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50 flex items-center gap-2 shadow-md shadow-indigo-500/20 active:scale-95 transition-all"
+        >
+          {isLoading && <BrandSpinner variant="inline" size="sm" />}
+          Publish Config
+        </button>
+      </div>
+    </div>
+  );
+};
+
 const LoadingStub = () => (
     <div className="flex flex-col items-center justify-center py-20 text-slate-500">
         <Loader2 className="w-16 h-16 mb-4 opacity-20 animate-spin-slow" />
@@ -507,7 +633,7 @@ export const AppConfigHub: React.FC = () => {
                 >
                     {activeTab === 'intro' && <IntroConfigPanel />}
                     {activeTab === 'theme' && <ThemeConfigPanel />}
-                    {activeTab === 'loading' && <LoadingStub />}
+                    {activeTab === 'loading' && <LoadingConfigPanel />}
                     {activeTab === 'dashboard' && <DashboardStub />}
                     {activeTab === 'branding' && <BrandingConfigPanel />}
                 </motion.div>

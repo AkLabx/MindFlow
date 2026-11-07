@@ -36,6 +36,16 @@ This document serves as an operational reference of the AI Assistant's memory co
 * **Navigation Intents:** Saved navigation intents (deep-linking before auth) must store the full URL state, explicitly including `pathname`, `search`, `hash`, `timestamp`, `expiresAt`, and `platform`.
 * **OAuth Redirects:** When initiating Supabase OAuth redirects (`supabase.auth.signInWithOAuth`), yield to the event loop after setting the loading state so the UI paints. Crucially, do NOT reset the loading state on success or in a `finally` block (as the function resolves before browser redirect completes, causing UI flicker). Only reset it in a `catch` block on error.
 * **GitHub Pages SPA Routing:** For GitHub Pages deployment, the project uses a script in `public/404.html` to normalize non-hash SPA URLs and rewrite them into HashRouter format (e.g., redirecting `/MindFlow/dashboard` to `/MindFlow/#/dashboard`).
+* **App Launch Lifecycle & Dynamic Intro Pipeline:**
+  - **Stage 1 (Native OS Splash):** On cold start from the Android home screen, Android 12+ displays the OS-level adaptive launcher icon splash screen matching the theme. Note: launching directly via "Open" from the Android Package Installer bypasses this native splash.
+  - **Stage 2 (Fast Background Bootstrap):** `useAppBootstrap.ts` executes in parallel behind the curtain. Fast IndexedDB hydration and local session checks mean `<SynapticLoader />` resolves immediately without visual flashing.
+  - **Stage 3 (Dynamic Intro Engine & Remote Config Decoupling):**
+    - Managed centrally by `IntroEngine.tsx` and `useAppConfigStore.ts`.
+    - **First-Time Install:** Uses hardcoded `DEFAULT_CONFIG` (`active: 'blue'`), displaying `BlueIntro` (the core logo with the orbital spinning halo ring, followed by the expanding circular aperture zoom reveal).
+    - **Remote Sync:** During first run, `useAppConfigStore.initialize()` fetches row `id: 1` from Supabase `public.app_ui_config` (which currently configures `active: 'particle'`), saving it to `localStorage`.
+    - **Subsequent Launches:** The app dynamically mounts `ParticleIntro` (the floating neural network particle mesh with bold `MINDFLOW` text).
+    - **Zero-Waterfall Eager Rendering:** `IntroEngine` renders `{children}` underneath the overlay so `AuthPage` and route resolution finish *behind* the intro curtain before it opens or fades out.
+  - **Stage 4 (Unified Guest Portal):** Unauthenticated users land deterministically on `AuthPage` at `ROUTES.HOME` (`/`).
 
 ### 3. Quiz & Offline-First Architecture
 * **Offline-First Storage:** The quiz feature relies on IndexedDB for offline-first support. Quizzes MUST be seeded into IndexedDB (via `db.saveQuiz`) immediately upon creation before any progress updates occur to prevent 'not found' synchronization errors.
