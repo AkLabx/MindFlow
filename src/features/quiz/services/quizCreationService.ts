@@ -7,6 +7,9 @@ import { initialState } from '../stores/useQuizSessionStore';
 import { telemetry } from '../../../lib/telemetry';
 import { performanceTracker, PERF_BUDGETS } from '../../../lib/performance';
 
+export const MAX_QUIZ_QUESTIONS = 100;
+export const DEFAULT_DRILL_QUESTION_COUNT = 25;
+
 export interface QuizCreationResult {
   quizId: string;
   reused: boolean;
@@ -53,7 +56,16 @@ export const quizCreationService = {
       const savedQuizzes = await db.getAllSavedQuizzes();
       const unfinishedQuizzes = savedQuizzes.filter(q => q.state && q.state.status !== 'result');
 
-      const targetQuestionIds = questions.map(q => q.id).join(',');
+      // 0. Hard System Ceiling Enforcement (Prevent Accidental Mega-Quizzes)
+      const sanitizedQuestions = questions.length > MAX_QUIZ_QUESTIONS
+        ? questions.slice(0, MAX_QUIZ_QUESTIONS)
+        : questions;
+
+      if (questions.length > MAX_QUIZ_QUESTIONS) {
+        console.warn(`[quizCreationService] Clamped quiz questions from ${questions.length} to MAX_QUIZ_QUESTIONS (${MAX_QUIZ_QUESTIONS})`);
+      }
+
+      const targetQuestionIds = sanitizedQuestions.map(q => q.id).join(',');
 
       for (const existingQuiz of unfinishedQuizzes) {
         // Deeply check mode
@@ -67,14 +79,14 @@ export const quizCreationService = {
           const durationMs = Math.round(
             performanceTracker.endMark('quiz_generation', PERF_BUDGETS.QUIZ_GENERATION, {
               mode,
-              count: questions.length,
+              count: sanitizedQuestions.length,
               reused: true,
             })
           );
           telemetry.emit('quiz_generated', {
             examId: filters.examName?.[0],
             mode,
-            count: questions.length,
+            count: sanitizedQuestions.length,
             durationMs,
             reusedSession: true,
           });
@@ -92,19 +104,19 @@ export const quizCreationService = {
         createdAt: Date.now(),
         filters: filters,
         mode: mode,
-        questions: questions,
+        questions: sanitizedQuestions,
         state: {
           ...initialState,
           status: 'quiz',
           mode: mode,
-          activeQuestions: questions,
+          activeQuestions: sanitizedQuestions,
           filters: filters,
           quizId: quizId,
           quizTimeRemaining: mode === 'mock'
-            ? Math.max(APP_CONFIG.TIMERS.MOCK_MODE_DEFAULT_PER_QUESTION, questions.length * APP_CONFIG.TIMERS.MOCK_MODE_DEFAULT_PER_QUESTION)
+            ? Math.max(APP_CONFIG.TIMERS.MOCK_MODE_DEFAULT_PER_QUESTION, sanitizedQuestions.length * APP_CONFIG.TIMERS.MOCK_MODE_DEFAULT_PER_QUESTION)
             : 0,
           remainingTimes: mode === 'learning'
-            ? questions.reduce((acc, q) => ({ ...acc, [q.id]: APP_CONFIG.TIMERS.LEARNING_MODE_DEFAULT }), {})
+            ? sanitizedQuestions.reduce((acc, q) => ({ ...acc, [q.id]: APP_CONFIG.TIMERS.LEARNING_MODE_DEFAULT }), {})
             : {}
         }
       };

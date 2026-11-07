@@ -88,6 +88,7 @@ export const AIAdaptiveQuizModal: React.FC<AIAdaptiveQuizModalProps> = ({
         },
         initialMode: 'learning',
         autoStart: true,
+        questionCount: 15,
         returnTo: '/ai',
         from: '/ai',
         fixedExamContext: true,
