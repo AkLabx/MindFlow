@@ -26,6 +26,40 @@ This document is the single source of truth for the evolution of the MindFlow ap
 
 ## 🚀 App Journey Changelog
 
+## [v1.0.318] - 07 November 2026, 10:45 AM IST
+
+### Executive Summary
+Executed enterprise Role-Based Access Control (RBAC) modernization and database security hardening on PostgreSQL 17 (Supabase project `sjcfagpjstbfxuiwhlps`). Replaced legacy hardcoded email checks (`admin@mindflow.com`) with a scalable `public.user_roles` architecture, modernized 49 Row-Level Security policies across 18 tables and storage buckets, hardened administrative stored procedures, locked down mutable search paths on 102 functions, and integrated resilient role caching into the frontend authentication and navigation pipelines.
+
+### 🔒 Security & Architecture
+- **Enterprise PostgreSQL 17 RBAC Foundation (`supabase/migrations/20261107000000_create_rbac_foundation.sql`)**:
+  - Created strongly typed `public.app_role` enum (`super_admin`, `admin`, `moderator`, `content_creator`, `teacher`, `student`).
+  - Implemented authoritative `public.user_roles` junction table with cascade deletion, performance indexes, and strict super-admin management policies.
+  - Implemented high-performance, STABLE, `SECURITY DEFINER` authorization helpers: `is_admin()`, overloaded `has_role()`, and `get_my_roles()`.
+  - Added zero-downtime, backward-compatible fallback for `admin@mindflow.com` and idempotently backfilled roles.
+- **Row-Level Security Modernization (`supabase/migrations/20261107000001_modernize_rls_policies.sql`)**:
+  - Resolved critical Supabase Advisor finding by enabling RLS and locking write/truncate on `public.official_answer_keys`.
+  - Upgraded 49 policies across 18 tables (`study_materials`, `questions`, `idiom`, `ows`, `synonym`, `reports`, `notifications`, `source_documents`, `app_ui_config`, mock test tables, AI pipeline tables) to scope `TO authenticated` and consume cached scalar subqueries `(SELECT public.is_admin())`.
+  - Modernized storage policies for `branding` and `study_materials` buckets.
+- **Admin RPC Security Hardening & Search Path Lockdown (`supabase/migrations/20261107000002_harden_admin_rpcs.sql`)**:
+  - Closed critical security vulnerabilities on `delete_content_by_admin`, `restore_content_by_admin`, and `admin_override_explanation` by enforcing role checks and revoking execution from `public`/`anon`.
+  - Set immutable `search_path = public` across 102 functions to eliminate search path hijacking vectors flagged by Supabase Security Advisor.
+  - Revoked public/anon execution and restricted access to authenticated callers for all sensitive administrative queue, DLQ, and pipeline control functions.
+
+### ✨ Features Added & Frontend Integration
+- **Permissions Registry (`src/config/permissions.ts`)**:
+  - Exported strongly typed `AppRole` union and mapped roles in `PERMISSIONS.ROLES`.
+- **Authorization Policy (`src/lib/navigation/policies/AuthPolicy.ts`)**:
+  - Upgraded `AuthPolicy.isAdmin()` to evaluate authoritative roles first, profile fallback second, and transitional email third.
+  - Added `AuthPolicy.hasRequiredRole()` supporting hierarchical role inheritance (`super_admin` wildcard, `admin` inheriting moderation/content creation).
+- **Auth Context (`src/features/auth/context/AuthContext.tsx`)**:
+  - Exposed `roles: AppRole[]`, `isAdmin`, `isModerator`, `isContentCreator`, `hasRole()`, and `refreshRoles()`.
+  - Implemented offline-resilient role caching in `localStorage` (`mindflow_cached_user_roles`) to eliminate race conditions on initial app render.
+- **Navigation Policy (`src/lib/navigation/NavigationManager.tsx`)**:
+  - Added support for `requiredRoles?: AppRole[]` to enable granular role-protected route guards with automatic intent redirection.
+- **Developer Profile (`src/features/about/components/AalokProfile.tsx`)**:
+  - Switched from email check to reactive `!isAdmin` flag.
+
 ## [v1.0.317] - 06 November 2026, 09:20 PM IST
 
 ### Executive Summary
