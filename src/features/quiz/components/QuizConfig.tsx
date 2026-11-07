@@ -42,7 +42,7 @@ import { ScrollableCapsules } from './ui/ScrollableCapsules';
 import { ExamBlueprintsHubPage } from '@/pages/ExamBlueprintsHubPage';
 
 // Optimization Hooks
-import { quizCreationService } from '../services/quizCreationService';
+import { quizCreationService, MAX_QUIZ_QUESTIONS, DEFAULT_DRILL_QUESTION_COUNT } from '../services/quizCreationService';
 import { useQuestionIndex, filterQuestionsByIndex } from '../hooks/useQuestionIndex';
 import { useOptimizedFilterCounts } from '../hooks/useOptimizedFilterCounts';
 import { useNotificationStore } from '../../../stores/useNotificationStore';
@@ -277,12 +277,17 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
     }
   }, [filteredMetadata.length]);
 
+  const [selectedQuestionCount, setSelectedQuestionCount] = useState<number>(() => {
+    const locCount = (location.state as any)?.questionCount;
+    return typeof locCount === 'number' && locCount > 0 ? locCount : DEFAULT_DRILL_QUESTION_COUNT;
+  });
+
   const hasAutoStarted = React.useRef(false);
   useEffect(() => {
     const locState = location.state as any;
     if (locState?.autoStart && !hasAutoStarted.current && filteredMetadata.length > 0) {
       hasAutoStarted.current = true;
-      handleCreate();
+      handleCreate(locState?.questionCount);
     }
   }, [location.state, filteredMetadata.length]);
 
@@ -317,13 +322,21 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
     }
   };
 
-  const handleCreate = () => {
+  const handleCreate = (countOverride?: number) => {
     if (filteredMetadata.length === 0) {
       setShowEmptyError(true);
       setTimeout(() => setShowEmptyError(false), 4000);
       return;
     }
-    createQuizWithQuestions(filteredMetadata, filters);
+    const locCount = (location.state as any)?.questionCount;
+    const requestedCount = countOverride ?? locCount ?? selectedQuestionCount ?? DEFAULT_DRILL_QUESTION_COUNT;
+    const targetCount = Math.min(requestedCount, filteredMetadata.length, MAX_QUIZ_QUESTIONS);
+
+    const questionsToUse = filteredMetadata.length <= targetCount
+      ? filteredMetadata
+      : [...filteredMetadata].sort(() => 0.5 - Math.random()).slice(0, targetCount);
+
+    createQuizWithQuestions(questionsToUse, filters);
   };
 
   const isFixedExamContext = locState?.fixedExamContext === true || Boolean(activeExamInfo);
@@ -848,6 +861,31 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
               />
             </div>
 
+            {/* Question Count Selector Chips (MindFlow Constitution Section 8) */}
+            <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800/90 p-1 rounded-xl border border-gray-200 dark:border-gray-700/80 shrink-0">
+              <span className="text-[11px] font-bold text-gray-500 dark:text-gray-400 px-1.5 shrink-0">
+                Questions:
+              </span>
+              {[10, 20, 25, 50, 100].map((count) => {
+                const isSelected = selectedQuestionCount === count;
+                return (
+                  <button
+                    key={count}
+                    type="button"
+                    onClick={() => setSelectedQuestionCount(count)}
+                    className={cn(
+                      "px-2 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer",
+                      isSelected
+                        ? "bg-indigo-600 text-white shadow-xs"
+                        : "text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
+                    )}
+                  >
+                    {count}
+                  </button>
+                );
+              })}
+            </div>
+
             <div className="flex items-center gap-2 w-full sm:w-auto">
               <Button variant="outline" onClick={handleClearFilters} className="flex-shrink-0 h-10 px-3">
                 <RotateCcw className="w-4 h-4" />
@@ -861,7 +899,7 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
                 )}
                 <Button
                   size="lg"
-                  onClick={handleCreate}
+                  onClick={() => handleCreate(selectedQuestionCount)}
                   disabled={isStartingQuiz}
                   className="w-full h-10 bg-indigo-600 hover:bg-indigo-700 text-white border-0 shadow-lg px-6 flex items-center justify-center gap-2 font-semibold"
                 >
@@ -872,7 +910,12 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
                   ) : (
                     <>
                       <Save className="w-4 h-4" />
-                      Create Quiz ({filteredMetadata.length})
+                      Create Quiz ({Math.min(selectedQuestionCount, filteredMetadata.length, MAX_QUIZ_QUESTIONS)})
+                      {filteredMetadata.length > selectedQuestionCount && (
+                        <span className="text-[10px] opacity-80 font-normal">
+                          / {filteredMetadata.length}
+                        </span>
+                      )}
                     </>
                   )}
                 </Button>
