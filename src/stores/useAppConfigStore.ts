@@ -28,7 +28,7 @@ export interface BrandingConfig {
 }
 
 export interface LoadingConfig {
-  activeVariant: 'halo' | 'morphing';
+  activeVariant: 'synaptic' | 'morphing' | 'inline' | 'skeleton';
   speed: 'normal' | 'snappy' | 'relaxed';
   showEmblem: boolean;
 }
@@ -59,7 +59,7 @@ export const DEFAULT_CONFIG: AppConfig = {
     fontFamily: 'sans', // Matches Inter
   },
   loading: {
-    activeVariant: 'halo',
+    activeVariant: 'synaptic',
     speed: 'normal',
     showEmblem: true,
   },

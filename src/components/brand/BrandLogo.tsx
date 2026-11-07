@@ -2,8 +2,10 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { BRAND_SIZES, BrandSizeKey, SMOOTH_BRAIN_PATHS, CIRCUIT_BRAIN_PATHS } from './brandTokens';
 
+export type BrandLogoVariant = 'icon' | 'wordmark' | 'animated' | 'glyph';
+
 export interface BrandLogoProps {
-  variant?: 'icon' | 'wordmark' | 'animated';
+  variant?: BrandLogoVariant;
   size?: BrandSizeKey | number;
   showSquircle?: boolean;
   className?: string;
@@ -142,11 +144,13 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
     );
   }
 
-  // Variant 3: Standalone Emblem Icon
-  if (!showSquircle) {
+  // Variant 4: Bare Vector Smooth Brain Glyph (ultra-compact, fits anywhere without squircle)
+  if (variant === 'glyph' || !showSquircle) {
     return (
       <div
-        className={`inline-flex items-center justify-center ${className}`}
+        className={`inline-flex items-center justify-center shrink-0 ${
+          animated ? 'transition-transform hover:scale-105 active:scale-95' : ''
+        } ${className}`}
         style={{ width: pixelSize, height: pixelSize }}
       >
         {renderSmoothBrainGlyph(pixelSize, 'text-indigo-600 dark:text-indigo-400')}

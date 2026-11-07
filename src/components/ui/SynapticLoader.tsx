@@ -1,8 +1,9 @@
 import React from 'react';
-import { BrandSpinner } from '../brand/BrandSpinner';
+import { BrandSpinner, BrandSpinnerVariant } from '../brand/BrandSpinner';
 
 export interface SynapticLoaderProps {
-  size?: 'sm' | 'md' | 'lg' | 'xl';
+  size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
+  variant?: BrandSpinnerVariant;
   className?: string;
   label?: string;
 }
@@ -10,17 +11,19 @@ export interface SynapticLoaderProps {
 /**
  * SynapticLoader
  * 
- * Re-exports the unified MindFlow Signature Brand Loader (`BrandSpinner variant="synaptic"`).
- * Preserves backwards compatibility with legacy call sites across the application.
+ * Re-exports the unified MindFlow Brand Loader (`BrandSpinner`).
+ * Defaults to the active configured brand loader (or `variant="morphing"` for ultra-compact 32px spots).
+ * Preserves 100% backwards compatibility with legacy call sites across the application.
  */
 export const SynapticLoader: React.FC<SynapticLoaderProps> = ({
   size = 'md',
+  variant,
   className = '',
   label,
 }) => {
   return (
     <BrandSpinner
-      variant="synaptic"
+      variant={variant}
       size={size}
       className={className}
       label={label}
