@@ -26,6 +26,45 @@ This document is the single source of truth for the evolution of the MindFlow ap
 
 ## 🚀 App Journey Changelog
 
+## [v1.0.322] - 07 November 2026, 03:55 PM IST
+
+### Executive Summary
+Revamped the Answer Key Tool and Candidate Details section to match the intended user specification. Implemented end-to-end extraction and persistence for all candidate fields (`Subject/Exam Name`, `Exam Time`, `State`, `Gender`, `Roll Number`, `Category`, `Venue Name`), maximized the result page viewport by removing constraining lateral margins, removed the global header from the tool route, and deployed Edge Function v5 live to Supabase.
+
+### ✨ Features Added
+- **Exact Candidate Details Card Specification (`CandidateDetailsSection.tsx`)**:
+  - Rebuilt the card to match the user's intended UI with an ID card header badge and a clean, vertically stacked list separated by crisp dividers.
+  - Formatted all 9 core candidate fields: Candidate Name, Roll Number, Category, Exam Date, Exam Time (`10:00 AM (Shift-1)`), Venue Name, Subject/Exam Name, State (`BIHAR`), and Gender (`MALE`).
+- **Comprehensive Candidate Form Controls (`AnswerKeyCalculator.tsx`)**:
+  - Added dedicated form selectors for `Gender` (Male, Female, Other) and `Home State / UT` (populated with all 36 Indian states & union territories).
+  - Integrated state inference heuristic (`inferStateFromVenue`) to automatically extract the candidate's home/exam state from the venue center name and city address if not manually specified.
+- **Maximized Viewport & Minimal Margins**:
+  - Overhauled layout constraints on the result page to use minimal lateral margins (`px-1 sm:px-2 md:px-3` with `max-w-[1440px]`), ensuring full screen real-estate is dedicated to dense score analytics and section breakdowns.
+- **Global Header Removal on Result Page (`MainLayout.tsx`)**:
+  - Registered `/tools/answer-key-calculator` to `isHeaderHiddenRoute`, removing the global app header to eliminate visual clutter and granting 100% vertical focus to the answer key scorecard.
+
+### ⚡ Performance & Refactoring
+- **Parser & Type Engine Modernization (`ExamParserAdapter.ts`, `EduquityAdapter.ts`, `types.ts`)**:
+  - Added `Subject` extraction from TCS iON tables and Eduquity response sheets.
+  - Enhanced `formatExamTimeWithShift` to accurately compose time and shift labels without duplication.
+- **Supabase Cloud Sync & Edge Function Deployment (`parse-exam-sheet` v5)**:
+  - Updated Edge Function `parse-exam-sheet` to extract `subject`, accept `gender` and `state`, and persist them directly into `public.exam_submissions`.
+  - Deployed Edge Function version 5 live to production project `sjcfagpjstbfxuiwhlps`.
+
+### Impacted Scope
+- `src/features/tools/answer-key-engine/components/sections/CandidateDetailsSection.tsx`
+- `src/features/tools/answer-key-engine/AnswerKeyCalculator.tsx`
+- `src/features/tools/answer-key-engine/components/ScorecardDashboard.tsx`
+- `src/features/tools/answer-key-engine/adapters/ExamParserAdapter.ts`
+- `src/features/tools/answer-key-engine/adapters/EduquityAdapter.ts`
+- `src/features/tools/answer-key-engine/services/answerKeyService.ts`
+- `src/features/tools/answer-key-engine/utils/format.ts`
+- `src/features/tools/answer-key-engine/types.ts`
+- `src/layouts/MainLayout.tsx`
+- `supabase/functions/parse-exam-sheet/index.ts`
+- `package.json`
+
+
 ## [v1.0.321] - 07 November 2026, 02:30 PM IST
 
 ### Executive Summary

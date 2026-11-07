@@ -30,6 +30,12 @@ export interface CandidateDetails {
   shiftName: string;
   shiftCode: string;
   venueName: string;
+  examTime?: string;
+  examName?: string;
+  subject?: string;
+  category?: CandidateCategory | string;
+  gender?: string;
+  state?: string;
 }
 
 export interface ParsedQuestion {
@@ -113,7 +119,7 @@ export interface ExamParserAdapter {
   readonly name: string;
   readonly version: string;
   canParse(html: string, url?: string): boolean;
-  parse(html: string, config: ExamConfig, selectedCategory?: CandidateCategory): ParsedExamResult;
+  parse(html: string, config: ExamConfig, selectedCategory?: CandidateCategory, userMeta?: { gender?: string; state?: string }): ParsedExamResult;
 }
 
 export interface ResultDashboardData {

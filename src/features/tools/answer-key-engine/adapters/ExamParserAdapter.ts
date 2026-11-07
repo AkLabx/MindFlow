@@ -1,4 +1,5 @@
-import { CandidateCategory, ExamConfig, ExamParserAdapter, ParsedExamResult, ParsedQuestion, SectionMetric } from '../types';
+import { CandidateCategory, CandidateDetails, ExamConfig, ExamParserAdapter, ParsedExamResult, ParsedQuestion, SectionMetric } from '../types';
+import { inferStateFromVenue } from '../utils/format';
 
 
 
@@ -25,9 +26,14 @@ export class TcsIonAdapter implements ExamParserAdapter {
     );
   }
 
-  parse(html: string, config: ExamConfig, selectedCategory: CandidateCategory = 'UR'): ParsedExamResult {
+  parse(
+    html: string,
+    config: ExamConfig,
+    selectedCategory: CandidateCategory = 'UR',
+    userMeta?: { gender?: string; state?: string }
+  ): ParsedExamResult {
     const isBrowser = typeof window !== 'undefined' && typeof window.DOMParser !== 'undefined';
-    let candidateDetails = {
+    let candidateDetails: CandidateDetails = {
       rollNumber: 'Unknown',
       candidateName: 'Candidate',
       examDate: new Date().toISOString().split('T')[0],
@@ -52,6 +58,13 @@ export class TcsIonAdapter implements ExamParserAdapter {
     } else {
       candidateDetails = this.extractDetailsViaRegex(html);
       questions = this.extractQuestionsViaRegex(html, config);
+    }
+
+    candidateDetails.category = selectedCategory;
+    candidateDetails.gender = userMeta?.gender || 'Male';
+    candidateDetails.state = userMeta?.state || inferStateFromVenue(candidateDetails.venueName) || 'Bihar';
+    if (!candidateDetails.examName) {
+      candidateDetails.examName = candidateDetails.subject || config.examName || 'Combined Graduate Level Examination, 2026';
     }
 
     // Calculate Section-wise Metrics
@@ -141,13 +154,16 @@ export class TcsIonAdapter implements ExamParserAdapter {
     };
 
     // Scan all table cells for keys
-    const details = {
+    const details: CandidateDetails = {
       rollNumber: '',
       candidateName: '',
       examDate: '',
       shiftName: '',
       shiftCode: '',
       venueName: '',
+      examTime: '',
+      subject: '',
+      examName: '',
     };
 
     const tds = Array.from(doc.querySelectorAll('td'));
@@ -165,6 +181,10 @@ export class TcsIonAdapter implements ExamParserAdapter {
         details.examDate = nextTxt;
       } else if (txt.includes('Test Time')) {
         details.shiftName = nextTxt;
+        details.examTime = nextTxt;
+      } else if (txt.includes('Subject')) {
+        details.subject = nextTxt;
+        details.examName = nextTxt;
       }
     }
 
@@ -273,6 +293,7 @@ export class TcsIonAdapter implements ExamParserAdapter {
     const venueMatch = html.match(/(?:Venue|Test\s*Center)\s*Name\s*<\/td>\s*<td[^>]*>([^<]+)<\/td>/i);
     const dateMatch = html.match(/Test\s*Date\s*<\/td>\s*<td[^>]*>([^<]+)<\/td>/i);
     const timeMatch = html.match(/Test\s*Time\s*<\/td>\s*<td[^>]*>([^<]+)<\/td>/i);
+    const subjectMatch = html.match(/Subject\s*<\/td>\s*<td[^>]*>([^<]+)<\/td>/i);
 
     const rollNumber = rollMatch ? rollMatch[1].trim() : '220' + Math.floor(1000000 + Math.random() * 9000000);
     const candidateName = nameMatch ? nameMatch[1].trim() : 'Aspirant';
@@ -293,6 +314,9 @@ export class TcsIonAdapter implements ExamParserAdapter {
       shiftName,
       shiftCode: `${datePart}_${shiftNum}`,
       venueName,
+      examTime: shiftName,
+      subject: subjectMatch ? subjectMatch[1].trim() : 'Combined Graduate Level Examination, 2026',
+      examName: subjectMatch ? subjectMatch[1].trim() : 'Combined Graduate Level Examination, 2026',
     };
   }
 

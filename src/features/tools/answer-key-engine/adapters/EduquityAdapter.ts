@@ -1,4 +1,5 @@
-import { CandidateCategory, ExamConfig, ExamParserAdapter, ParsedExamResult, ParsedQuestion, SectionMetric } from '../types';
+import { CandidateCategory, CandidateDetails, ExamConfig, ExamParserAdapter, ParsedExamResult, ParsedQuestion, SectionMetric } from '../types';
+import { inferStateFromVenue } from '../utils/format';
 
 /**
  * Eduquity CBT Response Sheet Adapter (SSC 2026+ Vendor)
@@ -24,8 +25,18 @@ export class EduquityAdapter implements ExamParserAdapter {
     );
   }
 
-  parse(html: string, config: ExamConfig, selectedCategory: CandidateCategory = 'UR'): ParsedExamResult {
-    const candidateDetails = this.extractDetails(html);
+  parse(
+    html: string,
+    config: ExamConfig,
+    selectedCategory: CandidateCategory = 'UR',
+    userMeta?: { gender?: string; state?: string }
+  ): ParsedExamResult {
+    const candidateDetails: CandidateDetails = this.extractDetails(html);
+    candidateDetails.category = selectedCategory;
+    candidateDetails.gender = userMeta?.gender || 'Male';
+    candidateDetails.state = userMeta?.state || inferStateFromVenue(candidateDetails.venueName) || 'Bihar';
+    candidateDetails.examName = config.examName || 'Combined Graduate Level Examination, 2026';
+    candidateDetails.examTime = '10:00 AM (Shift-1)';
     const questions = this.extractQuestions(html, config);
 
     // Initialize Section Metrics

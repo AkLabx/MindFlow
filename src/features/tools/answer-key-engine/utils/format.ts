@@ -149,3 +149,83 @@ export function formatMaskedName(name: string | null | undefined): string {
     })
     .join(' ');
 }
+
+/**
+ * Formats exam time and shift into unified display (e.g. "10:00 AM (Shift-1)").
+ */
+export function formatExamTimeWithShift(timeStr?: string | null, shiftStr?: string | null): string {
+  if (!timeStr && !shiftStr) return '—';
+
+  // If timeStr already formatted with shift (e.g. "10:00 AM (Shift-1)")
+  if (timeStr && /shift/i.test(timeStr)) {
+    return timeStr.trim();
+  }
+
+  let formattedTime = '10:00 AM';
+  if (timeStr) {
+    const rawTime = timeStr.split('-')[0].trim();
+    // Normalize "10:00:00 AM" or "10:00 AM"
+    const timeMatch = rawTime.match(/([0-9]{1,2}:[0-9]{2})(?::[0-9]{2})?\s*(AM|PM)?/i);
+    if (timeMatch) {
+      formattedTime = `${timeMatch[1]} ${timeMatch[2] ? timeMatch[2].toUpperCase() : 'AM'}`;
+    } else {
+      formattedTime = rawTime;
+    }
+  }
+
+  let formattedShift = 'Shift-1';
+  if (shiftStr) {
+    const sMatch = shiftStr.match(/shift\s*[-_]?\s*([0-9]+|[A-Za-z]+)/i);
+    if (sMatch) {
+      formattedShift = `Shift-${sMatch[1]}`;
+    } else if (shiftStr.trim()) {
+      formattedShift = shiftStr.trim();
+    }
+  }
+
+  return `${formattedTime} (${formattedShift})`;
+}
+
+/**
+ * Complete official registry of Indian States & Union Territories.
+ */
+export const INDIAN_STATES: string[] = [
+  'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh',
+  'Goa', 'Gujarat', 'Haryana', 'Himachal Pradesh', 'Jharkhand', 'Karnataka',
+  'Kerala', 'Madhya Pradesh', 'Maharashtra', 'Manipur', 'Meghalaya', 'Mizoram',
+  'Nagaland', 'Odisha', 'Punjab', 'Rajasthan', 'Sikkim', 'Tamil Nadu',
+  'Telangana', 'Tripura', 'Uttar Pradesh', 'Uttarakhand', 'West Bengal',
+  'Andaman and Nicobar Islands', 'Chandigarh', 'Dadra and Nagar Haveli and Daman and Diu',
+  'Delhi', 'Jammu and Kashmir', 'Ladakh', 'Lakshadweep', 'Puducherry'
+];
+
+/**
+ * Robust heuristic to infer state from official examination venue names and center addresses.
+ */
+export function inferStateFromVenue(venue: string | null | undefined): string | null {
+  if (!venue) return null;
+  const upperVenue = venue.toUpperCase();
+
+  for (const st of INDIAN_STATES) {
+    if (upperVenue.includes(st.toUpperCase())) {
+      return st;
+    }
+  }
+
+  // Major educational / CBT test cities mapped to states
+  if (upperVenue.includes('PATNA') || upperVenue.includes('GAYA') || upperVenue.includes('MUZAFFARPUR') || upperVenue.includes('BHAGALPUR') || upperVenue.includes('DARBHANGA') || upperVenue.includes('PURNEA')) return 'Bihar';
+  if (upperVenue.includes('DELHI') || upperVenue.includes('NOIDA') || upperVenue.includes('GREATER NOIDA') || upperVenue.includes('GURGAON') || upperVenue.includes('GURUGRAM')) return 'Delhi';
+  if (upperVenue.includes('LUCKNOW') || upperVenue.includes('KANPUR') || upperVenue.includes('VARANASI') || upperVenue.includes('PRAYAGRAJ') || upperVenue.includes('ALLAHABAD') || upperVenue.includes('AGRA') || upperVenue.includes('MEERUT') || upperVenue.includes('BAREILLY') || upperVenue.includes('GORAKHPUR')) return 'Uttar Pradesh';
+  if (upperVenue.includes('JAIPUR') || upperVenue.includes('JODHPUR') || upperVenue.includes('KOTA') || upperVenue.includes('AJMER') || upperVenue.includes('BIKANER') || upperVenue.includes('UDAIPUR')) return 'Rajasthan';
+  if (upperVenue.includes('KOLKATA') || upperVenue.includes('HOWRAH') || upperVenue.includes('SILIGURI') || upperVenue.includes('ASANSOL') || upperVenue.includes('DURGAPUR')) return 'West Bengal';
+  if (upperVenue.includes('MUMBAI') || upperVenue.includes('PUNE') || upperVenue.includes('NAGPUR') || upperVenue.includes('THANE') || upperVenue.includes('NASHIK') || upperVenue.includes('AURANGABAD')) return 'Maharashtra';
+  if (upperVenue.includes('BHOPAL') || upperVenue.includes('INDORE') || upperVenue.includes('GWALIOR') || upperVenue.includes('JABALPUR') || upperVenue.includes('UJJAIN')) return 'Madhya Pradesh';
+  if (upperVenue.includes('RANCHI') || upperVenue.includes('DHANBAD') || upperVenue.includes('JAMSHEDPUR') || upperVenue.includes('BOKARO')) return 'Jharkhand';
+  if (upperVenue.includes('CHANDIGARH') || upperVenue.includes('AMBALA') || upperVenue.includes('FARIDABAD') || upperVenue.includes('HISAR') || upperVenue.includes('PANIPAT')) return 'Haryana';
+  if (upperVenue.includes('HYDERABAD') || upperVenue.includes('WARANGAL')) return 'Telangana';
+  if (upperVenue.includes('BENGALURU') || upperVenue.includes('BANGALORE') || upperVenue.includes('MYSURU')) return 'Karnataka';
+  if (upperVenue.includes('CHENNAI') || upperVenue.includes('COIMBATORE') || upperVenue.includes('MADURAI')) return 'Tamil Nadu';
+  if (upperVenue.includes('AHMEDABAD') || upperVenue.includes('SURAT') || upperVenue.includes('VADODARA') || upperVenue.includes('RAJKOT')) return 'Gujarat';
+
+  return null;
+}
