@@ -26,6 +26,28 @@ This document is the single source of truth for the evolution of the MindFlow ap
 
 ## 🚀 App Journey Changelog
 
+## [v1.0.331] - 08 November 2026, 12:56 PM IST
+
+### Executive Summary
+Executed a comprehensive audit of the progressive Login flow (`AuthPage.tsx`) and resolved three critical vulnerabilities: eliminated the Password Recovery dead-end by introducing a dedicated `ResetPasswordPage` and preserving recovery tokens during hash bootstrap, fixed infinite loading UI lockups on session-less sign-ins, and resolved native Android Capacitor `GoogleAuth.initialize()` crashes.
+
+### 🐛 Bug Fixes & Architectural Hardening
+- **Password Recovery Dead-End Resolution**:
+  - Implemented a dedicated, accessible `ResetPasswordPage` (`src/features/auth/components/ResetPasswordPage.tsx`) mapped to `ROUTES.RESET_PASSWORD = '/reset-password'`.
+  - Updated `useAppBootstrap.ts` to detect `type=recovery` in incoming hash payloads, sanitizing sensitive tokens from the address bar while preserving the `#/reset-password` target hash for React HashRouter.
+  - Updated `NavigationManager.tsx` to exempt `/reset-password` from premature onboarding redirects, ensuring recovery users can set a new password without interruption.
+- **Infinite Loading UI Freeze Resolution**:
+  - Hardened `handleAuthAction` in `AuthPage.tsx` to guarantee `isEmailLoading` is safely reset on all code paths, properly surfacing actionable errors if Supabase returns without an active session.
+- **Native Android Google Sign-In Hardening**:
+  - Added explicit runtime `await GoogleAuth.initialize()` calls prior to `GoogleAuth.signIn()` across both `AuthPage.tsx` and `SignupPage.tsx` to prevent native Capacitor plugin initialization crashes on Android.
+- **OAuth Web URL Sanitization**:
+  - Sanitized redirect URL path concatenation to prevent duplicate slashes (`//#/`) on strict URL allowlists.
+  - Normalized user email input via `.trim().toLowerCase()` to prevent casing-induced authentication discrepancies.
+
+### 🔒 Security & Architecture
+- Maintained strict zero-token address bar exposure by immediately stripping sensitive tokens via `window.history.replaceState` before HashRouter mounts.
+- Enforced password requirements (minimum 6 characters, matching confirmation) on password reset.
+
 ## [v1.0.330] - 08 November 2026, 12:17 PM IST
 
 ### Executive Summary

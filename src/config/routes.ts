@@ -11,6 +11,7 @@ export const ROUTES = {
   HOME: '/',
   LOGIN: '/login',
   SIGNUP: '/signup',
+  RESET_PASSWORD: '/reset-password',
   ONBOARDING: '/onboarding',
   DASHBOARD: '/dashboard',
   DASHBOARD_SUBJECTS: '/dashboard/subjects',

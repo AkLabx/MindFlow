@@ -61,11 +61,13 @@ export const useAppBootstrap = (): BootstrapState => {
           const params = new URLSearchParams(hashString);
           const accessToken = params.get('access_token');
           const refreshToken = params.get('refresh_token');
+          const isRecovery = params.get('type') === 'recovery' || currentHash.includes('type=recovery') || currentHash.includes('reset-password');
 
           // Immediately sanitize address bar to protect against live streaming / shoulder-surfing leaks
           // Remove the hash cleanly to prevent HashRouter from treating it as a route
           sessionStorage.setItem('mindflow_booted', 'true');
-          window.history.replaceState(null, '', window.location.pathname + window.location.search);
+          const sanitizedTargetHash = isRecovery ? '#/reset-password' : '';
+          window.history.replaceState(null, '', window.location.pathname + window.location.search + sanitizedTargetHash);
           console.log('[Bootstrap] Sanitized URL address bar immediately prior to session initialization.');
 
           if (accessToken && refreshToken) {
