@@ -26,9 +26,8 @@ export const SynonymCard: React.FC<SynonymCardProps> = ({ data: initialData, ser
   const { markMastered, getStatus } = useSynonymProgress();
   const updateCardImage = useFlashcardStore((state) => state.updateCardImage);
   const status = getStatus(data);
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const { showToast } = useNotification();
-  const isAdmin = user?.email === 'admin@mindflow.com';
   const [isUploading, setIsUploading] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 

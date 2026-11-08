@@ -2,13 +2,15 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../../lib/supabase';
 import { useAuth } from '../../auth/context/AuthContext';
+import { AuthPolicy } from '@/lib/navigation/policies/AuthPolicy';
 import { Megaphone, Send, AlertCircle, CheckCircle2, Edit2, Trash2, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import { AdminEditNotificationModal } from './AdminEditNotificationModal';
 import { AppNotification } from '../types';
 
 export const AdminNotifications: React.FC = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, profile, roles, isAdmin } = useAuth();
+  const hasAdminAccess = isAdmin || AuthPolicy.isAdmin(user, profile, roles);
   const [title, setTitle] = useState('');
   const [message, setMessage] = useState('');
   const [type, setType] = useState<'announcements' | 'tests_quizzes' | 'study_materials' | 'daily_reminders'>('announcements');
@@ -51,13 +53,13 @@ export const AdminNotifications: React.FC = () => {
   };
 
   React.useEffect(() => {
-    if (user && user.email === 'admin@mindflow.com') {
+    if (user && hasAdminAccess) {
       fetchPastNotifications(currentPage);
     }
   }, [user, currentPage]);
 
 
-  if (!user || user.email !== 'admin@mindflow.com') {
+  if (!user || !hasAdminAccess) {
     return (
       <div className="p-8 text-center text-red-500 bg-red-50 rounded-xl">
         <AlertCircle className="w-12 h-12 mx-auto mb-4" />
@@ -124,15 +126,23 @@ export const AdminNotifications: React.FC = () => {
   };
 
   return (
-    <div className="max-w-2xl mx-auto p-6">
-      <button
-        onClick={() => navigate('/dashboard')}
-        className="text-gray-500 hover:text-indigo-600 dark:hover:text-indigo-400 flex items-center transition-colors font-semibold uppercase tracking-widest text-xs w-fit mb-4"
-      >
-        <ChevronRight className="w-4 h-4 rotate-180 mr-1" />
-        Back to Dashboard
-      </button>
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+    <div className="space-y-6 pb-12">
+      {/* Top Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
+            <Megaphone className="w-6 h-6 text-indigo-500" />
+            Broadcast & Notification Center
+          </h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+            Dispatch multi-channel announcements, exam alerts, and targeted push notifications to student segments.
+          </p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        {/* Left Column: Broadcast Composer (5 cols) */}
+        <div className="lg:col-span-5 bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
         <div className="px-6 py-5 border-b border-gray-200 dark:border-gray-700 flex items-center gap-3 bg-indigo-50/50 dark:bg-indigo-900/10">
           <div className="w-10 h-10 rounded-xl bg-indigo-100 dark:bg-indigo-500/20 flex items-center justify-center">
             <Megaphone className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
@@ -246,8 +256,8 @@ export const AdminNotifications: React.FC = () => {
         </form>
       </div>
 
-      {/* Past Notifications List */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+        {/* Right Column: Past Notifications List (7 cols) */}
+        <div className="lg:col-span-7 bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
         <div className="px-6 py-5 border-b border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/10">
           <h3 className="text-lg font-bold text-gray-900 dark:text-white">Past Notifications</h3>
           <p className="text-sm text-gray-500 dark:text-gray-400">View, modify, or delete previously sent notifications</p>
@@ -331,6 +341,8 @@ export const AdminNotifications: React.FC = () => {
             </button>
           </div>
         )}
+      </div>
+
       </div>
 
       {/* Edit Modal */}

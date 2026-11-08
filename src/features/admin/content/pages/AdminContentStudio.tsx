@@ -1,73 +1,77 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, FileText, CheckSquare, Settings } from 'lucide-react';
+import { FileText, CheckSquare, Settings, Sparkles } from 'lucide-react';
 import { AdminReviewQueue } from "../components/AdminReviewQueue";
 import { AdminIngestionJob } from '../components/AdminIngestionJob';
 
 export const AdminContentStudio: React.FC = () => {
-    const navigate = useNavigate();
-    const [activeTab, setActiveTab] = useState<'ingest' | 'review' | 'profiles'>('ingest');
+  const [activeTab, setActiveTab] = useState<'ingest' | 'review' | 'profiles'>('ingest');
 
-    return (
-        <div className="min-h-screen bg-slate-50 dark:bg-slate-950 pb-20">
-            {/* Header */}
-            <header className="sticky top-0 z-30 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-b border-slate-200 dark:border-slate-800">
-                <div className="max-w-7xl mx-auto px-4 h-16 flex items-center gap-4">
-                    <button
-                        onClick={() => navigate('/admin')}
-                        className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors text-slate-600 dark:text-slate-400"
-                    >
-                        <ArrowLeft className="w-5 h-5" />
-                    </button>
-                    <div>
-                        <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Content Studio</span>
-                        <h1 className="text-lg font-bold text-slate-800 dark:text-slate-100">AI Ingestion Plane</h1>
-                    </div>
-                </div>
-
-                {/* Tabs */}
-                <div className="max-w-7xl mx-auto px-4 flex gap-6">
-                    <button
-                        onClick={() => setActiveTab('ingest')}
-                        className={`pb-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${
-                            activeTab === 'ingest'
-                            ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400'
-                            : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
-                        }`}
-                    >
-                        <FileText className="w-4 h-4" />
-                        Ingestion Job
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('review')}
-                        className={`pb-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${
-                            activeTab === 'review'
-                            ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400'
-                            : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
-                        }`}
-                    >
-                        <CheckSquare className="w-4 h-4" />
-                        Review Queue
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('profiles')}
-                        className={`pb-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${
-                            activeTab === 'profiles'
-                            ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400'
-                            : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
-                        }`}
-                    >
-                        <Settings className="w-4 h-4" />
-                        Prompt Profiles
-                    </button>
-                </div>
-            </header>
-
-            <main className="max-w-7xl mx-auto px-4 py-8">
-                {activeTab === 'ingest' && <AdminIngestionJob />}
-                {activeTab === 'review' && <AdminReviewQueue />}
-                {activeTab === 'profiles' && <div className="p-12 text-center text-slate-500">Prompt Profiles (Phase 4) coming soon...</div>}
-            </main>
+  return (
+    <div className="space-y-6 pb-12">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100 font-display">
+            AI Content Ingestion Plane
+          </h1>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+            Extract, vectorize, and review exam questions from PDF sources via pgmq and Gemini pipelines.
+          </p>
         </div>
-    );
+      </div>
+
+      {/* Tabs */}
+      <div className="flex border-b border-slate-200 dark:border-slate-800 gap-6">
+        <button
+          onClick={() => setActiveTab('ingest')}
+          className={`pb-3 text-sm font-semibold border-b-2 transition-colors flex items-center gap-2 ${
+            activeTab === 'ingest'
+              ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400'
+              : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+          }`}
+        >
+          <FileText className="w-4 h-4" />
+          Ingestion Pipeline
+        </button>
+        <button
+          onClick={() => setActiveTab('review')}
+          className={`pb-3 text-sm font-semibold border-b-2 transition-colors flex items-center gap-2 ${
+            activeTab === 'review'
+              ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400'
+              : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+          }`}
+        >
+          <CheckSquare className="w-4 h-4" />
+          Review Queue
+        </button>
+        <button
+          onClick={() => setActiveTab('profiles')}
+          className={`pb-3 text-sm font-semibold border-b-2 transition-colors flex items-center gap-2 ${
+            activeTab === 'profiles'
+              ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400'
+              : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+          }`}
+        >
+          <Settings className="w-4 h-4" />
+          Prompt Profiles
+        </button>
+      </div>
+
+      {/* Content Area */}
+      <div>
+        {activeTab === 'ingest' && <AdminIngestionJob />}
+        {activeTab === 'review' && <AdminReviewQueue />}
+        {activeTab === 'profiles' && (
+          <div className="p-16 text-center rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-500 text-sm">
+            <Sparkles className="w-8 h-8 text-indigo-500 mx-auto mb-3 opacity-60" />
+            <h3 className="font-bold text-slate-700 dark:text-slate-300">Prompt Engineering Profiles</h3>
+            <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
+              Custom prompt configurations mapped to <code className="font-mono">public.ai_prompts</code> for OCR and MCQ enrichment.
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
 };
+export default AdminContentStudio;
