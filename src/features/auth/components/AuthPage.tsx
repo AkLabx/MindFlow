@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 import { supabase } from '../../../lib/supabase';
 import { BrandLogo, BrandSpinner } from '@/components/brand';
@@ -37,7 +37,8 @@ const AuthPage: React.FC<AuthPageProps> = () => {
   // Direction for slide transition: 1 = forward (slide left), -1 = backward (slide right)
   const [direction, setDirection] = useState<1 | -1>(1);
 
-  const [email, setEmail] = useState('');
+  const location = useLocation();
+  const [email, setEmail] = useState(() => (location.state as any)?.email || '');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -317,7 +318,7 @@ const AuthPage: React.FC<AuthPageProps> = () => {
                 New to MindFlow?{' '}
                 <button
                   type="button"
-                  onClick={() => navigate('/signup')}
+                  onClick={() => navigate('/signup', { state: { email } })}
                   className="font-semibold text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 hover:underline py-0.5 px-1 transition-colors"
                 >
                   CREATE ACCOUNT

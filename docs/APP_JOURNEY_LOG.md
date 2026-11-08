@@ -26,6 +26,23 @@ This document is the single source of truth for the evolution of the MindFlow ap
 
 ## 🚀 App Journey Changelog
 
+## [v1.0.330] - 08 November 2026, 12:17 PM IST
+
+### Executive Summary
+Upgraded the "Create Account" (`SignupPage.tsx`) experience to full visual and architectural parity with the progressive 2-step Login portal (`AuthPage.tsx`). Replaced the bulky legacy white card, redundant checkboxes, and heavy vertical scroll with a frameless, direction-aware 2-step onboarding sequence, bidirectional email state preservation between Login and Signup, Android hardware back/Escape capture interception, and 44x44px accessible touch controls.
+
+### ✨ Features & UI/UX Parity
+- **Full Visual Parity with Senior Login Architecture**:
+  - Replaced the clunky desktop card box on mobile with a frameless, vertically centered layout (`h-[100dvh] max-h-[100dvh]` with safe-area insets and ambient indigo glow).
+  - Adopted the exact typography, BrandLogo sizing, Google OAuth button, and divider aesthetics from `AuthPage.tsx`.
+- **Progressive 2-Step Registration Flow**:
+  - **Step 1 (Identification)**: One-tap Google Sign-Up or Email Address identification with format validation, forward-sliding animation, and permanent Terms/Privacy notice.
+  - **Step 2 (Details & Security)**: Active Email Pill with quick "Change" action, Full Name input with auto-focus, Password & Confirm Password with individual 44x44px eye toggles, and unified 18+ Terms checkbox.
+- **Cross-Page Email State Preservation**:
+  - Wired bidirectional route state between `AuthPage` and `SignupPage` via `useLocation` / `location.state?.email`. If a user types their email on either screen and switches, their email is seamlessly prefilled.
+- **Hardware Back Button & Escape Interception**:
+  - Integrated `data-headlessui-state="open"` on Step 2 with capture-phase `Escape` key listeners, enabling seamless return to Step 1 without triggering an Android app exit or full screen pop. Step 1 top-left back button cleanly returns to the Login portal.
+
 ## [v1.0.329] - 08 November 2026, 11:55 AM IST
 
 ### Executive Summary
