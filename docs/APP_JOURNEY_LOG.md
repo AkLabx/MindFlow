@@ -26,6 +26,30 @@ This document is the single source of truth for the evolution of the MindFlow ap
 
 ## 🚀 App Journey Changelog
 
+## [v1.0.324] - 08 November 2026, 07:05 AM IST
+
+### Executive Summary
+Replaced immediate auto-start quiz behavior on dashboard drill buttons with an informative, beginner-friendly confirmation Downsheet (`DashboardDrillBottomSheet`). Users now see detailed context on what is about to start—including drill rationale, target exam, mode selection (Learning vs Mock), question count options (10, 15, 20, 25 Qs), and estimated duration—with direct options to start, customize in Quiz Builder, or safely cancel.
+
+### ✨ Features Added
+- **Dashboard Drill Confirmation Downsheet (`DashboardDrillBottomSheet.tsx`)**:
+  - Implemented a unified, accessible mobile-friendly bottom sheet for all dashboard quiz launch entry points.
+  - Contextual explanation card informing users what questions are included and why the drill is recommended (resolving beginner confusion over "which button is doing what").
+  - Interactive Mode Selector: Toggle between Learning Mode (instant answer reveal & AI explanations) and Mock Exam Mode (timed simulation with score review).
+  - Flexible Question Count selector chips (`10 Qs`, `15 Qs`, `20 Qs`, `25 Qs`) with dynamic estimated completion time calculation.
+  - Action options: "Start Practice Drill / Mock Test", "Customize Filters" (opens Quiz Builder pre-filtered without starting), and "Cancel" (safe dismissal).
+  - Accessible interaction design: mobile drag-handle visual cue, backdrop blur dismissal, keyboard `Escape` listener, and body scroll lock.
+
+### 🐛 Bug Fixes
+- **Dashboard Accidental Immediate Quiz Start Fix (`DashboardPage.tsx`, `AIPrescriptionCard.tsx`, `ImportantForSscStrip.tsx`)**:
+  - Intercepted direct `autoStart: true` navigation on "Start Targeted Drill", "Daily PYQ Drill", "Important for SSC CGL" curated topic cards, and ExamCard 25 Qs buttons.
+  - All triggers now cleanly stage drill parameters into `DashboardDrillBottomSheet`, eliminating unintended quiz session generation when exploratory clicks occur.
+
+### 🔒 Security & Architecture
+- **Diagnostic Telemetry Integration (`telemetryService.ts`)**:
+  - Added strictly typed telemetry payloads: `dashboard_drill_sheet_opened`, `dashboard_drill_started`, and `dashboard_drill_customize_clicked` for privacy-first observability without PII.
+
+
 ## [v1.0.323] - 07 November 2026, 07:15 PM IST
 
 ### Executive Summary

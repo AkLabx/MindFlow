@@ -11,4 +11,5 @@ export * from './components/DashboardGreeting';
 export * from './components/ExamCard';
 export * from './components/ExamQuickAccessStrip';
 export * from './components/ManageTargetExamsModal';
+export * from './components/DashboardDrillBottomSheet';
 export * from './pages/SubjectsPage';

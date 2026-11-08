@@ -10,10 +10,14 @@ import {
   Brain
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { useVulnerabilityEngine } from '../hooks/useVulnerabilityEngine';
+import { useVulnerabilityEngine, TopicVulnerability } from '../hooks/useVulnerabilityEngine';
 import { ROUTES } from '@/config/routes';
 
-export const AIPrescriptionCard: React.FC = () => {
+export interface AIPrescriptionCardProps {
+  onStartDrill?: (vulnerability: TopicVulnerability) => void;
+}
+
+export const AIPrescriptionCard: React.FC<AIPrescriptionCardProps> = ({ onStartDrill }) => {
   const navigate = useNavigate();
   const {
     isLoading,
@@ -43,6 +47,14 @@ export const AIPrescriptionCard: React.FC = () => {
   }
 
   const isDiagnostic = primaryVulnerability.isDiagnostic;
+
+  const handleDrillAction = () => {
+    if (onStartDrill && primaryVulnerability) {
+      onStartDrill(primaryVulnerability);
+    } else {
+      launchTargetedDrill(primaryVulnerability);
+    }
+  };
 
   return (
     <div className="group relative bg-white/95 dark:bg-slate-900/95 backdrop-blur-md rounded-2xl p-4 sm:p-5 border border-indigo-200/80 dark:border-indigo-800/60 shadow-[0_4px_20px_-4px_rgba(99,102,241,0.08)] dark:shadow-none overflow-hidden transition-all duration-200 hover:border-indigo-300 dark:hover:border-indigo-700">
@@ -110,7 +122,7 @@ export const AIPrescriptionCard: React.FC = () => {
       {/* Action buttons */}
       <div className="relative z-10 mt-4 flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
         <button
-          onClick={() => launchTargetedDrill(primaryVulnerability)}
+          onClick={handleDrillAction}
           className="flex-1 min-h-[44px] px-4 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 via-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white font-bold text-xs sm:text-sm shadow-md shadow-indigo-500/20 flex items-center justify-center gap-2 active:scale-[0.98] transition-all cursor-pointer"
           aria-label={isDiagnostic ? 'Start Diagnostic Drill' : 'Start Targeted Drill'}
         >
