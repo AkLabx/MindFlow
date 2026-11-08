@@ -1,11 +1,11 @@
 import React from 'react';
 import { ChevronRight, Play, Flame } from 'lucide-react';
-import { IMPORTANT_FOR_SSC } from '../constants/sscDashboardConfig';
+import { IMPORTANT_FOR_SSC, ImportantForSscConfig } from '../constants/sscDashboardConfig';
 import { useExamContextStore } from '@/stores/useExamContextStore';
 import { CANONICAL_EXAMS } from '../constants/examRegistry';
 
-interface ImportantForSscStripProps {
-  onTopicClick: (filters: any) => void;
+export interface ImportantForSscStripProps {
+  onTopicClick: (item: ImportantForSscConfig, filters: any) => void;
   onViewAllClick: () => void;
 }
 
@@ -13,6 +13,7 @@ export const ImportantForSscStrip: React.FC<ImportantForSscStripProps> = ({ onTo
   const activeExamId = useExamContextStore((s) => s.activeExamId);
   const activeExam = CANONICAL_EXAMS.find((e) => e.id === activeExamId);
   const sectionTitle = activeExam ? `Important for ${activeExam.displayName}` : 'Important for SSC';
+
   return (
     <section className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.06)] dark:shadow-none p-3.5 sm:p-4.5 flex flex-col gap-3 relative z-10 mb-2">
       <div className="flex items-center justify-between px-0.5">
@@ -34,7 +35,7 @@ export const ImportantForSscStrip: React.FC<ImportantForSscStripProps> = ({ onTo
             key={item.id}
             onClick={() => {
               const examFilter = activeExam ? { examName: activeExam.dbExamNames } : {};
-              onTopicClick({ ...item.filter, ...examFilter });
+              onTopicClick(item, { ...item.filter, ...examFilter });
             }}
             className={`group relative flex flex-col justify-between p-3 sm:p-3.5 rounded-xl bg-white dark:bg-slate-900 border ${item.borderClass} hover:border-indigo-400 dark:hover:border-indigo-600 shadow-xs hover:shadow-sm transition-all cursor-pointer min-w-[210px] sm:min-w-0 snap-start active:scale-[0.98] overflow-hidden`}
           >

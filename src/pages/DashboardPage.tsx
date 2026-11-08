@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth, useProfileStats } from "@/features/auth";
 import { useQuery } from '@tanstack/react-query';
@@ -11,6 +11,8 @@ import { isNativeApp } from "@/utils/platform";
 import { ROUTES } from "@/config/routes";
 import { telemetry } from '@/lib/telemetry/index';
 import { performanceTracker, PERF_BUDGETS } from '@/lib/performance/performanceMetrics';
+import { useExamContextStore } from "@/stores/useExamContextStore";
+import { TopicVulnerability } from "@/features/ai/hooks/useVulnerabilityEngine";
 
 import { AIPrescriptionCard } from "@/features/ai/components/AIPrescriptionCard";
 import {
@@ -22,6 +24,10 @@ import {
   ImportantForSscStrip,
   ExamQuickAccessStrip,
   CanonicalExam,
+  CANONICAL_EXAMS,
+  ImportantForSscConfig,
+  DashboardDrillBottomSheet,
+  DashboardDrillInfo,
 } from "@/features/dashboard";
 
 interface DashboardProps {
@@ -33,6 +39,15 @@ export const DashboardPage: React.FC<DashboardProps> = ({ onBackToIntro }) => {
   const { user, profile } = useAuth();
   const { showToast, showPopup, closePopup } = useNotification();
   const { startQuiz } = useQuizContext();
+
+  const activeExamId = useExamContextStore((s) => s.activeExamId);
+  const activeExam = useMemo(() => {
+    return CANONICAL_EXAMS.find((e) => e.id === activeExamId) || CANONICAL_EXAMS[0];
+  }, [activeExamId]);
+
+  // Dashboard Drill Confirmation Downsheet state
+  const [drillSheetInfo, setDrillSheetInfo] = useState<DashboardDrillInfo | null>(null);
+  const [isDrillSheetOpen, setIsDrillSheetOpen] = useState(false);
 
   const showComingSoonPopup = () => {
     showPopup({
@@ -193,12 +208,100 @@ export const DashboardPage: React.FC<DashboardProps> = ({ onBackToIntro }) => {
     });
   };
 
+  // Exam Card Quick Drill -> Open Confirmation Downsheet
   const handleExamQuickDrill = (exam: CanonicalExam) => {
-    handleNavigateWithFilters(
-      { examName: exam.dbExamNames },
-      'learning',
-      true
-    );
+    setDrillSheetInfo({
+      type: 'exam_quick_drill',
+      title: `${exam.displayName} Quick Drill`,
+      subtitle: `${exam.subtitle} • 25 Questions`,
+      badgeLabel: `${exam.shortCode} Practice`,
+      badgeVariant: 'blue',
+      examDisplayName: exam.displayName,
+      examShortCode: exam.shortCode,
+      description: `Rapid 25-question practice set containing authentic ${exam.displayName} previous years questions across all major subjects.`,
+      tags: ['PYQ', exam.shortCode],
+      defaultQuestionCount: 25,
+      defaultMode: 'learning',
+      filters: {
+        examName: exam.dbExamNames,
+      },
+    });
+    setIsDrillSheetOpen(true);
+  };
+
+  // AI Prescription Drill -> Open Confirmation Downsheet
+  const handleAIPrescriptionDrill = (vulnerability: TopicVulnerability) => {
+    const isDiag = vulnerability.isDiagnostic;
+    setDrillSheetInfo({
+      type: 'targeted_drill',
+      title: vulnerability.headline,
+      subtitle: `${vulnerability.subject} • ${vulnerability.topic}`,
+      badgeLabel: isDiag ? 'Diagnostic Sprint' : 'Weak Area Drill',
+      badgeVariant: isDiag ? 'blue' : 'rose',
+      examDisplayName: activeExam.displayName,
+      examShortCode: activeExam.shortCode,
+      description:
+        vulnerability.subtext ||
+        vulnerability.recommendation ||
+        (isDiag
+          ? `Establish your performance baseline across ${activeExam.displayName} with a 10-Q diagnostic drill.`
+          : `Target your diagnosed weak areas with focused practice on ${vulnerability.topic}.`),
+      subject: vulnerability.subject,
+      topics: vulnerability.drillFilters.topic || [vulnerability.topic],
+      tags: vulnerability.drillFilters.tags || ['PYQ'],
+      defaultQuestionCount: vulnerability.suggestedQuestionCount || 10,
+      defaultMode: 'learning',
+      filters: {
+        subject: vulnerability.drillFilters.subject || [vulnerability.subject],
+        topic: vulnerability.drillFilters.topic || [vulnerability.topic],
+        examName: vulnerability.drillFilters.examName || activeExam.dbExamNames,
+        tags: vulnerability.drillFilters.tags || ['PYQ'],
+      },
+    });
+    setIsDrillSheetOpen(true);
+  };
+
+  // Daily PYQ Drill -> Open Confirmation Downsheet
+  const handleDailyPyqDrill = () => {
+    setDrillSheetInfo({
+      type: 'daily_pyq',
+      title: 'Daily PYQ Drill',
+      subtitle: `${activeExam.displayName} • Mixed Topics Practice`,
+      badgeLabel: 'Daily Challenge',
+      badgeVariant: 'amber',
+      examDisplayName: activeExam.displayName,
+      examShortCode: activeExam.shortCode,
+      description: `A 25-question mixed practice set containing verified previous years questions from ${activeExam.displayName}. Helps maintain your daily streak and benchmark your exam speed.`,
+      tags: ['PYQ', 'Daily Drill'],
+      defaultQuestionCount: 25,
+      defaultMode: 'mock',
+      filters: {
+        tags: ['PYQ'],
+        examName: activeExam.dbExamNames,
+      },
+    });
+    setIsDrillSheetOpen(true);
+  };
+
+  // Important for SSC Card -> Open Confirmation Downsheet
+  const handleImportantTopicClick = (item: ImportantForSscConfig, computedFilter: any) => {
+    setDrillSheetInfo({
+      type: 'important_topic',
+      title: item.title,
+      subtitle: `${item.subjectLabel} • ${item.qs}`,
+      badgeLabel: item.tag || '🔥 High Yield',
+      badgeVariant: 'purple',
+      examDisplayName: activeExam.displayName,
+      examShortCode: activeExam.shortCode,
+      description: `High-frequency ${item.title} questions with repetitive appearance in ${activeExam.displayName} exams. Designed for high-yield score improvement.`,
+      subject: item.subjectLabel,
+      topics: (item.filter.topic as string[]) || [],
+      tags: ['PYQ', 'High Yield'],
+      defaultQuestionCount: 20,
+      defaultMode: 'learning',
+      filters: computedFilter,
+    });
+    setIsDrillSheetOpen(true);
   };
 
   const handleSubjectClick = (subjectDbKey: string) => {
@@ -212,7 +315,7 @@ export const DashboardPage: React.FC<DashboardProps> = ({ onBackToIntro }) => {
   const handleQuickAction = (action: string) => {
     switch(action) {
       case 'mock':
-        handleNavigateWithFilters({ tags: ['PYQ'] }, 'mock', true);
+        handleDailyPyqDrill();
         break;
       case 'custom':
         navigate("/quiz/config");
@@ -250,7 +353,7 @@ export const DashboardPage: React.FC<DashboardProps> = ({ onBackToIntro }) => {
         />
 
         {/* Tier 1.8: AI Study Prescription (Phase 5A Intelligence Layer) */}
-        <AIPrescriptionCard />
+        <AIPrescriptionCard onStartDrill={handleAIPrescriptionDrill} />
 
         {/* Tier 2: GK / GS Subjects */}
         <SubjectStrip
@@ -281,11 +384,39 @@ export const DashboardPage: React.FC<DashboardProps> = ({ onBackToIntro }) => {
 
         {/* Tier 6: Important for SSC */}
         <ImportantForSscStrip
-          onTopicClick={(filter) => handleNavigateWithFilters(filter, 'learning', true)}
+          onTopicClick={handleImportantTopicClick}
           onViewAllClick={() => navigate("/quiz/config")}
         />
       </div>
+
+      {/* Confirmation Downsheet for All Dashboard Drills */}
+      <DashboardDrillBottomSheet
+        isOpen={isDrillSheetOpen}
+        onClose={() => setIsDrillSheetOpen(false)}
+        drillInfo={drillSheetInfo}
+        onStartDrill={(filters, mode, count) => {
+          setIsDrillSheetOpen(false);
+          handleNavigateWithFilters(
+            filters,
+            mode,
+            true,
+            drillSheetInfo?.fixedSubjectContext || false,
+            count
+          );
+        }}
+        onCustomizeFilters={(filters, mode, count) => {
+          setIsDrillSheetOpen(false);
+          handleNavigateWithFilters(
+            filters,
+            mode,
+            false,
+            drillSheetInfo?.fixedSubjectContext || false,
+            count
+          );
+        }}
+      />
     </div>
   );
 };
+
 export default DashboardPage;

@@ -18,6 +18,9 @@ export interface TelemetryPayloads {
   ai_drill_launched: { examId: string; topic: string; mode: string; isDiagnostic: boolean };
   readiness_computed: { examId: string; readinessScore: number; coveragePct: number; tier: string };
   revision_plan_generated: { examId: string; topicsDueCount: number };
+  dashboard_drill_sheet_opened: { drillType: string; drillTitle: string; exam?: string };
+  dashboard_drill_started: { drillType: string; drillTitle: string; mode: string; questionCount: number };
+  dashboard_drill_customize_clicked: { drillType: string; drillTitle: string; mode: string; questionCount: number };
 }
 
 export type TelemetryEventName = keyof TelemetryPayloads;
