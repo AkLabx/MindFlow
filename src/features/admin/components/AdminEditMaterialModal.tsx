@@ -16,6 +16,7 @@ export interface StudyMaterial {
     file_url: string;
     status: boolean;
     parts?: string | null;
+    created_at?: string;
 }
 
 interface AdminEditMaterialModalProps {

@@ -2,8 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, ShieldAlert, CheckCircle2, ShieldQuestion, Clock, MessageSquare, Save, X, ExternalLink, Trash2, Undo } from 'lucide-react';
+import { ShieldAlert, CheckCircle2, ShieldQuestion, Clock, MessageSquare, Save, X, ExternalLink, Trash2, Undo, Filter } from 'lucide-react';
 import { useAuth } from '../../auth/context/AuthContext';
+import { AuthPolicy } from '@/lib/navigation/policies/AuthPolicy';
 import { fetchAllReports, updateReportStatus, deleteContentByAdmin, restoreContentByAdmin } from '../../community/api/reportsApi';
 import { cn } from '../../../utils/cn';
 import { useNotification } from '../../../hooks/useNotification';
@@ -12,7 +13,8 @@ type ReportStatus = 'pending' | 'being_reviewed' | 'resolved' | 'ignored';
 
 export const AdminReportsQueue: React.FC = () => {
     const navigate = useNavigate();
-    const { user } = useAuth();
+    const { user, profile, roles, isAdmin } = useAuth();
+    const hasAdminAccess = isAdmin || AuthPolicy.isAdmin(user, profile, roles);
     const queryClient = useQueryClient();
     const { showToast } = useNotification();
 
@@ -20,6 +22,7 @@ export const AdminReportsQueue: React.FC = () => {
     const [editingStatus, setEditingStatus] = useState<ReportStatus>('pending');
     const [adminNote, setAdminNote] = useState('');
     const [isActionLoading, setIsActionLoading] = useState(false);
+    const [selectedTab, setSelectedTab] = useState<'all' | ReportStatus>('all');
 
     const handleDeleteContent = async () => {
         if (!selectedReport || selectedReport.target_type === 'user') return;
@@ -54,7 +57,7 @@ export const AdminReportsQueue: React.FC = () => {
 
     // Strict Guard
     useEffect(() => {
-        if (!user || user.email !== 'admin@mindflow.com') {
+        if (!user || !hasAdminAccess) {
             navigate('/dashboard', { replace: true });
         }
     }, [user, navigate]);
@@ -62,7 +65,7 @@ export const AdminReportsQueue: React.FC = () => {
     const { data: reports, isLoading } = useQuery({
         queryKey: ['admin-reports'],
         queryFn: fetchAllReports,
-        enabled: user?.email === 'admin@mindflow.com',
+        enabled: Boolean(user && hasAdminAccess),
     });
 
     const updateMutation = useMutation({
@@ -78,7 +81,7 @@ export const AdminReportsQueue: React.FC = () => {
         }
     });
 
-    if (!user || user.email !== 'admin@mindflow.com') return null;
+    if (!user || !hasAdminAccess) return null;
 
     const handleOpenReport = (report: any) => {
         setSelectedReport(report);
@@ -97,34 +100,69 @@ export const AdminReportsQueue: React.FC = () => {
 
     const getStatusStyle = (status: string) => {
         switch (status) {
-            case 'pending': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-            case 'being_reviewed': return 'bg-blue-100 text-blue-800 border-blue-200';
-            case 'resolved': return 'bg-green-100 text-green-800 border-green-200';
-            case 'ignored': return 'bg-slate-100 text-slate-800 border-slate-200';
+            case 'pending': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-950/40 dark:text-yellow-400 border-yellow-200 dark:border-yellow-900/50';
+            case 'being_reviewed': return 'bg-blue-100 text-blue-800 dark:bg-blue-950/40 dark:text-blue-400 border-blue-200 dark:border-blue-900/50';
+            case 'resolved': return 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-400 border-emerald-200 dark:border-emerald-900/50';
+            case 'ignored': return 'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-400 border-slate-200 dark:border-slate-700';
             default: return 'bg-yellow-100 text-yellow-800 border-yellow-200';
         }
     };
 
+    const filteredReports = reports?.filter(r => selectedTab === 'all' || r.status === selectedTab) || [];
+
     return (
-        <div className="min-h-screen bg-slate-50 dark:bg-slate-950 pb-24">
-            {/* Header */}
-            <div className="sticky top-0 z-40 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-b border-slate-200 dark:border-slate-800 p-4">
-                <div className="flex items-center gap-4 max-w-4xl mx-auto">
-                    <button
-                        onClick={() => navigate('/admin')}
-                        className="p-2 -ml-2 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100 transition-colors rounded-full hover:bg-slate-100 dark:hover:bg-slate-800"
-                    >
-                        <ArrowLeft className="w-6 h-6" />
-                    </button>
-                    <div>
-                        <h1 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                            <ShieldAlert className="w-5 h-5 text-red-500" /> Reports Queue
-                        </h1>
-                    </div>
+        <div className="space-y-6 pb-12">
+            {/* Page Header & Metrics */}
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div>
+                    <h1 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
+                        <ShieldAlert className="w-6 h-6 text-red-500" />
+                        Governance & Moderation Queue
+                    </h1>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                        Review, moderate, and resolve flags on user-generated posts, reels, and profiles.
+                    </p>
                 </div>
+                {reports && (
+                    <div className="flex items-center gap-2">
+                        <span className="px-3 py-1.5 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/50 text-xs font-bold text-red-600 dark:text-red-400 flex items-center gap-1.5">
+                            <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                            {reports.filter(r => r.status === 'pending').length} Pending
+                        </span>
+                        <span className="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-300">
+                            {reports.length} Total Reports
+                        </span>
+                    </div>
+                )}
             </div>
 
-            <div className="p-4 max-w-4xl mx-auto mt-4">
+            {/* Filter Tabs */}
+            <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+                {(['all', 'pending', 'being_reviewed', 'resolved', 'ignored'] as const).map(tab => (
+                    <button
+                        key={tab}
+                        onClick={() => setSelectedTab(tab)}
+                        className={cn(
+                            'px-4 py-2 rounded-xl text-xs font-bold capitalize transition-all border whitespace-nowrap',
+                            selectedTab === tab
+                                ? 'bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-600/20'
+                                : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800'
+                        )}
+                    >
+                        {tab.replace('_', ' ')}
+                        {reports && (
+                            <span className={cn(
+                                'ml-2 px-1.5 py-0.5 rounded-md text-[10px]',
+                                selectedTab === tab ? 'bg-white/20 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-500'
+                            )}>
+                                {tab === 'all' ? reports.length : reports.filter(r => r.status === tab).length}
+                            </span>
+                        )}
+                    </button>
+                ))}
+            </div>
+
+            <div>
                 {isLoading ? (
                     <div className="space-y-4">
                         {[...Array(5)].map((_, i) => (
@@ -145,7 +183,7 @@ export const AdminReportsQueue: React.FC = () => {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100 dark:divide-slate-800/50">
-                                {reports?.map((report) => (
+                                {filteredReports.map((report) => (
                                     <tr key={report.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                                         <td className="p-4 whitespace-nowrap text-slate-600 dark:text-slate-300">
                                             {new Date(report.created_at).toLocaleDateString()}
@@ -174,7 +212,7 @@ export const AdminReportsQueue: React.FC = () => {
                                         </td>
                                     </tr>
                                 ))}
-                                {reports?.length === 0 && (
+                                {filteredReports.length === 0 && (
                                     <tr>
                                         <td colSpan={6} className="p-8 text-center text-slate-500">
                                             No reports found. The community is safe!
@@ -291,27 +329,8 @@ export const AdminReportsQueue: React.FC = () => {
                                 {/* Admin Action Area */}
                                 <div className="space-y-4 pt-4 border-t border-slate-200 dark:border-slate-800">
                                     <div className="flex justify-between items-center mb-2">
-                                        <div className="flex justify-between items-center mb-2">
+
         <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200">Admin Actions</h4>
-        {selectedReport.target_type !== 'user' && (
-            <div className="flex gap-2">
-                <button
-                    onClick={handleRestoreContent}
-                    disabled={isActionLoading}
-                    className="px-3 py-1.5 text-xs font-bold text-emerald-700 bg-emerald-100 hover:bg-emerald-200 rounded-lg flex items-center gap-1 transition-colors disabled:opacity-50"
-                >
-                    <Undo className="w-3.5 h-3.5" /> Restore
-                </button>
-                <button
-                    onClick={handleDeleteContent}
-                    disabled={isActionLoading}
-                    className="px-3 py-1.5 text-xs font-bold text-red-700 bg-red-100 hover:bg-red-200 rounded-lg flex items-center gap-1 transition-colors disabled:opacity-50"
-                >
-                    <Trash2 className="w-3.5 h-3.5" /> Delete Content
-                </button>
-            </div>
-        )}
-    </div>
                                         {selectedReport.target_type !== 'user' && (
                                             <div className="flex gap-2">
                                                 <button

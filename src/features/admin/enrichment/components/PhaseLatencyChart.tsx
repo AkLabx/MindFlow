@@ -2,7 +2,7 @@ import React from 'react';
 import { EnrichmentDashboardMetrics } from '../types/enrichmentAdmin';
 
 export const PhaseLatencyChart = ({ metrics }: { metrics: EnrichmentDashboardMetrics }) => {
-    if (!metrics.models.phase_latency || Object.keys(metrics.models.phase_latency).length === 0) {
+    if (!metrics?.models?.phase_latency || Object.keys(metrics.models.phase_latency).length === 0) {
         return null;
     }
 

@@ -63,41 +63,38 @@ export const AdminEnrichmentControlCenter: React.FC = () => {
     }
 
     return (
-        <div className="min-h-screen bg-slate-50 dark:bg-slate-950 pb-20">
-            <header className="sticky top-0 z-30 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-b border-slate-200 dark:border-slate-800">
-                <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                        <button onClick={() => navigate('/admin')} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors text-slate-600 dark:text-slate-400">
-                            <ArrowLeft className="w-5 h-5" />
+        <div className="space-y-6 pb-12">
+            <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex flex-col">
+                    <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">AI Operations & Pipelines</span>
+                    <div className="relative mt-1">
+                        <button onClick={() => setIsDropdownOpen(!isDropdownOpen)} className="flex items-center gap-2 text-2xl font-extrabold text-slate-900 dark:text-slate-100 font-display hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+                            {config.label}
+                            <ChevronDown className="w-5 h-5 text-indigo-500" />
                         </button>
-                        <div className="flex flex-col">
-                            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">AI Operations</span>
-                            <div className="relative">
-                                <button onClick={() => setIsDropdownOpen(!isDropdownOpen)} className="flex items-center gap-2 text-lg font-bold text-slate-800 dark:text-slate-100 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
-                                    {config.label}
-                                    <ChevronDown className="w-4 h-4" />
-                                </button>
-                                {isDropdownOpen && (
-                                    <>
-                                        <div className="fixed inset-0 z-40" onClick={() => setIsDropdownOpen(false)} />
-                                        <div className="absolute top-full left-0 mt-2 w-56 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl overflow-hidden z-50">
-                                            {(Object.keys(PIPELINE_REGISTRY) as PipelineType[]).map((pKey) => (
-                                                <button key={pKey} onClick={() => { setSelectedPipeline(pKey); setIsDropdownOpen(false); }} className={`w-full text-left px-4 py-3 text-sm font-medium transition-colors ${selectedPipeline === pKey ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300' : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50'}`}>
-                                                    {PIPELINE_REGISTRY[pKey].label}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </>
-                                )}
-                            </div>
-                        </div>
+                        {isDropdownOpen && (
+                            <>
+                                <div className="fixed inset-0 z-40" onClick={() => setIsDropdownOpen(false)} />
+                                <div className="absolute top-full left-0 mt-2 w-56 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl overflow-hidden z-50">
+                                    {(Object.keys(PIPELINE_REGISTRY) as PipelineType[]).map((pKey) => (
+                                        <button key={pKey} onClick={() => { setSelectedPipeline(pKey); setIsDropdownOpen(false); }} className={`w-full text-left px-4 py-3 text-sm font-medium transition-colors ${selectedPipeline === pKey ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300' : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50'}`}>
+                                            {PIPELINE_REGISTRY[pKey].label}
+                                        </button>
+                                    ))}
+                                </div>
+                            </>
+                        )}
                     </div>
+                </div>
+                <div className="flex items-center gap-2 text-xs font-semibold px-3 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                    <span>DLQ Polling (30s)</span>
                 </div>
             </header>
 
-            <main className="max-w-7xl mx-auto px-4 py-8">
+            <div className="space-y-6">
                 {config.supportedWidgets.includes('HeroCard') && <PipelineHeroCard metrics={metrics} pipelineConfig={config} />}
-                {config.supportedWidgets.includes('ActionPanel') && <ActionPanel isPipelineActive={metrics.hero.is_active} isMobile={isMobile} />}
+                {config.supportedWidgets.includes('ActionPanel') && <ActionPanel isPipelineActive={Boolean(metrics?.hero?.is_active)} isMobile={isMobile} />}
                 {config.supportedWidgets.includes('QualityMetrics') && <QualityMetrics metrics={metrics} />}
                 {config.supportedWidgets.includes('QueueIntelligence') && <QueueIntelligence metrics={metrics} pipelineConfig={config} />}
                 {config.supportedWidgets.includes('PhaseLatency') && <PhaseLatencyChart metrics={metrics} />}
@@ -114,7 +111,7 @@ export const AdminEnrichmentControlCenter: React.FC = () => {
                         pipelineConfig={config}
                     />
                 )}
-            </main>
+            </div>
         </div>
     );
 };

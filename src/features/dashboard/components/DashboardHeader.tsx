@@ -2,6 +2,7 @@ import React from 'react';
 import { Flame, Bell, User as UserIcon, ShieldAlert } from 'lucide-react';
 import { User } from '@supabase/supabase-js';
 import { getUserDisplayName } from '@/utils/user';
+import { useAuth } from '@/features/auth/context/AuthContext';
 
 interface DashboardHeaderProps {
   user: User | null;
@@ -21,7 +22,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
   onStreakClick
 }) => {
   const displayName = getUserDisplayName(profile, user, 'Aspirant');
-  const isAdmin = user?.email === 'admin@mindflow.com';
+  const { isAdmin } = useAuth();
 
   return (
     <div className="flex items-center justify-between mb-2 mt-1 sm:mt-2 px-1 relative z-10">

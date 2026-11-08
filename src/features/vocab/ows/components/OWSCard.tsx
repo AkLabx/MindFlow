@@ -42,9 +42,8 @@ export const OWSCard: React.FC<OWSCardProps> = ({ data: initialData, serialNumbe
   const updateCardImage = useFlashcardStore((state) => state.updateCardImage);
   const isKnown = getKnownStatus(data);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const { showToast } = useNotification();
-  const isAdmin = user?.email === 'admin@mindflow.com';
   const [isUploading, setIsUploading] = useState(false);
 
   React.useEffect(() => {

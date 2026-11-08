@@ -1,5 +1,4 @@
 import React, { useState, useMemo } from 'react';
-import { MainLayout } from '@/layouts/MainLayout';
 import { useNavigate } from 'react-router-dom';
 import { ChevronRight, Plus, BookOpen, Layers, CheckSquare } from 'lucide-react';
 import {
@@ -30,12 +29,12 @@ export const AdminTestSeriesDashboard: React.FC = () => {
 
     // Derived KPIs
     const kpis = useMemo(() => {
-        const publishedTests = tests.filter(t => t.is_published).length;
-        const draftTests = tests.length - publishedTests;
+        const publishedTests = (tests || []).filter(t => t?.is_published).length;
+        const draftTests = Math.max(0, (tests || []).length - publishedTests);
         return {
-            totalCategories: categories.length,
-            totalSeries: series.length,
-            totalTests: tests.length,
+            totalCategories: (categories || []).length,
+            totalSeries: (series || []).length,
+            totalTests: (tests || []).length,
             publishedTests,
             draftTests
         };
@@ -44,17 +43,17 @@ export const AdminTestSeriesDashboard: React.FC = () => {
     // Filtering logic based on search
     const filteredCategories = useMemo(() => {
         if (!searchQuery) return categories;
-        return categories.filter(c => c.name.toLowerCase().includes(searchQuery.toLowerCase()));
+        return (categories || []).filter(c => (c?.name || '').toLowerCase().includes(searchQuery.toLowerCase()));
     }, [categories, searchQuery]);
 
     const filteredSeries = useMemo(() => {
         if (!searchQuery) return series;
-        return series.filter(s => s.name.toLowerCase().includes(searchQuery.toLowerCase()));
+        return (series || []).filter(s => (s?.name || '').toLowerCase().includes(searchQuery.toLowerCase()));
     }, [series, searchQuery]);
 
     const filteredTests = useMemo(() => {
         if (!searchQuery) return tests;
-        return tests.filter(t => t.name.toLowerCase().includes(searchQuery.toLowerCase()));
+        return (tests || []).filter(t => (t?.name || '').toLowerCase().includes(searchQuery.toLowerCase()));
     }, [tests, searchQuery]);
 
     // Handlers
@@ -102,30 +101,23 @@ export const AdminTestSeriesDashboard: React.FC = () => {
     };
 
     return (
-        <MainLayout activeTab="tools" onTabChange={() => {}} onOpenSettings={() => {}}>
-            <div className="flex flex-col min-h-screen bg-slate-50 dark:bg-slate-900 -m-4 sm:-m-6 lg:-m-8 p-4 sm:p-6 lg:p-8">
-                <header className="mb-8">
-                    <button
-                        onClick={() => navigate('/admin')}
-                        className="text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 flex items-center transition-colors font-semibold uppercase tracking-widest text-xs w-fit mb-4"
-                    >
-                        <ChevronRight className="w-4 h-4 rotate-180 mr-1" />
-                        Back to Admin Home
-                    </button>
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                        <div>
-                            <h1 className="text-3xl font-black text-slate-900 dark:text-white">MindFlow CMS</h1>
-                            <p className="text-slate-500 mt-1">Manage Mock Tests, Categories, and Series.</p>
-                        </div>
-                        <button
-                            onClick={openCreate}
-                            className="flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl font-semibold transition-colors shadow-sm"
-                        >
-                            <Plus className="w-5 h-5" /> Create New
-                        </button>
-                    </div>
-                </header>
-
+        <div className="space-y-6 pb-12">
+            <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                    <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100 font-display">
+                        Mock Tests & Exam CMS
+                    </h1>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                        Curate exam categories, test series collections, and published mock tests.
+                    </p>
+                </div>
+                <button
+                    onClick={openCreate}
+                    className="flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2.5 rounded-xl text-xs font-bold transition-all shadow-md shadow-indigo-600/20"
+                >
+                    <Plus className="w-4 h-4" /> Create New
+                </button>
+            </header>
                 {/* KPI Cards */}
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
                     <KPICard title="Categories" value={kpis.totalCategories} icon={BookOpen} color="indigo" />
@@ -275,6 +267,5 @@ export const AdminTestSeriesDashboard: React.FC = () => {
                     confirmText="Delete Permanently"
                 />
             </div>
-        </MainLayout>
     );
 };

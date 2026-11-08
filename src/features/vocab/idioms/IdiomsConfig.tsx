@@ -37,7 +37,7 @@ const emptyFilters: InitialFilters = {
 };
 
 export const IdiomsConfig: React.FC<IdiomsConfigProps> = ({ onStart, onBack }) => {
-    const { user } = useAuth();
+    const { user, isAdmin } = useAuth();
     const setHideGlobalFooter = useLayoutStore(state => state.setHideGlobalFooter);
     useEffect(() => {
         setHideGlobalFooter(true);
@@ -55,7 +55,7 @@ export const IdiomsConfig: React.FC<IdiomsConfigProps> = ({ onStart, onBack }) =
     const [isFetchingData, setIsFetchingData] = useState(false);
     const [isInitializing, setIsInitializing] = useState(true);
 
-    const isAdmin = user?.email === 'admin@mindflow.com';
+
 
     useEffect(() => {
         const initConfig = async () => {

@@ -7,9 +7,9 @@ export const TokenEconomicsPanel = ({ metrics }: { metrics: EnrichmentDashboardM
     const INPUT_COST_PER_MILLION = 0.075;
     const OUTPUT_COST_PER_MILLION = 0.30;
 
-    const reqs = metrics.telemetry.requests_today || 0;
-    const totalInTokens = (metrics.telemetry.avg_input_tokens || 0) * reqs;
-    const totalOutTokens = (metrics.telemetry.avg_output_tokens || 0) * reqs;
+    const reqs = metrics?.telemetry?.requests_today || 0;
+    const totalInTokens = (metrics?.telemetry?.avg_input_tokens || 0) * reqs;
+    const totalOutTokens = (metrics?.telemetry?.avg_output_tokens || 0) * reqs;
 
     const estimatedCost =
         (totalInTokens / 1_000_000 * INPUT_COST_PER_MILLION) +
@@ -44,7 +44,7 @@ export const TokenEconomicsPanel = ({ metrics }: { metrics: EnrichmentDashboardM
                     <div className="text-2xl font-bold text-indigo-700 dark:text-indigo-300">
                         {formatTokens(totalInTokens)}
                     </div>
-                    <div className="text-xs text-indigo-500/70 mt-1">Avg {Math.round(metrics.telemetry.avg_input_tokens).toLocaleString()}/req</div>
+                    <div className="text-xs text-indigo-500/70 mt-1">Avg {Math.round(metrics?.telemetry?.avg_input_tokens || 0).toLocaleString()}/req</div>
                 </div>
 
                 <div className="p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl">
@@ -55,7 +55,7 @@ export const TokenEconomicsPanel = ({ metrics }: { metrics: EnrichmentDashboardM
                     <div className="text-2xl font-bold text-emerald-700 dark:text-emerald-300">
                         {formatTokens(totalOutTokens)}
                     </div>
-                    <div className="text-xs text-emerald-500/70 mt-1">Avg {Math.round(metrics.telemetry.avg_output_tokens).toLocaleString()}/req</div>
+                    <div className="text-xs text-emerald-500/70 mt-1">Avg {Math.round(metrics?.telemetry?.avg_output_tokens || 0).toLocaleString()}/req</div>
                 </div>
 
                 <div className="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-xl">
@@ -64,18 +64,18 @@ export const TokenEconomicsPanel = ({ metrics }: { metrics: EnrichmentDashboardM
                         <span className="text-xs font-semibold uppercase">Est. Daily Cost</span>
                     </div>
                     <div className="text-2xl font-bold text-amber-700 dark:text-amber-300">
-                        ${estimatedCost.toFixed(3)}
+                        ${(estimatedCost || 0).toFixed(3)}
                     </div>
                 </div>
             </div>
 
             {/* Model Distribution */}
-            {Object.keys(metrics.models.distribution).length > 0 && (
+            {metrics?.models?.distribution && Object.keys(metrics.models.distribution).length > 0 && (
                 <div className="mt-6 pt-6 border-t border-slate-100 dark:border-slate-800">
                     <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-4">Model Distribution</h3>
                     <div className="flex flex-wrap gap-3">
                         {Object.entries(metrics.models.distribution).map(([model, count]) => {
-                            const pct = ((count / reqs) * 100).toFixed(1);
+                            const pct = reqs > 0 ? ((count / reqs) * 100).toFixed(1) : '0.0';
                             return (
                                 <div key={model} className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 rounded-lg text-sm">
                                     <span className="font-mono text-slate-600 dark:text-slate-400">{model}</span>
