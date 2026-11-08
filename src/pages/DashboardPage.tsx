@@ -146,7 +146,8 @@ export const DashboardPage: React.FC<DashboardProps> = ({ onBackToIntro }) => {
     partialFilters: any,
     mode: 'learning' | 'mock' = 'learning',
     autoStart = false,
-    fixedSubjectContext = false
+    fixedSubjectContext = false,
+    questionCount = 25
   ) => {
     navigate("/quiz/config", {
       state: {
@@ -165,6 +166,7 @@ export const DashboardPage: React.FC<DashboardProps> = ({ onBackToIntro }) => {
         initialMode: mode,
         autoStart,
         fixedSubjectContext,
+        questionCount,
       },
     });
   };

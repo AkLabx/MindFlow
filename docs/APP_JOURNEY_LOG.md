@@ -26,7 +26,7 @@ This document is the single source of truth for the evolution of the MindFlow ap
 
 ## 🚀 App Journey Changelog
 
-## [v1.0.323] - 08 November 2026, 06:55 AM IST
+## [v1.0.324] - 08 November 2026, 06:55 AM IST
 
 ### Executive Summary
 Architected and deployed an enterprise-grade, desktop-first Admin Command Center (`/#/admin/*`), centralizing control over user IAM, question bank management, vocabulary matrix, content ingestion pipelines, mock test series, study materials, financial transaction ledgers, moderation queues, and remote app configuration. Completely eradicated hardcoded legacy admin email checks and elevated error boundary diagnostics.
@@ -78,6 +78,27 @@ Architected and deployed an enterprise-grade, desktop-first Admin Command Center
   - Upgraded system error boundary with collapsible component stack traces, exact error details banner, 1-click diagnostic JSON copy, and safe return to dashboard navigation.
 
 
+## [v1.0.323] - 07 November 2026, 07:15 PM IST
+
+### Executive Summary
+Investigated and resolved an issue where dashboard quick drills and topic boxes inadvertently generated multi-thousand question mega-quizzes. Introduced an authoritative system-wide ceiling guard (`MAX_QUIZ_QUESTIONS = 100`), enforced default question count boundaries (10–25 questions) across all dashboard launch triggers, and added interactive Question Count selector chips (10, 20, 25, 50, 100) to the Quiz Configuration footer per MindFlow Constitution Section 8.
+
+### 🐛 Bug Fixes
+- **Dashboard Drill Over-Generation Fix (`DashboardPage.tsx`, `useVulnerabilityEngine.ts`, `AIAdaptiveQuizModal.tsx`, `useExamReadiness.ts`)**:
+  - Fixed `Daily PYQ Drill` (`handleQuickAction('mock')`) which previously navigated with `{ tags: ['PYQ'] }` and `autoStart: true` without specifying a limit, inadvertently generating quizzes with all ~9,184 PYQs in the database. Now strictly requests `questionCount: 25`.
+  - Fixed `Start Targeted Drill` in `useVulnerabilityEngine.ts`, which now passes `questionCount: target.suggestedQuestionCount || 10`.
+  - Fixed `Important for SSC CGL` topic cards (`ImportantForSscStrip.tsx`), ensuring high-yield topic drill clicks strictly limit practice sessions to a curated 25 questions instead of whole-subject dumps.
+  - Fixed `AIAdaptiveQuizModal` and `useExamReadiness`, standardizing auto-started diagnostic and readiness drills to 15 questions.
+
+### 🔒 Security & Architecture
+- **Hard System Ceiling Enforcement (`quizCreationService.ts`)**:
+  - Introduced `MAX_QUIZ_QUESTIONS = 100` and `DEFAULT_DRILL_QUESTION_COUNT = 25`.
+  - Even if an unbounded question array is passed to `createQuiz`, the service now automatically clamps and logs a warning, guaranteeing that no quiz session can ever bloat IndexedDB or flood `bridge_saved_quiz_questions` with thousands of records.
+
+### ✨ Features Added
+- **Interactive Question Count Selector (`QuizConfig.tsx`)**:
+  - Implemented sticky footer question count selector chips (`10`, `20`, `25`, `50`, `100 (Max)`), giving users direct control over their session length (defaulting to 25 per Constitution Section 8).
+  - Dynamically updated the primary CTA label to `Create Quiz (X / Total Available)` with automatic random sampling so each generated session is fresh and focused.
 
 ## [v1.0.322] - 07 November 2026, 03:55 PM IST
 
