@@ -37,13 +37,13 @@ const emptyFilters: InitialFilters = {
 };
 
 export const OWSConfig: React.FC<OWSConfigProps> = ({ onStart, onBack }) => {
-    const { user } = useAuth();
+    const { user, isAdmin } = useAuth();
     const setHideGlobalFooter = useLayoutStore(state => state.setHideGlobalFooter);
     useEffect(() => {
         setHideGlobalFooter(true);
         return () => setHideGlobalFooter(false);
     }, [setHideGlobalFooter]);
-    const isAdmin = user?.email === 'admin@mindflow.com';
+
     const { clearProgress } = useOWSProgress();
     const [deckName, setDeckName] = useState('');
     const [isSaving, setIsSaving] = useState(false);

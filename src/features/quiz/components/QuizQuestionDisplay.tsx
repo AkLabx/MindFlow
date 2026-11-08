@@ -86,9 +86,8 @@ export function QuizQuestionDisplay({
     const { speak, stop, isPlaying, isLoading, error } = useTextToSpeech();
     const { showToast } = useNotification();
     const [isCopied, setIsCopied] = React.useState(false);
-    const { user } = useAuth();
+    const { user, isAdmin } = useAuth();
     const [isEditModalOpen, setIsEditModalOpen] = React.useState(false);
-    const isAdmin = user?.email === 'admin@mindflow.com';
 
     const stripHtmlRegex = React.useCallback((html?: string) => {
         if (!html) return "";

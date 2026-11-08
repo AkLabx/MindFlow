@@ -8,8 +8,8 @@ interface ProgressMatrixProps {
 }
 
 export const ProgressMatrix: React.FC<ProgressMatrixProps> = ({ metrics, pipelineConfig }) => {
-    const total = metrics.progress.total_items || 1;
-    const tiers = metrics.progress.tiers || {};
+    const total = metrics?.progress?.total_items || 1;
+    const tiers = metrics?.progress?.tiers || {};
 
     const generateBar = (label: string, complete: number = 0, customTotal?: number) => {
         const basis = customTotal !== undefined ? customTotal : total;

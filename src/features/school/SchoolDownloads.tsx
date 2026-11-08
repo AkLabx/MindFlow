@@ -31,8 +31,7 @@ export const SchoolDownloads: React.FC = () => {
     const [materials, setMaterials] = useState<StudyMaterial[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const { showToast } = useNotificationStore();
-    const { user } = useAuth();
-    const isAdmin = user?.email === 'admin@mindflow.com';
+    const { user, isAdmin } = useAuth();
     const [editingMaterial, setEditingMaterial] = useState<StudyMaterial | null>(null);
     const [deletingId, setDeletingId] = useState<string | null>(null);
 

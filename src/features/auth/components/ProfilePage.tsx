@@ -4,6 +4,7 @@ import { PresenceAvatar } from '../../../components/ui/PresenceAvatar';
 import { PresenceDot } from '../../../components/ui/PresenceDot';
 import Cropper from 'react-easy-crop';
 import { useAuth } from '../context/AuthContext';
+import { AuthPolicy } from '@/lib/navigation/policies/AuthPolicy';
 import { supabase } from '../../../lib/supabase';
 import {
     LogOut, Settings, Settings2, ChevronRight, Award, CheckCircle, BarChart, Megaphone,
@@ -83,7 +84,8 @@ interface ProfilePageProps {
 }
 
 const ProfilePage: React.FC<ProfilePageProps> = ({ onSignOut, onNavigateToSettings }) => {
-  const { user, profile, refreshProfile, signOut, refreshUser } = useAuth();
+  const { user, profile, roles, isAdmin, refreshProfile, signOut, refreshUser } = useAuth();
+  const hasAdminPrivileges = isAdmin || AuthPolicy.isAdmin(user, profile, roles);
 
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -418,18 +420,21 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onSignOut, onNavigateToSettin
                       <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-slate-600 dark:text-slate-400 transition-colors" />
                   </button>
 
-                  {user?.email === 'admin@mindflow.com' && (
-                    <button onClick={() => navigate('/admin/notifications')} className="w-full flex items-center justify-between p-3 rounded-xl hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-colors group mt-2 border border-indigo-200 dark:border-indigo-800 bg-indigo-50/50 dark:bg-indigo-900/10">
+                  {hasAdminPrivileges && (
+                    <button onClick={() => navigate('/admin/overview')} className="w-full flex items-center justify-between p-3.5 rounded-2xl hover:bg-indigo-50 dark:hover:bg-indigo-950/40 transition-all group mt-2 border border-indigo-200 dark:border-indigo-800 bg-gradient-to-r from-indigo-50/80 to-purple-50/50 dark:from-indigo-950/20 dark:to-purple-950/10 shadow-sm">
                       <div className="flex items-center gap-3">
-                        <div className="p-2 bg-indigo-100 dark:bg-indigo-800 rounded-lg text-indigo-600 dark:text-indigo-400">
-                          <Megaphone className="w-5 h-5" />
+                        <div className="p-2.5 bg-gradient-to-tr from-indigo-600 to-indigo-500 rounded-xl text-white shadow-md shadow-indigo-500/20">
+                          <Shield className="w-5 h-5" />
                         </div>
                         <div className="text-left">
-                          <span className="font-bold text-indigo-700 dark:text-indigo-300 block">Broadcast Notifications</span>
-                          <span className="text-xs text-indigo-500 dark:text-indigo-400 block font-medium">Admin Access Only</span>
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-indigo-950 dark:text-indigo-200 block text-sm">Admin Command Center</span>
+                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-indigo-200 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-300 uppercase tracking-wider">Staff</span>
+                          </div>
+                          <span className="text-xs text-indigo-600 dark:text-indigo-400 block font-medium">Control Room, IAM, Content & Mock CMS</span>
                         </div>
                       </div>
-                      <ChevronRight className="w-5 h-5 text-indigo-400 group-hover:text-indigo-600 dark:text-indigo-500 dark:group-hover:text-indigo-300 transition-colors" />
+                      <ChevronRight className="w-5 h-5 text-indigo-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-300 transition-colors" />
                     </button>
                   )}
                   <button onClick={() => navigate('/profile/support')} className="w-full flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">

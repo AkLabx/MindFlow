@@ -4,10 +4,10 @@ export const calculateTutorQualityScore = (metrics: EnrichmentDashboardMetrics):
     if (!metrics) return 0;
 
     let score = 100;
-    const schemaPenalty = (metrics.telemetry.schema_failures || 0) * 0.5;
-    const driftPenalty = (metrics.telemetry.prompt_drift || 0) * 1.0;
-    const dlqPenalty = (metrics.hero.dlq_count || 0) * 0.1;
-    const consecutiveFailuresPenalty = (metrics.telemetry.consecutive_failures || 0) * 2.0;
+    const schemaPenalty = (metrics.telemetry?.schema_failures || 0) * 0.5;
+    const driftPenalty = (metrics.telemetry?.prompt_drift || 0) * 1.0;
+    const dlqPenalty = (metrics.hero?.dlq_count || 0) * 0.1;
+    const consecutiveFailuresPenalty = (metrics.telemetry?.consecutive_failures || 0) * 2.0;
 
     score = score - schemaPenalty - driftPenalty - dlqPenalty - consecutiveFailuresPenalty;
     return Math.max(0, Math.min(100, score));
@@ -15,11 +15,11 @@ export const calculateTutorQualityScore = (metrics: EnrichmentDashboardMetrics):
 
 export const calculateCognitiveCompletion = (metrics: EnrichmentDashboardMetrics) => {
     const defaultStats = { lexical: 0, tutor: 0, memory: 0, advanced: 0, overall: 0 };
-    if (!metrics || !metrics.progress.total_items) return defaultStats;
+    if (!metrics || !metrics.progress?.total_items) return defaultStats;
     if (metrics.pipeline !== 'vocabulary') return defaultStats; // Only valid for Vocab currently based on scoring logic
 
-    const total = metrics.progress.total_items;
-    const tiers = metrics.progress.tiers;
+    const total = metrics.progress?.total_items;
+    const tiers = metrics.progress?.tiers || {};
 
     const lexicalTasksComplete = (tiers.examples_complete || 0) + (tiers.synonyms_complete || 0) + (tiers.antonyms_complete || 0) + (tiers.confusables_complete || 0);
     const lexicalTarget = total * 4;

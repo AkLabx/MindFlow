@@ -62,6 +62,11 @@ const SynonymClusterList = lazy(() => import('../features/vocab/synonyms/compone
 const BlueprintPreviewWrapper = lazy(() => import('../features/blueprints/components/BlueprintPreviewWrapper').then(m => ({ default: m.BlueprintPreviewWrapper })));
 const ExamBlueprintsHub = lazy(() => import('../pages/ExamBlueprintsHubPage').then(m => ({ default: m.ExamBlueprintsHubPage })));
 
+const AdminLayout = lazy(() => import('../features/admin/layouts/AdminLayout').then(m => ({ default: m.AdminLayout || m.default })));
+const AdminOverviewPage = lazy(() => import('../features/admin/overview/pages/AdminOverviewPage').then(m => ({ default: m.AdminOverviewPage || m.default })));
+const AdminUsersPage = lazy(() => import('../features/admin/users/pages/AdminUsersPage').then(m => ({ default: m.AdminUsersPage || m.default })));
+const AdminQuestionsPage = lazy(() => import('../features/admin/questions/pages/AdminQuestionsPage').then(m => ({ default: m.AdminQuestionsPage || m.default })));
+const AdminVocabPage = lazy(() => import('../features/admin/vocab/pages/AdminVocabPage').then(m => ({ default: m.AdminVocabPage || m.default })));
 const AdminReportsQueue = lazy(() => import('../features/admin/components/AdminReportsQueue').then(m => ({ default: m.AdminReportsQueue })));
 const AdminHomePage = lazy(() => import('../pages/AdminHomePage').then(m => ({ default: m.AdminHomePage })));
 const AppConfigHub = lazy(() => import('../features/admin/app-config/pages/AppConfigHub').then(m => ({ default: m.AppConfigHub })));
@@ -81,6 +86,7 @@ const TestsListPage = lazy(() => import('../features/mock-tests/pages/TestsListP
 const TestDetailPage = lazy(() => import('../features/mock-tests/pages/TestDetailPage').then(m => ({ default: m.TestDetailPage })));
 const ExamPlaceholderPage = lazy(() => import('../features/mock-tests/pages/ExamPlaceholderPage').then(m => ({ default: m.ExamPlaceholderPage })));
 const AdminNotifications = lazy(() => import('../features/notifications/admin/AdminNotifications').then(m => ({ default: m.AdminNotifications })));
+const AdminFinancialsPage = lazy(() => import('../features/admin/financials/pages/AdminFinancialsPage').then(m => ({ default: m.AdminFinancialsPage })));
 const NotificationsPage = lazy(() => import('../pages/NotificationsPage').then(m => ({ default: m.NotificationsPage })));
 
 const SynonymQuizSession = lazy(() => import('../features/vocab/synonyms/components/SynonymQuizSession').then(m => ({ default: m.SynonymQuizSession })));
@@ -520,31 +526,39 @@ const handleReattempt = async (quizId: string, mode: string) => {
                 <Route path={ROUTES.TOOLS_ROUTES.ASCII_ART_STEGO} element={<Suspense fallback={<SynapticLoader />}><MyStego /></Suspense>} />
                 </Route>
 
-                {/* Fallback Route */}
-                <Route path={ROUTES.FALLBACK} element={<Navigate to={ROUTES.HOME} replace />} />
+                    {/* Unified Desktop Admin Command Center */}
+                    <Route element={
+                        <NavigationManager key="admin-portal" type={RouteAccessType.ADMIN}>
+                            <Suspense fallback={<div className="h-screen w-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950"><SynapticLoader size="xl" /></div>}>
+                                <AdminLayout />
+                            </Suspense>
+                        </NavigationManager>
+                    }>
+                        <Route path={ROUTES.ADMIN.ROOT} element={<AdminOverviewPage />} />
+                        <Route path={ROUTES.ADMIN.OVERVIEW} element={<AdminOverviewPage />} />
+                        <Route path={ROUTES.ADMIN.USERS} element={<AdminUsersPage />} />
+                        <Route path={ROUTES.ADMIN.QUESTIONS} element={<AdminQuestionsPage />} />
+                        <Route path={ROUTES.ADMIN.VOCAB} element={<AdminVocabPage />} />
+                        <Route path={ROUTES.ADMIN.APP_CONFIG} element={<AppConfigHub />} />
+                        <Route path={ROUTES.ADMIN.REPORTS} element={<AdminReportsQueue />} />
+                        <Route path={ROUTES.ADMIN.MATERIALS} element={<AdminManageMaterials />} />
+                        <Route path={ROUTES.ADMIN.UPLOAD} element={<AdminUploadMaterials />} />
+                        <Route path={ROUTES.ADMIN.UPLOAD_GK} element={<AdminUploadGK />} />
+                        <Route path={ROUTES.ADMIN.UPLOAD_OWS} element={<AdminUploadOWS />} />
+                        <Route path={ROUTES.ADMIN.UPLOAD_IDIOMS} element={<AdminUploadIdioms />} />
+                        <Route path={ROUTES.ADMIN.UPLOAD_SYNONYMS} element={<AdminUploadSynonyms />} />
+                        <Route path={ROUTES.ADMIN.ENRICHMENT} element={<AdminEnrichmentControlCenter />} />
+                        <Route path={ROUTES.ADMIN.TEST_SERIES} element={<AdminTestSeriesDashboard />} />
+                        <Route path={ROUTES.ADMIN.CONTENT} element={<AdminContentStudio />} />
+                        <Route path={ROUTES.ADMIN.NOTIFICATIONS} element={<AdminNotifications />} />
+                        <Route path={ROUTES.ADMIN.FINANCIALS} element={<AdminFinancialsPage />} />
+                    </Route>
 
-                    <Route path={ROUTES.ADMIN.ROOT} element={<NavigationManager key="admin-route" type={RouteAccessType.ADMIN}><Suspense fallback={<SynapticLoader />}><AdminHomePage /></Suspense></NavigationManager>} />
-                    <Route path={ROUTES.ADMIN.APP_CONFIG} element={<NavigationManager key="admin-route" type={RouteAccessType.ADMIN}><Suspense fallback={<SynapticLoader />}><AppConfigHub /></Suspense></NavigationManager>} />
-                    <Route path={ROUTES.ADMIN.REPORTS} element={<NavigationManager key="admin-route" type={RouteAccessType.ADMIN}><Suspense fallback={<SynapticLoader />}><AdminReportsQueue /></Suspense></NavigationManager>} />
-                                        <Route path={ROUTES.ADMIN.MATERIALS} element={<NavigationManager key="admin-route" type={RouteAccessType.ADMIN}><Suspense fallback={<SynapticLoader />}><AdminManageMaterials /></Suspense></NavigationManager>} />
-                    <Route path={ROUTES.ADMIN.UPLOAD} element={<NavigationManager key="admin-route" type={RouteAccessType.ADMIN}><Suspense fallback={<SynapticLoader />}><AdminUploadMaterials /></Suspense></NavigationManager>} />
-                    <Route path={ROUTES.ADMIN.UPLOAD_GK} element={<NavigationManager key="admin-route" type={RouteAccessType.ADMIN}><Suspense fallback={<SynapticLoader />}><AdminUploadGK /></Suspense></NavigationManager>} />
-                    <Route path={ROUTES.ADMIN.UPLOAD_OWS} element={<NavigationManager key="admin-route" type={RouteAccessType.ADMIN}><Suspense fallback={<SynapticLoader />}><AdminUploadOWS /></Suspense></NavigationManager>} />
-                    <Route path={ROUTES.ADMIN.UPLOAD_IDIOMS} element={<NavigationManager key="admin-route" type={RouteAccessType.ADMIN}><Suspense fallback={<SynapticLoader />}><AdminUploadIdioms /></Suspense></NavigationManager>} />
-                    <Route path={ROUTES.ADMIN.UPLOAD_SYNONYMS} element={<NavigationManager key="admin-route" type={RouteAccessType.ADMIN}><Suspense fallback={<SynapticLoader />}><AdminUploadSynonyms /></Suspense></NavigationManager>} />
-                    <Route path={ROUTES.ADMIN.ENRICHMENT} element={<NavigationManager key="admin-route" type={RouteAccessType.ADMIN}><Suspense fallback={<SynapticLoader />}><AdminEnrichmentControlCenter /></Suspense></NavigationManager>} />
-                    <Route path={ROUTES.ADMIN.TEST_SERIES} element={<NavigationManager key="admin-route" type={RouteAccessType.ADMIN}><Suspense fallback={<SynapticLoader />}><AdminTestSeriesDashboard /></Suspense></NavigationManager>} />
-                    <Route path={ROUTES.ADMIN.CONTENT} element={<NavigationManager key="admin-route" type={RouteAccessType.ADMIN}><Suspense fallback={<SynapticLoader />}><AdminContentStudio /></Suspense></NavigationManager>} />
-              <Route path={ROUTES.ADMIN.NOTIFICATIONS} element={
-            <NavigationManager key="admin-notifications" type={RouteAccessType.ADMIN}>
-              <Suspense fallback={<div className="flex h-screen items-center justify-center"><SynapticLoader size="md" /></div>}>
-                <AdminNotifications />
-              </Suspense>
-            </NavigationManager>
-          } />
-        </Routes>
-        </Suspense>
-    );
+                    {/* Fallback Catch-All Route (Must be last) */}
+                    <Route path={ROUTES.FALLBACK} element={<Navigate to={ROUTES.HOME} replace />} />
+                </Routes>
+            </Suspense>
+        );
 };
 
 /**

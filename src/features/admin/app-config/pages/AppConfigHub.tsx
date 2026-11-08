@@ -639,46 +639,41 @@ export const AppConfigHub: React.FC = () => {
   ] as const;
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 pb-20">
+    <div className="space-y-6 pb-12">
       {/* Header */}
-      <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-30 shadow-sm">
-        <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => navigate('/admin')}
-              className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors"
-            >
-              <ChevronLeft className="w-6 h-6 text-slate-600 dark:text-slate-300" />
-            </button>
-            <h1 className="text-xl font-bold text-slate-800 dark:text-white flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-indigo-500" /> App Administration
-            </h1>
-          </div>
-        </div>
-
-        {/* Tab Navigation */}
-        <div className="max-w-6xl mx-auto px-4 flex gap-6 overflow-x-auto hide-scrollbar">
-            {tabs.map(tab => {
-                const Icon = tab.icon;
-                const isActive = activeTab === tab.id;
-                return (
-                    <button
-                        key={tab.id}
-                        onClick={() => setActiveTab(tab.id as any)}
-                        className={`py-4 px-2 border-b-2 font-medium text-sm flex items-center gap-2 whitespace-nowrap transition-colors ${
-                            isActive
-                            ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400'
-                            : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-300'
-                        }`}
-                    >
-                        <Icon className="w-4 h-4" /> {tab.label}
-                    </button>
-                )
-            })}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100 font-display flex items-center gap-2">
+            <Sparkles className="w-5 h-5 text-indigo-500" /> Remote App Administration & Config
+          </h1>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+            Dynamic remote configuration for startup intros, brand logo variants, dark/light themes, and loading animations.
+          </p>
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto px-4 mt-8">
+      {/* Tab Navigation */}
+      <div className="flex border-b border-slate-200 dark:border-slate-800 gap-6 overflow-x-auto hide-scrollbar">
+        {tabs.map((tab) => {
+          const Icon = tab.icon;
+          const isActive = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id as any)}
+              className={`pb-3 border-b-2 font-semibold text-sm flex items-center gap-2 whitespace-nowrap transition-colors ${
+                isActive
+                  ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400'
+                  : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+              }`}
+            >
+              <Icon className="w-4 h-4" /> {tab.label}
+            </button>
+          );
+        })}
+      </div>
+
+      <div>
         <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 md:p-8 shadow-sm border border-slate-200 dark:border-slate-800">
             <AnimatePresence mode="wait">
                 <motion.div

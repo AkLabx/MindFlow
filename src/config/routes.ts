@@ -169,6 +169,10 @@ export const ROUTES = {
   // Admin
   ADMIN: {
     ROOT: '/admin',
+    OVERVIEW: '/admin/overview',
+    USERS: '/admin/users',
+    QUESTIONS: '/admin/questions',
+    VOCAB: '/admin/vocab',
     APP_CONFIG: '/admin/app-config',
     REPORTS: '/admin/reports',
     MATERIALS: '/admin/materials',
@@ -181,6 +185,7 @@ export const ROUTES = {
     TEST_SERIES: '/admin/test-series',
     CONTENT: '/admin/content',
     NOTIFICATIONS: '/admin/notifications',
+    FINANCIALS: '/admin/financials',
   },
 
   // Static / Legal

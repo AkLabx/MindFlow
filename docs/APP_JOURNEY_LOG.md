@@ -26,6 +26,58 @@ This document is the single source of truth for the evolution of the MindFlow ap
 
 ## 🚀 App Journey Changelog
 
+## [v1.0.324] - 08 November 2026, 06:55 AM IST
+
+### Executive Summary
+Architected and deployed an enterprise-grade, desktop-first Admin Command Center (`/#/admin/*`), centralizing control over user IAM, question bank management, vocabulary matrix, content ingestion pipelines, mock test series, study materials, financial transaction ledgers, moderation queues, and remote app configuration. Completely eradicated hardcoded legacy admin email checks and elevated error boundary diagnostics.
+
+### ✨ Features Added
+- **Unified Enterprise Desktop Command Center Shell (`AdminLayout.tsx`, `AdminSidebar.tsx`, `AdminHeader.tsx`, `AdminCommandPalette.tsx`)**:
+  - Implemented collapsible responsive sidebar with grouped navigation: Control Room, Access & IAM, Academic Content, Mock Tests CMS, Governance & Billing.
+  - Added global `Ctrl+K` Command Palette for instant keyboard-driven search and navigation across all admin modules.
+  - Added dynamic route breadcrumb path navigation and real-time operational status indicators in `AdminHeader`.
+- **System Overview & Health Dashboard (`AdminOverviewPage.tsx`)**:
+  - Live metric counters querying total questions, registered learners, vocabulary items, published tests, pending moderation flags, and AI DLQ sizes.
+  - High-density KPI cards and quick-action shortcuts for daily platform operations.
+- **Learner Directory & IAM Access Control Studio (`AdminUsersPage.tsx`, `UserDetailsDrawer.tsx`, `UserFilterBar.tsx`, `UserRoleBadge.tsx`)**:
+  - High-density user master table with search, role filters (`all`, `admin`, `moderator`, `content_creator`, `teacher`, `super_admin`), sorting by registration date, XP, and streaks, and CSV export.
+  - Flyout inspection drawer providing tabbed views for learner analytics, RBAC privilege management, active device session tokens with one-click revocation, and trust/risk heuristics with shadow-flag toggles.
+- **Question Bank Studio & Inspector (`AdminQuestionsPage.tsx`, `QuestionInspectorDrawer.tsx`)**:
+  - High-throughput question browser with multi-select bulk operations, subject/difficulty filters, and pagination.
+  - Full inspector drawer supporting bilingual inspection, options editing, difficulty adjustment, and tags management.
+- **Universal Multi-Format Content Importer (`UniversalContentImporter.tsx`)**:
+  - Unified modal supporting bulk JSON and single-item ingestion for Questions, One Word Substitutions (OWS), Idioms & Phrases, and Synonyms with interactive schema validation and sample template exports.
+- **Vocabulary Matrix Hub (`AdminVocabPage.tsx`)**:
+  - Consolidated tabbed workspace for OWS, Idioms, and Synonyms with inline editing links, live counts, and fast text filtering.
+- **Financials & Monetization Ledger (`AdminFinancialsPage.tsx`)**:
+  - Complete Razorpay transaction audit ledger with status filters (`Captured`, `Failed`, `Pending`), plan breakdown (`Spark`), raw gateway payload modal inspector, and CSV export.
+- **Governance & Moderation Queue (`AdminReportsQueue.tsx`)**:
+  - Moderation queue with status tabs (`pending`, `being_reviewed`, `resolved`, `ignored`), review modal with full user/post evidence snapshots, and content restore/permanent deletion actions.
+- **Broadcast & Notification Center (`AdminNotifications.tsx`)**:
+  - Modern dual-column desktop composer for multi-channel announcements with audience segmentation and audit history table with pagination.
+- **Study Materials Command Center (`AdminManageMaterials.tsx`)**:
+  - Integrated course document catalog with direct PDF drag-and-drop uploader to Supabase Storage.
+- **Legacy Route Modernization**:
+  - Seamlessly redirected legacy admin upload routes (`/admin/upload`, `/admin/upload-gk`, `/admin/upload-ows`, `/admin/upload-idioms`, `/admin/upload-synonyms`) to modern desktop studio tabs.
+
+### 🐛 Bug Fixes
+- **Enrichment Pipeline Hero Crash Fix**:
+  - Resolved `Cannot read properties of undefined (reading 'is_active')` in `pipelineMetricsService.ts` by mapping Supabase RPC `get_ai_pipeline_dashboard_metrics` keys (`pipeline_status` -> `hero`, `metrics` -> `telemetry`, etc.) and providing safe fallback defaults.
+  - Added robust optional chaining across `PipelineHeroCard`, `QualityMetrics`, `QueueIntelligence`, `ProgressMatrix`, `PhaseLatencyChart`, and `TokenEconomicsPanel`.
+- **Route Reference & SearchParams Fixes**:
+  - Fixed missing `useSearchParams` import in `AdminQuestionsPage.tsx` and declared `useSearchParams` in `AdminVocabPage.tsx`.
+  - Repaired JSX nesting in `AdminReportsQueue.tsx` review modal action bar.
+- **PresenceAvatar Typings Alignment**:
+  - Aligned prop contracts in `AdminUsersPage.tsx` and `UserDetailsDrawer.tsx` to `avatarUrl` and `altText`.
+
+### 🔒 Security & Architecture
+- **Eradication of Hardcoded Admin Email Checks**:
+  - Replaced all legacy `user.email === 'admin@mindflow.com'` checks across the entire repository with `AuthPolicy.isAdmin(user, profile, roles)` and RBAC roles (`admin`, `super_admin`).
+  - Protected admin route group centrally in `NavigationManager` with `RouteAccessType.ADMIN`.
+- **Diagnostic Glassmorphism Error Boundary (`ErrorBoundary.tsx`)**:
+  - Upgraded system error boundary with collapsible component stack traces, exact error details banner, 1-click diagnostic JSON copy, and safe return to dashboard navigation.
+
+
 ## [v1.0.323] - 07 November 2026, 07:15 PM IST
 
 ### Executive Summary

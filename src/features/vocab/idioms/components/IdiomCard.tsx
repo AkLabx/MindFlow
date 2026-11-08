@@ -42,9 +42,8 @@ export const IdiomCard: React.FC<IdiomCardProps> = ({ idiom: initialIdiom, seria
   const isKnown = getKnownStatus(idiom);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const { showToast } = useNotification();
-  const isAdmin = user?.email === 'admin@mindflow.com';
   const [isUploading, setIsUploading] = useState(false);
 
   // Sync initial state if prop changes
