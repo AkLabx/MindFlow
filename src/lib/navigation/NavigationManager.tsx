@@ -91,7 +91,7 @@ export const NavigationManager: React.FC<NavigationManagerProps> = ({ children, 
     }
 
     // 5. Onboarding Policy
-    if (user && !targetRedirect && location.pathname !== '/onboarding' && type !== RouteAccessType.PUBLIC && type !== RouteAccessType.GUEST_ONLY) {
+    if (user && !targetRedirect && location.pathname !== '/onboarding' && location.pathname !== '/reset-password' && type !== RouteAccessType.PUBLIC && type !== RouteAccessType.GUEST_ONLY) {
       if (OnboardingPolicy.shouldRedirectToOnboarding(user)) {
          targetRedirect = '/onboarding';
          reason = 'User has not completed Onboarding';

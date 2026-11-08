@@ -106,7 +106,7 @@ const AuthPage: React.FC<AuthPageProps> = () => {
     setError(null);
 
 
-    const trimmed = email.trim();
+    const trimmed = email.trim().toLowerCase();
     if (!trimmed) {
       setError('Please enter your email address.');
       emailInputRef.current?.focus();
@@ -146,7 +146,7 @@ const AuthPage: React.FC<AuthPageProps> = () => {
 
     try {
       const { data, error: signInError } = await supabase.auth.signInWithPassword({
-        email: email.trim(),
+        email: email.trim().toLowerCase(),
         password,
       });
 
@@ -157,8 +157,11 @@ const AuthPage: React.FC<AuthPageProps> = () => {
         throw signInError;
       }
 
-      if (data.session) {
+      if (data?.session) {
         triggerHaptic('success');
+
+      } else {
+        throw new Error('Unable to start session. Please verify your email or try again.');
       }
     } catch (err: any) {
       setError(err.message || 'An error occurred during sign in.');
@@ -176,6 +179,7 @@ const AuthPage: React.FC<AuthPageProps> = () => {
 
     if (Capacitor.isNativePlatform()) {
       try {
+        await GoogleAuth.initialize();
         const googleUser = await GoogleAuth.signIn();
         const { data, error } = await supabase.auth.signInWithIdToken({
           provider: 'google',
@@ -184,6 +188,8 @@ const AuthPage: React.FC<AuthPageProps> = () => {
 
         if (error) throw error;
         triggerHaptic('success');
+
+
       } catch (err: any) {
         console.error('Google Sign-In Error:', err);
         setError(err.message || 'Google sign in failed');
@@ -195,10 +201,11 @@ const AuthPage: React.FC<AuthPageProps> = () => {
         const { error } = await supabase.auth.signInWithOAuth({
           provider: 'google',
           options: {
-            redirectTo: window.location.origin + window.location.pathname + '#/',
+            redirectTo: `${window.location.origin}${window.location.pathname.endsWith('/') ? window.location.pathname : window.location.pathname + '/'}#/`,
           },
         });
         if (error) throw error;
+        triggerHaptic('success');
       } catch (err: any) {
         setError(err.message || 'Google sign in failed');
         setIsGoogleLoading(false);
@@ -214,7 +221,7 @@ const AuthPage: React.FC<AuthPageProps> = () => {
     e.preventDefault();
     triggerHaptic('light');
 
-    const cleanEmail = email.trim();
+    const cleanEmail = email.trim().toLowerCase();
     if (!cleanEmail) {
       showToast({
         title: 'Reset Password',
@@ -227,7 +234,10 @@ const AuthPage: React.FC<AuthPageProps> = () => {
 
     setIsResettingPassword(true);
     try {
-      const redirectUrl = `${window.location.origin}${window.location.pathname}#/reset-password`;
+      const cleanPath = window.location.pathname.endsWith('/')
+        ? window.location.pathname
+        : window.location.pathname + '/';
+      const redirectUrl = `${window.location.origin}${cleanPath}#/reset-password`;
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(cleanEmail, {
         redirectTo: redirectUrl,
       });

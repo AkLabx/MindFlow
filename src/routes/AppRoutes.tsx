@@ -136,6 +136,7 @@ const VocabResult = lazy(() => import('../features/vocab/components/VocabResult'
 // Auth & User Management
 import AuthPage from '../features/auth/components/AuthPage';
 import SignupPage from '../features/auth/components/SignupPage';
+const ResetPasswordPage = lazy(() => import('../features/auth/components/ResetPasswordPage'));
 const ProfilePage = lazy(() => import('../features/auth/components/ProfilePage'));
 const SettingsPage = lazy(() => import('../features/auth/components/SettingsPage'));
 const DeleteAccountPage = lazy(() => import('../features/settings/components/DeleteAccountPage').then(m => ({ default: m.DeleteAccountPage })));
@@ -248,6 +249,7 @@ const handleReattempt = async (quizId: string, mode: string) => {
                 } />
                 <Route path={ROUTES.LOGIN} element={<Navigate to={ROUTES.HOME} replace />} />
                 <Route path={ROUTES.SIGNUP} element={<NavigationManager key="guest-signup" type={RouteAccessType.GUEST_ONLY}><SignupPage /></NavigationManager>} />
+                <Route path={ROUTES.RESET_PASSWORD} element={<NavigationManager key="auth-reset-password" type={RouteAccessType.AUTHENTICATED}><Suspense fallback={<SynapticLoader />}><ResetPasswordPage /></Suspense></NavigationManager>} />
 
                                 {/* --- Legal Routes (Unprotected, No AppLayout) --- */}
                     <Route path={ROUTES.ABOUT.TERMS_OF_USE} element={<Suspense fallback={<SynapticLoader />}><TermsOfUse /></Suspense>} />

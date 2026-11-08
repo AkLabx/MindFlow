@@ -7,3 +7,5 @@ export * from './SettingsPage';
 export * from './RestoreAccountModal';
 export * from './SubscriptionPage';
 export * from './SupportPage';
+export * from './ResetPasswordPage';
+export { default as ResetPasswordPage } from './ResetPasswordPage';

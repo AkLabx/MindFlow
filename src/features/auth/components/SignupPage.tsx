@@ -215,6 +215,7 @@ const SignupPage: React.FC<SignupPageProps> = ({ onBack }) => {
 
     if (Capacitor.isNativePlatform()) {
       try {
+        await GoogleAuth.initialize();
         const googleUser = await GoogleAuth.signIn();
         const { error } = await supabase.auth.signInWithIdToken({
           provider: 'google',
@@ -234,7 +235,7 @@ const SignupPage: React.FC<SignupPageProps> = ({ onBack }) => {
         const { error } = await supabase.auth.signInWithOAuth({
           provider: 'google',
           options: {
-            redirectTo: window.location.origin + window.location.pathname + '#/',
+            redirectTo: `${window.location.origin}${window.location.pathname.endsWith('/') ? window.location.pathname : window.location.pathname + '/'}#/`,
           },
         });
         if (error) throw error;
