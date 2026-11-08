@@ -26,6 +26,29 @@ This document is the single source of truth for the evolution of the MindFlow ap
 
 ## 🚀 App Journey Changelog
 
+## [v1.0.326] - 08 November 2026, 07:56 AM IST
+
+### Executive Summary
+Re-architected the Authentication / Login portal (`AuthPage.tsx`) into a viewport-locked, native single-screen experience. The mobile interface eliminates the web "card-on-a-page" border and vertical/horizontal scrolling, features a responsive two-column layout for short landscape screens, smoothly collapses secondary blocks when the virtual keyboard is active, and provides a consolidated, authoritative terms/privacy footer.
+
+### ✨ Features Added
+- **Native Viewport-Locked Single-Screen Experience (`AuthPage.tsx`)**:
+  - Bound root container to `h-[100dvh] max-h-[100dvh] w-full overflow-hidden` with safe-area positive padding (`env(safe-area-inset-top)` and `env(safe-area-inset-bottom)`).
+  - Mobile & Native Canvas: Stripped artificial card borders and shadows on `< md` screens so auth controls rest seamlessly on the deep navy gradient background; preserved centered card presentation on desktop (`md+`).
+  - Consolidated Legal Links: Replaced redundant duplicate terms notices with a single pinned footer at the bottom maintaining intact terms and privacy policy routes.
+  - Viewport-Height Based Typography & Sizing: Standardized inputs and buttons to 44–48px with dynamic height-aware classes (`[@media(min-height:750px)]:`), guaranteeing zero vertical or horizontal overflow across 360x640, 390x844, and 412x915 viewports.
+
+- **Short Landscape 2-Column Responsive Layout**:
+  - Implemented an automatic two-column layout for short screens in landscape (`(min-width: 540px) and (max-height: 520px)`), placing Brand & Google/Sample triggers on the left and Email/Password/Submit actions on the right to eliminate scrolling at 640x360.
+
+- **Flicker-Free Virtual Keyboard Reactivity**:
+  - Added debounced (150ms) `focusin`/`focusout` and `visualViewport` height tracking.
+  - Automatically collapses top brand and secondary buttons on mobile when typing so email, password, error feedback, and the "Sign In" button remain 100% visible and accessible above the virtual keyboard.
+
+### 🔒 Security & Architecture
+- **Auth Flow & Policy Invariance**:
+  - Preserved 100% of underlying Supabase authentication methods (`signInWithPassword`, `signInWithOAuth`, native `GoogleAuth.signIn`), 3-question diagnostic micro-demo state machine, route policies, and haptic feedback.
+
 ## [v1.0.325] - 08 November 2026, 07:05 AM IST
 
 ### Executive Summary
