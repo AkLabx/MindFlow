@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
+
 import { supabase } from '../../../lib/supabase';
 import { BrandLogo, BrandSpinner } from '@/components/brand';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
@@ -41,7 +41,7 @@ const AuthPage: React.FC<AuthPageProps> = () => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
+  const [isResettingPassword, setIsResettingPassword] = useState(false);
   const [isEmailLoading, setIsEmailLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
@@ -51,21 +51,37 @@ const AuthPage: React.FC<AuthPageProps> = () => {
 
   const shouldReduceMotion = useReducedMotion();
   const navigate = useNavigate();
-  const location = useLocation();
-  const { user } = useAuth();
+
+
   const showToast = useNotificationStore((state) => state.showToast);
+
+  // Reliable programmatic focus management between steps
+  useEffect(() => {
+    // 60ms delay ensures Framer Motion AnimatePresence has mounted the incoming DOM node
+    const timer = setTimeout(() => {
+      if (step === 'email') {
+        emailInputRef.current?.focus();
+      } else if (step === 'password') {
+        passwordInputRef.current?.focus();
+      }
+    }, 60);
+
+    return () => clearTimeout(timer);
+  }, [step]);
 
   // Keyboard Escape and Android hardware back button handling on Step 2
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && step === 'password') {
         e.preventDefault();
+        e.stopPropagation();
         handleBackToEmail();
       }
     };
-    window.addEventListener('keydown', handleKeyDown);
+    // Attach to document in capture phase to reliably intercept back events dispatched from useHardwareBackButton
+    document.addEventListener('keydown', handleKeyDown, true);
     return () => {
-      window.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('keydown', handleKeyDown, true);
     };
   }, [step]);
 
@@ -76,10 +92,8 @@ const AuthPage: React.FC<AuthPageProps> = () => {
     setDirection(-1);
     setStep('email');
     setError(null);
-    setMessage(null);
-    requestAnimationFrame(() => {
-      emailInputRef.current?.focus();
-    });
+
+
   };
 
   /**
@@ -89,7 +103,7 @@ const AuthPage: React.FC<AuthPageProps> = () => {
   const handleContinueEmail = (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    setMessage(null);
+
 
     const trimmed = email.trim();
     if (!trimmed) {
@@ -106,12 +120,11 @@ const AuthPage: React.FC<AuthPageProps> = () => {
       return;
     }
 
+    // Persist clean sanitized email into state
+    setEmail(trimmed);
     setDirection(1);
     setStep('password');
-    // Programmatic focus on password input in same gesture
-    requestAnimationFrame(() => {
-      passwordInputRef.current?.focus();
-    });
+
   };
 
   /**
@@ -120,7 +133,7 @@ const AuthPage: React.FC<AuthPageProps> = () => {
   const handleAuthAction = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    setMessage(null);
+
 
     if (!password) {
       setError('Password is required.');
@@ -138,7 +151,7 @@ const AuthPage: React.FC<AuthPageProps> = () => {
 
       if (signInError) {
         if (signInError.message === 'Invalid login credentials') {
-          throw new Error('Invalid email or password. Please try again.');
+          throw new Error('Invalid email or password. Please try again or reset your password.');
         }
         throw signInError;
       }
@@ -194,11 +207,14 @@ const AuthPage: React.FC<AuthPageProps> = () => {
 
   /**
    * Handle Forgot Password click.
+   * Dispatches password recovery email via Supabase Auth.
    */
-  const handleForgotPassword = (e: React.MouseEvent) => {
+  const handleForgotPassword = async (e: React.MouseEvent) => {
     e.preventDefault();
     triggerHaptic('light');
-    if (!email.trim()) {
+
+    const cleanEmail = email.trim();
+    if (!cleanEmail) {
       showToast({
         title: 'Reset Password',
         message: 'Please enter your email in Step 1 first.',
@@ -207,11 +223,35 @@ const AuthPage: React.FC<AuthPageProps> = () => {
       handleBackToEmail();
       return;
     }
-    showToast({
-      title: 'Reset Link Sent',
-      message: `Password reset instructions sent to ${email.trim()}`,
-      variant: 'success',
-    });
+
+    setIsResettingPassword(true);
+    try {
+      const redirectUrl = `${window.location.origin}${window.location.pathname}#/reset-password`;
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(cleanEmail, {
+        redirectTo: redirectUrl,
+      });
+
+      if (resetError) {
+        throw resetError;
+      }
+
+      showToast({
+        title: 'Reset Link Sent',
+        message: `Password reset instructions sent to ${cleanEmail}`,
+        variant: 'success',
+      });
+      triggerHaptic('success');
+    } catch (err: any) {
+      console.error('Password reset error:', err);
+      showToast({
+        title: 'Reset Failed',
+        message: err.message || 'Unable to send password reset email. Please try again.',
+        variant: 'error',
+      });
+      triggerHaptic('error');
+    } finally {
+      setIsResettingPassword(false);
+    }
   };
 
   // Direction-aware Framer Motion variants
@@ -372,7 +412,7 @@ const AuthPage: React.FC<AuthPageProps> = () => {
                         initial={{ opacity: 0, y: -4, height: 0 }}
                         animate={{ opacity: 1, y: 0, height: 'auto' }}
                         exit={{ opacity: 0, y: -4, height: 0 }}
-                        className="flex items-center gap-2 p-2 sm:p-2.5 rounded-lg bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/50 text-red-600 dark:text-red-400 text-xs font-medium"
+                        className="flex items-center gap-2 p-2 sm:p-2.5 rounded-lg bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/50 text-red-600 dark:text-red-400 text-xs font-medium overflow-hidden"
                       >
                         <AlertCircle className="w-4 h-4 shrink-0" />
                         <span>{error}</span>
@@ -473,9 +513,10 @@ const AuthPage: React.FC<AuthPageProps> = () => {
                       <button
                         type="button"
                         onClick={handleForgotPassword}
-                        className="text-xs sm:text-sm font-semibold text-indigo-600 hover:underline dark:text-indigo-400 py-0.5"
+                        disabled={isResettingPassword || isEmailLoading}
+                        className="text-xs sm:text-sm font-semibold text-indigo-600 hover:underline dark:text-indigo-400 py-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        Forgot Password?
+                        {isResettingPassword ? 'Sending Link...' : 'Forgot Password?'}
                       </button>
                     </div>
 
@@ -520,7 +561,7 @@ const AuthPage: React.FC<AuthPageProps> = () => {
                         initial={{ opacity: 0, y: -4, height: 0 }}
                         animate={{ opacity: 1, y: 0, height: 'auto' }}
                         exit={{ opacity: 0, y: -4, height: 0 }}
-                        className="flex items-center gap-2 p-2 sm:p-2.5 rounded-lg bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/50 text-red-600 dark:text-red-400 text-xs font-medium"
+                        className="flex items-center gap-2 p-2 sm:p-2.5 rounded-lg bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/50 text-red-600 dark:text-red-400 text-xs font-medium overflow-hidden"
                       >
                         <AlertCircle className="w-4 h-4 shrink-0" />
                         <span>{error}</span>

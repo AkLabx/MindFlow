@@ -45,7 +45,7 @@ export const useHardwareBackButton = () => {
                 );
                 if (activeOverlays.length > 0) {
                     // Try standard escape key for accessible dialogs
-                    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+                    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
                     return;
                 }
 
