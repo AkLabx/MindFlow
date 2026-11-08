@@ -44,6 +44,7 @@ export const AdminEditQuestionModal: React.FC<AdminEditQuestionModalProps> = ({
         correct: question.correct || '',
         tags: JSON.stringify(question.tags || [], null, 2),
         explanation: JSON.stringify(question.explanation || {}, null, 2),
+        ask_ai_explanation: JSON.stringify(question.ask_ai_explanation || {}, null, 2),
       };
       setFormData(initial);
       setInitialData(initial);
@@ -139,6 +140,7 @@ export const AdminEditQuestionModal: React.FC<AdminEditQuestionModalProps> = ({
     updates.options_hi = validateJson('options_hi', updates.options_hi, 'array');
     updates.tags = validateJson('tags', updates.tags, 'array');
     updates.explanation = validateJson('explanation', updates.explanation, 'object');
+    updates.ask_ai_explanation = validateJson('ask_ai_explanation', updates.ask_ai_explanation, 'object');
 
     // Cross-field validation: Correct option must be inside options array
     if (updates.options && updates.correct && !updates.options.includes(updates.correct)) {
@@ -179,6 +181,7 @@ export const AdminEditQuestionModal: React.FC<AdminEditQuestionModalProps> = ({
             correct: updates.correct,
             tags: updates.tags,
             explanation: updates.explanation,
+            ask_ai_explanation: updates.ask_ai_explanation,
             properties: {
                 ...question.properties,
                 difficulty: updates.difficulty,
@@ -235,8 +238,8 @@ export const AdminEditQuestionModal: React.FC<AdminEditQuestionModalProps> = ({
         {/* Scrollable Content */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 scrollbar-thin">
           {Object.entries(formData).map(([key, value]) => {
-              const isJsonField = ['options', 'options_hi', 'tags', 'explanation'].includes(key);
-              const isTextArea = ['question', 'question_hi', ...isJsonField ? ['options', 'options_hi', 'tags', 'explanation'] : []].includes(key);
+              const isJsonField = ['options', 'options_hi', 'tags', 'explanation', 'ask_ai_explanation'].includes(key);
+              const isTextArea = ['question', 'question_hi', ...isJsonField ? ['options', 'options_hi', 'tags', 'explanation', 'ask_ai_explanation'] : []].includes(key);
               return (
                 <div key={key} className="space-y-1.5">
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 capitalize">
@@ -272,6 +275,11 @@ export const AdminEditQuestionModal: React.FC<AdminEditQuestionModalProps> = ({
                   {key === 'explanation' && (
                     <p className="text-gray-400 dark:text-gray-500 text-xs mt-1">
                       Expected format: <br/><pre className="inline-block bg-gray-100 dark:bg-gray-800 p-1 rounded mt-1">{`{\n  "summary": "Text...",\n  "analysis_correct": "..."\n}`}</pre>
+                    </p>
+                  )}
+                  {key === 'ask_ai_explanation' && (
+                    <p className="text-gray-400 dark:text-gray-500 text-xs mt-1">
+                      Expected format: <br/><pre className="inline-block bg-gray-100 dark:bg-gray-800 p-1 rounded mt-1">{`{\n  "ai_analysis": "Text..."\n}`}</pre>
                     </p>
                   )}
                 </div>
