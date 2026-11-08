@@ -26,6 +26,44 @@ This document is the single source of truth for the evolution of the MindFlow ap
 
 ## 🚀 App Journey Changelog
 
+## [v1.0.327] - 08 November 2026, 08:38 AM IST
+
+### Executive Summary
+Re-engineered the authentication portal (`AuthPage.tsx`) into a modern, 2-step progressive authentication flow (`email` ➔ `password`) with direction-aware Framer Motion transitions. Pinned the brand header to eliminate visual jumping between steps, established a stable middle step container, removed the obsolete "Try 3 Sample Questions First" feature, integrated Android hardware back / Escape interception on Step 2, and ensured complete credential matching for mobile and desktop password managers.
+
+### ✨ Features Added
+- **2-Step Progressive Authentication Flow (`AuthPage.tsx`)**:
+  - **Step 1 (Identification)**: Users enter their email or select Google Sign-In. Email format regex validation runs synchronously on "Continue" with zero account enumeration delays.
+  - **Step 2 (Password Authentication)**: Displays an active email pill with an emerald status indicator and a quick "Change" button that smoothly returns to Step 1.
+  - **Auto-Focus Workflow**: Automatically focuses the password input upon transitioning to Step 2, and focuses the email input when returning to Step 1.
+  - **Password Manager Compatibility**: Added standard `autoComplete="username"` on Step 1, `autoComplete="current-password"` on Step 2, and a visually hidden `username` input in Step 2 so password managers (Google Password Manager, Apple Keychain, Bitwarden) seamlessly store and autofill credentials.
+
+- **Anchored Brand Header & Stable Min-Height Container**:
+  - Pinned the MindFlow wordmark, "Welcome Back" greeting, and "CREATE ACCOUNT" link at the top with fixed padding. The header remains firmly in place and never shifts or collapses.
+  - Enforced a stable middle container with `min-h-[220px]` (`[@media(min-height:750px)]:min-h-[250px]`), preventing layout height bouncing during transitions.
+
+- **Direction-Aware Motion Transitions (`framer-motion`)**:
+  - Configured slide variants where forward progression slides left (`x: 36 -> 0`) and backward navigation slides right (`x: -36 -> 0`).
+  - Fully respects system accessibility settings via `useReducedMotion()`.
+
+- **Android Hardware Back & Escape Interception**:
+  - Tagged Step 2 with `data-headlessui-state="open"` and bound an `Escape` keydown handler.
+  - Pressing the Android hardware Back button or Escape key on Step 2 gracefully returns the user to Step 1 without exiting the application or navigating away.
+
+- **Debounced Virtual Keyboard Optimization**:
+  - Form container utilizes debounced (`150ms`) `focusin`/`focusout` listeners.
+  - On mobile viewports when typing, only the bottom legal/terms footer is hidden, keeping the header and the active input/action button 100% visible and unclipped.
+
+### ⚡ Performance & Refactoring
+- **Complete Decommission of "Try 3 Sample Questions" in Auth**:
+  - Completely removed the Sample Questions button, demo drawer, and associated local demo state machines from `AuthPage.tsx`, eliminating the excess whitespace beneath the Google Sign-in button.
+  - Preserved `src/features/quiz/data/starterDiagnosticQuestions.ts` on disk for zero-risk repository hygiene.
+
+### 🔒 Security & Architecture
+- **Auth Flow & Protocol Invariance**:
+  - Preserved underlying Supabase authentication calls (`supabase.auth.signInWithPassword`, `signInWithOAuth`, native `GoogleAuth.signIn`), haptic feedback protocols, and zero-secrets compliance.
+
+
 ## [v1.0.326] - 08 November 2026, 07:56 AM IST
 
 ### Executive Summary
