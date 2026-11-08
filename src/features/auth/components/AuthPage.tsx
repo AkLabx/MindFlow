@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
 
@@ -58,9 +58,68 @@ const AuthPage: React.FC<AuthPageProps> = () => {
   const [message, setMessage] = useState<string | null>(null);
   const [isEmailLoading, setIsEmailLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+
+  // Viewport & Keyboard reactivity states
+  const [isFormFocused, setIsFormFocused] = useState(false);
+  const [isViewportShrunk, setIsViewportShrunk] = useState(false);
+  const [isShortLandscape, setIsShortLandscape] = useState(false);
+  const focusTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
+
+  useEffect(() => {
+    // 1. Visual Viewport listener for virtual keyboard detection
+    const vv = window.visualViewport;
+    const handleViewportResize = () => {
+      if (vv) {
+        const heightDifference = window.innerHeight - vv.height;
+        setIsViewportShrunk(heightDifference > 140);
+      }
+    };
+
+    if (vv) {
+      vv.addEventListener('resize', handleViewportResize);
+    }
+
+    // 2. Short / Landscape screen media query: requires min-width 540px to ensure two-column layout is only used when screen is genuinely wide
+    const landscapeQuery = window.matchMedia('(min-width: 540px) and (max-height: 520px)');
+    const handleLandscapeChange = (e: MediaQueryListEvent | MediaQueryList) => {
+      setIsShortLandscape(e.matches);
+    };
+    handleLandscapeChange(landscapeQuery);
+    landscapeQuery.addEventListener('change', handleLandscapeChange);
+
+    return () => {
+      if (vv) {
+        vv.removeEventListener('resize', handleViewportResize);
+      }
+      landscapeQuery.removeEventListener('change', handleLandscapeChange);
+      if (focusTimeoutRef.current) {
+        clearTimeout(focusTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const handleFormFocusIn = () => {
+    if (focusTimeoutRef.current) {
+      clearTimeout(focusTimeoutRef.current);
+      focusTimeoutRef.current = null;
+    }
+    setIsFormFocused(true);
+  };
+
+  const handleFormFocusOut = () => {
+    if (focusTimeoutRef.current) {
+      clearTimeout(focusTimeoutRef.current);
+    }
+    focusTimeoutRef.current = setTimeout(() => {
+      setIsFormFocused(false);
+    }, 150);
+  };
+
+  const isKeyboardActive = isFormFocused || isViewportShrunk;
 
   /**
    * Validates the form inputs before submission.
@@ -160,157 +219,357 @@ const AuthPage: React.FC<AuthPageProps> = () => {
 
   return (
     <>
-    <main id="main-content" role="main" className="min-h-[100dvh] w-full px-4 sm:px-6 py-12 sm:py-16 flex flex-col items-center justify-center overflow-x-hidden bg-gradient-to-b from-[#EEF2FF] via-[#F5F7FF] to-[#F8FAFC] dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
-        <div className="absolute top-0 inset-x-0 h-[220px] pointer-events-none z-0"
-             style={{ background: 'radial-gradient(120% 180px at 50% 0%, rgba(99,102,241,0.14) 0%, transparent 100%)' }}
-        ></div>
+    <main
+      id="main-content"
+      role="main"
+      className="h-[100dvh] max-h-[100dvh] w-full overflow-hidden flex flex-col items-center justify-between relative bg-gradient-to-b from-[#EEF2FF] via-[#F5F7FF] to-[#F8FAFC] dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 px-4 sm:px-6 pt-[max(0.75rem,env(safe-area-inset-top))] pb-[max(0.5rem,env(safe-area-inset-bottom))]"
+    >
+      <div
+        className="absolute top-0 inset-x-0 h-[220px] pointer-events-none z-0"
+        style={{ background: 'radial-gradient(120% 180px at 50% 0%, rgba(99,102,241,0.14) 0%, transparent 100%)' }}
+      ></div>
 
-       <div className="w-full max-w-md relative z-10 bg-white dark:bg-slate-900/80 p-8 sm:p-10 rounded-3xl shadow-xl border border-slate-200/50 dark:border-slate-800/50 backdrop-blur-xl">
-           <div className="flex justify-center items-center mb-8">
-             <BrandLogo variant="wordmark" size="lg" />
-           </div>
-
-           <div className="text-center mb-8">
-               <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Welcome Back</h1>
-               <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                   New to MindFlow?{' '}
-                   <button onClick={() => navigate('/signup')} className="font-semibold text-indigo-600 hover:text-indigo-500 dark:text-indigo-400">
-                       CREATE ACCOUNT
-                   </button>
-               </p>
-           </div>
-
-           {/* Primary: Google Button */}
-           <div className="mb-6">
-             <button
-               type="button"
-               onClick={handleGoogleSignIn}
-               disabled={isEmailLoading || isGoogleLoading}
-               className={`w-full group relative flex justify-center items-center gap-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-white font-semibold py-3 px-4 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-600 focus:ring-offset-white dark:focus:ring-offset-gray-900 transition-all duration-300 shadow-sm overflow-hidden ${isEmailLoading ? 'opacity-50 cursor-not-allowed' : (isGoogleLoading ? 'cursor-wait' : '')}`}
-             >
-               {isGoogleLoading ? (
-                 <>
-                   <BrandSpinner variant="inline" size="sm" className="relative z-10 text-indigo-600 dark:text-indigo-400" />
-                   <span className="relative z-10 font-bold">Signing in with Google...</span>
-                 </>
-               ) : (
-                 <>
-                   <motion.div
-                     initial={{ rotate: 0 }}
-                     whileHover={{ rotate: 10, scale: 1.1 }}
-                     transition={{ type: "spring", stiffness: 300 }}
-                     className="relative z-10 flex items-center justify-center bg-transparent p-1 rounded-full"
-                   >
-                     <svg className="w-6 h-6" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><path d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12s5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24s8.955,20,20,20s20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z" fill="#FFC107"></path><path d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z" fill="#FF3D00"></path><path d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.222,0-9.657-3.356-11.303-7.962l-6.571,4.819C9.656,39.663,16.318,44,24,44z" fill="#4CAF50"></path><path d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.574l6.19,5.238C41.38,34.464,44,29.561,44,24C44,22.659,43.862,21.35,43.611,20.083z" fill="#1976D2"></path></svg>
-                   </motion.div>
-                   <span className="relative z-10 font-bold tracking-wide">Sign in with Google</span>
-                 </>
-               )}
-             </button>
-           </div>
-           <div className="text-center mt-3 mb-6">
-              <p className="text-xs text-gray-500 dark:text-gray-400">
-                  By continuing, you agree to our <a href="#/about/terms-of-use" target="_blank" rel="noopener noreferrer" className="underline hover:text-gray-700 dark:hover:text-gray-300">Terms of Service</a>, <a href="#/privacy-policy" target="_blank" rel="noopener noreferrer" className="underline hover:text-gray-700 dark:hover:text-gray-300">Privacy Policy</a> and Cookie Use.
-              </p>
-           </div>
-
-
-           <button
-             onClick={() => setShowDemo(true)}
-             className="w-full group flex justify-center items-center gap-2 bg-white hover:bg-gray-50 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-900 dark:text-gray-100 font-semibold py-3 px-4 rounded-xl transition-all duration-300 shadow-sm border border-gray-200 dark:border-gray-700 mb-6"
-           >
-             <span>⚡ Try 3 Sample Questions First</span>
-           </button>
-
-           <div className="relative mb-6">
-             <div aria-hidden="true" className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-200 dark:border-gray-700"></div></div>
-             <div className="relative flex justify-center text-sm"><span className="px-4 bg-[#F5F7FF] dark:bg-slate-900 text-gray-500">Or continue with email</span></div>
-           </div>
-
-           <form onSubmit={handleAuthAction} className="space-y-4 md:space-y-6">
-             <div>
-               <label className="block text-sm font-semibold text-gray-900 dark:text-gray-200 mb-2" htmlFor="email">Email</label>
-               <input
-                 id="email"
-                 name="email"
-                 type="email"
-                 value={email}
-                 onChange={(e) => setEmail(e.target.value)}
-                 placeholder="you@example.com"
-                 className="block w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition"
-               />
-             </div>
-             <div>
-               <div className="flex justify-between items-baseline mb-2">
-                 <label className="block text-sm font-semibold text-gray-900 dark:text-gray-200" htmlFor="password">Password</label>
-                 <a href="#!" onClick={() => alert('Forgot password functionality to be implemented')} className="text-sm font-semibold text-indigo-600 hover:underline dark:text-indigo-400">Forgot Password?</a>
-               </div>
-               <div className="relative">
-                 <input
-                   id="password"
-                   name="password"
-                   type={showPassword ? 'text' : 'password'}
-                   value={password}
-                   onChange={(e) => setPassword(e.target.value)}
-                   placeholder="••••••••"
-                   className="block w-full px-4 py-3 pr-10 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition"
-                 />
-                 <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    aria-label={showPassword ? "Hide password" : "Show password"}
-                    title={showPassword ? "Hide password" : "Show password"}
-                    className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
-                  >
-                    <span className="sr-only">{showPassword ? "Hide password" : "Show password"}</span>
-                   {showPassword ? (
-                     <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a9.97 9.97 0 01-1.563 3.029m-5.858-.908a3 3 0 00-4.243-4.243" /></svg>
-                   ) : (
-                     <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M10 12a2 2 0 100-4 2 2 0 000 4z"></path><path clipRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.022 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" fillRule="evenodd"></path></svg>
-                   )}
-                 </button>
-               </div>
-             </div>
-
-             {error && <p className="text-sm text-red-500 text-center">{error}</p>}
-             {message && <p className="text-sm text-green-500 text-center">{message}</p>}
-             <div>
-               <button
-                 type="submit"
-                 disabled={isEmailLoading || isGoogleLoading}
-                 className={`w-full group relative flex justify-center items-center gap-2 bg-indigo-600 dark:bg-indigo-500 text-white font-semibold py-3 px-4 rounded-xl hover:bg-indigo-700 dark:hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-600 focus:ring-offset-white dark:focus:ring-offset-gray-900 transition-all duration-300 shadow-sm overflow-hidden ${isGoogleLoading ? 'opacity-50 cursor-not-allowed' : (isEmailLoading ? 'cursor-wait' : '')}`}
-               >
-                 {isEmailLoading ? (
-                   <>
-                     <BrandSpinner variant="inline" size="sm" className="relative z-10" />
-                     <span className="relative z-10">Signing In...</span>
-                   </>
-                 ) : (
-                   <>
-                     <span className="relative z-10">Sign In</span>
-                     <motion.svg
-                       className="w-5 h-5 relative z-10"
-                       fill="none"
-                       stroke="currentColor"
-                       viewBox="0 0 24 24"
-                       initial={{ x: 0 }}
-                       animate={{ x: [0, 4, 0] }}
-                       transition={{ repeat: Infinity, duration: 1.5, ease: "easeInOut" }}
-                     >
-                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                     </motion.svg>
-                   </>
-                 )}
-               </button>
-             </div>
-
-             <div className="text-center mt-6">
-                <p className="text-xs text-gray-500 dark:text-gray-400">
-                    By continuing, you agree to our <a href="#/about/terms-of-use" target="_blank" rel="noopener noreferrer" className="underline hover:text-gray-700 dark:hover:text-gray-300">Terms of Service</a>, <a href="#/privacy-policy" target="_blank" rel="noopener noreferrer" className="underline hover:text-gray-700 dark:hover:text-gray-300">Privacy Policy</a> and Cookie Use.
+      {isShortLandscape ? (
+        /* Short Landscape 2-Column Layout (e.g. 640x360) */
+        <div className="w-full max-w-2xl h-full flex flex-col justify-between relative z-10 py-1">
+          <div className="flex-1 flex flex-row items-center justify-between gap-6 overflow-hidden">
+            {/* Left Column: Brand & Social */}
+            <div className="flex-1 flex flex-col items-center justify-center text-center gap-2">
+              <BrandLogo variant="wordmark" size="sm" />
+              <div>
+                <h1 className="text-base font-bold text-gray-900 dark:text-white leading-tight">Welcome Back</h1>
+                <p className="text-[11px] text-gray-600 dark:text-gray-400">
+                  New to MindFlow?{' '}
+                  <button onClick={() => navigate('/signup')} className="font-semibold text-indigo-600 hover:text-indigo-500 dark:text-indigo-400">
+                    CREATE ACCOUNT
+                  </button>
                 </p>
-             </div>
-           </form>
-       </div>
+              </div>
+
+              {/* Google Button */}
+              <button
+                type="button"
+                onClick={handleGoogleSignIn}
+                disabled={isEmailLoading || isGoogleLoading}
+                className={`w-full group relative flex justify-center items-center gap-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-white font-semibold h-9 px-3 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-600 text-xs transition-all duration-200 shadow-sm overflow-hidden ${isEmailLoading ? 'opacity-50 cursor-not-allowed' : (isGoogleLoading ? 'cursor-wait' : '')}`}
+              >
+                {isGoogleLoading ? (
+                  <>
+                    <BrandSpinner variant="inline" size="xs" className="relative z-10 text-indigo-600 dark:text-indigo-400" />
+                    <span className="relative z-10 font-bold">Signing in...</span>
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4 shrink-0" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><path d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12s5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24s8.955,20,20,20s20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z" fill="#FFC107"></path><path d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z" fill="#FF3D00"></path><path d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.222,0-9.657-3.356-11.303-7.962l-6.571,4.819C9.656,39.663,16.318,44,24,44z" fill="#4CAF50"></path><path d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.574l6.19,5.238C41.38,34.464,44,29.561,44,24C44,22.659,43.862,21.35,43.611,20.083z" fill="#1976D2"></path></svg>
+                    <span className="relative z-10 font-bold tracking-wide">Sign in with Google</span>
+                  </>
+                )}
+              </button>
+
+              {/* Sample Questions Button */}
+              <button
+                type="button"
+                onClick={() => setShowDemo(true)}
+                className="w-full group flex justify-center items-center gap-1.5 bg-white hover:bg-gray-50 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-900 dark:text-gray-100 font-semibold h-9 px-3 rounded-xl transition-all duration-200 shadow-sm border border-gray-200 dark:border-gray-700 text-xs"
+              >
+                <span>⚡ Try 3 Sample Questions First</span>
+              </button>
+            </div>
+
+            {/* Vertical Divider */}
+            <div className="w-[1px] h-4/5 bg-gray-200 dark:border-gray-700"></div>
+
+            {/* Right Column: Email / Password Form */}
+            <div className="flex-1 flex flex-col justify-center">
+              <form onSubmit={handleAuthAction} onFocusCapture={handleFormFocusIn} onBlurCapture={handleFormFocusOut} className="space-y-2">
+                <div>
+                  <label className="block text-[11px] font-semibold text-gray-900 dark:text-gray-200 mb-0.5" htmlFor="email-landscape">Email</label>
+                  <input
+                    id="email-landscape"
+                    name="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="you@example.com"
+                    className="select-text block w-full px-3 py-1.5 h-8.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white placeholder-gray-400 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition"
+                  />
+                </div>
+                <div>
+                  <div className="flex justify-between items-baseline mb-0.5">
+                    <label className="block text-[11px] font-semibold text-gray-900 dark:text-gray-200" htmlFor="password-landscape">Password</label>
+                    <a href="#!" onClick={() => alert('Forgot password functionality to be implemented')} className="text-[11px] font-semibold text-indigo-600 hover:underline dark:text-indigo-400">Forgot Password?</a>
+                  </div>
+                  <div className="relative">
+                    <input
+                      id="password-landscape"
+                      name="password"
+                      type={showPassword ? 'text' : 'password'}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="••••••••"
+                      className="select-text block w-full px-3 py-1.5 pr-8 h-8.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white placeholder-gray-400 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      aria-label={showPassword ? "Hide password" : "Show password"}
+                      title={showPassword ? "Hide password" : "Show password"}
+                      className="absolute inset-y-0 right-0 flex items-center pr-2.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                    >
+                      <span className="sr-only">{showPassword ? "Hide password" : "Show password"}</span>
+                      {showPassword ? (
+                        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a9.97 9.97 0 01-1.563 3.029m-5.858-.908a3 3 0 00-4.243-4.243" /></svg>
+                      ) : (
+                        <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20"><path d="M10 12a2 2 0 100-4 2 2 0 000 4z"></path><path clipRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.022 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" fillRule="evenodd"></path></svg>
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                {error && <p className="text-[11px] text-red-500 text-center leading-tight">{error}</p>}
+                {message && <p className="text-[11px] text-green-500 text-center leading-tight">{message}</p>}
+
+                <button
+                  type="submit"
+                  disabled={isEmailLoading || isGoogleLoading}
+                  className={`w-full group relative flex justify-center items-center gap-2 bg-indigo-600 dark:bg-indigo-500 text-white font-semibold h-8.5 px-3 rounded-xl hover:bg-indigo-700 dark:hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-600 text-xs transition-all duration-200 shadow-sm overflow-hidden ${isGoogleLoading ? 'opacity-50 cursor-not-allowed' : (isEmailLoading ? 'cursor-wait' : '')}`}
+                >
+                  {isEmailLoading ? (
+                    <>
+                      <BrandSpinner variant="inline" size="xs" className="relative z-10" />
+                      <span className="relative z-10">Signing In...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="relative z-10">Sign In</span>
+                      <motion.svg
+                        className="w-4 h-4 relative z-10"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                        initial={{ x: 0 }}
+                        animate={{ x: [0, 4, 0] }}
+                        transition={{ repeat: Infinity, duration: 1.5, ease: "easeInOut" }}
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                      </motion.svg>
+                    </>
+                  )}
+                </button>
+              </form>
+            </div>
+          </div>
+
+          {/* Legal line at bottom */}
+          <footer className="pt-1 text-center shrink-0">
+            <p className="text-[10px] text-gray-500 dark:text-gray-400 leading-tight">
+              By continuing, you agree to our <a href="#/about/terms-of-use" target="_blank" rel="noopener noreferrer" className="underline hover:text-gray-700 dark:hover:text-gray-300">Terms of Service</a>, <a href="#/privacy-policy" target="_blank" rel="noopener noreferrer" className="underline hover:text-gray-700 dark:hover:text-gray-300">Privacy Policy</a> and Cookie Use.
+            </p>
+          </footer>
+        </div>
+      ) : (
+        /* Portrait / Standard Layout */
+        <div className="w-full max-w-sm sm:max-w-md h-full flex flex-col justify-between relative z-10 bg-transparent border-0 shadow-none p-0 md:bg-white md:dark:bg-slate-900/80 md:p-8 md:rounded-3xl md:shadow-xl md:border md:border-slate-200/50 md:dark:border-slate-800/50 md:backdrop-blur-xl md:h-auto md:max-h-[92dvh] md:my-auto">
+          {/* Top Brand & Greeting Block */}
+          <div
+            className={`flex flex-col items-center text-center transition-all duration-300 overflow-hidden ${
+              isKeyboardActive
+                ? 'max-h-0 opacity-0 pointer-events-none mb-0 md:max-h-40 md:opacity-100 md:mb-6'
+                : 'max-h-40 opacity-100 mb-2.5 [@media(min-height:750px)]:mb-5 md:mb-6'
+            }`}
+          >
+            <div className="mb-2 [@media(min-height:750px)]:mb-4">
+              <BrandLogo variant="wordmark" size="md" />
+            </div>
+            <h1 className="text-xl [@media(min-height:750px)]:text-2xl font-bold text-gray-900 dark:text-white leading-tight">
+              Welcome Back
+            </h1>
+            <p className="mt-1 text-xs [@media(min-height:750px)]:text-sm text-gray-600 dark:text-gray-400">
+              New to MindFlow?{' '}
+              <button
+                type="button"
+                onClick={() => navigate('/signup')}
+                className="font-semibold text-indigo-600 hover:text-indigo-500 dark:text-indigo-400"
+              >
+                CREATE ACCOUNT
+              </button>
+            </p>
+          </div>
+
+          {/* Social & Sample Demo Block */}
+          <div
+            className={`flex flex-col transition-all duration-300 overflow-hidden ${
+              isKeyboardActive
+                ? 'max-h-0 opacity-0 pointer-events-none mb-0 md:max-h-60 md:opacity-100 md:mb-4'
+                : 'max-h-60 opacity-100 mb-2 [@media(min-height:750px)]:mb-4 md:mb-4'
+            }`}
+          >
+            {/* Primary Google Button */}
+            <button
+              type="button"
+              onClick={handleGoogleSignIn}
+              disabled={isEmailLoading || isGoogleLoading}
+              className={`w-full group relative flex justify-center items-center gap-2.5 bg-white dark:bg-gray-800 text-gray-900 dark:text-white font-semibold h-11 [@media(min-height:750px)]:h-12 px-4 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-600 focus:ring-offset-white dark:focus:ring-offset-gray-900 text-xs [@media(min-height:750px)]:text-sm transition-all duration-200 shadow-sm overflow-hidden mb-2 [@media(min-height:750px)]:mb-3 ${
+                isEmailLoading ? 'opacity-50 cursor-not-allowed' : (isGoogleLoading ? 'cursor-wait' : '')
+              }`}
+            >
+              {isGoogleLoading ? (
+                <>
+                  <BrandSpinner variant="inline" size="sm" className="relative z-10 text-indigo-600 dark:text-indigo-400" />
+                  <span className="relative z-10 font-bold">Signing in with Google...</span>
+                </>
+              ) : (
+                <>
+                  <motion.div
+                    initial={{ rotate: 0 }}
+                    whileHover={{ rotate: 10, scale: 1.1 }}
+                    transition={{ type: "spring", stiffness: 300 }}
+                    className="relative z-10 flex items-center justify-center bg-transparent p-0.5 rounded-full"
+                  >
+                    <svg className="w-5 h-5 shrink-0" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><path d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12s5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24s8.955,20,20,20s20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z" fill="#FFC107"></path><path d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z" fill="#FF3D00"></path><path d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.222,0-9.657-3.356-11.303-7.962l-6.571,4.819C9.656,39.663,16.318,44,24,44z" fill="#4CAF50"></path><path d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.574l6.19,5.238C41.38,34.464,44,29.561,44,24C44,22.659,43.862,21.35,43.611,20.083z" fill="#1976D2"></path></svg>
+                  </motion.div>
+                  <span className="relative z-10 font-bold tracking-wide">Sign in with Google</span>
+                </>
+              )}
+            </button>
+
+            {/* Sample Questions Button */}
+            <button
+              type="button"
+              onClick={() => setShowDemo(true)}
+              className="w-full group flex justify-center items-center gap-2 bg-white hover:bg-gray-50 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-900 dark:text-gray-100 font-semibold h-11 [@media(min-height:750px)]:h-12 px-4 rounded-xl transition-all duration-200 shadow-sm border border-gray-200 dark:border-gray-700 text-xs [@media(min-height:750px)]:text-sm mb-2.5 [@media(min-height:750px)]:mb-4"
+            >
+              <span>⚡ Try 3 Sample Questions First</span>
+            </button>
+
+            {/* Or continue with email divider */}
+            <div className="relative">
+              <div aria-hidden="true" className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-200 dark:border-gray-700"></div>
+              </div>
+              <div className="relative flex justify-center text-xs">
+                <span className="px-3 bg-[#F5F7FF] dark:bg-slate-900/90 text-gray-500">Or continue with email</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Email / Password Form */}
+          <form
+            onSubmit={handleAuthAction}
+            onFocusCapture={handleFormFocusIn}
+            onBlurCapture={handleFormFocusOut}
+            className="space-y-2.5 [@media(min-height:750px)]:space-y-3.5 md:space-y-4 my-auto md:my-0"
+          >
+            <div>
+              <label className="block text-xs [@media(min-height:750px)]:text-sm font-semibold text-gray-900 dark:text-gray-200 mb-1" htmlFor="email">
+                Email
+              </label>
+              <input
+                id="email"
+                name="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@example.com"
+                className="select-text block w-full px-3.5 h-11 [@media(min-height:750px)]:h-12 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white placeholder-gray-400 text-xs [@media(min-height:750px)]:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition"
+              />
+            </div>
+            <div>
+              <div className="flex justify-between items-baseline mb-1">
+                <label className="block text-xs [@media(min-height:750px)]:text-sm font-semibold text-gray-900 dark:text-gray-200" htmlFor="password">
+                  Password
+                </label>
+                <a
+                  href="#!"
+                  onClick={() => alert('Forgot password functionality to be implemented')}
+                  className="text-xs [@media(min-height:750px)]:text-sm font-semibold text-indigo-600 hover:underline dark:text-indigo-400"
+                >
+                  Forgot Password?
+                </a>
+              </div>
+              <div className="relative">
+                <input
+                  id="password"
+                  name="password"
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="select-text block w-full px-3.5 pr-10 h-11 [@media(min-height:750px)]:h-12 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white placeholder-gray-400 text-xs [@media(min-height:750px)]:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  title={showPassword ? "Hide password" : "Show password"}
+                  className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                >
+                  <span className="sr-only">{showPassword ? "Hide password" : "Show password"}</span>
+                  {showPassword ? (
+                    <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a9.97 9.97 0 01-1.563 3.029m-5.858-.908a3 3 0 00-4.243-4.243" /></svg>
+                  ) : (
+                    <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20"><path d="M10 12a2 2 0 100-4 2 2 0 000 4z"></path><path clipRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.022 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" fillRule="evenodd"></path></svg>
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {error && <p className="text-xs text-red-500 text-center py-0.5">{error}</p>}
+            {message && <p className="text-xs text-green-500 text-center py-0.5">{message}</p>}
+
+            <div>
+              <button
+                type="submit"
+                disabled={isEmailLoading || isGoogleLoading}
+                className={`w-full group relative flex justify-center items-center gap-2 bg-indigo-600 dark:bg-indigo-500 text-white font-semibold h-11 [@media(min-height:750px)]:h-12 px-4 rounded-xl hover:bg-indigo-700 dark:hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-600 focus:ring-offset-white dark:focus:ring-offset-gray-900 text-xs [@media(min-height:750px)]:text-sm transition-all duration-200 shadow-sm overflow-hidden ${
+                  isGoogleLoading ? 'opacity-50 cursor-not-allowed' : (isEmailLoading ? 'cursor-wait' : '')
+                }`}
+              >
+                {isEmailLoading ? (
+                  <>
+                    <BrandSpinner variant="inline" size="sm" className="relative z-10" />
+                    <span className="relative z-10">Signing In...</span>
+                  </>
+                ) : (
+                  <>
+                    <span className="relative z-10">Sign In</span>
+                    <motion.svg
+                      className="w-4 h-4 [@media(min-height:750px)]:w-5 [@media(min-height:750px)]:h-5 relative z-10"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                      initial={{ x: 0 }}
+                      animate={{ x: [0, 4, 0] }}
+                      transition={{ repeat: Infinity, duration: 1.5, ease: "easeInOut" }}
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                    </motion.svg>
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
+
+          {/* Legal / Terms Footer (Only shown once at bottom) */}
+          <footer
+            className={`pt-2 pb-0.5 text-center shrink-0 transition-opacity duration-300 ${
+              isKeyboardActive ? 'hidden md:block' : 'block'
+            }`}
+          >
+            <p className="text-[11px] [@media(min-height:750px)]:text-xs text-gray-500 dark:text-gray-400 leading-tight">
+              By continuing, you agree to our{' '}
+              <a href="#/about/terms-of-use" target="_blank" rel="noopener noreferrer" className="underline hover:text-gray-700 dark:hover:text-gray-300">
+                Terms of Service
+              </a>
+              ,{' '}
+              <a href="#/privacy-policy" target="_blank" rel="noopener noreferrer" className="underline hover:text-gray-700 dark:hover:text-gray-300">
+                Privacy Policy
+              </a>{' '}
+              and Cookie Use.
+            </p>
+          </footer>
+        </div>
+      )}
     </main>
 
       {/* 3-Question Micro-Demo Drawer */}
