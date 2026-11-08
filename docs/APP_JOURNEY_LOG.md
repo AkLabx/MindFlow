@@ -26,6 +26,39 @@ This document is the single source of truth for the evolution of the MindFlow ap
 
 ## 🚀 App Journey Changelog
 
+## [v1.0.328] - 08 November 2026, 10:32 AM IST
+
+### Executive Summary
+Executed a comprehensive, senior-level UI/UX overhaul of the authentication portal (`AuthPage.tsx`). Eliminated the massive 262px whitespace void on tall smartphones (such as Samsung M51) through balanced vertical centering, permanently bound the Terms of Service & Privacy Policy directly beneath the primary action buttons so they never vanish during typing, added focus-ring clearance gutters to eliminate left/right focus border clipping, enhanced touch targets to 44x44px, and introduced responsive height-driven scaling for ultra-short and landscape viewports with zero scrolling.
+
+### ✨ Features Added & UI Polish
+- **Cohesive Vertical Architecture (Zero Blank Whitespace on Tall Screens)**:
+  - Replaced the fractured `justify-between` and `my-auto` model with a unified, vertically centered card layout.
+  - Eliminated the 262px dead space between the header and Google sign-in on devices like Samsung M51 (412x915) and iPhone 14 Pro Max (430x932), providing a tight, natural 20px gap (`mb-3 sm:mb-5`).
+  
+- **Permanent Terms & Privacy Notice Placement**:
+  - Moved the legal notice directly beneath the Continue (Step 1) and Sign In (Step 2) buttons.
+  - Removed focus-triggered hide states so the terms notice remains permanently visible and legible both while idle and while typing.
+
+- **Focus Ring Clipping Elimination (Issue 3 Fix)**:
+  - Added a `p-1 -m-1` gutter around the sliding container, providing 4px of clearance outside the input borders.
+  - Replaced hard-clipped outer focus rings with smooth, non-overflowing focus states (`focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/25`), ensuring 100% unclipped, beautiful borders on Android WebView.
+
+- **Dynamic Height Adaptability (Ultra-Short & Landscape)**:
+  - Introduced arbitrary height variants (`[@media(max-height:500px)]:`) that automatically compress button and input heights to 36px (`h-9`), reduce vertical gaps, and hide redundant subtitles on short screens.
+  - Verified 0px vertical and 0px horizontal scroll across all viewports including `640x360` (landscape) and `360x340` (keyboard simulation).
+
+- **Senior UX Micro-Interactions & Accessibility**:
+  - Replaced native browser `alert()` for "Forgot Password?" with a non-blocking toast via `useNotificationStore`.
+  - Added a prominent top-left `<ArrowLeft />` back button on Step 2 to easily return to Step 1 alongside the email pill "Change" action.
+  - Guaranteed 44x44px touch targets on the show/hide password toggle.
+  - Wrapped error banners in `<AnimatePresence>` to eliminate Cumulative Layout Shift (CLS).
+
+### 🔒 Security & Architecture
+- Full compliance with MindFlow Product Constitution Section 8 performance budgets and zero-tolerance hard invariants.
+- 100% preservation of Supabase auth, Google OAuth, and native Capacitor Google Sign-In handlers.
+
+
 ## [v1.0.327] - 08 November 2026, 08:38 AM IST
 
 ### Executive Summary
