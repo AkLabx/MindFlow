@@ -269,7 +269,7 @@ export const QuizReview: React.FC<QuizReviewProps> = ({
             </div>
 
             {/* Explanation Section */}
-            <QuizExplanation explanation={currentQuestion.explanation} />
+            <QuizExplanation explanation={currentQuestion.explanation} questionId={currentQuestion.id} imageUrl={currentQuestion.explanation_image_url} />
 
             {/* Fixed Navigation Footer (Global tab bar is hidden in Review Mode) */}
             <div className="fixed bottom-0 left-0 w-full bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 p-3 sm:p-4 shadow-[0_-4px_10px_rgba(0,0,0,0.05)] z-40">

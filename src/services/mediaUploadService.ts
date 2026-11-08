@@ -6,6 +6,7 @@
 export interface CloudinaryUploadOptions {
     file: File;
     resourceType?: 'video' | 'image' | 'auto';
+    folder?: string;
     onProgress?: (progress: number) => void;
 }
 
@@ -19,6 +20,7 @@ export interface CloudinaryUploadOptions {
 export const uploadMediaToCloudinary = async ({
     file,
     resourceType = 'auto',
+    folder,
     onProgress
 }: CloudinaryUploadOptions): Promise<string> => {
     const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
@@ -32,6 +34,9 @@ export const uploadMediaToCloudinary = async ({
     formData.append('file', file);
     formData.append('upload_preset', uploadPreset);
     formData.append('resource_type', resourceType);
+    if (folder) {
+        formData.append('folder', folder);
+    }
 
     const xhr = new XMLHttpRequest();
     xhr.open('POST', `https://api.cloudinary.com/v1_1/${cloudName}/${resourceType}/upload`, true);

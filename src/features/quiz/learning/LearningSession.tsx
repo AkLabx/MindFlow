@@ -540,7 +540,7 @@ export const LearningSession: React.FC<LearningSessionProps> = ({
                 />
 
                 {isAnswered && isExplanationEnabled && (
-                    <QuizExplanation explanation={currentQuestion.explanation} zoomLevel={zoomLevel} />
+                    <QuizExplanation explanation={currentQuestion.explanation} zoomLevel={zoomLevel} questionId={currentQuestion.id} imageUrl={currentQuestion.explanation_image_url} />
                 )}
             </div>
         </ActiveQuizLayout>

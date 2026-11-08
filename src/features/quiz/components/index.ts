@@ -35,3 +35,4 @@ export * from './Landing/MobileDemoCard';
 export * from './QuizLibrarySkeleton';
 export * from './Landing/WelcomeIntro';
 export * from './ui/QuizSettingsModal';
+export * from './AdminQuestionImage';

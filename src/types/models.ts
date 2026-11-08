@@ -57,6 +57,8 @@ export interface Explanation {
  * Represents a standard quiz question (MCQ).
  */
 export interface Question {
+  /** Optional image URL for question explanation */
+  explanation_image_url?: string;
   /** Unique identifier for the question. */
   id: string;
   examName?: string;

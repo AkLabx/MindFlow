@@ -16,6 +16,7 @@ import {
 import { UserQuestionMasteryRecord } from '../types';
 import { masteryService } from '../../quiz/services/masteryService';
 import { AiExplanationButton } from '../../quiz/components/AiExplanationButton';
+import { AdminQuestionImage } from '../../quiz/components/AdminQuestionImage';
 import { useNotificationStore } from '../../../stores/useNotificationStore';
 import { cn } from '../../../utils/cn';
 import { CANONICAL_EXAMS, matchesCanonicalExam } from '@/features/dashboard';
@@ -290,6 +291,16 @@ export const MistakeQuestionCard: React.FC<MistakeQuestionCardProps> = ({
             )}
             {!explanationText && !explanationTextHi && (
               <p className="text-slate-400 italic">No static explanation attached. Click "Ask AI Tutor" below for in-depth reasoning.</p>
+            )}
+            {question.id && (
+                <div className="mt-4">
+                    <AdminQuestionImage
+                        questionId={question.id}
+                        kind="explanation"
+                        initialImageUrl={question.explanation_image_url}
+                        isVisible={showExplanation}
+                    />
+                </div>
             )}
           </div>
         )}

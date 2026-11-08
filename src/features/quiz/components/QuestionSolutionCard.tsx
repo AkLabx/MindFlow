@@ -2,6 +2,7 @@ import React from 'react';
 import { Bookmark } from 'lucide-react';
 import { Card } from '../../../components/ui/Card';
 import { Question } from '../../../types/models';
+import { QuizExplanation } from './QuizExplanation';
 import { cn } from '../../../utils/cn';
 
 export interface QuestionSolutionCardProps {
@@ -82,6 +83,16 @@ export const QuestionSolutionCard: React.FC<QuestionSolutionCardProps> = ({
                     );
                 })}
             </div>
+
+            {question.explanation && (
+                <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800">
+                    <QuizExplanation
+                        explanation={question.explanation}
+                        questionId={question.id}
+                        imageUrl={question.explanation_image_url}
+                    />
+                </div>
+            )}
         </Card>
     );
 };

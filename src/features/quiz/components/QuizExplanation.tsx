@@ -2,6 +2,7 @@ import React from 'react';
 import { Explanation } from '../types';
 import { CheckCircle2, XCircle, Lightbulb, FileText } from 'lucide-react';
 import { MarkdownRenderer } from '../../../components/ui/MarkdownRenderer';
+import { AdminQuestionImage } from './AdminQuestionImage';
 
 /**
  * A component to display detailed explanations for a question.
@@ -20,7 +21,7 @@ import { MarkdownRenderer } from '../../../components/ui/MarkdownRenderer';
  * @param {number} [props.zoomLevel] - Optional font size scaling.
  * @returns {JSX.Element} The rendered explanation blocks.
  */
-export function QuizExplanation({ explanation, zoomLevel }: { explanation: Explanation, zoomLevel?: number }) {
+export function QuizExplanation({ explanation, zoomLevel, questionId, imageUrl }: { explanation: Explanation, zoomLevel?: number, questionId?: string, imageUrl?: string }) {
 
     /**
      * Cleans text by removing emojis and redundant headers found in the source data.
