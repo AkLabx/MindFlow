@@ -26,6 +26,37 @@ This document is the single source of truth for the evolution of the MindFlow ap
 
 ## 🚀 App Journey Changelog
 
+## [v1.0.329] - 08 November 2026, 11:55 AM IST
+
+### Executive Summary
+Conducted a deep architectural and functional audit of the login portal (`AuthPage.tsx`) and remediated critical blockers: wired up the non-functional "Forgot Password" action to live Supabase password recovery, eliminated the Android hardware back button event trap on Step 2 by enabling standard DOM event bubbling and capture-phase interception, established reliable post-animation auto-focus across progressive step transitions, sanitized input whitespace across transitions, and removed dead component state.
+
+### 🐛 Bug Fixes & Architectural Polish
+- **Real Password Recovery Integration (`supabase.auth.resetPasswordForEmail`)**:
+  - Replaced the mock/dummy `handleForgotPassword` toast with a production-grade asynchronous handler executing `supabase.auth.resetPasswordForEmail()`.
+  - Added dedicated loading (`isResettingPassword`) and error recovery handling, preventing user lockout when credentials are lost.
+  
+- **Android Hardware Back Button Deadlock Remediation**:
+  - Fixed synthetic `Escape` event dispatch in `useHardwareBackButton.ts` by setting `{ bubbles: true, cancelable: true }`.
+  - Updated `AuthPage.tsx` keydown listener to capture-phase registration on `document`, ensuring back presses on Step 2 (`step === 'password'`) reliably return to Step 1 (`step === 'email'`) without deadlock on Android Capacitor devices.
+
+- **Framer Motion Auto-Focus Timing Fix**:
+  - Replaced immediate `requestAnimationFrame` calls (which fired while incoming DOM elements were unmounted during Framer Motion's 220ms `mode="wait"` exit transition) with a step-change `useEffect` hook.
+  - Ensures password input on Step 2 and email input on Step 1 reliably gain focus without requiring manual user tapping.
+
+- **State Sanitization & Dead Code Cleanup**:
+  - Enforced `setEmail(trimmed)` upon proceeding past Step 1 to eliminate lingering trailing whitespace on email pills and hidden username fields.
+  - Removed unreferenced `message` state and unused `useLocation` / `useAuth` imports in `AuthPage.tsx`.
+  - Added `overflow-hidden` to animated error alert containers to prevent text overflow during height collapse animations.
+
+### 🔒 Impacted Scope
+- `src/features/auth/components/AuthPage.tsx`
+- `src/hooks/useHardwareBackButton.ts`
+- `package.json`
+- `docs/APP_JOURNEY_LOG.md`
+
+---
+
 ## [v1.0.328] - 08 November 2026, 10:32 AM IST
 
 ### Executive Summary
