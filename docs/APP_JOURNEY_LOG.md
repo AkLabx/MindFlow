@@ -26,6 +26,27 @@ This document is the single source of truth for the evolution of the MindFlow ap
 
 ## 🚀 App Journey Changelog
 
+## [v1.0.337] - 09 November 2026, 10:40 PM IST
+
+### Executive Summary
+Closed visual diagram rendering parity across all student learning surfaces (`QuestionSolutionCard.tsx` and `MistakeQuestionCard.tsx`), engineered a resilient Universal Explanation Adapter in `QuizExplanation.tsx` with bilingual Hindi fallback handling and cleanup of legacy dead code, and embedded native `AdminQuestionImage` controls directly into the admin question modal (`AdminEditQuestionModal.tsx`) across Content and Explanation tabs.
+
+### ✨ Features & UI/UX Upliftment
+- **Visual Diagram Parity Across Quiz Review & Mistakes Surfaces**:
+  - Mounted `<AdminQuestionImage kind="question" ... />` inside `QuestionSolutionCard.tsx` (quiz review/summary screen) and `MistakeQuestionCard.tsx` (mistakes notebook), guaranteeing diagrams attached to question statements render seamlessly across the entire study workflow.
+- **Embedded Visual Controls in Admin Modal**:
+  - Embedded `AdminQuestionImage` directly inside Tab 1 (`Content & Options`) for question statement diagrams and Tab 3 (`Explanations & AI Tutor`) for explanation diagrams in `AdminEditQuestionModal.tsx`.
+  - Added live preview rendering for explanation diagrams in the student preview subtab, eliminating the need to leave the editing flow to manage educational diagrams.
+
+### 🐛 Bug Fixes & Refactoring
+- **Universal Explanation Adapter & Schema Resilience (`QuizExplanation.tsx`)**:
+  - Added an explanation adapter supporting structured `Explanation` objects, stringified JSON strings, and raw Markdown strings from legacy PYQ datasets without crashing.
+  - Implemented safe bilingual summary extraction: when stripping Hindi characters leaves no content (e.g. pure Hindi PYQ question sets), the component safely falls back to the original summary rather than rendering a blank space.
+  - Removed obsolete legacy `formatContent()` and regex splitting helpers that had been completely superseded by `MarkdownRenderer`.
+
+### 🔒 Security & Architecture
+- All diagram image mutations adhere to zero-secret policies, updating exclusively through authenticated client services and Supabase RLS.
+
 ## [v1.0.336] - 09 November 2026, 09:16 PM IST
 
 ### Executive Summary

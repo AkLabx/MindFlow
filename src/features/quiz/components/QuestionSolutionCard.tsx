@@ -3,6 +3,7 @@ import { Bookmark } from 'lucide-react';
 import { Card } from '../../../components/ui/Card';
 import { Question } from '../../../types/models';
 import { QuizExplanation } from './QuizExplanation';
+import { AdminQuestionImage } from './AdminQuestionImage';
 import { cn } from '../../../utils/cn';
 
 export interface QuestionSolutionCardProps {
@@ -47,9 +48,20 @@ export const QuestionSolutionCard: React.FC<QuestionSolutionCardProps> = ({
                 )}
             </div>
 
-            <p className="text-slate-800 dark:text-slate-200 font-medium mb-6 leading-relaxed">
+            <p className="text-slate-800 dark:text-slate-200 font-medium mb-4 leading-relaxed">
                 {question.question}
             </p>
+
+            {/* Question Statement Visual / Diagram */}
+            {question.id && (
+                <div className="mb-5">
+                    <AdminQuestionImage
+                        questionId={question.id}
+                        kind="question"
+                        initialImageUrl={question.question_image_url}
+                    />
+                </div>
+            )}
 
             <div className="space-y-3">
                 {question.options.map((opt, optIdx) => {

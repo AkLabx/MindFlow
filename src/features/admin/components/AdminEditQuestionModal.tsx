@@ -25,6 +25,7 @@ import rehypeKatex from 'rehype-katex';
 import DOMPurify from 'dompurify';
 import { useUpdateQuestion } from '../hooks/useAdminUploadGK';
 import { Question } from '../../quiz/types';
+import { AdminQuestionImage } from '../../quiz/components/AdminQuestionImage';
 import { useQuizSessionStore } from '../../quiz/stores/useQuizSessionStore';
 import { useNotification } from '../../../hooks/useNotification';
 import { supabase } from '../../../lib/supabase';
@@ -688,6 +689,20 @@ export const AdminEditQuestionModal: React.FC<AdminEditQuestionModalProps> = ({
                 />
               </div>
 
+              {/* Question Diagram / Visual Aid */}
+              <div className="space-y-1.5">
+                <label className="text-sm font-semibold text-gray-800 dark:text-gray-200">
+                  Question Diagram / Visual Aid <span className="text-xs font-normal text-gray-400">(Optional)</span>
+                </label>
+                <div className="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700">
+                  <AdminQuestionImage
+                    questionId={question.id}
+                    kind="question"
+                    initialImageUrl={question.question_image_url}
+                  />
+                </div>
+              </div>
+
               {/* Options Section */}
               <div className="space-y-3 pt-2">
                 <div className="flex items-center justify-between">
@@ -1121,12 +1136,31 @@ export const AdminEditQuestionModal: React.FC<AdminEditQuestionModalProps> = ({
                           placeholder="One-line golden rule to remember for exams..."
                         />
                       </div>
+
+                      {/* Explanation Diagram / Visual Aid */}
+                      <div className="space-y-1.5 pt-2">
+                        <label className="text-xs font-bold text-gray-700 dark:text-gray-300">
+                          Explanation Diagram / Visual Aid <span className="text-xs font-normal text-gray-400">(Optional)</span>
+                        </label>
+                        <div className="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700">
+                          <AdminQuestionImage
+                            questionId={question.id}
+                            kind="explanation"
+                            initialImageUrl={question.explanation_image_url}
+                          />
+                        </div>
+                      </div>
                     </div>
                   )}
 
                   {explanationMode === 'preview' && (
                     <div className="p-4 bg-gray-50 dark:bg-gray-800/40 border border-gray-200 dark:border-gray-700 rounded-2xl space-y-4">
                       <h4 className="text-xs font-bold uppercase tracking-wider text-gray-400">Student Preview (Static Explanation)</h4>
+                      <AdminQuestionImage
+                        questionId={question.id}
+                        kind="explanation"
+                        initialImageUrl={question.explanation_image_url}
+                      />
                       {staticExplanation.summary && (
                         <div>
                           <h5 className="text-xs font-bold text-gray-600 dark:text-gray-300 mb-1">Concept Summary</h5>
