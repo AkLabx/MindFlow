@@ -26,6 +26,99 @@ This document is the single source of truth for the evolution of the MindFlow ap
 
 ## 🚀 App Journey Changelog
 
+## [v1.0.335] - 09 November 2026, 08:01 PM IST
+
+### Executive Summary
+Comprehensively audited and overhauled the Question Management Command Center (`AdminEditQuestionModal.tsx`). Eliminated a critical AI cache-poisoning bug that wrote `{}` instead of `null` to Supabase, corrected misleading schema formatting, introduced a categorized 3-tab layout (`Content & Options`, `Exam & Classification`, `Explanations & AI Tutor`), integrated a 1-click "Mark Correct" option synchronizer, added on-demand AI generation and cache purge capabilities, and provided 1:1 live student previews with KaTeX and Markdown rendering.
+
+### 🐛 Bug Fixes & Cache Hardening
+- **Cache Poisoning Resolution**:
+  - Remediated the empty object `{}` fallback that previously marked questions as cached in Supabase `questions.ask_ai_explanation`, preventing students from receiving empty AI responses.
+  - Form validation and payloads now strictly preserve `null` when no explanation is present, allowing future Edge Function generation calls to run cleanly.
+- **Schema Alignment**:
+  - Replaced obsolete `"ai_analysis"` guidance with the canonical `ask-ai-tutor` contract (`correct_answer`, `reasoning`, `exam_facts`, `recent_news`, `interesting_facts`, `fun_fact`).
+- **Answer Key Synchronization**:
+  - Dynamic option editing now keeps `correctAnswer` in lockstep with the selected option text, preventing false-positive validation rejections.
+
+### ✨ Features & UI/UX Upliftment
+- **Categorized 3-Tab Architecture**:
+  - Structured the monolithic 17-field scroll into three intuitive tabs: `Content & Options`, `Exam & Classification`, and `Explanations & AI Tutor`.
+- **Interactive MCQ Option Cards**:
+  - Replaced raw JSON option arrays with visual option cards featuring 1-click "Mark Correct" radio selectors, optional Hindi inputs, and dynamic option count management (2–6 options).
+- **AI Tutor Command Center**:
+  - Built an in-modal action bar with database cache status indicators (`Cached in DB` vs `Not Cached`), on-demand **"Generate with AI"** calling the live Edge Function, and **"Clear Cache"** to purge corrupted entries.
+  - Implemented a 1:1 **Student Live Preview** matching the student-facing `AiExplanationButton` modal design with Markdown and LaTeX KaTeX math rendering.
+
+### 🔒 Impacted Scope
+- `src/features/admin/components/AdminEditQuestionModal.tsx`
+- `docs/APP_JOURNEY_LOG.md`
+- `package.json`
+- `package-lock.json`
+
+---
+
+## [v1.0.334] - 09 November 2026, 09:56 AM IST
+
+### Executive Summary
+Integrated the `AdminQuestionImage` controller directly into `QuizExplanation.tsx`, providing administrators with direct, in-place image review and Cloudinary uploading capabilities for question explanations during active quizzes and solution reviews.
+
+### ✨ Features & UI Enhancements
+- **Inline Admin Question Image Controller**:
+  - Bound `<AdminQuestionImage />` with `kind="explanation"` and `initialImageUrl={imageUrl}` into `QuizExplanation.tsx`.
+  - Enables authorized content creators and administrators to inspect, upload, and remove explanation images directly inside the live quiz solution viewer.
+
+### 🔒 Impacted Scope
+- `src/features/quiz/components/QuizExplanation.tsx`
+- `package.json`
+
+---
+
+## [v1.0.333] - 08 November 2026, 09:48 PM IST
+
+### Executive Summary
+Introduced comprehensive, end-to-end admin image upload support for GK quiz explanations. Added the `explanation_image_url` column to Supabase `questions`, created the `AdminQuestionImage` component with Cloudinary integration, and bound explanation images across Mistake Cards, Question Solution Cards, and Quiz Reviews.
+
+### ✨ Features Added & Architecture
+- **Database Schema & RLS Hardening**:
+  - Added `explanation_image_url TEXT` column to `public.questions` table via migration `20261108134030_add_explanation_image_url.sql`.
+  - Configured idempotent RLS update policy granting `UPDATE` rights on `questions` to authenticated users with `is_admin` or `content_creator` roles.
+- **Optimistic State & Query Management (`useQuestionImage`)**:
+  - Created custom React Query hook with optimistic cache updates, error rollback, and automatic cache invalidation upon upload or removal.
+- **Administrative Image Controller (`AdminQuestionImage`)**:
+  - Built full image management component with drag-and-drop / file selection, Cloudinary media upload integration with folder structuring, and image preview/deletion.
+- **Display Bindings Across Quiz Experiences**:
+  - Integrated visual explanation support into `MistakeQuestionCard.tsx`, `QuestionSolutionCard.tsx`, `QuizReview.tsx`, and `LearningSession.tsx`.
+
+### 🔒 Impacted Scope
+- `src/features/quiz/components/AdminQuestionImage.tsx`
+- `src/features/quiz/hooks/useQuestionImage.ts`
+- `src/features/admin/api/adminQuestionImageApi.ts`
+- `src/features/mistakes/components/MistakeQuestionCard.tsx`
+- `src/features/quiz/components/QuestionSolutionCard.tsx`
+- `src/features/quiz/components/QuizReview.tsx`
+- `src/features/quiz/learning/LearningSession.tsx`
+- `src/services/mediaUploadService.ts`
+- `src/types/models.ts`
+- `supabase/migrations/20261108134030_add_explanation_image_url.sql`
+
+---
+
+## [v1.0.332] - 08 November 2026, 04:50 PM IST
+
+### Executive Summary
+Enhanced the Question Management Command Center by introducing an editable JSON field for `ask_ai_explanation` in `AdminEditQuestionModal.tsx`.
+
+### ✨ Features Added & Refactoring
+- **Editable AI Explanation Field**:
+  - Integrated `ask_ai_explanation` field into initial form state, validation pipeline (`validateJson('ask_ai_explanation', ..., 'object')`), and mutation payload.
+  - Added dynamic textarea with expected JSON format guidance (`{"ai_analysis": "Text..."}`) for seamless administrative authoring of AI-generated question explanations.
+
+### 🔒 Impacted Scope
+- `src/features/admin/components/AdminEditQuestionModal.tsx`
+- `package.json`
+
+---
+
 ## [v1.0.331] - 08 November 2026, 12:56 PM IST
 
 ### Executive Summary
