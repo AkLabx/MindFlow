@@ -59,6 +59,8 @@ export interface Explanation {
 export interface Question {
   /** Optional image URL for question explanation */
   explanation_image_url?: string;
+  /** Optional image URL for question statement/diagram */
+  question_image_url?: string;
   /** Unique identifier for the question. */
   id: string;
   examName?: string;

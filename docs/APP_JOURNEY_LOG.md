@@ -26,6 +26,39 @@ This document is the single source of truth for the evolution of the MindFlow ap
 
 ## 🚀 App Journey Changelog
 
+## [v1.0.336] - 09 November 2026, 09:16 PM IST
+
+### Executive Summary
+Remediated the phantom column bug from PR #1074 by executing and applying live database migration `20261109203000_add_question_image_url.sql`, introduced an interactive full-screen Lightbox modal with zoom and pan controls for educational diagrams, upgraded `AdminQuestionImage.tsx` with touch-first mobile admin controls, and connected active question diagram rendering in `QuizQuestionDisplay.tsx`.
+
+### 🐛 Bug Fixes & Database Schema Hardening
+- **Phantom Column Remediation (`question_image_url`)**:
+  - Created and applied migration `20261109203000_add_question_image_url.sql` adding `question_image_url TEXT` column to `public.questions` on live Supabase production (`sjcfagpjstbfxuiwhlps`).
+  - Updated `src/types/models.ts` to include `question_image_url?: string` on the core `Question` interface, resolving runtime exceptions when uploading question-level visual diagrams.
+- **Client Cache & Store Synchronization**:
+  - Connected `updateImage` in `AdminQuestionImage.tsx` directly to `useQuizSessionStore.getState().hydrateQuestions()`, ensuring that uploads and removals immediately reflect in active quiz sessions without requiring page reloads.
+
+### ✨ Features & UI/UX Upliftment
+- **Interactive Full-Screen Lightbox Modal**:
+  - Built an accessible Lightbox dialog (`role="dialog"`, `aria-modal="true"`) for question and explanation diagrams.
+  - Features high-resolution source inspection, 100%–300% zoom controls, zoom reset, escape key / backdrop dismissal, and tap-to-zoom indicators for students.
+- **Touch-Friendly Mobile Admin Actions**:
+  - Replaced the desktop-only `group-hover:opacity-100` overlay with permanent, touch-friendly floating admin action pills.
+  - Added a direct "Replace Image" action button so administrators can swap images in 1 click without deleting first, paired with a confirmation modal for removals.
+- **Question-Level Visual Diagrams in Quiz Displays**:
+  - Mounted `<AdminQuestionImage kind="question" ... />` inside `QuizQuestionDisplay.tsx`, bringing visual diagram support (maps, geometry, figures) directly into the main question statement card.
+
+### 🔒 Impacted Scope
+- `src/features/quiz/components/AdminQuestionImage.tsx`
+- `src/features/quiz/components/QuizQuestionDisplay.tsx`
+- `src/types/models.ts`
+- `supabase/migrations/20261109203000_add_question_image_url.sql`
+- `docs/APP_JOURNEY_LOG.md`
+- `package.json`
+- `package-lock.json`
+
+---
+
 ## [v1.0.335] - 09 November 2026, 08:01 PM IST
 
 ### Executive Summary

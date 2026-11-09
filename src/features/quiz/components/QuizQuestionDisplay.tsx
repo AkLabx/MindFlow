@@ -12,6 +12,7 @@ import { useAuth } from '../../../features/auth/context/AuthContext';
 import { AdminEditQuestionModal } from '../../../features/admin/components/AdminEditQuestionModal';
 import { Edit } from 'lucide-react';
 import { SynapticLoader } from '../../../components/ui/SynapticLoader';
+import { AdminQuestionImage } from './AdminQuestionImage';
 
 // --- Client-Side Sanitizer ---
 /**
@@ -263,6 +264,17 @@ export function QuizQuestionDisplay({
                     )}
                 </div>
 
+
+                {/* Question Diagram / Image (Maps, Figures, PYQ Visuals) */}
+                {(question.question_image_url || isAdmin) && (
+                    <div className="mb-3">
+                        <AdminQuestionImage
+                            questionId={question.id}
+                            kind="question"
+                            initialImageUrl={question.question_image_url}
+                        />
+                    </div>
+                )}
 
                 {/* AI Explanation Button & Copy Button - Conditionally rendered for Learning Mode */}
                 {isAnswered && !isMockMode && (
