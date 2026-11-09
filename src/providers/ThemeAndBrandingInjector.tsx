@@ -28,6 +28,10 @@ function shadeColor(color: string, percent: number) {
   return "#"+RR+GG+BB;
 }
 
+/**
+ * Provider that injects dynamic branding and theme customizations
+ * directly into the document DOM (title, favicon, root CSS variables).
+ */
 export const ThemeAndBrandingInjector: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { config, previewConfig, isPreviewing } = useAppConfigStore(useShallow((state) => ({
     config: state.config,
@@ -56,7 +60,7 @@ export const ThemeAndBrandingInjector: React.FC<{ children: React.ReactNode }> =
       const primary = activeConfig.theme.primaryColor;
 
       const styleId = 'mindflow-theme-styles';
-      let styleEl = document.getElementById(styleId);
+      let styleEl = document.getElementById(styleId) as HTMLStyleElement | null;
       if (!styleEl) {
         styleEl = document.createElement('style');
         styleEl.id = styleId;
@@ -81,16 +85,9 @@ export const ThemeAndBrandingInjector: React.FC<{ children: React.ReactNode }> =
       styleEl.innerHTML = cssVars;
     }
 
-    // 4. Theme: Dark Mode Default Override
-    // Only apply if the user hasn't explicitly set a preference, or if admin forces it?
-    // Let's make it so if the admin sets 'dark' or 'light', it sets the initial state,
-    // but we shouldn't constantly override the user's toggle if they change it.
-    // For this task, we will just apply it on mount or preview change, but allow user toggle to win in session.
+    // 4. Theme: Dark Mode Default / System Sync
     const root = document.documentElement;
     const mode = activeConfig.theme?.mode;
-
-    // We get the setting store toggle function just to keep it in sync
-    const settingsState = useSettingsStore.getState();
 
     if (mode === 'dark') {
       root.classList.add('dark');
@@ -98,8 +95,17 @@ export const ThemeAndBrandingInjector: React.FC<{ children: React.ReactNode }> =
     } else if (mode === 'light') {
       root.classList.remove('dark');
       useSettingsStore.setState({ isDarkMode: false });
+    } else if (mode === 'system' || !mode) {
+      // Respect user OS prefers-color-scheme when mode is 'system'
+      const prefersDark = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+      if (prefersDark) {
+        root.classList.add('dark');
+        useSettingsStore.setState({ isDarkMode: true });
+      } else {
+        root.classList.remove('dark');
+        useSettingsStore.setState({ isDarkMode: false });
+      }
     }
-    // if 'system', we'd theoretically check media query, but keeping it simple based on existing app logic
 
   }, [activeConfig.branding, activeConfig.theme]);
 

@@ -1,3 +1,4 @@
+import React from 'react';
 export * from './AuthPage';
 export { default as AuthPage } from './AuthPage';
 export * from './SignupPage';
@@ -9,3 +10,6 @@ export * from './SubscriptionPage';
 export * from './SupportPage';
 export * from './ResetPasswordPage';
 export { default as ResetPasswordPage } from './ResetPasswordPage';
+export * from './PasswordStrengthMeter';
+export * from './AuthLegalModal';
+export * from './AuthHeroShowcase';

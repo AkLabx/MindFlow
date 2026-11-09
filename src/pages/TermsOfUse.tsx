@@ -12,7 +12,7 @@ export const TermsOfUse: React.FC = () => {
                 <div className="flex items-center">
                     <button
                         onClick={() => navigate(-1)}
-                        className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-gray-700 dark:text-gray-300"
+                        className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-gray-700 dark:text-gray-300"
                         aria-label="Go back"
                     >
                         <ChevronLeft className="w-6 h-6" />
@@ -21,7 +21,7 @@ export const TermsOfUse: React.FC = () => {
                 </div>
                 <button
                     onClick={() => navigate('/')}
-                    className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-gray-700 dark:text-gray-300 flex items-center gap-2"
+                    className="min-h-[44px] px-3 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-gray-700 dark:text-gray-300 flex items-center gap-2"
                     aria-label="Back to Home"
                 >
                      <Home className="w-5 h-5" />
@@ -37,47 +37,47 @@ export const TermsOfUse: React.FC = () => {
                         </div>
                         <div>
                             <h2 className="text-2xl font-bold text-gray-900 dark:text-white">MindFlow Terms of Use</h2>
-                            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Last updated: {new Date().toLocaleDateString()}</p>
+                            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Version 2.1 • Effective November 2024</p>
                         </div>
                     </div>
 
                     <div className="prose dark:prose-invert max-w-none text-gray-600 dark:text-gray-300 space-y-6 text-sm md:text-base leading-relaxed">
                         <p>
-                            Welcome to MindFlow. By accessing or using our application, you agree to comply with and be bound by the following Terms of Use, which are governed by the laws of India.
+                            Welcome to MindFlow. By accessing or using our application, you agree to comply with and be bound by the following Terms of Use, which are governed by the Information Technology Act 2000 and the laws of India.
                         </p>
 
                         <div>
-                            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">1. Acceptance of Terms</h3>
+                            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">1. Acceptance & Learner Eligibility</h3>
                             <p>
-                                By registering an account or using the app, you acknowledge that you have read, understood, and agree to these terms. If you do not agree with any part of these terms, you must discontinue the use of the app immediately.
+                                By registering an account or using the app, you acknowledge that you have read, understood, and agree to these terms. Users must be 18 years of age or older, or possess verifiable parental/guardian consent if under 18 years of age (including school learners). If you do not agree with any part of these terms, you must discontinue the use of the app immediately.
                             </p>
                         </div>
 
                         <div>
-                            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">2. User Conduct</h3>
+                            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">2. Lawful User Conduct</h3>
                             <p>
-                                You agree to use the application strictly for lawful purposes. You shall not engage in any activity that disrupts, damages, or interferes with the functioning of the app or its servers. Any unauthorized access or attempt to reverse-engineer the app is strictly prohibited.
+                                You agree to use the application strictly for lawful, personal academic preparation. You shall not engage in automated scraping, unauthorized test duplication, reverse-engineering the AI diagnostic model, or disrupting app server infrastructure.
                             </p>
                         </div>
 
                         <div>
                             <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">3. Intellectual Property Rights</h3>
                             <p>
-                                All content, trademarks, logos, and intellectual property associated with MindFlow are the exclusive property of its developers. You may not reproduce, distribute, or create derivative works from our content without explicit written permission.
+                                All content, trademarks, logos, and proprietary exam synthesis pipelines associated with MindFlow are the intellectual property of its developers and licensors. Commercial reproduction or unauthorized distribution is strictly prohibited.
                             </p>
                         </div>
 
                         <div>
                             <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">4. Limitation of Liability</h3>
                             <p>
-                                MindFlow is provided on an "as is" and "as available" basis. While we strive for accuracy, we make no warranties regarding the completeness, reliability, or accuracy of the content. We shall not be liable for any direct, indirect, incidental, or consequential damages arising from your use of the app.
+                                MindFlow is provided on an "as is" and "as available" basis. While our mock assessments are rigorously synthesized against official government exam benchmarks, we make no guarantees regarding specific competitive exam scores or appointments.
                             </p>
                         </div>
 
                         <div>
                             <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">5. Governing Law and Jurisdiction</h3>
                             <p>
-                                These terms shall be governed by and construed in accordance with the laws of India. Any disputes arising out of or in connection with these terms shall be subject to the exclusive jurisdiction of the competent courts in India.
+                                These terms shall be governed by and construed in accordance with the laws of the Republic of India. Any disputes arising out of or in connection with these terms shall be subject to the exclusive jurisdiction of the competent courts in India.
                             </p>
                         </div>
                     </div>
@@ -86,3 +86,5 @@ export const TermsOfUse: React.FC = () => {
         </div>
     );
 };
+
+export default TermsOfUse;
