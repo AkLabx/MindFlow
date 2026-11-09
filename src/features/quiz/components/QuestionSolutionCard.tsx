@@ -4,6 +4,8 @@ import { Card } from '../../../components/ui/Card';
 import { Question } from '../../../types/models';
 import { QuizExplanation } from './QuizExplanation';
 import { AdminQuestionImage } from './AdminQuestionImage';
+import { MarkdownRenderer } from '../../../components/ui/MarkdownRenderer';
+import { formatQuestionText } from '../utils/questionFormatter';
 import { cn } from '../../../utils/cn';
 
 export interface QuestionSolutionCardProps {
@@ -48,9 +50,9 @@ export const QuestionSolutionCard: React.FC<QuestionSolutionCardProps> = ({
                 )}
             </div>
 
-            <p className="text-slate-800 dark:text-slate-200 font-medium mb-4 leading-relaxed">
-                {question.question}
-            </p>
+            <div className="text-slate-800 dark:text-slate-200 font-medium mb-4 leading-relaxed selectable-text">
+                <MarkdownRenderer content={formatQuestionText(question.question)} />
+            </div>
 
             {/* Question Statement Visual / Diagram */}
             {question.id && (

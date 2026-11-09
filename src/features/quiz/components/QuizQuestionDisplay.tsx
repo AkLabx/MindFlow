@@ -1,6 +1,7 @@
 import React, { useMemo, useEffect } from 'react';
 import { stripHtml } from '../../../utils/html';
 import { MarkdownRenderer } from '../../../components/ui/MarkdownRenderer';
+import { formatQuestionText } from '../utils/questionFormatter';
 import { Question } from '../types';
 import { QuizOption } from './QuizOption';
 import { AiExplanationButton } from './AiExplanationButton';
@@ -253,7 +254,7 @@ export function QuizQuestionDisplay({
                         onMouseDown={(e) => e.stopPropagation()}
                         onTouchStart={(e) => e.stopPropagation()}
                     >
-                        <MarkdownRenderer content={question.question} />
+                        <MarkdownRenderer content={formatQuestionText(question.question)} />
                     </div>
                     
                     {/* Show Time Spent in Review Mode (if userTime provided) */}
@@ -306,7 +307,7 @@ export function QuizQuestionDisplay({
                             onMouseDown={(e) => e.stopPropagation()}
                             onTouchStart={(e) => e.stopPropagation()}
                         >
-                            <MarkdownRenderer content={question.question_hi} />
+                            <MarkdownRenderer content={formatQuestionText(question.question_hi)} />
                         </div>
                         <div className="shrink-0 pt-0.5">
                             <button
