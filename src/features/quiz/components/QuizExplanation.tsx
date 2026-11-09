@@ -122,6 +122,14 @@ export function QuizExplanation({ explanation, zoomLevel, questionId, imageUrl }
                 </div>
             )}
 
+            {questionId && (
+                <AdminQuestionImage
+                    questionId={questionId}
+                    kind="explanation"
+                    initialImageUrl={imageUrl}
+                />
+            )}
+
             {/* 1. Correct Answer Analysis - Green Theme */}
             {explanation.analysis_correct && (
                 <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/30 rounded-xl p-4 flex gap-3 items-start">
