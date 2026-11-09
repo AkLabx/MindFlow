@@ -222,6 +222,17 @@ export const MistakeQuestionCard: React.FC<MistakeQuestionCardProps> = ({
         {questionText}
       </p>
 
+      {/* Question Statement Visual / Diagram */}
+      {question.id && (
+        <div className="mb-4">
+          <AdminQuestionImage
+            questionId={question.id}
+            kind="question"
+            initialImageUrl={question.question_image_url}
+          />
+        </div>
+      )}
+
       {/* Options Breakdown */}
       <div className="space-y-2 mb-4">
         {optionsList.map((opt, idx) => {
