@@ -42,6 +42,23 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, cla
                             {...props}
                         />
                     ),
+                    table: ({ node, ...props }) => (
+                        <div className="my-3 overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700 bg-white/60 dark:bg-gray-900/40 shadow-sm">
+                            <table className="w-full text-left text-sm border-collapse min-w-[300px]" {...props} />
+                        </div>
+                    ),
+                    thead: ({ node, ...props }) => (
+                        <thead className="bg-indigo-50/70 dark:bg-indigo-950/40 border-b border-gray-200 dark:border-gray-700 select-none" {...props} />
+                    ),
+                    th: ({ node, ...props }) => (
+                        <th className="px-3.5 py-2.5 font-bold text-gray-800 dark:text-gray-200 text-xs tracking-wider uppercase" {...props} />
+                    ),
+                    td: ({ node, ...props }) => (
+                        <td className="px-3.5 py-2.5 border-b border-gray-100 dark:border-gray-800 text-gray-700 dark:text-gray-300 align-top text-xs sm:text-sm" {...props} />
+                    ),
+                    tr: ({ node, ...props }) => (
+                        <tr className="hover:bg-indigo-50/30 dark:hover:bg-indigo-950/20 transition-colors" {...props} />
+                    ),
                 }}
             >
                 {content}

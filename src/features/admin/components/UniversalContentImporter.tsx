@@ -30,6 +30,55 @@ interface UniversalContentImporterProps {
   onImportSuccess?: () => void;
 }
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const V1_ID_REGEX = /^[A-Z]{2,4}[0-9]+$/;
+
+function normalizeQuestionPayload(row: any) {
+  const subject = row.classification?.subject || row.subject || 'General';
+  const topic = row.classification?.topic || row.topic || null;
+  const subTopic = row.classification?.subTopic || row.subTopic || null;
+  const examName = row.sourceInfo?.examName || row.examName || null;
+  const examYear = row.sourceInfo?.examYear ? parseInt(row.sourceInfo.examYear) : (row.examYear ? parseInt(row.examYear) : null);
+  const examDateShift = row.sourceInfo?.examDateShift || row.examDateShift || null;
+  const difficulty = row.properties?.difficulty || row.difficulty || 'Medium';
+  const questionType = row.properties?.questionType || row.questionType || 'MCQ';
+
+  const payload: Record<string, any> = {
+    subject,
+    topic,
+    subTopic,
+    examName,
+    examYear,
+    examDateShift,
+    difficulty,
+    questionType,
+    question: row.question,
+    question_hi: row.question_hi || null,
+    options: row.options,
+    options_hi: row.options_hi || null,
+    correct: row.correct,
+    tags: row.tags || (subject ? [subject] : ['General']),
+    explanation: row.explanation || {},
+    status: row.status || 'APPROVED'
+  };
+
+  // Only pass id if it is a genuine UUID to avoid Postgres syntax error
+  if (row.id && typeof row.id === 'string' && UUID_REGEX.test(row.id)) {
+    payload.id = row.id;
+  }
+
+  // Handle v1_id: either explicitly supplied or coded into id
+  if (row.v1_id && typeof row.v1_id === 'string' && V1_ID_REGEX.test(row.v1_id)) {
+    payload.v1_id = row.v1_id;
+  } else if (row.id && typeof row.id === 'string' && V1_ID_REGEX.test(row.id)) {
+    payload.v1_id = row.id;
+  }
+  // If v1_id is omitted, Postgres sequence trigger assign_question_v1_id()
+  // auto-assigns the exact sequence number!
+
+  return payload;
+}
+
 export const UniversalContentImporter: React.FC<UniversalContentImporterProps> = ({
   initialType = 'questions',
   isOpen,
@@ -150,7 +199,11 @@ export const UniversalContentImporter: React.FC<UniversalContentImporterProps> =
           if (!row.options || !Array.isArray(row.options) || row.options.length < 2) {
             errors.push({ row: rowNum, error: 'Missing or invalid options array (minimum 2 options required)' });
           }
-          if (!row.correct) errors.push({ row: rowNum, error: 'Missing required field: correct' });
+          if (!row.correct) {
+            errors.push({ row: rowNum, error: 'Missing required field: correct' });
+          } else if (Array.isArray(row.options) && !row.options.includes(row.correct)) {
+            errors.push({ row: rowNum, error: `Correct answer "${row.correct}" must match one of the options.` });
+          }
         } else if (contentType === 'ows') {
           if (!row.word) errors.push({ row: rowNum, error: 'Missing required field: word' });
           if (!row.meaning_english) errors.push({ row: rowNum, error: 'Missing required field: meaning_english' });
@@ -167,7 +220,11 @@ export const UniversalContentImporter: React.FC<UniversalContentImporterProps> =
       setValidationErrors(errors);
 
       if (errors.length === 0) {
-        showToast({ title: 'Validation Passed', message: `All ${data.length} records are valid and ready to commit!`, variant: 'success' });
+        const autoSeqCount = contentType === 'questions'
+          ? data.filter(r => !r.v1_id && (!r.id || !V1_ID_REGEX.test(r.id))).length
+          : 0;
+        const note = autoSeqCount > 0 ? ` (${autoSeqCount} items will auto-receive next sequential v1_ids from database)` : '';
+        showToast({ title: 'Validation Passed', message: `All ${data.length} records are valid and ready to commit!${note}`, variant: 'success' });
       } else {
         showToast({ title: 'Validation Warning', message: `Found ${errors.length} validation errors in dataset.`, variant: 'error' });
       }
@@ -186,7 +243,8 @@ export const UniversalContentImporter: React.FC<UniversalContentImporterProps> =
 
     try {
       for (let i = 0; i < total; i += BATCH_SIZE) {
-        const chunk = parsedRows.slice(i, i + BATCH_SIZE);
+        const rawChunk = parsedRows.slice(i, i + BATCH_SIZE);
+        const chunk = contentType === 'questions' ? rawChunk.map(normalizeQuestionPayload) : rawChunk;
         const { error } = await supabase.from(contentType).insert(chunk);
         if (error) throw error;
         committed += chunk.length;

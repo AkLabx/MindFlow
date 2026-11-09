@@ -2,6 +2,7 @@ import React from 'react';
 import { Check, X, EyeOff } from 'lucide-react';
 import { cn } from '../../../utils/cn';
 import { MarkdownRenderer } from '../../../components/ui/MarkdownRenderer';
+import { formatOptionText } from '../utils/questionFormatter';
 
 /**
  * Props for the QuizOption component.
@@ -140,11 +141,11 @@ export const QuizOption: React.FC<QuizOptionProps> = ({
             {/* Option Content (English + Hindi) */}
             <div className="flex-1 min-w-0">
                 <div className={cn("leading-snug transition-colors text-[1em] font-poppins selectable-text", textClass)}>
-                    <MarkdownRenderer content={option} className="!text-current" />
+                    <MarkdownRenderer content={formatOptionText(option)} className="!text-current" />
                 </div>
-                {option_hi && (
+                {option_hi && option_hi.trim().toLowerCase() !== option.trim().toLowerCase() && (
                     <div className={cn("mt-1 font-hindi opacity-80 group-hover:opacity-100 transition-opacity text-[0.95em] selectable-text", isHidden && "line-through")}>
-                        <MarkdownRenderer content={option_hi} className="!text-current" />
+                        <MarkdownRenderer content={formatOptionText(option_hi)} className="!text-current" />
                     </div>
                 )}
             </div>

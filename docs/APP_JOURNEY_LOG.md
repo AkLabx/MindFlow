@@ -26,6 +26,35 @@ This document is the single source of truth for the evolution of the MindFlow ap
 
 ## 🚀 App Journey Changelog
 
+## [v1.0.338] - 10 November 2026, 01:15 AM IST
+
+### Executive Summary
+Engineered a unified, end-to-end table matching and question pipeline solution: remediated flattened/deformed matching-list questions across the database with clean GFM comparative tables, upgraded MarkdownRenderer and quiz UI components to render responsive dual-column comparative tables, equipped UniversalContentImporter with an intelligent schema adapter supporting auto-sequential v1_id generation via PostgreSQL sequences, and established comprehensive pipeline documentation alongside a reusable AI question enrichment prompt.
+
+### ✨ Features & UI/UX Upliftment
+- **Responsive Dual-Column Table Rendering (MarkdownRenderer.tsx)**:
+  - Built custom table, thead, th, td, and tr overrides for ReactMarkdown with horizontal scroll safety (overflow-x-auto min-w-[300px]), brand accent styling, and dark mode readability.
+- **Client-Side Question & Option Sanitizer (questionFormatter.ts)**:
+  - Implemented proactive sanitizer utility resolving historical OCR Roman numeral misinterpretations (List 11 -> List II, List 111 -> List III, (11) -> (II), D-l -> D-1).
+  - Added layout breaker to cleanly segment flattened multi-list questions on-the-fly.
+- **Option Deduplication & Solution Card Parity (QuizOption.tsx, QuestionSolutionCard.tsx)**:
+  - Prevented redundant display in QuizOption.tsx when English and Hindi options are identical (e.g. code pairs like I-3, II-1, III-2).
+  - Upgraded QuestionSolutionCard.tsx to render questions via MarkdownRenderer, ensuring table structures and line breaks never collapse during post-quiz review.
+
+### ⚡ Performance & Database Architecture
+- **Nondestructive Database Table Remediation**:
+  - Remediated flattened and OCR-mangled matching questions in public.questions (including POL1115, GEO1423, POL941, CHE382, PHY498, SGK754, SGK756, ECO1006, CUR294, HIS2123) into valid, bilingual GitHub Flavored Markdown tables without data loss.
+  - Documented migration in supabase/migrations/20261110010000_remediate_matching_questions.sql.
+- **Intelligent Admin Bulk Ingestion Adapter (UniversalContentImporter.tsx)**:
+  - Automated schema normalization for both flat database rows and nested Content Contribution Guidelines v2.0 JSON structures (classification.*, sourceInfo.*, properties.*).
+  - Strips non-UUID id numbers and safely omits empty/placeholder v1_id values, allowing Supabase's assign_question_v1_id() PostgreSQL sequence trigger to automatically and monotonically allocate v1_id sequence numbers without manual pre-calculation.
+
+### 🔒 Security, Prompts & Architecture Documentation
+- **Master Question Pipeline Architecture (docs/QUESTION_PIPELINE_ARCHITECTURE.md)**:
+  - Authored a comprehensive chronological guide detailing both Track A (Indigenous in-app pgmq pipeline) and Track B (External AI + Admin Importer), OCR sanitization, database sequence triggers, and validation invariants.
+- **Generalized AI Question Enrichment Prompt (docs/prompts/full_prompt_batch_1.md)**:
+  - Published a production-grade system prompt enforcing Content Contribution Guidelines v2.0, full 11-subject taxonomy, strict GFM table canonicalization for matching lists, and 5-part bilingual explanations.
+
 ## [v1.0.337] - 09 November 2026, 10:40 PM IST
 
 ### Executive Summary
