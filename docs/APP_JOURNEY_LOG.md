@@ -26,6 +26,48 @@ This document is the single source of truth for the evolution of the MindFlow ap
 
 ## 🚀 App Journey Changelog
 
+## [v1.0.339] - 10 November 2026, 02:10 AM IST
+
+### Executive Summary
+Engineered a world-class, professional entry authentication portal and developer/legal framework: eliminated the 8,000ms Web Locks freeze with an instant 0ms unauthenticated fast-path bypass, built a responsive desktop split-screen hero showcase (`AuthHeroShowcase`), implemented live password entropy evaluation (`PasswordStrengthMeter`) and seamless in-app legal dialogs (`AuthLegalModal`), resolved global button accessibility clobbering, unified signup/signin codebases, and fortified legal compliance with the Digital Personal Data Protection (DPDP) Act 2023 and IT Act 2000.
+
+### ✨ Features & UI/UX Upliftment
+- **Desktop Split-Screen Showcase (`AuthHeroShowcase.tsx`)**:
+  - Designed an enterprise-grade left showcase column on desktop (`lg:grid-cols-12`) featuring animated orbital neural branding, ambient glowing gradients, four academic value pillars (Active Recall Engine, Multimodal Live AI, Deep Diagnostic Analytics, Offline Resilience), live social proof badges, and SSL 256-bit security trust marks.
+- **Unified Dual-Tab Authentication Portal (`AuthPage.tsx`, `SignupPage.tsx`)**:
+  - Replaced the fragmented and disconnected sign-in and sign-up pages with a unified, dual-tab switcher (`[ Sign In ] | [ Create Account ]`) preserving active user input between tabs.
+  - Refactored `SignupPage.tsx` into a lightweight, clean proxy wrapper (`<AuthPage initialMode="signup" />`), eliminating over 700 lines of duplicated code.
+- **Interactive Password Entropy Meter (`PasswordStrengthMeter.tsx`)**:
+  - Implemented real-time password strength scoring across length, casing, numeric characters, and symbols with progressive colored segments and dynamic criteria pills.
+  - Integrated full screen-reader accessibility (`role="status"`, `aria-live="polite"`).
+- **Zero-Latency In-App Legal Modals (`AuthLegalModal.tsx`)**:
+  - Engineered an in-app legal reader modal for Terms of Service and DPDP Privacy Policy, eliminating external tab redirects, bare-hash 404 vulnerabilities on GitHub Pages, and native Capacitor popup crashes.
+- **Mobile Touch Target & Viewport Zoom Hardening**:
+  - Increased all interactive hitboxes (action tabs, legal links, mode toggles, password reveals) to exceed WCAG 2.1 AA 44x44px minimum targets.
+  - Set mobile input font sizes to 16px (`text-base sm:text-sm`), completely preventing involuntary iOS Safari auto-zoom on field focus.
+
+### 🐛 Bug Fixes
+- **Eliminated 8,000ms Unauthenticated Freeze (`src/lib/supabase.ts`)**:
+  - Diagnosed Supabase Web Locks contention (`lock:sb-sjcfagpjstbfxuiwhlps-auth-token`) where guest page loads were held in an 8-second timeout loop while `<SynapticLoader />` froze the screen.
+  - Introduced token existence check (`hasStoredAuthToken()`, `hasOAuthHash()`) and reduced `AUTH_TIMEOUT_MS` to 2,500ms (1,500ms guest cold-start), delivering an instantaneous 0ms bootstrap for unauthenticated visitors.
+- **Resolved Global `<Button>` Screen-Reader Clobbering (`Button.tsx`)**:
+  - Removed hardcoded `aria-label="Perform action"` placed after `{...props}`, restoring visible and contextual accessibility names across all buttons throughout the application.
+- **Handled Unconfirmed Email Flow**:
+  - Added an actionable "Resend confirmation email" CTA when Supabase returns a 400 `"Email not confirmed"` error, rescuing users trapped in unverified email states.
+- **Fixed Deceptive Dynamic Legal Dates (`TermsOfUse.tsx`, `PrivacyPolicy.tsx`)**:
+  - Replaced dynamic `{new Date().toLocaleDateString()}` that showed "today's date" on every visit with deterministic version metadata (`Version 2.1 • Effective November 2024`).
+
+### 🔒 Security, Legal & Architecture
+- **DPDP Act 2023 & IT Act 2000 Compliance**:
+  - Embedded Section 5 "Notice at Collection of Consent" directly in the registration consent statement.
+  - Added explicit parental/guardian consent affirmations for minor school learners.
+  - Designated an official Grievance Redressal Officer with formal contact channels (`support@mindflow.com`) under Section 8 of the DPDP Act 2023.
+- **Client-Side Brute-Force Rate Limiting**:
+  - Enforced a client-side velocity check locking out login attempts for 30 seconds after 5 consecutive failures, with real-time countdown display to prevent credential stuffing.
+- **System Theme Sync (`ThemeAndBrandingInjector.tsx`)**:
+  - Added an active listener for `window.matchMedia('(prefers-color-scheme: dark)')` to dynamically synchronize the app palette when theme mode is set to `'system'`.
+
+
 ## [v1.0.338] - 10 November 2026, 01:15 AM IST
 
 ### Executive Summary

@@ -17,19 +17,46 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
 // preventing the mutex from locking the entire app runtime.
 // Furthermore, we intercept 'AbortError' from broken locks and trigger our RecoveryManager.
 
-const AUTH_TIMEOUT_MS = 8000; // 8 seconds max for any auth operation
+const AUTH_TIMEOUT_MS = 2500; // 2.5 seconds max for any auth operation (fast-fail on Web Locks contention)
+
+export const hasStoredAuthToken = (): boolean => {
+  if (typeof window === 'undefined' || !window.localStorage) return false;
+  try {
+    for (let i = 0; i < window.localStorage.length; i++) {
+      const key = window.localStorage.key(i);
+      if (key && key.startsWith('sb-') && key.endsWith('-auth-token')) {
+        const val = window.localStorage.getItem(key);
+        if (val && val !== 'null' && val !== 'undefined') return true;
+      }
+    }
+  } catch {
+    return false;
+  }
+  return false;
+};
+
+export const hasOAuthHash = (): boolean => {
+  if (typeof window === 'undefined') return false;
+  const hash = window.location.hash || '';
+  return hash.includes('access_token=') || hash.includes('refresh_token=');
+};
 
 const withAuthTimeout = async <T>(
     operationName: string,
     operation: () => Promise<T>,
     retryCount: number = 0
 ): Promise<T> => {
+    // Determine timeout: guest cold-start without token gets a swift 1500ms timeout
+    const effectiveTimeout = (!hasStoredAuthToken() && !hasOAuthHash() && operationName === 'getSession')
+      ? 1500
+      : AUTH_TIMEOUT_MS;
+
     try {
         const result = await new Promise<T>((resolve, reject) => {
             const timeoutId = setTimeout(() => {
-                console.error(`[AuthStabilization] ${operationName} exceeded ${AUTH_TIMEOUT_MS}ms timeout. Forcing rejection to unblock mutex.`);
+                console.error(`[AuthStabilization] ${operationName} exceeded ${effectiveTimeout}ms timeout. Forcing rejection to unblock mutex.`);
                 reject(new Error(`AuthTimeout: ${operationName} hung permanently.`));
-            }, AUTH_TIMEOUT_MS);
+            }, effectiveTimeout);
 
             operation()
                 .then((res) => {
