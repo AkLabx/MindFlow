@@ -11,6 +11,7 @@ import { db } from "@/lib/db";
 import { useAuth } from "@/features/auth";
 import { getUserDisplayName } from "@/utils/user";
 import { CANONICAL_EXAMS, matchesCanonicalExam } from '@/features/dashboard';
+import { triggerHaptic } from '@/lib/haptics';
 
 interface DashboardGreetingProps {
   user: User | null;
@@ -107,10 +108,11 @@ export const DashboardGreeting: React.FC<DashboardGreetingProps> = ({
         <div className="grid grid-cols-4 gap-1.5 sm:gap-2.5">
           {/* Today's Plan */}
           <button
-            onClick={() =>
-              navigate(ROUTES.TODAYS_PLAN || "/todays-plan")
-            }
-            className="group relative flex flex-col items-center justify-center p-2 sm:p-3 text-center rounded-xl bg-white dark:bg-slate-900 border border-indigo-200/80 dark:border-indigo-800/60 hover:border-indigo-400 dark:hover:border-indigo-600 shadow-xs hover:shadow-sm transition-all w-full cursor-pointer active:scale-95 overflow-hidden"
+            onClick={() => {
+              triggerHaptic('light');
+              navigate(ROUTES.TODAYS_PLAN || "/todays-plan");
+            }}
+            className="group relative flex flex-col items-center justify-center p-2 sm:p-3 text-center rounded-xl bg-white dark:bg-slate-900 border border-indigo-200/80 dark:border-indigo-800/60 hover:border-indigo-400 dark:hover:border-indigo-600 shadow-xs hover:shadow-sm transition-all w-full cursor-pointer active:scale-95 active:brightness-95 select-none touch-manipulation overflow-hidden"
           >
             <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/10 via-violet-500/5 to-transparent pointer-events-none" />
             <div className="relative z-10 w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border border-indigo-200/70 dark:border-indigo-800/50 bg-white dark:bg-slate-800 shadow-xs group-hover:scale-105 transition-transform mb-1.5">
@@ -126,10 +128,11 @@ export const DashboardGreeting: React.FC<DashboardGreetingProps> = ({
 
           {/* Bookmarks */}
           <button
-            onClick={() =>
-              navigate(ROUTES.QUIZ.BOOKMARKS)
-            }
-            className="group relative flex flex-col items-center justify-center p-2 sm:p-3 text-center rounded-xl bg-white dark:bg-slate-900 border border-amber-200/80 dark:border-amber-800/60 hover:border-amber-400 dark:hover:border-amber-600 shadow-xs hover:shadow-sm transition-all w-full cursor-pointer active:scale-95 overflow-hidden"
+            onClick={() => {
+              triggerHaptic('light');
+              navigate(ROUTES.QUIZ.BOOKMARKS);
+            }}
+            className="group relative flex flex-col items-center justify-center p-2 sm:p-3 text-center rounded-xl bg-white dark:bg-slate-900 border border-amber-200/80 dark:border-amber-800/60 hover:border-amber-400 dark:hover:border-amber-600 shadow-xs hover:shadow-sm transition-all w-full cursor-pointer active:scale-95 active:brightness-95 select-none touch-manipulation overflow-hidden"
           >
             <div className="absolute inset-0 bg-gradient-to-br from-amber-500/10 via-yellow-500/5 to-transparent pointer-events-none" />
             <div className="relative z-10 w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border border-amber-200/70 dark:border-amber-800/50 bg-white dark:bg-slate-800 shadow-xs group-hover:scale-105 transition-transform mb-1.5">
@@ -145,9 +148,14 @@ export const DashboardGreeting: React.FC<DashboardGreetingProps> = ({
 
           {/* Resume Quiz */}
           <button
-            onClick={() => latestQuiz && onResumeQuiz(latestQuiz)}
+            onClick={() => {
+              if (latestQuiz) {
+                triggerHaptic('medium');
+                onResumeQuiz(latestQuiz);
+              }
+            }}
             disabled={!latestQuiz}
-            className={`group relative flex flex-col items-center justify-center p-2 sm:p-3 rounded-xl transition-all text-center w-full active:scale-95 overflow-hidden ${
+            className={`group relative flex flex-col items-center justify-center p-2 sm:p-3 rounded-xl transition-all text-center w-full active:scale-95 active:brightness-95 select-none touch-manipulation overflow-hidden ${
               latestQuiz
                 ? "bg-white dark:bg-slate-900 border border-violet-200/80 dark:border-violet-800/60 hover:border-violet-400 dark:hover:border-violet-600 cursor-pointer shadow-xs hover:shadow-sm"
                 : "bg-slate-50/80 dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-700/50 opacity-50 cursor-not-allowed"
@@ -184,8 +192,11 @@ export const DashboardGreeting: React.FC<DashboardGreetingProps> = ({
 
           {/* Quiz History */}
           <button
-            onClick={() => navigate(`${ROUTES.QUIZ.LIBRARY}?tab=attempted`)}
-            className="group relative flex flex-col items-center justify-center p-2 sm:p-3 text-center rounded-xl bg-white dark:bg-slate-900 border border-emerald-200/80 dark:border-emerald-800/60 hover:border-emerald-400 dark:hover:border-emerald-600 shadow-xs hover:shadow-sm transition-all w-full cursor-pointer active:scale-95 overflow-hidden"
+            onClick={() => {
+              triggerHaptic('light');
+              navigate(`${ROUTES.QUIZ.LIBRARY}?tab=attempted`);
+            }}
+            className="group relative flex flex-col items-center justify-center p-2 sm:p-3 text-center rounded-xl bg-white dark:bg-slate-900 border border-emerald-200/80 dark:border-emerald-800/60 hover:border-emerald-400 dark:hover:border-emerald-600 shadow-xs hover:shadow-sm transition-all w-full cursor-pointer active:scale-95 active:brightness-95 select-none touch-manipulation overflow-hidden"
           >
             <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 via-teal-500/5 to-transparent pointer-events-none" />
             <div className="relative z-10 w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border border-emerald-200/70 dark:border-emerald-800/50 bg-white dark:bg-slate-800 shadow-xs group-hover:scale-105 transition-transform mb-1.5">

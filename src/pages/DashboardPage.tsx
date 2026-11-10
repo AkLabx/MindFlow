@@ -16,6 +16,7 @@ import { useExamContextStore } from "@/stores/useExamContextStore";
 import { TopicVulnerability } from "@/features/ai/hooks/useVulnerabilityEngine";
 
 import { AIPrescriptionCard } from "@/features/ai/components/AIPrescriptionCard";
+import { triggerHaptic } from "@/lib/haptics";
 import {
   DashboardGreeting,
   SubjectStrip,
@@ -141,6 +142,7 @@ export const DashboardPage: React.FC<DashboardProps> = ({ onBackToIntro }) => {
   const activeLatestQuiz = latestQuiz !== undefined ? latestQuiz : localLatestQuiz;
 
   const handleResumeQuiz = (quiz: SavedQuiz) => {
+    triggerHaptic('light');
     telemetry.emit('resume_quiz', {
       quizId: quiz.id,
       progressPct: quiz.state?.activeQuestions?.length
@@ -189,6 +191,7 @@ export const DashboardPage: React.FC<DashboardProps> = ({ onBackToIntro }) => {
   };
 
   const handleSelectExam = (exam: CanonicalExam) => {
+    triggerHaptic('light');
     navigate(`/quiz/config?exam=${exam.id}`, {
       state: {
         returnTo: "/dashboard",
@@ -212,6 +215,7 @@ export const DashboardPage: React.FC<DashboardProps> = ({ onBackToIntro }) => {
 
   // Exam Card Quick Drill -> Open Confirmation Downsheet
   const handleExamQuickDrill = (exam: CanonicalExam) => {
+    triggerHaptic('light');
     setDrillSheetInfo({
       type: 'exam_quick_drill',
       title: `${exam.displayName} Quick Drill`,
@@ -233,6 +237,7 @@ export const DashboardPage: React.FC<DashboardProps> = ({ onBackToIntro }) => {
 
   // AI Prescription Drill -> Open Confirmation Downsheet
   const handleAIPrescriptionDrill = (vulnerability: TopicVulnerability) => {
+    triggerHaptic('light');
     const isDiag = vulnerability.isDiagnostic;
     setDrillSheetInfo({
       type: 'targeted_drill',
@@ -265,6 +270,7 @@ export const DashboardPage: React.FC<DashboardProps> = ({ onBackToIntro }) => {
 
   // Daily PYQ Drill -> Open Confirmation Downsheet
   const handleDailyPyqDrill = () => {
+    triggerHaptic('light');
     setDrillSheetInfo({
       type: 'daily_pyq',
       title: 'Daily PYQ Drill',
@@ -287,6 +293,7 @@ export const DashboardPage: React.FC<DashboardProps> = ({ onBackToIntro }) => {
 
   // Important for SSC Card -> Open Confirmation Downsheet
   const handleImportantTopicClick = (item: ImportantForSscConfig, computedFilter: any) => {
+    triggerHaptic('light');
     setDrillSheetInfo({
       type: 'important_topic',
       title: item.title,
@@ -307,14 +314,17 @@ export const DashboardPage: React.FC<DashboardProps> = ({ onBackToIntro }) => {
   };
 
   const handleSubjectClick = (subjectDbKey: string) => {
+    triggerHaptic('light');
     navigate(ROUTES.SUBJECT.view(subjectDbKey));
   };
 
   const handleViewAllSubjects = () => {
+    triggerHaptic('light');
     navigate("/dashboard/subjects");
   };
 
   const handleQuickAction = (action: string) => {
+    triggerHaptic('light');
     switch(action) {
       case 'mock':
         handleDailyPyqDrill();
@@ -334,7 +344,7 @@ export const DashboardPage: React.FC<DashboardProps> = ({ onBackToIntro }) => {
   };
 
   return (
-    <div className="min-h-full -mt-4 pt-2 w-full overflow-x-hidden bg-gradient-to-b from-[#EEF2FF] via-[#F5F7FF] to-[#F8FAFC] dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))]">
+    <div className="min-h-full pt-1 sm:pt-3 w-full overflow-x-hidden overscroll-contain select-none bg-gradient-to-b from-[#EEF2FF] via-[#F5F7FF] to-[#F8FAFC] dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))]">
       <div className="absolute top-0 inset-x-0 h-[220px] pointer-events-none z-0"
            style={{ background: 'radial-gradient(120% 180px at 50% 0%, rgba(99,102,241,0.14) 0%, transparent 100%)' }}
       ></div>

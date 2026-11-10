@@ -15,6 +15,7 @@ import { useSocialStore } from '@/features/community';
 import { ClaymorphismSwitch } from '../features/quiz/components/ui/ClaymorphismSwitch';
 import { NotificationBell } from '../features/notifications/components/NotificationBell';
 import { SidePanel } from './SidePanel';
+import { triggerHaptic } from '@/lib/haptics';
 
 
 /**
@@ -215,7 +216,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
         <div className="absolute inset-0 bg-gradient-to-br from-white/60 to-white/10 dark:from-white/10 dark:to-transparent z-0"></div>
 
         {/* Interactive Inner Shadow / Border */}
-        <div className="absolute inset-0 border-b border-white/60 dark:border-white/10 shadow-[0_8px_32px_0_rgba(31,38,135,0.07)] dark:shadow-[0_8px_32px_0_rgba(0,0,0,0.3)] z-10 transition-all duration-300 border-b-[4px] border-b-indigo-200/50 dark:border-b-indigo-700/50"></div>
+        <div className="absolute inset-0 border-b border-slate-200/80 dark:border-slate-800/80 shadow-xs z-10 transition-all duration-300"></div>
 
         {/* Centered Subtle Glow */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full rounded-full blur-[60px] opacity-20 transition-opacity duration-500 z-0 bg-indigo-500"></div>
@@ -302,7 +303,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
         <div className="absolute inset-0 bg-gradient-to-tr from-white/60 to-white/10 dark:from-white/10 dark:to-transparent z-0"></div>
 
         {/* Interactive Inner Shadow / Border */}
-        <div className="absolute inset-0 border-t border-white/60 dark:border-white/10 shadow-[0_-8px_32px_0_rgba(31,38,135,0.07)] dark:shadow-[0_-8px_32px_0_rgba(0,0,0,0.3)] z-10 transition-all duration-300 border-t-[4px] border-t-indigo-200/50 dark:border-t-indigo-700/50"></div>
+        <div className="absolute inset-0 border-t border-slate-200/80 dark:border-slate-800/80 shadow-lg z-10 transition-all duration-300"></div>
 
         {/* Centered Subtle Glow */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full rounded-full blur-[60px] opacity-20 transition-opacity duration-500 z-0 bg-indigo-500"></div>
@@ -410,14 +411,17 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
               
               <button 
                 ref={aiRef}
-                onClick={() => onTabChange('ai')}
-                role="tab" aria-label="AI Assistant" className="relative -top-5 group z-30"
+                onClick={() => {
+                  triggerHaptic('light');
+                  onTabChange('ai');
+                }}
+                role="tab" aria-label="AI Assistant" className="relative -top-5 group z-30 select-none active:scale-95 transition-transform"
               >
                 <div className={cn(
                   "relative w-14 h-14 rounded-full flex items-center justify-center shadow-lg transition-all duration-300 border-4 border-white dark:border-slate-900",
                   activeTab === 'ai'
                     ? "bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-indigo-500/50 translate-y-1"
-                    : "bg-gradient-to-br from-indigo-600 to-indigo-700 text-white hover:from-indigo-500 hover:to-indigo-600 hover:scale-105 shadow-indigo-600/30"
+                    : "bg-gradient-to-br from-indigo-600 to-indigo-700 text-white hover:from-indigo-500 hover:to-indigo-600 shadow-indigo-600/30"
                 )}>
                   <div className="absolute inset-0 rounded-full border border-white/20"></div>
                   {activeTab === 'ai' && (
@@ -461,41 +465,46 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
 };
 
 // Helper Subcomponent for Tab Items
-const NavTab = ({ id, label, icon, isActive, onClick, buttonRef, hideTextOnMobile }: { id: string, label: string, icon: React.ReactNode, isActive: boolean, onClick: () => void, buttonRef?: React.RefObject<HTMLButtonElement | null>, hideTextOnMobile?: boolean }) => (
-  <motion.button
-    ref={buttonRef}
-    onClick={onClick}
-    whileHover={{ scale: 1.10 }}
-    whileTap={{ scale: 1.05 }}
-    transition={{ type: "spring", stiffness: 300, damping: 25 }}
-    role="tab"
-    aria-selected={isActive}
-    className={cn(
-      "relative flex flex-col items-center justify-center min-w-[4.5rem] px-2 py-1 w-auto transition-all group outline-none",
-      "style-[transition:all_0.4s_var(--easing-bounce)]",
-      isActive ? "" : "text-gray-400 hover:text-gray-600 dark:text-gray-300 dark:hover:text-slate-300"
-    )}
-  >
-    <div className={cn(
-      "relative z-10 p-1.5 rounded-xl transition-all duration-400",
-      isActive
-         ? ""
-         : "bg-transparent group-hover:bg-gray-100/50 dark:group-hover:bg-gray-800/50"
-    )}>
-      {React.isValidElement(icon) ? React.cloneElement(icon as React.ReactElement<{ className?: string }>, {
-         className: cn(
-           (icon as React.ReactElement<{ className?: string }>).props.className,
-           "transition-all duration-400",
-           isActive ? "text-[var(--gold-2)] dark:text-[var(--gold-3)] scale-110" : ""
-         )
-      }) : icon}
-    </div>
-    <span className={cn(
-      "text-[10px] font-bold mt-1 transition-all z-10",
-      hideTextOnMobile ? "hidden md:block" : "",
-      isActive
-         ? "text-[var(--gold-2)] dark:text-[var(--gold-3)] font-black tracking-wide"
-         : "font-semibold"
-    )}>{label}</span>
-  </motion.button>
-);
+const NavTab = ({ id, label, icon, isActive, onClick, buttonRef, hideTextOnMobile }: { id: string, label: string, icon: React.ReactNode, isActive: boolean, onClick: () => void, buttonRef?: React.RefObject<HTMLButtonElement | null>, hideTextOnMobile?: boolean }) => {
+  const handleClick = () => {
+    triggerHaptic('light');
+    onClick();
+  };
+
+  return (
+    <motion.button
+      ref={buttonRef}
+      onClick={handleClick}
+      whileTap={{ scale: 0.95 }}
+      transition={{ type: "spring", stiffness: 400, damping: 25 }}
+      role="tab"
+      aria-selected={isActive}
+      className={cn(
+        "relative flex flex-col items-center justify-center min-w-[4.5rem] px-2 py-1 w-auto transition-all group outline-none select-none",
+        isActive ? "" : "text-gray-400 hover:text-gray-600 dark:text-gray-300 dark:hover:text-slate-300"
+      )}
+    >
+      <div className={cn(
+        "relative z-10 p-1.5 rounded-xl transition-all duration-300",
+        isActive
+           ? ""
+           : "bg-transparent group-hover:bg-gray-100/50 dark:group-hover:bg-gray-800/50"
+      )}>
+        {React.isValidElement(icon) ? React.cloneElement(icon as React.ReactElement<{ className?: string }>, {
+           className: cn(
+             (icon as React.ReactElement<{ className?: string }>).props.className,
+             "transition-all duration-300",
+             isActive ? "text-[var(--gold-2)] dark:text-[var(--gold-3)] scale-105" : ""
+           )
+        }) : icon}
+      </div>
+      <span className={cn(
+        "text-[10px] font-bold mt-0.5 transition-all z-10",
+        hideTextOnMobile ? "hidden md:block" : "",
+        isActive
+           ? "text-[var(--gold-2)] dark:text-[var(--gold-3)] font-black tracking-wide"
+           : "font-semibold"
+      )}>{label}</span>
+    </motion.button>
+  );
+};
