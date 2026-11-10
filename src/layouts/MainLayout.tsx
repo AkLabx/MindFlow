@@ -73,6 +73,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
     '/todays-plan',
     '/daily-mission',
     '/mcqs/uploadcustomquiz',
+    '/quiz/config',
     '/vocab/synonyms/config',
     '/vocab/idioms/config',
     '/vocab/ows/config',

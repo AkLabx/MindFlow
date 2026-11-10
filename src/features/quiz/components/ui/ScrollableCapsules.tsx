@@ -1,6 +1,7 @@
 import React from 'react';
 import { Info } from 'lucide-react';
 import { cn } from '../../../../utils/cn';
+import { triggerHaptic } from '@/lib/haptics';
 
 export interface ScrollableCapsulesProps {
   label?: string;
@@ -98,21 +99,26 @@ export const ScrollableCapsules = React.memo(function ScrollableCapsules({
                 <button
                     key={option}
                     type="button"
-                    onClick={() => !isDisabled && onOptionToggle(option)}
+                    onClick={() => {
+                      if (!isDisabled) {
+                        triggerHaptic('light');
+                        onOptionToggle(option);
+                      }
+                    }}
                     disabled={isDisabled}
                     aria-pressed={isSelected}
                     className={cn(
-                        "flex-shrink-0 whitespace-nowrap py-2 px-4 rounded-full text-sm font-semibold transition-all duration-200 border flex items-center gap-2 outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900",
+                        "flex-shrink-0 whitespace-nowrap min-h-[40px] py-2 px-4 rounded-full text-sm font-semibold transition-all duration-150 border flex items-center gap-2 outline-none select-none touch-manipulation focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900",
                         maxRows === 1 && "snap-center",
                         isSelected
-                            ? "bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-200 dark:shadow-none scale-[1.02]"
-                            : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-gray-300 dark:hover:border-gray-600",
-                        isDisabled && "opacity-40 cursor-not-allowed hover:bg-white dark:hover:bg-gray-800 hover:border-gray-200 dark:hover:border-gray-700"
+                            ? "bg-indigo-600 text-white border-indigo-600 shadow-sm shadow-indigo-500/20 active:scale-95"
+                            : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-gray-300 dark:hover:border-gray-600 active:scale-95 active:bg-gray-100 dark:active:bg-gray-700",
+                        isDisabled && "opacity-40 cursor-not-allowed active:scale-100 hover:bg-white dark:hover:bg-gray-800 hover:border-gray-200 dark:hover:border-gray-700"
                     )}
                 >
                     {option}
                     <span className={cn(
-                        "text-[10px] px-1.5 py-0.5 rounded-full transition-colors font-bold",
+                        "text-[10px] px-1.5 py-0.5 rounded-full transition-colors font-bold tabular-nums",
                         isSelected
                           ? "bg-indigo-500/30 text-white"
                           : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300"

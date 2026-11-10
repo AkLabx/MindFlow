@@ -1,6 +1,7 @@
 import React from 'react';
 import { Info } from 'lucide-react';
 import { cn } from '../../../../utils/cn';
+import { triggerHaptic } from '@/lib/haptics';
 
 /**
  * A segmented control component (toggle button group).
@@ -54,21 +55,27 @@ export const SegmentedControl = React.memo(function SegmentedControl({
 
             return (
             <button 
-                key={option} 
-                onClick={() => !isDisabled && onOptionToggle(option)}
+                key={option}
+                type="button"
+                onClick={() => {
+                  if (!isDisabled) {
+                    triggerHaptic('light');
+                    onOptionToggle(option);
+                  }
+                }}
                 disabled={isDisabled}
                 aria-pressed={isSelected}
                 className={cn(
-                    "flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-1.5",
+                    "flex-1 min-h-[40px] py-2 px-3 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-1.5 select-none touch-manipulation",
                     isSelected 
-                        ? "bg-white dark:bg-gray-700 text-indigo-700 dark:text-indigo-300 shadow-sm ring-1 ring-black/5"
-                        : "text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:text-gray-100 hover:bg-gray-200 dark:bg-gray-700/50",
-                    isDisabled && "opacity-40 cursor-not-allowed hover:bg-transparent hover:text-gray-600 dark:text-gray-300"
+                        ? "bg-white dark:bg-gray-700 text-indigo-700 dark:text-indigo-300 shadow-sm ring-1 ring-black/5 active:scale-95"
+                        : "text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:text-gray-100 hover:bg-gray-200 dark:bg-gray-700/50 active:scale-95",
+                    isDisabled && "opacity-40 cursor-not-allowed active:scale-100 hover:bg-transparent hover:text-gray-600 dark:text-gray-300"
                 )}
             >
                 {option} 
                 <span className={cn(
-                    "text-[10px] px-1.5 py-0.5 rounded-full transition-colors font-bold",
+                    "text-[10px] px-1.5 py-0.5 rounded-full transition-colors font-bold tabular-nums",
                     isSelected
                       ? "bg-indigo-100 text-indigo-800 dark:bg-indigo-900/50 dark:text-indigo-200"
                       : "bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300"
