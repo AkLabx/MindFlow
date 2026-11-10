@@ -88,6 +88,7 @@ export const ChatInputBar: React.FC<ChatInputBarProps> = ({ onSend, onUpload, is
           You have blocked this user. Unblock to send a message.
         </div>
         <button
+          type="button"
           onClick={onUnblock}
           className="h-[52px] px-5 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-[14px] rounded-[28px] transition-colors whitespace-nowrap shadow-sm"
         >
@@ -123,16 +124,16 @@ export const ChatInputBar: React.FC<ChatInputBarProps> = ({ onSend, onUpload, is
         <input type="file" ref={imageInputRef} accept="image/*" className="hidden text-base" onChange={(e) => onUpload(e, 'image')} />
         <input type="file" ref={fileInputRef} accept=".pdf,.doc,.docx" className="hidden text-base" onChange={(e) => onUpload(e, 'file')} />
 
-        <div className="flex items-center gap-1.5 h-10 shrink-0 self-end mb-0.5">
+        <div className="flex items-center gap-0.5 min-h-[44px] shrink-0 self-end">
           {!hasText ? (
             <>
-              <button type="button" onClick={handleComingSoon} className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-slate-300 rounded-full transition-colors" aria-label="Toggle microphone">
+              <button type="button" onClick={handleComingSoon} className="min-w-[44px] min-h-[44px] flex items-center justify-center p-2 text-gray-400 hover:text-gray-600 dark:hover:text-slate-300 rounded-full transition-colors" aria-label="Toggle microphone">
                 <Mic size={22} strokeWidth={1.5} />
               </button>
-              <button type="button" onClick={() => imageInputRef.current?.click()} className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-slate-300 rounded-full transition-colors">
+              <button type="button" onClick={() => imageInputRef.current?.click()} className="min-w-[44px] min-h-[44px] flex items-center justify-center p-2 text-gray-400 hover:text-gray-600 dark:hover:text-slate-300 rounded-full transition-colors" aria-label="Attach image">
                 <ImageIcon size={22} strokeWidth={1.5} />
               </button>
-              <button type="button" onClick={handleComingSoon} className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-slate-300 rounded-full transition-colors" aria-label="Perform action">
+              <button type="button" onClick={handleComingSoon} className="min-w-[44px] min-h-[44px] flex items-center justify-center p-2 text-gray-400 hover:text-gray-600 dark:hover:text-slate-300 rounded-full transition-colors" aria-label="Choose sticker">
                 <Sticker size={22} strokeWidth={1.5} />
               </button>
             </>
@@ -140,7 +141,7 @@ export const ChatInputBar: React.FC<ChatInputBarProps> = ({ onSend, onUpload, is
             <button
               type="submit"
               disabled={isUploading}
-              className="px-4 h-full bg-blue-600 text-white font-semibold text-[15px] rounded-full hover:bg-blue-700 shadow-sm disabled:opacity-50 disabled:bg-gray-300 transition-all flex items-center justify-center mb-0.5 mt-0.5"
+              className="px-4 min-h-[44px] bg-blue-600 text-white font-semibold text-[15px] rounded-full hover:bg-blue-700 shadow-sm disabled:opacity-50 disabled:bg-gray-300 transition-all flex items-center justify-center"
             >
               Send
             </button>

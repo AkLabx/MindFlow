@@ -24,8 +24,10 @@ export const AppPreferencesPage: React.FC = () => {
             {/* Header */}
             <header className="flex items-center gap-4 mb-8 bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800">
                 <button
+                    type="button"
                     onClick={() => navigate('/profile')}
-                    className="p-2 rounded-xl bg-slate-50 hover:bg-slate-100 dark:bg-slate-700 dark:hover:bg-slate-600 transition-colors group"
+                    aria-label="Go back"
+                    className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl bg-slate-50 hover:bg-slate-100 dark:bg-slate-700 dark:hover:bg-slate-600 transition-colors group"
                 >
                     <ArrowLeft className="w-5 h-5 text-slate-600 dark:text-slate-300 group-hover:-translate-x-1 transition-transform" />
                 </button>

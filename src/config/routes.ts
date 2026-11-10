@@ -51,6 +51,7 @@ export const ROUTES = {
     MY_REPORTS: '/settings/my-reports',
     DELETE_ACCOUNT: '/settings/deleteaccount',
   },
+  PUBLIC_DELETION_REQUEST: '/request-account-deletion',
 
   NOTIFICATION: '/notification',
   MESSAGES: '/messages',

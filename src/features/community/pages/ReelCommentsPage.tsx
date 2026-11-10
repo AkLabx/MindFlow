@@ -115,7 +115,7 @@ export const ReelCommentsPage: React.FC = () => {
     <div className="flex flex-col w-full max-w-[100vw] md:max-w-2xl mx-auto pb-[200px] min-h-screen bg-white relative">
       {/* Header */}
       <div className="sticky top-0 z-50 bg-white/80 backdrop-blur-xl border-b border-gray-100 p-4 flex items-center gap-4 shadow-sm">
-        <button onClick={() => navigate(-1)} className="p-2 -ml-2 rounded-full hover:bg-gray-100 transition-colors">
+        <button type="button" onClick={() => navigate(-1)} aria-label="Go back" className="min-w-[44px] min-h-[44px] flex items-center justify-center -ml-2 rounded-full hover:bg-gray-100 transition-colors">
           <ArrowLeft size={24} className="text-gray-700" />
         </button>
         <h1 className="font-semibold text-lg text-gray-900">Comments</h1>
@@ -141,8 +141,10 @@ export const ReelCommentsPage: React.FC = () => {
 
         <div className="flex items-center gap-6 mt-2">
           <button
+            type="button"
             onClick={() => user && likeReelMutation.mutate(!!reel.is_liked_by_me)}
-            className="flex items-center gap-2 group"
+            aria-label="Like reel"
+            className="flex items-center gap-2 group min-h-[44px]"
           >
             <div className={cn("p-1.5 rounded-full transition-all duration-300", reel.is_liked_by_me ? "bg-red-50 text-red-500" : "bg-gray-50 text-gray-600 hover:bg-gray-100")}>
               <Heart size={20} className={cn(reel.is_liked_by_me && "fill-current")} />

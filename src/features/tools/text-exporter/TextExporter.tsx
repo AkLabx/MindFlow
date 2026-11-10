@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import MarkdownIt from 'markdown-it';
+import DOMPurify from 'dompurify';
 import rehypeRaw from 'rehype-raw';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Download, FileText, FileCode, File, Eye, Edit3, Settings } from 'lucide-react';
@@ -45,6 +46,14 @@ const TextExporter: React.FC = () => {
         const characters = text.length;
         const readingTime = Math.max(1, Math.ceil(words / 200)); // Assume 200 wpm
         return { words, characters, readingTime };
+    }, [text]);
+
+    const sanitizedMarkdown = useMemo(() => {
+        if (!text) return '';
+        return DOMPurify.sanitize(text, {
+            ADD_TAGS: ['math', 'semantics', 'mrow', 'annotation', 'mfrac', 'msup', 'msub', 'mi', 'mn', 'mo'],
+            ADD_ATTR: ['target', 'rel']
+        });
     }, [text]);
 
     const handleDownload = (format: 'txt' | 'md' | 'html') => {
@@ -170,7 +179,7 @@ const TextExporter: React.FC = () => {
                                     srcDoc={text}
                                     title="HTML Preview"
                                     className="flex-1 w-full h-full min-h-full border-0 bg-white rounded-xl"
-                                    sandbox="allow-scripts allow-same-origin"
+                                    sandbox="allow-scripts"
                                 />
                             ) : (
                                 <div className="prose prose-rose dark:prose-invert max-w-none">
@@ -198,7 +207,7 @@ const TextExporter: React.FC = () => {
                                             }
                                         }}
                                     >
-                                        {text || '*Nothing to preview.*'}
+                                        {sanitizedMarkdown || '*Nothing to preview.*'}
                                     </ReactMarkdown>
                                 </div>
                             )}

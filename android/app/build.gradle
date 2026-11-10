@@ -1,12 +1,17 @@
 apply plugin: 'com.android.application'
 
+def ksFile = file("mindflow-release-key.jks")
+def hasReleaseSigning = ksFile.exists() && System.getenv("KEYSTORE_PASSWORD") != null
+
 android {
     signingConfigs {
         release {
-            storeFile file("mindflow-release-key.jks")
-            storePassword System.getenv("KEYSTORE_PASSWORD")
-            keyAlias System.getenv("KEY_ALIAS")
-            keyPassword System.getenv("KEY_PASSWORD")
+            if (hasReleaseSigning) {
+                storeFile ksFile
+                storePassword System.getenv("KEYSTORE_PASSWORD")
+                keyAlias System.getenv("KEY_ALIAS")
+                keyPassword System.getenv("KEY_PASSWORD")
+            }
         }
     }
 
@@ -27,9 +32,11 @@ android {
     }
     buildTypes {
         release {
-            signingConfig signingConfigs.release
-            minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            if (hasReleaseSigning) {
+                signingConfig signingConfigs.release
+            }
+            minifyEnabled true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
 }

@@ -37,7 +37,7 @@ export const AuthLegalModal: React.FC<AuthLegalModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-950/70 backdrop-blur-sm animate-fade-in"
+      className="fixed inset-0 z-[10060] flex items-center justify-center p-4 sm:p-6 bg-slate-950/70 backdrop-blur-sm animate-fade-in"
       role="dialog"
       aria-modal="true"
       aria-labelledby="legal-modal-title"

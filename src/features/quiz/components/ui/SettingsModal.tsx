@@ -45,8 +45,9 @@ export function SettingsModal({ isOpen, onClose }: { isOpen: boolean, onClose: (
         <div className="p-5 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center bg-gray-50 dark:bg-gray-900/50 dark:bg-slate-900">
           <h2 className="text-lg font-bold text-gray-900 dark:text-white">Settings</h2>
           <button 
+            type="button"
             onClick={onClose} 
-            className="p-2 rounded-full hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-slate-800 text-gray-500 dark:text-gray-400 transition-colors"
+            className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-slate-800 text-gray-500 dark:text-gray-400 transition-colors"
             aria-label="Close settings"
           >
             <X className="w-5 h-5" />

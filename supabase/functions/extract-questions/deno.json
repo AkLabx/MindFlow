@@ -1,0 +1,6 @@
+{
+  "imports": {
+    "npm:pdf-lib": "npm:pdf-lib@1.17.1",
+    "jsr:@std/encoding/base64": "jsr:@std/encoding@1.0.5/base64"
+  }
+}

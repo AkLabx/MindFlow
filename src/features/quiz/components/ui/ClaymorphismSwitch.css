@@ -9,6 +9,21 @@
     --layer3-light: #52bafe; --layer3-dark: #191b1f; /* Outer Background */
 }
 
+/* --- WCAG 2.1 AA 44x44px INTERACTIVE HIT TARGET WRAPPER --- */
+.clay-switch-hit {
+    min-width: 44px;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+    flex-shrink: 0;
+    -webkit-tap-highlight-color: transparent;
+}
+
 /* --- THE SWITCH CONTAINER --- */
 .clay-switch {
     z-index: 1;
@@ -17,7 +32,7 @@
     font-size: 50px; /* Can be overridden by class/style */
 
     width: 1em;
-    height: 0.45em; /* 90/200 */
+    height: 0.45em; /* 90/200 visual track inside 44px hit wrapper */
     border-radius: 0.45em;
     position: relative;
     overflow: hidden;

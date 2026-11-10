@@ -7,6 +7,7 @@ import { SavedQuiz } from '@/features/quiz/types';
 import { useNotification } from "@/stores/useNotificationStore";
 import { useQuizContext } from '@/features/quiz/context/QuizContext';
 import { db } from '@/lib/db';
+import { parseCreatedAtMs } from '@/lib/syncService';
 import { isNativeApp } from "@/utils/platform";
 import { ROUTES } from "@/config/routes";
 import { telemetry } from '@/lib/telemetry/index';
@@ -84,6 +85,7 @@ export const DashboardPage: React.FC<DashboardProps> = ({ onBackToIntro }) => {
 
   useEffect(() => {
     let isMounted = true;
+    db.enforceStorageQuota().catch(() => {});
     db.getAllSavedQuizzes().then(quizzes => {
       if (!isMounted) return;
       if (quizzes && quizzes.length > 0) {
@@ -122,7 +124,7 @@ export const DashboardPage: React.FC<DashboardProps> = ({ onBackToIntro }) => {
       const remoteQuiz: SavedQuiz = {
         id: rq.id,
         name: rq.name,
-        createdAt: new Date(rq.created_at).getTime(),
+        createdAt: parseCreatedAtMs(rq.created_at),
         filters: rq.filters,
         mode: rq.mode as any,
         questions: bridgeData

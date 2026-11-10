@@ -3,6 +3,7 @@ import { QuizRuntimeState } from '../features/quiz/types/store';
 
 import { supabase } from './supabase';
 import { syncService } from './syncService';
+import { useSyncStore } from '../features/quiz/stores/useSyncStore';
 
 export interface SynonymInteraction {
   wordId: string;
@@ -181,8 +182,105 @@ export const db = {
         });
     },
 
+    clearCustomBanks: async (): Promise<void> => {
+        const dbInstance = await openDB();
+        return new Promise((resolve, reject) => {
+            const transaction = dbInstance.transaction(CUSTOM_QUIZ_BANKS_STORE, 'readwrite');
+            const store = transaction.objectStore(CUSTOM_QUIZ_BANKS_STORE);
+            const request = store.clear();
+            request.onsuccess = () => resolve();
+            request.onerror = () => reject(request.error);
+        });
+    },
+
     /**
-     * Clears all user-related data (Quizzes, History, Bookmarks, Synonyms) from IndexedDB.
+     * Prunes stale in-flight active session snapshots older than maxAgeDays
+     * while preserving permanent saved_quizzes, quiz_history, bookmarks, and mistake records.
+     */
+    pruneStaleActiveSessions: async (maxAgeDays = 7): Promise<number> => {
+        const dbInstance = await openDB();
+        const cutoffMs = Date.now() - maxAgeDays * 24 * 60 * 60 * 1000;
+        return new Promise((resolve, reject) => {
+            const transaction = dbInstance.transaction(ACTIVE_SESSION_STORE, 'readwrite');
+            const store = transaction.objectStore(ACTIVE_SESSION_STORE);
+            const request = store.openCursor();
+            let pruned = 0;
+
+            request.onsuccess = (event) => {
+                const cursor = (event.target as IDBRequest<IDBCursorWithValue | null>).result;
+                if (cursor) {
+                    const val = cursor.value;
+                    const updatedMs = val?.updatedAt ? Date.parse(val.updatedAt) : NaN;
+                    if (Number.isFinite(updatedMs) && updatedMs < cutoffMs) {
+                        cursor.delete();
+                        pruned += 1;
+                    }
+                    cursor.continue();
+                }
+            };
+
+            transaction.oncomplete = () => resolve(pruned);
+            transaction.onerror = () => reject(transaction.error);
+        });
+    },
+
+    /**
+     * Proactive Storage Quota Eviction Engine (Constitution Section 7.3).
+     * If origin storage utilization exceeds 80%, evicts ephemeral audio/PDF caches first,
+     * followed by stale active session snapshots and refillable vocab metadata caches.
+     */
+    enforceStorageQuota: async (): Promise<{ checked: boolean; evicted: boolean; ratio?: number }> => {
+        if (typeof navigator === 'undefined' || !navigator.storage?.estimate) {
+            return { checked: false, evicted: false };
+        }
+        try {
+            const estimate = await navigator.storage.estimate();
+            const usage = estimate.usage || 0;
+            const quota = estimate.quota || 0;
+            if (!quota || quota <= 0) {
+                return { checked: true, evicted: false, ratio: 0 };
+            }
+
+            const ratio = usage / quota;
+            if (ratio <= 0.8) {
+                return { checked: true, evicted: false, ratio };
+            }
+
+            let evicted = false;
+
+            if (typeof caches !== 'undefined') {
+                const cacheNames = await caches.keys();
+                for (const name of cacheNames) {
+                    if (/voice|audio|pdf|export|media|temp/i.test(name) && !/workbox-precache/i.test(name)) {
+                        const deleted = await caches.delete(name);
+                        if (deleted) evicted = true;
+                    }
+                }
+            }
+
+            const prunedCount = await db.pruneStaleActiveSessions(7);
+            if (prunedCount > 0) evicted = true;
+
+            const postEstimate = await navigator.storage.estimate();
+            const postRatio = postEstimate.quota ? (postEstimate.usage || 0) / postEstimate.quota : 0;
+            if (postRatio > 0.8) {
+                await Promise.all([
+                    db.clearIdiomMetadataCache(),
+                    db.clearOwsMetadataCache(),
+                    db.clearSynonymMetadataCache(),
+                ]);
+                evicted = true;
+            }
+
+            return { checked: true, evicted, ratio };
+        } catch (err) {
+            console.warn('[StorageQuota] Failed to enforce storage quota:', err);
+            return { checked: false, evicted: false };
+        }
+    },
+
+    /**
+     * Clears all user-related data (Quizzes, Custom Banks, History, Bookmarks, Vocab, Chat) from IndexedDB.
      */
     clearAllUserData: async (): Promise<void> => {
         await Promise.all([
@@ -193,6 +291,7 @@ export const db = {
             db.clearActiveSessions(),
             db.clearHistory(),
             db.clearSavedQuizzes(),
+            db.clearCustomBanks(),
             db.clearChatData()
         ]);
     },
@@ -205,7 +304,7 @@ export const db = {
         return new Promise((resolve, reject) => {
             const transaction = dbInstance.transaction(ACTIVE_SESSION_STORE, 'readwrite');
             const store = transaction.objectStore(ACTIVE_SESSION_STORE);
-            const request = store.put({ sessionId, state, updatedAt: new Date().toISOString() });
+            const request = store.put({ id: sessionId, sessionId, state, updatedAt: new Date().toISOString() });
 
             request.onsuccess = () => resolve();
             request.onerror = () => reject(request.error);
@@ -247,7 +346,26 @@ export const db = {
         try {
             const { data: { session } } = await supabase.auth.getSession();
             if (!session?.user) return;
-            if (type === 'history') await syncService.pushQuizHistory(session.user.id, data);
+            if (type === 'quiz' && data?.id) {
+                const name = String(data.name || '').trim();
+                if (!name) return;
+                if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+                    useSyncStore.getState().addEvent({
+                        type: 'quiz_renamed',
+                        payload: { quizId: data.id, name },
+                    });
+                    return;
+                }
+                try {
+                    await syncService.renameSavedQuiz(session.user.id, data.id, name, true);
+                } catch {
+                    useSyncStore.getState().addEvent({
+                        type: 'quiz_renamed',
+                        payload: { quizId: data.id, name },
+                    });
+                }
+            }
+            else if (type === 'history') await syncService.pushQuizHistory(session.user.id, data);
             else if (type === 'bookmark') await syncService.pushBookmark(session.user.id, data);
             else if (type === 'synonym_interaction') await syncService.pushSynonymInteraction(session.user.id, data);
             else if (type === 'ows_interaction') await syncService.pushOWSInteraction(session.user.id, data);
@@ -257,7 +375,47 @@ export const db = {
         }
     },
 
-    /** Background delete helper to sync deletion to Supabase if logged in */
+    /**
+     * Deletes a saved quiz (and any cached active session) locally in IndexedDB first,
+     * then syncs soft-deletion to Supabase or queues an offline deletion event for reconnect.
+     */
+    deleteQuiz: async (id: string, options?: DBSaveOptions): Promise<void> => {
+        const dbInstance = await openDB();
+        await new Promise<void>((resolve, reject) => {
+            const transaction = dbInstance.transaction([STORE_NAME, ACTIVE_SESSION_STORE], 'readwrite');
+            transaction.objectStore(STORE_NAME).delete(id);
+            transaction.objectStore(ACTIVE_SESSION_STORE).delete(id);
+            transaction.oncomplete = () => resolve();
+            transaction.onerror = () => reject(transaction.error);
+        });
+
+        if (options?.skipRemotePush) return;
+
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session?.user) return;
+
+            if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+                useSyncStore.getState().addEvent({
+                    type: 'quiz_deleted',
+                    payload: { quizId: id },
+                });
+                return;
+            }
+
+            try {
+                await syncService.deleteSavedQuiz(session.user.id, id, true);
+            } catch (remoteErr) {
+                console.warn('[db.deleteQuiz] Remote delete failed, queueing offline sync event:', remoteErr);
+                useSyncStore.getState().addEvent({
+                    type: 'quiz_deleted',
+                    payload: { quizId: id },
+                });
+            }
+        } catch (e) {
+            console.error('Background quiz delete error:', e);
+        }
+    },
 
 
 
@@ -375,25 +533,22 @@ export const db = {
 
             getRequest.onsuccess = () => {
                 const existing = getRequest.result as SavedQuiz | undefined;
-                const updated: SavedQuiz = existing
-                  ? { ...existing, name }
-                  : {
-                      id,
-                      name,
-                      createdAt: Date.now(),
-                      filters: {} as any,
-                      mode: 'learning',
-                      questions: [],
-                      state: {} as any
-                  };
-                const putRequest = store.put(updated);
-                putRequest.onsuccess = () => {
+                if (existing) {
+                    const updated: SavedQuiz = { ...existing, name };
+                    const putRequest = store.put(updated);
+                    putRequest.onsuccess = () => {
+                        if (!options?.skipRemotePush) {
+                            db._pushToSupabase('quiz', updated);
+                        }
+                        resolve();
+                    };
+                    putRequest.onerror = () => reject(putRequest.error);
+                } else {
                     if (!options?.skipRemotePush) {
-                        db._pushToSupabase('quiz', updated);
+                        db._pushToSupabase('quiz', { id, name });
                     }
                     resolve();
-                };
-                putRequest.onerror = () => reject(putRequest.error);
+                }
             };
 
             getRequest.onerror = () => reject(getRequest.error);

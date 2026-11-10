@@ -40,22 +40,20 @@ ALTER TABLE public.user_roles ENABLE ROW LEVEL SECURITY;
 
 -- 4. High-Performance Authorization Functions
 
--- 4a. Global is_admin() Function with Zero-Downtime Fallback
+-- 4a. Global is_admin() Function (authoritative user_roles check)
 CREATE OR REPLACE FUNCTION public.is_admin()
 RETURNS boolean
 LANGUAGE sql
 STABLE
 SECURITY DEFINER
-SET search_path = public
+SET search_path = public, pg_temp
 AS $$
-    SELECT 
-        coalesce((auth.jwt() ->> 'email') = 'admin@mindflow.com', false)
-        OR EXISTS (
-            SELECT 1 
-            FROM public.user_roles
-            WHERE user_id = (SELECT auth.uid())
-              AND role IN ('super_admin'::public.app_role, 'admin'::public.app_role)
-        );
+    SELECT EXISTS (
+        SELECT 1
+        FROM public.user_roles
+        WHERE user_id = (SELECT auth.uid())
+          AND role IN ('super_admin'::public.app_role, 'admin'::public.app_role)
+    );
 $$;
 
 -- 4b. Primary has_role(required_role) Function
@@ -64,17 +62,14 @@ RETURNS boolean
 LANGUAGE sql
 STABLE
 SECURITY DEFINER
-SET search_path = public
+SET search_path = public, pg_temp
 AS $$
-    SELECT 
-        (coalesce((auth.jwt() ->> 'email') = 'admin@mindflow.com', false) 
-         AND required_role IN ('super_admin'::public.app_role, 'admin'::public.app_role))
-        OR EXISTS (
-            SELECT 1 
-            FROM public.user_roles
-            WHERE user_id = (SELECT auth.uid())
-              AND (role = required_role OR role = 'super_admin'::public.app_role)
-        );
+    SELECT EXISTS (
+        SELECT 1
+        FROM public.user_roles
+        WHERE user_id = (SELECT auth.uid())
+          AND (role = required_role OR role = 'super_admin'::public.app_role)
+    );
 $$;
 
 -- 4c. Overload has_role(user_id, required_role)
@@ -83,22 +78,24 @@ RETURNS boolean
 LANGUAGE sql
 STABLE
 SECURITY DEFINER
-SET search_path = public
+SET search_path = public, pg_temp
 AS $$
-    SELECT 
-        (has_role.user_id IS NOT NULL 
-         AND required_role IN ('super_admin'::public.app_role, 'admin'::public.app_role)
-         AND EXISTS (
-             SELECT 1 FROM auth.users 
-             WHERE id = has_role.user_id AND email = 'admin@mindflow.com'
-         )
-        )
+    SELECT (
+        has_role.user_id = (SELECT auth.uid())
+        OR (SELECT current_user) IN ('postgres', 'service_role', 'supabase_admin')
         OR EXISTS (
-            SELECT 1 
-            FROM public.user_roles ur
-            WHERE ur.user_id = has_role.user_id
-              AND (ur.role = required_role OR ur.role = 'super_admin'::public.app_role)
-        );
+            SELECT 1
+            FROM public.user_roles admin_ur
+            WHERE admin_ur.user_id = (SELECT auth.uid())
+              AND admin_ur.role IN ('super_admin'::public.app_role, 'admin'::public.app_role)
+        )
+    )
+    AND EXISTS (
+        SELECT 1
+        FROM public.user_roles ur
+        WHERE ur.user_id = has_role.user_id
+          AND (ur.role = required_role OR ur.role = 'super_admin'::public.app_role)
+    );
 $$;
 
 -- 4d. Overload has_role(required_role text) with Safe Exception Handling
@@ -107,7 +104,7 @@ RETURNS boolean
 LANGUAGE plpgsql
 STABLE
 SECURITY DEFINER
-SET search_path = public
+SET search_path = public, pg_temp
 AS $$
 BEGIN
     RETURN public.has_role(required_role::public.app_role);
@@ -123,7 +120,7 @@ RETURNS boolean
 LANGUAGE plpgsql
 STABLE
 SECURITY DEFINER
-SET search_path = public
+SET search_path = public, pg_temp
 AS $$
 BEGIN
     RETURN public.has_role(user_id, required_role::public.app_role);
@@ -139,15 +136,11 @@ RETURNS public.app_role[]
 LANGUAGE sql
 STABLE
 SECURITY DEFINER
-SET search_path = public
+SET search_path = public, pg_temp
 AS $$
     SELECT coalesce(
         array_agg(role ORDER BY role),
-        CASE 
-            WHEN coalesce((auth.jwt() ->> 'email') = 'admin@mindflow.com', false)
-            THEN ARRAY['super_admin'::public.app_role, 'admin'::public.app_role]
-            ELSE ARRAY[]::public.app_role[]
-        END
+        ARRAY[]::public.app_role[]
     )
     FROM public.user_roles
     WHERE user_id = (SELECT auth.uid());
@@ -183,11 +176,18 @@ TO authenticated
 USING ((SELECT public.has_role('super_admin'::public.app_role)));
 
 -- 6. Grant Permissions for Helper Functions
-GRANT EXECUTE ON FUNCTION public.is_admin() TO anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.has_role(public.app_role) TO anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.has_role(uuid, public.app_role) TO anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.has_role(text) TO anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.has_role(uuid, text) TO anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.is_admin() FROM PUBLIC, anon;
+REVOKE EXECUTE ON FUNCTION public.has_role(public.app_role) FROM PUBLIC, anon;
+REVOKE EXECUTE ON FUNCTION public.has_role(uuid, public.app_role) FROM PUBLIC, anon;
+REVOKE EXECUTE ON FUNCTION public.has_role(text) FROM PUBLIC, anon;
+REVOKE EXECUTE ON FUNCTION public.has_role(uuid, text) FROM PUBLIC, anon;
+REVOKE EXECUTE ON FUNCTION public.get_my_roles() FROM PUBLIC, anon;
+
+GRANT EXECUTE ON FUNCTION public.is_admin() TO authenticated;
+GRANT EXECUTE ON FUNCTION public.has_role(public.app_role) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.has_role(uuid, public.app_role) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.has_role(text) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.has_role(uuid, text) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.get_my_roles() TO authenticated;
 
 -- 7. Idempotent Seed Backfill for Initial Super Admin

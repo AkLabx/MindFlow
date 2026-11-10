@@ -101,8 +101,8 @@ export const PrivacyPolicy: React.FC = () => {
                                 Under Section 11 of the DPDP Act 2023, you retain full rights to review, update, or permanently delete your account and associated learning telemetry.
                             </p>
                             <ul className="list-disc pl-5 mt-2 space-y-1">
-                                <li><strong>Self-Service Account Deletion:</strong> You can delete your account directly in Settings &gt; Developer &gt; Delete Account.</li>
-                                <li>Upon request, all profile records, quiz history, and associated data are irrevocably purged within 30 days.</li>
+                                <li><strong>Self-Service Account Deletion:</strong> You can delete your account directly inside the app via <em>Profile &gt; Settings &amp; Security &gt; Danger Zone &gt; Delete Account</em>, or initiate a deletion request anytime via our public web portal at <code>/#/request-account-deletion</code>.</li>
+                                <li>Upon request, your account enters a 7-day grace window (allowing recovery if triggered accidentally), after which all profile records, quiz history, and associated data are irrevocably purged.</li>
                             </ul>
                         </div>
 

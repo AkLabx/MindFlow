@@ -3,6 +3,7 @@ import { ErrorState } from './ErrorState';
 import { SynapticLoader } from '../SynapticLoader';
 import { useRecoveryStore } from '../../../stores/useRecoveryStore';
 import { triggerAppRecovery } from '../../../lib/recovery/RecoveryManager';
+import { telemetry } from '../../../lib/telemetry';
 
 interface QueryStateHandlerProps {
   isLoading: boolean;
@@ -25,6 +26,10 @@ export const QueryStateHandler: React.FC<QueryStateHandlerProps> = ({
   const [isManualRecovering, setIsManualRecovering] = useState(false);
 
   const handleManualRetry = async () => {
+    telemetry.emit('recovery_action_clicked', {
+      view: 'QueryStateHandler',
+      actionChosen: 'manual_retry',
+    });
     setIsManualRecovering(true);
     try {
       // Run the recovery sequence first (this tests network and auth session)

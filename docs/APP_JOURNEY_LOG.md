@@ -26,6 +26,32 @@ This document is the single source of truth for the evolution of the MindFlow ap
 
 ## 🚀 App Journey Changelog
 
+## [v1.0.342] - 10 November 2026, 12:31 PM IST
+
+> **Release Platform Mapping**: `Android 1.6 (versionCode 6) = Web v1.0.342`
+
+### Executive Summary
+Executed Phases 1–10 of the MindFlow Production Uplift Roadmap targeting 10,000 DAU commercial readiness across Web PWA and Capacitor Android: eliminated Stored XSS & iframe origin leakage, deployed database privilege hardening and scalar-subquery RLS/indexing optimizations, implemented DPDP/Play Store compliance flows (`/request-account-deletion`, consent audit logging), hardened offline IndexedDB isolation and keyset metadata sync, finalized Option B zero-flash intro orchestration, upgraded visualViewport keyboard handling and WCAG touch targets, hardened Android R8/ProGuard release packaging, and verified TypeScript, build, and Vitest test suites.
+
+### 🔒 Security & Backend Architecture
+- **Stored XSS & Sandbox Hardening (Phase 1)**:
+  - Sanitized raw HTML/Markdown inputs in `MarkdownRenderer.tsx` via `DOMPurify` while preserving KaTeX/MathML rendering, isolated `TextExporter.tsx` preview iframe (`sandbox="allow-scripts"`), enforced strict CSP headers in `index.html`, set `android:allowBackup="false"`, excluded `*.jks`/`*.keystore` in `android/.gitignore`, and removed obsolete test credential comments from `.gitignore`.
+  - Deployed `20261111000000_harden_create_quiz_session.sql` to enforce server-side `auth.uid()` ownership inside `create_quiz_session`.
+- **Database Access Control, Indexing & 10k DAU Scaling (Phases 4–6)**:
+  - Applied `20261112000000`–`20261116000000` migrations: revoked `PUBLIC`/`anon` execution on `SECURITY DEFINER` RPCs, added RLS policies for `ai_model_runtime` and `deleted_question_logs`, removed transitional admin email fallbacks, added FK covering indexes and `(SELECT auth.uid())` scalar subquery RLS rewrites, batched `delete_scheduled_users()` (`LIMIT 50`), updated `handle_new_user()`, and added `SECURITY INVOKER` `record_user_consent()` RPC.
+  - Added timeout-guarded Edge Function HTTP/Supavisor-safe pooling across `enrich-questions`, `enrich-taxonomy`, `extract-questions`, and `ask-ai-tutor`; verified `reset_minute_ai_quotas` (`* * * * *`) and `batch_size = 1` with `gemini-3.1-flash-lite` primary model.
+
+### ✨ Features, Play Compliance & UX Polish
+- **DPDP Act 2023 & Google Play Deletion Alignment (Phase 2)**:
+  - Kept optional data download unblocking on `DeleteAccountPage.tsx`, launched public deletion verification portal (`/request-account-deletion` outside `NavigationManager`), exposed Legal & Privacy links in `ProfilePage`/`SettingsPage`, and updated `ConsentAuditModal.tsx` with offline bypass, `user_metadata` consent fallback, and elevated `AuthLegalModal.tsx` overlay layering (`z-[10060]`).
+- **Native Android Packaging, ProGuard & Option B Launch Lifecycle (Phases 3, 9 & 10)**:
+  - Preserved `@capacitor/camera` and `@capacitor/filesystem`, scoped legacy storage permissions with `android:maxSdkVersion="32"` in `AndroidManifest.xml`, added deep link filters (`mindflow://`) and `adjustResize`, integrated `MicrophoneDisclosureModal.tsx`, guarded `signingConfigs.release`, enabled `minifyEnabled true` in `android/app/build.gradle`, added Capacitor/WebKit ProGuard keep rules in `android/app/proguard-rules.pro`, and kept `versionCode 6` / `versionName "1.6"` manual.
+  - Finalized `IntroEngine.tsx` + `App.tsx` Option B launch lifecycle (0ms loader flash, `<HashRouter>` deferred until OAuth/session bootstrap or 8s watchdog, seamless `bg-slate-950` underlay behind exiting intro modules), wrapped config footers (`QuizConfig.tsx`, `IdiomsConfig.tsx`, `OWSConfig.tsx`, `SynonymsConfig.tsx`) with `KeyboardAwareBottomBar` (`fullWidth`, real `window.visualViewport` keyboard positioning), expanded multi-level `resolveHardwareBackTarget` parent routing in `useHardwareBackButton.ts`, and enforced `>= 44x44px` accessible touch targets (`ClaymorphismSwitch`, `SubjectHeader`, `MainLayout`, `EmptyState`, `ErrorState`, quiz lists) + telemetry (`empty_state_seen`, `recovery_action_clicked`, `offline_sync_completed`).
+
+### ⚡ Performance, Offline Resilience & Verification (Phases 7–8)
+- **Keyset Delta Metadata & Atomic Quiz Persistence**: Added keyset delta sync and in-flight deduplication in `questionService.ts`, atomic `create_quiz_session` creation with IndexedDB rollback in `quizCreationService.ts`, synchronous IndexedDB/Zustand/localStorage purges on logout/`SIGNED_OUT` (`AuthContext.tsx` deduplicated helpers), `clearCustomBanks()`, and 80% storage quota cache eviction (`db.enforceStorageQuota`).
+- **Automated Test Coverage**: Verified 29/29 Vitest suites (179/179 tests via `--pool=forks`) including `ConsentAuditModal`, `IntroEngine`, `KeyboardAwareBottomBar`, `MarkdownRenderer`, `useHardwareBackButton`, and `phase8_resilience`.
+
 ## [v1.0.340] - 10 November 2026, 08:45 AM IST
 
 ### Executive Summary

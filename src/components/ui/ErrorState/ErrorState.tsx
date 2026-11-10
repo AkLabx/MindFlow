@@ -31,8 +31,9 @@ export const ErrorState: React.FC<ErrorStateProps> = ({
         </p>
       </div>
       <button
+        type="button"
         onClick={onRetry}
-        className="mt-4 flex items-center justify-center gap-2 px-6 py-2.5 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-medium transition-all active:scale-95 shadow-md shadow-primary-600/20"
+        className="mt-4 min-h-[44px] flex items-center justify-center gap-2 px-6 py-2.5 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-medium transition-all active:scale-95 shadow-md shadow-primary-600/20"
       >
         <ActionIcon size={18} />
         <span>{actionText}</span>

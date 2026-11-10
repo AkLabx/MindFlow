@@ -137,7 +137,7 @@ export const PostPage: React.FC = () => {
       {/* Header */}
       <div className="sticky top-0 z-50 bg-white/80 backdrop-blur-xl border-b border-gray-100 p-4 flex items-center justify-between gap-4 shadow-sm">
         <div className="flex items-center gap-4">
-            <button onClick={() => navigate(-1)} className="p-2 -ml-2 rounded-full hover:bg-gray-100 transition-colors">
+            <button type="button" onClick={() => navigate(-1)} aria-label="Go back" className="min-w-[44px] min-h-[44px] flex items-center justify-center -ml-2 rounded-full hover:bg-gray-100 transition-colors">
             <ArrowLeft size={24} className="text-gray-700" />
             </button>
             <h1 className="font-semibold text-lg text-gray-900">Post</h1>
@@ -146,7 +146,8 @@ export const PostPage: React.FC = () => {
         {user && post.user_id === user.id && (
             <Menu as="div" className="relative">
                 <Menu.Button
-                    className="p-2 -mr-2 rounded-full hover:bg-gray-100 transition-colors"
+                    aria-label="Post options"
+                    className="min-w-[44px] min-h-[44px] flex items-center justify-center -mr-2 rounded-full hover:bg-gray-100 transition-colors"
                 >
                     <MoreVertical size={24} className="text-gray-700" />
                 </Menu.Button>
@@ -211,8 +212,10 @@ export const PostPage: React.FC = () => {
 
         <div className="flex items-center gap-6 mt-2 pt-4 border-t border-gray-100">
           <button
+            type="button"
             onClick={() => user && likePostMutation.mutate(!!post.is_liked_by_me)}
-            className="flex items-center gap-2 group"
+            aria-label="Like post"
+            className="flex items-center gap-2 group min-h-[44px]"
           >
             <div className={cn("p-2 rounded-full transition-all duration-300", post.is_liked_by_me ? "bg-red-50 text-red-500" : "bg-gray-50 text-gray-600 hover:bg-gray-100")}>
               <Heart size={24} className={cn(post.is_liked_by_me && "fill-current")} />

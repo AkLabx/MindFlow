@@ -40,6 +40,7 @@ import { ActiveFiltersBar } from './ui/ActiveFiltersBar';
 import { Accordion } from './ui/Accordion';
 import { ScrollableCapsules } from './ui/ScrollableCapsules';
 import { ExamBlueprintsHubPage } from '@/pages/ExamBlueprintsHubPage';
+import { KeyboardAwareBottomBar } from '@/components/ui/KeyboardAwareBottomBar';
 
 // Optimization Hooks
 import { quizCreationService, MAX_QUIZ_QUESTIONS, DEFAULT_DRILL_QUESTION_COUNT } from '../services/quizCreationService';
@@ -471,7 +472,7 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
       {/* Header */}
       <div className="px-4 md:px-6 pt-4 md:pt-6 pb-4 border-b border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-800 z-10 md:relative flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <button onClick={handleBack} className="flex items-center justify-center p-2 -ml-2 text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:text-indigo-400 transition-colors rounded-full hover:bg-indigo-50 dark:hover:bg-indigo-900/30">
+          <button type="button" onClick={handleBack} aria-label="Go back" className="min-w-[44px] min-h-[44px] flex items-center justify-center p-2 -ml-2 text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:text-indigo-400 transition-colors rounded-full hover:bg-indigo-50 dark:hover:bg-indigo-900/30">
             <ArrowLeft className="w-5 h-5" />
           </button>
           <h1 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white m-0 leading-none tracking-tight">
@@ -848,7 +849,11 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
 
       {/* Sticky Action Footer */}
       {mode !== 'god' && (
-        <div className="fixed bottom-0 left-0 w-full z-[40] border-t border-gray-200 dark:border-gray-700 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md px-4 py-3 pb-safe md:px-6 md:py-4 shadow-[0_-4px_15px_-5px_rgba(0,0,0,0.1)] dark:shadow-none">
+        <KeyboardAwareBottomBar
+          hasGlobalFooter={false}
+          fullWidth
+          className="z-[40] border-t border-gray-200 dark:border-gray-700 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md px-4 py-3 pb-safe md:px-6 md:py-4 shadow-[0_-4px_15px_-5px_rgba(0,0,0,0.1)] dark:shadow-none"
+        >
           <div className="flex flex-col sm:flex-row justify-between items-center gap-3 w-full">
              {/* Quiz Name Input - Compact for footer */}
              <div className="w-full sm:w-64 flex-shrink-0">
@@ -922,7 +927,7 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
               </div>
             </div>
           </div>
-        </div>
+        </KeyboardAwareBottomBar>
       )}
     </div>
   );

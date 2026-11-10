@@ -10,7 +10,7 @@ import { CANONICAL_EXAMS, CanonicalExam } from '@/features/dashboard';
 import { Target } from 'lucide-react';
 import { useQuizContext } from '../context/QuizContext';
 import { useSyncStore } from '../stores/useSyncStore';
-import { syncService } from '../../../lib/syncService';
+import { syncService, parseCreatedAtMs } from '../../../lib/syncService';
 import { SynapticLoader } from '../../../components/ui/SynapticLoader';
 import { motion } from 'framer-motion';
 import { QuizLibraryToolbar } from './QuizLibraryToolbar';
@@ -18,6 +18,9 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../auth/context/AuthContext';
 import { ErrorState, QueryStateHandler } from '../../../components/ui/ErrorState';
 import { QuizLibrarySkeleton } from './QuizLibrarySkeleton';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { useNotification } from '@/stores/useNotificationStore';
+import { telemetry } from '@/lib/telemetry';
 
 /**
  * Screen for managing saved quizzes.
@@ -53,6 +56,10 @@ export const SavedQuizzesList: React.FC<SavedQuizzesListProps> = ({ viewMode, se
     }, [pinnedExamIds]);
 
     
+    const { showToast } = useNotification();
+    const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
+
     const { data: quizzes = [], isLoading: loading, isError, error, refetch } = useQuery({
         queryKey: ['saved-quizzes', user?.id],
         enabled: !!user && !isAuthTransitioning,
@@ -61,58 +68,92 @@ export const SavedQuizzesList: React.FC<SavedQuizzesListProps> = ({ viewMode, se
         queryFn: async () => {
             if (!user?.id) return [];
 
-            const { data, error } = await supabase
-              .from('saved_quizzes')
-              .select('id, name, created_at, mode, status, filters, state, bridge_saved_quiz_questions(count)')
-              .eq('user_id', user.id)
-              .neq('status', 'result')
-              .is('deleted_at', null)
-              .order('created_at', { ascending: false });
+            const queue = useSyncStore.getState().queue;
+            const pendingDeletes = new Set<string>(
+                queue.filter(e => e.type === 'quiz_deleted').map(e => e.payload?.quizId)
+            );
+            const pendingRenames = new Map<string, string>();
+            queue
+                .filter(e => e.type === 'quiz_renamed')
+                .forEach(e => {
+                    if (e.payload?.quizId && e.payload?.name) {
+                        pendingRenames.set(e.payload.quizId, e.payload.name);
+                    }
+                });
 
-            if (error) {
-                console.error('Error fetching saved quizzes:', error);
-                throw error;
+            const getLocalSaved = async (): Promise<SavedQuiz[]> => {
+                try {
+                    const localQuizzes = await db.getAllSavedQuizzes();
+                    return localQuizzes
+                        .filter(q => q.state?.status !== 'result' && !(q as any).deleted_at && !pendingDeletes.has(q.id))
+                        .map(q => (pendingRenames.has(q.id) ? { ...q, name: pendingRenames.get(q.id)! } : q))
+                        .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+                } catch {
+                    return [];
+                }
+            };
+
+            if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+                return getLocalSaved();
             }
 
-            if (!data || data.length === 0) return [];
+            try {
+                const { data, error: fetchError } = await supabase
+                    .from('saved_quizzes')
+                    .select('id, name, created_at, mode, status, filters, state, bridge_saved_quiz_questions(count)')
+                    .eq('user_id', user.id)
+                    .neq('status', 'result')
+                    .is('deleted_at', null)
+                    .order('created_at', { ascending: false });
 
-            return data.map(rq => {
-                const countObj = (rq.bridge_saved_quiz_questions as any)?.[0];
-                const questionsCount = typeof countObj?.count === 'number' ? countObj.count : 0;
-                const questions = new Array(questionsCount).fill({});
+                if (fetchError) throw fetchError;
+                if (!data || data.length === 0) return [];
 
-                let parsedState: any = {};
-                try {
-                    parsedState = typeof rq.state === 'string' ? JSON.parse(rq.state) : (rq.state || {});
-                } catch (e) {
-                    console.error("Failed to parse state jsonb for quiz", rq.id, e);
+                return data
+                    .filter(rq => !pendingDeletes.has(rq.id))
+                    .map(rq => {
+                        const countObj = (rq.bridge_saved_quiz_questions as any)?.[0];
+                        const questionsCount = typeof countObj?.count === 'number' ? countObj.count : 0;
+                        const questions = new Array(questionsCount).fill({});
+
+                        let parsedState: any = {};
+                        try {
+                            parsedState = typeof rq.state === 'string' ? JSON.parse(rq.state) : (rq.state || {});
+                        } catch (e) {
+                            console.error("Failed to parse state jsonb for quiz", rq.id, e);
+                        }
+
+                        let parsedFilters: any = {};
+                        try {
+                            parsedFilters = typeof rq.filters === 'string' ? JSON.parse(rq.filters) : (rq.filters || {});
+                        } catch (e) {
+                            console.error("Failed to parse filters jsonb for quiz", rq.id, e);
+                        }
+
+                        return {
+                            id: rq.id,
+                            name: pendingRenames.get(rq.id) ?? rq.name,
+                            createdAt: parseCreatedAtMs(rq.created_at),
+                            filters: parsedFilters,
+                            mode: rq.mode,
+                            questions: questions,
+                            state: {
+                                ...parsedState,
+                                activeQuestions: questions
+                            }
+                        } as SavedQuiz;
+                    });
+            } catch (remoteErr) {
+                console.error('Error fetching saved quizzes:', remoteErr);
+                const localFallback = await getLocalSaved();
+                if (localFallback.length > 0 || (typeof navigator !== 'undefined' && !navigator.onLine)) {
+                    return localFallback;
                 }
-
-                let parsedFilters: any = {};
-                try {
-                    parsedFilters = typeof rq.filters === 'string' ? JSON.parse(rq.filters) : (rq.filters || {});
-                } catch (e) {
-                    console.error("Failed to parse filters jsonb for quiz", rq.id, e);
-                }
-
-                return {
-                    id: rq.id,
-                    name: rq.name,
-                    createdAt: new Date(rq.created_at).getTime(),
-                    filters: parsedFilters,
-                    mode: rq.mode,
-                    questions: questions,
-                    state: {
-                        ...parsedState,
-                        activeQuestions: questions
-                    }
-                } as SavedQuiz;
-            });
+                throw remoteErr;
+            }
         }
     });
     const [isSyncing, setIsSyncing] = useState(syncService.getIsSyncing());
-    const [editingId, setEditingId] = useState<string | null>(null);
-    const [editName, setEditName] = useState('');
 
     useEffect(() => {
         const handleSyncStart = () => {
@@ -158,59 +199,67 @@ export const SavedQuizzesList: React.FC<SavedQuizzesListProps> = ({ viewMode, se
         }
     };
 
-    /** Deletes a quiz from storage. */
-    const handleDelete = async (id: string, e: React.MouseEvent) => {
+    /** Prompts confirmation dialog before deleting a quiz via IndexedDB + background sync. */
+    const handleDelete = (id: string, e: React.MouseEvent) => {
         e.stopPropagation();
-        if (window.confirm('Are you sure you want to delete this quiz?')) {
-            try {
-                const { error } = await supabase.from('saved_quizzes').update({ deleted_at: new Date().toISOString() }).eq('id', id);
-                if (error) throw error;
-                queryClient.setQueryData(['saved-quizzes', user?.id], (old: SavedQuiz[] = []) => old.filter(q => q.id !== id));
-                queryClient.invalidateQueries({ queryKey: ['latest-paused-quiz'] });
-            } catch (error) {
-                console.error("Failed to delete quiz:", error);
-                alert("Failed to delete quiz");
-            }
+        const quiz = quizzes.find(q => q.id === id);
+        setDeleteTarget({
+            id,
+            name: quiz?.name || 'Untitled Quiz',
+        });
+    };
+
+    const confirmDelete = async () => {
+        if (!deleteTarget) return;
+        const targetId = deleteTarget.id;
+        setIsDeleting(true);
+        try {
+            await db.deleteQuiz(targetId);
+            queryClient.setQueryData(['saved-quizzes', user?.id], (old: SavedQuiz[] = []) =>
+                old.filter(q => q.id !== targetId)
+            );
+            queryClient.invalidateQueries({ queryKey: ['latest-paused-quiz'] });
+            showToast({
+                variant: navigator.onLine ? 'success' : 'offline',
+                title: navigator.onLine ? 'Quiz Deleted' : 'Deleted Offline',
+                message: navigator.onLine
+                    ? 'Quiz removed from your library.'
+                    : 'Quiz removed locally and queued to sync when online.',
+            });
+            setDeleteTarget(null);
+        } catch (error) {
+            console.error("Failed to delete quiz:", error);
+            showToast({
+                variant: 'error',
+                title: 'Delete Failed',
+                message: 'Could not delete quiz. Please try again.',
+            });
+        } finally {
+            setIsDeleting(false);
         }
     };
-
-    /** Enters edit mode for renaming a quiz. */
-    const startEditing = (quiz: SavedQuiz, e: React.MouseEvent) => {
-        e.stopPropagation();
-        setEditingId(quiz.id);
-        setEditName(quiz.name);
-    };
-
-    /** Saves the new name for the quiz. */
-    const saveEdit = async (e: React.MouseEvent) => {
-        e.stopPropagation();
-        if (editingId && editName.trim()) {
-            try {
-                await db.updateQuizName(editingId, editName.trim());
-                queryClient.setQueryData(['saved-quizzes', user?.id], (old: SavedQuiz[] = []) => old.map(q => q.id === editingId ? { ...q, name: editName.trim() } : q));
-                setEditingId(null);
-            } catch (error) {
-                console.error("Failed to update quiz name:", error);
-            }
-        }
-    };
-
-    /** Cancels renaming. */
 
     const saveEditCard = async (id: string, newName: string) => {
+        const trimmed = newName.trim();
+        if (!trimmed) return;
         try {
-            const { error } = await supabase.from('saved_quizzes').update({ name: newName }).eq('id', id);
-            if (error) throw error;
-            queryClient.setQueryData(['saved-quizzes', user?.id], (old: SavedQuiz[] = []) => old.map(q => q.id === id ? { ...q, name: newName } : q));
+            await db.updateQuizName(id, trimmed);
+            queryClient.setQueryData(['saved-quizzes', user?.id], (old: SavedQuiz[] = []) =>
+                old.map(q => q.id === id ? { ...q, name: trimmed } : q)
+            );
+            showToast({
+                variant: navigator.onLine ? 'success' : 'offline',
+                message: navigator.onLine
+                    ? 'Quiz renamed successfully.'
+                    : 'Renamed locally and queued to sync when online.',
+            });
         } catch (error) {
             console.error("Failed to update quiz name:", error);
+            showToast({
+                variant: 'error',
+                message: 'Failed to update quiz name.',
+            });
         }
-    };
-
-    const cancelEdit = (e: React.MouseEvent) => {
-        e.stopPropagation();
-        setEditingId(null);
-        setEditName('');
     };
 
     /** Helper to determine if the quiz is finished. */
@@ -265,6 +314,15 @@ export const SavedQuizzesList: React.FC<SavedQuizzesListProps> = ({ viewMode, se
         });
     }, [sortedQuizzes, selectedExamId]);
 
+    useEffect(() => {
+        if (!loading && !isError && (sortedQuizzes.length === 0 || filteredQuizzes.length === 0)) {
+            telemetry.emit('empty_state_seen', {
+                view: 'SavedQuizzesList',
+                triggerCondition: sortedQuizzes.length === 0 ? 'no_saved_quizzes' : `exam_filter_${selectedExamId}`,
+            });
+        }
+    }, [loading, isError, sortedQuizzes.length, filteredQuizzes.length, selectedExamId]);
+
     const containerVariants = {
         hidden: { opacity: 0 },
         visible: {
@@ -317,7 +375,13 @@ export const SavedQuizzesList: React.FC<SavedQuizzesListProps> = ({ viewMode, se
                             </p>
 
                             <button
-                                onClick={() => navigate('/quiz/config')}
+                                onClick={() => {
+                                    telemetry.emit('recovery_action_clicked', {
+                                        view: 'SavedQuizzesList',
+                                        actionChosen: 'create_new_quiz',
+                                    });
+                                    navigate('/quiz/config');
+                                }}
                                 className="relative group/btn overflow-hidden px-8 py-4 rounded-2xl bg-indigo-600 hover:bg-indigo-700 border border-indigo-500 dark:border-indigo-400 shadow-lg hover:shadow-xl hover:shadow-indigo-500/30 transition-all duration-300 flex items-center gap-3 mx-auto"
                             >
                                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-100%] group-hover/btn:translate-x-[100%] transition-transform duration-700" />
@@ -365,15 +429,27 @@ export const SavedQuizzesList: React.FC<SavedQuizzesListProps> = ({ viewMode, se
                                 <div className="flex items-center gap-3 pt-2">
                                     <button
                                         type="button"
-                                        onClick={() => setSelectedExamId('all')}
-                                        className="px-4 py-2 rounded-xl text-xs font-bold bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-200 transition-colors"
+                                        onClick={() => {
+                                            telemetry.emit('recovery_action_clicked', {
+                                                view: 'SavedQuizzesList',
+                                                actionChosen: 'reset_exam_filter',
+                                            });
+                                            setSelectedExamId('all');
+                                        }}
+                                        className="min-h-[44px] px-4 py-2 rounded-xl text-xs font-bold bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-200 transition-colors"
                                     >
                                         View All Quizzes
                                     </button>
                                     <button
                                         type="button"
-                                        onClick={() => navigate(`/quiz/config?exam=${selectedExamId}`)}
-                                        className="px-4 py-2 rounded-xl text-xs font-bold bg-indigo-600 text-white hover:bg-indigo-700 transition-colors shadow-xs"
+                                        onClick={() => {
+                                            telemetry.emit('recovery_action_clicked', {
+                                                view: 'SavedQuizzesList',
+                                                actionChosen: 'create_filtered_quiz',
+                                            });
+                                            navigate(`/quiz/config?exam=${selectedExamId}`);
+                                        }}
+                                        className="min-h-[44px] px-4 py-2 rounded-xl text-xs font-bold bg-indigo-600 text-white hover:bg-indigo-700 transition-colors shadow-xs"
                                     >
                                         Create Quiz
                                     </button>
@@ -389,8 +465,6 @@ export const SavedQuizzesList: React.FC<SavedQuizzesListProps> = ({ viewMode, se
                                 onResume={handleResume}
                                 onDelete={handleDelete}
                                 onEditName={(id, newName) => {
-                                    setEditingId(id);
-                                    setEditName(newName);
                                     saveEditCard(id, newName);
                                 }}
                             />
@@ -399,6 +473,16 @@ export const SavedQuizzesList: React.FC<SavedQuizzesListProps> = ({ viewMode, se
                     </motion.div>
                 )}
         </div>
+        <ConfirmDialog
+            isOpen={Boolean(deleteTarget)}
+            onClose={() => !isDeleting && setDeleteTarget(null)}
+            onConfirm={confirmDelete}
+            title="Delete Quiz?"
+            message={`Are you sure you want to delete "${deleteTarget?.name || 'this quiz'}"? This action cannot be undone.`}
+            confirmText="Delete"
+            confirmStyle="danger"
+            isLoading={isDeleting}
+        />
         </QueryStateHandler>
     );
 };
