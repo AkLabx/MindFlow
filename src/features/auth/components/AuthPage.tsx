@@ -22,6 +22,7 @@ import {
 import { AuthHeroShowcase } from './AuthHeroShowcase';
 import { AuthLegalModal } from './AuthLegalModal';
 import { PasswordStrengthMeter, evaluatePasswordStrength } from './PasswordStrengthMeter';
+import { CURRENT_AGE_ATTESTATION, CURRENT_TERMS_VERSION } from '@/constants/legal';
 
 export interface AuthPageProps {
   onBack?: () => void;
@@ -319,6 +320,9 @@ export const AuthPage: React.FC<AuthPageProps> = ({
           data: {
             full_name: cleanName,
             display_name: cleanName,
+            terms_accepted_version: CURRENT_TERMS_VERSION,
+            terms_accepted_at: new Date().toISOString(),
+            age_confirmed: CURRENT_AGE_ATTESTATION,
           },
         },
       });
@@ -567,6 +571,26 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                     transition={{ duration: 0.22, ease: 'easeOut' }}
                     className="w-full flex flex-col gap-3"
                   >
+                    {/* Statutory Consent & Age Attestation */}
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 text-center leading-tight">
+                      By continuing, you confirm you are 18+ (or have parental consent) and agree to our{' '}
+                      <button
+                        type="button"
+                        onClick={() => setLegalModalType('terms')}
+                        className="underline text-indigo-600 dark:text-indigo-400 font-medium hover:text-indigo-500"
+                      >
+                        Terms
+                      </button>{' '}
+                      &amp;{' '}
+                      <button
+                        type="button"
+                        onClick={() => setLegalModalType('privacy')}
+                        className="underline text-indigo-600 dark:text-indigo-400 font-medium hover:text-indigo-500"
+                      >
+                        Privacy Policy
+                      </button>.
+                    </p>
+
                     {/* Google OAuth Button */}
                     <button
                       type="button"

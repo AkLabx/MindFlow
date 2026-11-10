@@ -62,15 +62,6 @@ export const DeleteAccountPage: React.FC = () => {
     const handleDeleteAccount = async () => {
         if (!isConfirmValid || !user) return;
 
-        if (!hasDownloadedData) {
-            showToast({
-                variant: 'error',
-                title: 'Data Not Downloaded',
-                message: 'Please download your data before deleting your account.'
-            });
-            return;
-        }
-
         setIsDeleting(true);
         try {
             // Update profile to mark for deletion
@@ -104,8 +95,10 @@ export const DeleteAccountPage: React.FC = () => {
             {/* Header */}
             <header className="flex items-center gap-4 mb-8 bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800">
                 <button
+                    type="button"
                     onClick={() => navigate(-1)}
-                    className="p-2 rounded-xl bg-slate-50 hover:bg-slate-100 dark:bg-slate-700 dark:hover:bg-slate-600 transition-colors group"
+                    aria-label="Go back"
+                    className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl bg-slate-50 hover:bg-slate-100 dark:bg-slate-700 dark:hover:bg-slate-600 transition-colors group"
                 >
                     <ArrowLeft className="w-5 h-5 text-slate-600 dark:text-slate-300 group-hover:-translate-x-1 transition-transform" />
                 </button>
@@ -159,14 +152,15 @@ export const DeleteAccountPage: React.FC = () => {
                                 <Download className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
                             </div>
                         </div>
-                        <h3 className="font-bold text-slate-800 dark:text-slate-200 mb-2">Download Your Data</h3>
+                        <h3 className="font-bold text-slate-800 dark:text-slate-200 mb-2">Download Your Data (Optional)</h3>
                         <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
-                            Before you delete your account, we highly recommend downloading a copy of your personal data, posts, progress, and interactions.
+                            We recommend downloading a copy of your personal study records, quiz history, and bookmarks before proceeding, or you may proceed directly to schedule deletion below.
                         </p>
                         <button
+                            type="button"
                             onClick={handleDownloadData}
                             disabled={isGenerating}
-                            className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
+                            className="w-full min-h-[44px] flex items-center justify-center gap-2 py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
                         >
                             {isGenerating ? (
                                 <>
@@ -197,14 +191,15 @@ export const DeleteAccountPage: React.FC = () => {
                         />
 
                         <button
+                            type="button"
                             onClick={handleDeleteAccount}
                             disabled={!isConfirmValid || isDeleting}
-                            className={`w-full flex items-center justify-center gap-2 py-3.5 px-4 rounded-xl font-bold transition-all duration-300 ${
+                            className={`w-full min-h-[44px] flex items-center justify-center gap-2 py-3.5 px-4 rounded-xl font-bold transition-all duration-300 ${
                                 isConfirmValid
                                     ? 'bg-red-600 hover:bg-red-700 text-white shadow-lg shadow-red-600/20'
                                     : 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed'
                             }`}
-                         aria-label="Delete item">
+                         aria-label="Schedule Account Deletion">
                             {isDeleting ? (
                                 <>
                                     <Loader2 className="w-5 h-5 animate-spin" />

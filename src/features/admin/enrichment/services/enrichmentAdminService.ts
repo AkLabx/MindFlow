@@ -25,11 +25,10 @@ export const resumePipeline = async (pipeline_type: PipelineType) => {
     return data;
 };
 
-export const enqueueManualJob = async (wordId: string, task: string, pipeline_type: string, promptVersion?: string) => {
-    const { data, error } = await supabase.rpc('admin_enqueue_manual_job_v2', {
-        p_id: wordId,
+export const enqueueManualJob = async (wordId: string, task: string, promptVersion?: string) => {
+    const { data, error } = await supabase.rpc('admin_enqueue_manual_job', {
+        p_word_id: wordId,
         p_task: task,
-        p_pipeline: pipeline_type,
         p_prompt_version: promptVersion || null
     });
     if (error) throw error;

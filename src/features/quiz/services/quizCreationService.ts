@@ -121,46 +121,36 @@ export const quizCreationService = {
         }
       };
 
-      // 3. Local Persistence
-      await db.saveQuiz(newQuiz).catch((err) => {
+      // 3. Local Persistence (seeded immediately for offline-first resilience)
+      await db.saveQuiz(newQuiz, { skipRemotePush: true }).catch((err) => {
         console.warn("Failed to cache quiz in local IndexedDB:", err);
       });
 
-      // 4. Cloud Persistence (saved_quizzes)
+      // 4. Atomic Cloud Persistence via single-transaction RPC (saved_quizzes + bridge_saved_quiz_questions)
       // Exclude heavy activeQuestions from remote state payload; questions are normalized in bridge_saved_quiz_questions
       const { activeQuestions, ...stateWithoutQuestions } = (newQuiz.state as any) || {};
-      const { error: quizError } = await supabase.from('saved_quizzes').insert({
-        id: newQuiz.id,
-        user_id: userId,
-        name: newQuiz.name,
-        created_at: newQuiz.createdAt,
-        filters: newQuiz.filters,
-        mode: newQuiz.mode,
-        state: stateWithoutQuestions,
-      });
-
-      if (quizError) {
-        console.error('Error saving quiz to Supabase:', quizError);
-        performanceTracker.endMark('quiz_generation');
-        const error = 'Failed to save quiz to server. Please try again.';
-        telemetry.emit('quiz_generation_failed', { reason: error, filterIntersection: filters });
-        return { quizId: '', reused: false, error };
-      }
-
-      // 5. Cloud Persistence (bridge table mappings)
       const bridgeData = newQuiz.questions.map((q, index) => ({
-        quiz_id: newQuiz.id,
         question_id: q.id,
         sort_order: index,
-        user_id: userId
       }));
 
-      const { error: bridgeError } = await supabase.from('bridge_saved_quiz_questions').insert(bridgeData);
+      const { error: rpcError } = await supabase.rpc('create_quiz_session', {
+        p_quiz_id: newQuiz.id,
+        p_user_id: userId,
+        p_name: newQuiz.name,
+        p_created_at: newQuiz.createdAt,
+        p_filters: newQuiz.filters,
+        p_mode: newQuiz.mode,
+        p_state: stateWithoutQuestions,
+        p_questions: bridgeData,
+      });
 
-      if (bridgeError) {
-        console.error('Error saving bridge data:', bridgeError);
+      if (rpcError) {
+        console.error('Error creating atomic quiz session via RPC:', rpcError);
+        // Roll back local IndexedDB entry so orphan sessions are not retained after server rejection
+        await db.deleteQuiz(newQuiz.id, { skipRemotePush: true }).catch(() => {});
         performanceTracker.endMark('quiz_generation');
-        const error = 'Failed to save quiz questions to server. Please try again.';
+        const error = 'Failed to save quiz to server. Please try again.';
         telemetry.emit('quiz_generation_failed', { reason: error, filterIntersection: filters });
         return { quizId: '', reused: false, error };
       }
@@ -171,14 +161,14 @@ export const quizCreationService = {
       const durationMs = Math.round(
         performanceTracker.endMark('quiz_generation', PERF_BUDGETS.QUIZ_GENERATION, {
           mode,
-          count: questions.length,
+          count: sanitizedQuestions.length,
           reused: false,
         })
       );
       telemetry.emit('quiz_generated', {
         examId: filters.examName?.[0],
         mode,
-        count: questions.length,
+        count: sanitizedQuestions.length,
         durationMs,
         reusedSession: false,
       });

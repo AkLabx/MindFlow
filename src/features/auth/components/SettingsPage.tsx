@@ -45,20 +45,20 @@ const EditableField: React.FC<{
                 value={currentValue}
                 onChange={(e) => setCurrentValue(e.target.value)}
                 readOnly={!isEditing}
-                className={`w-full pl-10 pr-20 py-3 border rounded-lg outline-none transition-shadow ${isEditing ? 'border-indigo-300 ring-2 ring-indigo-200' : 'border-slate-300 bg-slate-50'}`}
+                className={`w-full pl-10 py-3 border rounded-lg outline-none transition-shadow ${isEditing ? 'pr-24 border-indigo-300 ring-2 ring-indigo-200' : 'pr-12 border-slate-300 bg-slate-50'}`}
             />
-            <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-1">
+            <div className="absolute right-1 top-1/2 -translate-y-1/2 flex gap-0.5">
                 {isEditing ? (
                     <>
-                        <button onClick={handleSave} disabled={loading} className="p-1.5 rounded-md hover:bg-green-100 text-green-600" aria-label="Perform action">
+                        <button type="button" onClick={handleSave} disabled={loading} className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-md hover:bg-green-100 text-green-600" aria-label="Save changes">
                             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
                         </button>
-                        <button onClick={() => { setIsEditing(false); setCurrentValue(value); }} className="p-1.5 rounded-md hover:bg-red-100 text-red-600">
+                        <button type="button" onClick={() => { setIsEditing(false); setCurrentValue(value); }} className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-md hover:bg-red-100 text-red-600" aria-label="Cancel editing">
                             <X className="w-4 h-4" />
                         </button>
                     </>
                 ) : (
-                    <button onClick={() => setIsEditing(true)} className="p-1.5 rounded-md hover:bg-slate-200 text-slate-500 dark:text-slate-400">
+                    <button type="button" onClick={() => setIsEditing(true)} className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-md hover:bg-slate-200 text-slate-500 dark:text-slate-400" aria-label="Edit field">
                         <Pencil className="w-4 h-4" />
                     </button>
                 )}
@@ -208,8 +208,8 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onBack }) => {
       <div className="max-w-2xl mx-auto space-y-6">
         
         <div className="flex items-center mb-6">
-            <button onClick={onBack} className="p-2 rounded-full hover:bg-slate-200 transition-colors" aria-label="Go back"><ArrowLeft className="w-5 h-5 text-slate-600 dark:text-slate-300" /></button>
-            <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-100 ml-4">Profile Settings</h1>
+            <button type="button" onClick={onBack} className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full hover:bg-slate-200 transition-colors" aria-label="Go back"><ArrowLeft className="w-5 h-5 text-slate-600 dark:text-slate-300" /></button>
+            <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-100 ml-3">Profile Settings</h1>
         </div>
 
         {error && (
@@ -272,7 +272,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onBack }) => {
         <div className="bg-white dark:bg-gray-800 rounded-2xl border border-slate-200/80 shadow-sm p-6">
            <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-5">Safety & Activity</h2>
            <div className="space-y-2">
-              <button onClick={() => navigate('/settings/my-reports')} className="w-full flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-700/30 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors group">
+              <button type="button" onClick={() => navigate('/settings/my-reports')} className="w-full min-h-[44px] flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-700/30 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors group">
                   <div className="flex items-center gap-3">
                       <div className="w-10 h-10 bg-red-100 dark:bg-red-900/30 rounded-lg flex items-center justify-center text-red-600 dark:text-red-400">
                           <ShieldAlert className="w-5 h-5" />
@@ -280,6 +280,38 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onBack }) => {
                       <div className="text-left">
                           <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100">My Reports</h3>
                           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Track the status of your reports</p>
+                      </div>
+                  </div>
+                  <ChevronRight className="w-5 h-5 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-200 transition-colors" />
+              </button>
+           </div>
+        </div>
+
+        {/* --- Legal & Privacy Card --- */}
+        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-slate-200/80 shadow-sm p-6">
+           <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-5">Legal &amp; Privacy</h2>
+           <div className="space-y-2">
+              <button onClick={() => navigate('/privacy-policy')} className="w-full min-h-[44px] flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-700/30 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors group">
+                  <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+                          <FileText className="w-5 h-5" />
+                      </div>
+                      <div className="text-left">
+                          <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100">Privacy Policy</h3>
+                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">DPDP Act 2023 compliance &amp; data disclosures</p>
+                      </div>
+                  </div>
+                  <ChevronRight className="w-5 h-5 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-200 transition-colors" />
+              </button>
+
+              <button onClick={() => navigate('/about/terms-of-use')} className="w-full min-h-[44px] flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-700/30 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors group">
+                  <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg flex items-center justify-center text-indigo-600 dark:text-indigo-400">
+                          <FileText className="w-5 h-5" />
+                      </div>
+                      <div className="text-left">
+                          <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100">Terms of Use</h3>
+                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Service agreements and user conduct rules</p>
                       </div>
                   </div>
                   <ChevronRight className="w-5 h-5 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-200 transition-colors" />
@@ -326,8 +358,9 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onBack }) => {
                </h3>
                <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">Once you delete your account, there is no going back. Please be certain.</p>
                <button
+                  type="button"
                   onClick={handleDeleteAccount}
-                  className="px-4 py-2 border border-red-200 text-red-600 font-bold rounded-lg hover:bg-red-50 transition-colors flex items-center gap-2"
+                  className="min-h-[44px] px-4 py-2 border border-red-200 text-red-600 font-bold rounded-lg hover:bg-red-50 transition-colors flex items-center gap-2"
                >
                   <Trash2 className="w-4 h-4" /> Delete Account</button>
            </div>

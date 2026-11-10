@@ -25,6 +25,7 @@ export const useQuestionMetadata = (): UseQuestionMetadataReturn => {
   const [progress, setProgress] = useState({ current: 0, total: 0 });
 
   const loadMetadata = useCallback(async (forceRefresh = false) => {
+    let hasCachedData = false;
     try {
       setIsLoading(true);
       setError(null);
@@ -35,6 +36,7 @@ export const useQuestionMetadata = (): UseQuestionMetadataReturn => {
         const cacheStart = performance.now();
         const cachedMetadata = await db.getQuizMetadataCache();
         if (cachedMetadata && cachedMetadata.length > 0) {
+          hasCachedData = true;
           const duration = Math.round(performance.now() - cacheStart);
           if (import.meta.env.DEV) {
             console.log(`[useQuestionMetadata] IndexedDB cache hit: ${cachedMetadata.length} items in ${duration}ms`);
@@ -47,7 +49,7 @@ export const useQuestionMetadata = (): UseQuestionMetadataReturn => {
       // 2. Fetch delta in the background (or foreground if no cache / forced)
       const data = await fetchQuestionMetadata((current, total) => {
         setProgress({ current, total });
-      });
+      }, forceRefresh);
 
       // 3. Update state
       setMetadata(data);
@@ -57,7 +59,9 @@ export const useQuestionMetadata = (): UseQuestionMetadataReturn => {
       }
     } catch (err: any) {
       console.error("Failed to load questions:", err);
-      setError("Failed to load question bank. Please check your internet connection.");
+      if (!hasCachedData) {
+        setError("Failed to load question bank. Please check your internet connection.");
+      }
     } finally {
       setIsLoading(false);
     }

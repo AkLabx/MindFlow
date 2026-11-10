@@ -104,6 +104,7 @@ const TeamMemberProfile = lazy(() => import('../features/about/components/TeamMe
 
 const TermsOfUse = lazy(() => import('../pages/TermsOfUse').then(m => ({ default: m.TermsOfUse })));
 const PrivacyPolicy = lazy(() => import('../pages/PrivacyPolicy').then(m => ({ default: m.PrivacyPolicy })));
+const PublicDeletionRequest = lazy(() => import('../pages/PublicDeletionRequest').then(m => ({ default: m.PublicDeletionRequest })));
 const ToolsHome = lazy(() => import('../features/tools/ToolsHome'));
 
 const AIHome = lazy(() => import('../features/ai/AIHome').then(m => ({ default: m.AIHome })));
@@ -254,6 +255,7 @@ const handleReattempt = async (quizId: string, mode: string) => {
                                 {/* --- Legal Routes (Unprotected, No AppLayout) --- */}
                     <Route path={ROUTES.ABOUT.TERMS_OF_USE} element={<Suspense fallback={<SynapticLoader />}><TermsOfUse /></Suspense>} />
                     <Route path={ROUTES.ABOUT.PRIVACY_POLICY} element={<Suspense fallback={<SynapticLoader />}><PrivacyPolicy /></Suspense>} />
+                    <Route path={ROUTES.PUBLIC_DELETION_REQUEST} element={<Suspense fallback={<SynapticLoader />}><PublicDeletionRequest /></Suspense>} />
 
                 {/* --- Standard Application Routes (Wrapped in AppLayout) --- */}
                 <Route element={<NavigationManager key="auth-applayout" type={RouteAccessType.AUTHENTICATED}><AppLayout /></NavigationManager>}>

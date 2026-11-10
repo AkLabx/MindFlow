@@ -26,6 +26,4 @@ export const PERMISSIONS = {
     USER: 'user' as AppRole,
     GUEST: 'guest' as AppRole,
   },
-  DEFAULT_ADMIN_EMAIL: 'admin@mindflow.com',
-  TRANSITIONAL_ADMIN_EMAIL: 'admin@mindflow.com',
 } as const;

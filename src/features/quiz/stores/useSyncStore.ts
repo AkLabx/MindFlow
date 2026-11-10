@@ -3,7 +3,7 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 
 export interface SyncEvent {
   id: string;
-  type: 'flashcard_reviewed' | 'bookmark_toggled';
+  type: 'flashcard_reviewed' | 'bookmark_toggled' | 'quiz_deleted' | 'quiz_renamed';
   payload: any;
   timestamp: number;
 }

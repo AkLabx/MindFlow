@@ -1,7 +1,8 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { PackageOpen } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { ROUTES } from "@/config/routes";
+import { telemetry } from "@/lib/telemetry";
 
 interface EmptyStateProps {
   message?: string;
@@ -16,7 +17,18 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
 }) => {
   const navigate = useNavigate();
 
+  useEffect(() => {
+    telemetry.emit('empty_state_seen', {
+      view: 'SubjectEmptyState',
+      triggerCondition: 'no_subject_data',
+    });
+  }, []);
+
   const handleAction = () => {
+    telemetry.emit('recovery_action_clicked', {
+      view: 'SubjectEmptyState',
+      actionChosen: onAction ? 'custom_action' : 'back_to_dashboard',
+    });
     if (onAction) {
       onAction();
     } else {
@@ -36,8 +48,9 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
         {message}
       </p>
       <button
+        type="button"
         onClick={handleAction}
-        className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-xl transition-colors"
+        className="min-h-[44px] px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-xl transition-colors"
       >
         {actionLabel}
       </button>

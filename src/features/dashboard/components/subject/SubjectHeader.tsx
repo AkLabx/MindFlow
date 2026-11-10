@@ -58,8 +58,10 @@ export const SubjectHeader: React.FC<SubjectHeaderProps> = ({
   return (
     <div className="flex items-center gap-3">
       <button
+        type="button"
         onClick={handleBack}
-        className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors"
+        aria-label="Go back"
+        className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors"
       >
         <ChevronLeft className="w-5 h-5 text-slate-700 dark:text-slate-300" />
       </button>

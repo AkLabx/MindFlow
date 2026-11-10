@@ -101,7 +101,6 @@ powershell.cmd
 # When modifying the database schema or metadata queries for vocabulary features (e.g., synonyms, OWS, idioms), increment the vocab_cache_cleared_vX flag in localStorage within the frontend config to invalidate clients' IndexedDB caches and force a refetch.
 # When mapping Supabase RPC results to frontend models or reading from IndexedDB caches, explicitly handle potential column aliasing and casing mismatches (e.g., falling back between row.phrase and row.word, or row.source_pdf and row.examName) to prevent UI filter breakages and double-mapping bugs.
 # Every Time You Create a PR update the App Version by Increasing it by 0.0.1 value. In import.meta.env.VITE_APP_VERSION file vite.config.ts .
-# Auth credentials: email: mindflow@user.com , password: Test@1234
 
 
 powershell.bat

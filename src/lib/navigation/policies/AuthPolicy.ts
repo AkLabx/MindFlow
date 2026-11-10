@@ -1,5 +1,5 @@
 import { User } from '@supabase/supabase-js';
-import { AppRole, PERMISSIONS } from '@/config/permissions';
+import { AppRole } from '@/config/permissions';
 
 export class AuthPolicy {
   /**
@@ -33,11 +33,6 @@ export class AuthPolicy {
       return true;
     }
 
-    // 3. Transitional fallback (backward compatibility)
-    if (user.email === PERMISSIONS.TRANSITIONAL_ADMIN_EMAIL) {
-      return true;
-    }
-
     return false;
   }
 
@@ -64,11 +59,6 @@ export class AuthPolicy {
       requiredList.includes('moderator') ||
       requiredList.includes('content_creator')
     )) {
-      return true;
-    }
-
-    // Transitional fallback
-    if (user.email === PERMISSIONS.TRANSITIONAL_ADMIN_EMAIL) {
       return true;
     }
 

@@ -4,6 +4,82 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useNotificationStore } from '../stores/useNotificationStore';
 import { useQuizSessionStore } from '../features/quiz/stores/useQuizSessionStore';
 
+/**
+ * Resolves the deterministic hierarchical parent route for a given pathname
+ * when Android hardware back is pressed (Constitution Section 4).
+ */
+export function resolveHardwareBackTarget(currentPath: string): string {
+    const normalized = currentPath.length > 1 ? currentPath.replace(/\/+$/, '') : currentPath;
+
+    // Level 3 -> Level 2: Subject Topics -> Subject Hub
+    const quizSubjectTopicsMatch = normalized.match(/^\/quiz\/subject\/([^/]+)\/topics$/);
+    if (quizSubjectTopicsMatch) {
+        return `/quiz/subject/${quizSubjectTopicsMatch[1]}`;
+    }
+
+    const legacySubjectTopicsMatch = normalized.match(/^\/subject\/([^/]+)\/topics$/);
+    if (legacySubjectTopicsMatch) {
+        return `/subject/${legacySubjectTopicsMatch[1]}`;
+    }
+
+    // Level 2 -> Level 1: Vocab & Flashcard Drills -> English Hub
+    if (
+        normalized.startsWith('/vocab/') ||
+        normalized.startsWith('/idioms') ||
+        normalized.startsWith('/synonyms') ||
+        normalized.startsWith('/ows') ||
+        normalized.startsWith('/flashcards/')
+    ) {
+        return '/english';
+    }
+
+    // Test Series & MCQs Hierarchy
+    if (normalized.startsWith('/mcqs/test-series/')) {
+        return '/mcqs/test-series';
+    }
+    if (normalized.startsWith('/mcqs/')) {
+        return '/mcqs';
+    }
+
+    // Community & Messaging Hierarchy
+    if (/^\/community\/reels\/[^/]+\/comments$/.test(normalized)) {
+        return '/community/reels';
+    }
+    if (normalized.startsWith('/community/post/') || normalized === '/community/search' || normalized.startsWith('/u/')) {
+        return '/community';
+    }
+    if (normalized.startsWith('/messages/')) {
+        return '/messages';
+    }
+
+    // Settings, Profile & About Hierarchy
+    if (normalized.startsWith('/settings/')) {
+        return '/settings';
+    }
+    if (normalized === '/settings') {
+        return '/profile';
+    }
+    if (normalized.startsWith('/profile/')) {
+        return '/profile';
+    }
+    if (normalized.startsWith('/about/')) {
+        return '/about';
+    }
+
+    // Feature Sub-routes -> Feature Hub
+    if (normalized.startsWith('/school/')) {
+        return '/school';
+    }
+    if (normalized.startsWith('/tools/')) {
+        return '/tools';
+    }
+    if (normalized.startsWith('/ai/')) {
+        return '/ai';
+    }
+
+    return '/dashboard';
+}
+
 export const useHardwareBackButton = () => {
     const navigate = useNavigate();
     const location = useLocation();
@@ -92,35 +168,7 @@ export const useHardwareBackButton = () => {
                 }
 
                 // --- 6. DETERMINISTIC HIERARCHICAL MAPPING ---
-                let targetPath = '/dashboard'; // Safe fallback for deep links or broken histories
-
-                // Level 1: Main Sections
-                if (currentPath.startsWith('/mcqs')) targetPath = '/dashboard';
-                else if (currentPath.startsWith('/english')) targetPath = '/dashboard';
-                else if (currentPath.startsWith('/community')) targetPath = '/dashboard';
-                else if (currentPath.startsWith('/tools')) targetPath = '/dashboard';
-                else if (currentPath.startsWith('/ai')) targetPath = '/dashboard';
-                else if (currentPath.startsWith('/school')) targetPath = '/dashboard';
-                else if (currentPath.startsWith('/admin')) targetPath = '/dashboard';
-                else if (currentPath.startsWith('/bookmarks')) targetPath = '/dashboard';
-                else if (currentPath.startsWith('/settings')) targetPath = '/dashboard';
-                else if (currentPath.startsWith('/profile')) targetPath = '/dashboard';
-                else if (currentPath.startsWith('/about')) targetPath = '/dashboard';
-
-                // Level 2: Nested Features
-                else if (currentPath.startsWith('/quiz/library') ||
-                         currentPath.startsWith('/quiz/create') ||
-                         currentPath.startsWith('/quiz/session/') ||
-                         currentPath.startsWith('/quiz/results/') ||
-                         currentPath.startsWith('/quiz/config')) {
-                    targetPath = '/dashboard';
-                }
-                else if (currentPath.startsWith('/idioms') ||
-                         currentPath.startsWith('/synonyms') ||
-                         currentPath.startsWith('/ows') ||
-                         currentPath.startsWith('/flashcards/')) {
-                    targetPath = '/english';
-                }
+                const targetPath = resolveHardwareBackTarget(currentPath);
 
                 // Record time for dashboard exit timeout logic and debounce
                 lastBackPress.current = currentTime;

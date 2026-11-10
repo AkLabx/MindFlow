@@ -15,6 +15,7 @@ import { fetchOwsMetadata, getFilteredOws } from './utils/supabaseOws';
 import { useAuth } from '../../../features/auth/context/AuthContext';
 import { useOwsQuestionIndex, useOwsFilterCounts, OwsMetadata } from './hooks/useOwsFilterCounts';
 import { useOWSProgress } from './hooks/useOWSProgress';
+import { KeyboardAwareBottomBar } from '@/components/ui/KeyboardAwareBottomBar';
 
 interface OWSConfigProps {
     onStart: (data: OneWord[], filters?: InitialFilters, mode?: 'basic' | 'review') => void;
@@ -487,7 +488,11 @@ export const OWSConfig: React.FC<OWSConfigProps> = ({ onStart, onBack }) => {
                 </div>
                 <div className="pb-32"></div>
                 {/* Sticky Action Footer */}
-                <div className="fixed bottom-0 left-0 w-full z-[40] border-t border-slate-200 dark:border-slate-700 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md px-4 py-3 pb-safe md:px-6 md:py-4 shadow-[0_-4px_15px_-5px_rgba(0,0,0,0.1)] dark:shadow-none">
+                <KeyboardAwareBottomBar
+                    hasGlobalFooter={false}
+                    fullWidth
+                    className="z-[40] border-t border-slate-200 dark:border-slate-700 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md px-4 py-3 pb-safe md:px-6 md:py-4 shadow-[0_-4px_15px_-5px_rgba(0,0,0,0.1)] dark:shadow-none"
+                >
 
                     <div className="max-w-4xl mx-auto flex flex-col gap-2">
                         <input
@@ -518,7 +523,7 @@ export const OWSConfig: React.FC<OWSConfigProps> = ({ onStart, onBack }) => {
                         </Button>
                         </div>
                 </div>
-            </div>
+            </KeyboardAwareBottomBar>
         </div>
     );
 };

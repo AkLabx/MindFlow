@@ -17,6 +17,23 @@ import { Question, SavedQuiz, QuizHistoryRecord } from "../features/quiz/types";
  * Service responsible for synchronizing local IndexedDB data with the Supabase backend.
  */
 import { useSyncStore } from "../features/quiz/stores/useSyncStore";
+import { telemetry } from "./telemetry";
+
+export function parseCreatedAtMs(raw: unknown): number {
+  if (typeof raw === "number" && Number.isFinite(raw)) {
+    return raw;
+  }
+  if (typeof raw === "string") {
+    const trimmed = raw.trim();
+    if (/^\d+$/.test(trimmed)) {
+      const asNum = Number(trimmed);
+      if (Number.isFinite(asNum)) return asNum;
+    }
+    const parsed = Date.parse(trimmed);
+    if (!Number.isNaN(parsed)) return parsed;
+  }
+  return Date.now();
+}
 
 
 function chunkArray<T>(array: T[], size: number): T[][] {
@@ -299,16 +316,47 @@ export const syncService = {
   },
 
   /**
-   * Deletes a saved quiz from Supabase.
+   * Deletes a saved quiz from Supabase (soft delete).
    */
-  deleteSavedQuiz: async (userId: string, quizId: string) => {
+  deleteSavedQuiz: async (userId: string, quizId: string, throwOnError = false) => {
     const { error } = await supabase
       .from("saved_quizzes")
       .update({ deleted_at: new Date().toISOString() })
       .match({ id: quizId, user_id: userId });
 
-    if (error)
+    if (error) {
       console.error("Error soft-deleting saved quiz from Supabase:", error);
+      if (throwOnError) throw error;
+    }
+  },
+
+  /**
+   * Renames a saved quiz in Supabase.
+   */
+  renameSavedQuiz: async (userId: string, quizId: string, name: string, throwOnError = false) => {
+    const { error } = await supabase
+      .from("saved_quizzes")
+      .update({ name })
+      .match({ id: quizId, user_id: userId });
+
+    if (error) {
+      console.error("Error renaming saved quiz in Supabase:", error);
+      if (throwOnError) throw error;
+    }
+  },
+
+  /**
+   * Flushes any queued offline events when connectivity and session are active.
+   */
+  flushOfflineQueue: async () => {
+    if (typeof navigator !== "undefined" && navigator.onLine === false) return;
+    const { queue } = useSyncStore.getState();
+    if (queue.length === 0) return;
+
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user) return;
+
+    await syncService.processEventQueue(session.user.id);
   },
 
   /**
@@ -322,8 +370,11 @@ export const syncService = {
   processEventQueue: async (userId: string) => {
     const { queue, removeEvents } = useSyncStore.getState();
     if (queue.length === 0) return;
+    if (typeof navigator !== "undefined" && navigator.onLine === false) return;
 
+    const startTime = performance.now();
     const processedIds: string[] = [];
+    let hasQuizChanges = false;
     const BATCH_SIZE = 15; // Bounded concurrency to avoid rate limits
 
     for (let i = 0; i < queue.length; i += BATCH_SIZE) {
@@ -348,6 +399,16 @@ export const syncService = {
               );
             }
             break;
+
+          case 'quiz_deleted':
+            await syncService.deleteSavedQuiz(userId, event.payload.quizId, true);
+            hasQuizChanges = true;
+            break;
+
+          case 'quiz_renamed':
+            await syncService.renameSavedQuiz(userId, event.payload.quizId, event.payload.name, true);
+            hasQuizChanges = true;
+            break;
         }
         return event.id;
       });
@@ -366,6 +427,15 @@ export const syncService = {
 
     if (processedIds.length > 0) {
       removeEvents(processedIds);
+      telemetry.emit('offline_sync_completed', {
+        recordsSynced: processedIds.length,
+        durationMs: Math.round(performance.now() - startTime),
+      });
+      if (hasQuizChanges) {
+        queryClient.invalidateQueries({ queryKey: ['saved-quizzes'] });
+        queryClient.invalidateQueries({ queryKey: ['attempted-quizzes'] });
+        queryClient.invalidateQueries({ queryKey: ['latest-paused-quiz'] });
+      }
     }
   },
 
@@ -503,12 +573,18 @@ export const syncService = {
 
         // 5. Hydrate remote saved quizzes (skipRemotePush: true)
         if (remoteSavedQuizzes && remoteSavedQuizzes.length > 0) {
+          const pendingDeletes = new Set(
+            useSyncStore.getState().queue
+              .filter(e => e.type === "quiz_deleted")
+              .map(e => e.payload?.quizId)
+          );
           for (const rq of remoteSavedQuizzes) {
+            if (pendingDeletes.has(rq.id)) continue;
             const bridgeData = (rq.bridge_saved_quiz_questions as any) || [];
             const quizObj: SavedQuiz = {
               id: rq.id,
               name: rq.name,
-              createdAt: new Date(rq.created_at).getTime(),
+              createdAt: parseCreatedAtMs(rq.created_at),
               filters: rq.filters,
               mode: rq.mode as any,
               questions: bridgeData

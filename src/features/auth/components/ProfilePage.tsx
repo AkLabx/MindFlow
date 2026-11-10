@@ -437,12 +437,26 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onSignOut, onNavigateToSettin
                       <ChevronRight className="w-5 h-5 text-indigo-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-300 transition-colors" />
                     </button>
                   )}
-                  <button onClick={() => navigate('/profile/support')} className="w-full flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
+                  <button onClick={() => navigate('/profile/support')} className="w-full min-h-[44px] flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
                       <div className="flex items-center gap-3">
                           <div className="w-9 h-9 bg-sky-50 dark:bg-sky-900/20 rounded-lg flex items-center justify-center text-sky-500 dark:text-sky-400"><HelpCircle className="w-4 h-4" /></div>
-                          <span className="font-bold text-slate-700 dark:text-slate-300">Help & Support</span>
+                          <span className="font-bold text-slate-700 dark:text-slate-300">Help &amp; Support</span>
                       </div>
                       <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-sky-500 transition-colors" />
+                  </button>
+                  <button onClick={() => navigate('/privacy-policy')} className="w-full min-h-[44px] flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
+                      <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg flex items-center justify-center text-emerald-600 dark:text-emerald-400"><FileText className="w-4 h-4" /></div>
+                          <span className="font-bold text-slate-700 dark:text-slate-300">Privacy Policy</span>
+                      </div>
+                      <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-emerald-600 transition-colors" />
+                  </button>
+                  <button onClick={() => navigate('/about/terms-of-use')} className="w-full min-h-[44px] flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
+                      <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg flex items-center justify-center text-indigo-600 dark:text-indigo-400"><FileText className="w-4 h-4" /></div>
+                          <span className="font-bold text-slate-700 dark:text-slate-300">Terms of Use</span>
+                      </div>
+                      <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-indigo-600 transition-colors" />
                   </button>
               </div>
           </div>

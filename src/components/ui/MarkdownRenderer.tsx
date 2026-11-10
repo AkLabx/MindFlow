@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
+import DOMPurify from 'dompurify';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import rehypeRaw from 'rehype-raw';
@@ -15,12 +16,21 @@ interface MarkdownRendererProps {
 /**
  * A unified Markdown renderer that supports:
  * - Standard Markdown (lists, bold, italics, tables via GFM)
- * - Raw HTML (e.g. <pre>, <br>, <b>)
+ * - Raw HTML (e.g. <pre>, <br>, <b>) safely sanitized via DOMPurify
  * - LaTeX Math (inline $x$ and block $$x$$) via KaTeX
  *
  * It automatically applies Tailwind prose styles and safely parses HTML.
  */
 export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, className }) => {
+    // Sanitize content with DOMPurify while preserving KaTeX / MathML semantics
+    const sanitizedContent = useMemo(() => {
+        if (!content) return '';
+        return DOMPurify.sanitize(content, {
+            ADD_TAGS: ['math', 'semantics', 'mrow', 'annotation', 'mfrac', 'msup', 'msub', 'mi', 'mn', 'mo', 'mspace', 'mover', 'munder'],
+            ADD_ATTR: ['target', 'rel']
+        });
+    }, [content]);
+
     return (
         <div className={cn(
             "prose prose-sm md:prose-base max-w-none break-words",
@@ -61,7 +71,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, cla
                     ),
                 }}
             >
-                {content}
+                {sanitizedContent}
             </ReactMarkdown>
         </div>
     );

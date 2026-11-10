@@ -5,6 +5,7 @@ import { cn } from '../../../utils/cn';
 import { useLiveAPI, VoicePersonality } from './useLiveAPI';
 import { VoiceBlobVisualizer } from './VoiceBlobVisualizer';
 import { AITalkSummary } from './AITalkSummary';
+import { MicrophoneDisclosureModal } from '../../../components/modals/MicrophoneDisclosureModal';
 
 export const AITalkPage: React.FC = () => {
     const navigate = useNavigate();
@@ -30,6 +31,7 @@ export const AITalkPage: React.FC = () => {
     const [showSubtitles, setShowSubtitles] = useState(true);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [sessionEnded, setSessionEnded] = useState(false);
+    const [showMicDisclosure, setShowMicDisclosure] = useState(false);
     const finalDurationRef = useRef(0);
 
     useEffect(() => {
@@ -64,8 +66,19 @@ export const AITalkPage: React.FC = () => {
         if (connectionState === 'connected' || connectionState === 'connecting') {
             disconnect();
         } else {
-            connect();
+            const hasConsented = localStorage.getItem('mindflow_mic_disclosure_agreed') === 'true';
+            if (!hasConsented) {
+                setShowMicDisclosure(true);
+            } else {
+                connect();
+            }
         }
+    };
+
+    const handleAcceptDisclosure = () => {
+        localStorage.setItem('mindflow_mic_disclosure_agreed', 'true');
+        setShowMicDisclosure(false);
+        connect();
     };
 
     const handleRestart = () => {
@@ -316,6 +329,12 @@ export const AITalkPage: React.FC = () => {
                     </>
                  )}
             </div>
+
+            <MicrophoneDisclosureModal
+                isOpen={showMicDisclosure}
+                onClose={() => setShowMicDisclosure(false)}
+                onAccept={handleAcceptDisclosure}
+            />
         </div>
     );
 };

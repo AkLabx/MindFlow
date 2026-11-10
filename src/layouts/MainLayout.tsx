@@ -14,6 +14,7 @@ import { useLayoutStore } from '../stores/useLayoutStore';
 import { useSocialStore } from '@/features/community';
 import { ClaymorphismSwitch } from '../features/quiz/components/ui/ClaymorphismSwitch';
 import { NotificationBell } from '../features/notifications/components/NotificationBell';
+import { ConsentAuditModal } from '../features/auth/components/ConsentAuditModal';
 import { SidePanel } from './SidePanel';
 
 
@@ -209,7 +210,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
       
       {/* --- Sticky Top Header --- */}
       {!isReviewMode && !isAIFullScreen && !isReelsFullScreen && !isSocialMode && !hideGlobalHeader && !isHeaderHiddenRoute && (
-      <header className="sticky top-0 z-40 w-full transition-all duration-300 relative group overflow-visible">
+      <header className="sticky top-0 z-40 w-full pt-[env(safe-area-inset-top)] transition-all duration-300 relative group overflow-visible">
         {/* Glow Background Layer */}
         <div className="absolute inset-0 bg-white/40 dark:bg-slate-900/40 backdrop-blur-2xl transition-colors duration-300 z-0"></div>
         <div className="absolute inset-0 bg-gradient-to-br from-white/60 to-white/10 dark:from-white/10 dark:to-transparent z-0"></div>
@@ -241,7 +242,12 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
             {user ? (
               <div className="flex items-center gap-2">
                 <NotificationBell />
-                <button onClick={() => onTabChange('profile')} className="rounded-full transition-opacity duration-200 hover:opacity-80">
+                <button
+                  type="button"
+                  onClick={() => onTabChange('profile')}
+                  aria-label="Open Profile"
+                  className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full transition-opacity duration-200 hover:opacity-80"
+                >
                   <PresenceAvatar
                     userId={user.id}
                     avatarUrl={getCanonicalAvatarUrl(profile, user)}
@@ -252,13 +258,19 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
               </div>
             ) : (
               <button
+                type="button"
                 onClick={onOpenSettings}
-                className="p-2 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:bg-gray-800 dark:text-slate-400 dark:hover:bg-slate-800 rounded-full transition-colors"
+                className="min-w-[44px] min-h-[44px] flex items-center justify-center p-2 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:bg-gray-800 dark:text-slate-400 dark:hover:bg-slate-800 rounded-full transition-colors"
                aria-label="Open Settings">
                 <Settings className="w-5 h-5" />
               </button>
             )}
-            <button onClick={() => setIsSidePanelOpen(true)} aria-label="Open Menu" className="p-2 -mr-2 rounded-xl hover:bg-gray-100 dark:hover:bg-slate-800 text-gray-700 dark:text-gray-300 transition-colors">
+            <button
+              type="button"
+              onClick={() => setIsSidePanelOpen(true)}
+              aria-label="Open Menu"
+              className="min-w-[44px] min-h-[44px] flex items-center justify-center p-2 -mr-2 rounded-xl hover:bg-gray-100 dark:hover:bg-slate-800 text-gray-700 dark:text-gray-300 transition-colors"
+            >
               <Menu className="w-6 h-6" />
             </button>
           </div>
@@ -278,6 +290,9 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
         {children}
       </main>
       <HydrationDebugger />
+      {!location.pathname.startsWith('/settings/deleteaccount') && !location.pathname.startsWith('/about') && (
+        <ConsentAuditModal />
+      )}
 
       {/* --- Sticky Bottom Tab Bar --- */}
 

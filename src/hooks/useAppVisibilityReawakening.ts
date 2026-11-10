@@ -3,6 +3,7 @@ import { useQueryClient, focusManager, onlineManager } from '@tanstack/react-que
 import { App as CapacitorApp } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
 import { useRecoveryStore } from '../stores/useRecoveryStore';
+import { syncService } from '../lib/syncService';
 
 const PWA_UPDATE_THROTTLE_MS = 5 * 60 * 1000; // 5 minutes
 let lastPwaUpdateCheck = 0;
@@ -17,6 +18,9 @@ export function useAppVisibilityReawakening() {
       queryClient.resumePausedMutations();
       focusManager.setFocused(true);
       onlineManager.setOnline(true);
+      syncService.flushOfflineQueue().catch((err) =>
+        console.warn('[Reawakening] Offline queue flush skipped:', err)
+      );
 
       const { setStatus, status } = useRecoveryStore.getState();
 
@@ -64,7 +68,16 @@ export function useAppVisibilityReawakening() {
       }
     };
 
+    const handleOnline = () => {
+      queryClient.resumePausedMutations();
+      onlineManager.setOnline(true);
+      syncService.flushOfflineQueue().catch((err) =>
+        console.warn('[Network] Offline queue flush on reconnect failed:', err)
+      );
+    };
+
     document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('online', handleOnline);
 
     // Native App (Capacitor) listener
     let capListener: any = null;
@@ -82,6 +95,7 @@ export function useAppVisibilityReawakening() {
 
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('online', handleOnline);
       if (capListener) {
         capListener.remove();
       }

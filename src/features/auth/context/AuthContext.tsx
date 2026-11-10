@@ -12,7 +12,6 @@ import { useNotificationStore } from '../../../stores/useNotificationStore';
 import { useQuizSessionStore } from '../../quiz/stores/useQuizSessionStore';
 import { useRecoveryStore } from '../../../stores/useRecoveryStore';
 import type { AppRole } from '../../../config/permissions';
-import { PERMISSIONS } from '../../../config/permissions';
 import { AuthPolicy } from '../../../lib/navigation/policies/AuthPolicy';
 
 
@@ -52,6 +51,7 @@ interface AuthContextType {
 }
 
 const SESSION_ID_KEY = 'mindflow_device_session_id';
+const ROLES_CACHE_KEY = 'mindflow_cached_user_roles';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -74,7 +74,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [profile, setProfile] = useState<any | null>(null);
   const [profileStatus, setProfileStatus] = useState<string | null>(null);
   const [deleteRequestedAt, setDeleteRequestedAt] = useState<string | null>(null);
-  const ROLES_CACHE_KEY = 'mindflow_cached_user_roles';
   const [roles, setRoles] = useState<AppRole[]>(() => {
     try {
       const cached = localStorage.getItem(ROLES_CACHE_KEY);
@@ -105,17 +104,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           const mappedRoles = roleRows.map((r: any) => r.role as AppRole);
           setRoles(mappedRoles);
           localStorage.setItem(ROLES_CACHE_KEY, JSON.stringify(mappedRoles));
-        } else if (user?.email === PERMISSIONS.TRANSITIONAL_ADMIN_EMAIL) {
-          const fallbackRoles: AppRole[] = ['super_admin', 'admin'];
-          setRoles(fallbackRoles);
-          localStorage.setItem(ROLES_CACHE_KEY, JSON.stringify(fallbackRoles));
         }
       }
     } catch (e) {
       console.warn('[AuthContext] Error fetching roles:', e);
-      if (user?.email === PERMISSIONS.TRANSITIONAL_ADMIN_EMAIL) {
-        setRoles(['super_admin', 'admin']);
-      }
     }
   };
   const [loading, setLoading] = useState(true);
@@ -231,6 +223,69 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, [user]);
 
 
+  const resetUserScopedStores = async () => {
+    useQuizSessionStore.getState().resetStore();
+    const [
+      { useAnalyticsStore },
+      { useFlashcardStore },
+      { useSyncStore },
+      { useBookmarkStore },
+      { useSocialStore },
+      { useDeckSessionStore },
+    ] = await Promise.all([
+      import('../../quiz/stores/useAnalyticsStore'),
+      import('../../quiz/stores/useFlashcardStore'),
+      import('../../quiz/stores/useSyncStore'),
+      import('../../quiz/stores/useBookmarkStore'),
+      import('../../community/stores/useSocialStore'),
+      import('../../vocab/stores/useDeckSessionStore'),
+    ]);
+
+    useAnalyticsStore.getState().resetAnalytics();
+    useFlashcardStore.getState().resetSession();
+    useSyncStore.getState().resetStore();
+    useBookmarkStore.getState().resetStore();
+    useSocialStore.getState().resetStore();
+    useDeckSessionStore.getState().resetStore();
+  };
+
+  const clearUserLocalStorage = () => {
+    const keysToRemove = [
+      'mindflow-social-mode',
+      'mindflow_analytics',
+      'mindflow_idiom_session',
+      'mindflow_ows_session',
+      'mindflow_synonym_session',
+      'mindflow_sync_queue',
+      'mindflow-sync-queue',
+      'mindflow_bookmarks',
+      'mindflow_flashcard_filters',
+      'mindflow_is_signup',
+      'mindflow_last_auth_user_id',
+      'mindflow_quiz_session_v1',
+      'idiom_swipe_queue',
+      'ows_swipe_queue',
+      'synonyms_swipe_queue',
+      'idiom_last_sync',
+      'ows_last_sync',
+      'synonym_last_sync',
+      'ows_filters',
+      ROLES_CACHE_KEY,
+      SESSION_ID_KEY,
+    ];
+    keysToRemove.forEach((key) => {
+      try { localStorage.removeItem(key); } catch {}
+    });
+    try {
+      for (let i = localStorage.length - 1; i >= 0; i--) {
+        const k = localStorage.key(i);
+        if (k && (k.startsWith('mindflow_last_sync_') || k.startsWith('mindflow_last_full_sync_') || k.startsWith('onboarding_status_'))) {
+          localStorage.removeItem(k);
+        }
+      }
+    } catch {}
+  };
+
   useEffect(() => {
     // --- ROBUST PWA AUTH FIX: STORAGE EVENT LISTENER ---
     // This listener runs in the main PWA window to detect successful login in a secondary window/popup.
@@ -262,6 +317,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           const lastAuthUserId = localStorage.getItem('mindflow_last_auth_user_id');
           if (lastAuthUserId && lastAuthUserId !== session.user.id) {
             console.warn('[AuthContext] Detected different user ID than previous local session. Clearing previous user caches.');
+            await resetUserScopedStores();
+            clearUserLocalStorage();
+            queryClient.clear();
             await db.clearAllUserData();
           }
           localStorage.setItem('mindflow_last_auth_user_id', session.user.id);
@@ -309,6 +367,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (session?.user) {
         let finalUser = session.user;
 
+        try {
+          const lastAuthUserId = localStorage.getItem('mindflow_last_auth_user_id');
+          if (lastAuthUserId && lastAuthUserId !== finalUser.id) {
+            await resetUserScopedStores();
+            clearUserLocalStorage();
+            queryClient.clear();
+            await db.clearAllUserData();
+          }
+          localStorage.setItem('mindflow_last_auth_user_id', finalUser.id);
+        } catch {}
+
         setUser(finalUser);
         useDebugStore.getState().logEvent('Auth state change triggered', { event, metadataAvatar: finalUser?.user_metadata?.avatar_url });
         try {
@@ -337,6 +406,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
       } else {
         setUser(null);
+        setProfile(null);
         setProfileStatus(null);
         setDeleteRequestedAt(null);
         setRoles([]);
@@ -345,15 +415,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
         // If explicitly signed out by Supabase event (e.g. session expired, logged out elsewhere)
         if (event === 'SIGNED_OUT') {
-           useQuizSessionStore.getState().resetStore();
-    import('../../quiz/stores/useAnalyticsStore').then(m => m.useAnalyticsStore.getState().resetAnalytics());
-    import('../../quiz/stores/useFlashcardStore').then(m => m.useFlashcardStore.getState().resetSession());
-    import('../../quiz/stores/useSyncStore').then(m => m.useSyncStore.getState().resetStore());
-    import('../../quiz/stores/useBookmarkStore').then(m => m.useBookmarkStore.getState().resetStore());
-    import('../../community/stores/useSocialStore').then(m => m.useSocialStore.getState().resetStore());
-    import('../../vocab/stores/useDeckSessionStore').then(m => m.useDeckSessionStore.getState().resetStore());
-    queryClient.clear();
-           db.clearAllUserData().catch(console.error);
+          clearUserLocalStorage();
+          queryClient.clear();
+          await resetUserScopedStores();
+          try {
+            await db.clearAllUserData();
+          } catch (err) {
+            console.error("Purge failed:", err);
+          }
         }
       }
     });
@@ -374,21 +443,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       queryClient.clear();
 
       // 2. Immediately purge all user-scoped Zustand stores
-      const { useQuizSessionStore } = await import('../../quiz/stores/useQuizSessionStore');
-      const { useAnalyticsStore } = await import('../../quiz/stores/useAnalyticsStore');
-      const { useFlashcardStore } = await import('../../quiz/stores/useFlashcardStore');
-      const { useSyncStore } = await import('../../quiz/stores/useSyncStore');
-      const { useBookmarkStore } = await import('../../quiz/stores/useBookmarkStore');
-      const { useSocialStore } = await import('../../community/stores/useSocialStore');
-      const { useDeckSessionStore } = await import('../../vocab/stores/useDeckSessionStore');
-
-      useQuizSessionStore.getState().resetStore();
-      useAnalyticsStore.getState().resetAnalytics();
-      useFlashcardStore.getState().resetSession();
-      useSyncStore.getState().resetStore();
-      useBookmarkStore.getState().resetStore();
-      useSocialStore.getState().resetStore();
-      useDeckSessionStore.getState().resetStore();
+      await resetUserScopedStores();
 
       const localSessionId = localStorage.getItem(SESSION_ID_KEY);
       localStorage.removeItem(SESSION_ID_KEY);
@@ -399,19 +454,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         supabase.from('user_active_sessions').delete().eq('user_id', user.id).eq('session_token', localSessionId).then(({ error }) => { if (error) console.error('Error deleting active session:', error); });
       }
 
-      // Also remove Zustand persist cache from localStorage
-      const keysToRemove = [
-        'mindflow-social-mode',
-        'mindflow_analytics',
-        'mindflow_idiom_session',
-        'mindflow_ows_session',
-        'mindflow_synonym_session',
-        'mindflow_sync_queue',
-        'mindflow_bookmarks',
-        'mindflow_flashcard_filters',
-        'mindflow_is_signup'
-      ];
-      keysToRemove.forEach(key => localStorage.removeItem(key));
+      // Also remove Zustand persist cache & user keys from localStorage
+      clearUserLocalStorage();
+
+      setSession(null);
+      setUser(null);
+      setProfile(null);
+      setProfileStatus(null);
+      setDeleteRequestedAt(null);
+      setRoles([]);
+      lastSyncedUserId.current = null;
+      useRecoveryStore.getState().resetStatus();
 
       window.dispatchEvent(new Event('mindflow-sync-complete'));
 
@@ -424,9 +477,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       console.log("[Diagnostic] supabase.auth.signOut RESOLVED");
 
     } finally {
-      setIsAuthTransitioning(false);
-      // Run IndexedDB clear asynchronously as background cleanup
-      db.clearAllUserData().catch(err => console.error("Error clearing DB during signout:", err));
+      try {
+        await db.clearAllUserData();
+      } catch (err) {
+        console.error("Purge failed:", err);
+      } finally {
+        setIsAuthTransitioning(false);
+      }
     }
     console.log("[Diagnostic] signOut END completely");
   };
@@ -437,41 +494,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
    * without destroying essential UI preferences (like theme).
    */
   const clearClientCaches = async () => {
-    // 1. Wipe IndexedDB (Offline storage, Saved Quizzes, History, Interactions)
-    await db.clearAllUserData();
+    // 1. Wipe IndexedDB (Offline storage, Saved Quizzes, History, Interactions, Custom Banks)
+    try {
+      await db.clearAllUserData();
+    } catch (err) {
+      console.error("Purge failed:", err);
+    }
 
-    // Reset Zustand store to empty initial state
-    useQuizSessionStore.getState().resetStore();
-    import('../../quiz/stores/useAnalyticsStore').then(m => m.useAnalyticsStore.getState().resetAnalytics());
-    import('../../quiz/stores/useFlashcardStore').then(m => m.useFlashcardStore.getState().resetSession());
-    import('../../quiz/stores/useSyncStore').then(m => m.useSyncStore.getState().resetStore());
-    import('../../quiz/stores/useBookmarkStore').then(m => m.useBookmarkStore.getState().resetStore());
-    import('../../community/stores/useSocialStore').then(m => m.useSocialStore.getState().resetStore());
-    import('../../vocab/stores/useDeckSessionStore').then(m => m.useDeckSessionStore.getState().resetStore());
-    queryClient.clear();
-    import('../../quiz/stores/useAnalyticsStore').then(m => m.useAnalyticsStore.getState().resetAnalytics());
-    import('../../quiz/stores/useFlashcardStore').then(m => m.useFlashcardStore.getState().resetSession());
-    import('../../quiz/stores/useSyncStore').then(m => m.useSyncStore.getState().resetStore());
-    import('../../quiz/stores/useBookmarkStore').then(m => m.useBookmarkStore.getState().resetStore());
-    import('../../community/stores/useSocialStore').then(m => m.useSocialStore.getState().resetStore());
-    import('../../vocab/stores/useDeckSessionStore').then(m => m.useDeckSessionStore.getState().resetStore());
+    // 2. Reset Zustand stores and React Query cache
+    await resetUserScopedStores();
     queryClient.clear();
 
-    // 2. Wipe specific localStorage items used by Zustand and manual flags
-    const keysToRemove = [
-      'mindflow-social-mode',
-      'mindflow_analytics',
-      'mindflow_idiom_session',
-      'mindflow_ows_session',
-      'mindflow_synonym_session',
-      'mindflow_sync_queue',
-      'mindflow_bookmarks',
-      'mindflow_flashcard_filters',
-      'mindflow_is_signup'
-    ];
-    keysToRemove.forEach(key => localStorage.removeItem(key));
-
-    // 3. Keep safe keys like 'theme' or 'mindflow_intro_seen'
+    // 3. Wipe user-scoped localStorage items while preserving theme/UI settings
+    clearUserLocalStorage();
 
     // 4. Force a hard reload to completely flush React memory, Query cache, and Zustand in-memory states.
     // To ensure the "kicked out" toast survives the reload, we use sessionStorage
@@ -596,16 +631,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
                 <div className="space-y-3">
                   <button
+                    type="button"
                     onClick={handleTakeoverSession}
-                    className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-medium transition-colors"
+                    className="w-full min-h-[44px] flex items-center justify-center gap-2 py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-medium transition-colors"
                   >
                     <CheckCircle2 className="w-5 h-5" />
                     <span>Yes, Continue Here</span>
                   </button>
 
                   <button
+                    type="button"
                     onClick={handleCancelTakeover}
-                    className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-xl font-medium transition-colors"
+                    className="w-full min-h-[44px] flex items-center justify-center gap-2 py-3 px-4 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-xl font-medium transition-colors"
                   >
                     <LogOut className="w-5 h-5" />
                     <span>Cancel & Sign Out</span>

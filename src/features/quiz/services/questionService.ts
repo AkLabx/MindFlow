@@ -48,153 +48,205 @@ interface QuestionDBRow {
 }
 
 
+let inFlightMetadataPromise: Promise<Question[]> | null = null;
+
+/**
+ * Computes total active count from materialized subject cache for initial full-sync progress UI.
+ */
+async function fetchApproxTotalActiveQuestions(): Promise<number> {
+  try {
+    const { data, error } = await supabase.rpc('get_dashboard_subject_counts');
+    if (error || !data || typeof data !== 'object') return 0;
+    return Object.values(data as Record<string, number>).reduce(
+      (sum, count) => sum + (typeof count === 'number' ? count : 0),
+      0
+    );
+  } catch {
+    return 0;
+  }
+}
+
 /**
  * Fetches lightweight metadata for all available questions.
- * Uses Delta Sync to only fetch modified rows.
+ * Uses Keyset-Paginated Delta Sync (including soft-delete tombstones) to only fetch modified rows.
  *
  * @param {function} [onProgress] - Optional callback to report download progress (fetched vs total).
+ * @param {boolean} [forceRefresh] - Forces a full cache rebuild bypassing the delta timestamp.
  * @returns {Promise<Question[]>} A promise resolving to a list of Question objects (with empty content fields).
  */
 export const fetchQuestionMetadata = async (
-  onProgress?: (fetchedCount: number, totalCount: number) => void
+  onProgress?: (fetchedCount: number, totalCount: number) => void,
+  forceRefresh: boolean = false
 ): Promise<Question[]> => {
-  let allRows: Partial<QuestionDBRow>[] = [];
-  
-
-  // 0. Force Cache Wipe for 9k questions if not already done
-  const CACHE_WIPE_FLAG = 'quiz_metadata_cache_cleared_v12';
-  if (typeof window !== 'undefined' && !window.localStorage.getItem(CACHE_WIPE_FLAG)) {
-    console.log('Forcing global cache wipe for 9k questions...');
-    await db.clearQuizMetadataCache();
-    // Sync timestamp clear omitted, let it fallback to getSyncTimestamp
-    window.localStorage.setItem(CACHE_WIPE_FLAG, 'true');
+  if (!forceRefresh && inFlightMetadataPromise) {
+    return inFlightMetadataPromise;
   }
 
-  // 1. Get last sync timestamp
-  let lastSync = await db.getSyncTimestamp('quiz_metadata_sync');
+  const runSync = async (): Promise<Question[]> => {
+    const allRows: Partial<QuestionDBRow>[] = [];
 
-  if (typeof window !== 'undefined' && window.localStorage.getItem('quiz_metadata_cache_cleared_v12_force_sync') !== 'true') {
-     lastSync = null;
-     window.localStorage.setItem('quiz_metadata_cache_cleared_v12_force_sync', 'true');
-  }
-
-  // PRO-TIP: 30-Day Auto-Purge Logic
-  // If the user hasn't synced in 30 days, their local cache is too old, and we should just do a full fresh sync
-  // instead of processing 30 days worth of delta updates and tombstones.
-  if (lastSync) {
-    const lastSyncDate = new Date(lastSync);
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-    if (lastSyncDate < thirtyDaysAgo) {
-      console.log('Last sync was over 30 days ago. Wiping cache for a fresh full sync.');
+    // 0. Force Cache Wipe for 9k questions if not already done
+    const CACHE_WIPE_FLAG = 'quiz_metadata_cache_cleared_v12';
+    if (typeof window !== 'undefined' && !window.localStorage.getItem(CACHE_WIPE_FLAG)) {
+      console.log('Forcing global cache wipe for 9k questions...');
       await db.clearQuizMetadataCache();
-      lastSync = null; // Forces get_filtered_quiz_metadata to return all active records
+      window.localStorage.setItem(CACHE_WIPE_FLAG, 'true');
     }
-  }
 
-  // Get Total Count to enable progress tracking (for delta sync we just count what we need to fetch)
+    // 1. Get last sync timestamp
+    let lastSync = forceRefresh ? null : await db.getSyncTimestamp('quiz_metadata_sync');
 
-  let countQuery = supabase.from('questions').select('*', { count: 'exact', head: true });
-  countQuery = countQuery.is('deleted_at', null);
-  if (lastSync) {
-      countQuery = countQuery.gt('updated_at', lastSync);
-  }
-  const { count, error: countError } = await countQuery;
+    if (typeof window !== 'undefined' && window.localStorage.getItem('quiz_metadata_cache_cleared_v12_force_sync') !== 'true') {
+      lastSync = null;
+      window.localStorage.setItem('quiz_metadata_cache_cleared_v12_force_sync', 'true');
+    }
 
-  if (countError) {
-      console.error('Error fetching count:', countError);
-  }
-  const totalRecords = count || 0;
-  
-  if (totalRecords > 0) {
-      // 2. Fetch only changed records via RPC (or fallback)
-      let from = 0;
-      const limit = 1000;
-      let hasMore = true;
+    // PRO-TIP: 30-Day Auto-Purge Logic
+    // If the user hasn't synced in 30 days, their local cache is too old, and we should just do a full fresh sync
+    // instead of processing 30 days worth of delta updates and tombstones.
+    if (lastSync) {
+      const lastSyncDate = new Date(lastSync);
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-      try {
-        while (hasMore) {
-          const { data, error } = await supabase
-            .rpc('get_filtered_quiz_metadata', { p_last_sync_at: lastSync })
-            .order('updated_at', { ascending: true })
-            .order('id', { ascending: true })
-            .range(from, from + limit - 1);
-
-          if (error) throw error;
-
-          if (data && data.length > 0) {
-            allRows = [...allRows, ...data];
-            if (onProgress) onProgress(allRows.length, totalRecords);
-
-            if (data.length < limit) hasMore = false;
-            else from += limit;
-          } else {
-            hasMore = false;
-          }
-        }
-      } catch (error) {
-        console.error("Failed to fetch metadata:", error);
-        throw error;
+      if (lastSyncDate < thirtyDaysAgo) {
+        console.log('Last sync was over 30 days ago. Wiping cache for a fresh full sync.');
+        await db.clearQuizMetadataCache();
+        lastSync = null; // Forces get_filtered_quiz_metadata to return all active records
       }
+    }
 
-  }
+    // If offline and we already have cached metadata, return immediately without failing
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+      const offlineCached = await db.getQuizMetadataCache();
+      return Array.from(
+        new Map(offlineCached.map(item => [item.v1_id && item.v1_id.trim() !== '' ? item.v1_id : item.id, item])).values()
+      );
+    }
 
-  // Update sync timestamp always, to prevent time window creep
-  const newSyncTimestamp = new Date().toISOString();
-  await db.setSyncTimestamp('quiz_metadata_sync', newSyncTimestamp);
+    // Estimate total records only on initial full sync (O(1) cached lookup <1ms);
+    // For delta syncs we invoke the keyset RPC directly so pure soft-deletes/tombstones are never skipped.
+    const estimatedTotalRecords = !lastSync ? await fetchApproxTotalActiveQuestions() : 0;
 
+    // 2. Fetch changed/active records via keyset-paginated RPC
+    const PAGE_LIMIT = 1000;
+    let afterUpdatedAt: string | null = null;
+    let afterId: string | null = null;
+    let hasMore = true;
+    let maxServerUpdatedAt: string | null = lastSync;
 
-  // Map the raw DB rows to the internal Question model structure.
-  // Note: Content fields like 'question' and 'options' are left empty/default.
-  const mappedRows = allRows.map((row) => ({
-    id: row.id!,
-    v1_id: row.v1_id || '',
-    sourceInfo: {
-      examName: row.examName || '',
-      examYear: row.examYear || 0,
-      examDateShift: row.examDateShift,
-    },
-    classification: {
-      subject: row.subject || '',
-      topic: row.topic || '',
-      subTopic: row.subTopic,
-    },
-    tags: row.tags || [],
-    properties: {
-      difficulty: row.difficulty || 'Medium',
-      questionType: row.questionType || 'MCQ',
-    },
-    // Placeholder values for non-metadata fields
-    question: '',
-    options: [],
-    correct: '',
-    explanation: {},
-    updated_at: row.updated_at,
-    deleted_at: row.deleted_at
-  }));
+    try {
+      while (hasMore) {
+        const { data, error } = await supabase.rpc('get_filtered_quiz_metadata', {
+          p_last_sync_at: lastSync,
+          p_after_updated_at: afterUpdatedAt,
+          p_after_id: afterId,
+          p_limit: PAGE_LIMIT,
+        });
 
-  // Handle Delta Deletions and Upserts
-  const upsertRows = mappedRows.filter(row => !row.deleted_at);
-  const deletedIds = mappedRows.filter(row => row.deleted_at).map(row => row.id);
+        if (error) throw error;
 
-  if (deletedIds.length > 0) {
+        if (data && data.length > 0) {
+          allRows.push(...data);
+
+          const lastItem = data[data.length - 1];
+          if (lastItem?.updated_at) {
+            if (!maxServerUpdatedAt || new Date(lastItem.updated_at).getTime() > new Date(maxServerUpdatedAt).getTime()) {
+              maxServerUpdatedAt = lastItem.updated_at;
+            }
+          }
+
+          if (onProgress) {
+            const totalForProgress =
+              estimatedTotalRecords >= allRows.length
+                ? estimatedTotalRecords
+                : allRows.length + (data.length === PAGE_LIMIT ? PAGE_LIMIT : 0);
+            onProgress(allRows.length, totalForProgress);
+          }
+
+          if (data.length < PAGE_LIMIT) {
+            hasMore = false;
+          } else {
+            afterUpdatedAt = lastItem.updated_at ?? null;
+            afterId = lastItem.id ?? null;
+            if (!afterUpdatedAt || !afterId) {
+              hasMore = false;
+            }
+          }
+        } else {
+          hasMore = false;
+        }
+      }
+    } catch (error) {
+      console.error('Failed to fetch metadata:', error);
+      throw error;
+    }
+
+    // Advance sync cursor to max server-returned updated_at to eliminate client clock skew
+    if (maxServerUpdatedAt && maxServerUpdatedAt !== lastSync) {
+      await db.setSyncTimestamp('quiz_metadata_sync', maxServerUpdatedAt);
+    }
+
+    // Map the raw DB rows to the internal Question model structure.
+    // Note: Content fields like 'question' and 'options' are left empty/default.
+    const mappedRows = allRows.map((row) => ({
+      id: row.id!,
+      v1_id: row.v1_id || '',
+      sourceInfo: {
+        examName: row.examName || '',
+        examYear: row.examYear || 0,
+        examDateShift: row.examDateShift,
+      },
+      classification: {
+        subject: row.subject || '',
+        topic: row.topic || '',
+        subTopic: row.subTopic,
+      },
+      tags: row.tags || [],
+      properties: {
+        difficulty: row.difficulty || 'Medium',
+        questionType: row.questionType || 'MCQ',
+      },
+      // Placeholder values for non-metadata fields
+      question: '',
+      options: [],
+      correct: '',
+      explanation: {},
+      updated_at: row.updated_at,
+      deleted_at: row.deleted_at,
+    }));
+
+    // Handle Delta Deletions and Upserts
+    const upsertRows = mappedRows.filter(row => !row.deleted_at);
+    const deletedIds = mappedRows.filter(row => row.deleted_at).map(row => row.id);
+
+    if (deletedIds.length > 0) {
       console.log(`Pruning ${deletedIds.length} soft-deleted questions from cache.`);
       await db.deleteQuizMetadataCache(deletedIds);
-  }
+    }
 
-  if (upsertRows.length > 0) {
-      // Save mapped rows to IndexedDB
+    if (upsertRows.length > 0) {
       await db.saveQuizMetadataCache(upsertRows);
+    }
+
+    // Return everything from cache to ensure we have the full set
+    const cachedData = await db.getQuizMetadataCache();
+
+    // Deduplicate by v1_id to ensure no duplicate questions in the UI
+    return Array.from(
+      new Map(cachedData.map(item => [item.v1_id && item.v1_id.trim() !== '' ? item.v1_id : item.id, item])).values()
+    );
+  };
+
+  if (forceRefresh) {
+    return runSync();
   }
 
+  inFlightMetadataPromise = runSync().finally(() => {
+    inFlightMetadataPromise = null;
+  });
 
-  // Return everything from cache to ensure we have the full set
-  const cachedData = await db.getQuizMetadataCache();
-
-  // Deduplicate by v1_id to ensure no duplicate questions in the UI
-  const uniqueRows = Array.from(new Map(cachedData.map(item => [item.v1_id && item.v1_id.trim() !== '' ? item.v1_id : item.id, item])).values());
-  return uniqueRows;
+  return inFlightMetadataPromise;
 };
 
 // UUID v4 pattern for distinguishing UUIDs from legacy v1_ids (e.g., "HIS14", "BIO1")
