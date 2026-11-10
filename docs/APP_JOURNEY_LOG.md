@@ -26,6 +26,26 @@ This document is the single source of truth for the evolution of the MindFlow ap
 
 ## 🚀 App Journey Changelog
 
+## [v1.0.349] - 11 November 2026, 03:12 AM IST
+
+> **Release Platform Mapping**: `Android 1.6 (versionCode 6) = Web v1.0.349`
+
+### Executive Summary
+Uplifted the Subject Hub screen (`SubjectHubPage.tsx`, `SubjectHeader.tsx`, `ActionCard.tsx`) to native Android APK standards. Introduced a sticky Material 3 Top App Bar with status bar safe-area inset clearance (`env(safe-area-inset-top)`), replaced the iOS-style `ChevronLeft` with Android Material `ArrowLeft`, integrated Capacitor Android hardware back navigation to return deterministically to Dashboard, and added tactile haptic feedback with inward tap indentation on action cards.
+
+### Work Breakdown
+- **✨ Features Added**:
+  - **Material 3 Sticky Top App Bar (`SubjectHeader.tsx`)**: Added `pt-[calc(env(safe-area-inset-top,0px)+0.5rem)]` with translucent surface blur and subtle bottom divider so custom subject headers never collide with Android status bars or camera cutouts when global header is hidden.
+  - **Android Hardware Back Navigation (`SubjectHubPage.tsx`)**: Registered `@capacitor/app` `App.addListener('backButton')` to deterministically navigate back to the logical parent (`/dashboard`).
+  - **Tactile Haptics & Inward Press Feedback (`ActionCard.tsx`, `SubjectHeader.tsx`)**: Wired `triggerHaptic('light')` and `active:scale-[0.98]` / `active:scale-90` across action cards and back navigation controls.
+- **⚡ Performance & Refactoring**:
+  - **Standardized Back Iconography**: Replaced `ChevronLeft` with `ArrowLeft` in `SubjectHeader.tsx` to align with Android Material Design and Constitution Section 4.
+  - **Edge-to-Edge Viewport Hygiene**: Removed negative margin layout hacks (`-mx-4 -mt-4`) on `SubjectHubPage.tsx` in favor of `min-h-[100dvh] w-full overscroll-contain select-none`.
+- **🔒 Security & Architecture**:
+  - Verified with `npx tsc --noEmit` (0 errors). Preserved subject context inheritance and taxonomy prefetching.
+
+---
+
 ## [v1.0.348] - 11 November 2026, 02:42 AM IST
 
 > **Release Platform Mapping**: `Android 1.6 (versionCode 6) = Web v1.0.348`
