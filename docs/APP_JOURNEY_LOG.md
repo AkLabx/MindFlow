@@ -26,6 +26,27 @@ This document is the single source of truth for the evolution of the MindFlow ap
 
 ## 🚀 App Journey Changelog
 
+## [v1.0.340] - 10 November 2026, 08:45 AM IST
+
+### Executive Summary
+Established the comprehensive MindFlow Production Readiness Audit and 10-Phase Uplift Roadmap for 10,000 DAU commercial readiness. Codified ADR-0005 (Option B Launch Lifecycle), amended the MindFlow Constitution with Section 13 (Living Pragmatic Amendment Clause), softened Rule 1 to allow authoritative secondary shortcuts, preserved `@capacitor/camera` and `@capacitor/filesystem` dependencies, and established explicit Android-to-web version mapping.
+
+### 🔒 Security, Architecture & Governance
+- **Full-Stack Production Audit & 10-Phase Roadmap (`PRODUCTION_AUDIT_REPORT.md`, `TEN_PHASE_ROADMAP.md`)**:
+  - Executed a forensic audit across UI/UX, Backend Scalability for 10,000 DAU, Security, Legal/Privacy, and Google Play Store requirements.
+  - Formulated an actionable 10-phase sequential execution roadmap detailing objectives, risk assessments, affected systems, and verifiable acceptance criteria.
+- **Constitution Section 13 Pragmatic Amendment Clause (`docs/MINDFLOW_CONSTITUTION.md`, `AGENTS.md`)**:
+  - Established Section 13 allowing sound engineering best practices to supersede rigid constitutional rules when recorded in `docs/PRODUCT_DECISIONS.md`.
+  - Softened Rule 1 to clarify that secondary action shortcuts are permitted provided they bind directly to the single primary authoritative state controller without divergent state.
+  - Updated the Decision Precedence Hierarchy across `AGENTS.md` and the Constitution.
+- **ADR-0005: Launch Lifecycle Architecture Option B (`docs/ADR/0005-launch-lifecycle-option-b.md`)**:
+  - Formally ratified Option B for the application cold-start lifecycle: renders `<IntroEngine>` immediately on Frame 0 with 0ms loader flash, executes `useAppBootstrap` concurrently in the background to guarantee 100% OAuth hash extraction and IndexedDB hydration safety before `<HashRouter>` mounts, and bounds startup with an 8-second watchdog timeout.
+- **Capacitor Dependency Preservation & Storage Permission Scoping**:
+  - Forensically verified active call sites for `@capacitor/camera` (reels) and `@capacitor/filesystem` (native PDF/export downloads), permanently cancelling package pruning.
+  - Specified manifest scoping of legacy storage permissions (`maxSdkVersion="32"`) for Google Play Store compliance.
+- **Android Release Version Mapping Ritual**:
+  - Decoupled Android release builds from web semver to preserve clean Gradle releases; instituted mandatory mapping entries in `APP_JOURNEY_LOG.md` for all Play Console uploads (`Android X.Y (versionCode Z) = Web v1.0.W`).
+
 ## [v1.0.339] - 10 November 2026, 02:10 AM IST
 
 ### Executive Summary

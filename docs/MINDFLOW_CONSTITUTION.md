@@ -31,7 +31,7 @@
 
 These 10 principles represent the foundational truths of MindFlow. They do not bend to deadlines, convenience, or technological shifts.
 
-1. **One Concept $\rightarrow$ One Control $\rightarrow$ One Location:** Every dimension of state must have exactly one visible controller in the active viewport. Duplicate controls breed cognitive paralysis.
+1. **One Concept $\rightarrow$ One Authoritative Controller:** Each action or state dimension has one primary, authoritative control. Secondary shortcuts or quick-access triggers are permitted provided they bind directly to the exact same action and underlying state without divergent local state. Duplicate independent state controllers remain prohibited.
 2. **Never Ask Twice:** Once an aspirant specifies an exam, subject, or preference, that context is durable. Child screens inherit what parent screens established.
 3. **Preserve Context on Clear:** "Clear Filters" resets transient query parameters (shifts, years, difficulties); it **never** wipes the user's exam goal, language, or mode unless explicitly commanded.
 4. **Offline Is First, Not a Fallback:** If data exists locally in IndexedDB, the screen must render immediately (0ms). The network is strictly a background synchronization channel.
@@ -210,10 +210,11 @@ sequenceDiagram
 
 The launch sequence of MindFlow must guarantee both cinematic polish and zero cognitive waiting time.
 
-1. **The Parallel Mounting Law (Zero-Waterfall Curtain):**
-   - The application tree (`{children}`) **must always mount underneath** the `<IntroEngine>` overlay curtain.
-   - Route resolution, authentication checks, and page component evaluation must occur concurrently with intro playback ($t = 0\text{ms} \rightarrow 2000\text{ms}$).
-   - The intro must NEVER block child mounting or introduce post-intro loading waterfalls (`SynapticLoader` flashes).
+1. **The Parallel Mounting & OAuth-Protected Launch Law (ADR-0005 / Option B):**
+   - The intro overlay curtain (`<IntroEngine>`) renders immediately on Frame 0 with 0ms delay, completely eliminating intermediary loading screens or `SynapticLoader` flashes.
+   - While the intro plays, `useAppBootstrap` runs concurrently in the background behind the opaque intro canvas to safely intercept OAuth hash tokens, sanitize the URL via `window.history.replaceState`, restore user session, and hydrate IndexedDB *before* `<HashRouter>` mounts.
+   - Routing and child tree mounting occur once bootstrap readiness is confirmed (`bootstrapState.isReady === true`), guaranteeing zero wrong-screen flashes, full OAuth preservation, and offline hydration resilience.
+   - A maximum 8-second watchdog timeout guarantees that intro playback never traps the user if network or bootstrap stalls, unblocking the router to display actionable recovery.
 
 2. **Remote-Decoupled Intro Orchestration:**
    - Client bundles maintain an offline fallback intro (`BlueIntro`), ensuring instant, crash-free launch even when completely offline.
@@ -373,12 +374,21 @@ flowchart LR
 
 ---
 
+## SECTION 13: Living Constitution & Pragmatic Amendment Clause
+
+This Constitution is a living standard designed to guide, not obstruct, practical engineering excellence. When any constitutional rule or commandment directly conflicts with a sound, proven engineering or industry best practice:
+1. The sound best practice may be chosen.
+2. The rationale must be concisely recorded with a single-line entry in `docs/PRODUCT_DECISIONS.md`.
+3. The Constitution shall be formally amended in a subsequent revision to codify the improved standard.
+
+---
+
 ## Conclusion & Ratification
 
 This Constitution is the operational bedrock of MindFlow. When ambiguities arise, consult the **Decision Precedence Hierarchy**:
 
 1. **Explicit User Directive** (in active conversation).
-2. **This Constitution** (`mindflow_product_constitution.md`).
+2. **Sound Engineering Best Practices & Pragmatic Constitution** (`docs/MINDFLOW_CONSTITUTION.md` — Subject to the Section 13 Amendment Clause).
 3. **Repository Guardrails & Safety** (`AGENTS.md`).
 4. **Feature-Sliced Architecture** (`src/features/*`).
 5. **General Best Practices**.

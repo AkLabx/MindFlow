@@ -8,7 +8,7 @@ Welcome, Autonomous AI Agent! This file contains the prioritized architectural, 
 
 When conflicting instructions or ambiguous choices arise, strictly follow this order of priority:
 1. **Explicit User Prompt** (The user's direct instruction in chat).
-2. **MindFlow Product Constitution** (`docs/MINDFLOW_CONSTITUTION.md` — Supreme product, UX & state standard).
+2. **Sound Engineering Best Practices & Pragmatic Constitution** (`docs/MINDFLOW_CONSTITUTION.md` — Supreme product, UX & state standard, subject to the Pragmatic Amendment Clause: if a rule conflicts with a sound best practice, the best practice may be chosen provided the rationale is recorded in `docs/PRODUCT_DECISIONS.md`).
 3. **Repository Guardrails & Safety** (This file and Section 2 Critical Invariants).
 4. **Architecture Decision Records & Design Logs** (`docs/PRODUCT_DECISIONS.md`, `docs/ADR/*`).
 5. **Existing Codebase Conventions & Feature-Sliced Architecture** (`src/features/*`).
