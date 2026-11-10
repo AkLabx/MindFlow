@@ -16,8 +16,7 @@ import {
   CheckCircle2,
   Mail,
   RefreshCw,
-  Clock,
-  ShieldCheck
+  Clock
 } from 'lucide-react';
 import { AuthHeroShowcase } from './AuthHeroShowcase';
 import { AuthLegalModal } from './AuthLegalModal';
@@ -571,26 +570,6 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                     transition={{ duration: 0.22, ease: 'easeOut' }}
                     className="w-full flex flex-col gap-3"
                   >
-                    {/* Statutory Consent & Age Attestation */}
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400 text-center leading-tight">
-                      By continuing, you confirm you are 18+ (or have parental consent) and agree to our{' '}
-                      <button
-                        type="button"
-                        onClick={() => setLegalModalType('terms')}
-                        className="underline text-indigo-600 dark:text-indigo-400 font-medium hover:text-indigo-500"
-                      >
-                        Terms
-                      </button>{' '}
-                      &amp;{' '}
-                      <button
-                        type="button"
-                        onClick={() => setLegalModalType('privacy')}
-                        className="underline text-indigo-600 dark:text-indigo-400 font-medium hover:text-indigo-500"
-                      >
-                        Privacy Policy
-                      </button>.
-                    </p>
-
                     {/* Google OAuth Button */}
                     <button
                       type="button"
@@ -935,14 +914,21 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                             id="terms-consent"
                             type="checkbox"
                             checked={agreedToTerms}
-                            onChange={(e) => setAgreedToTerms(e.target.checked)}
+                            onChange={(e) => {
+                              setAgreedToTerms(e.target.checked);
+                              if (error) setError(null);
+                            }}
                             className="mt-1 w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer shrink-0"
                           />
                           <label htmlFor="terms-consent" className="text-xs text-slate-600 dark:text-slate-300 leading-normal select-none">
                             I confirm I am 18+, or have parental/guardian consent if under 18, and agree to the{' '}
                             <button
                               type="button"
-                              onClick={() => setLegalModalType('terms')}
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                setLegalModalType('terms');
+                              }}
                               className="text-indigo-600 dark:text-indigo-400 underline font-medium hover:text-indigo-700"
                             >
                               Terms of Service
@@ -950,7 +936,11 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                             {' '}and{' '}
                             <button
                               type="button"
-                              onClick={() => setLegalModalType('privacy')}
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                setLegalModalType('privacy');
+                              }}
                               className="text-indigo-600 dark:text-indigo-400 underline font-medium hover:text-indigo-700"
                             >
                               Privacy Policy
@@ -1012,28 +1002,30 @@ export const AuthPage: React.FC<AuthPageProps> = ({
             </div>
           </div>
 
-          {/* Footer Legal Links with In-App Modal and Guaranteed 44px Touch Targets */}
-          <footer className="pt-6 mt-4 border-t border-slate-100 dark:border-slate-800/80 text-center">
-            <p className="text-xs text-slate-500 dark:text-slate-400 flex flex-wrap items-center justify-center gap-1.5 leading-normal">
-              <span>By accessing MindFlow, you agree to our</span>
-              <button
-                type="button"
-                onClick={() => setLegalModalType('terms')}
-                className="font-semibold text-slate-700 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 underline min-h-[44px] inline-flex items-center px-1"
-              >
-                Terms of Service
-              </button>
-              <span>and</span>
-              <button
-                type="button"
-                onClick={() => setLegalModalType('privacy')}
-                className="font-semibold text-slate-700 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 underline min-h-[44px] inline-flex items-center px-1"
-              >
-                Privacy Policy
-              </button>
-              <span>.</span>
-            </p>
-          </footer>
+          {/* Footer Legal Links (omitted on Create Account details step where the consent checkbox already sits) */}
+          {!(step === 'credentials' && mode === 'signup') && (
+            <footer className="pt-6 mt-4 border-t border-slate-100 dark:border-slate-800/80 text-center">
+              <p className="text-xs text-slate-500 dark:text-slate-400 flex flex-wrap items-center justify-center gap-1.5 leading-normal">
+                <span>By continuing, you agree to our</span>
+                <button
+                  type="button"
+                  onClick={() => setLegalModalType('terms')}
+                  className="font-semibold text-slate-700 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 underline min-h-[44px] inline-flex items-center px-1"
+                >
+                  Terms of Service
+                </button>
+                <span>and</span>
+                <button
+                  type="button"
+                  onClick={() => setLegalModalType('privacy')}
+                  className="font-semibold text-slate-700 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 underline min-h-[44px] inline-flex items-center px-1"
+                >
+                  Privacy Policy
+                </button>
+                <span>.</span>
+              </p>
+            </footer>
+          )}
         </div>
       </div>
 

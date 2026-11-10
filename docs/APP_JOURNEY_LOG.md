@@ -26,6 +26,24 @@ This document is the single source of truth for the evolution of the MindFlow ap
 
 ## 🚀 App Journey Changelog
 
+## [v1.0.344] - 10 November 2026, 05:31 PM IST
+
+> **Release Platform Mapping**: `Android 1.6 (versionCode 6) = Web v1.0.344`
+
+### Executive Summary
+Eliminated repetitive consent friction across authentication and post-login flows: removed the blocking post-login `ConsentAuditModal`, removed duplicate consent notices on the email entry step, onboarding screen, and Create Account footer, and retained only the single mandatory consent checkbox on Create Account alongside a concise passive footer notice on email/Sign In steps.
+
+### ✨ Features & UX Improvements
+- **Streamlined Authentication & Onboarding Consent UX (`AuthPage.tsx`, `OnboardingFlow.tsx`, `MainLayout.tsx`)**:
+  - Removed the global post-login `ConsentAuditModal` (`ConsentAuditModal.tsx`, `ConsentAuditModal.test.tsx`) from `MainLayout.tsx` so authenticated users and Google OAuth sign-ins enter the app directly without recurring modal interruptions.
+  - Removed the duplicate top consent line on Step 1 (`email` step) and kept a single passive footer notice (`"By continuing, you agree to our Terms of Service and Privacy Policy."`) on Step 1 and the Sign In step.
+  - Retained the single mandatory age & terms checkbox on the Create Account details step while hiding the redundant footer notice below the `Create Account` button and preventing legal modal link clicks inside the checkbox label from toggling checkbox state.
+  - Removed the redundant consent notice on `OnboardingFlow.tsx` and unused consent telemetry keys in `telemetryService.ts`.
+  - Added `AuthPage.test.tsx` (`3/3` passing) and verified full Vitest (`29/29` files, `177/177` tests), `tsc --noEmit`, and `vite build`.
+
+### Impacted Scope
+`src/features/auth/`, `src/features/onboarding/`, `src/layouts/MainLayout.tsx`, `src/lib/telemetry/`
+
 ## [v1.0.343] - 10 November 2026, 03:20 PM IST
 
 > **Release Platform Mapping**: `Android 1.6 (versionCode 6) = Web v1.0.343`

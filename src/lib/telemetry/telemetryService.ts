@@ -21,8 +21,6 @@ export interface TelemetryPayloads {
   dashboard_drill_sheet_opened: { drillType: string; drillTitle: string; exam?: string };
   dashboard_drill_started: { drillType: string; drillTitle: string; mode: string; questionCount: number };
   dashboard_drill_customize_clicked: { drillType: string; drillTitle: string; mode: string; questionCount: number };
-  consent_recorded: { version: string };
-  consent_record_failed: { version: string; reason: string };
 }
 
 export type TelemetryEventName = keyof TelemetryPayloads;
