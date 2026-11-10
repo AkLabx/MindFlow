@@ -142,11 +142,13 @@ describe('ConsentAuditModal', () => {
         p_terms_version: CURRENT_TERMS_VERSION,
         p_age_confirmed: CURRENT_AGE_ATTESTATION,
       });
+      expect(refreshProfile).toHaveBeenCalledTimes(1);
+      expect(mockShowToast).toHaveBeenCalledWith(
+        expect.objectContaining({ variant: 'success', title: 'Consent Recorded' })
+      );
+      const signOutBtn = screen.getByRole('button', { name: /Sign Out/i }) as HTMLButtonElement;
+      expect(signOutBtn.disabled).toBe(false);
     });
-    expect(refreshProfile).toHaveBeenCalledTimes(1);
-    expect(mockShowToast).toHaveBeenCalledWith(
-      expect.objectContaining({ variant: 'success', title: 'Consent Recorded' })
-    );
 
     const signOutBtn = screen.getByRole('button', { name: /Sign Out/i });
     fireEvent.click(signOutBtn);
