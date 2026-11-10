@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Capacitor } from '@capacitor/core';
+import { App } from '@capacitor/app';
 import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
 import { useLocation } from 'react-router-dom';
 
@@ -159,11 +160,12 @@ export const AuthPage: React.FC<AuthPageProps> = ({
     return () => clearTimeout(timer);
   }, [step, mode]);
 
-  // Escape & Android Hardware Back navigation
+  // Escape (Web) & Android Hardware Back navigation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         if (legalModalType) {
+          triggerHaptic('light');
           setLegalModalType(null);
           return;
         }
@@ -177,7 +179,39 @@ export const AuthPage: React.FC<AuthPageProps> = ({
     return () => document.removeEventListener('keydown', handleKeyDown, true);
   }, [step, legalModalType]);
 
+  // Capacitor Android Hardware & Gesture Back Button Listener
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+
+    let listenerHandle: any = null;
+    const registerBackHandler = async () => {
+      listenerHandle = await App.addListener('backButton', () => {
+        if (legalModalType) {
+          triggerHaptic('light');
+          setLegalModalType(null);
+          return;
+        }
+        if (step === 'credentials') {
+          triggerHaptic('light');
+          handleBackToEmail();
+          return;
+        }
+        // At root login step on Android, minimize the app smoothly
+        App.minimizeApp();
+      });
+    };
+
+    registerBackHandler();
+
+    return () => {
+      if (listenerHandle?.remove) {
+        listenerHandle.remove();
+      }
+    };
+  }, [step, legalModalType]);
+
   const handleBackToEmail = () => {
+    triggerHaptic('light');
     setDirection(-1);
     setStep('email');
     setError(null);
@@ -203,6 +237,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
 
     const trimmed = email.trim().toLowerCase();
     if (!trimmed) {
+      triggerHaptic('error');
       setError('Please enter your email address.');
       emailInputRef.current?.focus();
       return;
@@ -210,11 +245,13 @@ export const AuthPage: React.FC<AuthPageProps> = ({
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(trimmed)) {
+      triggerHaptic('error');
       setError('Please enter a valid email address.');
       emailInputRef.current?.focus();
       return;
     }
 
+    triggerHaptic('light');
     setEmail(trimmed);
     setDirection(1);
     setStep('credentials');
@@ -480,13 +517,13 @@ export const AuthPage: React.FC<AuthPageProps> = ({
     <main
       id="main-content"
       role="main"
-      className="min-h-[100dvh] w-full flex items-center justify-center relative bg-gradient-to-br from-slate-50 via-indigo-50/30 to-purple-50/20 dark:from-slate-950 dark:via-slate-900 dark:to-indigo-950/40 p-2 sm:p-4 md:p-6 lg:p-8 overflow-x-hidden"
+      className="min-h-[100dvh] w-full flex flex-col lg:items-center lg:justify-center relative bg-slate-50 dark:bg-slate-950 lg:bg-gradient-to-br lg:from-slate-50 lg:via-indigo-50/30 lg:to-purple-50/20 lg:dark:from-slate-950 lg:dark:via-slate-900 lg:dark:to-indigo-950/40 p-0 sm:p-0 md:p-4 lg:p-8 pt-[env(safe-area-inset-top,0px)] pb-[env(safe-area-inset-bottom,0px)] overflow-x-hidden overscroll-contain select-none"
     >
-      {/* Background ambient lighting */}
-      <div className="absolute top-0 inset-x-0 h-72 bg-gradient-to-b from-indigo-500/10 via-purple-500/5 to-transparent pointer-events-none" />
+      {/* Background ambient lighting (desktop only) */}
+      <div className="hidden lg:block absolute top-0 inset-x-0 h-72 bg-gradient-to-b from-indigo-500/10 via-purple-500/5 to-transparent pointer-events-none" />
 
-      {/* Main Responsive Grid Container */}
-      <div className="relative z-10 w-full max-w-5xl my-auto rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-2xl overflow-hidden grid grid-cols-1 lg:grid-cols-12 min-h-[600px] lg:min-h-[680px]">
+      {/* Main Responsive Container: Edge-to-edge native surface on mobile, floating card on desktop */}
+      <div className="relative z-10 w-full max-w-5xl my-0 lg:my-auto bg-white dark:bg-slate-900 border-0 md:border border-slate-200/80 dark:border-slate-800 rounded-none md:rounded-3xl shadow-none md:shadow-2xl overflow-hidden grid grid-cols-1 lg:grid-cols-12 min-h-[100dvh] md:min-h-[600px] lg:min-h-[680px] flex-1 lg:flex-initial">
         
         {/* Left Column: Desktop Hero Showcase */}
         <div className="hidden lg:flex lg:col-span-7 h-full">
@@ -494,66 +531,84 @@ export const AuthPage: React.FC<AuthPageProps> = ({
         </div>
 
         {/* Right Column: Interactive Auth Console */}
-        <div className="col-span-12 lg:col-span-5 flex flex-col justify-between p-6 sm:p-8 lg:p-10 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md">
-          <div>
-            {/* Brand Logo & Mobile Intro Header */}
-            <header className="flex flex-col items-center text-center mb-5 shrink-0 relative">
-              {step === 'credentials' && (
-                <button
-                  type="button"
-                  onClick={handleBackToEmail}
-                  aria-label="Back to email input"
-                  className="absolute left-0 top-0 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
-                >
-                  <ArrowLeft className="w-5 h-5" />
-                </button>
-              )}
+        <div className="col-span-12 lg:col-span-5 flex flex-col justify-between bg-white dark:bg-slate-900 flex-1">
+          {/* Android Native Top App Bar on Mobile when on credentials step */}
+          {step === 'credentials' && (
+            <div className="flex items-center h-14 px-4 border-b border-slate-100 dark:border-slate-800/80 lg:hidden shrink-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md sticky top-0 z-20">
+              <button
+                type="button"
+                onClick={handleBackToEmail}
+                aria-label="Back to email input"
+                className="w-10 h-10 -ml-1 rounded-full flex items-center justify-center text-slate-700 dark:text-slate-200 active:bg-slate-100 dark:active:bg-slate-800 active:scale-95 transition-all"
+              >
+                <ArrowLeft className="w-5 h-5" />
+              </button>
+              <span className="ml-2 font-semibold text-sm text-slate-800 dark:text-slate-100">
+                {mode === 'signin' ? 'Sign In' : 'Create Account'}
+              </span>
+            </div>
+          )}
 
-              <div className="mb-2">
-                <BrandLogo variant="wordmark" size="md" />
-              </div>
+          <div className="p-5 sm:p-8 lg:p-10 flex-1 flex flex-col justify-between">
+            <div>
+              {/* Brand Logo & Mobile Intro Header */}
+              <header className="flex flex-col items-center text-center mb-5 shrink-0 relative">
+                {step === 'credentials' && (
+                  <button
+                    type="button"
+                    onClick={handleBackToEmail}
+                    aria-label="Back to email input"
+                    className="hidden lg:flex absolute left-0 top-0 min-w-[44px] min-h-[44px] items-center justify-center rounded-xl text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+                  >
+                    <ArrowLeft className="w-5 h-5" />
+                  </button>
+                )}
 
-              {/* Dual-Tab Mode Switcher */}
-              <div className="w-full max-w-xs mt-2 p-1 bg-slate-100 dark:bg-slate-800 rounded-2xl flex items-center text-xs font-semibold">
-                <button
-                  type="button"
-                  onClick={() => handleSwitchMode('signin')}
-                  className={`flex-1 min-h-[38px] rounded-xl transition-all ${
-                    mode === 'signin'
-                      ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                  }`}
-                >
-                  Sign In
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleSwitchMode('signup')}
-                  className={`flex-1 min-h-[38px] rounded-xl transition-all ${
-                    mode === 'signup'
-                      ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                  }`}
-                >
-                  Create Account
-                </button>
-              </div>
+                <div className="mb-2">
+                  <BrandLogo variant="wordmark" size="md" />
+                </div>
 
-              <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight mt-4">
-                {mode === 'signin'
-                  ? step === 'email'
-                    ? 'Welcome Back'
-                    : 'Enter Password'
-                  : step === 'email'
-                  ? 'Join MindFlow'
-                  : 'Complete Profile'}
-              </h1>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                {mode === 'signin'
-                  ? 'Access your saved mock drills and personal notebook'
-                  : 'Get start-to-finish AI preparation for competitive exams'}
-              </p>
-            </header>
+                {/* Dual-Tab Mode Switcher with Android Material Feel */}
+                <div className="w-full max-w-xs mt-2 p-1 bg-slate-100 dark:bg-slate-800 rounded-2xl flex items-center text-xs font-semibold">
+                  <button
+                    type="button"
+                    onClick={() => handleSwitchMode('signin')}
+                    className={`flex-1 min-h-[38px] rounded-xl transition-all active:scale-[0.97] ${
+                      mode === 'signin'
+                        ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                    }`}
+                  >
+                    Sign In
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleSwitchMode('signup')}
+                    className={`flex-1 min-h-[38px] rounded-xl transition-all active:scale-[0.97] ${
+                      mode === 'signup'
+                        ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                    }`}
+                  >
+                    Create Account
+                  </button>
+                </div>
+
+                <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight mt-4">
+                  {mode === 'signin'
+                    ? step === 'email'
+                      ? 'Welcome Back'
+                      : 'Enter Password'
+                    : step === 'email'
+                    ? 'Join MindFlow'
+                    : 'Complete Profile'}
+                </h1>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                  {mode === 'signin'
+                    ? 'Access your saved mock drills and personal notebook'
+                    : 'Get start-to-finish AI preparation for competitive exams'}
+                </p>
+              </header>
 
             {/* Step Slider */}
             <div className="w-full relative overflow-hidden p-1 -m-1">
@@ -573,9 +628,12 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                     {/* Google OAuth Button */}
                     <button
                       type="button"
-                      onClick={handleGoogleSignIn}
+                      onClick={() => {
+                        triggerHaptic('light');
+                        handleGoogleSignIn();
+                      }}
                       disabled={isEmailLoading || isGoogleLoading}
-                      className={`w-full min-h-[44px] h-12 flex justify-center items-center gap-3 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-semibold px-4 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-indigo-500 hover:bg-indigo-50/50 dark:hover:bg-indigo-950/30 focus:outline-none focus:ring-2 focus:ring-indigo-600/50 text-sm transition-all shadow-sm ${
+                      className={`w-full min-h-[44px] h-12 flex justify-center items-center gap-3 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-semibold px-4 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-indigo-500 hover:bg-indigo-50/50 dark:hover:bg-indigo-950/30 focus:outline-none focus:ring-2 focus:ring-indigo-600/50 text-sm transition-all shadow-sm active:scale-[0.98] active:bg-slate-100 dark:active:bg-slate-700/60 select-none ${
                         isEmailLoading ? 'opacity-50 cursor-not-allowed' : isGoogleLoading ? 'cursor-wait' : ''
                       }`}
                     >
@@ -622,6 +680,8 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                           id="email-input"
                           name="email"
                           type="email"
+                          inputMode="email"
+                          enterKeyHint="next"
                           autoComplete="username"
                           value={email}
                           onChange={(e) => setEmail(e.target.value)}
@@ -650,7 +710,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
 
                       <button
                         type="submit"
-                        className="w-full min-h-[44px] h-12 flex justify-center items-center gap-2 bg-indigo-600 text-white font-semibold px-4 rounded-xl hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-600/50 text-sm transition-all shadow-md shadow-indigo-500/20 active:scale-[0.99]"
+                        className="w-full min-h-[44px] h-12 flex justify-center items-center gap-2 bg-indigo-600 text-white font-semibold px-4 rounded-xl hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-600/50 text-sm transition-all shadow-md shadow-indigo-500/20 active:scale-[0.98] active:brightness-95 select-none"
                       >
                         <span>Continue</span>
                         <motion.svg
@@ -726,6 +786,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                               id="password-input"
                               name="password"
                               type={showPassword ? 'text' : 'password'}
+                              enterKeyHint="go"
                               autoComplete="current-password"
                               value={password}
                               onChange={(e) => setPassword(e.target.value)}
@@ -735,9 +796,12 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                             />
                             <button
                               type="button"
-                              onClick={() => setShowPassword(!showPassword)}
+                              onClick={() => {
+                                triggerHaptic('light');
+                                setShowPassword(!showPassword);
+                              }}
                               aria-label={showPassword ? 'Hide password' : 'Show password'}
-                              className="absolute inset-y-0 right-0 min-w-[44px] w-12 flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+                              className="absolute inset-y-0 right-0 min-w-[44px] w-12 flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 active:scale-95 transition-all"
                             >
                               {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                             </button>
@@ -810,7 +874,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                         <button
                           type="submit"
                           disabled={isEmailLoading || isGoogleLoading || lockoutRemaining > 0}
-                          className="w-full min-h-[44px] h-12 flex justify-center items-center gap-2 bg-indigo-600 text-white font-semibold px-4 rounded-xl hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-600/50 text-sm transition-all shadow-md shadow-indigo-500/20 active:scale-[0.99] disabled:opacity-50"
+                          className="w-full min-h-[44px] h-12 flex justify-center items-center gap-2 bg-indigo-600 text-white font-semibold px-4 rounded-xl hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-600/50 text-sm transition-all shadow-md shadow-indigo-500/20 active:scale-[0.98] active:brightness-95 select-none disabled:opacity-50"
                         >
                           {isEmailLoading ? (
                             <>
@@ -827,7 +891,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                           <button
                             type="button"
                             onClick={() => handleSwitchMode('signup')}
-                            className="min-h-[44px] text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline px-2 py-1"
+                            className="min-h-[44px] text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline px-2 py-1 active:scale-95 transition-transform"
                           >
                             New to MindFlow? Create an account with this email
                           </button>
@@ -847,6 +911,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                             ref={fullNameInputRef}
                             id="fullname-input"
                             type="text"
+                            enterKeyHint="next"
                             autoComplete="name"
                             value={fullName}
                             onChange={(e) => setFullName(e.target.value)}
@@ -864,6 +929,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                             <input
                               id="signup-password"
                               type={showPassword ? 'text' : 'password'}
+                              enterKeyHint="next"
                               autoComplete="new-password"
                               value={password}
                               onChange={(e) => setPassword(e.target.value)}
@@ -872,9 +938,12 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                             />
                             <button
                               type="button"
-                              onClick={() => setShowPassword(!showPassword)}
+                              onClick={() => {
+                                triggerHaptic('light');
+                                setShowPassword(!showPassword);
+                              }}
                               aria-label={showPassword ? 'Hide password' : 'Show password'}
-                              className="absolute inset-y-0 right-0 min-w-[44px] w-12 flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                              className="absolute inset-y-0 right-0 min-w-[44px] w-12 flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 active:scale-95 transition-all"
                             >
                               {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                             </button>
@@ -891,6 +960,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                             <input
                               id="confirm-password"
                               type={showConfirmPassword ? 'text' : 'password'}
+                              enterKeyHint="done"
                               autoComplete="new-password"
                               value={confirmPassword}
                               onChange={(e) => setConfirmPassword(e.target.value)}
@@ -899,9 +969,12 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                             />
                             <button
                               type="button"
-                              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                              onClick={() => {
+                                triggerHaptic('light');
+                                setShowConfirmPassword(!showConfirmPassword);
+                              }}
                               aria-label={showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'}
-                              className="absolute inset-y-0 right-0 min-w-[44px] w-12 flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                              className="absolute inset-y-0 right-0 min-w-[44px] w-12 flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 active:scale-95 transition-all"
                             >
                               {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                             </button>
@@ -915,6 +988,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                             type="checkbox"
                             checked={agreedToTerms}
                             onChange={(e) => {
+                              triggerHaptic('light');
                               setAgreedToTerms(e.target.checked);
                               if (error) setError(null);
                             }}
@@ -927,9 +1001,10 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                               onClick={(e) => {
                                 e.preventDefault();
                                 e.stopPropagation();
+                                triggerHaptic('light');
                                 setLegalModalType('terms');
                               }}
-                              className="text-indigo-600 dark:text-indigo-400 underline font-medium hover:text-indigo-700"
+                              className="text-indigo-600 dark:text-indigo-400 underline font-medium hover:text-indigo-700 active:opacity-75"
                             >
                               Terms of Service
                             </button>
@@ -939,9 +1014,10 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                               onClick={(e) => {
                                 e.preventDefault();
                                 e.stopPropagation();
+                                triggerHaptic('light');
                                 setLegalModalType('privacy');
                               }}
-                              className="text-indigo-600 dark:text-indigo-400 underline font-medium hover:text-indigo-700"
+                              className="text-indigo-600 dark:text-indigo-400 underline font-medium hover:text-indigo-700 active:opacity-75"
                             >
                               Privacy Policy
                             </button>
@@ -983,7 +1059,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                         <button
                           type="submit"
                           disabled={isEmailLoading || isGoogleLoading}
-                          className="w-full min-h-[44px] h-12 flex justify-center items-center gap-2 bg-indigo-600 text-white font-semibold px-4 rounded-xl hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-600/50 text-sm transition-all shadow-md shadow-indigo-500/20 active:scale-[0.99] disabled:opacity-50"
+                          className="w-full min-h-[44px] h-12 flex justify-center items-center gap-2 bg-indigo-600 text-white font-semibold px-4 rounded-xl hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-600/50 text-sm transition-all shadow-md shadow-indigo-500/20 active:scale-[0.98] active:brightness-95 select-none disabled:opacity-50"
                         >
                           {isEmailLoading ? (
                             <>
@@ -1001,15 +1077,19 @@ export const AuthPage: React.FC<AuthPageProps> = ({
               </AnimatePresence>
             </div>
           </div>
+        </div>
 
           {/* Footer Legal Links (omitted on Create Account details step where the consent checkbox already sits) */}
           {!(step === 'credentials' && mode === 'signup') && (
-            <footer className="pt-6 mt-4 border-t border-slate-100 dark:border-slate-800/80 text-center">
+            <footer className="pt-6 mt-4 border-t border-slate-100 dark:border-slate-800/80 text-center select-none">
               <p className="text-xs text-slate-500 dark:text-slate-400 flex flex-wrap items-center justify-center gap-1.5 leading-normal">
                 <span>By continuing, you agree to our</span>
                 <button
                   type="button"
-                  onClick={() => setLegalModalType('terms')}
+                  onClick={() => {
+                    triggerHaptic('light');
+                    setLegalModalType('terms');
+                  }}
                   className="font-semibold text-slate-700 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 underline min-h-[44px] inline-flex items-center px-1"
                 >
                   Terms of Service
@@ -1017,7 +1097,10 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                 <span>and</span>
                 <button
                   type="button"
-                  onClick={() => setLegalModalType('privacy')}
+                  onClick={() => {
+                    triggerHaptic('light');
+                    setLegalModalType('privacy');
+                  }}
                   className="font-semibold text-slate-700 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 underline min-h-[44px] inline-flex items-center px-1"
                 >
                   Privacy Policy
