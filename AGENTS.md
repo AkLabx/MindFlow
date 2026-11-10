@@ -80,6 +80,32 @@ Before executing planned changes, **STOP and ask the user for confirmation** if:
   - Summarize work cleanly under structured headings (`✨ Features`, `🐛 Bug Fixes`, `⚡ Performance & Refactoring`, `🔒 Security & Architecture`).
   - STRICT ZERO-SENSITIVITY POLICY: Never include sensitive info, tokens, credentials, or private connection strings.
 
+### [HIGH] Modern Web Guidance & Baseline Platform Directives (Google Chrome MWG)
+Autonomous agents implementing or modifying MindFlow UI, styles, scheduling, or client logic MUST adhere to **Google Chrome Modern Web Guidance (MWG)** standards and prioritize web platform native capabilities:
+- **Baseline Primitives First**: Favor native, high-performance web platform capabilities (Baseline Widely Available) over heavy npm dependencies, legacy polyfills, and outdated JavaScript workarounds.
+- **Dialogs & Popovers (Top Layer)**:
+  - Use native HTML `<dialog>` elements and the HTML **Popover API** (`popover="auto"` or `popover="manual"`).
+  - Animate elements entering and exiting the Top Layer smoothly using CSS `@starting-style` and `transition-behavior: allow-discrete`.
+  - Avoid custom modal backdrop portaling, manual body scroll locks, or fragile z-index escalation ladders.
+- **CSS Anchor Positioning**:
+  - Prefer native **CSS Anchor Positioning** (`anchor-name`, `position-anchor`, `inset-area`, `@position-try-fallbacks`) for tooltips, floating popups, and quiz action hint bubbles instead of JavaScript bounding-box calculation libraries (`floating-ui`, `popper.js`).
+- **Core Web Vitals & INP Optimization (`scheduler.yield()`)**:
+  - Break up long-running JavaScript execution (e.g., question bank filtering, search indexing, IndexedDB hydration, math rendering, and AI response stream processing) using `await scheduler.yield()` or `scheduler.postTask()` with appropriate task priorities (`user-visible`, `background`).
+  - Maintain a strict frame budget ($< 16\text{ms}$) to guarantee stutter-free 60fps performance on mobile Android WebView.
+- **Fluid Screen & Page Transitions**:
+  - Leverage the native **View Transitions API** (`document.startViewTransition()`) for fluid page-to-page morphing, card expansions, and route transitions in MindFlow's SPA routing without heavy animation runtime overhead.
+- **Modern CSS Layout & Primitives**:
+  - Use **Container Queries** (`@container`) and **Subgrid** (`grid-template-columns: subgrid`) for responsive cards and choice grids that adapt to their container context rather than viewport widths.
+  - Utilize `:has()` relational selectors instead of component-to-component shadow state synchronization.
+  - Standardize dark/light theme styling with modern CSS functions like `light-dark()` and high-gamut `oklch()`.
+- **Accessible & Standardized Forms**:
+  - Leverage native HTML form validation with CSS `:user-invalid` instead of heavy external schema validation libraries for basic UI field hygiene.
+  - Support WebAuthn biometric **Passkey Conditional UI** (autofilling credentials on identity inputs) for frictionless, one-tap mobile authentication.
+- **Nuanced Fallbacks & Progressive Enhancement**:
+  - Distinguish additive enhancements (e.g., speculative rules, smooth scroll-driven effects) which can be safely omitted on older engines, from critical capabilities.
+  - When non-Baseline features require fallbacks, implement lightweight inline custom fallbacks ($\le 20$ lines of code, zero extra npm dependencies) rather than pulling in external bundle bloat.
+  - Respect project configuration in `.mwgrc` (`allowOriginTrials: false`, `allowVolatileFeatures: false`).
+
 ### [NORMAL] Architectural & Domain Conventions
 - **Development Server**: The local Vite development server runs on port **3000** (`http://localhost:3000/`), not the standard Vite port 5173.
 - **Dependency Installation**: ALWAYS use `npm install --legacy-peer-deps` to bypass ERESOLVE peer dependency conflicts arising from Capacitor Android plugins.
