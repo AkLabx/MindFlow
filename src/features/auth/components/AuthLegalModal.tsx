@@ -1,5 +1,7 @@
 import React, { useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { X, Shield, FileText, CheckCircle2 } from 'lucide-react';
+import { triggerHaptic } from '@/lib/haptics';
 
 interface AuthLegalModalProps {
   isOpen: boolean;
@@ -14,11 +16,16 @@ export const AuthLegalModal: React.FC<AuthLegalModalProps> = ({
 }) => {
   const modalRef = useRef<HTMLDivElement>(null);
 
+  const handleClose = () => {
+    triggerHaptic('light');
+    onClose();
+  };
+
   // Close on Escape key press
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && isOpen) {
-        onClose();
+        handleClose();
       }
     };
     if (isOpen) {
@@ -29,49 +36,58 @@ export const AuthLegalModal: React.FC<AuthLegalModalProps> = ({
       window.removeEventListener('keydown', handleKeyDown);
       document.body.style.overflow = '';
     };
-  }, [isOpen, onClose]);
-
-  if (!isOpen || !type) return null;
+  }, [isOpen]);
 
   const isTerms = type === 'terms';
 
   return (
-    <div
-      className="fixed inset-0 z-[10060] flex items-center justify-center p-4 sm:p-6 bg-slate-950/70 backdrop-blur-sm animate-fade-in"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="legal-modal-title"
-      onClick={onClose}
-    >
-      <div
-        ref={modalRef}
-        className="relative w-full max-w-2xl max-h-[85vh] flex flex-col bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl overflow-hidden"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/70">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400">
-              {isTerms ? <FileText className="w-5 h-5" /> : <Shield className="w-5 h-5" />}
-            </div>
-            <div>
-              <h2 id="legal-modal-title" className="text-lg font-bold text-slate-900 dark:text-white">
-                {isTerms ? 'Terms of Service' : 'Privacy Policy & Data Notice'}
-              </h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                Version 2.1 • Effective November 2024 • Governed by Laws of India
-              </p>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-            aria-label="Close dialog"
+    <AnimatePresence>
+      {isOpen && type && (
+        <div
+          className="fixed inset-0 z-[10060] flex items-end sm:items-center justify-center p-0 sm:p-6 bg-slate-950/70 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="legal-modal-title"
+          onClick={handleClose}
+        >
+          <motion.div
+            ref={modalRef}
+            initial={{ y: '100%', opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: '100%', opacity: 0 }}
+            transition={{ type: 'spring', damping: 28, stiffness: 320 }}
+            className="relative w-full max-w-2xl max-h-[88vh] sm:max-h-[85vh] flex flex-col bg-white dark:bg-slate-900 border-t sm:border border-slate-200 dark:border-slate-800 rounded-t-3xl sm:rounded-2xl shadow-2xl overflow-hidden pb-[env(safe-area-inset-bottom,0px)]"
+            onClick={(e) => e.stopPropagation()}
           >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
+            {/* Android Drag Handle Pill on Mobile */}
+            <div className="sm:hidden pt-3 pb-1 flex justify-center w-full shrink-0 select-none">
+              <div className="w-12 h-1.5 rounded-full bg-slate-300 dark:bg-slate-700" />
+            </div>
+
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 sm:px-6 py-3.5 sm:py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/70 select-none">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400">
+                  {isTerms ? <FileText className="w-5 h-5" /> : <Shield className="w-5 h-5" />}
+                </div>
+                <div>
+                  <h2 id="legal-modal-title" className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">
+                    {isTerms ? 'Terms of Service' : 'Privacy Policy & Data Notice'}
+                  </h2>
+                  <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400">
+                    Version 2.1 • Effective November 2024 • Governed by Laws of India
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={handleClose}
+                className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 active:scale-95 transition-all"
+                aria-label="Close dialog"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
 
         {/* Scrollable Body */}
         <div className="flex-1 overflow-y-auto px-6 py-5 text-sm text-slate-600 dark:text-slate-300 space-y-5 leading-relaxed">
@@ -183,20 +199,22 @@ export const AuthLegalModal: React.FC<AuthLegalModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 flex items-center justify-between">
+        <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 flex items-center justify-between select-none">
           <span className="text-xs text-slate-400 flex items-center gap-1.5">
             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
             Verified Statutory Compliance
           </span>
           <button
             type="button"
-            onClick={onClose}
+            onClick={handleClose}
             className="min-h-[44px] px-5 py-2.5 rounded-xl font-medium text-sm bg-indigo-600 text-white hover:bg-indigo-700 active:scale-95 transition-all shadow-sm"
           >
             I Understand
           </button>
         </div>
-      </div>
+      </motion.div>
     </div>
+      )}
+    </AnimatePresence>
   );
 };

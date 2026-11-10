@@ -26,6 +26,27 @@ This document is the single source of truth for the evolution of the MindFlow ap
 
 ## 🚀 App Journey Changelog
 
+## [v1.0.346] - 11 November 2026, 01:21 AM IST
+
+> **Release Platform Mapping**: `Android 1.6 (versionCode 6) = Web v1.0.346`
+
+### Executive Summary
+Enforced the non-negotiable Android Native Feel & Behavior Uplift invariant across the codebase in `AGENTS.md`. Completed the complete native APK audit and uplift of the Login / Authentication screen (`AuthPage` & `AuthLegalModal`), converting the floating card layout into an edge-to-edge native Android canvas with hardware back button intercepting, tactile haptic feedback, Material 3 bottom sheets, and keyboard-aware ergonomics.
+
+### Work Breakdown
+- **✨ Features Added**:
+  - **Android Hardware & Gesture Back Navigation**: Integrated `@capacitor/app` `App.addListener('backButton')` in `AuthPage` to seamlessly handle Android physical/gesture back presses—dismissing the legal modal, stepping back from credentials to email, or minimizing the app at root without ungraceful app termination.
+  - **Material 3 Bottom Sheet**: Rebuilt `AuthLegalModal` from a desktop-centric popup into an Android native Material 3 Bottom Sheet on mobile with a drag handle indicator, spring slide-up animations, safe-area inset padding, and tactile touch dismiss.
+  - **Android Native Top App Bar**: Added a mobile Top App Bar with a circular ripple touch target for back navigation when transitioning between auth steps.
+- **⚡ Performance & Refactoring**:
+  - **Edge-to-Edge Surface**: Replaced the floating boxed card on mobile with an edge-to-edge native surface adhering to Android status bar (`env(safe-area-inset-top)`) and gesture bar (`env(safe-area-inset-bottom)`) insets, while preserving the responsive desktop showcase on large screens.
+  - **Tactile Touch Feedback**: Added Material-style active press states (`active:scale-[0.98] active:brightness-95`) and instant haptic vibrations (`triggerHaptic('light')`) to buttons, Google sign-in, tab switches, and legal modal toggles.
+  - **Mobile Keyboard & Scroll Ergonomics**: Set `inputMode="email"` and `enterKeyHint` attributes across form inputs to optimize the Android virtual keyboard, and added `overscroll-behavior-y: contain` to prevent web bounce.
+- **🔒 Security & Architecture**:
+  - Inscribed the **Android Native Feel & Behavior Uplift (Non-Negotiable)** invariant into `AGENTS.md` under Hard Invariants (Zero-Tolerance) ensuring all ongoing and future frontend developments strictly adhere to native Android APK standards.
+
+---
+
 ## [v1.0.345] - 10 November 2026, 10:48 PM IST
 
 > **Release Platform Mapping**: `Android 1.6 (versionCode 6) = Web v1.0.345`
