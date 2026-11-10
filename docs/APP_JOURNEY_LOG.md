@@ -26,6 +26,25 @@ This document is the single source of truth for the evolution of the MindFlow ap
 
 ## 🚀 App Journey Changelog
 
+## [v1.0.350] - 11 November 2026, 03:38 AM IST
+
+> **Release Platform Mapping**: `Android 1.6 (versionCode 6) = Web v1.0.350`
+
+### Executive Summary
+Uplifted the Subject Topics & Subtopic Launcher screen (`SubjectTopicsPage.tsx`, `TopicCard.tsx`, `QuizStartBottomSheet.tsx`) to native Android APK standards. Implemented layered Android hardware back button interception (closing the active subtopic bottom sheet first before returning to Subject Hub), eliminated 50+ simultaneous `setInterval` counters in favor of 0ms instant tabular counts, enforced 44x44px touch targets, and added tactile haptics with inward press scaling across all topic/subtopic cards and bottom sheet controls.
+
+### Work Breakdown
+- **✨ Features Added**:
+  - **Layered Android Hardware Back Interception (`QuizStartBottomSheet.tsx`, `SubjectTopicsPage.tsx`)**: Registered `@capacitor/app` `App.addListener('backButton')` so physical/gesture back presses on Android dismiss the active `QuizStartBottomSheet` first, and navigate back to `SubjectHubPage` (`/subject/:subjectName`) when no overlay is open.
+  - **Tactile Haptics & Inward Press Scaling (`TopicCard.tsx`, `QuizStartBottomSheet.tsx`)**: Added `triggerHaptic('light')` and `triggerHaptic('medium')` along with `active:scale-[0.98]` / `active:scale-95` across topic headers, subtopic rows, difficulty chips, mode cards, and launch buttons.
+- **⚡ Performance & Refactoring**:
+  - **Eliminated Multi-Timer Scroll Jitter (`TopicCard.tsx`)**: Removed the per-subtopic `30ms` `setInterval` animation loop (`AnimatedCount`) that spawned dozens of concurrent timers on mount, replacing it with instant 0ms `tabular-nums` rendering for 60fps Android WebView scrolling.
+  - **Accessible 44x44px Touch Targets & Clean Canvas**: Upgraded close and info icon buttons in `QuizStartBottomSheet.tsx` to native touch target minimums and removed negative margin bleed hacks (`-mx-4 -mt-4`) on `SubjectTopicsPage.tsx`.
+- **🔒 Security & Architecture**:
+  - Verified with `npx tsc --noEmit` (0 errors). Preserved JIT question metadata fetching and offline-first quiz creation flows.
+
+---
+
 ## [v1.0.349] - 11 November 2026, 03:12 AM IST
 
 > **Release Platform Mapping**: `Android 1.6 (versionCode 6) = Web v1.0.349`

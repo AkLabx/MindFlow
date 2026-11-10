@@ -1,5 +1,7 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { Capacitor } from "@capacitor/core";
+import { App } from "@capacitor/app";
 import {
   X,
   Info,
@@ -18,6 +20,7 @@ import { Target } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Question } from "@/features/quiz/types";
 import { ROUTES } from "@/config/routes";
+import { triggerHaptic } from "@/lib/haptics";
 
 interface QuizStartBottomSheetProps {
   isOpen: boolean;
@@ -54,13 +57,38 @@ export const QuizStartBottomSheet: React.FC<QuizStartBottomSheetProps> = ({
   React.useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = "hidden";
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === "Escape") onClose();
+      };
+      window.addEventListener("keydown", handleKeyDown);
+      return () => {
+        document.body.style.overflow = "auto";
+        window.removeEventListener("keydown", handleKeyDown);
+      };
     } else {
       document.body.style.overflow = "auto";
     }
+  }, [isOpen, onClose]);
+
+  // Capacitor Android Hardware Back Button listener (Dismiss sheet first)
+  React.useEffect(() => {
+    if (!isOpen) return;
+
+    let backHandler: any;
+    if (Capacitor.isNativePlatform()) {
+      App.addListener("backButton", () => {
+        onClose();
+      }).then((handle) => {
+        backHandler = handle;
+      });
+    }
+
     return () => {
-      document.body.style.overflow = "auto";
+      if (backHandler) {
+        backHandler.remove();
+      }
     };
-  }, [isOpen]);
+  }, [isOpen, onClose]);
 
   const { learningStatus, mockStatus, isLoading } = useSubTopicModeProgress(
     subject,
@@ -90,6 +118,7 @@ export const QuizStartBottomSheet: React.FC<QuizStartBottomSheetProps> = ({
   const currentStatus = mode === "learning" ? learningStatus : mockStatus;
 
   const handlePrimaryAction = () => {
+    triggerHaptic("medium");
     if (currentStatus.status === "COMPLETED" && currentStatus.quizId) {
       navigate(ROUTES.RESULT.view(currentStatus.quizId));
       onClose();
@@ -146,18 +175,20 @@ export const QuizStartBottomSheet: React.FC<QuizStartBottomSheetProps> = ({
             className="fixed inset-0 z-[10001] bg-black/50 backdrop-blur-sm"
           />
           <motion.div
+            role="dialog"
+            aria-modal="true"
             initial={{ y: "100%" }}
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
-            transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="fixed bottom-0 left-0 right-0 z-[10002] bg-white dark:bg-slate-900 rounded-t-3xl shadow-2xl p-6 pb-[calc(env(safe-area-inset-bottom)+5.5rem)] flex flex-col gap-6 max-h-[90vh] overflow-y-auto"
+            transition={{ type: "spring", damping: 28, stiffness: 320 }}
+            className="fixed bottom-0 left-0 right-0 z-[10002] bg-white dark:bg-slate-900 rounded-t-3xl shadow-2xl p-5 sm:p-6 pb-[calc(env(safe-area-inset-bottom,0px)+5.5rem)] flex flex-col gap-5 max-h-[90vh] overflow-y-auto overscroll-contain select-none"
           >
             {/* Handle Bar */}
-            <div className="w-12 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full mx-auto -mt-2 mb-2" />
+            <div className="w-12 h-1.5 bg-slate-300 dark:bg-slate-700 rounded-full mx-auto -mt-1 mb-1" />
 
-            <div className="flex justify-between items-start">
-              <div>
-                <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-1">
+            <div className="flex justify-between items-start gap-3">
+              <div className="min-w-0">
+                <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-1 tracking-tight">
                   {subTopic}
                 </h2>
                 <p className="text-sm text-slate-500 dark:text-slate-400 flex items-center gap-2 flex-wrap">
@@ -171,8 +202,13 @@ export const QuizStartBottomSheet: React.FC<QuizStartBottomSheetProps> = ({
                 </p>
               </div>
               <button
-                onClick={onClose}
-                className="p-2 -mr-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                type="button"
+                aria-label="Close bottom sheet"
+                onClick={() => {
+                  triggerHaptic("light");
+                  onClose();
+                }}
+                className="min-w-[44px] min-h-[44px] -mr-2 -mt-1 flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 active:scale-90 transition-all cursor-pointer touch-manipulation shrink-0"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -186,18 +222,18 @@ export const QuizStartBottomSheet: React.FC<QuizStartBottomSheetProps> = ({
                 <p className="text-sm font-medium text-slate-900 dark:text-white">
                   Available Questions
                 </p>
-                <p className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">
+                <p className="text-2xl font-bold text-indigo-600 dark:text-indigo-400 tabular-nums">
                   {activeQuestionCount}
                 </p>
               </div>
             </div>
 
             {/* Difficulty Selector */}
-            <div className="space-y-3">
+            <div className="space-y-2.5">
               <label className="text-sm font-semibold text-slate-900 dark:text-white flex items-center gap-2">
                 Difficulty
               </label>
-              <div className="flex gap-2 overflow-x-auto pb-2 -mx-2 px-2 snap-x hide-scrollbar">
+              <div className="flex gap-2 overflow-x-auto pb-1 -mx-2 px-2 snap-x hide-scrollbar">
                 {["All", "Easy", "Medium", "Hard"].map((level) => {
                   const count = difficultyCounts[level as keyof typeof difficultyCounts] || 0;
                   const isDisabled = count === 0 && level !== "All";
@@ -206,18 +242,24 @@ export const QuizStartBottomSheet: React.FC<QuizStartBottomSheetProps> = ({
                   return (
                     <button
                       key={level}
-                      onClick={() => !isDisabled && setDifficulty(level)}
+                      type="button"
+                      onClick={() => {
+                        if (!isDisabled) {
+                          triggerHaptic("light");
+                          setDifficulty(level);
+                        }
+                      }}
                       disabled={isDisabled}
-                      className={`snap-center shrink-0 flex items-center gap-1.5 px-4 py-2.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${
+                      className={`snap-center shrink-0 min-h-[44px] flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all whitespace-nowrap touch-manipulation ${
                         isSelected
-                          ? "bg-indigo-600 text-white shadow-md shadow-indigo-200 dark:shadow-none"
+                          ? "bg-indigo-600 text-white shadow-md shadow-indigo-200 dark:shadow-none active:scale-95"
                           : isDisabled
                             ? "bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed opacity-60"
-                            : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700"
+                            : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 active:scale-95"
                       }`}
                     >
                       {level}
-                      <span className={`text-xs px-1.5 py-0.5 rounded-full ${
+                      <span className={`text-xs px-1.5 py-0.5 rounded-full tabular-nums ${
                         isSelected
                           ? "bg-indigo-500/30 text-indigo-100"
                           : isDisabled
@@ -232,17 +274,22 @@ export const QuizStartBottomSheet: React.FC<QuizStartBottomSheetProps> = ({
               </div>
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-2.5">
               <div className="flex items-center justify-between">
-                <label className="text-sm font-semibold text-slate-900 dark:text-white flex items-center gap-2">
-                  Select Mode
+                <div className="text-sm font-semibold text-slate-900 dark:text-white flex items-center gap-1">
+                  <span>Select Mode</span>
                   <button
-                    onClick={() => setShowInfo(!showInfo)}
-                    className="text-slate-400 hover:text-indigo-500 transition-colors"
+                    type="button"
+                    aria-label="Toggle mode information"
+                    onClick={() => {
+                      triggerHaptic("light");
+                      setShowInfo(!showInfo);
+                    }}
+                    className="min-w-[36px] min-h-[36px] flex items-center justify-center rounded-full text-slate-400 hover:text-indigo-500 active:scale-90 transition-all cursor-pointer touch-manipulation"
                   >
                     <Info className="w-4 h-4" />
                   </button>
-                </label>
+                </div>
               </div>
 
               <AnimatePresence>
@@ -266,8 +313,12 @@ export const QuizStartBottomSheet: React.FC<QuizStartBottomSheetProps> = ({
 
               <div className="grid grid-cols-2 gap-3">
                 <button
-                  onClick={() => setMode("learning")}
-                  className={`relative flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all ${
+                  type="button"
+                  onClick={() => {
+                    triggerHaptic("light");
+                    setMode("learning");
+                  }}
+                  className={`relative flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all active:scale-[0.98] cursor-pointer touch-manipulation ${
                     mode === "learning"
                       ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-300"
                       : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-600"
@@ -282,8 +333,12 @@ export const QuizStartBottomSheet: React.FC<QuizStartBottomSheetProps> = ({
                   )}
                 </button>
                 <button
-                  onClick={() => setMode("mock")}
-                  className={`relative flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all ${
+                  type="button"
+                  onClick={() => {
+                    triggerHaptic("light");
+                    setMode("mock");
+                  }}
+                  className={`relative flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all active:scale-[0.98] cursor-pointer touch-manipulation ${
                     mode === "mock"
                       ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-300"
                       : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-600"
@@ -300,12 +355,12 @@ export const QuizStartBottomSheet: React.FC<QuizStartBottomSheetProps> = ({
               </div>
             </div>
 
-            <div className="flex flex-col gap-3 mt-2">
+            <div className="flex flex-col gap-3 mt-1">
               <Button
                 size="lg"
                 onClick={handlePrimaryAction}
                 disabled={primaryConfig.disabled}
-                className={`w-full h-14 text-white rounded-xl flex items-center justify-center gap-2 shadow-lg dark:shadow-none ${
+                className={`w-full h-14 text-white rounded-xl flex items-center justify-center gap-2 shadow-lg dark:shadow-none active:scale-[0.98] transition-all touch-manipulation ${
                   currentStatus.status === "COMPLETED"
                     ? "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-200"
                     : currentStatus.status === "IN_PROGRESS"
@@ -323,11 +378,14 @@ export const QuizStartBottomSheet: React.FC<QuizStartBottomSheetProps> = ({
                 <Button
                   variant="outline"
                   size="lg"
-                  onClick={() => onSaveForLater(mode, difficulty)}
+                  onClick={() => {
+                    triggerHaptic("light");
+                    onSaveForLater(mode, difficulty);
+                  }}
                   disabled={
                     activeQuestionCount === 0 || isPreparing || currentStatus.status === "COMPLETED"
                   }
-                  className="w-full flex items-center justify-center gap-2 rounded-xl border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700"
+                  className="w-full min-h-[48px] flex items-center justify-center gap-2 rounded-xl border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 active:scale-[0.98] transition-all touch-manipulation"
                 >
                   <Save className="w-4 h-4 text-slate-500" />
                   <span className="font-semibold">Save for Later</span>
@@ -336,8 +394,11 @@ export const QuizStartBottomSheet: React.FC<QuizStartBottomSheetProps> = ({
                 <Button
                   variant="ghost"
                   size="lg"
-                  onClick={onClose}
-                  className="w-full flex items-center justify-center gap-2 rounded-xl text-slate-500 hover:bg-red-50 dark:hover:bg-red-500/10 hover:text-red-600 dark:hover:text-red-400"
+                  onClick={() => {
+                    triggerHaptic("light");
+                    onClose();
+                  }}
+                  className="w-full min-h-[48px] flex items-center justify-center gap-2 rounded-xl text-slate-500 hover:bg-red-50 dark:hover:bg-red-500/10 hover:text-red-600 dark:hover:text-red-400 active:scale-[0.98] transition-all touch-manipulation"
                 >
                   <Trash2 className="w-4 h-4" />
                   <span className="font-semibold">Discard</span>

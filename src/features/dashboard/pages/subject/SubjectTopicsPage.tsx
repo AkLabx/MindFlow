@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useLayoutStore } from "@/stores/useLayoutStore";
 import { useParams, useNavigate } from "react-router-dom";
+import { Capacitor } from "@capacitor/core";
+import { App } from "@capacitor/app";
 import { Target } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { ROUTES } from "@/config/routes";
@@ -42,6 +44,26 @@ export const SubjectTopicsPage: React.FC = () => {
   }, [setHideGlobalHeader]);
 
   const decodedSubject = subjectName ? decodeURIComponent(subjectName) : "";
+
+  // Capacitor Android Hardware Back Button listener (When bottom sheet is closed, return to Subject Hub)
+  useEffect(() => {
+    if (selectedSubTopic) return;
+
+    let backHandler: any;
+    if (Capacitor.isNativePlatform()) {
+      App.addListener("backButton", () => {
+        navigate(ROUTES.SUBJECT.view(decodedSubject));
+      }).then((handle) => {
+        backHandler = handle;
+      });
+    }
+
+    return () => {
+      if (backHandler) {
+        backHandler.remove();
+      }
+    };
+  }, [selectedSubTopic, decodedSubject, navigate]);
 
   // Unified Taxonomy Query (Hierarchy + Counts + Total) with 24h memory retention
   const {
@@ -316,8 +338,8 @@ export const SubjectTopicsPage: React.FC = () => {
     0;
 
   return (
-    <div className="min-h-full -mx-4 -mt-4 px-4 pt-4 overflow-x-hidden bg-gradient-to-b from-[#EEF2FF] via-[#F5F7FF] to-[#F8FAFC] dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))]">
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 pt-3 sm:pt-5 space-y-6 relative z-10">
+    <div className="min-h-[100dvh] w-full overflow-x-hidden overscroll-contain select-none bg-gradient-to-b from-[#EEF2FF] via-[#F5F7FF] to-[#F8FAFC] dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))]">
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 sm:pt-5 space-y-5 relative z-10">
         <SubjectHeader
           subjectName={decodedSubject}
           onBack={() => navigate(ROUTES.SUBJECT.view(decodedSubject))}
