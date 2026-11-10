@@ -26,6 +26,27 @@ This document is the single source of truth for the evolution of the MindFlow ap
 
 ## 🚀 App Journey Changelog
 
+## [v1.0.351] - 11 November 2026, 04:08 AM IST
+
+> **Release Platform Mapping**: `Android 1.6 (versionCode 6) = Web v1.0.351`
+
+### Executive Summary
+Uplifted the Custom Quiz Configuration screen (`QuizConfig.tsx`, `ScrollableCapsules.tsx`, `SegmentedControl.tsx`) to native Android APK standards. Resolved the double-header and covered bottom action bar bugs by hiding the global shell header/footer while configuring a quiz, introduced a sticky Material 3 Top App Bar with status-bar inset clearance, wired Capacitor Android hardware back navigation to `handleBack`, and integrated tactile haptics with inward tap indentation across all filter capsules, segmented controls, and footer actions.
+
+### Work Breakdown
+- **🐛 Bug Fixes**:
+  - **Eliminated Double Top Header & Uncovered Bottom Action Bar (`QuizConfig.tsx`, `MainLayout.tsx`)**: Enabled `setHideGlobalHeader(true)` and `setHideGlobalFooter(true)` when `QuizConfig` mounts and added `/quiz/config` to `isHeaderHiddenRoute`. Previously, `MainLayout`'s `z-[10000]` bottom navigation bar overlapped `QuizConfig`'s `KeyboardAwareBottomBar` (`z-[40]`), obscuring the "Create Quiz" button on mobile viewports.
+- **✨ Features Added**:
+  - **Android Hardware Back Navigation (`QuizConfig.tsx`)**: Registered `@capacitor/app` `App.addListener('backButton')` to deterministically invoke `handleBack()` (returning to `returnTo`, `SubjectHubPage`, or `Dashboard`).
+  - **Material 3 Sticky Top App Bar (`QuizConfig.tsx`)**: Added `pt-[calc(env(safe-area-inset-top,0px)+0.5rem)]` with backdrop blur so the header respects Android status bar insets.
+  - **Tactile Filter Capsules & Controls (`ScrollableCapsules.tsx`, `SegmentedControl.tsx`, `QuizConfig.tsx`)**: Added `triggerHaptic('light')` and `triggerHaptic('medium')` with inward tap scaling (`active:scale-95`) and `touch-manipulation select-none` across subject/topic/year capsules, difficulty segments, mode switches, and question count chips.
+- **⚡ Performance & Refactoring**:
+  - Added `enterKeyHint="done"` and `inputMode="text"` to the optional Quiz Name input inside `KeyboardAwareBottomBar`.
+- **🔒 Security & Architecture**:
+  - Verified with `npx tsc --noEmit` (0 errors). Preserved all dependent filter calculations and context inheritance.
+
+---
+
 ## [v1.0.350] - 11 November 2026, 03:38 AM IST
 
 > **Release Platform Mapping**: `Android 1.6 (versionCode 6) = Web v1.0.350`

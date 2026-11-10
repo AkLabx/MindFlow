@@ -1,6 +1,10 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
+import { Capacitor } from '@capacitor/core';
+import { App } from '@capacitor/app';
 import { ROUTES } from '@/config/routes';
+import { useLayoutStore } from '@/stores/useLayoutStore';
+import { triggerHaptic } from '@/lib/haptics';
 import {
   ArrowLeft,
   Layers,
@@ -87,7 +91,20 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
   const isFixedSubjectContext = locState?.fixedSubjectContext === true;
     const fixedSubject = isFixedSubjectContext ? locState?.initialFilters?.subject?.[0] : null;
 
+  const setHideGlobalHeader = useLayoutStore((s) => s.setHideGlobalHeader);
+  const setHideGlobalFooter = useLayoutStore((s) => s.setHideGlobalFooter);
+
+  useEffect(() => {
+    setHideGlobalHeader(true);
+    setHideGlobalFooter(true);
+    return () => {
+      setHideGlobalHeader(false);
+      setHideGlobalFooter(false);
+    };
+  }, [setHideGlobalHeader, setHideGlobalFooter]);
+
   const handleBack = useCallback(() => {
+    triggerHaptic('light');
     if (onBack) {
       onBack();
       return;
@@ -107,6 +124,23 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
     }
     navigate(ROUTES.DASHBOARD || '/dashboard');
   }, [onBack, location.state, isFixedSubjectContext, fixedSubject, navigate]);
+
+  // Capacitor Android Hardware Back Button listener
+  useEffect(() => {
+    let backHandler: any;
+    if (Capacitor.isNativePlatform()) {
+      App.addListener('backButton', () => {
+        handleBack();
+      }).then((handle) => {
+        backHandler = handle;
+      });
+    }
+    return () => {
+      if (backHandler) {
+        backHandler.remove();
+      }
+    };
+  }, [handleBack]);
 
   useEffect(() => {
     const locState = location.state as any;
@@ -458,7 +492,7 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
   }
 
   return (
-    <div className="bg-white dark:bg-gray-800 min-h-screen md:min-h-0 md:h-auto md:rounded-3xl shadow-sm md:border border-gray-200 dark:border-gray-700 flex flex-col max-w-6xl mx-auto animate-fade-in overflow-hidden relative">
+    <div className="bg-white dark:bg-gray-900 min-h-[100dvh] w-full md:min-h-0 md:h-auto md:rounded-3xl shadow-sm md:border border-gray-200 dark:border-gray-700 flex flex-col max-w-6xl mx-auto animate-fade-in overflow-x-hidden overscroll-contain select-none relative">
 
       {/* Overlay for "Starting Quiz" blocking interaction */}
       {isStartingQuiz && (
@@ -469,20 +503,25 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
         </div>
       )}
 
-      {/* Header */}
-      <div className="px-4 md:px-6 pt-4 md:pt-6 pb-4 border-b border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-800 z-10 md:relative flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <button type="button" onClick={handleBack} aria-label="Go back" className="min-w-[44px] min-h-[44px] flex items-center justify-center p-2 -ml-2 text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:text-indigo-400 transition-colors rounded-full hover:bg-indigo-50 dark:hover:bg-indigo-900/30">
+      {/* Sticky Material 3 Top App Bar */}
+      <header className="sticky top-0 z-30 px-4 md:px-6 pt-[calc(env(safe-area-inset-top,0px)+0.5rem)] md:pt-6 pb-3.5 border-b border-slate-200/80 dark:border-slate-800 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={handleBack}
+            aria-label="Go back"
+            className="min-w-[44px] min-h-[44px] flex items-center justify-center p-2 -ml-2 text-slate-700 dark:text-slate-200 hover:text-indigo-600 dark:hover:text-indigo-400 active:scale-90 active:bg-slate-100 dark:active:bg-slate-800 transition-all rounded-full hover:bg-indigo-50 dark:hover:bg-indigo-900/30 cursor-pointer touch-manipulation"
+          >
             <ArrowLeft className="w-5 h-5" />
           </button>
-          <h1 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white m-0 leading-none tracking-tight">
+          <h1 className="text-lg md:text-2xl font-bold text-gray-900 dark:text-white m-0 leading-none tracking-tight truncate">
             {isFixedSubjectContext && fixedSubject ? `${fixedSubject} Quiz` : 'Create New Quiz'}
           </h1>
         </div>
-      </div>
+      </header>
 
       {/* Scrollable Config Content */}
-      <div className="p-4 md:p-6 pb-32 md:space-y-6 bg-gray-50 dark:bg-gray-900/50 flex-1 overflow-y-auto pt-6 md:pt-6">
+      <div className="p-4 md:p-6 pb-44 md:space-y-6 bg-gray-50 dark:bg-gray-900/50 flex-1 overflow-y-auto pt-4 md:pt-6">
 
         {/* Active Exam Context Banner (Exam-First Quick Access with Multi-Exam Support) */}
         {activeExamInfo && (
@@ -497,7 +536,7 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
                     <span className="text-[11px] font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
                       Target Exam Active
                     </span>
-                    <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-950/80 text-indigo-700 dark:text-indigo-300">
+                    <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-950/80 text-indigo-700 dark:text-indigo-300 tabular-nums">
                       {filteredMetadata.length} Qs Available
                     </span>
                   </div>
@@ -510,8 +549,11 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
               <div className="flex items-center gap-2 shrink-0">
                 <button
                   type="button"
-                  onClick={handleClearExamContext}
-                  className="text-xs font-semibold px-3 py-1.5 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition-all cursor-pointer"
+                  onClick={() => {
+                    triggerHaptic('light');
+                    handleClearExamContext();
+                  }}
+                  className="min-h-[36px] text-xs font-semibold px-3 py-1.5 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 active:scale-95 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition-all cursor-pointer touch-manipulation"
                 >
                   Clear Exam
                 </button>
@@ -532,8 +574,11 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
                     <button
                       key={pinnedExam.id}
                       type="button"
-                      onClick={() => handleToggleCombinedExam(pinnedExam)}
-                      className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                      onClick={() => {
+                        triggerHaptic('light');
+                        handleToggleCombinedExam(pinnedExam);
+                      }}
+                      className={`inline-flex items-center gap-1 min-h-[32px] px-2.5 py-1 rounded-lg text-xs font-bold transition-all active:scale-95 cursor-pointer touch-manipulation ${
                         isIncluded
                           ? 'bg-indigo-600 text-white shadow-xs'
                           : 'bg-white/80 dark:bg-slate-800 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 hover:bg-indigo-50 dark:hover:bg-indigo-950/50'
@@ -553,35 +598,47 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
         <div className="flex flex-row items-center justify-between gap-2 sm:gap-3 mb-6 relative z-20 min-w-0 pb-4 border-b border-gray-200 dark:border-gray-700 md:border-none md:pb-0">
 
           {/* Seamless Mode Switch */}
-          <div className="flex bg-gray-200/50 dark:bg-gray-800/80 p-0.5 rounded-lg max-w-[300px] overflow-x-auto hide-scrollbar flex-nowrap min-w-0">
+          <div className="flex bg-gray-200/60 dark:bg-gray-800/80 p-1 rounded-xl max-w-[320px] overflow-x-auto hide-scrollbar flex-nowrap min-w-0">
             <button
-              onClick={() => setMode('learning')}
+              type="button"
+              onClick={() => {
+                triggerHaptic('light');
+                setMode('learning');
+              }}
               className={cn(
-                "shrink-0 flex-1 flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-md text-xs sm:text-sm font-medium transition-all duration-200",
+                "shrink-0 min-h-[36px] flex-1 flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg text-xs sm:text-sm font-semibold transition-all duration-150 active:scale-95 cursor-pointer touch-manipulation",
                 mode === 'learning'
-                  ? "bg-white dark:bg-gray-700 text-indigo-700 dark:text-indigo-300 shadow-sm"
+                  ? "bg-white dark:bg-gray-700 text-indigo-700 dark:text-indigo-300 shadow-xs"
                   : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
               )}
             >
               <span>Learning</span>
             </button>
             <button
-              onClick={() => setMode('mock')}
+              type="button"
+              onClick={() => {
+                triggerHaptic('light');
+                setMode('mock');
+              }}
               className={cn(
-                "shrink-0 flex-1 flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-md text-xs sm:text-sm font-medium transition-all duration-200",
+                "shrink-0 min-h-[36px] flex-1 flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg text-xs sm:text-sm font-semibold transition-all duration-150 active:scale-95 cursor-pointer touch-manipulation",
                 mode === 'mock'
-                  ? "bg-white dark:bg-gray-700 text-indigo-700 dark:text-indigo-300 shadow-sm"
+                  ? "bg-white dark:bg-gray-700 text-indigo-700 dark:text-indigo-300 shadow-xs"
                   : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
               )}
             >
               <span>Mock</span>
             </button>
             <button
-              onClick={() => setMode('god')}
+              type="button"
+              onClick={() => {
+                triggerHaptic('light');
+                setMode('god');
+              }}
               className={cn(
-                "flex-1 flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-md text-xs sm:text-sm font-medium transition-all duration-200",
+                "min-h-[36px] flex-1 flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg text-xs sm:text-sm font-semibold transition-all duration-150 active:scale-95 cursor-pointer touch-manipulation",
                 mode === 'god'
-                  ? "bg-white dark:bg-gray-700 text-red-600 dark:text-red-400 shadow-sm"
+                  ? "bg-white dark:bg-gray-700 text-red-600 dark:text-red-400 shadow-xs"
                   : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
               )}
             >
@@ -852,47 +909,62 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
         <KeyboardAwareBottomBar
           hasGlobalFooter={false}
           fullWidth
-          className="z-[40] border-t border-gray-200 dark:border-gray-700 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md px-4 py-3 pb-safe md:px-6 md:py-4 shadow-[0_-4px_15px_-5px_rgba(0,0,0,0.1)] dark:shadow-none"
+          className="z-[60] border-t border-slate-200/80 dark:border-slate-800 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md px-4 py-3 pb-[calc(env(safe-area-inset-bottom,0px)+0.75rem)] md:px-6 md:py-4 shadow-[0_-4px_15px_-5px_rgba(0,0,0,0.08)] dark:shadow-none select-none"
         >
-          <div className="flex flex-col sm:flex-row justify-between items-center gap-3 w-full">
+          <div className="flex flex-col sm:flex-row justify-between items-center gap-2.5 sm:gap-3 w-full">
              {/* Quiz Name Input - Compact for footer */}
              <div className="w-full sm:w-64 flex-shrink-0">
               <input
                 type="text"
+                inputMode="text"
+                enterKeyHint="done"
                 value={quizName}
                 onChange={(e) => setQuizName(e.target.value)}
                 placeholder="Quiz Name (Optional)"
-                className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                className="w-full min-h-[42px] px-3.5 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
               />
             </div>
 
             {/* Question Count Selector Chips (MindFlow Constitution Section 8) */}
-            <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800/90 p-1 rounded-xl border border-gray-200 dark:border-gray-700/80 shrink-0">
-              <span className="text-[11px] font-bold text-gray-500 dark:text-gray-400 px-1.5 shrink-0">
+            <div className="flex items-center justify-between sm:justify-start w-full sm:w-auto gap-1 bg-gray-100 dark:bg-gray-800/90 p-1 rounded-xl border border-gray-200 dark:border-gray-700/80 shrink-0">
+              <span className="text-[11px] font-bold text-gray-500 dark:text-gray-400 px-2 shrink-0">
                 Questions:
               </span>
-              {[10, 20, 25, 50, 100].map((count) => {
-                const isSelected = selectedQuestionCount === count;
-                return (
-                  <button
-                    key={count}
-                    type="button"
-                    onClick={() => setSelectedQuestionCount(count)}
-                    className={cn(
-                      "px-2 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer",
-                      isSelected
-                        ? "bg-indigo-600 text-white shadow-xs"
-                        : "text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
-                    )}
-                  >
-                    {count}
-                  </button>
-                );
-              })}
+              <div className="flex items-center gap-1 flex-1 sm:flex-initial justify-end">
+                {[10, 20, 25, 50, 100].map((count) => {
+                  const isSelected = selectedQuestionCount === count;
+                  return (
+                    <button
+                      key={count}
+                      type="button"
+                      onClick={() => {
+                        triggerHaptic('light');
+                        setSelectedQuestionCount(count);
+                      }}
+                      className={cn(
+                        "min-h-[34px] px-2.5 py-1 text-xs font-bold rounded-lg transition-all active:scale-95 cursor-pointer touch-manipulation tabular-nums",
+                        isSelected
+                          ? "bg-indigo-600 text-white shadow-xs"
+                          : "text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
+                      )}
+                    >
+                      {count}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             <div className="flex items-center gap-2 w-full sm:w-auto">
-              <Button variant="outline" onClick={handleClearFilters} className="flex-shrink-0 h-10 px-3">
+              <Button
+                variant="outline"
+                aria-label="Reset all filters"
+                onClick={() => {
+                  triggerHaptic('light');
+                  handleClearFilters();
+                }}
+                className="flex-shrink-0 min-w-[44px] h-11 px-3 rounded-xl active:scale-95 touch-manipulation"
+              >
                 <RotateCcw className="w-4 h-4" />
               </Button>
 
@@ -904,9 +976,12 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
                 )}
                 <Button
                   size="lg"
-                  onClick={() => handleCreate(selectedQuestionCount)}
+                  onClick={() => {
+                    triggerHaptic('medium');
+                    handleCreate(selectedQuestionCount);
+                  }}
                   disabled={isStartingQuiz}
-                  className="w-full h-10 bg-indigo-600 hover:bg-indigo-700 text-white border-0 shadow-lg px-6 flex items-center justify-center gap-2 font-semibold"
+                  className="w-full h-11 rounded-xl bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98] text-white border-0 shadow-lg shadow-indigo-500/20 px-6 flex items-center justify-center gap-2 font-bold touch-manipulation transition-all"
                 >
                   {isStartingQuiz ? (
                     <>
@@ -915,9 +990,11 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
                   ) : (
                     <>
                       <Save className="w-4 h-4" />
-                      Create Quiz ({Math.min(selectedQuestionCount, filteredMetadata.length, MAX_QUIZ_QUESTIONS)})
+                      <span>
+                        Create Quiz ({Math.min(selectedQuestionCount, filteredMetadata.length, MAX_QUIZ_QUESTIONS)})
+                      </span>
                       {filteredMetadata.length > selectedQuestionCount && (
-                        <span className="text-[10px] opacity-80 font-normal">
+                        <span className="text-[10px] opacity-80 font-normal tabular-nums">
                           / {filteredMetadata.length}
                         </span>
                       )}
