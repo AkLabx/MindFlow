@@ -23,6 +23,13 @@ This document serves as an operational reference of the AI Assistant's memory co
 * **No Guest Login:** Guest login functionality is strictly prohibited. All users must authenticate with a real account.
 * **Understand Before Doing:** Before starting tasks, ask clarifying questions until expectations are absolutely certain. Investigate the codebase for existing implementations or bug reports first to prevent redundant work or regressions.
 * **Architectural Refactors:** Do not perform large-scale architectural refactors. Maintain the existing Feature-Sliced Design (FSD) boundaries (`src/features/*`).
+* **Modern Web Guidance & Baseline Platform Directives (Google Chrome MWG):**
+  - Favor native web platform capabilities (Baseline Widely Available) over heavy npm dependencies, legacy polyfills, and outdated JavaScript workarounds.
+  - Modals & Popovers: Use native `<dialog>` and HTML Popover API with `@starting-style` and `transition-behavior: allow-discrete` in Top Layer.
+  - Floating Elements: Prefer CSS Anchor Positioning (`anchor-name`, `position-anchor`) over JS bounding rect libraries (`floating-ui`, `popper.js`).
+  - Core Web Vitals & INP: Yield execution during long tasks (filtering, indexing, IndexedDB hydration) via `scheduler.yield()` to keep frame budgets $< 16\text{ms}$.
+  - Transitions & Layout: Use View Transitions API (`document.startViewTransition()`), Container Queries (`@container`), and Subgrid (`subgrid`).
+  - Fallbacks: Only lightweight custom fallbacks ($\le 20$ LOC, zero npm dependencies). Respect `.mwgrc` configuration.
 
 ### 2. App Architecture & Routing
 * **App Bootstrap:** `useAppBootstrap.ts` acts as a strict state machine yielding discrete states (`BOOTSTRAPPING`, `READY`, `FAILED`, `MAINTENANCE`, `UPDATE_REQUIRED`, `OFFLINE_INITIALIZATION`) handled centrally in `App.tsx` instead of returning a generic boolean.

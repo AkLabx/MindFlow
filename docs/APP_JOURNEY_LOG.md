@@ -26,6 +26,20 @@ This document is the single source of truth for the evolution of the MindFlow ap
 
 ## 🚀 App Journey Changelog
 
+## [v1.0.345] - 10 November 2026, 10:48 PM IST
+
+> **Release Platform Mapping**: `Android 1.6 (versionCode 6) = Web v1.0.345`
+
+### Executive Summary
+Adopted Google Chrome Modern Web Guidance (MWG) standards across the project. Added a project-level `.mwgrc` configuration and established mandatory agent directives in `AGENTS.md` and `docs/AI_MEMORY_CONTEXT.md` to steer future code generation toward Baseline web platform primitives (native Popover API, `<dialog>`, CSS Anchor Positioning, `scheduler.yield()`, View Transitions, and Container Queries).
+
+### Work Breakdown
+- **🔒 Security & Architecture**:
+  - Embedded Google Chrome Modern Web Guidance (MWG) directives into `AGENTS.md` and `docs/AI_MEMORY_CONTEXT.md` to prevent legacy training bias and eliminate bloated JS workarounds.
+  - Initialized project-level `.mwgrc` configuration with Baseline standard policies (`allowOriginTrials: false`, `allowVolatileFeatures: false`).
+  - Codified core directives for native dialogs/popovers in Top Layer (`@starting-style`), CSS Anchor Positioning, Interaction to Next Paint (INP) task scheduling via `scheduler.yield()`, View Transitions, and lightweight custom fallbacks ($\le 20$ LOC, zero external npm bloat).
+- **Impacted Scope**: `AGENTS.md`, `docs/AI_MEMORY_CONTEXT.md`, `.mwgrc`, `package.json`, `docs/APP_JOURNEY_LOG.md`.
+
 ## [v1.0.344] - 10 November 2026, 05:31 PM IST
 
 > **Release Platform Mapping**: `Android 1.6 (versionCode 6) = Web v1.0.344`
