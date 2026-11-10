@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { supabase, SUPABASE_URL } from '../lib/supabase';
+import { supabase, SUPABASE_ANON_KEY, SUPABASE_URL } from '../lib/supabase';
 import { useAuth } from '../features/auth/context/AuthContext';
 import { fetchWithTimeout } from '../lib/fetchWithTimeout';
 import { usePresenceStore } from '../stores/usePresenceStore';
@@ -44,7 +44,7 @@ export const PresenceProvider = ({ children }: { children: React.ReactNode }) =>
             headers: {
               'Content-Type': 'application/json',
               'Authorization': `Bearer ${session.access_token}`,
-              'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+              'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY || SUPABASE_ANON_KEY,
               'Prefer': 'return=minimal'
             },
             body: JSON.stringify(updateData),
@@ -60,7 +60,14 @@ export const PresenceProvider = ({ children }: { children: React.ReactNode }) =>
       window.removeEventListener('beforeunload', updateLastSeen);
 
       // Update last seen in DB when component unmounts (e.g. sign out)
-      supabase.from('profiles').update({ last_seen: new Date().toISOString() }).eq('id', user.id);
+      Promise.resolve(
+        supabase
+          .from('profiles')
+          .update({ last_seen: new Date().toISOString() })
+          .eq('id', user.id)
+      ).then(({ error }) => {
+        if (error) console.warn('[PresenceProvider] Failed to update last_seen:', error.message);
+      }).catch(() => {});
 
       room.unsubscribe();
     };

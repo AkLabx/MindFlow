@@ -167,8 +167,10 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onSignOut, onNavigateToSettin
         if (updateUserError) throw updateUserError;
 
         await refreshUser();
-        // Centralized refresh and invalidation
-        await refreshProfile();
+        // Centralized refresh and invalidation (best-effort after successful avatar update)
+        await refreshProfile().catch((err) => {
+          console.warn('[ProfilePage] Failed to refresh profile after avatar upload:', err);
+        });
         queryClient.invalidateQueries({ queryKey: ['community-search'] });
         queryClient.invalidateQueries({ queryKey: ['user-posts'] });
         queryClient.invalidateQueries({ queryKey: ['community-comments'] });

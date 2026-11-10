@@ -555,25 +555,33 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   /** Refreshes the canonical profile from Supabase and invalidates caches. */
   const refreshProfile = async () => {
-    if (!user) return;
-    try {
-      const { data } = await supabase.from('profiles').select('*').eq('id', user.id).maybeSingle();
-      if (data) {
-        setProfile(data);
-        setProfileStatus(data.status);
-        setDeleteRequestedAt(data.delete_requested_at);
+    const currentUserId = user?.id ?? (await supabase.auth.getSession()).data.session?.user?.id;
+    if (!currentUserId) return;
 
-        // Globally invalidate React Query caches related to avatars/profiles
-        queryClient.invalidateQueries({ queryKey: ['profile'] });
-        queryClient.invalidateQueries({ queryKey: ['user-profile'] });
-        queryClient.invalidateQueries({ queryKey: ['current-user-profile'] });
-        queryClient.invalidateQueries({ queryKey: ['community-posts'] });
-        queryClient.invalidateQueries({ queryKey: ['community-reels'] });
-        queryClient.invalidateQueries({ queryKey: ['chat-rooms'] });
-        queryClient.invalidateQueries({ queryKey: ['my-username'] });
-      }
-    } catch (e) {
-      console.error('Error refreshing profile:', e);
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', currentUserId)
+      .maybeSingle();
+
+    if (error) {
+      console.error('Error refreshing profile:', error);
+      throw error;
+    }
+
+    if (data) {
+      setProfile(data);
+      setProfileStatus(data.status);
+      setDeleteRequestedAt(data.delete_requested_at);
+
+      // Globally invalidate React Query caches related to avatars/profiles
+      queryClient.invalidateQueries({ queryKey: ['profile'] });
+      queryClient.invalidateQueries({ queryKey: ['user-profile'] });
+      queryClient.invalidateQueries({ queryKey: ['current-user-profile'] });
+      queryClient.invalidateQueries({ queryKey: ['community-posts'] });
+      queryClient.invalidateQueries({ queryKey: ['community-reels'] });
+      queryClient.invalidateQueries({ queryKey: ['chat-rooms'] });
+      queryClient.invalidateQueries({ queryKey: ['my-username'] });
     }
   };
 

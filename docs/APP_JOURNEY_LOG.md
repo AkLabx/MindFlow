@@ -26,6 +26,29 @@ This document is the single source of truth for the evolution of the MindFlow ap
 
 ## 🚀 App Journey Changelog
 
+## [v1.0.343] - 10 November 2026, 03:20 PM IST
+
+> **Release Platform Mapping**: `Android 1.6 (versionCode 6) = Web v1.0.343`
+
+### Executive Summary
+Resolved the post-login Terms & Privacy consent modal deadlock (`42501: permission denied for table profiles` on `record_user_consent`) with least-privilege column-level PostgreSQL grants, elevated global toast layering above modal overlays, and hardened profile refresh, presence headers, and inline consent error recovery across Web PWA and Capacitor Android.
+
+### 🔒 Security & Backend Architecture
+- **Least-Privilege `public.profiles` Column Grants & Hardened `record_user_consent` (`20261117000000`)**:
+  - Revoked unintended write privileges (`INSERT`, `UPDATE`, `DELETE`, `TRUNCATE`) on `public.profiles` from `anon` and broad table-level writes from `authenticated`, while granting `authenticated` column-level `UPDATE` strictly on user-editable fields (`terms_accepted_version`, `terms_accepted_at`, `age_confirmed`, `username`, `last_seen`).
+  - Scoped `"Users can update their own profile."` RLS policy explicitly `TO authenticated` and hardened `public.record_user_consent()` (`SECURITY INVOKER`) with `IF NOT FOUND` verification so missing rows cannot fail silently.
+
+### 🐛 Bug Fixes & UX Resilience
+- **Unoccluded Toasts & Actionable Consent Error Recovery**:
+  - Elevated `ToastContainer.tsx` overlay layering (`z-[10070]`) above `ConsentAuditModal.tsx` (`z-[10050]`) and `AuthLegalModal.tsx` (`z-[10060]`) so error/success notifications are never hidden behind modal backdrops.
+  - Updated `ConsentAuditModal.tsx` to enforce active `CURRENT_TERMS_VERSION` matching, reset transient checkbox/error state on account switch, prevent legal link clicks from toggling the checkbox, add an inline `role="alert"` error banner with retry guidance, and emit privacy-safe telemetry (`consent_recorded`, `consent_record_failed`).
+  - Hardened `AuthContext.tsx` `refreshProfile()` error propagation (with best-effort catch in `ProfilePage.tsx`) so failed post-consent profile syncs surface clearly rather than leaving the dialog stuck.
+  - Fixed `PresenceProvider.tsx` `beforeunload` `PATCH` fallback header (`SUPABASE_ANON_KEY`) and unmount `last_seen` update execution.
+  - Expanded `ConsentAuditModal.test.tsx` coverage (`9/9` passing) and verified full Vitest (`29/29` files, `183/183` tests via `--pool=forks`), `tsc --noEmit`, and `vite build`.
+
+### Impacted Scope
+`supabase/migrations/`, `src/features/auth/`, `src/components/ui/Notification/`, `src/providers/PresenceProvider.tsx`, `src/lib/telemetry/`
+
 ## [v1.0.342] - 10 November 2026, 12:31 PM IST
 
 > **Release Platform Mapping**: `Android 1.6 (versionCode 6) = Web v1.0.342`

@@ -154,4 +154,125 @@ describe('ConsentAuditModal', () => {
     fireEvent.click(signOutBtn);
     expect(signOut).toHaveBeenCalledTimes(1);
   });
+
+  it('re-prompts when recorded consent version is outdated', () => {
+    mockUseAuth.mockReturnValue({
+      user: {
+        id: 'u1',
+        user_metadata: {
+          terms_accepted_version: '1.0',
+          age_confirmed: CURRENT_AGE_ATTESTATION,
+        },
+      },
+      profile: {
+        id: 'u1',
+        terms_accepted_version: '1.0',
+        terms_accepted_at: '2024-01-01T00:00:00Z',
+        age_confirmed: CURRENT_AGE_ATTESTATION,
+      },
+      refreshProfile: vi.fn(),
+      signOut: vi.fn(),
+    });
+
+    render(<ConsentAuditModal />);
+    expect(screen.getByRole('dialog')).toBeTruthy();
+  });
+
+  it('shows inline error alert on RPC failure and recovers on retry', async () => {
+    const refreshProfile = vi.fn().mockResolvedValue(undefined);
+    mockRpc
+      .mockResolvedValueOnce({ error: { code: '42501', message: 'permission denied for table profiles' } })
+      .mockResolvedValueOnce({ error: null });
+
+    mockUseAuth.mockReturnValue({
+      user: { id: 'u1', user_metadata: {} },
+      profile: {
+        id: 'u1',
+        terms_accepted_version: null,
+        terms_accepted_at: null,
+        age_confirmed: null,
+      },
+      refreshProfile,
+      signOut: vi.fn(),
+    });
+
+    render(<ConsentAuditModal />);
+    fireEvent.click(screen.getByRole('checkbox'));
+    fireEvent.click(screen.getByRole('button', { name: /Accept & Continue/i }));
+
+    await waitFor(() => {
+      const alert = screen.getByRole('alert');
+      expect(alert.textContent).toContain('permission denied for table profiles');
+      expect(mockShowToast).toHaveBeenCalledWith(
+        expect.objectContaining({ variant: 'error', title: 'Could Not Save Consent' })
+      );
+      expect(refreshProfile).not.toHaveBeenCalled();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /Accept & Continue/i }));
+
+    await waitFor(() => {
+      expect(screen.queryByRole('alert')).toBeNull();
+      expect(refreshProfile).toHaveBeenCalledTimes(1);
+      expect(mockShowToast).toHaveBeenCalledWith(
+        expect.objectContaining({ variant: 'success', title: 'Consent Recorded' })
+      );
+    });
+  });
+
+  it('surfaces error instead of claiming success if refreshProfile fails after RPC', async () => {
+    const refreshProfile = vi.fn().mockRejectedValue(new Error('Network timeout'));
+    mockRpc.mockResolvedValue({ error: null });
+
+    mockUseAuth.mockReturnValue({
+      user: { id: 'u1', user_metadata: {} },
+      profile: {
+        id: 'u1',
+        terms_accepted_version: null,
+        terms_accepted_at: null,
+        age_confirmed: null,
+      },
+      refreshProfile,
+      signOut: vi.fn(),
+    });
+
+    render(<ConsentAuditModal />);
+    fireEvent.click(screen.getByRole('checkbox'));
+    fireEvent.click(screen.getByRole('button', { name: /Accept & Continue/i }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('alert').textContent).toContain('Network timeout');
+      expect(mockShowToast).toHaveBeenCalledWith(
+        expect.objectContaining({ variant: 'error', title: 'Could Not Save Consent' })
+      );
+    });
+  });
+
+  it('opens legal modal without toggling the consent checkbox and resets state on user switch', () => {
+    const state = {
+      user: { id: 'u1', user_metadata: {} },
+      profile: { id: 'u1', terms_accepted_version: null, terms_accepted_at: null, age_confirmed: null },
+      refreshProfile: vi.fn(),
+      signOut: vi.fn(),
+    };
+    mockUseAuth.mockImplementation(() => state);
+
+    const { rerender } = render(<ConsentAuditModal />);
+    const checkbox = screen.getByRole('checkbox') as HTMLInputElement;
+    expect(checkbox.checked).toBe(false);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Terms of Service' }));
+    expect(checkbox.checked).toBe(false);
+    expect(screen.getByText('I Understand')).toBeTruthy();
+
+    fireEvent.click(screen.getByRole('button', { name: 'I Understand' }));
+    fireEvent.click(checkbox);
+    expect(checkbox.checked).toBe(true);
+
+    state.user = { id: 'u2', user_metadata: {} };
+    state.profile = { id: 'u2', terms_accepted_version: null, terms_accepted_at: null, age_confirmed: null };
+    rerender(<ConsentAuditModal />);
+
+    expect((screen.getByRole('checkbox') as HTMLInputElement).checked).toBe(false);
+  });
 });
