@@ -26,6 +26,26 @@ This document is the single source of truth for the evolution of the MindFlow ap
 
 ## 🚀 App Journey Changelog
 
+## [v1.0.348] - 11 November 2026, 02:42 AM IST
+
+> **Release Platform Mapping**: `Android 1.6 (versionCode 6) = Web v1.0.348`
+
+### Executive Summary
+Uplifted the Dashboard screen (`DashboardPage.tsx`, `DashboardGreeting.tsx`, `DashboardDrillBottomSheet.tsx`) and application navigation shell (`MainLayout.tsx`) to native Android APK standards. Replaced web-like claymorphism thick borders with subtle Material 3 surface borders, fixed reverse scaling animations to native Android inward tap indentation (`scale-95`), integrated tactile haptics across all dashboard drill buttons, and added native Android hardware back button interception for modal bottom sheets.
+
+### Work Breakdown
+- **✨ Features Added**:
+  - **Android Hardware Back Dismissal on Drill Sheet**: Wired `@capacitor/app` `App.addListener('backButton')` to `DashboardDrillBottomSheet.tsx` so physical and gesture back actions on Android immediately close the active drill launcher without navigating away from the dashboard.
+  - **Tactile Haptic Feedback Across Dashboard**: Integrated `triggerHaptic('light')` and `triggerHaptic('medium')` across bottom navigation tabs, central AI action button, greeting action buttons (Today's Plan, Bookmarks, Resume Quiz, Quiz History), exam selector chips, practice drills, and bottom sheet controls.
+- **⚡ Performance & Refactoring**:
+  - **Material 3 Navigation Shell Uplift**: Replaced heavy `border-b-[4px]` and `border-t-[4px]` borders with clean, high-performance translucent borders (`border-slate-200/80 dark:border-slate-800/80`). Fixed bottom navigation tab feedback from counter-intuitive zoom (`scale: 1.05`) to native Android inward press indentation (`whileTap={{ scale: 0.95 }}`).
+  - **Clean Scroll & Layout Hygiene**: Removed brittle negative margin layout hacks (`-mt-4 pt-2`) on the dashboard canvas; added `overscroll-contain select-none touch-manipulation` for fluid gesture handling.
+  - **Ergonomic Touch Targets**: Enhanced action buttons with `active:brightness-95` and inward scaling for an authentic native APK tactile response.
+- **🔒 Security & Architecture**:
+  - Fully verified type safety with `npx tsc --noEmit` and passed unit tests via `npx vitest`. Preserved HashRouter, Supabase session handling, and offline-first IndexedDB contracts.
+
+---
+
 ## [v1.0.347] - 11 November 2026, 02:00 AM IST
 
 > **Release Platform Mapping**: `Android 1.6 (versionCode 6) = Web v1.0.347`
