@@ -1,0 +1,21 @@
+feat(onboarding): uplift onboarding screen to native Android APK standards (v1.0.347)
+
+## Summary of Changes
+
+### 1. Material 3 Interactive Choice Cards
+- Replaced the clunky HTML `<select>` dropdown with interactive, tactile Android Material 3 Choice Cards for competitive exams (SSC, Railways, State PSC, Banking, General Studies).
+- Each card features category badges, icons, checkmark status rings, and tactile haptic feedback.
+
+### 2. Edge-to-Edge Surface & Safe Area Insets
+- Removed the floating card box with desktop margins on mobile, making the canvas edge-to-edge from the Android status bar (`env(safe-area-inset-top)`) to the gesture bar (`env(safe-area-inset-bottom)`).
+- Preserved desktop beauty on larger screens with centered elevated container.
+
+### 3. Thumb-Friendly Bottom-Pinned Action Bar
+- Re-anchored the primary "Continue to Dashboard" button to a sticky bottom bar with gesture bar clearance.
+
+### 4. Android Hardware Back Button Handling
+- Integrated `@capacitor/app` `App.addListener('backButton')` to minimize the app gracefully on hardware/gesture back presses during onboarding.
+
+### Verification
+- `npx tsc --noEmit`: Passed (0 errors)
+- `npx vitest --run`: 3/3 tests passed
