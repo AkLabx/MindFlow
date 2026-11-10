@@ -119,9 +119,6 @@ export const OnboardingFlow: React.FC = () => {
         </div>
 
         <div className="mt-8">
-          <p className="text-[10px] text-center text-slate-500 dark:text-slate-400 mb-4 px-2">
-            By continuing, you agree to our Terms of Service and Privacy Policy. Your data is stored securely.
-          </p>
           <Button
             onClick={handleSubmit}
             disabled={isSubmitting}

@@ -14,7 +14,6 @@ import { useLayoutStore } from '../stores/useLayoutStore';
 import { useSocialStore } from '@/features/community';
 import { ClaymorphismSwitch } from '../features/quiz/components/ui/ClaymorphismSwitch';
 import { NotificationBell } from '../features/notifications/components/NotificationBell';
-import { ConsentAuditModal } from '../features/auth/components/ConsentAuditModal';
 import { SidePanel } from './SidePanel';
 
 
@@ -290,9 +289,6 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
         {children}
       </main>
       <HydrationDebugger />
-      {!location.pathname.startsWith('/settings/deleteaccount') && !location.pathname.startsWith('/about') && (
-        <ConsentAuditModal />
-      )}
 
       {/* --- Sticky Bottom Tab Bar --- */}
 
