@@ -21,13 +21,28 @@ export const SynapticLoader: React.FC<SynapticLoaderProps> = ({
   className = '',
   label,
 }) => {
+  const isInlineOrCompact = variant === 'inline' || size === 'xs' || size === 'sm';
+
+  if (isInlineOrCompact) {
+    return (
+      <BrandSpinner
+        variant={variant}
+        size={size}
+        className={className}
+        label={label}
+      />
+    );
+  }
+
   return (
-    <BrandSpinner
-      variant={variant}
-      size={size}
-      className={className}
-      label={label}
-    />
+    <div className="w-full min-h-[65dvh] flex-1 flex flex-col items-center justify-center p-6 select-none">
+      <BrandSpinner
+        variant={variant}
+        size={size}
+        className={className}
+        label={label}
+      />
+    </div>
   );
 };
 

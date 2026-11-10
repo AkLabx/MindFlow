@@ -49,7 +49,7 @@ export const QuizOption: React.FC<QuizOptionProps> = ({
     onClick
 }) => {
     // Default base styles
-    let containerClass = "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:border-indigo-300 hover:bg-gray-50 dark:bg-gray-900 dark:hover:bg-slate-800 dark:bg-slate-800/50 cursor-pointer relative";
+    let containerClass = "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:border-indigo-300 hover:bg-gray-50 dark:bg-gray-900 dark:hover:bg-slate-800 dark:bg-slate-800/50 active:scale-[0.98] active:bg-slate-100/80 dark:active:bg-slate-800 cursor-pointer relative select-none touch-manipulation";
     let icon: React.ReactNode = <div className="w-5 h-5 rounded-full border-2 border-gray-300 dark:border-gray-600 transition-colors group-hover:border-indigo-400 flex-shrink-0" />;
     let textClass = "text-gray-700 dark:text-gray-200";
     let animationClass = "";
@@ -58,7 +58,7 @@ export const QuizOption: React.FC<QuizOptionProps> = ({
     // Simple selection state, no answer reveal
     if (isMockMode) {
         if (isSelected) {
-            containerClass = "bg-indigo-50 dark:bg-indigo-900/20 border-indigo-600 ring-1 ring-indigo-600 relative";
+            containerClass = "bg-indigo-50 dark:bg-indigo-900/20 border-indigo-600 ring-1 ring-indigo-600 active:scale-[0.98] relative select-none touch-manipulation";
             icon = <div className="w-5 h-5 rounded-full border-[5px] border-indigo-600 flex-shrink-0" />;
             textClass = "text-indigo-800 dark:text-indigo-300 font-medium";
         }
@@ -71,31 +71,31 @@ export const QuizOption: React.FC<QuizOptionProps> = ({
         icon = null;
 
         if (isHidden) {
-             containerClass = "bg-gray-50 dark:bg-gray-900 border-gray-100 dark:border-gray-800 opacity-60 cursor-not-allowed shadow-none relative";
+             containerClass = "bg-gray-50 dark:bg-gray-900 border-gray-100 dark:border-gray-800 opacity-60 cursor-not-allowed shadow-none relative select-none";
              textClass = "text-gray-400 dark:text-slate-500 line-through decoration-gray-300 decoration-2 select-none";
              // EyeOff icon indicates this option was removed by a lifeline
              icon = <div className="absolute right-4"><EyeOff className="w-5 h-5 text-gray-300" /></div>;
         }
         else if (isAnswered) {
-            containerClass = "cursor-default relative"; 
+            containerClass = "cursor-default relative select-none"; 
             
             if (isCorrect && isSelected) {
                 // Scenario: User picked the Correct Answer
-                containerClass = "bg-green-50 border-green-500 ring-1 ring-green-500 relative";
-                textClass = "text-green-900 font-medium"; 
+                containerClass = "bg-emerald-50 dark:bg-emerald-950/50 border-emerald-500 ring-1 ring-emerald-500 relative select-none";
+                textClass = "text-emerald-950 dark:text-emerald-200 font-medium"; 
                 icon = (
-                    <div className="flex-shrink-0 bg-green-500 rounded-full p-1 shadow-sm">
+                    <div className="flex-shrink-0 bg-emerald-500 rounded-full p-1 shadow-sm">
                         <Check className="w-4 h-4 text-white" />
                     </div>
                 );
-                animationClass = "scale-[1.02] shadow-md";
+                animationClass = "shadow-sm";
 
             } else if (isSelected) {
                 // Scenario: User picked the Wrong Answer
-                containerClass = "bg-red-50 dark:bg-red-900/20 border-red-500 ring-1 ring-red-500 relative";
-                textClass = "text-red-900 font-medium";
+                containerClass = "bg-red-50 dark:bg-red-950/40 border-red-500 ring-1 ring-red-500 relative select-none";
+                textClass = "text-red-950 dark:text-red-200 font-medium";
                 icon = (
-                    <div className="flex-shrink-0 bg-red-50 dark:bg-red-900/200 rounded-full p-1 shadow-sm">
+                    <div className="flex-shrink-0 bg-red-500 rounded-full p-1 shadow-sm">
                         <X className="w-4 h-4 text-white" />
                     </div>
                 );
@@ -103,30 +103,31 @@ export const QuizOption: React.FC<QuizOptionProps> = ({
 
             } else if (isCorrect) {
                  // Scenario: Show the Correct Answer (Ghost View) when user missed it
-                 containerClass = "bg-green-50/50 border-green-400 border-dashed relative";
-                 textClass = "text-green-800";
+                 containerClass = "bg-emerald-50/60 dark:bg-emerald-950/30 border-emerald-400 dark:border-emerald-500/70 border-dashed relative select-none";
+                 textClass = "text-emerald-900 dark:text-emerald-200";
                  icon = (
-                    <div className="flex-shrink-0 border-2 border-green-500 rounded-full p-0.5">
-                         <Check className="w-3 h-3 text-green-500" />
+                    <div className="flex-shrink-0 border-2 border-emerald-500 rounded-full p-0.5">
+                         <Check className="w-3 h-3 text-emerald-500" />
                     </div>
                  );
             } else {
                  // Scenario: Irrelevant options fade out to focus attention
-                 containerClass = "opacity-50 bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-700 relative";
+                 containerClass = "opacity-50 bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-700 relative select-none";
             }
         } else if (isSelected) {
             // Fallback for immediate selection before processing (rare in sync mode)
-            containerClass = "bg-indigo-50 dark:bg-indigo-900/20 border-indigo-600 relative";
-            textClass = "text-indigo-900 font-medium";
+            containerClass = "bg-indigo-50 dark:bg-indigo-900/20 border-indigo-600 relative select-none";
+            textClass = "text-indigo-900 dark:text-indigo-200 font-medium";
         }
     }
 
     return (
         <button
+            type="button"
             onClick={!isHidden ? onClick : undefined}
             disabled={isHidden}
             className={cn(
-                "w-full text-left p-4 rounded-xl border-2 transition-all duration-200 flex items-center gap-4 group",
+                "w-full min-h-[56px] text-left p-3.5 sm:p-4 rounded-2xl border-2 transition-all duration-150 flex items-center gap-3.5 sm:gap-4 group",
                 containerClass,
                 animationClass
             )}
