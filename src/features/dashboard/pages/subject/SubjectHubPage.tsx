@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo } from "react";
 import { useLayoutStore } from "@/stores/useLayoutStore";
 import { useParams, useNavigate } from "react-router-dom";
+import { Capacitor } from "@capacitor/core";
+import { App } from "@capacitor/app";
 import { SlidersHorizontal, ListTree, Target } from "lucide-react";
 import { ROUTES } from "@/config/routes";
 import { queryClient } from "@/lib/queryClient";
@@ -26,6 +28,23 @@ export const SubjectHubPage: React.FC = () => {
     return () => setHideGlobalHeader(false);
   }, [setHideGlobalHeader]);
 
+  // Capacitor Android Hardware Back Button listener (Logical Parent: Dashboard)
+  useEffect(() => {
+    let backHandler: any;
+    if (Capacitor.isNativePlatform()) {
+      App.addListener("backButton", () => {
+        navigate(ROUTES.DASHBOARD);
+      }).then((handle) => {
+        backHandler = handle;
+      });
+    }
+    return () => {
+      if (backHandler) {
+        backHandler.remove();
+      }
+    };
+  }, [navigate]);
+
   const decodedSubject = subjectName ? decodeURIComponent(subjectName) : "";
 
   // Eager prefetch of topic taxonomy while user considers action cards
@@ -41,7 +60,7 @@ export const SubjectHubPage: React.FC = () => {
 
   if (!subjectName) {
     return (
-      <div className="min-h-full -mx-4 -mt-4 px-4 pt-4 overflow-x-hidden bg-gradient-to-b from-[#EEF2FF] via-[#F5F7FF] to-[#F8FAFC] dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))]">
+      <div className="min-h-[100dvh] w-full px-4 pt-[calc(env(safe-area-inset-top,0px)+1rem)] overflow-x-hidden overscroll-contain select-none bg-gradient-to-b from-[#EEF2FF] via-[#F5F7FF] to-[#F8FAFC] dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))]">
         <EmptyState message="Invalid subject selected." />
       </div>
     );
@@ -80,8 +99,8 @@ export const SubjectHubPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-full -mx-4 -mt-4 px-4 pt-4 overflow-x-hidden bg-gradient-to-b from-[#EEF2FF] via-[#F5F7FF] to-[#F8FAFC] dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))]">
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 pt-3 sm:pt-5 space-y-6 relative z-10">
+    <div className="min-h-[100dvh] w-full overflow-x-hidden overscroll-contain select-none bg-gradient-to-b from-[#EEF2FF] via-[#F5F7FF] to-[#F8FAFC] dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))]">
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 sm:pt-5 space-y-5 relative z-10">
         <SubjectHeader subjectName={decodedSubject} />
 
         {activeExam && (
@@ -107,7 +126,7 @@ export const SubjectHubPage: React.FC = () => {
           </div>
         )}
 
-        <div className="mt-8 flex flex-col gap-4">
+        <div className="mt-4 sm:mt-6 flex flex-col gap-3.5 sm:gap-4">
           <ActionCard
             title="Create Custom Quiz"
             description="Filter by topic, difficulty, or year"
