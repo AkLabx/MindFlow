@@ -26,6 +26,27 @@ This document is the single source of truth for the evolution of the MindFlow ap
 
 ## 🚀 App Journey Changelog
 
+## [v1.0.347] - 11 November 2026, 02:00 AM IST
+
+> **Release Platform Mapping**: `Android 1.6 (versionCode 6) = Web v1.0.347`
+
+### Executive Summary
+Uplifted the Onboarding screen (`OnboardingFlow.tsx`) to native Android APK standards. Replaced the traditional HTML `<select>` dropdown with interactive Material 3 Choice Cards, transformed the boxed desktop card into an edge-to-edge native surface with status/gesture bar insets, added a bottom-pinned thumb-ergonomic CTA bar, integrated tactile haptics, and handled Android hardware back navigation.
+
+### Work Breakdown
+- **✨ Features Added**:
+  - **Material 3 Interactive Choice Cards**: Replaced clunky HTML `<select>` dropdown with responsive, tap-friendly exam selection cards (SSC, Railways, State PSC, Banking, General Studies) equipped with categorical badges, icons, checkmark status rings, and tactile feedback.
+  - **Bottom-Pinned Action Bar**: Re-anchored the primary CTA ("Continue to Dashboard") to a sticky bottom bar adhering to Android gesture bar clearance (`env(safe-area-inset-bottom)`), optimizing mobile thumb reachability.
+  - **Android Hardware Back Handling**: Added `@capacitor/app` `App.addListener('backButton')` to smoothly minimize the application on Android back press rather than abandoning onboarding state.
+- **⚡ Performance & Refactoring**:
+  - **Edge-to-Edge Surface**: Replaced the floating desktop card with an edge-to-edge canvas on mobile that seamlessly respects Android status bar and gesture navigation safe-area insets.
+  - **Tactile Touch Feedback**: Integrated `triggerHaptic('light')` and `triggerHaptic('success')` across all exam card selections and submission interactions with active press animations (`active:scale-[0.98]`).
+  - **Input Hygiene**: Enriched the name field with `autoComplete="name"`, `inputMode="text"`, and `enterKeyHint="done"`.
+- **🔒 Security & Architecture**:
+  - Maintained complete compliance with Constitution Section 4 Navigation and the newly codified Android Native Feel & Behavior Uplift Invariant.
+
+---
+
 ## [v1.0.346] - 11 November 2026, 01:21 AM IST
 
 > **Release Platform Mapping**: `Android 1.6 (versionCode 6) = Web v1.0.346`
