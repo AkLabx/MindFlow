@@ -26,6 +26,27 @@ This document is the single source of truth for the evolution of the MindFlow ap
 
 ## 🚀 App Journey Changelog
 
+## [v1.0.352] - 11 November 2026, 04:37 AM IST
+
+> **Release Platform Mapping**: `Android 1.6 (versionCode 6) = Web v1.0.352`
+
+### Executive Summary
+Uplifted the Active Learning Quiz Session (`LearningSession.tsx`, `ActiveQuizLayout.tsx`, `QuizOption.tsx`) to native Android APK standards and resolved two global loading/layout defects: centered `SynapticLoader` across all lazy-loaded routes and page-level loading states, and eliminated the 64px top white-strip cut screen when opening `QuizConfig` and immersive session routes.
+
+### Work Breakdown
+- **🐛 Bug Fixes**:
+  - **Centered Page-Level `SynapticLoader` Globally (`SynapticLoader.tsx`)**: Wrapped non-inline `SynapticLoader` instances (`size !== 'xs' && size !== 'sm' && variant !== 'inline'`) in a `w-full min-h-[65dvh] flex-1 flex flex-col items-center justify-center p-6 select-none` flex container so `<Suspense fallback={<SynapticLoader />}>` and page-level loaders render in the dead center of the viewport instead of the top-left corner `(0,0)`.
+  - **Eliminated Cut-Screen Defect on First Open of `QuizConfig` & Immersive Routes (`AppRoutes.tsx`, `QuizConfig.tsx`)**: Wrapped the `auth-immersive` `<Outlet />` in `<div className="min-h-[100dvh] w-full flex flex-col bg-slate-50 dark:bg-slate-950">` and updated `QuizConfig`'s `isLoadingMetadata` / `error` containers to `min-h-[100dvh] w-full flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-950`, preventing the 64px white strip over a dark `#0f172a` body void during lazy route loading.
+  - **Pinned Header & Safe-Area Bottom Bar in `ActiveQuizLayout.tsx`**: Moved `header` outside the scrollable `<main>` container (`flex-none z-30`) so the quiz title bar and countdown progress line remain fixed while reading long questions or explanations, added `overscroll-contain` to `<main>`, and added `pb-[env(safe-area-inset-bottom,0px)]` to `<footer>` for Android gesture navigation bar clearance.
+  - **Fixed Dark Mode Option Contrast & Removed Overflow Scaling (`QuizOption.tsx`)**: Fixed unreadable light-mode `bg-emerald-50 text-emerald-900` and invalid `dark:bg-red-900/200` on answered options by adding proper Dark Mode tokens (`dark:bg-emerald-950/50 dark:text-emerald-200`, `dark:bg-red-950/40 dark:text-red-200`), removed `scale-[1.02]` horizontal overflow, and added `min-h-[56px] rounded-2xl active:scale-[0.98] select-none touch-manipulation`.
+- **✨ Features Added**:
+  - **Layered Android Hardware Back Navigation (`LearningSession.tsx`)**: Registered `@capacitor/app` `App.addListener('backButton')` to close `isSettingsOpen` or `isNavOpen` drawers first, resume if `isPaused`, or cleanly exit via `onGoHome()`.
+  - **Native Capacitor Haptics & 44px Ergonomic Controls (`LearningSession.tsx`)**: Replaced raw `window.navigator.vibrate(50)` with `triggerHaptic('success' | 'error' | 'medium' | 'light')` and upgraded all header and footer controls to `min-w-[40px] min-h-[40px]` / `min-h-[44px]` touch targets with `active:scale-95`.
+- **🔒 Security & Architecture**:
+  - **Impacted Scope**: `src/components/ui/SynapticLoader.tsx`, `src/routes/AppRoutes.tsx`, `src/features/quiz/components/QuizConfig.tsx`, `src/features/quiz/layouts/ActiveQuizLayout.tsx`, `src/features/quiz/components/QuizOption.tsx`, `src/features/quiz/learning/LearningSession.tsx`, `package.json`, `docs/APP_JOURNEY_LOG.md`.
+
+---
+
 ## [v1.0.351] - 11 November 2026, 04:08 AM IST
 
 > **Release Platform Mapping**: `Android 1.6 (versionCode 6) = Web v1.0.351`

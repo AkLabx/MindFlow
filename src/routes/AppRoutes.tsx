@@ -384,8 +384,8 @@ const handleReattempt = async (quizId: string, mode: string) => {
                 {/* --- Immersive Session Routes (No Layout, Fullscreen) --- */}
 
 
-                    {/* Vocab Libraries */}
-                    <Route element={<NavigationManager key="auth-immersive" type={RouteAccessType.AUTHENTICATED}><Outlet /></NavigationManager>}>
+                    {/* Vocab Libraries & Immersive Fullscreen Routes */}
+                    <Route element={<NavigationManager key="auth-immersive" type={RouteAccessType.AUTHENTICATED}><div className="min-h-[100dvh] w-full flex flex-col bg-slate-50 dark:bg-slate-950"><Outlet /></div></NavigationManager>}>
                     <Route path={ROUTES.VOCAB.OWS.LIBRARY} element={<Suspense fallback={<SynapticLoader />}><VocabLibraryPage vocabType="ows" onBack={() => navTo(`${ROUTES.ENGLISH}?tab=vocabows`)} onStartDeck={(id) => { navTo(ROUTES.VOCAB.OWS.SESSION.dynamic(id)); }} /></Suspense>} />
                     <Route path={ROUTES.VOCAB.IDIOMS.LIBRARY} element={<Suspense fallback={<SynapticLoader />}><VocabLibraryPage vocabType="idiom" onBack={() => navTo(`${ROUTES.ENGLISH}?tab=vocabidiom`)} onStartDeck={(id) => { navTo(ROUTES.VOCAB.IDIOMS.SESSION.dynamic(id)); }} /></Suspense>} />
                     <Route path={ROUTES.VOCAB.SYNONYMS.LIBRARY} element={<Suspense fallback={<SynapticLoader />}><VocabLibraryPage vocabType="synonym" onBack={() => navTo(`${ROUTES.ENGLISH}?tab=vocabsynonyms`)} onStartDeck={(id) => { navTo(ROUTES.VOCAB.SYNONYMS.SESSION.dynamic(id)); }} /></Suspense>} />

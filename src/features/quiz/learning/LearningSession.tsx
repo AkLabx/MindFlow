@@ -2,6 +2,10 @@ import { useQuizSessionStore } from '../stores/useQuizSessionStore';
 
 import React, { useState, useEffect, useCallback, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Capacitor } from '@capacitor/core';
+import { App } from '@capacitor/app';
+import { triggerHaptic } from '@/lib/haptics';
+import { SynapticLoader } from '../../../components/ui/SynapticLoader';
 import { useAnalyticsStore } from '../stores/useAnalyticsStore';
 import { useBookmarkStore } from '../stores/useBookmarkStore';
 import { quizEngine } from '../engine';
@@ -89,15 +93,36 @@ export const LearningSession: React.FC<LearningSessionProps> = ({
     // Pop-up state for timer expiry
     const [showTimeUpModal, setShowTimeUpModal] = useState(false);
 
+    // Native Android Hardware Back Button Interception (Layered Modal & Session Priority)
+    useEffect(() => {
+        if (!Capacitor.isNativePlatform()) return;
+        const listenerPromise = App.addListener('backButton', () => {
+            if (isSettingsOpen) {
+                triggerHaptic('light');
+                setIsSettingsOpen(false);
+            } else if (isNavOpen) {
+                triggerHaptic('light');
+                setIsNavOpen(false);
+            } else if (isPaused) {
+                triggerHaptic('light');
+                onResume();
+            } else {
+                triggerHaptic('light');
+                onGoHome();
+            }
+        });
+        return () => {
+            listenerPromise.then(handle => handle.remove());
+        };
+    }, [isSettingsOpen, isNavOpen, isPaused, onResume, onGoHome]);
+
     const currentQuestion = questions[currentIndex];
 
     // Safety check: if question is undefined, we shouldn't attempt to render
     if (!currentQuestion) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
-                <div className="text-center p-8">
-                    <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-4">Loading Question...</h2>
-                </div>
+            <div className="min-h-[100dvh] w-full flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-950 p-6 select-none">
+                <SynapticLoader size="lg" />
             </div>
         );
     }
@@ -147,10 +172,7 @@ export const LearningSession: React.FC<LearningSessionProps> = ({
     // Handle Timer Expiry
     const handleTimeUp = useCallback(() => {
         setShowTimeUpModal(true);
-        // Mark as time up (0 time taken for this attempt effectively, or max?)
-        // Ideally we pass 0 or current time?
-        // We call onAnswer with a special marker.
-        if (isHapticEnabled && window.navigator && window.navigator.vibrate) window.navigator.vibrate(50);
+        if (isHapticEnabled) triggerHaptic('error');
         onAnswer(currentQuestion.id, 'TIME_UP', 0);
         playWrong();
     }, [currentQuestion.id, playWrong, onAnswer, isHapticEnabled]);
@@ -187,6 +209,7 @@ export const LearningSession: React.FC<LearningSessionProps> = ({
     }, [currentQuestion.id, isAnswered, isPaused, onSaveTimer]);
 
     const handlePause = () => {
+        if (isHapticEnabled) triggerHaptic('light');
         onPause(currentQuestion.id, timeLeftRef.current);
         // Small delay to allow the immediate DB save in useQuiz to trigger before we navigate away
         // and potentially load the old state from DB in SavedQuizzes
@@ -196,12 +219,14 @@ export const LearningSession: React.FC<LearningSessionProps> = ({
     };
 
     const handleResume = () => {
+        if (isHapticEnabled) triggerHaptic('light');
         onResume();
     };
 
     const handleFiftyFifty = () => {
         // Local timeout check to prevent clicking right as it times out
         if (isAnswered || isTimeOut || isFiftyFiftyUsed || timeLeft === 0) return;
+        if (isHapticEnabled) triggerHaptic('medium');
 
         // Identify incorrect options
         const incorrectOptions = currentQuestion.options.filter(opt => opt !== currentQuestion.correct);
@@ -220,7 +245,6 @@ export const LearningSession: React.FC<LearningSessionProps> = ({
 
     const handleAnswerSelect = (option: string) => {
         if (isAnswered) return;
-        if (isHapticEnabled && window.navigator && window.navigator.vibrate) window.navigator.vibrate(50);
 
         // Calculate exact ms time spent on this question
         const exactSpentMs = Date.now() - questionMountTimeRef.current;
@@ -228,15 +252,16 @@ export const LearningSession: React.FC<LearningSessionProps> = ({
         onAnswer(currentQuestion.id, option, exactSpentMs);
 
         if (option === currentQuestion.correct) {
+            if (isHapticEnabled) triggerHaptic('success');
             playCorrect();
-
         } else {
+            if (isHapticEnabled) triggerHaptic('error');
             playWrong();
-
         }
     };
 
     const handleNextClick = () => {
+        if (isHapticEnabled) triggerHaptic('light');
         setShowTimeUpModal(false);
         if (currentIndex < questions.length - 1) {
             onNext();
@@ -246,6 +271,7 @@ export const LearningSession: React.FC<LearningSessionProps> = ({
     };
 
     const handlePrevClick = () => {
+        if (isHapticEnabled) triggerHaptic('light');
         setShowTimeUpModal(false);
         if (currentIndex > 0) {
             onPrev();
@@ -270,13 +296,16 @@ export const LearningSession: React.FC<LearningSessionProps> = ({
 
     
     const header = (
-        <div className="w-full relative z-20 flex flex-col">
+        <div className="w-full relative z-20 flex flex-col select-none">
             {/* Primary Quiz Title Bar */}
-            <div className="relative flex items-center justify-between px-3 sm:px-4 py-3 bg-indigo-600 dark:bg-indigo-900 text-white w-full pt-[max(0.75rem,env(safe-area-inset-top))]">
-                <div className="flex items-center gap-3 overflow-hidden flex-1">
+            <div className="relative flex items-center justify-between px-3 sm:px-4 py-2.5 bg-indigo-600 dark:bg-indigo-900 text-white w-full pt-[max(0.75rem,env(safe-area-inset-top))]">
+                <div className="flex items-center gap-2 overflow-hidden flex-1">
                     <button
-                        onClick={onGoHome}
-                        className="p-1.5 hover:bg-indigo-700 dark:hover:bg-indigo-800 rounded-lg transition-colors shrink-0"
+                        onClick={() => {
+                            if (isHapticEnabled) triggerHaptic('light');
+                            onGoHome();
+                        }}
+                        className="min-w-[40px] min-h-[40px] flex items-center justify-center hover:bg-indigo-700 dark:hover:bg-indigo-800 rounded-xl transition-all active:scale-90 touch-manipulation shrink-0"
                         title="Go Home"
                     >
                         <Home className="w-5 h-5 text-white" />
@@ -288,15 +317,18 @@ export const LearningSession: React.FC<LearningSessionProps> = ({
 
                 <div className="flex items-center gap-1 shrink-0">
                     <button
-                        onClick={toggleToolbar}
-                        className="p-1.5 hover:bg-indigo-700 dark:hover:bg-indigo-800 rounded-lg transition-colors"
+                        onClick={() => {
+                            if (isHapticEnabled) triggerHaptic('light');
+                            toggleToolbar();
+                        }}
+                        className="min-w-[40px] min-h-[40px] flex items-center justify-center hover:bg-indigo-700 dark:hover:bg-indigo-800 rounded-xl transition-all active:scale-90 touch-manipulation"
                         title={isToolbarExpanded ? 'Collapse Tools' : 'Expand Tools'}
                     >
                         {isToolbarExpanded ? <ChevronUp className="w-5 h-5 text-white" /> : <ChevronDown className="w-5 h-5 text-white" />}
                     </button>
                     <button
                         onClick={handlePause}
-                        className="p-1.5 hover:bg-indigo-700 dark:hover:bg-indigo-800 rounded-lg transition-colors ml-1"
+                        className="min-w-[40px] min-h-[40px] flex items-center justify-center hover:bg-indigo-700 dark:hover:bg-indigo-800 rounded-xl transition-all active:scale-90 touch-manipulation ml-0.5"
                         title="Pause Quiz"
                         data-testid="pause-button"
                     >
@@ -325,11 +357,11 @@ export const LearningSession: React.FC<LearningSessionProps> = ({
             {/* Secondary Utility Row (Collapsible) */}
             <div className={cn(
                 "w-full bg-white dark:bg-gray-800 transition-all duration-300 ease-in-out origin-top border-b border-gray-100 dark:border-gray-800",
-                isToolbarExpanded ? "max-h-28 opacity-100 p-3 sm:p-4" : "max-h-0 opacity-0 overflow-hidden py-0 border-transparent"
+                isToolbarExpanded ? "max-h-28 opacity-100 p-2.5 sm:p-3.5" : "max-h-0 opacity-0 overflow-hidden py-0 border-transparent"
             )}>
                 <div className="flex items-center justify-between w-full">
                     <div className="flex-1 flex flex-col">
-                        <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center justify-between">
                             {/* Desktop Breadcrumbs (if filters exist, or just placeholder to keep layout) */}
                             <div className="hidden sm:block">
                                 {filters && (filters.subject?.length > 0 || filters.examName) ? <QuizBreadcrumbs filters={filters} onGoHome={onGoHome} /> : <div />}
@@ -346,8 +378,8 @@ export const LearningSession: React.FC<LearningSessionProps> = ({
                                         icon={<Clock className="w-3.5 h-3.5" />}
                                         className={cn(
                                             "font-mono font-bold tabular-nums min-w-[4rem] justify-center transition-colors shrink-0",
-                                            timeLeft <= 5 ? "bg-red-50 text-red-600 border-red-200 animate-pulse" :
-                                            timeLeft <= 15 ? "bg-amber-50 text-amber-600 border-amber-200" :
+                                            timeLeft <= 5 ? "bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 border-red-200 dark:border-red-900/50 animate-pulse" :
+                                            timeLeft <= 15 ? "bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-900/50" :
                                             "bg-gray-50 dark:bg-gray-900"
                                         )}
                                     >
@@ -356,19 +388,56 @@ export const LearningSession: React.FC<LearningSessionProps> = ({
                                 )}
 
                                 {/* Zoom Controls */}
-                                <div className="flex items-center border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden bg-gray-50 dark:bg-gray-900 shrink-0">
-                                    <button onClick={() => setZoomLevel(z => Math.max(0.8, z - 0.1))} className="p-1.5 hover:bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 active:bg-gray-300"><ZoomOut className="w-4 h-4" /></button>
+                                <div className="flex items-center border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden bg-gray-50 dark:bg-gray-900 shrink-0">
+                                    <button
+                                        onClick={() => {
+                                            if (isHapticEnabled) triggerHaptic('light');
+                                            setZoomLevel(z => Math.max(0.8, z - 0.1));
+                                        }}
+                                        className="min-w-[38px] min-h-[38px] flex items-center justify-center hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 active:scale-90 touch-manipulation"
+                                        aria-label="Zoom out"
+                                    >
+                                        <ZoomOut className="w-4 h-4" />
+                                    </button>
                                     <div className="w-px h-4 bg-gray-200 dark:bg-gray-700"></div>
-                                    <button onClick={() => setZoomLevel(z => Math.min(1.6, z + 0.1))} className="p-1.5 hover:bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 active:bg-gray-300"><ZoomIn className="w-4 h-4" /></button>
+                                    <button
+                                        onClick={() => {
+                                            if (isHapticEnabled) triggerHaptic('light');
+                                            setZoomLevel(z => Math.min(1.6, z + 0.1));
+                                        }}
+                                        className="min-w-[38px] min-h-[38px] flex items-center justify-center hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 active:scale-90 touch-manipulation"
+                                        aria-label="Zoom in"
+                                    >
+                                        <ZoomIn className="w-4 h-4" />
+                                    </button>
                                 </div>
 
                                 {/* Fullscreen Toggle */}
-                                <button onClick={toggleFullScreen} className="p-1.5 rounded-lg hover:bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-700 flex shrink-0" aria-label="Toggle fullscreen">
+                                <button
+                                    onClick={() => {
+                                        if (isHapticEnabled) triggerHaptic('light');
+                                        toggleFullScreen();
+                                    }}
+                                    className="min-w-[38px] min-h-[38px] items-center justify-center rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-700 flex shrink-0 active:scale-90 touch-manipulation"
+                                    aria-label="Toggle fullscreen"
+                                >
                                     {isFullScreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
                                 </button>
 
                                 {/* Bookmark */}
-                                <button onClick={() => onToggleBookmark(currentQuestion.id)} className={cn("p-1.5 rounded-lg border transition-colors shrink-0 ml-1", bookmarks.includes(currentQuestion.id) ? "bg-amber-100 border-amber-200 text-amber-500" : "bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-700 text-gray-400 hover:bg-gray-100 dark:bg-gray-800")}>
+                                <button
+                                    onClick={() => {
+                                        if (isHapticEnabled) triggerHaptic('medium');
+                                        onToggleBookmark(currentQuestion.id);
+                                    }}
+                                    className={cn(
+                                        "min-w-[38px] min-h-[38px] flex items-center justify-center rounded-xl border transition-all shrink-0 ml-1 active:scale-90 touch-manipulation",
+                                        bookmarks.includes(currentQuestion.id)
+                                            ? "bg-amber-100 dark:bg-amber-950/50 border-amber-200 dark:border-amber-800 text-amber-500"
+                                            : "bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-700 text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
+                                    )}
+                                    aria-label="Toggle bookmark"
+                                >
                                     <Star className={cn("w-4 h-4", bookmarks.includes(currentQuestion.id) && "fill-current")} />
                                 </button>
                             </div>
@@ -380,25 +449,31 @@ export const LearningSession: React.FC<LearningSessionProps> = ({
     );
 
     const footer = (
-        <div className="px-2 py-3 sm:px-4 sm:py-4 bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-800 w-full shadow-[0_-8px_30px_rgba(0,0,0,0.04)] dark:shadow-[0_-8px_30px_rgba(0,0,0,0.2)]">
+        <div className="px-2.5 py-2.5 sm:px-4 sm:py-3.5 bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-800 w-full shadow-[0_-8px_30px_rgba(0,0,0,0.04)] dark:shadow-[0_-8px_30px_rgba(0,0,0,0.2)] select-none">
             <div className="max-w-md mx-auto flex items-center justify-between gap-1.5 sm:gap-2">
 
                 {/* Settings */}
                 <button
-                    onClick={() => setIsSettingsOpen(true)}
-                    className="p-2 sm:p-2.5 rounded-xl bg-gray-50 dark:bg-gray-900 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:bg-gray-800 transition-colors border border-gray-200 dark:border-gray-700 shrink-0 flex items-center justify-center"
+                    onClick={() => {
+                        if (isHapticEnabled) triggerHaptic('light');
+                        setIsSettingsOpen(true);
+                    }}
+                    className="min-w-[44px] min-h-[44px] rounded-xl bg-gray-50 dark:bg-gray-900 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all active:scale-95 touch-manipulation border border-gray-200 dark:border-gray-700 shrink-0 flex items-center justify-center"
                     title="Settings"
                 >
-                    <Settings className="w-5 h-5 sm:w-5 sm:h-5" />
+                    <Settings className="w-5 h-5" />
                 </button>
 
                 {/* Menu */}
                 <button
-                    onClick={() => setIsNavOpen(true)}
-                    className="p-2 sm:p-2.5 rounded-xl bg-gray-50 dark:bg-gray-900 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:bg-gray-800 transition-colors border border-gray-200 dark:border-gray-700 flex items-center justify-center shrink-0 min-w-[2.5rem] sm:min-w-[3rem]"
+                    onClick={() => {
+                        if (isHapticEnabled) triggerHaptic('light');
+                        setIsNavOpen(true);
+                    }}
+                    className="min-w-[44px] min-h-[44px] rounded-xl bg-gray-50 dark:bg-gray-900 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all active:scale-95 touch-manipulation border border-gray-200 dark:border-gray-700 flex items-center justify-center shrink-0"
                     title="Side Panel"
                 >
-                    <Menu className="w-5 h-5 sm:w-6 sm:h-5" strokeWidth={2.5} />
+                    <Menu className="w-5 h-5" strokeWidth={2.5} />
                 </button>
 
                 <div className="w-px h-8 bg-gray-200 dark:bg-gray-700 mx-0.5 shrink-0 hidden sm:block"></div>
@@ -407,7 +482,7 @@ export const LearningSession: React.FC<LearningSessionProps> = ({
                 <button
                     onClick={handlePrevClick}
                     disabled={currentIndex === 0}
-                    className="p-2.5 sm:p-3 rounded-xl bg-gray-50 dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300 disabled:opacity-40 disabled:cursor-not-allowed transition-colors border border-gray-200 dark:border-gray-700 shrink-0 flex items-center justify-center"
+                    className="min-w-[44px] min-h-[44px] rounded-xl bg-gray-50 dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300 disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-95 touch-manipulation border border-gray-200 dark:border-gray-700 shrink-0 flex items-center justify-center"
                     title="Previous Question"
                 >
                     <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6" strokeWidth={2.5} />
@@ -418,7 +493,7 @@ export const LearningSession: React.FC<LearningSessionProps> = ({
                     onClick={handleFiftyFifty}
                     disabled={isAnswered || isTimeOut || isFiftyFiftyUsed}
                     className={cn(
-                        "flex-1 min-w-[3.5rem] sm:min-w-[4.5rem] max-w-[5.5rem] py-2 sm:py-2.5 px-1 sm:px-3 rounded-full font-bold text-xs sm:text-sm text-center transition-all flex items-center justify-center border",
+                        "flex-1 min-w-[3.75rem] sm:min-w-[4.5rem] max-w-[5.5rem] min-h-[44px] px-2 sm:px-3 rounded-full font-bold text-xs sm:text-sm text-center transition-all flex items-center justify-center border touch-manipulation",
                         (isAnswered || isTimeOut || isFiftyFiftyUsed)
                             ? "bg-gray-50 dark:bg-gray-800 text-gray-400 dark:text-gray-500 border-gray-200 dark:border-gray-700 cursor-not-allowed"
                             : "bg-amber-400 hover:bg-amber-500 text-amber-950 border-amber-500/20 shadow-[0_2px_10px_rgba(251,191,36,0.2)] active:scale-95"
@@ -433,7 +508,7 @@ export const LearningSession: React.FC<LearningSessionProps> = ({
                     onClick={handleNextClick}
                     disabled={!isAnswered}
                     className={cn(
-                        "flex-[2] min-w-[6rem] sm:min-w-[7.5rem] py-2.5 sm:py-3 px-3 sm:px-4 rounded-xl transition-all font-bold flex items-center justify-center text-sm sm:text-base whitespace-nowrap",
+                        "flex-[2] min-w-[6rem] sm:min-w-[7.5rem] min-h-[44px] px-3 sm:px-4 rounded-xl transition-all font-bold flex items-center justify-center text-sm sm:text-base whitespace-nowrap touch-manipulation",
                         !isAnswered
                             ? "bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 border border-gray-200 dark:border-gray-700 cursor-not-allowed opacity-70"
                             : "bg-indigo-600 hover:bg-indigo-700 text-white shadow-[0_4px_14px_rgba(79,70,229,0.3)] dark:shadow-[0_4px_14px_rgba(79,70,229,0.2)] active:scale-95"
