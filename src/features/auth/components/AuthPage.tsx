@@ -517,7 +517,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
     <main
       id="main-content"
       role="main"
-      className="min-h-[100dvh] w-full flex flex-col lg:items-center lg:justify-center relative bg-slate-50 dark:bg-slate-950 lg:bg-gradient-to-br lg:from-slate-50 lg:via-indigo-50/30 lg:to-purple-50/20 lg:dark:from-slate-950 lg:dark:via-slate-900 lg:dark:to-indigo-950/40 p-0 sm:p-0 md:p-4 lg:p-8 pt-[env(safe-area-inset-top,0px)] pb-[env(safe-area-inset-bottom,0px)] overflow-x-hidden overscroll-contain select-none"
+      className="min-h-[100dvh] w-full flex flex-col lg:items-center lg:justify-center relative bg-slate-50 dark:bg-slate-950 lg:bg-gradient-to-br lg:from-slate-50 lg:via-indigo-50/30 lg:to-purple-50/20 lg:dark:from-slate-950 lg:dark:via-slate-900 lg:dark:to-indigo-950/40 p-0 sm:p-0 md:p-4 lg:p-8 pt-[env(safe-area-inset-top,0px)] pb-[env(safe-area-inset-bottom,0px)] overflow-x-clip select-none"
     >
       {/* Background ambient lighting (desktop only) */}
       <div className="hidden lg:block absolute top-0 inset-x-0 h-72 bg-gradient-to-b from-indigo-500/10 via-purple-500/5 to-transparent pointer-events-none" />

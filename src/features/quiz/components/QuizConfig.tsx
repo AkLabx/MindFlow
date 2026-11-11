@@ -492,7 +492,7 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
   }
 
   return (
-    <div className="bg-white dark:bg-gray-900 min-h-[100dvh] w-full md:min-h-0 md:h-auto md:rounded-3xl shadow-sm md:border border-gray-200 dark:border-gray-700 flex flex-col max-w-6xl mx-auto animate-fade-in overflow-x-hidden overscroll-contain select-none relative">
+    <div className="bg-white dark:bg-gray-900 min-h-[100dvh] w-full md:min-h-0 md:h-auto md:rounded-3xl shadow-sm md:border border-gray-200 dark:border-gray-700 flex flex-col max-w-6xl mx-auto animate-fade-in overflow-x-clip select-none relative">
 
       {/* Overlay for "Starting Quiz" blocking interaction */}
       {isStartingQuiz && (
@@ -521,7 +521,7 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
       </header>
 
       {/* Scrollable Config Content */}
-      <div className="p-4 md:p-6 pb-44 md:space-y-6 bg-gray-50 dark:bg-gray-900/50 flex-1 overflow-y-auto pt-4 md:pt-6">
+      <div className="p-4 md:p-6 pb-44 md:space-y-6 bg-gray-50 dark:bg-gray-900/50 flex-1 pt-4 md:pt-6">
 
         {/* Active Exam Context Banner (Exam-First Quick Access with Multi-Exam Support) */}
         {activeExamInfo && (

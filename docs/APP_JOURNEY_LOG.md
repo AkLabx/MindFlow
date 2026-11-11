@@ -26,6 +26,23 @@ This document is the single source of truth for the evolution of the MindFlow ap
 
 ## 🚀 App Journey Changelog
 
+## [v1.0.353] - 11 November 2026, 12:07 PM IST
+
+> **Release Platform Mapping**: `Android 1.6 (versionCode 6) = Web v1.0.353`
+
+### Executive Summary
+Resolved a critical vertical scroll-lock regression across Pages 1 through 7 (`AuthPage.tsx`, `OnboardingFlow.tsx`, `DashboardPage.tsx`, `SubjectHubPage.tsx`, `SubjectTopicsPage.tsx`, `QuizConfig.tsx`, and `ActiveQuizLayout.tsx`) where combining `overflow-x-hidden` with `overscroll-contain` on `min-h-full` / `min-h-[100dvh]` page containers computed `overflow-y: auto` with `0px` internal scroll range and blocked scroll chaining to the document window.
+
+### Work Breakdown
+- **🐛 Bug Fixes**:
+  - **Restored Vertical Document Scrolling Across Pages 1–6 (`AuthPage.tsx`, `OnboardingFlow.tsx`, `DashboardPage.tsx`, `SubjectHubPage.tsx`, `SubjectTopicsPage.tsx`, `QuizConfig.tsx`)**: Replaced `overflow-x-hidden overscroll-contain` on page-level `min-h-full` / `min-h-[100dvh]` containers with `overflow-x-clip`. Per CSS Overflow Level 3, `overflow-x: hidden` forces `overflow-y: auto`, turning content-sized containers (`scrollHeight === clientHeight`) into scroll containers; pairing that with `overscroll-contain` (`overscroll-behavior: contain`) prevented touch and wheel scroll events from chaining to `window`/`document.scrollingElement`, freezing vertical scrolling and breaking `position: sticky` headers.
+  - **Unblocked Mobile Scroll in `OnboardingFlow.tsx` & `QuizConfig.tsx`**: Removed nested mobile `overflow-hidden` / `overflow-y-auto` traps inside `min-h-[100dvh]` flex columns so the page scrolls naturally with the viewport while sticky headers and bottom action bars stay pinned.
+  - **Hardened Scroll Container & Body Overflow Cleanup (`ActiveQuizLayout.tsx`, `DashboardDrillBottomSheet.tsx`, `QuizStartBottomSheet.tsx`)**: Added `min-h-0 touch-pan-y` to the `<main>` scroll container in `ActiveQuizLayout.tsx` and reset `document.body.style.overflow = ''` when bottom sheets close.
+- **🔒 Security & Architecture**:
+  - **Impacted Scope**: `src/features/auth/components/AuthPage.tsx`, `src/features/onboarding/pages/OnboardingFlow.tsx`, `src/pages/DashboardPage.tsx`, `src/features/dashboard/components/DashboardDrillBottomSheet.tsx`, `src/features/dashboard/pages/subject/SubjectHubPage.tsx`, `src/features/dashboard/pages/subject/SubjectTopicsPage.tsx`, `src/features/dashboard/components/subject/QuizStartBottomSheet.tsx`, `src/features/quiz/components/QuizConfig.tsx`, `src/features/quiz/layouts/ActiveQuizLayout.tsx`, `package.json`, `docs/APP_JOURNEY_LOG.md`.
+
+---
+
 ## [v1.0.352] - 11 November 2026, 04:37 AM IST
 
 > **Release Platform Mapping**: `Android 1.6 (versionCode 6) = Web v1.0.352`
