@@ -155,7 +155,7 @@ export const OnboardingFlow: React.FC = () => {
     <main
       id="main-content"
       role="main"
-      className="min-h-[100dvh] w-full flex flex-col justify-between bg-slate-50 dark:bg-slate-950 md:bg-gradient-to-br md:from-slate-50 md:via-indigo-50/30 md:to-purple-50/20 md:dark:from-slate-950 md:dark:via-slate-900 md:dark:to-indigo-950/40 p-0 sm:p-0 md:p-6 pt-[env(safe-area-inset-top,0px)] pb-[env(safe-area-inset-bottom,0px)] overflow-x-hidden overscroll-contain select-none md:flex-row md:items-center md:justify-center"
+      className="min-h-[100dvh] w-full flex flex-col justify-between bg-slate-50 dark:bg-slate-950 md:bg-gradient-to-br md:from-slate-50 md:via-indigo-50/30 md:to-purple-50/20 md:dark:from-slate-950 md:dark:via-slate-900 md:dark:to-indigo-950/40 p-0 sm:p-0 md:p-6 pt-[env(safe-area-inset-top,0px)] pb-[env(safe-area-inset-bottom,0px)] overflow-x-clip select-none md:flex-row md:items-center md:justify-center"
     >
       {/* Background ambient lighting on desktop */}
       <div className="hidden md:block absolute top-0 inset-x-0 h-96 bg-gradient-to-b from-indigo-100/50 to-transparent dark:from-indigo-900/20 pointer-events-none" />
@@ -165,10 +165,10 @@ export const OnboardingFlow: React.FC = () => {
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.25, ease: 'easeOut' }}
-        className="relative z-10 w-full max-w-xl mx-auto flex-1 flex flex-col justify-between bg-white dark:bg-slate-900 md:rounded-3xl md:shadow-2xl md:border md:border-slate-200/80 md:dark:border-slate-800 overflow-hidden min-h-[100dvh] md:min-h-[640px] md:max-h-[85vh]"
+        className="relative z-10 w-full max-w-xl mx-auto flex-1 flex flex-col justify-between bg-white dark:bg-slate-900 md:rounded-3xl md:shadow-2xl md:border md:border-slate-200/80 md:dark:border-slate-800 md:overflow-hidden min-h-[100dvh] md:min-h-[640px] md:max-h-[85vh]"
       >
         {/* Scrollable Content Zone */}
-        <div className="flex-1 overflow-y-auto px-5 py-6 sm:px-8 space-y-6">
+        <div className="flex-1 md:overflow-y-auto px-5 py-6 sm:px-8 space-y-6">
           {/* Header */}
           <div className="flex flex-col items-center text-center pt-2 sm:pt-4">
             <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-100 dark:border-indigo-900/40 flex items-center justify-center mb-4 text-indigo-600 dark:text-indigo-400 shadow-sm">

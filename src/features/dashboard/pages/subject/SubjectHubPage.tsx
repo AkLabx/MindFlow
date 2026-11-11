@@ -60,7 +60,7 @@ export const SubjectHubPage: React.FC = () => {
 
   if (!subjectName) {
     return (
-      <div className="min-h-[100dvh] w-full px-4 pt-[calc(env(safe-area-inset-top,0px)+1rem)] overflow-x-hidden overscroll-contain select-none bg-gradient-to-b from-[#EEF2FF] via-[#F5F7FF] to-[#F8FAFC] dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))]">
+      <div className="min-h-[100dvh] w-full px-4 pt-[calc(env(safe-area-inset-top,0px)+1rem)] overflow-x-clip select-none bg-gradient-to-b from-[#EEF2FF] via-[#F5F7FF] to-[#F8FAFC] dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))]">
         <EmptyState message="Invalid subject selected." />
       </div>
     );
@@ -99,7 +99,7 @@ export const SubjectHubPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-[100dvh] w-full overflow-x-hidden overscroll-contain select-none bg-gradient-to-b from-[#EEF2FF] via-[#F5F7FF] to-[#F8FAFC] dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))]">
+    <div className="min-h-[100dvh] w-full overflow-x-clip select-none bg-gradient-to-b from-[#EEF2FF] via-[#F5F7FF] to-[#F8FAFC] dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))]">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 sm:pt-5 space-y-5 relative z-10">
         <SubjectHeader subjectName={decodedSubject} />
 

@@ -23,7 +23,7 @@ export const ActiveQuizLayout: React.FC<ActiveQuizLayoutProps> = ({
       )}
 
       {/* Main Scrollable Question & Explanation Canvas */}
-      <main className="flex-1 overflow-y-auto overflow-x-hidden overscroll-contain w-full max-w-[100vw] bg-white dark:bg-gray-900 relative scroll-smooth">
+      <main className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain touch-pan-y w-full max-w-[100vw] bg-white dark:bg-gray-900 relative scroll-smooth">
         <div className="max-w-3xl mx-auto p-4 md:p-6 pb-24">
           {children}
         </div>
