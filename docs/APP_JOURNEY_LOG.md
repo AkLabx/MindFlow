@@ -26,6 +26,25 @@ This document is the single source of truth for the evolution of the MindFlow ap
 
 ## 🚀 App Journey Changelog
 
+## [v1.0.354] - 11 November 2026, 04:55 PM IST
+
+> **Release Platform Mapping**: `Android 1.6 (versionCode 6) = Web v1.0.354`
+
+### Executive Summary
+Replaced the static single-page onboarding screen with a 60fps, zero-lag, Android-native 9-step theatrical "Tiny Letter Crew" onboarding experience (`OnboardingFlow.tsx`) built with 100% 300ms frame-by-frame visual and motion parity to the reference benchmark, featuring lowercase 3D bubble-letter companions (**Ada** `'a'`, **Gigi** `'g'`, **Olo** `'o'`, **Pip** `'p'`, **Quinn** `'q'`, **Dex** `'d'`, **Bo** `'b'`), progressive `M I N D F L O W` letter-by-letter header lighting, squircle name tiles (`<LivingNameTiles />`), a C-shaped dotted orbital exam wheel (`<PlanetaryExamWheel />`), interactive sleeping-to-awake crew toggles with a diagonal flying burst, a peek-a-boo showcase carousel, a line-by-line unblur PYQ micro-demo, a 3-stage native permission bottom sheet (`<ConnectToolsStage />`), and over-the-air Admin Panel customizability via `public.app_ui_config` (`AppConfigHub.tsx`).
+
+### Work Breakdown
+- **✨ Features Added**:
+  - **9-Step 300ms-Parity Onboarding Engine (`OnboardingFlow.tsx`, `MindFlowCrewMascots.tsx`, `OnboardingInteractiveStages.tsx`)**: Implemented a zero-lag single-mount step state machine with blur-dissolve transitions (`filter: blur(5px)` -> `blur(0px)`), progressive `M I N D F L O W` header (`<ProgressiveBrandHeader />`), orbital hero constellation (`<HeroCrewConstellation />`) with curious eye morphing, squircle name tiles (`<LivingNameTiles />`), C-arc exam wheel (`<PlanetaryExamWheel />`), sleeping-to-awake list (`<WakeUpCrewList />`) with diagonal flying burst (`<CrewFlyingBurstOverlay />`), peek-a-boo carousel (`<CrewShowcaseCarousel />`), line-by-line unblur PYQ demo (`<FirstTaskLiveDemo />`), 3-stage native bottom sheet (`<ConnectToolsStage />`), morning nudge opt-in (`<MorningNudgeStage />`), and rainbow confetti finale (`<FinaleCrewCelebration />`).
+  - **Shared-Element Avatar Flight Transitions (`AvatarFlightOverlay`, `OnboardingFlow.tsx`)**: Added a FLIP engine that measures `[data-mascot-id]` bounding boxes before and after every step change (forward and back) and flies each letter companion from its old on-screen position and size to its new one (e.g. Ada hero → guide header, Gigi list row → carousel stage → task card, Pip tool row → nudge hero, crew → finale lineup). The destination mascot stays hidden until the flight lands.
+  - **Over-the-Air Admin Onboarding Customizer (`onboardingConfigSchema.ts`, `useAppConfigStore.ts`, `AppConfigHub.tsx`)**: Added strongly typed `OnboardingConfig` persisted inside `public.app_ui_config` (`branding.onboarding`) with `mergeOnboardingConfig` deep-merge protection and a dedicated **Onboarding** tab in `/admin/app-config` with sandboxed **Live Preview** (`/onboarding?preview=1`).
+  - **Native Selection Haptics (`haptics.ts`)**: Extended `triggerHaptic` to support `'selection'` via `@capacitor/haptics` `Haptics.selectionChanged()` for tactile rotary wheel and toggle ticks.
+- **🔒 Security & Architecture**:
+  - **Audit-Hardened Navigation & Offline-First Guards (`useHardwareBackButton.ts`, `IntentPolicy.ts`, `OnboardingFlow.tsx`, `useExamContextStore.ts`)**: Delegated `/onboarding` step-back navigation exclusively to `OnboardingFlow` via closure-safe refs, enforced synchronous 0ms `OnboardingPolicy.markCompleted` and `useExamContextStore.setActiveExam` commits prior to non-blocking `supabase.auth.updateUser`, excluded `/onboarding` from `IntentPolicy.saveIntent`, and added `sessionStorage` draft continuity plus `OnboardingErrorBoundary`.
+  - **Impacted Scope**: `src/features/onboarding/config/onboardingConfigSchema.ts`, `src/features/onboarding/components/MindFlowCrewMascots.tsx`, `src/features/onboarding/components/OnboardingInteractiveStages.tsx`, `src/features/onboarding/pages/OnboardingFlow.tsx`, `src/stores/useAppConfigStore.ts`, `src/features/admin/app-config/pages/AppConfigHub.tsx`, `src/hooks/useHardwareBackButton.ts`, `src/lib/navigation/policies/IntentPolicy.ts`, `src/lib/haptics.ts`, `src/stores/useExamContextStore.ts`, `package.json`, `docs/APP_JOURNEY_LOG.md`.
+
+---
+
 ## [v1.0.353] - 11 November 2026, 12:07 PM IST
 
 > **Release Platform Mapping**: `Android 1.6 (versionCode 6) = Web v1.0.353`
