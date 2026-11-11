@@ -59,7 +59,7 @@ export const AdminContentStudio: React.FC = () => {
 
       {/* Content Area */}
       <div>
-        {activeTab === 'ingest' && <AdminIngestionJob />}
+        {activeTab === 'ingest' && <AdminIngestionJob onNavigateToReview={() => setActiveTab('review')} />}
         {activeTab === 'review' && <AdminReviewQueue />}
         {activeTab === 'profiles' && (
           <div className="p-16 text-center rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-500 text-sm">

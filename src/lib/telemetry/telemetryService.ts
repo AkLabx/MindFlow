@@ -1,29 +1,14 @@
 /**
  * @file telemetryService.ts
  * @description Centralized, privacy-first diagnostic telemetry engine for MindFlow.
- * Enforces Section 11 of the MindFlow Constitution.
+ * Enforces Section 11 of the MindFlow Constitution and dispatches to public.analytics_events.
  */
 
-export interface TelemetryPayloads {
-  exam_selected: { examId: string; source: 'strip' | 'modal' | 'banner' | 'hub' | 'config' };
-  quiz_generated: { examId?: string; mode: string; count: number; durationMs: number; reusedSession?: boolean };
-  quiz_generation_failed: { reason: string; filterIntersection?: Record<string, any> };
-  resume_quiz: { quizId: string; progressPct?: number; daysPaused?: number };
-  filters_cleared: { preservedExamId?: string; clearedFields: string[] };
-  empty_state_seen: { view: string; triggerCondition: string };
-  recovery_action_clicked: { view: string; actionChosen: string };
-  perf_budget_exceeded: { metric: string; actualMs: number; budgetMs: number; route?: string };
-  offline_sync_completed: { recordsSynced: number; durationMs: number };
-  vulnerability_diagnosed: { examId: string; primaryTopic: string; errorCount: number; isDiagnostic: boolean };
-  ai_drill_launched: { examId: string; topic: string; mode: string; isDiagnostic: boolean };
-  readiness_computed: { examId: string; readinessScore: number; coveragePct: number; tier: string };
-  revision_plan_generated: { examId: string; topicsDueCount: number };
-  dashboard_drill_sheet_opened: { drillType: string; drillTitle: string; exam?: string };
-  dashboard_drill_started: { drillType: string; drillTitle: string; mode: string; questionCount: number };
-  dashboard_drill_customize_clicked: { drillType: string; drillTitle: string; mode: string; questionCount: number };
-}
+import { Capacitor } from '@capacitor/core';
+import { supabase } from '../supabase';
+import { TelemetryEventName, TelemetryPayloads, DeviceTelemetryContext } from './types';
 
-export type TelemetryEventName = keyof TelemetryPayloads;
+export * from './types';
 
 export type TelemetryRecord = {
   [K in TelemetryEventName]: {
@@ -33,17 +18,101 @@ export type TelemetryRecord = {
   };
 }[TelemetryEventName];
 
+// Cache static device context across events within one session
+let cachedStaticContext: Partial<DeviceTelemetryContext> | null = null;
+
+function getStaticDeviceContext(): Partial<DeviceTelemetryContext> {
+  if (cachedStaticContext) return cachedStaticContext;
+
+  const isNative = Capacitor.isNativePlatform();
+  const platform: 'android' | 'web' = isNative ? 'android' : 'web';
+  const app_version = import.meta.env.VITE_APP_VERSION || '1.0.0';
+
+  let language = 'en';
+  let timezone = 'UTC';
+
+  try {
+    language = navigator.language || (navigator as any).userLanguage || 'en';
+    timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+  } catch {
+    // Graceful fallback for restricted environments
+  }
+
+  // Parse UTM attribution safely from window.location
+  let utm_source: string | undefined;
+  let utm_medium: string | undefined;
+  let utm_campaign: string | undefined;
+
+  try {
+    if (typeof window !== 'undefined' && window.location?.search) {
+      const urlParams = new URLSearchParams(window.location.search);
+      utm_source = urlParams.get('utm_source') || undefined;
+      utm_medium = urlParams.get('utm_medium') || undefined;
+      utm_campaign = urlParams.get('utm_campaign') || undefined;
+    }
+  } catch {
+    // Safe ignore
+  }
+
+  cachedStaticContext = {
+    platform,
+    app_version,
+    language,
+    timezone,
+    utm_source,
+    utm_medium,
+    utm_campaign,
+    referrer: typeof document !== 'undefined' && document.referrer ? document.referrer : undefined,
+  };
+
+  return cachedStaticContext;
+}
+
+function getDynamicContext(): Record<string, any> {
+  const width = typeof window !== 'undefined' ? window.innerWidth : 0;
+  const height = typeof window !== 'undefined' ? window.innerHeight : 0;
+  const screenWidth = typeof screen !== 'undefined' ? screen.width : 0;
+  const screenHeight = typeof screen !== 'undefined' ? screen.height : 0;
+  const dpr = typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1;
+  const touchCapable = typeof navigator !== 'undefined' ? (navigator.maxTouchPoints > 0) : false;
+
+  const connection = (navigator as any)?.connection || (navigator as any)?.mozConnection || (navigator as any)?.webkitConnection;
+  const network_type = connection?.effectiveType || connection?.type || undefined;
+
+  let orientation = 'unknown';
+  try {
+    if (typeof screen !== 'undefined' && screen.orientation) {
+      orientation = screen.orientation.type;
+    } else if (typeof window !== 'undefined') {
+      orientation = window.innerWidth > window.innerHeight ? 'landscape' : 'portrait';
+    }
+  } catch {
+    // Safe ignore
+  }
+
+  return {
+    viewport: `${width}x${height}`,
+    screen_resolution: `${screenWidth}x${screenHeight}`,
+    device_pixel_ratio: dpr,
+    orientation,
+    touch_capable: touchCapable,
+    network_type,
+  };
+}
+
 class TelemetryService {
   private buffer: TelemetryRecord[] = [];
   private maxBufferSize = 50;
 
   /**
    * Emits a privacy-first diagnostic event.
+   * Records to in-memory buffer and dispatches asynchronously to Supabase public.analytics_events.
    */
   emit<K extends TelemetryEventName>(name: K, payload: TelemetryPayloads[K]): void {
+    const sanitized = this.sanitizePayload(payload);
     const record = {
       name,
-      payload: this.sanitizePayload(payload),
+      payload: sanitized,
       timestamp: Date.now(),
     } as TelemetryRecord;
 
@@ -54,7 +123,54 @@ class TelemetryService {
     }
 
     if (import.meta.env.DEV) {
-      console.log(`%c[Telemetry] ${name}`, 'color: #6366F1; font-weight: bold;', record.payload);
+      console.log(`%c[Telemetry] ${name}`, 'color: #6366F1; font-weight: bold;', sanitized);
+    }
+
+    // Dispatch to Supabase analytics_events asynchronously
+    this.dispatchToRemote(name, sanitized);
+  }
+
+  /**
+   * Dispatches event to public.analytics_events in a fire-and-forget, non-blocking manner.
+   */
+  private dispatchToRemote(name: string, payload: Record<string, any>): void {
+    try {
+      const send = async () => {
+        try {
+          const staticCtx = getStaticDeviceContext();
+          const dynamicCtx = getDynamicContext();
+
+          const eventPayload = {
+            ...staticCtx,
+            ...dynamicCtx,
+            ...payload,
+            timestamp: new Date().toISOString(),
+          };
+
+          const { error } = await supabase.from('analytics_events').insert({
+            event_name: name,
+            event_data: eventPayload,
+          });
+
+          if (error && import.meta.env.DEV) {
+            console.debug('[Telemetry] Remote delivery error (suppressed):', error.message);
+          }
+        } catch {
+          // Suppress errors to prevent app crashes
+        }
+      };
+
+      if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+        (window as any).requestIdleCallback(() => {
+          void send();
+        }, { timeout: 2000 });
+      } else {
+        setTimeout(() => {
+          void send();
+        }, 0);
+      }
+    } catch {
+      // Suppress any scheduling exceptions
     }
   }
 

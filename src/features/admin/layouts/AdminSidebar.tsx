@@ -19,7 +19,8 @@ import {
   Shield,
   Layers,
   Database,
-  CreditCard
+  CreditCard,
+  BarChart3
 } from 'lucide-react';
 import { cn } from '@/utils/cn';
 import { BrandLogo } from '@/components/brand';
@@ -61,6 +62,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
       groupTitle: 'Control Room',
       items: [
         { label: 'Overview', to: '/admin/overview', icon: LayoutDashboard },
+        { label: 'Live Telemetry', to: '/admin/analytics', icon: BarChart3 },
         { label: 'AI Pipeline Engine', to: '/admin/enrichment', icon: Activity },
         { label: 'Remote App Config', to: '/admin/app-config', icon: Sliders }
       ]

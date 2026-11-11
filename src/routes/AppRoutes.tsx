@@ -87,6 +87,7 @@ const TestDetailPage = lazy(() => import('../features/mock-tests/pages/TestDetai
 const ExamPlaceholderPage = lazy(() => import('../features/mock-tests/pages/ExamPlaceholderPage').then(m => ({ default: m.ExamPlaceholderPage })));
 const AdminNotifications = lazy(() => import('../features/notifications/admin/AdminNotifications').then(m => ({ default: m.AdminNotifications })));
 const AdminFinancialsPage = lazy(() => import('../features/admin/financials/pages/AdminFinancialsPage').then(m => ({ default: m.AdminFinancialsPage })));
+const AdminAnalyticsPage = lazy(() => import('../features/admin/analytics/pages/AdminAnalyticsPage').then(m => ({ default: m.AdminAnalyticsPage || m.default })));
 const NotificationsPage = lazy(() => import('../pages/NotificationsPage').then(m => ({ default: m.NotificationsPage })));
 
 const SynonymQuizSession = lazy(() => import('../features/vocab/synonyms/components/SynonymQuizSession').then(m => ({ default: m.SynonymQuizSession })));
@@ -556,6 +557,7 @@ const handleReattempt = async (quizId: string, mode: string) => {
                         <Route path={ROUTES.ADMIN.CONTENT} element={<AdminContentStudio />} />
                         <Route path={ROUTES.ADMIN.NOTIFICATIONS} element={<AdminNotifications />} />
                         <Route path={ROUTES.ADMIN.FINANCIALS} element={<AdminFinancialsPage />} />
+                        <Route path={ROUTES.ADMIN.ANALYTICS} element={<AdminAnalyticsPage />} />
                     </Route>
 
                     {/* Fallback Catch-All Route (Must be last) */}

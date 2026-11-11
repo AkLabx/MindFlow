@@ -2,7 +2,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import postgres from "npm:postgres@3.4.4";
 
 const databaseUrl = Deno.env.get('SUPABASE_DB_POOLER_URL') ?? Deno.env.get('SUPABASE_DB_URL')!;
-const GEMINI_TIMEOUT_MS = 25000;
+const GEMINI_TIMEOUT_MS = 45000;
 
 // --- PIPELINE VERSIONING ---
 const PIPELINE_VERSION = "2.2.0";
@@ -30,20 +30,16 @@ function normalizeProviderError(statusCode: number, errorBody: any): { type: str
         }
         
         // 2. Check for daily limits (RPD)
-        if (msg.includes("Daily") && msg.includes("quota")) {
-            return { type: "RPD_EXHAUSTED", retryAfter: 86400 };
+        if ((msg.includes("Daily") || msg.includes("per day")) && msg.includes("quota")) {
+            return { type: "RPD_EXHAUSTED", retryAfter: 3600 };
         }
         
-        // 3. Check for generic billing issues masquerading as 429s
-        if (msg.includes("check your plan and billing details")) {
-            return { type: "BILLING_ERROR", retryAfter: 86400 };
-        }
-        
+        // Default 429 is temporary RPM backoff (60s), never lock out key permanently
         return { type: "RPM_EXHAUSTED", retryAfter: 60 };
     }
     
     if (statusCode >= 500) {
-        return { type: "SERVER_ERROR", retryAfter: 60 };
+        return { type: "SERVER_ERROR", retryAfter: 30 };
     }
     
     return { type: "CLIENT_ERROR", retryAfter: 0 };
@@ -134,6 +130,28 @@ async function callGeminiWithScheduler(
             }
 
             resStatus = res.status;
+
+            // If search grounding was enabled and failed due to billing/quota or tool error, fallback to non-grounded call
+            if (!res.ok && tools) {
+                const errText = await res.clone().text();
+                if (errText.includes("quota") || errText.includes("billing") || resStatus === 429 || resStatus === 400) {
+                    console.warn(`[Search Grounding Fallback] Model ${model} rejected search grounding (${resStatus}). Retrying pure LLM reasoning.`);
+                    const fallbackRes = await fetch(geminiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            contents: [{ role: "user", parts: [{ text: JSON.stringify(payload) }] }],
+                            systemInstruction: { parts: [{ text: systemInstruction }] },
+                            generationConfig
+                        })
+                    });
+                    if (fallbackRes.ok) {
+                        res = fallbackRes;
+                        resStatus = 200;
+                    }
+                }
+            }
+
             if (res.ok) {
                 const aiResponse = await res.json();
                 const textOutput = aiResponse.candidates?.[0]?.content?.parts?.[0]?.text;
@@ -238,7 +256,7 @@ Deno.serve(async (req: Request) => {
                 }
 
                 if (!currentProgress?.explanation) {
-                    const researchRes = await callGeminiWithScheduler(sql, 'question_research_v1', researchPrompt.system_prompt, sourcePayload, null, true);
+                    const researchRes = await callGeminiWithScheduler(sql, 'question_research_v1', researchPrompt.system_prompt, sourcePayload, null, false);
                     totalInputTokens += researchRes.inputTokens; totalOutputTokens += researchRes.outputTokens;
 
                     const formatterSystemPrompt = teacherPrompt.system_prompt + "\n\nCRITICAL INSTRUCTION: DO NOT perform any additional research. Only convert the provided research notes into the required Explanation JSON schema exactly.";

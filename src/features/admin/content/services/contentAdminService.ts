@@ -107,3 +107,57 @@ source_type
 
     return sourceDoc;
 };
+
+export interface SourceDocumentRecord {
+    id: string;
+    filename: string;
+    source_type: string;
+    exam_name: string | null;
+    exam_year: number | null;
+    exam_shift: string | null;
+    status: 'QUEUED' | 'PROCESSING' | 'AWAITING_REVIEW' | 'COMPLETED' | 'FAILED';
+    page_count: number | null;
+    extraction_progress: {
+        phase?: string;
+        current_batch?: number;
+        total_batches?: number;
+        pages_completed?: number;
+        total_pages?: number;
+        total_questions_extracted?: number;
+        last_runtime_ms?: number;
+        average_pages_per_second?: number;
+    } | null;
+    error_message: string | null;
+    created_at: string;
+    processed_at: string | null;
+    completed_at: string | null;
+    failed_at: string | null;
+}
+
+export const fetchRecentSourceDocuments = async (limit = 15): Promise<SourceDocumentRecord[]> => {
+    const { data, error } = await supabase
+        .from('source_documents')
+        .select(`
+            id, filename, source_type, exam_name, exam_year, exam_shift,
+            status, page_count, extraction_progress, error_message,
+            created_at, processed_at, completed_at, failed_at
+        `)
+        .order('created_at', { ascending: false })
+        .limit(limit);
+
+    if (error) throw new Error(`Failed to fetch source documents: ${error.message}`);
+    return (data || []) as SourceDocumentRecord[];
+};
+
+export const triggerExtractionWorker = async (): Promise<void> => {
+    const { error } = await supabase.rpc('trigger_extraction_worker');
+    if (error) throw new Error(`Trigger extraction failed: ${error.message}`);
+};
+
+export const retrySourceDocument = async (documentId: string): Promise<void> => {
+    const { error } = await supabase.rpc('retry_source_document', {
+        p_document_id: documentId
+    });
+    if (error) throw new Error(`Retry failed: ${error.message}`);
+};
+

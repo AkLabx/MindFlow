@@ -23,6 +23,7 @@ import { AuthHeroShowcase } from './AuthHeroShowcase';
 import { AuthLegalModal } from './AuthLegalModal';
 import { PasswordStrengthMeter, evaluatePasswordStrength } from './PasswordStrengthMeter';
 import { CURRENT_AGE_ATTESTATION, CURRENT_TERMS_VERSION } from '@/constants/legal';
+import { telemetry } from '@/lib/telemetry/telemetryService';
 
 export interface AuthPageProps {
   onBack?: () => void;
@@ -303,6 +304,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
 
       if (data?.session) {
         clearRateLimit();
+        telemetry.emit('auth_login_succeeded', { provider: 'email' });
         triggerHaptic('success');
       } else {
         throw new Error('Unable to establish session. Please verify your email.');
@@ -369,6 +371,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
 
       if (data?.user) {
         triggerHaptic('success');
+        telemetry.emit('auth_signup_attempted', { provider: 'email' });
         setSuccessNotice('Account created successfully! Please check your email for the verification link.');
       }
     } catch (err: any) {
@@ -467,6 +470,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
 
         if (sError) throw sError;
         triggerHaptic('success');
+        telemetry.emit('auth_login_succeeded', { provider: 'google' });
       } catch (err: any) {
         const msg = String(err?.message || err || '');
         // Gracefully ignore native user cancellation (code 12501 or cancelled)
