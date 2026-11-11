@@ -1,9 +1,19 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { telemetry } from './telemetryService';
+import { supabase } from '../supabase';
+
+vi.mock('../supabase', () => ({
+  supabase: {
+    from: vi.fn(() => ({
+      insert: vi.fn().mockResolvedValue({ error: null }),
+    })),
+  },
+}));
 
 describe('telemetryService', () => {
   beforeEach(() => {
     telemetry.clear();
+    vi.clearAllMocks();
   });
 
   it('records emitted events in the ring buffer', () => {
@@ -66,5 +76,14 @@ describe('telemetryService', () => {
     expect(payload.token).toBeUndefined();
     expect(payload.nested?.password).toBeUndefined();
     expect(payload.nested?.safeKey).toBe('safeValue');
+  });
+
+  it('dispatches to supabase analytics_events asynchronously without throwing', async () => {
+    telemetry.emit('page_viewed', {
+      path: '/dashboard',
+    });
+
+    await new Promise((r) => setTimeout(r, 50));
+    expect(supabase.from).toHaveBeenCalledWith('analytics_events');
   });
 });

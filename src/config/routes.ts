@@ -188,6 +188,7 @@ export const ROUTES = {
     CONTENT: '/admin/content',
     NOTIFICATIONS: '/admin/notifications',
     FINANCIALS: '/admin/financials',
+    ANALYTICS: '/admin/analytics',
   },
 
   // Static / Legal

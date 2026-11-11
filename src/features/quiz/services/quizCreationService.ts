@@ -173,6 +173,12 @@ export const quizCreationService = {
         reusedSession: false,
       });
 
+      telemetry.emit('quiz_session_started', {
+        examId: filters.examName?.[0],
+        mode,
+        count: sanitizedQuestions.length,
+      });
+
       return { quizId: newQuiz.id, reused: false };
     } catch (err: any) {
       console.error("Failed to create quiz in service:", err);

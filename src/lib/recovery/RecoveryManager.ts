@@ -3,6 +3,7 @@ import { useRecoveryStore } from '../../stores/useRecoveryStore';
 import { setRecoveryPromise, getRecoveryPromise, setRecoveringState } from './recoveryContext';
 import { Capacitor } from '@capacitor/core';
 import { queryClient } from '../queryClient';
+import { telemetry } from '@/lib/telemetry';
 
 
 export const RECOVERY_ENABLED = true;
@@ -71,18 +72,11 @@ const performRecovery = async (reason?: string): Promise<boolean> => {
         const durationMs = performance.now() - startTime;
         store.logRecoveryAttempt({ success: true, durationMs, reason });
 
-        // Persist to analytics (fire-and-forget, bypassing recovery on fail via the `isSafeToRetry` allowlist)
-        supabase.from('analytics_events').insert({
-            event_name: 'session_recovery',
-            event_data: {
-                success: true,
-                duration_ms: durationMs,
-                reason,
-                platform: Capacitor.getPlatform(),
-                version: import.meta.env.VITE_APP_VERSION,
-            }
-        }).then(({ error }) => {
-            if (error) console.warn('[RecoveryManager] Failed to persist telemetry', error);
+        // Centralized telemetry dispatch
+        telemetry.emit('session_recovery', {
+            success: true,
+            duration_ms: durationMs,
+            reason: reason || 'Unknown',
         });
 
         store.setStatus('RECOVERED', 'Session active and network ready');
@@ -124,21 +118,14 @@ const performRecovery = async (reason?: string): Promise<boolean> => {
             errorCode
         });
 
-         // Persist to analytics
-         supabase.from('analytics_events').insert({
-            event_name: 'session_recovery',
-            event_data: {
-                success: false,
-                duration_ms: durationMs,
-                reason,
-                error: errorMessage,
-                error_class: errorClass,
-                error_code: errorCode,
-                platform: Capacitor.getPlatform(),
-                version: import.meta.env.VITE_APP_VERSION
-            }
-        }).then(({ error }) => {
-            if (error) console.warn('[RecoveryManager] Failed to persist telemetry', error);
+        // Centralized telemetry dispatch
+        telemetry.emit('session_recovery', {
+            success: false,
+            duration_ms: durationMs,
+            reason: reason || 'Recovery procedure failed',
+            error: errorMessage,
+            error_class: errorClass,
+            error_code: errorCode,
         });
 
         recoveryFailures++;

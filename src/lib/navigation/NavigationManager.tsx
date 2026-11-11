@@ -116,6 +116,13 @@ export const NavigationManager: React.FC<NavigationManagerProps> = ({ children, 
       }
       if (targetRedirect && targetRedirect !== location.pathname) {
         NavigationLogger.log(source, reason, targetRedirect);
+      } else {
+        // Track page view when actively rendering the target route
+        NavigationAnalytics.track('Page View', {
+          path: location.pathname,
+          search: location.search,
+          hash: location.hash,
+        });
       }
     }
   }, [loading, shouldSaveIntent, restoredIntent, startedOnboarding, targetRedirect, location, source, reason]);

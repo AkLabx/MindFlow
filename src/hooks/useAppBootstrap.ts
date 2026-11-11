@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabase';
 import { db } from '@/lib/db';
 import { useSettingsStore } from '@/stores/useSettingsStore';
 import { App as CapacitorApp } from '@capacitor/app';
+import { telemetry } from '@/lib/telemetry/telemetryService';
 
 export type BootstrapStage =
   | 'BOOTSTRAPPING'
@@ -92,12 +93,14 @@ export const useAppBootstrap = (): BootstrapState => {
         // (Placeholder for fetching remote config via RPC/Supabase)
 
         // 2. Initialize Supabase & Restore Session
+        let hasActiveSession = false;
         try {
           console.log('[Bootstrap] Initializing Supabase & Restoring Session...');
           const { data: { session }, error } = await supabase.auth.getSession();
           if (error) {
               console.error('[Bootstrap] Supabase getSession error:', error);
           } else {
+              hasActiveSession = !!session;
               console.log('[Bootstrap] Supabase getSession success. Has session?', !!session);
           }
         } catch (authErr) {
@@ -130,6 +133,11 @@ export const useAppBootstrap = (): BootstrapState => {
 
         if (!isMounted) return;
         setState({ stage: 'READY', error: null, isReady: true });
+
+        // Emit telemetry for app startup
+        telemetry.emit('app_opened', {
+          is_authenticated: hasActiveSession,
+        });
 
       } catch (err: any) {
         console.error('[Bootstrap] Fatal error:', err);

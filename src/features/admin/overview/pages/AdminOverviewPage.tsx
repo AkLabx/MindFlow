@@ -20,7 +20,8 @@ import {
   AlertTriangle,
   Database,
   Layers,
-  Clock
+  Clock,
+  BarChart3
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/features/auth';
@@ -49,7 +50,8 @@ export const AdminOverviewPage: React.FC = () => {
     materialsCount: null as number | null,
     synonymsCount: null as number | null,
     idiomsCount: null as number | null,
-    owsCount: null as number | null
+    owsCount: null as number | null,
+    telemetryCount: null as number | null
   });
   const [isLoading, setIsLoading] = useState(true);
   const [lastRefreshed, setLastRefreshed] = useState<Date>(new Date());
@@ -66,7 +68,8 @@ export const AdminOverviewPage: React.FC = () => {
         { count: matCount },
         { count: synCount },
         { count: idmCount },
-        { count: owsCount }
+        { count: owsCount },
+        { count: telemCount }
       ] = await Promise.all([
         supabase.from('questions').select('id', { count: 'exact', head: true }),
         supabase.from('profiles').select('id', { count: 'exact', head: true }),
@@ -76,7 +79,8 @@ export const AdminOverviewPage: React.FC = () => {
         supabase.from('study_materials').select('id', { count: 'exact', head: true }),
         supabase.from('synonym').select('id', { count: 'exact', head: true }),
         supabase.from('idiom').select('id', { count: 'exact', head: true }),
-        supabase.from('ows').select('id', { count: 'exact', head: true })
+        supabase.from('ows').select('id', { count: 'exact', head: true }),
+        supabase.from('analytics_events').select('id', { count: 'exact', head: true })
       ]);
 
       setMetrics({
@@ -88,7 +92,8 @@ export const AdminOverviewPage: React.FC = () => {
         materialsCount: matCount ?? 0,
         synonymsCount: synCount ?? 0,
         idiomsCount: idmCount ?? 0,
-        owsCount: owsCount ?? 0
+        owsCount: owsCount ?? 0,
+        telemetryCount: telemCount ?? 0
       });
       setLastRefreshed(new Date());
     } catch (err) {
@@ -159,6 +164,15 @@ export const AdminOverviewPage: React.FC = () => {
       bgColor: 'bg-emerald-500/10 dark:bg-emerald-500/20',
       href: '/admin/enrichment',
       helperText: 'Failed AI jobs needing retry'
+    },
+    {
+      label: 'Live Telemetry Events',
+      count: metrics.telemetryCount,
+      icon: BarChart3,
+      color: 'text-indigo-600 dark:text-indigo-400',
+      bgColor: 'bg-indigo-500/10 dark:bg-indigo-500/20',
+      href: '/admin/analytics',
+      helperText: 'Real-time client telemetry & diagnostics'
     }
   ];
 

@@ -26,6 +26,29 @@ This document is the single source of truth for the evolution of the MindFlow ap
 
 ## 🚀 App Journey Changelog
 
+## [v1.0.355] - 11 November 2026, 11:15 PM IST
+
+> **Release Platform Mapping**: `Android 1.6 (versionCode 6) = Web v1.0.355`
+
+### Executive Summary
+Engineered a unified Live Telemetry & Operations Cockpit in the Admin portal (`/admin/analytics`), established automated PostgreSQL storage rollup and system log pruning to guarantee Supabase Free Plan database safety, resurrected the AI Content Ingestion Plane with resilient pg_net timeouts and queue cron triggers, and architected a multi-tier Google AI Studio free tier orchestration engine that maximizes gold-standard pedagogical reasoning via `gemini-3.8-flash` with graceful soft-ceiling cascading.
+
+### Work Breakdown
+- **✨ Features Added**:
+  - **Live Telemetry & Diagnostics Operations Cockpit (`/admin/analytics`)**: Created an enterprise-grade administrative operations dashboard featuring 4 live KPI cards (Total Captured Events, Android vs Web Traffic split, Active User Sessions via `user_active_sessions`, and Auth Self-Healing Recoveries), dynamic filtering by category, platform pills (`All`, `Android`, `Web`), hardware/network specs telemetry (RAM, connection type, viewport, DPR), IST timestamps, and an Android-style payload inspection modal (`TelemetryDetailModal.tsx`).
+  - **AI Ingestion Plane Real-Time Monitor (`AdminIngestionJob.tsx`)**: Upgraded `/admin/content` Ingestion Plane with an interactive live batch table, dynamic status badges (`QUEUED`, `PROCESSING`, `AWAITING_REVIEW`, `FAILED`), real-time extraction progress meters, on-demand "⚡ Run Worker Now" worker invocation, and a direct shortcut into the Review Queue.
+  - **Privacy-Preserving Client Telemetry Engine (`src/lib/telemetry/`)**: Built typed diagnostic event telemetry with dynamic sampling (100% on native Android Capacitor, 10% on desktop web page views), offline IndexedDB queue buffering, automatic retry flushes, and zero-PII sanitization across bootstrap, navigation, quiz creation, auth self-healing, and session lifecycle.
+- **⚡ Performance & Refactoring**:
+  - **Supabase Free Plan Storage Rollup & Auto-Pruning Engine**: Designed and deployed a 3-pillar storage defense. Implemented `public.analytics_daily_summary` and `public.rollup_and_purge_telemetry()` running daily via pg_cron to compress raw telemetry older than 14 days, keeping raw tables under 5 MB permanently. Added `maintenance.prune_system_logs(3, 3, 5000)` to automatically prune `cron.job_run_details` and `net._http_response` older than 3 days, permanently preventing database disk bloat.
+  - **Per-Key Google AI Studio Rate Limit Orchestration**: Replaced the artificial global 5-RPM database ceiling with model- and key-specific RPM tracking in `public.get_execution_plan`. All 4 configured API keys are now utilized concurrently up to 20 RPM across models.
+  - **`gemini-3.8-flash` Priority Waterfall Engine**: Placed `gemini-3.8-flash` as primary gold-standard pedagogical reasoning model for teacher explanations (`question_teacher_v1`), extracting 80 daily free flagship calls across 4 keys with automatic soft-cap rollover to `gemini-3.5-flash-lite`, `gemini-3.1-flash-lite`, and `gemma-4-26b-a4b-it`.
+- **🐛 Bug Fixes**:
+  - **Resurrected AI Ingestion Plane**: Fixed `current_setting('app.settings.edge_function_url')` null-abort errors by establishing a direct endpoint fallback in queue functions. Configured `timeout_milliseconds := 120000` (2 minutes) in `net.http_post` to prevent premature socket termination on long-running Deno worker tasks.
+  - **Eliminated False 24-Hour "Billing Error" Lockout**: Rewrote `report_execution_result` and `normalizeProviderError` to recognize Google standard 429 messages as temporary RPM/demand throttling rather than permanent billing failures.
+  - **Grounding Quota Rejection Fix**: Disabled search grounding tools for Gemini 3+ models in `enrich-questions` after discovering free tier Search Grounding is 0/0 quota on Gemini 3, resolving instant 429 errors.
+  - **Extended Edge Function Timeout Buffer**: Increased `GEMINI_TIMEOUT_MS` from 25s to 45s in `enrich-questions` (v45 deployed live) to accommodate deep reasoning synthesis during peak AI Studio traffic.
+- **🔒 Security & Architecture**:
+  - **Impacted Scope**: `src/config/routes.ts`, `src/features/admin/analytics/`, `src/features/admin/content/`, `src/features/admin/layouts/AdminSidebar.tsx`, `src/features/admin/overview/pages/AdminOverviewPage.tsx`, `src/features/auth/components/AuthPage.tsx`, `src/features/quiz/services/quizCreationService.ts`, `src/hooks/useAppBootstrap.ts`, `src/lib/navigation/NavigationManager.tsx`, `src/lib/navigation/utils/analytics.ts`, `src/lib/recovery/RecoveryManager.ts`, `src/lib/telemetry/`, `src/routes/AppRoutes.tsx`, `supabase/functions/enrich-questions/`, `supabase/migrations/`, `package.json`, `docs/APP_JOURNEY_LOG.md`.
 ## [v1.0.354] - 11 November 2026, 04:55 PM IST
 
 > **Release Platform Mapping**: `Android 1.6 (versionCode 6) = Web v1.0.354`
