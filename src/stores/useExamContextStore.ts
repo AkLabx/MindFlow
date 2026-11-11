@@ -9,7 +9,7 @@ export interface ExamContextState {
   /** List of user-pinned target exams for quick switching (multi-exam preparation) */
   pinnedExamIds: string[];
 
-  setActiveExam: (examId: string, source?: 'strip' | 'modal' | 'banner' | 'hub' | 'config') => void;
+  setActiveExam: (examId: string, source?: 'strip' | 'modal' | 'banner' | 'hub' | 'config' | 'onboarding') => void;
   pinExam: (examId: string) => void;
   unpinExam: (examId: string) => void;
   togglePinExam: (examId: string) => void;
@@ -34,7 +34,10 @@ export const useExamContextStore = create<ExamContextState>()(
           pinnedExamIds: nextPinned,
         });
 
-        telemetry.emit('exam_selected', { examId, source });
+        telemetry.emit('exam_selected', {
+          examId,
+          source: source === 'onboarding' ? 'config' : source,
+        });
       },
 
       pinExam: (examId: string) => {
