@@ -125,6 +125,11 @@ export const useHardwareBackButton = () => {
                     return;
                 }
 
+                // --- 3.5 ONBOARDING STEP-LEVEL DELEGATION ---
+                if (currentPath === '/onboarding') {
+                    return; // Step decrement and root minimization are managed locally by OnboardingFlow
+                }
+
                 // --- 4. CRITICAL WORKFLOW PROTECTION (Quiz, etc) ---
                 // Wait for syncs to avoid corruption
                 const quizStore = useQuizSessionStore.getState();

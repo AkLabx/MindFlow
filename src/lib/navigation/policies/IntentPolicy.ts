@@ -14,8 +14,14 @@ const INTENT_EXPIRY_MS = 60 * 60 * 1000; // 1 hour
 
 export class IntentPolicy {
   static saveIntent(location: Location | { pathname: string, search: string, hash: string }): void {
-    // Only save intent if it's not the root or login
-    if (location.pathname === '/' || location.pathname === '/login') return;
+    // Only save intent if it's not the root, login, or onboarding
+    if (
+      location.pathname === '/' ||
+      location.pathname === '/login' ||
+      location.pathname === '/onboarding'
+    ) {
+      return;
+    }
 
     const intent: SavedIntent = {
       pathname: location.pathname,

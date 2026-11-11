@@ -1,5 +1,10 @@
 import { create } from 'zustand';
 import { supabase } from '@/lib/supabase';
+import {
+  OnboardingConfig,
+  DEFAULT_ONBOARDING_CONFIG,
+  mergeOnboardingConfig,
+} from '@/features/onboarding/config/onboardingConfigSchema';
 
 export interface IntroConfig {
   active: string;
@@ -25,6 +30,7 @@ export interface BrandingConfig {
     severity: 'info' | 'warning' | 'error';
     dismissible: boolean;
   };
+  onboarding?: OnboardingConfig;
 }
 
 export interface LoadingConfig {
@@ -74,7 +80,8 @@ export const DEFAULT_CONFIG: AppConfig = {
       message: 'A new version is available.',
       severity: 'info',
       dismissible: true,
-    }
+    },
+    onboarding: DEFAULT_ONBOARDING_CONFIG,
   },
 };
 
@@ -89,6 +96,7 @@ interface AppConfigState {
 
   initialize: () => Promise<void>;
   updateConfig: (section: keyof Omit<AppConfig, 'id' | 'version' | 'updated_at' | 'updated_by'>, newConfig: any) => Promise<void>;
+  updateOnboardingConfig: (onboarding: OnboardingConfig) => Promise<void>;
   startPreview: (previewConfig: Partial<AppConfig>) => void;
   clearPreview: () => void;
 }
@@ -109,7 +117,11 @@ export const useAppConfigStore = create<AppConfigState>((set, get) => ({
           theme: { ...DEFAULT_CONFIG.theme, ...(parsed.theme || {}) },
           loading: { ...DEFAULT_CONFIG.loading, ...(parsed.loading || {}) },
           dashboard: { ...DEFAULT_CONFIG.dashboard, ...(parsed.dashboard || {}) },
-          branding: { ...DEFAULT_CONFIG.branding, ...(parsed.branding || {}) }
+          branding: {
+            ...DEFAULT_CONFIG.branding,
+            ...(parsed.branding || {}),
+            onboarding: mergeOnboardingConfig(parsed.branding?.onboarding),
+          },
         };
       }
     } catch (e) {
@@ -152,7 +164,11 @@ export const useAppConfigStore = create<AppConfigState>((set, get) => ({
               theme: { ...DEFAULT_CONFIG.theme, ...(data.theme || {}) },
               loading: { ...DEFAULT_CONFIG.loading, ...(data.loading || {}) },
               dashboard: { ...DEFAULT_CONFIG.dashboard, ...(data.dashboard || {}) },
-              branding: { ...DEFAULT_CONFIG.branding, ...(data.branding || {}) },
+              branding: {
+                ...DEFAULT_CONFIG.branding,
+                ...(data.branding || {}),
+                onboarding: mergeOnboardingConfig(data.branding?.onboarding),
+              },
               updated_at: data.updated_at
            };
 
@@ -173,17 +189,27 @@ export const useAppConfigStore = create<AppConfigState>((set, get) => ({
       set({ isLoading: true, error: null });
 
       const currentConfig = get().config;
+      const safeSectionPayload =
+        section === 'branding'
+          ? {
+              ...currentConfig.branding,
+              ...newConfig,
+              onboarding: mergeOnboardingConfig(
+                newConfig?.onboarding ?? currentConfig.branding.onboarding
+              ),
+            }
+          : newConfig;
 
       const updatedConfig = {
         ...currentConfig,
-        [section]: newConfig
+        [section]: safeSectionPayload
       };
 
       set({ config: updatedConfig });
 
       const { data, error } = await supabase
         .from('app_ui_config')
-        .update({ [section]: newConfig })
+        .update({ [section]: safeSectionPayload })
         .eq('id', 1)
         .select()
         .single();
@@ -198,7 +224,11 @@ export const useAppConfigStore = create<AppConfigState>((set, get) => ({
             theme: { ...DEFAULT_CONFIG.theme, ...(data.theme || {}) },
             loading: { ...DEFAULT_CONFIG.loading, ...(data.loading || {}) },
             dashboard: { ...DEFAULT_CONFIG.dashboard, ...(data.dashboard || {}) },
-            branding: { ...DEFAULT_CONFIG.branding, ...(data.branding || {}) },
+            branding: {
+              ...DEFAULT_CONFIG.branding,
+              ...(data.branding || {}),
+              onboarding: mergeOnboardingConfig(data.branding?.onboarding),
+            },
             updated_at: data.updated_at
          };
          localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(finalConfig));
@@ -213,6 +243,14 @@ export const useAppConfigStore = create<AppConfigState>((set, get) => ({
     } finally {
       set({ isLoading: false });
     }
+  },
+
+  updateOnboardingConfig: async (onboarding: OnboardingConfig) => {
+    const currentBranding = get().config.branding;
+    await get().updateConfig('branding', {
+      ...currentBranding,
+      onboarding: mergeOnboardingConfig(onboarding),
+    });
   },
 
   startPreview: (previewConfigUpdates) => {
