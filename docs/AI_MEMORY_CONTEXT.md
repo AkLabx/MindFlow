@@ -124,58 +124,55 @@ This document serves as an operational reference of the AI Assistant's memory co
 * **Unmount Cleanup**: Always clean up `LiveSession.close()`, `AudioContext.close()`, and `MediaStreamTracks.stop()`.
 
 ### 9. Automated GitHub PR & Git Workflow (GitHub CLI) & Antigravity Working Method
-* **Local Execution Truth**: Antigravity operates directly on the user's local disk (`d:\MindFlow-main`). All file edits take effect locally in real time and are immediately hot-reloaded by the local Vite development server (port 3000).
-* **Installed CLI**: The official GitHub CLI is installed at `C:\Program Files\GitHub CLI\gh.exe` and authenticated as `AkLabx`.
-* **Avoid GCM GUI Deadlocks**: Git Credential Manager GUI prompts fail in headless/background agent shells. Always bridge Git through GitHub CLI credentials rather than invoking bare interactive auth.
-* **Git Credential Bridge**: Run `& "C:\Program Files\GitHub CLI\gh.exe" auth setup-git` before pushing to ensure Git seamlessly uses GitHub CLI's stored OAuth token.
-* **Antigravity Windows Shell Runner (`exebox`) Workaround**:
-  - *Symptom*: Commands fail instantly with `Command failed to run: The system cannot find the file specified..` or `failed to start PTY command via exebox: The system cannot find the file specified.`
-  - *Root Cause*: In Antigravity on Windows, `exebox` resolves the bare shell name `powershell` relative to the workspace root (`d:\MindFlow-main\powershell`).
-  - *Mandatory Fix*: Ensure `d:\MindFlow-main\powershell.bat` exists in the workspace root with the content:
-    ```cmd
-    @echo off
-    C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe %*
-    ```
-  - *Git Hygiene*: `powershell.bat` and `powershell.cmd` MUST remain in `.gitignore` so they are never staged or committed to remote.
 
-#### Standard Antigravity 4-Step Working Method:
+#### Two-Slot System Architecture (Solo Developer Standard)
+MindFlow uses a **Two-Slot System** designed for solo developers running parallel Antigravity AI sessions without branch collisions or disk bloat:
+* **Slot 1 (Anchor / Host): `D:\MindFlow-main`**: Sole authorized folder to checkout and track local `main`. Runs local Vite dev server (port 3000). Handles fast-forward post-merge pulls (`git pull origin main`).
+* **Slot 2 (Worker Worktree): `C:\Users\AALOK\.gemini\antigravity\worktrees\MindFlow-main\...`**: Dedicated isolated workspace for parallel AI agent development.
+  - **CRITICAL INVARIANT**: **NEVER run `git checkout main` in a worker worktree.**
+  - **Worker Branching**: Always branch directly from `origin/main`: `git fetch origin main; git checkout -B feat/<name>-v<version> origin/main`.
+  - **Worker Post-Merge**: Delete local feature branch (`git branch -d feat/<name>-v<version>`), prune remotes (`git fetch --prune`), and stay on an idle scratch branch without ever checking out `main`.
+
+#### User Flexibility & Decision Governance (Recommendation vs User Choice)
+If the user prefers a different workflow (e.g., ephemeral worktree or direct in Slot 1), the agent provides a clear **Recommendation vs User Decision with Pros & Cons** before executing:
+* **Recommended Default (2-Slot System)**: Zero `main` branch lock collisions, no extra disk bloat, persistent `node_modules` junction, dev server stays hot.
+* **Alternative A (New Ephemeral Worktree)**: 100% clean-slate isolation, but consumes extra disk space and requires `git worktree remove` at session end.
+* **Alternative B (Direct in Slot 1 `D:\MindFlow-main`)**: Fastest for small 1-file edits, but cannot run parallel AI sessions without branch switching.
+
+* **Installed CLI**: The official GitHub CLI is installed at `C:\Program Files\GitHub CLI\gh.exe` and authenticated as `AkLabx`.
+* **Git Credential Bridge**: Run `& "C:\Program Files\GitHub CLI\gh.exe" auth setup-git` before pushing to avoid interactive GCM GUI deadlocks in background shells.
+* **Antigravity Windows Shell Runner (`exebox`) Workaround**:
+  Ensure `powershell.bat` exists in workspace root:
+  ```cmd
+  @echo off
+  set "PATH=D:\DevTools\nvm\v22.16.0;%PATH%"
+  C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -ExecutionPolicy Bypass %*
+  ```
+
+#### Worktree-Aware Standard 4-Step Working Method:
 1. **Step 1: Session Start & Pre-Task Branch Sync Ritual**:
-   - Check current working branch: `git branch --show-current`.
-   - Ensure local workspace is on `main` and fully synced before starting new work:
-     ```powershell
-     git checkout main
-     git pull origin main
-     ```
-   - Never build a new feature or fix on top of a stale or unmerged feature branch.
+   - Check current working directory:
+     - In Slot 1: `git checkout main; git pull origin main`
+     - In Slot 2: `git fetch origin main` (Do not checkout `main`!)
 2. **Step 2: Isolated Feature Development**:
-   - Create a descriptive feature branch matching the targeted bump version: `git checkout -b feat/<feature-name>-v<version>`.
-   - Make all changes directly in the workspace. Test with local dev server (`npm run dev` at `http://localhost:3000`).
+   - In Slot 1: `git checkout -b feat/<name>-v<version>`
+   - In Slot 2: `git checkout -B feat/<name>-v<version> origin/main`
+   - Make edits, run dev server (`http://localhost:3000`).
 3. **Step 3: Verification, Version Bump & PR Creation Ritual**:
-   - Verification: Run `npx tsc --noEmit` and `npm run build` (and `npx vitest --run` when applicable) to guarantee 0 errors.
-   - Version Bump: Increase version by 0.0.1 (`npm version patch --no-git-tag-version`), and append an entry in `docs/APP_JOURNEY_LOG.md` with current IST timestamp.
-   - Commit and push via the GitHub CLI bridge:
+   - Verification: Run `npx tsc --noEmit` and `npm run build` (and `npx vitest --run --pool=forks` when applicable).
+   - Version Bump: Increment version in `package.json`, record entry in `docs/APP_JOURNEY_LOG.md`.
+   - Commit, push via GitHub CLI bridge, and create PR:
      ```powershell
      git add .
      git commit -m "<structured commit message>"
      & "C:\Program Files\GitHub CLI\gh.exe" auth setup-git
      git push -u origin <branch-name>
-     ```
-   - Open PR via CLI:
-     ```powershell
      & "C:\Program Files\GitHub CLI\gh.exe" pr create --title "<PR Title>" --body "<PR Summary Markdown>" --base main --head <branch-name>
      ```
 4. **Step 4: Post-Merge Local Sync & Housekeeping Ritual**:
-   - Once the PR is merged on GitHub, immediately sync local `main` with remote:
-     ```powershell
-     git checkout main
-     git pull origin main
-     ```
-   - Safely delete the local merged feature branch and prune stale remote tracking references:
-     ```powershell
-     git branch -d <branch-name>
-     git fetch --prune
-     ```
-   - Confirm with `git status` that working tree is clean and up to date on `main`.
+   - After PR merge on GitHub:
+     - In Slot 1: `git checkout main; git pull origin main; git branch -d <branch-name>; git fetch --prune`
+     - In Slot 2: `git branch -d <branch-name>; git fetch --prune` (Stay on idle scratch branch, never checkout `main`).
 
 * **Re-Authentication (If Token Ever Expires)**:
   Run `& "C:\Program Files\GitHub CLI\gh.exe" auth login --hostname github.com -p https -w`. This outputs a one-time device code (`XXXX-XXXX`) and points to `https://github.com/login/device` for instant 1-click browser approval.

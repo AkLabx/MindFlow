@@ -151,42 +151,92 @@ Autonomous agents implementing or modifying MindFlow UI, styles, scheduling, or 
 
 ## 3. Automated GitHub PR & Git Workflow (GitHub CLI) & Antigravity Working Method
 
-- **Local Execution Truth**: Antigravity operates directly on the user's local disk (`d:\MindFlow-main`). All file edits take effect locally in real time and are hot-reloaded by the Vite development server (port 3000).
+### 3.1 Two-Slot System Architecture (Solo Developer & Multi-Session Standard)
+MindFlow uses a **Two-Slot System** designed specifically for solo developers operating parallel Antigravity AI sessions without branch collisions or disk bloat:
+
+- **Slot 1 (Anchor / Host): `D:\MindFlow-main`**
+  - **Sole Owner of Local `main`**: Slot 1 is the ONLY folder on the machine authorized to check out and track local branch `main`.
+  - Runs the local Vite development server on port 3000 (`http://localhost:3000/`).
+  - Used for stable development, root documentation, and post-merge fast-forward pulls (`git pull origin main`).
+- **Slot 2 (Worker Worktree): `C:\Users\AALOK\.gemini\antigravity\worktrees\MindFlow-main\...`**
+  - Dedicated isolated workspace for parallel AI agent development.
+  - **CRITICAL INVARIANT**: **NEVER run `git checkout main` in a worker worktree.**
+    *(Running `git checkout main` in any secondary worktree immediately locks `main` across the entire machine, blocking Slot 1 with `fatal: 'main' is already checked out at '...'`).*
+  - **Worker Branching Protocol**:
+    Always branch directly from `origin/main`:
+    ```powershell
+    git fetch origin main
+    git checkout -B feat/<feature-name>-v<version> origin/main
+    ```
+  - **Worker Post-Merge Protocol**:
+    After PR merge, delete the local feature branch, prune tracking references, and stay on an idle scratch branch:
+    ```powershell
+    git branch -d feat/<feature-name>-v<version>
+    git fetch --prune
+    ```
+    Never checkout `main` in the worker! Slot 1 will pull `origin/main` cleanly.
+
+### 3.2 User Flexibility & Decision Governance (Recommendation vs User Choice)
+If the user prompt instructs or prefers a different workflow (e.g., creating a new ephemeral worktree or working directly in Slot 1), the agent **must not** blindly refuse or proceed silently. The agent must provide a brief **Recommendation vs User Decision with Pros & Cons** before executing:
+
+> **Template for Workflow Tradeoffs**:
+> - **Recommended Default (2-Slot System)**: Use Slot 2 (`worktrees/...`) branched from `origin/main`.
+>   - *Pros*: Zero `main` branch lock collisions; no extra disk space wasted; persistent `node_modules` junction; Vite dev server in Slot 1 stays uninterrupted.
+>   - *Cons*: Reuses a dedicated worker directory.
+> - **Alternative A (New Ephemeral Worktree)**: Create a brand new worktree for this single task.
+>   - *Pros*: 100% clean-slate isolation.
+>   - *Cons*: Accumulates orphaned folders on C: drive; requires running `git worktree remove` at session end.
+> - **Alternative B (Direct in Slot 1 `D:\MindFlow-main`)**: Develop directly in the host repo.
+>   - *Pros*: Fastest for small 1-file edits.
+>   - *Cons*: Cannot run parallel AI sessions; switches branches out from under live dev server.
+>
+> *(After presenting tradeoffs, the agent respects and executes the user's chosen approach).*
+
+---
+
+### 3.3 Operational Prerequisites & Windows Shell Runner
+- **Local Execution Truth**: Antigravity operates directly on the user's local disk (`d:\MindFlow-main` for Slot 1, or the worktree path for Slot 2).
 - **Installed CLI**: The official GitHub CLI is installed at `C:\Program Files\GitHub CLI\gh.exe` and authenticated as `AkLabx`.
 - **Git Credential Bridge**: Run `& "C:\Program Files\GitHub CLI\gh.exe" auth setup-git` before pushing to avoid interactive GCM GUI deadlocks in background shells.
 - **Antigravity Windows Shell Runner (`exebox`) Workaround**:
   - *Symptom*: Commands fail instantly with `Command failed to run: The system cannot find the file specified..` or `failed to start PTY command via exebox: The system cannot find the file specified.`
-  - *Root Cause*: In Antigravity on Windows, `exebox` resolves the bare shell name `powershell` relative to the workspace root (`d:\MindFlow-main\powershell`).
-  - *Mandatory Fix*: Ensure `d:\MindFlow-main\powershell.bat` exists in the workspace root with the content:
+  - *Root Cause*: In Antigravity on Windows, `exebox` resolves the bare shell name `powershell` relative to the workspace root.
+  - *Mandatory Fix*: Ensure `powershell.bat` exists in the workspace root with the content:
     ```cmd
     @echo off
-    C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe %*
+    set "PATH=D:\DevTools\nvm\v22.16.0;%PATH%"
+    C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -ExecutionPolicy Bypass %*
     ```
   - *Git Hygiene*: `powershell.bat` and `powershell.cmd` MUST remain in `.gitignore` so they are never staged or committed to remote.
 
-### Standard 4-Step Working Method:
+---
+
+### 3.4 Worktree-Aware Standard 4-Step Working Method:
 
 1. **Step 1: Session Start & Pre-Task Branch Sync Ritual**:
-   - Check current working branch:
+   - Check current working directory and branch:
      ```powershell
      git branch --show-current
      ```
-   - Ensure local workspace is on `main` and fully synchronized:
+   - **If in Slot 1 (`D:\MindFlow-main`)**:
      ```powershell
      git checkout main
      git pull origin main
      ```
-   - Never build a new feature or fix on top of a stale or unmerged feature branch.
+   - **If in Slot 2 (Worker Worktree)**:
+     ```powershell
+     git fetch origin main
+     # DO NOT checkout main! Branch directly from origin/main in Step 2.
+     ```
 
 2. **Step 2: Isolated Feature Development**:
    - Create a descriptive feature branch matching the targeted bump version:
-     ```powershell
-     git checkout -b feat/<feature-name>-v<version>
-     ```
+     - *In Slot 1*: `git checkout -b feat/<feature-name>-v<version>`
+     - *In Slot 2*: `git checkout -B feat/<feature-name>-v<version> origin/main`
    - Make all changes directly in the workspace. Test with local dev server (`http://localhost:3000`).
 
 3. **Step 3: Verification, Version Bump & PR Creation Ritual**:
-   - Verification: Run `npx tsc --noEmit` and `npx vite build` (and `npx vitest --run` when applicable) to guarantee 0 errors.
+   - Verification: Run `npx tsc --noEmit` and `npx vite build` (and `npx vitest --run --pool=forks` when applicable) to guarantee 0 errors.
    - Version Bump: Increase version by 0.0.1 (`npm version patch --no-git-tag-version`), and append an entry in `docs/APP_JOURNEY_LOG.md` with the current IST timestamp.
    - Commit and push via the GitHub CLI bridge:
      ```powershell
@@ -202,10 +252,17 @@ Autonomous agents implementing or modifying MindFlow UI, styles, scheduling, or 
 
 4. **Step 4: Post-Merge Local Sync & Housekeeping Ritual**:
    - Once the PR is merged on GitHub:
-     ```powershell
-     git checkout main
-     git pull origin main
-     git branch -d <branch-name>
-     git fetch --prune
-     ```
-   - Confirm with `git status` that the working tree is clean and up to date on `main`.
+     - **If in Slot 1 (`D:\MindFlow-main`)**:
+       ```powershell
+       git checkout main
+       git pull origin main
+       git branch -d <branch-name>
+       git fetch --prune
+       ```
+     - **If in Slot 2 (Worker Worktree)**:
+       ```powershell
+       git branch -d <branch-name>
+       git fetch --prune
+       # Switch to idle scratch branch — NEVER checkout main in a worktree!
+       ```
+   - Confirm with `git status` that working tree is clean. Slot 1 remains the sole holder of `main`.
