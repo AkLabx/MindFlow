@@ -108,7 +108,18 @@ Autonomous agents implementing or modifying MindFlow UI, styles, scheduling, or 
   - Respect project configuration in `.mwgrc` (`allowOriginTrials: false`, `allowVolatileFeatures: false`).
 
 ### [NORMAL] Architectural & Domain Conventions
-- **Development Server**: The local Vite development server runs on port **3000** (`http://localhost:3000/`), not the standard Vite port 5173.
+- **Development Server & Deterministic Port Architecture**:
+  - The default Vite dev server port is **3000** for Slot 1 (`http://localhost:3000/`).
+  - To prevent port collisions and confusing cross-slot previews during parallel multi-agent development, ports are deterministically mapped by workspace slot:
+    - **Slot 1 (Anchor / Host: `D:\MindFlow-main`)**: Port `3000` (`http://localhost:3000/`).
+    - **Slot 2 (Worker 1: `worktrees/.../supabase_user_profiles_count` or `worker-1`)**: Port `3001` (`http://localhost:3001/`).
+    - **Slot 3 (Worker 2: `worktrees/.../update_main_feature_branch` or `worker-2`)**: Port `3002` (`http://localhost:3002/`).
+  - **Live Preview Without Commits**: AI agents and developers do NOT need to commit to `main` (or commit at all) to see live previews. Vite's Hot Module Replacement (HMR) reflects live file edits on disk in milliseconds directly inside the slot where the dev server is running.
+  - **Dev Server Startup Protocol**:
+    - When launching Vite in Slot 1: `npm run dev`
+    - When launching Vite in Worker 1: `npm run dev -- --port 3001` (or `npx vite --port 3001`)
+    - When launching Vite in Worker 2: `npm run dev -- --port 3002` (or `npx vite --port 3002`)
+    - Autonomous agents must inspect the command output to verify the actual bound port before reporting the preview URL to the user.
 - **Dependency Installation**: ALWAYS use `npm install --legacy-peer-deps` to bypass ERESOLVE peer dependency conflicts arising from Capacitor Android plugins.
 - **App Architecture & Navigation**:
   - `useAppBootstrap.ts` is a state machine yielding discrete states (`BOOTSTRAPPING`, `READY`, `FAILED`, `MAINTENANCE`, `UPDATE_REQUIRED`, `OFFLINE_INITIALIZATION`) handled centrally in `App.tsx`.
@@ -151,30 +162,45 @@ Autonomous agents implementing or modifying MindFlow UI, styles, scheduling, or 
 
 ## 3. Automated GitHub PR & Git Workflow (GitHub CLI) & Antigravity Working Method
 
-### 3.1 Two-Slot System Architecture (Solo Developer & Multi-Session Standard)
-MindFlow uses a **Two-Slot System** designed specifically for solo developers operating parallel Antigravity AI sessions without branch collisions or disk bloat:
+### 3.1 Multi-Slot Architecture & Deterministic Port Mapping (Solo Developer Standard)
+MindFlow uses a standardized Multi-Slot Architecture designed specifically for solo developers operating parallel Antigravity AI sessions without branch collisions, port clashing, or disk bloat:
 
-- **Slot 1 (Anchor / Host): `D:\MindFlow-main`**
-  - **Sole Owner of Local `main`**: Slot 1 is the ONLY folder on the machine authorized to check out and track local branch `main`.
-  - Runs the local Vite development server on port 3000 (`http://localhost:3000/`).
-  - Used for stable development, root documentation, and post-merge fast-forward pulls (`git pull origin main`).
-- **Slot 2 (Worker Worktree): `C:\Users\AALOK\.gemini\antigravity\worktrees\MindFlow-main\...`**
-  - Dedicated isolated workspace for parallel AI agent development.
-  - **CRITICAL INVARIANT**: **NEVER run `git checkout main` in a worker worktree.**
-    *(Running `git checkout main` in any secondary worktree immediately locks `main` across the entire machine, blocking Slot 1 with `fatal: 'main' is already checked out at '...'`).*
-  - **Worker Branching Protocol**:
-    Always branch directly from `origin/main`:
+| Slot | Workspace Location | Assigned Branch | Dev Port | Preview URL | Primary Function |
+| :--- | :--- | :--- | :---: | :--- | :--- |
+| **Slot 1 (Anchor / Host)** | `D:\MindFlow-main` | `main` | **`3000`** | `http://localhost:3000/` | Sole owner of `main`, stable release preview, root documentation, fast-forward post-merge pulls |
+| **Slot 2 (Worker 1)** | `worktrees/.../supabase_user_profiles_count` | `worker-1` / `feat/...` | **`3001`** | `http://localhost:3001/` | Primary parallel AI session, feature branch development & live preview |
+| **Slot 3 (Worker 2)** | `worktrees/.../update_main_feature_branch` | `worker-2` / `feat/...` | **`3002`** | `http://localhost:3002/` | Secondary parallel AI session, audit/refactor tasks & independent live preview |
+
+- **CRITICAL INVARIANTS**:
+  - **Slot 1 is the Sole Owner of Local `main`**: Never checkout `main` in Worker 1 or Worker 2.
+  - **Branching Protocol**: Always branch directly from `origin/main` in workers:
     ```powershell
     git fetch origin main
     git checkout -B feat/<feature-name>-v<version> origin/main
     ```
+  - **Deterministic Port & Live Preview Awareness**:
+    - An agent must check its working directory (`pwd` / system working directory).
+    - If in Slot 1 (`D:\MindFlow-main`): Launch dev server with default port `3000` (`npm run dev`).
+    - If in Worker 1 (`supabase_user_profiles_count`): Launch dev server with `--port 3001` (`npm run dev -- --port 3001`).
+    - If in Worker 2 (`update_main_feature_branch`): Launch dev server with `--port 3002` (`npm run dev -- --port 3002`).
+    - Agents must inspect Vite's startup output to confirm the actual bound port before reporting preview URLs to the user.
+    - **Zero Commits Needed for Preview**: Vite's HMR hot-reloads uncommitted disk edits in milliseconds. Neither local nor remote commits to `main` are required to test or view changes in the browser.
   - **Worker Post-Merge Protocol**:
-    After PR merge, delete the local feature branch, prune tracking references, and stay on an idle scratch branch:
+    After PR merge on GitHub, delete the local feature branch, prune tracking references, and return to the slot's idle scratch branch:
     ```powershell
+    # In Worker 1:
+    git checkout worker-1
+    git merge --ff-only origin/main
+    git branch -d feat/<feature-name>-v<version>
+    git fetch --prune
+
+    # In Worker 2:
+    git checkout worker-2
+    git merge --ff-only origin/main
     git branch -d feat/<feature-name>-v<version>
     git fetch --prune
     ```
-    Never checkout `main` in the worker! Slot 1 will pull `origin/main` cleanly.
+    Never checkout `main` in worker worktrees! Slot 1 will pull `origin/main` cleanly.
 
 ### 3.2 User Flexibility & Decision Governance (Recommendation vs User Choice)
 If the user prompt instructs or prefers a different workflow (e.g., creating a new ephemeral worktree or working directly in Slot 1), the agent **must not** blindly refuse or proceed silently. The agent must provide a brief **Recommendation vs User Decision with Pros & Cons** before executing:
@@ -232,8 +258,12 @@ If the user prompt instructs or prefers a different workflow (e.g., creating a n
 2. **Step 2: Isolated Feature Development**:
    - Create a descriptive feature branch matching the targeted bump version:
      - *In Slot 1*: `git checkout -b feat/<feature-name>-v<version>`
-     - *In Slot 2*: `git checkout -B feat/<feature-name>-v<version> origin/main`
-   - Make all changes directly in the workspace. Test with local dev server (`http://localhost:3000`).
+     - *In Worker 1 or Worker 2*: `git checkout -B feat/<feature-name>-v<version> origin/main`
+   - Make all changes directly in the workspace. Test with local dev server on the slot's assigned port:
+     - *Slot 1*: `npm run dev` (`http://localhost:3000/`)
+     - *Worker 1*: `npm run dev -- --port 3001` (`http://localhost:3001/`)
+     - *Worker 2*: `npm run dev -- --port 3002` (`http://localhost:3002/`)
+   - Verify live in the browser BEFORE committing. Vite HMR reloads in milliseconds without any commits.
 
 3. **Step 3: Verification, Version Bump & PR Creation Ritual**:
    - Verification: Run `npx tsc --noEmit` and `npx vite build` (and `npx vitest --run --pool=forks` when applicable) to guarantee 0 errors.
@@ -259,10 +289,18 @@ If the user prompt instructs or prefers a different workflow (e.g., creating a n
        git branch -d <branch-name>
        git fetch --prune
        ```
-     - **If in Slot 2 (Worker Worktree)**:
+     - **If in Worker 1 (`supabase_user_profiles_count`)**:
        ```powershell
+       git checkout worker-1
+       git merge --ff-only origin/main
        git branch -d <branch-name>
        git fetch --prune
-       # Switch to idle scratch branch — NEVER checkout main in a worktree!
+       ```
+     - **If in Worker 2 (`update_main_feature_branch`)**:
+       ```powershell
+       git checkout worker-2
+       git merge --ff-only origin/main
+       git branch -d <branch-name>
+       git fetch --prune
        ```
    - Confirm with `git status` that working tree is clean. Slot 1 remains the sole holder of `main`.
