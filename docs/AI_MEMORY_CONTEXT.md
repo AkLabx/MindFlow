@@ -125,17 +125,33 @@ This document serves as an operational reference of the AI Assistant's memory co
 
 ### 9. Automated GitHub PR & Git Workflow (GitHub CLI) & Antigravity Working Method
 
-#### Two-Slot System Architecture (Solo Developer Standard)
-MindFlow uses a **Two-Slot System** designed for solo developers running parallel Antigravity AI sessions without branch collisions or disk bloat:
-* **Slot 1 (Anchor / Host): `D:\MindFlow-main`**: Sole authorized folder to checkout and track local `main`. Runs local Vite dev server (port 3000). Handles fast-forward post-merge pulls (`git pull origin main`).
-* **Slot 2 (Worker Worktree): `C:\Users\AALOK\.gemini\antigravity\worktrees\MindFlow-main\...`**: Dedicated isolated workspace for parallel AI agent development.
-  - **CRITICAL INVARIANT**: **NEVER run `git checkout main` in a worker worktree.**
+#### Multi-Slot Architecture & Deterministic Port Mapping (Solo Developer Standard)
+MindFlow uses a standardized Multi-Slot Architecture designed for solo developers running parallel Antigravity AI sessions without branch collisions, port clashing, or disk bloat:
+
+| Slot | Workspace Location | Assigned Branch | Dev Port | Preview URL | Primary Function |
+| :--- | :--- | :--- | :---: | :--- | :--- |
+| **Slot 1 (Anchor / Host)** | `D:\MindFlow-main` | `main` | **`3000`** | `http://localhost:3000/` | Sole owner of `main`, stable release preview, root documentation, fast-forward post-merge pulls |
+| **Slot 2 (Worker 1)** | `worktrees/.../supabase_user_profiles_count` | `worker-1` / `feat/...` | **`3001`** | `http://localhost:3001/` | Primary parallel AI session, feature branch development & live preview |
+| **Slot 3 (Worker 2)** | `worktrees/.../update_main_feature_branch` | `worker-2` / `feat/...` | **`3002`** | `http://localhost:3002/` | Secondary parallel AI session, audit/refactor tasks & independent live preview |
+
+* **CRITICAL INVARIANTS**:
+  - **Slot 1 is Sole Owner of Local `main`**: NEVER run `git checkout main` in a worker worktree.
   - **Worker Branching**: Always branch directly from `origin/main`: `git fetch origin main; git checkout -B feat/<name>-v<version> origin/main`.
-  - **Worker Post-Merge**: Delete local feature branch (`git branch -d feat/<name>-v<version>`), prune remotes (`git fetch --prune`), and stay on an idle scratch branch without ever checking out `main`.
+  - **Deterministic Port & Live Preview Awareness**:
+    - An agent must check its working directory.
+    - In Slot 1: `npm run dev` (`http://localhost:3000/`).
+    - In Worker 1: `npm run dev -- --port 3001` (`http://localhost:3001/`).
+    - In Worker 2: `npm run dev -- --port 3002` (`http://localhost:3002/`).
+    - Always verify the bound port in console output before reporting the preview URL.
+    - **Zero Commits Needed for Preview**: Vite HMR updates uncommitted changes on disk in milliseconds. Preview happens before committing.
+  - **Worker Post-Merge**:
+    - In Worker 1: `git checkout worker-1; git merge --ff-only origin/main; git branch -d feat/<name>-v<version>; git fetch --prune`
+    - In Worker 2: `git checkout worker-2; git merge --ff-only origin/main; git branch -d feat/<name>-v<version>; git fetch --prune`
+    - Never checkout `main` in workers! Slot 1 pulls `origin/main` cleanly.
 
 #### User Flexibility & Decision Governance (Recommendation vs User Choice)
 If the user prefers a different workflow (e.g., ephemeral worktree or direct in Slot 1), the agent provides a clear **Recommendation vs User Decision with Pros & Cons** before executing:
-* **Recommended Default (2-Slot System)**: Zero `main` branch lock collisions, no extra disk bloat, persistent `node_modules` junction, dev server stays hot.
+* **Recommended Default (Multi-Slot System)**: Zero `main` branch lock collisions, no extra disk bloat, persistent `node_modules` junction, independent dev server ports.
 * **Alternative A (New Ephemeral Worktree)**: 100% clean-slate isolation, but consumes extra disk space and requires `git worktree remove` at session end.
 * **Alternative B (Direct in Slot 1 `D:\MindFlow-main`)**: Fastest for small 1-file edits, but cannot run parallel AI sessions without branch switching.
 
@@ -153,11 +169,12 @@ If the user prefers a different workflow (e.g., ephemeral worktree or direct in 
 1. **Step 1: Session Start & Pre-Task Branch Sync Ritual**:
    - Check current working directory:
      - In Slot 1: `git checkout main; git pull origin main`
-     - In Slot 2: `git fetch origin main` (Do not checkout `main`!)
+     - In Worker 1 / 2: `git fetch origin main` (Do not checkout `main`!)
 2. **Step 2: Isolated Feature Development**:
    - In Slot 1: `git checkout -b feat/<name>-v<version>`
-   - In Slot 2: `git checkout -B feat/<name>-v<version> origin/main`
-   - Make edits, run dev server (`http://localhost:3000`).
+   - In Worker 1 / 2: `git checkout -B feat/<name>-v<version> origin/main`
+   - Make edits, run dev server on assigned port (Slot 1: 3000, Worker 1: 3001, Worker 2: 3002).
+   - Preview live in browser before committing.
 3. **Step 3: Verification, Version Bump & PR Creation Ritual**:
    - Verification: Run `npx tsc --noEmit` and `npm run build` (and `npx vitest --run --pool=forks` when applicable).
    - Version Bump: Increment version in `package.json`, record entry in `docs/APP_JOURNEY_LOG.md`.
@@ -172,7 +189,8 @@ If the user prefers a different workflow (e.g., ephemeral worktree or direct in 
 4. **Step 4: Post-Merge Local Sync & Housekeeping Ritual**:
    - After PR merge on GitHub:
      - In Slot 1: `git checkout main; git pull origin main; git branch -d <branch-name>; git fetch --prune`
-     - In Slot 2: `git branch -d <branch-name>; git fetch --prune` (Stay on idle scratch branch, never checkout `main`).
+     - In Worker 1: `git checkout worker-1; git merge --ff-only origin/main; git branch -d <branch-name>; git fetch --prune`
+     - In Worker 2: `git checkout worker-2; git merge --ff-only origin/main; git branch -d <branch-name>; git fetch --prune`
 
 * **Re-Authentication (If Token Ever Expires)**:
   Run `& "C:\Program Files\GitHub CLI\gh.exe" auth login --hostname github.com -p https -w`. This outputs a one-time device code (`XXXX-XXXX`) and points to `https://github.com/login/device` for instant 1-click browser approval.
