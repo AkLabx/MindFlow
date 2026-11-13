@@ -43,7 +43,9 @@ export const AalokProfile: React.FC = () => {
             {/* Header */}
             <div className="sticky top-0 z-50 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b border-gray-200 dark:border-gray-800 p-4 flex items-center shadow-sm -mx-4 sm:-mx-6 lg:-mx-8 px-8 mb-6">
                 <button
+                    type="button"
                     onClick={() => navigate(-1)}
+                    aria-label="Go back"
                     className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-gray-700 dark:text-gray-300"
                 >
                     <ChevronLeft className="w-6 h-6" />
@@ -62,16 +64,23 @@ export const AalokProfile: React.FC = () => {
                     >
                         <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/10 rounded-bl-full blur-2xl pointer-events-none"></div>
                         <h2 className="text-2xl font-black text-gray-900 dark:text-white mb-6 flex items-center gap-2">
-                            <KeyRound className="text-purple-500 w-6 h-6" />
+                            <KeyRound className="text-purple-500 w-6 h-6" aria-hidden="true" />
                             Admin Access
                         </h2>
 
                         <form onSubmit={handleLogin} className="space-y-4 max-w-md">
                             <div className="relative">
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email</label>
+                                <label htmlFor="admin-login-email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email</label>
                                 <div className="flex gap-2">
                                     <input
+                                        id="admin-login-email"
+                                        name="email"
                                         type="email"
+                                        autoComplete="username"
+                                        inputMode="email"
+                                        enterKeyHint="next"
+                                        spellCheck={false}
+                                        autoCapitalize="none"
                                         value={email}
                                         onChange={(e) => setEmail(e.target.value)}
                                         className="flex-1 block w-full px-4 py-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all"
@@ -83,16 +92,21 @@ export const AalokProfile: React.FC = () => {
                                         onClick={handleAdminFill}
                                         className="p-3 bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-xl hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-colors border border-purple-200 dark:border-purple-800 focus:outline-none focus:ring-2 focus:ring-purple-500 flex items-center justify-center shrink-0"
                                         title="Auto-fill Admin Email"
-                                     aria-label="Perform action">
-                                        <KeyRound className="w-5 h-5" />
+                                        aria-label="Auto-fill admin email"
+                                    >
+                                        <KeyRound className="w-5 h-5" aria-hidden="true" />
                                     </button>
                                 </div>
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Password</label>
+                                <label htmlFor="admin-login-password" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Password</label>
                                 <input
+                                    id="admin-login-password"
+                                    name="password"
                                     type="password"
+                                    autoComplete="current-password"
+                                    enterKeyHint="done"
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
                                     className="block w-full px-4 py-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all"
@@ -105,9 +119,12 @@ export const AalokProfile: React.FC = () => {
                                 type="submit"
                                 disabled={isLoading}
                                 className={`w-full group relative flex justify-center items-center gap-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-bold py-3 px-4 rounded-xl hover:from-purple-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 focus:ring-offset-white dark:focus:ring-offset-gray-900 transition-all duration-300 shadow-md ${isLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
-                             aria-label="Submit search">
+                            >
                                 {isLoading ? (
-                                    <Loader2 className="w-5 h-5 animate-spin" />
+                                    <>
+                                        <Loader2 className="w-5 h-5 animate-spin" aria-hidden="true" />
+                                        <span>Signing in...</span>
+                                    </>
                                 ) : (
                                     <span>Sign In as Admin</span>
                                 )}

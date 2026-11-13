@@ -119,18 +119,27 @@ export const ChatInput: React.FC<ChatInputProps> = ({
  setAttachedDocs([]);
  };
 
+ const supportsFieldSizing =
+ typeof CSS !== 'undefined' &&
+ typeof CSS.supports === 'function' &&
+ CSS.supports('field-sizing', 'content');
+
  useEffect(() => {
+ if (supportsFieldSizing) return;
  if (textareaRef.current) {
  textareaRef.current.style.height = 'auto';
  const scrollHeight = textareaRef.current.scrollHeight;
  textareaRef.current.style.height = `${Math.min(scrollHeight, 200)}px`;
  textareaRef.current.style.overflowY = scrollHeight > 200 ? 'auto' : 'hidden';
  }
- }, [value]);
+ }, [value, supportsFieldSizing]);
 
  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
  if (e.key === 'Enter' && !e.shiftKey) {
  e.preventDefault();
+ if (e.nativeEvent.isComposing || e.keyCode === 229) {
+ return;
+ }
  if ((value.trim() || attachedDocs.length > 0) && !isLoading && !disabled) {
  handleSend();
  }
@@ -202,7 +211,9 @@ export const ChatInput: React.FC<ChatInputProps> = ({
  onChange={(e) => onChange(e.target.value)}
  onKeyDown={handleKeyDown}
  placeholder="Ask MindFlow..."
- className="max-h-[200px] min-h-[44px] w-full resize-none border-0 bg-transparent py-2 text-gray-900 placeholder:text-gray-500 focus:ring-0 outline-none focus:outline-none :text-gray-400 sm:text-base leading-relaxed transition-[height] duration-100 ease-out scrollbar-hide"
+ aria-label="Ask MindFlow"
+ style={supportsFieldSizing ? ({ fieldSizing: 'content', height: 'auto' } as React.CSSProperties) : undefined}
+ className="max-h-[200px] min-h-[44px] w-full resize-none overflow-y-auto border-0 bg-transparent py-2 text-gray-900 placeholder:text-gray-500 focus:ring-0 outline-none focus:outline-none :text-gray-400 sm:text-base leading-relaxed transition-[height] duration-100 ease-out scrollbar-hide"
  rows={1}
  disabled={isLoading || disabled}
  />

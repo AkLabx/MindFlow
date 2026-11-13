@@ -22,14 +22,19 @@ export const ChatInputBar: React.FC<ChatInputBarProps> = ({ onSend, onUpload, is
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { showToast } = useNotification();
 
+  const supportsFieldSizing =
+    typeof CSS !== 'undefined' &&
+    typeof CSS.supports === 'function' &&
+    CSS.supports('field-sizing', 'content');
+
   const submitMessage = () => {
     if (!newMessage.trim() && !isUploading) return;
     onSend(newMessage.trim());
     setNewMessage('');
     onTyping(false);
 
-    // Reset height
-    if (textareaRef.current) {
+    // Reset height only when using imperative JS auto-sizing fallback
+    if (textareaRef.current && !supportsFieldSizing) {
       textareaRef.current.style.height = '40px';
     }
   };
@@ -43,7 +48,9 @@ export const ChatInputBar: React.FC<ChatInputBarProps> = ({ onSend, onUpload, is
     setNewMessage(e.target.value);
     onTyping(e.target.value.length > 0);
 
-    // Auto-resize logic
+    if (supportsFieldSizing) return;
+
+    // Auto-resize fallback for browsers without CSS field-sizing: content
     if (textareaRef.current) {
       textareaRef.current.style.height = '40px'; // Reset to calculate exact shrink
       const scrollHeight = textareaRef.current.scrollHeight;
@@ -58,6 +65,9 @@ export const ChatInputBar: React.FC<ChatInputBarProps> = ({ onSend, onUpload, is
       // Desktop: Enter sends, Shift+Enter new line
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
+        if (e.nativeEvent.isComposing || e.keyCode === 229) {
+          return;
+        }
         submitMessage();
       }
     } else {
@@ -116,9 +126,14 @@ export const ChatInputBar: React.FC<ChatInputBarProps> = ({ onSend, onUpload, is
           onChange={handleTyping}
           onKeyDown={handleKeyDown}
           placeholder="Message..."
+          aria-label="Message"
           rows={1}
           className="flex-1 bg-transparent border-none text-[15px] text-gray-900 dark:text-slate-100 focus:ring-0 outline-none placeholder:text-gray-500 dark:placeholder:text-slate-500 min-h-[40px] py-[10px] text-base resize-none overflow-y-auto scrollbar-hide max-h-[120px] leading-tight align-bottom self-center mb-0 mt-0"
-          style={{ height: '40px' }}
+          style={
+            supportsFieldSizing
+              ? ({ fieldSizing: 'content', height: 'auto' } as React.CSSProperties)
+              : { height: '40px' }
+          }
         />
 
         <input type="file" ref={imageInputRef} accept="image/*" className="hidden text-base" onChange={(e) => onUpload(e, 'image')} />

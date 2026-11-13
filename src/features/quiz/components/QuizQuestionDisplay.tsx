@@ -15,44 +15,6 @@ import { Edit } from 'lucide-react';
 import { SynapticLoader } from '../../../components/ui/SynapticLoader';
 import { AdminQuestionImage } from './AdminQuestionImage';
 
-// --- Client-Side Sanitizer ---
-/**
- * Strips dangerous tags and attributes from HTML strings to prevent XSS.
- * Keeps basic formatting (b, i, p, etc.) but removes scripts, iframes, and event handlers.
- *
- * @param {string} html - The potentially unsafe HTML string.
- * @returns {string} Sanitized HTML string.
- */
-const sanitizeHTML = (html: string) => {
-    if (!html) return "";
-    
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(html, 'text/html');
-    
-    // 1. Remove dangerous tags completely
-    const dangerousTags = ['script', 'iframe', 'object', 'embed', 'form', 'link', 'style', 'meta'];
-    dangerousTags.forEach(tag => {
-        const elements = doc.querySelectorAll(tag);
-        elements.forEach(el => el.remove());
-    });
-
-    // 2. Remove dangerous attributes (on* events, javascript: links)
-    const allElements = doc.querySelectorAll('*');
-    allElements.forEach(el => {
-        const attributes = Array.from(el.attributes);
-        attributes.forEach(attr => {
-            if (attr.name.startsWith('on')) {
-                el.removeAttribute(attr.name); // Remove onclick, onerror, etc.
-            }
-            if (attr.name === 'href' && attr.value.toLowerCase().includes('javascript:')) {
-                el.removeAttribute('href'); // Remove javascript: links
-            }
-        });
-    });
-
-    return doc.body.innerHTML;
-};
-
 /**
  * The core component for displaying a single quiz question.
  *
@@ -198,11 +160,6 @@ export function QuizQuestionDisplay({
             showToast({ variant: 'error', message: error, duration: 3000 });
         }
     }, [error, showToast]);
-    
-    // Helper to safely render HTML content after sanitization
-    const createSafeMarkup = (html: string) => {
-        return { __html: sanitizeHTML(html) };
-    };
 
     return (
         <div 

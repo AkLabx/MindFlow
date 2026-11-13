@@ -1,4 +1,13 @@
 import DOMPurify from "dompurify";
+import { createYieldController, yieldToMain } from "../../../../utils/yieldToMain";
+
+const safeSetHTML = (element: HTMLElement, html: string) => {
+    if (typeof Element !== 'undefined' && 'setHTML' in Element.prototype) {
+        (element as HTMLElement & { setHTML: (input: string) => void }).setHTML(html);
+        return;
+    }
+    element.innerHTML = DOMPurify.sanitize(html);
+};
 
 export interface PDFOptions {
     quizTitle: string;
@@ -44,6 +53,7 @@ export const generateBilingualPdf = async (
 
     const hindiSnippet = document.getElementById('hindi-render-snippet');
     if (!hindiSnippet) throw new Error("Hindi rendering snippet element not found");
+    const yieldIfNeeded = createYieldController(50);
 
     const solidBlueBgRgb = [237, 247, 255];
     const solidBlueBgHex = '#EDF7FF';
@@ -100,11 +110,11 @@ export const generateBilingualPdf = async (
         hindiSnippet.style.width = `${customWidth}pt`;
         hindiSnippet.style.fontSize = `${fontSize}pt`;
         hindiSnippet.style.fontWeight = '700';
-        hindiSnippet.innerHTML = DOMPurify.sanitize(text);
+        safeSetHTML(hindiSnippet, text);
         hindiSnippet.style.backgroundColor = bgColorHex;
 
-        // Small delay to allow DOM to render
-        await new Promise(r => setTimeout(r, 10));
+        // Yield to allow layout/paint before rasterizing with html2canvas
+        await yieldToMain();
 
         try {
             const canvas = await html2canvas(hindiSnippet, { scale: 1.5, backgroundColor: bgColorHex });
@@ -174,7 +184,7 @@ export const generateBilingualPdf = async (
             const currentProgress = Math.round(((i + 1) / questions.length) * 100);
 
             onProgress(currentProgress, `Processing question ${questionNum} of ${questions.length}...`);
-            await new Promise(resolve => setTimeout(resolve, 5)); // Allow UI to update
+            await yieldIfNeeded(); // Yield to main thread within 50ms budget to preserve INP
 
             const qFont = 12 * options.fontMultiplier;
             const optFont = 11 * options.fontMultiplier;
@@ -368,6 +378,7 @@ export const generateBilingualPdf = async (
             const pageBottom = pageHeight - (margin + 15);
 
             for (let i = 0; i < questions.length; i++) {
+                await yieldIfNeeded();
                 const correctIndex = questions[i].options.indexOf(questions[i].correct);
                 let text = `${i + 1}. ${String.fromCharCode(65 + correctIndex)}) ${questions[i].correct}`;
                 let blockHeight = 0;
@@ -439,6 +450,6 @@ export const generateBilingualPdf = async (
         console.error("PDF Generation Error", e);
         throw e;
     } finally {
-        if (hindiSnippet) hindiSnippet.innerHTML = '';
+        if (hindiSnippet) hindiSnippet.replaceChildren();
     }
 };
