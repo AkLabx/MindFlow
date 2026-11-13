@@ -1,5 +1,5 @@
 import { useVirtualizer } from '@tanstack/react-virtual';
-import React, { useState, useRef, useEffect, useMemo, KeyboardEvent } from 'react';
+import React, { useState, useRef, useEffect, useMemo, useId, KeyboardEvent } from 'react';
 import { ChevronDown, Check, X, Search, Info } from 'lucide-react';
 import { cn } from '../../../../utils/cn';
 
@@ -45,11 +45,73 @@ export const MultiSelectDropdown = React.memo(function MultiSelectDropdown({
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
   const [focusedIndex, setFocusedIndex] = useState(-1);
   const [menuPosition, setMenuPosition] = useState<'bottom' | 'top'>('bottom');
+  const [isTooltipOpen, setIsTooltipOpen] = useState(false);
+  const [tooltipStyle, setTooltipStyle] = useState<React.CSSProperties>({});
+
+  const tooltipId = useId();
+  const supportsPopover =
+    typeof HTMLElement !== 'undefined' && Object.hasOwn(HTMLElement.prototype, 'popover');
 
   const dropdownRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const parentRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
+  const tooltipTriggerRef = useRef<HTMLButtonElement>(null);
+  const tooltipRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!isTooltipOpen || supportsPopover) return;
+
+    const handleOutside = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (
+        !tooltipTriggerRef.current?.contains(target) &&
+        !tooltipRef.current?.contains(target)
+      ) {
+        setIsTooltipOpen(false);
+      }
+    };
+    const handleEsc = (event: globalThis.KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsTooltipOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleOutside);
+    document.addEventListener('keydown', handleEsc);
+    return () => {
+      document.removeEventListener('mousedown', handleOutside);
+      document.removeEventListener('keydown', handleEsc);
+    };
+  }, [isTooltipOpen, supportsPopover]);
+
+  const handleTooltipToggle = (event: React.ToggleEvent<HTMLDivElement>) => {
+    const opening = event.newState === 'open';
+    setIsTooltipOpen(opening);
+    if (!opening || !tooltipTriggerRef.current) return;
+
+    const triggerRect = tooltipTriggerRef.current.getBoundingClientRect();
+    const padding = 16;
+    const maxWidth = 224;
+    const halfWidth = Math.min(maxWidth, Math.max(0, window.innerWidth - padding * 2)) / 2;
+    const centerX = triggerRect.left + triggerRect.width / 2;
+    const clampedLeft = Math.max(
+      padding + halfWidth,
+      Math.min(centerX, window.innerWidth - padding - halfWidth)
+    );
+    const placeBelow = triggerRect.top < 110;
+
+    setTooltipStyle({
+      position: 'fixed',
+      inset: 'auto',
+      margin: 0,
+      left: `${clampedLeft}px`,
+      transform: 'translateX(-50%)',
+      ...(placeBelow
+        ? { top: `${triggerRect.bottom + 8}px` }
+        : { bottom: `${window.innerHeight - triggerRect.top + 8}px` }),
+    });
+  };
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -185,12 +247,42 @@ export const MultiSelectDropdown = React.memo(function MultiSelectDropdown({
         <div className="flex items-center gap-2 mb-3 w-full">
           <label className="inline-flex items-center px-3 py-1.5 bg-blue-600 text-white dark:bg-blue-500 text-xs font-bold uppercase tracking-wider rounded-md shadow-sm">{label}</label>
           {tooltip && (
-            <div className="group relative flex items-center">
-              <Info className="w-3.5 h-3.5 text-gray-400 cursor-help hover:text-indigo-500 transition-colors" />
-              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block w-48 p-2 bg-gray-800 text-white text-xs rounded shadow-lg z-50 pointer-events-none text-center font-normal leading-relaxed">
-                {tooltip}
-                <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-800" />
-              </div>
+            <div className="relative flex items-center">
+              <button
+                ref={tooltipTriggerRef}
+                type="button"
+                popoverTarget={supportsPopover ? tooltipId : undefined}
+                popoverTargetAction={supportsPopover ? 'toggle' : undefined}
+                onClick={!supportsPopover ? () => setIsTooltipOpen((prev) => !prev) : undefined}
+                aria-expanded={isTooltipOpen}
+                aria-label={label ? `More about ${label}` : 'More information'}
+                className="-my-3.5 -mx-2 min-w-[44px] min-h-[44px] inline-flex items-center justify-center rounded-full text-gray-400 hover:text-indigo-500 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+              >
+                <Info className="w-3.5 h-3.5" aria-hidden="true" />
+              </button>
+              {supportsPopover ? (
+                <div
+                  ref={tooltipRef}
+                  id={tooltipId}
+                  popover="auto"
+                  role="tooltip"
+                  onToggle={handleTooltipToggle}
+                  style={tooltipStyle}
+                  className="w-56 max-w-[calc(100vw-2rem)] p-2.5 bg-gray-800 text-white text-xs rounded-lg shadow-lg text-center font-normal leading-relaxed border border-gray-700/60"
+                >
+                  {tooltip}
+                </div>
+              ) : isTooltipOpen ? (
+                <div
+                  ref={tooltipRef}
+                  id={tooltipId}
+                  role="tooltip"
+                  className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-gray-800 text-white text-xs rounded shadow-lg z-50 text-center font-normal leading-relaxed"
+                >
+                  {tooltip}
+                  <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-800" />
+                </div>
+              ) : null}
             </div>
           )}
           {options.length > 0 && (
@@ -224,36 +316,37 @@ export const MultiSelectDropdown = React.memo(function MultiSelectDropdown({
         </div>
       )}
       
-      <button 
-        type="button"
-        onClick={() => !disabled && setIsOpen(!isOpen)} 
-        disabled={disabled}
-        aria-haspopup="listbox"
-        aria-expanded={isOpen}
-        className={cn(
-            "w-full flex items-center justify-between p-3 bg-white dark:bg-gray-800 border rounded-lg text-sm transition-all",
+      <div className="relative flex items-center w-full">
+        <button
+          type="button"
+          onClick={() => !disabled && setIsOpen(!isOpen)}
+          disabled={disabled}
+          aria-haspopup="listbox"
+          aria-expanded={isOpen}
+          className={cn(
+            "w-full flex items-center justify-between p-3 bg-white dark:bg-gray-800 border rounded-lg text-sm transition-all text-left",
+            selectedOptions.length > 0 && !disabled ? "pr-14" : "",
             disabled ? "bg-gray-50 dark:bg-gray-900 text-gray-400 cursor-not-allowed border-gray-200 dark:border-gray-700" : "hover:border-indigo-300 focus:ring-2 focus:ring-indigo-100 cursor-pointer border-gray-300 dark:border-gray-600",
             isOpen ? "border-indigo-500 ring-2 ring-indigo-100 dark:ring-indigo-900/50" : ""
-        )}
-      >
-        <span className={cn("truncate", selectedOptions.length === 0 ? "text-gray-400" : "text-gray-900 dark:text-white font-medium")}>
+          )}
+        >
+          <span className={cn("truncate", selectedOptions.length === 0 ? "text-gray-400" : "text-gray-900 dark:text-white font-medium")}>
             {selectedOptions.length === 0 ? placeholder : selectedOptions.length === 1 ? selectedOptions[0] : `${selectedOptions.length} selected`}
-        </span>
-        
-        <div className="flex items-center gap-1">
-            {selectedOptions.length > 0 && !disabled && (
-                <div 
-                    onClick={clearSelection}
-                    className="p-0.5 rounded-full hover:bg-gray-100 dark:bg-gray-700 text-gray-400 hover:text-gray-600 dark:text-gray-300 mr-1 transition-colors"
-                    aria-label="Clear selection"
-                    role="button"
-                >
-                    <X className="w-3.5 h-3.5" />
-                </div>
-            )}
-            <ChevronDown className={cn("w-4 h-4 text-gray-400 transition-transform", isOpen ? "rotate-180" : "")} />
-        </div>
-      </button>
+          </span>
+          <ChevronDown aria-hidden="true" className={cn("w-4 h-4 text-gray-400 shrink-0 transition-transform", isOpen ? "rotate-180" : "")} />
+        </button>
+
+        {selectedOptions.length > 0 && !disabled && (
+          <button
+            type="button"
+            onClick={clearSelection}
+            className="absolute right-8 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:text-gray-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+            aria-label="Clear selection"
+          >
+            <X className="w-3.5 h-3.5" aria-hidden="true" />
+          </button>
+        )}
+      </div>
 
       {isOpen && (
         <div className={cn(

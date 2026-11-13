@@ -26,6 +26,22 @@ This document is the single source of truth for the evolution of the MindFlow ap
 
 ## 🚀 App Journey Changelog
 
+## [v1.0.356] - 13 November 2026, 04:10 PM IST
+
+### ✨ Features & Modernization (Modern Web Guidance)
+- **INP & Main-Thread Yielding Utility**: Created `src/utils/yieldToMain.ts` exporting `yieldToMain()` (`scheduler.yield()` with `setTimeout(0)` fallback) and `createYieldController(budgetMs = 50)`. Applied cooperative yielding (`yieldToMain()` and `yieldIfNeeded()`) to PDF page and answer-key rendering loops in `src/features/tools/bilingual-pdf-maker/utils/pdfGenerator.ts`.
+- **Native CSS `field-sizing: content` & IME-Safe Chat Inputs**: Updated `src/features/ai/chat/ChatInput.tsx` and `src/features/community/pages/ChatInputBar.tsx` with `CSS.supports('field-sizing', 'content')` progressive enhancement (gating JS `scrollHeight` resize/reset loops), `isComposing` / `keyCode === 229` IME Enter-key composition guards in `handleKeyDown`, and accessible textarea labels (`aria-label="Ask MindFlow"` and `aria-label="Message"`).
+- **Accessible Native Popover Tooltip & Nested Interactive Fix**: Refactored `src/features/quiz/components/ui/MultiSelectDropdown.tsx` from a hover-only tooltip to a native `popover="auto"` toggletip (`popoverTarget`, `popoverTargetAction="toggle"`, `aria-expanded`, `onToggle={handleTooltipToggle}`, `min-w-[44px] min-h-[44px]` touch target, plus non-popover fallback), and un-nested the clear control into a sibling `<button type="button">`.
+
+### 🐛 Bug Fixes & Accessibility (WCAG & Semantics)
+- **ARIA Switch & Label Semantics**: Fixed `src/features/quiz/components/ui/SettingsToggle.tsx` by replacing `<label htmlFor>` pointing to a `<button>` with `useId()` + `<span id={labelId}>`, `type="button"`, `role="switch"`, `aria-checked={checked}`, `aria-labelledby={labelId}`, and `min-w-[44px] min-h-[44px]` touch target sizing.
+- **Sign-In Form Autofill & Accessible Controls**: Hardened `src/features/about/components/AalokProfile.tsx` with `type="button"` + `aria-label="Go back"` on the back button, `aria-hidden="true"` on decorative icons, explicit `htmlFor`/`id`/`name`, `autoComplete="username"` / `"current-password"`, `inputMode="email"`, `enterKeyHint="next"` / `"done"`, `spellCheck={false}`, `autoCapitalize="none"`, corrected `aria-label="Auto-fill admin email"`, removed an inaccurate `aria-label="Submit search"` from the Sign In submit button, and added visible `Signing in...` loading text.
+
+### 🔒 Security & Code Hygiene
+- **HTML Sanitization Alignment**: Added `safeSetHTML` (`'setHTML' in Element.prototype` with `DOMPurify.sanitize` fallback) and replaced `.innerHTML = ''` with `replaceChildren()` in `src/features/tools/bilingual-pdf-maker/utils/pdfGenerator.ts`; removed dead unused `DOMParser` `sanitizeHTML` and `createSafeMarkup` helpers from `src/features/quiz/components/QuizQuestionDisplay.tsx`.
+
+---
+
 ## [v1.0.355] - 11 November 2026, 11:15 PM IST
 
 > **Release Platform Mapping**: `Android 1.6 (versionCode 6) = Web v1.0.355`
