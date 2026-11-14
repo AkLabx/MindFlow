@@ -26,6 +26,21 @@ This document is the single source of truth for the evolution of the MindFlow ap
 
 ## 🚀 App Journey Changelog
 
+## [v1.0.359] - 14 November 2026, 04:35 PM IST
+
+**Executive Summary:** Completed Phase 2 navigation consolidation, theme split-brain resolution, and IME/autofill hardening—unifying Android hardware back handling into a single controller while eliminating dark-mode FOUC and CSS injection risks.
+
+### 🐛 Bug Fixes
+- **Single-Controller Android Hardware Back Navigation**: Consolidated duplicate Capacitor `App.addListener('backButton')` listeners from `QuizConfig.tsx`, `LearningSession.tsx`, `SubjectHubPage.tsx`, and `SubjectTopicsPage.tsx` into `src/hooks/useHardwareBackButton.ts`. Preserved `location.state.returnTo`, `location.state.from`, and fixed-subject `ROUTES.SUBJECT.view(fixedSubject)` routing on `/quiz/config`, excluded the persistent `session-paused-overlay` dialog from generic top-layer dismissal, and ensured second-press Back on a paused quiz calls `quizStore.goHome()`.
+- **Theme Split-Brain & FOUC Elimination**: Removed hardcoded dark inline styles on `<html>` in `index.html`, added `<meta name="color-scheme" content="light dark" />` and a synchronous FOUC-prevention script reading `mindflow-settings`, synced `document.documentElement.style.colorScheme` in `useSettingsStore.ts`, and guarded `ThemeAndBrandingInjector.tsx` so remote default theme settings never overwrite an explicit local user dark-mode preference.
+
+### 🔒 Security & Architecture
+- **CSS Injection Prevention & Native Scrollbar / Form Hygiene**: Validated `primaryColor` against `^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$` and switched `<style id="mindflow-theme-styles">` injection from `.innerHTML` to `.textContent` in `ThemeAndBrandingInjector.tsx`. Added `.scrollbar-thin` with `scrollbar-width: thin` and `@supports` WebKit fallback in `src/index.css`, IME composition (`!e.nativeEvent.isComposing && e.keyCode !== 229`) guards in `OnboardingFlow.tsx` and `AdminEditQuestionModal.tsx`, and `autoComplete="new-password"` attributes in `SettingsPage.tsx`.
+
+**Impacted Scope:** `package.json`, `docs/APP_JOURNEY_LOG.md`, `index.html`, `src/index.css`, `src/hooks/useHardwareBackButton.ts`, `src/hooks/useHardwareBackButton.test.ts`, `src/stores/useSettingsStore.ts`, `src/providers/ThemeAndBrandingInjector.tsx`, `src/features/quiz/components/QuizConfig.tsx`, `src/features/quiz/learning/LearningSession.tsx`, `src/features/dashboard/pages/subject/SubjectHubPage.tsx`, `src/features/dashboard/pages/subject/SubjectTopicsPage.tsx`, `src/features/onboarding/pages/OnboardingFlow.tsx`, `src/features/admin/components/AdminEditQuestionModal.tsx`, `src/features/auth/components/SettingsPage.tsx`
+
+---
+
 ## [v1.0.358] - 14 November 2026, 11:35 AM IST
 
 **Executive Summary:** Completed Phase 1 codebase hygiene, build isolation, and Vitest stabilization on Windows—removing confirmed orphaned files and unused dependencies while ensuring all 32 test suites pass reliably.

@@ -56,8 +56,12 @@ export const ThemeAndBrandingInjector: React.FC<{ children: React.ReactNode }> =
     }
 
     // 3. Theme: Colors (Injecting CSS variables into head)
-    if (activeConfig.theme?.primaryColor) {
-      const primary = activeConfig.theme.primaryColor;
+    const rawPrimary = activeConfig.theme?.primaryColor?.trim();
+    if (rawPrimary && /^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$/.test(rawPrimary)) {
+      const primary =
+        rawPrimary.length === 4
+          ? `#${rawPrimary[1]}${rawPrimary[1]}${rawPrimary[2]}${rawPrimary[2]}${rawPrimary[3]}${rawPrimary[3]}`
+          : rawPrimary;
 
       const styleId = 'mindflow-theme-styles';
       let styleEl = document.getElementById(styleId) as HTMLStyleElement | null;
@@ -82,32 +86,42 @@ export const ThemeAndBrandingInjector: React.FC<{ children: React.ReactNode }> =
           --color-primary-900: ${shadeColor(primary, -60)};
         }
       `;
-      styleEl.innerHTML = cssVars;
+      styleEl.textContent = cssVars;
     }
 
     // 4. Theme: Dark Mode Default / System Sync
     const root = document.documentElement;
     const mode = activeConfig.theme?.mode;
+    const hasSavedUserPreference =
+      typeof window !== 'undefined' &&
+      window.localStorage.getItem('mindflow-settings') !== null;
 
-    if (mode === 'dark') {
-      root.classList.add('dark');
-      useSettingsStore.setState({ isDarkMode: true });
-    } else if (mode === 'light') {
-      root.classList.remove('dark');
-      useSettingsStore.setState({ isDarkMode: false });
-    } else if (mode === 'system' || !mode) {
-      // Respect user OS prefers-color-scheme when mode is 'system'
-      const prefersDark = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-      if (prefersDark) {
+    if (isPreviewing || !hasSavedUserPreference) {
+      if (mode === 'dark') {
         root.classList.add('dark');
+        root.style.colorScheme = 'dark';
         useSettingsStore.setState({ isDarkMode: true });
-      } else {
+      } else if (mode === 'light') {
         root.classList.remove('dark');
+        root.style.colorScheme = 'light';
         useSettingsStore.setState({ isDarkMode: false });
+      } else if (mode === 'system' || !mode) {
+        // Respect user OS prefers-color-scheme when mode is 'system'
+        const prefersDark =
+          typeof window !== 'undefined' &&
+          window.matchMedia &&
+          window.matchMedia('(prefers-color-scheme: dark)').matches;
+        root.classList.toggle('dark', prefersDark);
+        root.style.colorScheme = prefersDark ? 'dark' : 'light';
+        useSettingsStore.setState({ isDarkMode: prefersDark });
       }
+    } else {
+      const savedDark = useSettingsStore.getState().isDarkMode;
+      root.classList.toggle('dark', savedDark);
+      root.style.colorScheme = savedDark ? 'dark' : 'light';
     }
 
-  }, [activeConfig.branding, activeConfig.theme]);
+  }, [activeConfig.branding, activeConfig.theme, isPreviewing]);
 
   return <>{children}</>;
 };

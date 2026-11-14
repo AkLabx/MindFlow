@@ -1,8 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useLayoutStore } from "@/stores/useLayoutStore";
 import { useParams, useNavigate } from "react-router-dom";
-import { Capacitor } from "@capacitor/core";
-import { App } from "@capacitor/app";
 import { Target } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { ROUTES } from "@/config/routes";
@@ -44,26 +42,6 @@ export const SubjectTopicsPage: React.FC = () => {
   }, [setHideGlobalHeader]);
 
   const decodedSubject = subjectName ? decodeURIComponent(subjectName) : "";
-
-  // Capacitor Android Hardware Back Button listener (When bottom sheet is closed, return to Subject Hub)
-  useEffect(() => {
-    if (selectedSubTopic) return;
-
-    let backHandler: any;
-    if (Capacitor.isNativePlatform()) {
-      App.addListener("backButton", () => {
-        navigate(ROUTES.SUBJECT.view(decodedSubject));
-      }).then((handle) => {
-        backHandler = handle;
-      });
-    }
-
-    return () => {
-      if (backHandler) {
-        backHandler.remove();
-      }
-    };
-  }, [selectedSubTopic, decodedSubject, navigate]);
 
   // Unified Taxonomy Query (Hierarchy + Counts + Total) with 24h memory retention
   const {

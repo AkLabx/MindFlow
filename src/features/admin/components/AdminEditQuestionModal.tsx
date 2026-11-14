@@ -966,7 +966,7 @@ export const AdminEditQuestionModal: React.FC<AdminEditQuestionModalProps> = ({
                       value={newTagInput}
                       onChange={(e) => setNewTagInput(e.target.value)}
                       onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
+                        if (e.key === 'Enter' && !e.nativeEvent.isComposing && e.keyCode !== 229) {
                           e.preventDefault();
                           handleAddTag();
                         }

@@ -329,7 +329,12 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onBack }) => {
                   <div className="relative">
                       <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                       <input
+                          id="settings-new-password"
+                          name="new-password"
                           type="password"
+                          autoComplete="new-password"
+                          minLength={8}
+                          aria-label="New Password"
                           placeholder="New Password"
                           value={password}
                           onChange={(e) => setPassword(e.target.value)}
@@ -339,7 +344,12 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onBack }) => {
                   <div className="relative">
                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                        <input
+                          id="settings-confirm-password"
+                          name="confirm-password"
                           type="password"
+                          autoComplete="new-password"
+                          minLength={8}
+                          aria-label="Confirm New Password"
                           placeholder="Confirm New Password"
                           value={confirmPassword}
                           onChange={(e) => setConfirmPassword(e.target.value)}

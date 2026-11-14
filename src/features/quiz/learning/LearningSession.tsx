@@ -2,8 +2,6 @@ import { useQuizSessionStore } from '../stores/useQuizSessionStore';
 
 import React, { useState, useEffect, useCallback, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Capacitor } from '@capacitor/core';
-import { App } from '@capacitor/app';
 import { triggerHaptic } from '@/lib/haptics';
 import { SynapticLoader } from '../../../components/ui/SynapticLoader';
 import { useAnalyticsStore } from '../stores/useAnalyticsStore';
@@ -93,29 +91,6 @@ export const LearningSession: React.FC<LearningSessionProps> = ({
 
     // Pop-up state for timer expiry
     const [showTimeUpModal, setShowTimeUpModal] = useState(false);
-
-    // Native Android Hardware Back Button Interception (Layered Modal & Session Priority)
-    useEffect(() => {
-        if (!Capacitor.isNativePlatform()) return;
-        const listenerPromise = App.addListener('backButton', () => {
-            if (isSettingsOpen) {
-                triggerHaptic('light');
-                setIsSettingsOpen(false);
-            } else if (isNavOpen) {
-                triggerHaptic('light');
-                setIsNavOpen(false);
-            } else if (isPaused) {
-                triggerHaptic('light');
-                onResume();
-            } else {
-                triggerHaptic('light');
-                onGoHome();
-            }
-        });
-        return () => {
-            listenerPromise.then(handle => handle.remove());
-        };
-    }, [isSettingsOpen, isNavOpen, isPaused, onResume, onGoHome]);
 
     const currentQuestion = questions[currentIndex];
 

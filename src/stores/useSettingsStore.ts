@@ -29,11 +29,8 @@ export const useSettingsStore = create<SettingsState>()(
 
         // Fallback for browsers without View Transitions or users who prefer reduced motion
         if (!(document as any).startViewTransition || prefersReducedMotion || !event) {
-          if (willBeDark) {
-            document.documentElement.classList.add('dark');
-          } else {
-            document.documentElement.classList.remove('dark');
-          }
+          document.documentElement.classList.toggle('dark', willBeDark);
+          document.documentElement.style.colorScheme = willBeDark ? 'dark' : 'light';
           set({ isDarkMode: willBeDark });
           return;
         }
@@ -61,11 +58,8 @@ export const useSettingsStore = create<SettingsState>()(
         );
 
         const transition = (document as any).startViewTransition(() => {
-          if (willBeDark) {
-            document.documentElement.classList.add('dark');
-          } else {
-            document.documentElement.classList.remove('dark');
-          }
+          document.documentElement.classList.toggle('dark', willBeDark);
+          document.documentElement.style.colorScheme = willBeDark ? 'dark' : 'light';
           set({ isDarkMode: willBeDark });
         });
 
@@ -115,11 +109,8 @@ export const useSettingsStore = create<SettingsState>()(
       // We need to sync the initial state with DOM classes (dark mode, animations)
       onRehydrateStorage: () => (state) => {
         if (state) {
-          if (state.isDarkMode) {
-            document.documentElement.classList.add('dark');
-          } else {
-            document.documentElement.classList.remove('dark');
-          }
+          document.documentElement.classList.toggle('dark', state.isDarkMode);
+          document.documentElement.style.colorScheme = state.isDarkMode ? 'dark' : 'light';
           if (state.areBgAnimationsEnabled) {
             document.body.classList.add('background-animated');
           } else {

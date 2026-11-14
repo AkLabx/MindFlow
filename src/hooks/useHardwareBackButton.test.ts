@@ -2,6 +2,7 @@
  * @vitest-environment jsdom
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { ROUTES } from '../config/routes';
 import { resolveHardwareBackTarget, dismissTopmostOverlay } from './useHardwareBackButton';
 
 describe('resolveHardwareBackTarget (Phase 9 Hierarchical Back Navigation)', () => {
@@ -70,6 +71,39 @@ describe('resolveHardwareBackTarget (Phase 9 Hierarchical Back Navigation)', () 
     expect(resolveHardwareBackTarget('/quiz/subject/Polity')).toBe('/dashboard');
     expect(resolveHardwareBackTarget('/unknown-deep-link')).toBe('/dashboard');
   });
+
+  it('preserves caller return state on /quiz/config (returnTo > from > fixedSubjectContext > /dashboard)', () => {
+    expect(
+      resolveHardwareBackTarget('/quiz/config', {
+        returnTo: '/bookmarks',
+        from: '/mcqs',
+        fixedSubjectContext: true,
+        initialFilters: { subject: ['History'] },
+      })
+    ).toBe('/bookmarks');
+
+    expect(
+      resolveHardwareBackTarget('/quiz/config', {
+        from: '/mcqs',
+        fixedSubjectContext: true,
+        initialFilters: { subject: ['History'] },
+      })
+    ).toBe('/mcqs');
+
+    expect(
+      resolveHardwareBackTarget('/quiz/config', {
+        fixedSubjectContext: true,
+        initialFilters: { subject: ['Indian Polity'] },
+      })
+    ).toBe(ROUTES.SUBJECT.view('Indian Polity'));
+
+    expect(
+      resolveHardwareBackTarget('/quiz/config/', {
+        fixedSubjectContext: false,
+        initialFilters: { subject: ['Indian Polity'] },
+      })
+    ).toBe('/dashboard');
+  });
 });
 
 describe('dismissTopmostOverlay (LIFO Top Layer Priority)', () => {
@@ -125,6 +159,19 @@ describe('dismissTopmostOverlay (LIFO Top Layer Priority)', () => {
     expect(keyListener).toHaveBeenCalledTimes(1);
     expect((keyListener.mock.calls[0][0] as KeyboardEvent).key).toBe('Escape');
     document.removeEventListener('keydown', keyListener);
+  });
+
+  it('ignores non-dismissible session-paused-overlay dialog so second back press exits session', () => {
+    const pausedOverlay = document.createElement('dialog');
+    pausedOverlay.setAttribute('open', '');
+    pausedOverlay.setAttribute('data-testid', 'session-paused-overlay');
+    pausedOverlay.close = vi.fn();
+    document.body.appendChild(pausedOverlay);
+
+    const handled = dismissTopmostOverlay(document);
+    expect(handled).toBe(false);
+    expect(pausedOverlay.close).not.toHaveBeenCalled();
+    expect(pausedOverlay.hasAttribute('open')).toBe(true);
   });
 
   it('returns false when no overlays are open', () => {

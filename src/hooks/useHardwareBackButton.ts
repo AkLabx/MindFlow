@@ -3,13 +3,39 @@ import { App } from '@capacitor/app';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useNotificationStore } from '../stores/useNotificationStore';
 import { useQuizSessionStore } from '../features/quiz/stores/useQuizSessionStore';
+import { ROUTES } from '../config/routes';
+
+interface QuizConfigBackState {
+    returnTo?: unknown;
+    from?: unknown;
+    fixedSubjectContext?: unknown;
+    initialFilters?: {
+        subject?: unknown[];
+    };
+}
 
 /**
  * Resolves the deterministic hierarchical parent route for a given pathname
  * when Android hardware back is pressed (Constitution Section 4).
  */
-export function resolveHardwareBackTarget(currentPath: string): string {
+export function resolveHardwareBackTarget(currentPath: string, locationState?: unknown): string {
     const normalized = currentPath.length > 1 ? currentPath.replace(/\/+$/, '') : currentPath;
+
+    if (normalized === '/quiz/config') {
+        const st = locationState as QuizConfigBackState | null | undefined;
+        if (typeof st?.returnTo === 'string' && st.returnTo.length > 0) {
+            return st.returnTo;
+        }
+        if (typeof st?.from === 'string' && st.from.length > 0) {
+            return st.from;
+        }
+        const fixedSubject =
+            st?.fixedSubjectContext === true ? st?.initialFilters?.subject?.[0] : undefined;
+        if (typeof fixedSubject === 'string' && fixedSubject.length > 0) {
+            return ROUTES.SUBJECT.view(fixedSubject);
+        }
+        return ROUTES.DASHBOARD || '/dashboard';
+    }
 
     // Level 3 -> Level 2: Subject Topics -> Subject Hub
     const quizSubjectTopicsMatch = normalized.match(/^\/quiz\/subject\/([^/]+)\/topics$/);
@@ -102,7 +128,7 @@ export function dismissTopmostOverlay(doc: Document = document): boolean {
     }
 
     const openNativeDialogs = Array.from(
-        doc.querySelectorAll<HTMLDialogElement>('dialog[open]')
+        doc.querySelectorAll<HTMLDialogElement>('dialog[open]:not([data-testid="session-paused-overlay"])')
     );
     if (openNativeDialogs.length > 0) {
         const topmostDialog = openNativeDialogs[openNativeDialogs.length - 1];
@@ -175,9 +201,9 @@ export const useHardwareBackButton = () => {
                     return;
                 }
 
-                // --- 3.5 ONBOARDING STEP-LEVEL DELEGATION ---
-                if (currentPath === '/onboarding') {
-                    return; // Step decrement and root minimization are managed locally by OnboardingFlow
+                // --- 3.5 ROUTE-LOCAL STEP / AUTH DELEGATION ---
+                if (currentPath === '/onboarding' || currentPath === '/' || currentPath === '/login') {
+                    return; // Step decrement and root minimization are managed locally by OnboardingFlow / AuthPage
                 }
 
                 // --- 4. CRITICAL WORKFLOW PROTECTION (Quiz, etc) ---
@@ -202,6 +228,9 @@ export const useHardwareBackButton = () => {
                         });
                         return;
                     }
+                    if (quizStore.isPaused) {
+                        await quizStore.goHome();
+                    }
                 }
 
                 // --- 5. DASHBOARD SINGLE EXIT ROOT ---
@@ -223,7 +252,7 @@ export const useHardwareBackButton = () => {
                 }
 
                 // --- 6. DETERMINISTIC HIERARCHICAL MAPPING ---
-                const targetPath = resolveHardwareBackTarget(currentPath);
+                const targetPath = resolveHardwareBackTarget(currentPath, location.state);
 
                 // Record time for dashboard exit timeout logic and debounce
                 lastBackPress.current = currentTime;
@@ -244,5 +273,5 @@ export const useHardwareBackButton = () => {
         return () => {
             listener.then(l => l.remove());
         };
-    }, [navigate, location.pathname]);
+    }, [navigate, location.pathname, location.state]);
 };
