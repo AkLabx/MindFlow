@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useId, useState, useEffect } from 'react';
 import { X, Save } from 'lucide-react';
 import type { ExtractedQuestion } from '../types/review';
 import { updateQuestionContent } from '../services/reviewAdminService';
 import { useNotificationStore } from '@/stores/useNotificationStore';
+import { NativeDialog } from '@/components/ui/NativeDialog';
 
 interface Props {
     isOpen: boolean;
@@ -12,6 +13,7 @@ interface Props {
 }
 
 export const AdminEditExtractedModal: React.FC<Props> = ({ isOpen, onClose, question, onSaved }) => {
+    const titleId = useId();
     const showToast = useNotificationStore(s => s.showToast);
     const [isSaving, setIsSaving] = useState(false);
 
@@ -55,11 +57,21 @@ export const AdminEditExtractedModal: React.FC<Props> = ({ isOpen, onClose, ques
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
-            <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-2xl shadow-xl overflow-hidden flex flex-col max-h-[90vh]">
+        <NativeDialog
+            isOpen={isOpen}
+            onClose={onClose}
+            ariaLabelledBy={titleId}
+            className="max-w-2xl"
+            panelClassName="bg-white dark:bg-slate-900 rounded-2xl w-full shadow-xl overflow-hidden flex flex-col max-h-[90dvh]"
+        >
                 <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-800">
-                    <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">Edit Extracted Question</h2>
-                    <button onClick={onClose} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full">
+                    <h2 id={titleId} className="text-lg font-bold text-slate-800 dark:text-slate-100">Edit Extracted Question</h2>
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        aria-label="Close modal"
+                        className="p-2 min-w-[44px] min-h-[44px] -mr-2 flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full"
+                    >
                         <X className="w-5 h-5 text-slate-500" />
                     </button>
                 </div>
@@ -114,7 +126,6 @@ export const AdminEditExtractedModal: React.FC<Props> = ({ isOpen, onClose, ques
                         Save Changes
                     </button>
                 </div>
-            </div>
-        </div>
+        </NativeDialog>
     );
 };

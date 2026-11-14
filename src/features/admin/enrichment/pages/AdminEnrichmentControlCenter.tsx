@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useId, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, ChevronDown } from 'lucide-react';
 import { SynapticLoader } from '@/components/ui/SynapticLoader';
+import { AnchoredPopover } from '@/components/ui/AnchoredPopover';
 
 import { useEnrichmentMetrics } from '../hooks/useEnrichmentMetrics';
 import { PipelineHeroCard } from '../components/PipelineHeroCard';
@@ -34,6 +35,11 @@ export const AdminEnrichmentControlCenter: React.FC = () => {
 
     const [isMobile, setIsMobile] = useState(false);
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    const triggerRef = useRef<HTMLButtonElement>(null);
+    const rawId = useId();
+    const sanitizedId = rawId.replace(/[^a-zA-Z0-9_-]/g, '');
+    const anchorName = `--pipeline-menu-${sanitizedId}`;
+    const menuId = `pipeline-menu-${sanitizedId}`;
 
     useEffect(() => {
         const checkMobile = () => setIsMobile(window.innerWidth < 768);
@@ -68,22 +74,59 @@ export const AdminEnrichmentControlCenter: React.FC = () => {
                 <div className="flex flex-col">
                     <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">AI Operations & Pipelines</span>
                     <div className="relative mt-1">
-                        <button onClick={() => setIsDropdownOpen(!isDropdownOpen)} className="flex items-center gap-2 text-2xl font-extrabold text-slate-900 dark:text-slate-100 font-display hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+                        <button
+                            ref={triggerRef}
+                            type="button"
+                            aria-haspopup="menu"
+                            aria-expanded={isDropdownOpen}
+                            aria-controls={menuId}
+                            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                            style={{ anchorName } as React.CSSProperties}
+                            className="flex items-center gap-2 min-h-[44px] text-2xl font-extrabold text-slate-900 dark:text-slate-100 font-display hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+                        >
                             {config.label}
                             <ChevronDown className="w-5 h-5 text-indigo-500" />
                         </button>
-                        {isDropdownOpen && (
-                            <>
-                                <div className="fixed inset-0 z-40" onClick={() => setIsDropdownOpen(false)} />
-                                <div className="absolute top-full left-0 mt-2 w-56 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl overflow-hidden z-50">
-                                    {(Object.keys(PIPELINE_REGISTRY) as PipelineType[]).map((pKey) => (
-                                        <button key={pKey} onClick={() => { setSelectedPipeline(pKey); setIsDropdownOpen(false); }} className={`w-full text-left px-4 py-3 text-sm font-medium transition-colors ${selectedPipeline === pKey ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300' : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50'}`}>
-                                            {PIPELINE_REGISTRY[pKey].label}
-                                        </button>
-                                    ))}
-                                </div>
-                            </>
-                        )}
+                        <AnchoredPopover
+                            id={menuId}
+                            isOpen={isDropdownOpen}
+                            onClose={() => setIsDropdownOpen(false)}
+                            triggerRef={triggerRef}
+                            anchorName={anchorName}
+                            matchAnchorWidth={false}
+                            positionArea="block-end span-inline-end"
+                            className="w-56 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl overflow-hidden"
+                        >
+                            <div
+                                role="menu"
+                                aria-label="Select AI Pipeline"
+                                onKeyDown={(e) => {
+                                    const items = Array.from(
+                                        e.currentTarget.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')
+                                    );
+                                    const idx = items.indexOf(document.activeElement as HTMLButtonElement);
+                                    if (e.key === 'ArrowDown') {
+                                        e.preventDefault();
+                                        items[(idx + 1 + items.length) % items.length]?.focus();
+                                    } else if (e.key === 'ArrowUp') {
+                                        e.preventDefault();
+                                        items[(idx - 1 + items.length) % items.length]?.focus();
+                                    }
+                                }}
+                            >
+                                {(Object.keys(PIPELINE_REGISTRY) as PipelineType[]).map((pKey) => (
+                                    <button
+                                        key={pKey}
+                                        type="button"
+                                        role="menuitem"
+                                        onClick={() => { setSelectedPipeline(pKey); setIsDropdownOpen(false); }}
+                                        className={`w-full text-left px-4 py-3 text-sm font-medium transition-colors ${selectedPipeline === pKey ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300' : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50'}`}
+                                    >
+                                        {PIPELINE_REGISTRY[pKey].label}
+                                    </button>
+                                ))}
+                            </div>
+                        </AnchoredPopover>
                     </div>
                 </div>
                 <div className="flex items-center gap-2 text-xs font-semibold px-3 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">

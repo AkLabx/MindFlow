@@ -47,9 +47,15 @@ export const AnchoredPopover: React.FC<AnchoredPopoverProps> = ({
 
   const popoverRef = useRef<HTMLDivElement>(null);
   const isOpenRef = useRef(isOpen);
+  const isPopoverOpenRef = useRef(false);
   const [fallbackStyle, setFallbackStyle] = useState<React.CSSProperties>({});
 
   isOpenRef.current = isOpen;
+
+  const canMatchPopoverOpen =
+    typeof CSS !== 'undefined' &&
+    typeof CSS.supports === 'function' &&
+    CSS.supports('selector(:popover-open)');
 
   const computeFallbackRect = () => {
     const trigger = triggerRef.current;
@@ -90,11 +96,13 @@ export const AnchoredPopover: React.FC<AnchoredPopoverProps> = ({
     if (isOpen) {
       computeFallbackRect();
       try {
-        let alreadyOpen = false;
-        try {
-          alreadyOpen = el.matches(':popover-open');
-        } catch {
-          alreadyOpen = false;
+        let alreadyOpen = isPopoverOpenRef.current;
+        if (canMatchPopoverOpen) {
+          try {
+            alreadyOpen = el.matches(':popover-open');
+          } catch {
+            alreadyOpen = isPopoverOpenRef.current;
+          }
         }
         if (!alreadyOpen) {
           const popoverEl = el as HTMLDivElement & {
@@ -103,26 +111,30 @@ export const AnchoredPopover: React.FC<AnchoredPopoverProps> = ({
           popoverEl.showPopover(
             triggerRef.current ? { source: triggerRef.current } : undefined
           );
+          isPopoverOpenRef.current = true;
         }
       } catch {
         // Fallback silently if disconnected or partial support
       }
     } else {
       try {
-        let isCurrentlyOpen = true;
-        try {
-          isCurrentlyOpen = el.matches(':popover-open');
-        } catch {
-          isCurrentlyOpen = true;
+        let isCurrentlyOpen = isPopoverOpenRef.current;
+        if (canMatchPopoverOpen) {
+          try {
+            isCurrentlyOpen = el.matches(':popover-open');
+          } catch {
+            isCurrentlyOpen = isPopoverOpenRef.current;
+          }
         }
         if (isCurrentlyOpen) {
           el.hidePopover();
+          isPopoverOpenRef.current = false;
         }
       } catch {
         // Ignore
       }
     }
-  }, [isOpen, triggerRef, supportsPopover]);
+  }, [isOpen, triggerRef, supportsPopover, canMatchPopoverOpen]);
 
   // Fallback viewport tracking while open
   useEffect(() => {
@@ -177,6 +189,7 @@ export const AnchoredPopover: React.FC<AnchoredPopoverProps> = ({
   }, [isOpen, onClose, restoreFocusOnEscape, triggerRef, supportsPopover]);
 
   const handleToggle = (event: React.ToggleEvent<HTMLDivElement>) => {
+    isPopoverOpenRef.current = event.newState === 'open';
     if (event.newState === 'closed' && isOpenRef.current) {
       onClose();
     }

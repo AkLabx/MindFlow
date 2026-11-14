@@ -1,12 +1,14 @@
-import React, { useState } from 'react';
+import React, { useId, useState } from 'react';
 import { AlertTriangle, Loader2 } from 'lucide-react';
 import { supabase } from '../../../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { useNotification } from '../../../stores/useNotificationStore';
+import { NativeDialog } from '../../../components/ui/NativeDialog';
 
 export const RestoreAccountModal: React.FC = () => {
     const { user, signOut, refreshUser } = useAuth();
     const { showToast } = useNotification();
+    const titleId = useId();
     const [isRestoring, setIsRestoring] = useState(false);
 
     // Type assertion to bypass strict typing issues if we modified context manually but TS doesn't see it yet.
@@ -44,14 +46,21 @@ export const RestoreAccountModal: React.FC = () => {
     };
 
     return (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/80 backdrop-blur-sm p-4">
-            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full overflow-hidden animate-in fade-in zoom-in duration-300">
+        <NativeDialog
+            isOpen={true}
+            onClose={() => {}}
+            role="alertdialog"
+            dismissible={false}
+            ariaLabelledBy={titleId}
+            className="max-w-md"
+            panelClassName="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full overflow-hidden"
+        >
                 <div className="p-6 md:p-8 text-center">
                     <div className="mx-auto flex items-center justify-center w-16 h-16 rounded-full bg-red-100 dark:bg-red-900/30 mb-6">
                         <AlertTriangle className="w-8 h-8 text-red-600 dark:text-red-400" />
                     </div>
 
-                    <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
+                    <h2 id={titleId} className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
                         Account Scheduled for Deletion
                     </h2>
 
@@ -78,7 +87,6 @@ export const RestoreAccountModal: React.FC = () => {
                         </button>
                     </div>
                 </div>
-            </div>
-        </div>
+        </NativeDialog>
     );
 };

@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useId, useState } from 'react';
+import { NativeDialog } from '@/components/ui/NativeDialog';
 import {
   Upload,
   FileSpreadsheet,
@@ -85,6 +85,7 @@ export const UniversalContentImporter: React.FC<UniversalContentImporterProps> =
   onClose,
   onImportSuccess
 }) => {
+  const titleId = useId();
   const showToast = useNotificationStore((state) => state.showToast);
 
   const [contentType, setContentType] = useState<ContentTargetType>(initialType);
@@ -330,25 +331,13 @@ export const UniversalContentImporter: React.FC<UniversalContentImporterProps> =
   };
 
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          {/* Backdrop */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={onClose}
-            className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm"
-          />
-
-          {/* Modal Container */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 10 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 10 }}
-            className="relative w-full max-w-3xl max-h-[90vh] bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col overflow-hidden z-10"
-          >
+    <NativeDialog
+      isOpen={isOpen}
+      onClose={onClose}
+      ariaLabelledBy={titleId}
+      className="max-w-3xl"
+      panelClassName="relative w-full max-h-[90dvh] bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col overflow-hidden"
+    >
             {/* Header */}
             <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-900/50">
               <div className="flex items-center gap-3">
@@ -356,7 +345,7 @@ export const UniversalContentImporter: React.FC<UniversalContentImporterProps> =
                   <Upload className="w-5 h-5" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100 font-display">
+                  <h2 id={titleId} className="text-lg font-bold text-slate-900 dark:text-slate-100 font-display">
                     Universal Content Studio & Importer
                   </h2>
                   <p className="text-xs text-slate-500">
@@ -366,8 +355,10 @@ export const UniversalContentImporter: React.FC<UniversalContentImporterProps> =
               </div>
 
               <button
+                type="button"
                 onClick={onClose}
-                className="p-2 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                aria-label="Close importer"
+                className="p-2 min-w-[44px] min-h-[44px] -mr-2 flex items-center justify-center rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -673,9 +664,6 @@ export const UniversalContentImporter: React.FC<UniversalContentImporterProps> =
                 </button>
               )}
             </div>
-          </motion.div>
-        </div>
-      )}
-    </AnimatePresence>
+    </NativeDialog>
   );
 };

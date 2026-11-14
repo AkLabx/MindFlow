@@ -271,7 +271,10 @@ export const ActiveChatRoom: React.FC = () => {
         </div>
 
         <Menu as="div" className="relative">
-            <Menu.Button className="p-2 -mr-2 rounded-full hover:bg-gray-100 dark:hover:bg-slate-800 text-gray-800 dark:text-slate-300 focus:outline-none">
+            <Menu.Button
+                aria-label="Conversation options"
+                className="p-2 min-w-[44px] min-h-[44px] -mr-2 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-slate-800 text-gray-800 dark:text-slate-300 focus:outline-none"
+            >
                 <Info size={24} strokeWidth={1.5} />
             </Menu.Button>
             <Transition
@@ -283,7 +286,7 @@ export const ActiveChatRoom: React.FC = () => {
                 leaveFrom="transform opacity-100 scale-100"
                 leaveTo="transform opacity-0 scale-95"
             >
-                <Menu.Items className="absolute right-0 mt-2 w-48 origin-top-right rounded-xl bg-white dark:bg-slate-900 shadow-lg ring-1 ring-black/5 dark:ring-white/10 focus:outline-none overflow-hidden z-50">
+                <Menu.Items anchor={{ to: 'bottom end', gap: 8 }} className="w-48 origin-top-right rounded-xl bg-white dark:bg-slate-900 shadow-lg ring-1 ring-black/5 dark:ring-white/10 focus:outline-none overflow-hidden z-50">
                     <div className="py-1">
                         {blockStatus?.hasBlocked ? (
                             <Menu.Item>

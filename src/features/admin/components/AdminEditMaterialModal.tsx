@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useId, useState } from 'react';
 import { X, Save, Loader2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useNotificationStore } from '@/stores/useNotificationStore';
+import { NativeDialog } from '@/components/ui/NativeDialog';
 
 export type MaterialType = 'NCERT Textbook' | 'Study Notes' | 'MCQ Test' | 'Chapter Test' | 'Other Test' | 'Answer Key';
 
@@ -30,6 +30,7 @@ const CLASSES = ['Class VI', 'Class VII', 'Class VIII', 'Class IX', 'Class X', '
 const TYPES: MaterialType[] = ['NCERT Textbook', 'Study Notes', 'MCQ Test', 'Chapter Test', 'Other Test', 'Answer Key'];
 
 export const AdminEditMaterialModal: React.FC<AdminEditMaterialModalProps> = ({ isOpen, onClose, material, onSuccess }) => {
+    const titleId = useId();
     const { showToast } = useNotificationStore();
     const [isSaving, setIsSaving] = useState(false);
 
@@ -88,26 +89,21 @@ export const AdminEditMaterialModal: React.FC<AdminEditMaterialModalProps> = ({ 
     if (!isOpen || !material) return null;
 
     return (
-        <AnimatePresence>
-            {isOpen && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        onClick={onClose}
-                        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-                    />
-
-                    <motion.div
-                        initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                        animate={{ opacity: 1, scale: 1, y: 0 }}
-                        exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                        className="relative w-full max-w-md bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col max-h-[90vh]"
-                    >
+        <NativeDialog
+            isOpen={isOpen}
+            onClose={onClose}
+            ariaLabelledBy={titleId}
+            className="max-w-md"
+            panelClassName="relative w-full bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col max-h-[90dvh]"
+        >
                         <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-900">
-                            <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">Edit Material Metadata</h2>
-                            <button onClick={onClose} className="p-2 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 bg-slate-200/50 dark:bg-slate-800/50 rounded-full transition-colors">
+                            <h2 id={titleId} className="text-lg font-bold text-slate-800 dark:text-slate-100">Edit Material Metadata</h2>
+                            <button
+                                type="button"
+                                onClick={onClose}
+                                aria-label="Close modal"
+                                className="p-2 min-w-[44px] min-h-[44px] -mr-2 flex items-center justify-center text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 bg-slate-200/50 dark:bg-slate-800/50 rounded-full transition-colors"
+                            >
                                 <X className="w-5 h-5" />
                             </button>
                         </div>
@@ -195,9 +191,6 @@ export const AdminEditMaterialModal: React.FC<AdminEditMaterialModalProps> = ({ 
                                 Save Changes
                             </button>
                         </div>
-                    </motion.div>
-                </div>
-            )}
-        </AnimatePresence>
+        </NativeDialog>
     );
 };

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { NativeDialog } from '@/components/ui/NativeDialog';
 import {
   Search,
   LayoutDashboard,
@@ -174,9 +174,6 @@ export const AdminCommandPalette: React.FC<AdminCommandPaletteProps> = ({
         if (filteredCommands[selectedIndex]) {
           filteredCommands[selectedIndex].action();
         }
-      } else if (e.key === 'Escape') {
-        e.preventDefault();
-        onClose();
       }
     };
 
@@ -185,26 +182,14 @@ export const AdminCommandPalette: React.FC<AdminCommandPaletteProps> = ({
   }, [isOpen, filteredCommands, selectedIndex, onClose]);
 
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 px-4">
-          {/* Backdrop */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={onClose}
-            className="fixed inset-0 bg-slate-900/60 dark:bg-black/70 backdrop-blur-sm"
-          />
-
-          {/* Dialog Modal */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.96, y: -10 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.96, y: -10 }}
-            transition={{ duration: 0.15 }}
-            className="relative w-full max-w-xl bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden z-10"
-          >
+    <NativeDialog
+      isOpen={isOpen}
+      onClose={onClose}
+      variant="command"
+      ariaLabel="Admin command palette"
+      className="max-w-xl"
+      panelClassName="relative w-full bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden"
+    >
             {/* Search Input Bar */}
             <div className="flex items-center px-4 py-3.5 border-b border-slate-200 dark:border-slate-800">
               <Search className="w-5 h-5 text-slate-400 shrink-0 mr-3" />
@@ -217,8 +202,10 @@ export const AdminCommandPalette: React.FC<AdminCommandPaletteProps> = ({
                 className="w-full bg-transparent text-sm font-medium text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none"
               />
               <button
+                type="button"
                 onClick={onClose}
-                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                aria-label="Close command palette"
+                className="p-1 min-w-[44px] min-h-[44px] -mr-2 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -267,9 +254,6 @@ export const AdminCommandPalette: React.FC<AdminCommandPaletteProps> = ({
               <span>Use <kbd className="font-semibold text-slate-700 dark:text-slate-300">↑</kbd> <kbd className="font-semibold text-slate-700 dark:text-slate-300">↓</kbd> to navigate, <kbd className="font-semibold text-slate-700 dark:text-slate-300">Enter</kbd> to select</span>
               <span>MindFlow Admin OS</span>
             </div>
-          </motion.div>
-        </div>
-      )}
-    </AnimatePresence>
+    </NativeDialog>
   );
 };

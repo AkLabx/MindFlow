@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { createPortal } from 'react-dom';
+import { NativeDialog } from '../../../components/ui/NativeDialog';
 import {
   X,
   Save,
@@ -198,29 +198,6 @@ export const AdminEditQuestionModal: React.FC<AdminEditQuestionModalProps> = ({
       setInitialSnapshot(snap);
     }
   }, [isOpen, question]);
-
-  // Lock body scroll when modal is open
-  useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
-    }
-    return () => {
-      document.body.style.overflow = '';
-    };
-  }, [isOpen]);
-
-  // Handle ESC key
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen) {
-        handleClose();
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, questionText, correctAnswer, options]);
 
   if (!isOpen) return null;
 
@@ -540,18 +517,14 @@ export const AdminEditQuestionModal: React.FC<AdminEditQuestionModalProps> = ({
     });
   };
 
-  return createPortal(
-    <div
-      className="fixed inset-0 z-[9999] flex items-center justify-center p-2 sm:p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
-      onClick={handleClose}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="admin-edit-title"
+  return (
+    <NativeDialog
+      isOpen={isOpen}
+      onClose={handleClose}
+      ariaLabelledBy="admin-edit-title"
+      className="max-w-4xl"
+      panelClassName="bg-white dark:bg-gray-900 rounded-2xl w-full max-h-[92dvh] flex flex-col shadow-2xl overflow-hidden border border-gray-200 dark:border-gray-800"
     >
-      <div
-        className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-4xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden border border-gray-200 dark:border-gray-800 animate-in zoom-in-95 duration-200"
-        onClick={(e) => e.stopPropagation()}
-      >
         {/* Header */}
         <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between bg-gray-50/70 dark:bg-gray-800/40">
           <div className="flex items-center gap-3">
@@ -572,8 +545,9 @@ export const AdminEditQuestionModal: React.FC<AdminEditQuestionModalProps> = ({
             </div>
           </div>
           <button
+            type="button"
             onClick={handleClose}
-            className="w-10 h-10 flex items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-200/50 dark:hover:bg-gray-800 rounded-full transition-colors"
+            className="min-w-[44px] min-h-[44px] -mr-2 flex items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-200/50 dark:hover:bg-gray-800 rounded-full transition-colors"
             aria-label="Close modal"
           >
             <X className="w-5 h-5" />
@@ -1544,8 +1518,6 @@ export const AdminEditQuestionModal: React.FC<AdminEditQuestionModalProps> = ({
             </button>
           </div>
         </div>
-      </div>
-    </div>,
-    document.body
+    </NativeDialog>
   );
 };

@@ -1,5 +1,4 @@
-import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useId, useState, useEffect } from 'react';
 import {
   X,
   CheckCircle2,
@@ -23,6 +22,7 @@ import {
   softDeleteQuestion
 } from '../services/adminQuestionsService';
 import { useNotificationStore } from '@/stores/useNotificationStore';
+import { NativeDialog } from '@/components/ui/NativeDialog';
 
 interface QuestionInspectorDrawerProps {
   question: QuestionRecord | null;
@@ -37,6 +37,7 @@ export const QuestionInspectorDrawer: React.FC<QuestionInspectorDrawerProps> = (
   onClose,
   onQuestionUpdated
 }) => {
+  const titleId = useId();
   const showToast = useNotificationStore((state) => state.showToast);
 
   const [isEditing, setIsEditing] = useState(false);
@@ -114,26 +115,14 @@ export const QuestionInspectorDrawer: React.FC<QuestionInspectorDrawerProps> = (
         })();
 
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <div className="fixed inset-0 z-50 flex justify-end">
-          {/* Backdrop */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={onClose}
-            className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm"
-          />
-
-          {/* Drawer Canvas */}
-          <motion.div
-            initial={{ x: '100%' }}
-            animate={{ x: 0 }}
-            exit={{ x: '100%' }}
-            transition={{ type: 'spring', damping: 28, stiffness: 280 }}
-            className="relative w-full max-w-2xl h-full bg-white dark:bg-slate-900 shadow-2xl border-l border-slate-200 dark:border-slate-800 flex flex-col z-10"
-          >
+    <NativeDialog
+      isOpen={isOpen}
+      onClose={onClose}
+      variant="drawer-right"
+      ariaLabelledBy={titleId}
+      className="max-w-2xl"
+      panelClassName="relative w-full h-full bg-white dark:bg-slate-900 shadow-2xl border-l border-slate-200 dark:border-slate-800 flex flex-col"
+    >
             {/* Header */}
             <div className="p-5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-900/50">
               <div className="flex items-center gap-3 min-w-0">
@@ -142,7 +131,7 @@ export const QuestionInspectorDrawer: React.FC<QuestionInspectorDrawerProps> = (
                 </div>
                 <div className="flex flex-col min-w-0">
                   <div className="flex items-center gap-2">
-                    <span className="font-bold text-slate-900 dark:text-slate-100 text-sm truncate">
+                    <span id={titleId} className="font-bold text-slate-900 dark:text-slate-100 text-sm truncate">
                       {question.subject || 'Question Inspector'}
                     </span>
                     <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-[10px] font-bold uppercase">
@@ -181,17 +170,21 @@ export const QuestionInspectorDrawer: React.FC<QuestionInspectorDrawerProps> = (
                 )}
 
                 <button
+                  type="button"
                   onClick={handleDelete}
                   disabled={isSaving}
-                  className="p-2 rounded-xl text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors"
+                  className="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors"
+                  aria-label="Soft delete question"
                   title="Soft Delete"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
 
                 <button
+                  type="button"
                   onClick={onClose}
-                  className="p-2 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                  aria-label="Close question inspector"
+                  className="p-2 min-w-[44px] min-h-[44px] -mr-2 flex items-center justify-center rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -409,9 +402,6 @@ export const QuestionInspectorDrawer: React.FC<QuestionInspectorDrawerProps> = (
                 )}
               </div>
             </div>
-          </motion.div>
-        </div>
-      )}
-    </AnimatePresence>
+    </NativeDialog>
   );
 };

@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { QuestionLightweight } from '../types/questionBuilder.types';
 import { Trash2, AlertTriangle, ChevronDown, ChevronRight, CheckCircle2, Loader2, RefreshCw, GripVertical, CheckSquare, ListFilter, Undo2 } from 'lucide-react';
 import DOMPurify from "dompurify";
@@ -144,6 +145,7 @@ export const SelectedQuestionsPanel: React.FC<Props> = ({
     const [showQuality, setShowQuality] = useState(false);
     const [showStats, setShowStats] = useState(false);
     const [rightSelectedIds, setRightSelectedIds] = useState<Set<string>>(new Set());
+    const [showClearConfirm, setShowClearConfirm] = useState(false);
 
     // Auto-open quality panel if there are issues
     useEffect(() => {
@@ -371,9 +373,7 @@ export const SelectedQuestionsPanel: React.FC<Props> = ({
                                         <DropdownMenu.Portal>
                                             <DropdownMenu.Content className="min-w-[140px] bg-white dark:bg-slate-800 rounded-lg p-1 shadow-xl border border-slate-200 dark:border-slate-700 z-50 text-sm">
                                                 <DropdownMenu.Item
-                                                    onSelect={() => {
-                                                        if(window.confirm('Clear all questions?')) onRemoveAll();
-                                                    }}
+                                                    onSelect={() => setShowClearConfirm(true)}
                                                     className="px-3 py-2 rounded-md outline-none cursor-pointer hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400 font-medium"
                                                 >
                                                     Clear All
@@ -528,6 +528,19 @@ export const SelectedQuestionsPanel: React.FC<Props> = ({
                     </DndContext>
                 )}
             </div>
+
+            <ConfirmDialog
+                isOpen={showClearConfirm}
+                onClose={() => setShowClearConfirm(false)}
+                onConfirm={() => {
+                    setShowClearConfirm(false);
+                    onRemoveAll();
+                }}
+                title="Clear All Questions"
+                message="Are you sure you want to remove all selected questions?"
+                confirmText="Clear All"
+                confirmStyle="danger"
+            />
         </div>
     );
 };

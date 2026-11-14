@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { NativeDialog } from '@/components/ui/NativeDialog';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ShieldAlert, CheckCircle2, ShieldQuestion, Clock, MessageSquare, Save, X, ExternalLink, Trash2, Undo, Filter } from 'lucide-react';
@@ -226,28 +226,26 @@ export const AdminReportsQueue: React.FC = () => {
             </div>
 
             {/* Review Modal */}
-            <AnimatePresence>
+            <NativeDialog
+                isOpen={Boolean(selectedReport)}
+                onClose={() => setSelectedReport(null)}
+                ariaLabelledBy="admin-review-report-title"
+                className="max-w-2xl"
+                panelClassName="relative w-full bg-white dark:bg-slate-900 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90dvh]"
+            >
                 {selectedReport && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            onClick={() => setSelectedReport(null)}
-                            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-                        />
-                        <motion.div
-                            initial={{ scale: 0.95, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            exit={{ scale: 0.95, opacity: 0 }}
-                            className="relative w-full max-w-2xl bg-white dark:bg-slate-900 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
-                        >
+                    <>
                             {/* Modal Header */}
                             <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-800/50">
-                                <h3 className="font-bold text-lg text-slate-800 dark:text-white flex items-center gap-2">
+                                <h3 id="admin-review-report-title" className="font-bold text-lg text-slate-800 dark:text-white flex items-center gap-2">
                                     <ShieldQuestion className="w-5 h-5 text-indigo-500" /> Review Report
                                 </h3>
-                                <button onClick={() => setSelectedReport(null)} className="p-2 text-slate-400 hover:text-slate-600 rounded-full">
+                                <button
+                                    type="button"
+                                    onClick={() => setSelectedReport(null)}
+                                    aria-label="Close report review"
+                                    className="p-2 min-w-[44px] min-h-[44px] -mr-2 flex items-center justify-center text-slate-400 hover:text-slate-600 rounded-full"
+                                >
                                     <X className="w-5 h-5" />
                                 </button>
                             </div>
@@ -398,10 +396,9 @@ export const AdminReportsQueue: React.FC = () => {
                                     <Save className="w-4 h-4" /> Save Actions
                                 </button>
                             </div>
-                        </motion.div>
-                    </div>
+                    </>
                 )}
-            </AnimatePresence>
+            </NativeDialog>
         </div>
     );
 };

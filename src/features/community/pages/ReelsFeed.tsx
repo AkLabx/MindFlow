@@ -327,7 +327,7 @@ const ReelItem: React.FC<{ reel: Reel, currentUser: any, index: number, activeIn
                       setIsPlaying(false);
                   }
               }}
-              className="p-3 bg-gray-900/40 backdrop-blur-md rounded-full text-white border border-white/10 active:scale-90 transition-transform focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+              className="p-3 min-w-[44px] min-h-[44px] flex items-center justify-center bg-gray-900/40 backdrop-blur-md rounded-full text-white border border-white/10 active:scale-90 transition-transform focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
               aria-label="More reel options"
             >
               <MoreVertical size={28} />
@@ -341,7 +341,7 @@ const ReelItem: React.FC<{ reel: Reel, currentUser: any, index: number, activeIn
               leaveFrom="transform opacity-100 scale-100"
               leaveTo="transform opacity-0 scale-95"
             >
-              <Menu.Items className="absolute right-0 bottom-14 mb-2 w-48 origin-bottom-right bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-gray-100 dark:border-slate-700 focus:outline-none z-[60]">
+              <Menu.Items anchor={{ to: 'top end', gap: 8 }} className="w-48 origin-bottom-right bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-gray-100 dark:border-slate-700 focus:outline-none z-[60]">
                 <div className="py-1">
                   {currentUser && currentUser.id === reel.user_id && (
                     <Menu.Item>

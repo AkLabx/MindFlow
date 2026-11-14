@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
 import { AdminSidebar } from './AdminSidebar';
 import { AdminHeader } from './AdminHeader';
 import { AdminCommandPalette } from './AdminCommandPalette';
+import { NativeDialog } from '@/components/ui/NativeDialog';
 
 export const AdminLayout: React.FC = () => {
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -40,35 +40,20 @@ export const AdminLayout: React.FC = () => {
         </div>
 
         {/* Mobile Slide-Over Sidebar */}
-        <AnimatePresence>
-          {isMobileMenuOpen && (
-            <div className="fixed inset-0 z-40 md:hidden flex">
-              {/* Backdrop */}
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm"
-              />
-
-              {/* Sidebar Content */}
-              <motion.div
-                initial={{ x: -280 }}
-                animate={{ x: 0 }}
-                exit={{ x: -280 }}
-                transition={{ type: 'spring', damping: 25, stiffness: 250 }}
-                className="relative flex-1 flex flex-col max-w-xs w-full bg-white dark:bg-slate-900 shadow-2xl z-50"
-              >
-                <AdminSidebar
-                  isCollapsed={false}
-                  onToggleCollapse={() => setIsMobileMenuOpen(false)}
-                  onCloseMobile={() => setIsMobileMenuOpen(false)}
-                />
-              </motion.div>
-            </div>
-          )}
-        </AnimatePresence>
+        <NativeDialog
+          isOpen={isMobileMenuOpen}
+          onClose={() => setIsMobileMenuOpen(false)}
+          variant="drawer-left"
+          ariaLabel="Admin navigation menu"
+          className="max-w-xs md:hidden"
+          panelClassName="relative flex-1 flex flex-col w-full h-full bg-white dark:bg-slate-900 shadow-2xl"
+        >
+          <AdminSidebar
+            isCollapsed={false}
+            onToggleCollapse={() => setIsMobileMenuOpen(false)}
+            onCloseMobile={() => setIsMobileMenuOpen(false)}
+          />
+        </NativeDialog>
 
         {/* Main Content Viewport */}
         <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
