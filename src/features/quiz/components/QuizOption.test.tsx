@@ -27,9 +27,9 @@ describe('QuizOption', () => {
     );
 
     const button = screen.getByRole('button', { name: /Option A/i });
-    // Should be Green
-    expect(button.className).toContain('bg-green-50');
-    expect(button.className).toContain('border-green-500');
+    // Should be Emerald
+    expect(button.className).toContain('bg-emerald-50');
+    expect(button.className).toContain('border-emerald-500');
   });
 
   // Scenario 2: User answered incorrectly, checking the incorrect option they picked
@@ -76,7 +76,7 @@ describe('QuizOption', () => {
 
     // We assert for the EXPECTED FIXED behavior.
     expect(button.className).toContain('border-dashed');
-    expect(button.className).toContain('bg-green-50/50');
+    expect(button.className).toContain('bg-emerald-50/60');
   });
 
   // Scenario 4: User answered (incorrectly), and this option is neither correct nor selected (Irrelevant)

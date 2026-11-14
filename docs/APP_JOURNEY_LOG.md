@@ -26,6 +26,25 @@ This document is the single source of truth for the evolution of the MindFlow ap
 
 ## 🚀 App Journey Changelog
 
+## [v1.0.358] - 14 November 2026, 11:35 AM IST
+
+**Executive Summary:** Completed Phase 1 codebase hygiene, build isolation, and Vitest stabilization on Windows—removing confirmed orphaned files and unused dependencies while ensuring all 32 test suites pass reliably.
+
+### ⚡ Performance & Refactoring
+- **Orphaned Source Cleanup**: Deleted 16 confirmed Category A orphaned files in `src/` (`Synonym.html`, `questions.ts`, `starterDiagnosticQuestions.ts`, `validate_synonyms_data.js`, `validation_report.json`, `SynapticLoader.tsx`, `EnglishQuizHomePage.tsx`, `DownloadOptionsModal.tsx`, `KeyboardAwareSurface.tsx`, `audio-player.ts`, `audio-recorder.ts`, `useQuizSessionTimer.ts`, `TestEngineController.ts`, `useQueueControls.ts`, `useWordLineage.ts`, `cropImage.ts`) while strictly preserving raw vocabulary JSON datasets (`Synonym data.json`, `ows.json`, `idioms.json`) and Category B archives.
+- **Unused Dependency Pruning**: Removed 4 unused JS packages (`dotenv`, `protobufjs`, `react-latex-next`, `workbox-window`) from `package.json` while preserving `@capacitor/status-bar` (`^8.0.2`) for Capacitor Android builds.
+- **TypeScript Archive Isolation**: Updated `tsconfig.json` `"exclude"` to isolate `dist`, `src/archive`, and `src/features/quiz/components/archive` from active compilation while keeping unit tests typechecked.
+
+### 🐛 Bug Fixes
+- **Vitest Windows Stability & Assertion Alignment**: Configured `pool: 'forks'` in `vitest.config.ts` to eliminate Windows `pool: 'threads'` worker-startup timeouts, and updated stale `bg-green-50` / `border-green-500` / `bg-green-50/50` assertions in `src/features/quiz/components/QuizOption.test.tsx` to match `QuizOption.tsx`'s emerald styling (`bg-emerald-50`, `border-emerald-500`, `bg-emerald-50/60`).
+
+### 🔒 Security & Architecture
+- **Full Verification Passing**: Confirmed `npx tsc --noEmit` (`0` errors), `npx vite build`, and `npx vitest --run` (`32/32` test files, `189/189` tests passing) all succeed cleanly.
+
+**Impacted Scope:** `package.json`, `tsconfig.json`, `vitest.config.ts`, `src/features/quiz/components/QuizOption.test.tsx`, `src/` orphaned Category A files
+
+---
+
 ## [v1.0.357] - 14 November 2026, 07:50 AM IST
 
 **Executive Summary:** Completed all four phases of the Modern Web Guidance (MWG) Top-Layer Modal, Popover & Tooltip Modernization across shared UI primitives, student/quiz/vocab/community flows, and admin consoles without adding external npm dependencies.
