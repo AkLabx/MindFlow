@@ -26,6 +26,17 @@ This document is the single source of truth for the evolution of the MindFlow ap
 
 ## 🚀 App Journey Changelog
 
+## [v1.0.361] - 14 November 2026, 05:38 PM IST
+
+**Executive Summary:** Completed Phase 4 top-layer drawer listener cleanup, circular dependency decoupling between `db.ts` and `syncService.ts`, and modular extraction of `AppConfigHub.tsx` into 5 dedicated configuration panels.
+
+### ⚡ Performance & Refactoring
+- **Circular Dependency Decoupling (`db.ts <-> syncService.ts`)**: Extracted remote push and quiz deletion fallback logic into `syncService.pushEntityChange` and `syncService.deleteSavedQuizWithOfflineFallback` in `src/lib/syncService.ts`, replacing static `syncService` and `useSyncStore` imports in `src/lib/db.ts` with lazy dynamic `import('./syncService')`.
+- **`AppConfigHub.tsx` Modularization (1,057 lines -> 87 lines)**: Extracted `IntroConfigPanel.tsx`, `ThemeConfigPanel.tsx`, `BrandingConfigPanel.tsx`, `LoadingConfigPanel.tsx`, and `OnboardingConfigPanel.tsx` into `src/features/admin/app-config/components/` and bound accessible `htmlFor`/`id` attributes on `<select>` controls.
+- **Top-Layer Escape Consolidation**: Removed redundant `window.addEventListener('keydown', ...)` Escape listener from `src/features/admin/question-builder/components/QuestionPreviewDrawer.tsx` in favor of `RightDrawer` / `NativeDialog` Top-Layer dismissal.
+
+**Impacted Scope:** `package.json`, `docs/APP_JOURNEY_LOG.md`, `src/lib/db.ts`, `src/lib/syncService.ts`, `src/features/admin/question-builder/components/QuestionPreviewDrawer.tsx`, `src/features/admin/app-config/pages/AppConfigHub.tsx`, `src/features/admin/app-config/components/*`
+
 ## [v1.0.360] - 14 November 2026, 05:20 PM IST
 
 **Executive Summary:** Completed Phase 3 offline-first persistence resilience and active target exam context enforcement—eliminating destructive offline quiz creation rollbacks and submission failures while scoping subject taxonomy and subtopic counts to the user's selected exam.

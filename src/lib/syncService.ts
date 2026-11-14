@@ -51,6 +51,74 @@ export const syncService = {
   /** Returns the current sync status */
   getIsSyncing: () => isSyncing,
 
+  pushEntityChange: async (
+    type: 'quiz' | 'history' | 'bookmark' | 'synonym_interaction' | 'ows_interaction' | 'idiom_interaction',
+    data: any
+  ): Promise<void> => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) return;
+      if (type === 'quiz' && data?.id) {
+        const name = String(data.name || '').trim();
+        if (!name) return;
+        if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+          useSyncStore.getState().addEvent({
+            type: 'quiz_renamed',
+            payload: { quizId: data.id, name },
+          });
+          return;
+        }
+        try {
+          await syncService.renameSavedQuiz(session.user.id, data.id, name, true);
+        } catch {
+          useSyncStore.getState().addEvent({
+            type: 'quiz_renamed',
+            payload: { quizId: data.id, name },
+          });
+        }
+      } else if (type === 'history') {
+        await syncService.pushQuizHistory(session.user.id, data);
+      } else if (type === 'bookmark') {
+        await syncService.pushBookmark(session.user.id, data);
+      } else if (type === 'synonym_interaction') {
+        await syncService.pushSynonymInteraction(session.user.id, data);
+      } else if (type === 'ows_interaction') {
+        await syncService.pushOWSInteraction(session.user.id, data);
+      } else if (type === 'idiom_interaction') {
+        await syncService.pushIdiomInteraction(session.user.id, data);
+      }
+    } catch (e) {
+      console.error('Background push error:', e);
+    }
+  },
+
+  deleteSavedQuizWithOfflineFallback: async (id: string): Promise<void> => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) return;
+
+      if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+        useSyncStore.getState().addEvent({
+          type: 'quiz_deleted',
+          payload: { quizId: id },
+        });
+        return;
+      }
+
+      try {
+        await syncService.deleteSavedQuiz(session.user.id, id, true);
+      } catch (remoteErr) {
+        console.warn('[db.deleteQuiz] Remote delete failed, queueing offline sync event:', remoteErr);
+        useSyncStore.getState().addEvent({
+          type: 'quiz_deleted',
+          payload: { quizId: id },
+        });
+      }
+    } catch (e) {
+      console.error('Background quiz delete error:', e);
+    }
+  },
+
   pushAIChatConversation: async (userId: string, conv: AIChatConversation) => {
     const { error } = await supabase.from("ai_chat_conversations").upsert(
       {
