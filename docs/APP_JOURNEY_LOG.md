@@ -26,6 +26,30 @@ This document is the single source of truth for the evolution of the MindFlow ap
 
 ## 🚀 App Journey Changelog
 
+## [v1.0.357] - 14 November 2026, 07:50 AM IST
+
+**Executive Summary:** Completed all four phases of the Modern Web Guidance (MWG) Top-Layer Modal, Popover & Tooltip Modernization across shared UI primitives, student/quiz/vocab/community flows, and admin consoles without adding external npm dependencies.
+
+### ✨ Features
+- **Core Top-Layer Primitives (`src/index.css`, `src/components/ui/`)**: Introduced `<NativeDialog>` (`<dialog>.showModal()` with `center`, `bottom-sheet`, `drawer-right`, `drawer-left`, `command`, and `fullscreen` variants), `<InfoTooltip>` (`popover="auto"` + `44x44px` touch button), and `<AnchoredPopover>` with `@starting-style`, `transition-behavior: allow-discrete`, `overlay: auto allow-discrete`, and `@supports (position-area: top)` CSS Anchor Positioning + inline viewport-clamped fallbacks.
+- **Top-Layer Notifications (`ToastContainer.tsx`, `Toast.tsx`)**: Migrated notification stack rendering to `popover="manual"` so toasts remain above modal backdrops without z-index conflicts.
+- **LIFO Android Hardware Back Interceptor (`src/hooks/useHardwareBackButton.ts`)**: Added deterministic LIFO dismissal order (open `popover="auto"` popovers, topmost `dialog[open]`, then legacy overlays) prior to route navigation.
+
+### 🐛 Bug Fixes
+- **Eliminated Body Scroll-Lock Races**: Removed manual `document.body.style.overflow` mutations across modals, drawers, and bottom sheets in favor of `:modal` / `::backdrop` CSS `overscroll-behavior: contain` guards.
+- **Fixed Nested Overlay Back Dismissal & Blocking Confirmations**: Removed duplicate hardware back listeners in bottom sheets (`QuizStartBottomSheet`, `DashboardDrillBottomSheet`) and drawer traps (`RightDrawer`), upgraded 6 `@headlessui/react` community `<Menu>` instances to HeadlessUI v2 floating `anchor` positioning, and replaced blocking `window.confirm` in `SelectedQuestionsPanel.tsx` with `<ConfirmDialog>`.
+- **Fixed `jsdom` `:popover-open` Selector Bottleneck**: Guarded `el.matches(':popover-open')` in `AnchoredPopover.tsx` behind `CSS.supports('selector(:popover-open)')` with an `isPopoverOpenRef` fallback synced via `showPopover()`, `hidePopover()`, and `onToggle`.
+
+### ⚡ Performance & Refactoring
+- **Zero New Dependencies & Reduced Motion Support**: All top-layer animations respect `@media (prefers-reduced-motion: reduce)` and wait cleanly on `getAnimations()` before closing discrete transitions.
+
+### 🔒 Security & Architecture
+- **Accessibility & Test Coverage**: Enforced `44x44px` minimum touch targets, dialog `aria-labelledby`/`aria-label` associations, icon-button labels, and verified `21/21` passing Vitest specs (`NativeDialog.test.tsx`, `InfoTooltip.test.tsx`, `AnchoredPopover.test.tsx`, `useHardwareBackButton.test.ts`, `AuthPage.test.tsx`), `tsc --noEmit` (`0` errors), and `vite build`.
+
+**Impacted Scope:** `src/index.css`, `src/components/ui/`, `src/hooks/useHardwareBackButton.ts`, `src/layouts/`, `src/features/auth/`, `src/features/dashboard/`, `src/features/quiz/`, `src/features/vocab/`, `src/features/ai/`, `src/features/community/`, `src/features/admin/`, `src/features/notifications/`
+
+---
+
 ## [v1.0.356] - 13 November 2026, 04:10 PM IST
 
 ### ✨ Features & Modernization (Modern Web Guidance)
