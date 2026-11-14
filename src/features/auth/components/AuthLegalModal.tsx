@@ -27,7 +27,7 @@ export const AuthLegalModal: React.FC<AuthLegalModalProps> = ({
       onClose={handleClose}
       variant="bottom-sheet"
       ariaLabelledBy="legal-modal-title"
-      className="sm:my-auto sm:p-6 max-w-2xl"
+      className="sm:my-auto sm:w-[calc(100%-3rem)] max-w-2xl"
       panelClassName="relative w-full max-h-[88dvh] sm:max-h-[85dvh] flex flex-col bg-white dark:bg-slate-900 border-t sm:border border-slate-200 dark:border-slate-800 rounded-t-3xl sm:rounded-2xl shadow-2xl overflow-hidden pb-[env(safe-area-inset-bottom,0px)]"
     >
       {/* Android Drag Handle Pill on Mobile */}
