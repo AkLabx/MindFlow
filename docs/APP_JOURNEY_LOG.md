@@ -26,6 +26,21 @@ This document is the single source of truth for the evolution of the MindFlow ap
 
 ## 🚀 App Journey Changelog
 
+## [v1.0.360] - 14 November 2026, 05:20 PM IST
+
+**Executive Summary:** Completed Phase 3 offline-first persistence resilience and active target exam context enforcement—eliminating destructive offline quiz creation rollbacks and submission failures while scoping subject taxonomy and subtopic counts to the user's selected exam.
+
+### 🐛 Bug Fixes
+- **Offline-First Quiz Creation & Submission Queue**: Extended `SyncEvent['type']` in `useSyncStore.ts` with `'quiz_created'` and `'quiz_submitted'` and added RPC replay handlers in `syncService.ts` (`processEventQueue`). Removed the destructive `db.deleteQuiz` rollback in `quizCreationService.ts` when offline or when `create_quiz_session` RPC fails, and updated `useQuiz.ts` (`submitSessionResults`) to persist `historyRecord`, serializable `stateWithoutQuestions`, and `masteryService.recordInteractions` locally to IndexedDB before attempting `submit_quiz_session` RPC—queueing `'quiz_submitted'` on offline/network error instead of failing the session.
+- **Target Exam Context Enforcement in Subject Topics**: Updated `subjectService.ts` (`fetchSubjectTaxonomy` and `fetchSubtopicMetadata`) and `SubjectTopicsPage.tsx` to filter local IndexedDB metadata, cold-cache PostgREST fallback queries, and JIT subtopic fetches by `activeExam` via `matchesCanonicalExam`, and included `activeExam?.id` in the React Query key.
+
+### ⚡ Performance & Refactoring
+- **Singleton Question Metadata Memory Cache & Ownership Alignment**: Added a module-level `memoryMetadataCache` with a 5-minute delta check TTL (`DELTA_CHECK_TTL_MS`) in `useQuestionMetadata.ts` to eliminate redundant IndexedDB `getAll()` reads and background delta checks on warm mounts, and updated `stateOwnershipRegistry.ts` (`draft_quiz_filters.soleOwnerStore` to `useSessionStore + QuizConfig (sessionStorage)` and storage descriptions to `IndexedDB (idb)`).
+
+**Impacted Scope:** `package.json`, `docs/APP_JOURNEY_LOG.md`, `src/features/quiz/stores/useSyncStore.ts`, `src/lib/syncService.ts`, `src/features/quiz/services/quizCreationService.ts`, `src/features/quiz/hooks/useQuiz.ts`, `src/features/dashboard/services/subjectService.ts`, `src/features/dashboard/pages/subject/SubjectTopicsPage.tsx`, `src/features/quiz/hooks/useQuestionMetadata.ts`, `src/lib/state/stateOwnershipRegistry.ts`
+
+---
+
 ## [v1.0.359] - 14 November 2026, 04:35 PM IST
 
 **Executive Summary:** Completed Phase 2 navigation consolidation, theme split-brain resolution, and IME/autofill hardening—unifying Android hardware back handling into a single controller while eliminating dark-mode FOUC and CSS injection risks.

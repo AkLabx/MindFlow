@@ -15,7 +15,7 @@ import { quizCreationService } from "@/features/quiz/services/quizCreationServic
 import { useQuestionMetadata } from "@/features/quiz/hooks/useQuestionMetadata";
 import { Question } from "@/features/quiz/types";
 import { useExamContextStore } from "@/stores/useExamContextStore";
-import { CANONICAL_EXAMS } from "../../constants/examRegistry";
+import { CANONICAL_EXAMS, matchesCanonicalExam } from "../../constants/examRegistry";
 
 export const SubjectTopicsPage: React.FC = () => {
   const { subjectName } = useParams<{ subjectName: string }>();
@@ -49,8 +49,8 @@ export const SubjectTopicsPage: React.FC = () => {
     isLoading,
     error,
   } = useQuery({
-    queryKey: ["subject-taxonomy", decodedSubject],
-    queryFn: () => subjectService.fetchSubjectTaxonomy(decodedSubject),
+    queryKey: ["subject-taxonomy", decodedSubject, activeExam?.id ?? "all", cachedMetadata.length > 0],
+    queryFn: () => subjectService.fetchSubjectTaxonomy(decodedSubject, activeExam),
     enabled: !!decodedSubject,
     staleTime: 1000 * 60 * 30, // 30 minutes fresh
     gcTime: 1000 * 60 * 60 * 24, // 24 hours in memory
@@ -63,9 +63,10 @@ export const SubjectTopicsPage: React.FC = () => {
         (q.subject ?? q.classification?.subject) === decodedSubject &&
         (q.topic ?? q.classification?.topic) === selectedSubTopic.topic &&
         ((q.subTopic ?? q.classification?.subTopic) === selectedSubTopic.subTopic ||
-          (selectedSubTopic.subTopic === "General" && !(q.subTopic ?? q.classification?.subTopic)))
+          (selectedSubTopic.subTopic === "General" && !(q.subTopic ?? q.classification?.subTopic))) &&
+        (!activeExam || matchesCanonicalExam(activeExam, q.examName ?? q.sourceInfo?.examName))
     );
-  }, [cachedMetadata, decodedSubject, selectedSubTopic]);
+  }, [cachedMetadata, decodedSubject, selectedSubTopic, activeExam]);
 
   // Eager JIT fetch for fast-tappers when local metadata isn't warm yet
   useEffect(() => {
@@ -78,6 +79,7 @@ export const SubjectTopicsPage: React.FC = () => {
           decodedSubject,
           selectedSubTopic.topic,
           selectedSubTopic.subTopic,
+          activeExam,
         )
         .then((qs) => {
           if (!isCancelled) {
@@ -97,7 +99,7 @@ export const SubjectTopicsPage: React.FC = () => {
     return () => {
       isCancelled = true;
     };
-  }, [selectedSubTopic, filteredQuestionsForSubTopic.length, decodedSubject]);
+  }, [selectedSubTopic, filteredQuestionsForSubTopic.length, decodedSubject, activeExam]);
 
   const effectiveQuestions =
     filteredQuestionsForSubTopic.length > 0
@@ -162,6 +164,8 @@ export const SubjectTopicsPage: React.FC = () => {
     try {
       setIsCreatingQuiz(true);
 
+      const currentExamId = useExamContextStore.getState().activeExamId;
+      const currentExam = CANONICAL_EXAMS.find((e) => e.id === currentExamId);
       let targetQuestions = effectiveQuestions;
 
       // JIT fallback: if user tapped Start Quiz before eager fetch resolved
@@ -170,6 +174,7 @@ export const SubjectTopicsPage: React.FC = () => {
           decodedSubject,
           selectedSubTopic.topic,
           selectedSubTopic.subTopic,
+          currentExam,
         );
       }
 
@@ -200,10 +205,7 @@ export const SubjectTopicsPage: React.FC = () => {
       }
 
       const finalName = `${selectedSubTopic.subTopic} Quiz`;
-
-      const activeExamId = useExamContextStore.getState().activeExamId;
-      const activeExam = CANONICAL_EXAMS.find((e) => e.id === activeExamId);
-      const examNames = activeExam ? activeExam.dbExamNames : [];
+      const examNames = currentExam ? currentExam.dbExamNames : [];
 
       const filters = {
         subject: [decodedSubject],

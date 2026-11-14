@@ -409,6 +409,20 @@ export const syncService = {
             await syncService.renameSavedQuiz(userId, event.payload.quizId, event.payload.name, true);
             hasQuizChanges = true;
             break;
+
+          case 'quiz_created': {
+            const { error } = await supabase.rpc('create_quiz_session', event.payload);
+            if (error) throw error;
+            hasQuizChanges = true;
+            break;
+          }
+
+          case 'quiz_submitted': {
+            const { error } = await supabase.rpc('submit_quiz_session', event.payload);
+            if (error) throw error;
+            hasQuizChanges = true;
+            break;
+          }
         }
         return event.id;
       });

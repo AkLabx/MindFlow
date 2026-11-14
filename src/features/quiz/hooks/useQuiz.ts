@@ -170,80 +170,105 @@ export const useQuiz = () => {
       subjectStats
     };
 
-    // --- ATOMIC PUSH TO SUPABASE VIA RPC ---
-    try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.user && state.quizId) {
+    // Explicit serializable state snapshot (excludes functions and heavy activeQuestions to prevent DataCloneError)
+    const stateWithoutQuestions = {
+      status: 'result' as const,
+      mode: state.mode,
+      score: results.score,
+      answers: results.answers,
+      timeTaken: results.timeTaken,
+      remainingTimes: state.remainingTimes,
+      quizTimeRemaining: state.quizTimeRemaining,
+      bookmarks: results.bookmarks,
+      markedForReview: state.markedForReview,
+      hiddenOptions: state.hiddenOptions,
+      filters: state.filters,
+      isPaused: state.isPaused,
+      quizId: state.quizId,
+      currentQuestionIndex: state.currentQuestionIndex
+    };
 
-            // Explicit whitelist serialization for Postgres JSONB payload
-            const stateWithoutQuestions = {
-                status: 'result',
-                mode: state.mode,
-                score: results.score,
-                answers: results.answers,
-                timeTaken: results.timeTaken,
-                remainingTimes: state.remainingTimes,
-                quizTimeRemaining: state.quizTimeRemaining,
-                bookmarks: results.bookmarks,
-                markedForReview: state.markedForReview,
-                hiddenOptions: state.hiddenOptions,
-                filters: state.filters,
-                isPaused: state.isPaused,
-                quizId: state.quizId,
-                currentQuestionIndex: state.currentQuestionIndex
-            };
+    // --- STEP A: OFFLINE-FIRST LOCAL PERSISTENCE (IndexedDB + Mastery) ---
+    await db.saveQuizHistory(historyRecord, { skipRemotePush: true }).catch((err) => {
+      console.warn("[useQuiz] Failed to save quiz history locally:", err);
+    });
 
-            const { data: newHistoryId, error: rpcError } = await supabase.rpc('submit_quiz_session', {
-                p_quiz_id: state.quizId,
-                p_final_state: stateWithoutQuestions,
-                p_total_questions: historyRecord.totalQuestions,
-                p_total_correct: historyRecord.totalCorrect,
-                p_total_incorrect: historyRecord.totalIncorrect,
-                p_total_skipped: historyRecord.totalSkipped,
-                p_time_taken: historyRecord.totalTimeSpent,
-                p_overall_accuracy: historyRecord.overallAccuracy,
-                p_difficulty: historyRecord.difficulty,
-                p_subject_stats: historyRecord.subjectStats
-            });
-
-            if (rpcError) {
-                console.error("Failed atomic quiz submission RPC:", rpcError);
-                state.setFinalizeFailed();
-                throw new Error(rpcError.message || 'Failed to submit quiz session');
-            } else {
-                console.log("Atomic submission successful. New history ID:", newHistoryId);
-                // Centralized Mastery & Memory Engine: Record question interactions
-                try {
-                    const interactions = state.activeQuestions.map((q) => {
-                        const selected = results.answers[q.id];
-                        const isCorrect = selected === q.correct;
-                        return {
-                            question_id: q.id,
-                            subject: q.subject || q.classification?.subject || 'General',
-                            topic: q.topic || q.classification?.topic,
-                            difficulty: q.properties?.difficulty || 'Medium',
-                            is_correct: isCorrect,
-                            selected_option: selected || null,
-                            correct_option: q.correct,
-                            quiz_id: state.quizId
-                        };
-                    });
-                    masteryService.recordInteractions(interactions).catch((err) => {
-                        console.warn("[CMME] Background mastery record warning:", err);
-                    });
-                } catch (mErr) {
-                    console.warn("[CMME] Failed to map interactions:", mErr);
-                }
-
-                // Only mark fully completed locally once the server confirms
-                state.submitSessionResults(results);
-            }
-        }
-    } catch (err) {
-        console.error("[CRITICAL] Finalize Error:", err, "State:", state);
-        state.setFinalizeFailed();
-        throw err;
+    if (state.quizId) {
+      await db.updateQuizProgress(state.quizId, stateWithoutQuestions as any).catch((err) => {
+        console.warn("[useQuiz] Failed to update local quiz progress:", err);
+      });
     }
+
+    try {
+      const interactions = state.activeQuestions.map((q) => {
+        const selected = results.answers[q.id];
+        const isCorrect = selected === q.correct;
+        return {
+          question_id: q.id,
+          subject: q.subject || q.classification?.subject || 'General',
+          topic: q.topic || q.classification?.topic,
+          difficulty: q.properties?.difficulty || 'Medium',
+          is_correct: isCorrect,
+          selected_option: selected || null,
+          correct_option: q.correct,
+          quiz_id: state.quizId
+        };
+      });
+      if (interactions.length > 0) {
+        masteryService.recordInteractions(interactions).catch((err) => {
+          console.warn("[CMME] Background mastery record warning:", err);
+        });
+      }
+    } catch (mErr) {
+      console.warn("[CMME] Failed to map interactions:", mErr);
+    }
+
+    // --- STEP B: ATOMIC CLOUD PUSH WITH OFFLINE QUEUE FALLBACK ---
+    if (state.quizId) {
+      const rpcPayload = {
+        p_quiz_id: state.quizId,
+        p_final_state: stateWithoutQuestions,
+        p_total_questions: historyRecord.totalQuestions,
+        p_total_correct: historyRecord.totalCorrect,
+        p_total_incorrect: historyRecord.totalIncorrect,
+        p_total_skipped: historyRecord.totalSkipped,
+        p_time_taken: historyRecord.totalTimeSpent,
+        p_overall_accuracy: historyRecord.overallAccuracy,
+        p_difficulty: historyRecord.difficulty,
+        p_subject_stats: historyRecord.subjectStats
+      };
+
+      if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+        useSyncStore.getState().addEvent({
+          type: 'quiz_submitted',
+          payload: rpcPayload,
+        });
+      } else {
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session?.user) {
+            const { data: newHistoryId, error: rpcError } = await supabase.rpc('submit_quiz_session', rpcPayload);
+            if (rpcError) {
+              console.warn("Failed atomic quiz submission RPC; queued for offline sync:", rpcError);
+              useSyncStore.getState().addEvent({
+                type: 'quiz_submitted',
+                payload: rpcPayload,
+              });
+            } else {
+              console.log("Atomic submission successful. New history ID:", newHistoryId);
+            }
+          }
+        } catch (err) {
+          console.warn("Network exception submitting quiz session; queued for offline sync:", err);
+          useSyncStore.getState().addEvent({
+            type: 'quiz_submitted',
+            payload: rpcPayload,
+          });
+        }
+      }
+    }
+
+    state.submitSessionResults(results);
   }, [state.activeQuestions, state.mode, state.filters?.difficulty, state.submitSessionResults, state.quizId, state]);
 
   const currentQuestion = state.activeQuestions[state.currentQuestionIndex];
