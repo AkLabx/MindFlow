@@ -1,5 +1,5 @@
-import React, { useState, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useId, useState, useRef } from 'react';
+import { motion } from 'framer-motion';
 import { X, Image as ImageIcon, Video, Film, Loader2 } from 'lucide-react';
 import { useAuth } from '../../auth/context/AuthContext';
 import { createPost, createReel } from '../api/communityApi';
@@ -8,7 +8,7 @@ import { useNotificationStore } from '../../../stores/useNotificationStore';
 import { useQueryClient } from '@tanstack/react-query';
 import { useCreatePost } from '../hooks/useCreatePost';
 import { Post } from '../api/communityApi';
-import { KeyboardAwareSurface } from '../../../components/ui/KeyboardAwareSurface';
+import { NativeDialog } from '../../../components/ui/NativeDialog';
 
 interface CreatePostModalProps {
   isOpen: boolean;
@@ -21,6 +21,7 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({ isOpen, onClos
   const queryClient = useQueryClient();
   const { showToast } = useNotificationStore();
 
+  const titleId = useId();
   const [content, setContent] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -123,35 +124,27 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({ isOpen, onClos
   };
 
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <>
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9998]"
-            onClick={handleClose}
-          />
-          <KeyboardAwareSurface
-            isModal={true}
-            hasGlobalFooter={true}
-            initial={{ opacity: 0, y: '100%' }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: '100%' }}
-            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            className="bg-white rounded-t-3xl shadow-2xl p-6 max-h-[85vh] custom-scrollbar"
-          >
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold text-gray-900">Create {feedType === 'reels' ? 'Reel' : 'Post'}</h2>
-              <button
-                onClick={handleClose}
-                disabled={isUploading}
-                className="p-2 rounded-full hover:bg-gray-100 transition-colors disabled:opacity-50"
-              >
-                <X size={24} className="text-gray-500" />
-              </button>
-            </div>
+    <NativeDialog
+      isOpen={isOpen}
+      onClose={handleClose}
+      dismissible={!isUploading}
+      variant="bottom-sheet"
+      ariaLabelledBy={titleId}
+      className="sm:my-auto max-w-lg"
+      panelClassName="bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl p-6 max-h-[85dvh] custom-scrollbar flex flex-col"
+    >
+      <div className="flex justify-between items-center mb-4">
+        <h2 id={titleId} className="text-xl font-bold text-gray-900">Create {feedType === 'reels' ? 'Reel' : 'Post'}</h2>
+        <button
+          type="button"
+          onClick={handleClose}
+          disabled={isUploading}
+          aria-label="Close create post modal"
+          className="min-w-[44px] min-h-[44px] -mr-2 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors disabled:opacity-50"
+        >
+          <X size={24} className="text-gray-500" />
+        </button>
+      </div>
 
             <div className="flex-1 overflow-y-auto min-h-[200px] mb-4 custom-scrollbar">
               <textarea
@@ -246,9 +239,6 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({ isOpen, onClos
                 />
               </div>
             )}
-          </KeyboardAwareSurface>
-        </>
-      )}
-    </AnimatePresence>
+    </NativeDialog>
   );
 };

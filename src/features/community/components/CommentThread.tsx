@@ -130,7 +130,10 @@ const SingleComment: React.FC<{
           <div className="shrink-0 pt-0.5">
              {(comment.user_id === currentUserId) ? (
                  <Menu as="div" className="relative">
-                    <Menu.Button className="p-1 rounded-full text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors">
+                    <Menu.Button
+                        aria-label="Comment options"
+                        className="p-1 min-w-[44px] min-h-[44px] -m-1.5 flex items-center justify-center rounded-full text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+                    >
                         <MoreVertical size={16} />
                     </Menu.Button>
                     <Transition
@@ -142,7 +145,7 @@ const SingleComment: React.FC<{
                         leaveFrom="transform opacity-100 scale-100"
                         leaveTo="transform opacity-0 scale-95"
                     >
-                        <Menu.Items className="absolute right-0 mt-1 w-40 origin-top-right bg-white rounded-xl shadow-lg border border-gray-100 focus:outline-none z-50">
+                        <Menu.Items anchor={{ to: 'bottom end', gap: 4 }} className="w-40 origin-top-right bg-white rounded-xl shadow-lg border border-gray-100 focus:outline-none z-50">
                             <div className="py-1">
                                 <Menu.Item>
                                     {({ active }) => (
@@ -165,7 +168,10 @@ const SingleComment: React.FC<{
                  </Menu>
              ) : (
                 <Menu as="div" className="relative">
-                    <Menu.Button className="p-1 rounded-full text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors">
+                    <Menu.Button
+                        aria-label="Comment options"
+                        className="p-1 min-w-[44px] min-h-[44px] -m-1.5 flex items-center justify-center rounded-full text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+                    >
                         <MoreVertical size={16} />
                     </Menu.Button>
                     <Transition
@@ -177,7 +183,7 @@ const SingleComment: React.FC<{
                         leaveFrom="transform opacity-100 scale-100"
                         leaveTo="transform opacity-0 scale-95"
                     >
-                        <Menu.Items className="absolute right-0 mt-1 w-40 origin-top-right bg-white rounded-xl shadow-lg border border-gray-100 focus:outline-none z-50">
+                        <Menu.Items anchor={{ to: 'bottom end', gap: 4 }} className="w-40 origin-top-right bg-white rounded-xl shadow-lg border border-gray-100 focus:outline-none z-50">
                             <div className="py-1">
                                 <Menu.Item>
                                     {({ active }) => (

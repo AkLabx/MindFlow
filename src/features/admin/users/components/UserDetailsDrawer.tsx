@@ -1,5 +1,4 @@
-import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useId, useState, useEffect } from 'react';
 import {
   X,
   Copy,
@@ -37,6 +36,7 @@ import {
 import { AppRole, PERMISSIONS } from '@/config/permissions';
 import { useAuth } from '@/features/auth';
 import { useNotificationStore } from '@/stores/useNotificationStore';
+import { NativeDialog } from '@/components/ui/NativeDialog';
 
 interface UserDetailsDrawerProps {
   userId: string | null;
@@ -51,6 +51,7 @@ export const UserDetailsDrawer: React.FC<UserDetailsDrawerProps> = ({
   onClose,
   onUserUpdated
 }) => {
+  const titleId = useId();
   const { user: currentAdmin, roles: currentAdminRoles } = useAuth();
   const showToast = useNotificationStore((state) => state.showToast);
 
@@ -160,26 +161,14 @@ export const UserDetailsDrawer: React.FC<UserDetailsDrawerProps> = ({
   };
 
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <div className="fixed inset-0 z-50 flex justify-end">
-          {/* Backdrop */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={onClose}
-            className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm"
-          />
-
-          {/* Drawer Canvas */}
-          <motion.div
-            initial={{ x: '100%' }}
-            animate={{ x: 0 }}
-            exit={{ x: '100%' }}
-            transition={{ type: 'spring', damping: 28, stiffness: 280 }}
-            className="relative w-full max-w-xl h-full bg-white dark:bg-slate-900 shadow-2xl border-l border-slate-200 dark:border-slate-800 flex flex-col z-10"
-          >
+    <NativeDialog
+      isOpen={isOpen}
+      onClose={onClose}
+      variant="drawer-right"
+      ariaLabelledBy={titleId}
+      className="max-w-xl"
+      panelClassName="relative w-full h-full bg-white dark:bg-slate-900 shadow-2xl border-l border-slate-200 dark:border-slate-800 flex flex-col"
+    >
             {/* Header */}
             <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex items-start justify-between bg-slate-50/50 dark:bg-slate-900/50">
               <div className="flex items-center gap-4 min-w-0">
@@ -193,7 +182,7 @@ export const UserDetailsDrawer: React.FC<UserDetailsDrawerProps> = ({
                 </div>
                 <div className="flex flex-col min-w-0">
                   <div className="flex items-center gap-2">
-                    <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100 truncate">
+                    <h2 id={titleId} className="text-lg font-bold text-slate-900 dark:text-slate-100 truncate">
                       {details?.full_name || details?.username || 'Learner Profile'}
                     </h2>
                     {details?.shadow_flagged && (
@@ -218,8 +207,10 @@ export const UserDetailsDrawer: React.FC<UserDetailsDrawerProps> = ({
               </div>
 
               <button
+                type="button"
                 onClick={onClose}
-                className="p-2 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                aria-label="Close user details"
+                className="p-2 min-w-[44px] min-h-[44px] -mr-2 flex items-center justify-center rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -493,9 +484,6 @@ export const UserDetailsDrawer: React.FC<UserDetailsDrawerProps> = ({
                 </>
               ) : null}
             </div>
-          </motion.div>
-        </div>
-      )}
-    </AnimatePresence>
+    </NativeDialog>
   );
 };

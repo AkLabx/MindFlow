@@ -80,6 +80,61 @@ export function resolveHardwareBackTarget(currentPath: string): string {
     return '/dashboard';
 }
 
+/**
+ * Dismisses the topmost open overlay in strict LIFO Top-Layer precedence:
+ * 1. Open auto/hint popovers (`[popover]:popover-open`)
+ * 2. Topmost native modal/non-modal `<dialog open>`
+ * 3. Legacy non-native dialogs, sheets, or HeadlessUI menus
+ * Returns true if an overlay handled the back press.
+ */
+export function dismissTopmostOverlay(doc: Document = document): boolean {
+    try {
+        const openPopovers = Array.from(
+            doc.querySelectorAll<HTMLElement>('[popover="auto"]:popover-open, [popover=""]:popover-open')
+        );
+        if (openPopovers.length > 0) {
+            const topmostPopover = openPopovers[openPopovers.length - 1];
+            topmostPopover.hidePopover?.();
+            return true;
+        }
+    } catch {
+        // Ignore engines without :popover-open selector support
+    }
+
+    const openNativeDialogs = Array.from(
+        doc.querySelectorAll<HTMLDialogElement>('dialog[open]')
+    );
+    if (openNativeDialogs.length > 0) {
+        const topmostDialog = openNativeDialogs[openNativeDialogs.length - 1];
+        const dialogWithRequestClose = topmostDialog as HTMLDialogElement & {
+            requestClose?: () => void;
+        };
+        if (typeof dialogWithRequestClose.requestClose === 'function') {
+            dialogWithRequestClose.requestClose();
+        } else {
+            const cancelEvent = new Event('cancel', { cancelable: true });
+            if (topmostDialog.dispatchEvent(cancelEvent)) {
+                if (typeof topmostDialog.close === 'function') {
+                    topmostDialog.close();
+                } else {
+                    topmostDialog.removeAttribute('open');
+                }
+            }
+        }
+        return true;
+    }
+
+    const activeOverlays = doc.querySelectorAll(
+        '[role="dialog"], [role="alertdialog"], .modal, .bottom-sheet, [data-headlessui-state="open"]'
+    );
+    if (activeOverlays.length > 0) {
+        doc.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+        return true;
+    }
+
+    return false;
+}
+
 export const useHardwareBackButton = () => {
     const navigate = useNavigate();
     const location = useLocation();
@@ -116,12 +171,7 @@ export const useHardwareBackButton = () => {
                 }
 
                 // --- 3. MODAL / DRAWER / OVERLAY PRIORITY ---
-                const activeOverlays = document.querySelectorAll(
-                    '[role="dialog"], .modal, .bottom-sheet, [data-headlessui-state="open"]'
-                );
-                if (activeOverlays.length > 0) {
-                    // Try standard escape key for accessible dialogs
-                    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+                if (dismissTopmostOverlay(document)) {
                     return;
                 }
 

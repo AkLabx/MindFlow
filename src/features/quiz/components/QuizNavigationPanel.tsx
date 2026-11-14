@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useMemo } from "react";
-import { createPortal } from "react-dom";
+import React, { useState, useEffect, useId, useMemo } from "react";
 import { X, ChevronDown, CheckCircle, Flag, Star } from "lucide-react";
 import { Question, QuizMode } from "../types";
 import { cn } from "../../../utils/cn";
+import { NativeDialog } from "../../../components/ui/NativeDialog";
 
 /**
  * A side drawer navigation panel for the active quiz session.
@@ -14,10 +14,10 @@ import { cn } from "../../../utils/cn";
  * - Quick jump navigation.
  * - Submit/Finish action.
  *
- * Renders via React Portal to overlay the entire app.
+ * Renders in the browser Top Layer via NativeDialog.
  *
  * @param {object} props - The component props.
- * @returns {JSX.Element | null} The rendered panel.
+ * @returns {JSX.Element} The rendered panel.
  */
 export function QuizNavigationPanel({
   isOpen,
@@ -44,6 +44,7 @@ export function QuizNavigationPanel({
   mode: QuizMode;
   onReorderQuestions?: (newQuestions: Question[]) => void;
 }) {
+  const titleId = useId();
   const [openGroups, setOpenGroups] = useState<Set<number>>(new Set([0]));
   const [groupByMode, setGroupByMode] = useState<"default" | "subject">(
     "default",
@@ -196,41 +197,34 @@ export function QuizNavigationPanel({
     return cn(baseStyles, statusColor, currentIndicator);
   };
 
-  if (!isOpen) return null;
-
-  return createPortal(
-    <>
-      {/* Backdrop Overlay */}
-      <div
-        className={cn(
-          "fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[70] transition-opacity duration-300 animate-in fade-in",
-        )}
-        onClick={onClose}
-      />
-
-      {/* Sliding Drawer */}
-      <div
-        className={cn(
-          "fixed top-0 right-0 h-full w-80 bg-white dark:bg-gray-800 shadow-2xl z-[80] transform transition-transform duration-300 ease-in-out flex flex-col border-l border-gray-200 dark:border-gray-700 animate-in slide-in-from-right",
-        )}
-      >
-        {/* Header */}
-        <div className="px-5 py-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 flex justify-between items-center">
-          <div>
-            <h3 className="font-bold text-gray-900 dark:text-white text-lg">
-              Question Map
-            </h3>
-            <p className="text-xs text-gray-500 dark:text-gray-400 font-medium mt-0.5">
-              Overview of your progress
-            </p>
-          </div>
-          <button
-            onClick={onClose}
-            className="p-1.5 rounded-full hover:bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
+  return (
+    <NativeDialog
+      isOpen={isOpen}
+      onClose={onClose}
+      variant="drawer-right"
+      ariaLabelledBy={titleId}
+      className="max-w-xs sm:w-80"
+      panelClassName="h-full w-full bg-white dark:bg-gray-800 shadow-2xl flex flex-col border-l border-gray-200 dark:border-gray-700"
+    >
+      {/* Header */}
+      <div className="px-5 py-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 flex justify-between items-center">
+        <div>
+          <h3 id={titleId} className="font-bold text-gray-900 dark:text-white text-lg">
+            Question Map
+          </h3>
+          <p className="text-xs text-gray-500 dark:text-gray-400 font-medium mt-0.5">
+            Overview of your progress
+          </p>
         </div>
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close question map"
+          className="min-w-[44px] min-h-[44px] -mr-2 flex items-center justify-center rounded-full hover:bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 transition-colors"
+        >
+          <X className="w-5 h-5" />
+        </button>
+      </div>
 
         {/* Grouping Controls */}
         {(hasMultipleSubjects || true) && (
@@ -428,14 +422,13 @@ export function QuizNavigationPanel({
         {/* Footer: Submit Action / Close */}
         <div className="p-4 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
           <button
+            type="button"
             onClick={onClose}
-            className="w-full py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-lg shadow-indigo-200 hover:shadow-indigo-300 active:scale-95"
+            className="w-full min-h-[44px] py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-lg shadow-indigo-200 hover:shadow-indigo-300 active:scale-95"
           >
             <CheckCircle className="w-5 h-5" /> Close Map
           </button>
         </div>
-      </div>
-    </>,
-    document.body,
+    </NativeDialog>
   );
 }

@@ -147,7 +147,10 @@ export const UserProfile: React.FC = () => {
                 </div>
                 {!isOwnProfile && (
                     <Menu as="div" className="relative ml-auto">
-                        <Menu.Button className="p-2 -mr-2 rounded-full hover:bg-gray-100 transition-colors">
+                        <Menu.Button
+                            aria-label="Profile options"
+                            className="p-2 min-w-[44px] min-h-[44px] -mr-2 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors"
+                        >
                             <MoreVertical size={24} className="text-gray-600" />
                         </Menu.Button>
                         <Transition
@@ -159,7 +162,7 @@ export const UserProfile: React.FC = () => {
                             leaveFrom="transform opacity-100 scale-100"
                             leaveTo="transform opacity-0 scale-95"
                         >
-                            <Menu.Items className="absolute right-0 mt-2 w-48 origin-top-right rounded-xl bg-white shadow-lg ring-1 ring-black/5 focus:outline-none overflow-hidden z-50">
+                            <Menu.Items anchor={{ to: 'bottom end', gap: 8 }} className="w-48 origin-top-right rounded-xl bg-white shadow-lg ring-1 ring-black/5 focus:outline-none overflow-hidden z-50">
                                 <div className="py-1">
                                     {blockStatus?.hasBlocked ? (
                                         <Menu.Item>

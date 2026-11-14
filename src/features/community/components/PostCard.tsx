@@ -151,7 +151,7 @@ export const PostCard: React.FC<{
         </div>
         <Menu as="div" className="relative">
           <Menu.Button
-            className="text-gray-600 hover:text-gray-900 transition-colors p-2 rounded-full hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+            className="text-gray-600 hover:text-gray-900 transition-colors p-2 min-w-[44px] min-h-[44px] -m-1.5 flex items-center justify-center rounded-full hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
             aria-label="More post options"
           >
             <MoreVertical size={20} />
@@ -165,7 +165,7 @@ export const PostCard: React.FC<{
             leaveFrom="transform opacity-100 scale-100"
             leaveTo="transform opacity-0 scale-95"
           >
-            <Menu.Items className="absolute right-0 mt-2 w-48 origin-top-right bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-gray-100 dark:border-slate-700 focus:outline-none z-50">
+            <Menu.Items anchor={{ to: 'bottom end', gap: 8 }} className="w-48 origin-top-right bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-gray-100 dark:border-slate-700 focus:outline-none z-50">
               <div className="py-1">
                 {user && user.id === post.user_id && (
                     <Menu.Item>

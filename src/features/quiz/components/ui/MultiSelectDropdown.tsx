@@ -1,7 +1,9 @@
 import { useVirtualizer } from '@tanstack/react-virtual';
 import React, { useState, useRef, useEffect, useMemo, useId, KeyboardEvent } from 'react';
-import { ChevronDown, Check, X, Search, Info } from 'lucide-react';
+import { ChevronDown, Check, X, Search } from 'lucide-react';
 import { cn } from '../../../../utils/cn';
+import { InfoTooltip } from '@/components/ui/InfoTooltip';
+import { AnchoredPopover } from '@/components/ui/AnchoredPopover';
 
 /**
  * A custom multi-select dropdown component with search, filtering, and count display.
@@ -44,107 +46,28 @@ export const MultiSelectDropdown = React.memo(function MultiSelectDropdown({
   const [searchTerm, setSearchTerm] = useState('');
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
   const [focusedIndex, setFocusedIndex] = useState(-1);
-  const [menuPosition, setMenuPosition] = useState<'bottom' | 'top'>('bottom');
-  const [isTooltipOpen, setIsTooltipOpen] = useState(false);
-  const [tooltipStyle, setTooltipStyle] = useState<React.CSSProperties>({});
 
-  const tooltipId = useId();
-  const supportsPopover =
-    typeof HTMLElement !== 'undefined' && Object.hasOwn(HTMLElement.prototype, 'popover');
+  const rawId = useId();
+  const safeId = rawId.replace(/[^a-zA-Z0-9_-]/g, '');
+  const triggerId = `msd-trigger-${safeId}`;
+  const listboxId = `msd-listbox-${safeId}`;
+  const anchorName = `--mf-msd-${safeId}`;
 
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const parentRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
-  const tooltipTriggerRef = useRef<HTMLButtonElement>(null);
-  const tooltipRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!isTooltipOpen || supportsPopover) return;
-
-    const handleOutside = (event: MouseEvent) => {
-      const target = event.target as Node;
-      if (
-        !tooltipTriggerRef.current?.contains(target) &&
-        !tooltipRef.current?.contains(target)
-      ) {
-        setIsTooltipOpen(false);
-      }
-    };
-    const handleEsc = (event: globalThis.KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        setIsTooltipOpen(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleOutside);
-    document.addEventListener('keydown', handleEsc);
-    return () => {
-      document.removeEventListener('mousedown', handleOutside);
-      document.removeEventListener('keydown', handleEsc);
-    };
-  }, [isTooltipOpen, supportsPopover]);
-
-  const handleTooltipToggle = (event: React.ToggleEvent<HTMLDivElement>) => {
-    const opening = event.newState === 'open';
-    setIsTooltipOpen(opening);
-    if (!opening || !tooltipTriggerRef.current) return;
-
-    const triggerRect = tooltipTriggerRef.current.getBoundingClientRect();
-    const padding = 16;
-    const maxWidth = 224;
-    const halfWidth = Math.min(maxWidth, Math.max(0, window.innerWidth - padding * 2)) / 2;
-    const centerX = triggerRect.left + triggerRect.width / 2;
-    const clampedLeft = Math.max(
-      padding + halfWidth,
-      Math.min(centerX, window.innerWidth - padding - halfWidth)
-    );
-    const placeBelow = triggerRect.top < 110;
-
-    setTooltipStyle({
-      position: 'fixed',
-      inset: 'auto',
-      margin: 0,
-      left: `${clampedLeft}px`,
-      transform: 'translateX(-50%)',
-      ...(placeBelow
-        ? { top: `${triggerRect.bottom + 8}px` }
-        : { bottom: `${window.innerHeight - triggerRect.top + 8}px` }),
-    });
-  };
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
-    };
-    
     if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-      // Auto-focus search input
-      setTimeout(() => {
-          searchInputRef.current?.focus();
+      const timer = window.setTimeout(() => {
+        searchInputRef.current?.focus();
       }, 50);
-
-      // Check collision with bottom of window
-      if (dropdownRef.current) {
-        const rect = dropdownRef.current.getBoundingClientRect();
-        const spaceBelow = window.innerHeight - rect.bottom;
-        if (spaceBelow < 320 && rect.top > 320) { // 320px is max-h-80 (320px) roughly
-          setMenuPosition('top');
-        } else {
-          setMenuPosition('bottom');
-        }
-      }
+      return () => window.clearTimeout(timer);
     } else {
-        setSearchTerm('');
-        setFocusedIndex(-1);
+      setSearchTerm('');
+      setFocusedIndex(-1);
     }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
   }, [isOpen]);
 
 
@@ -229,7 +152,9 @@ export const MultiSelectDropdown = React.memo(function MultiSelectDropdown({
         }
       }
     } else if (e.key === 'Escape') {
+      e.preventDefault();
       setIsOpen(false);
+      requestAnimationFrame(() => triggerRef.current?.focus());
     }
   };
 
@@ -242,49 +167,16 @@ export const MultiSelectDropdown = React.memo(function MultiSelectDropdown({
 
 
   return (
-    <div className={cn("relative pb-5 border-b-2 border-gray-200 dark:border-gray-700 last:border-b-0 last:pb-0", isOpen && "z-50")} ref={dropdownRef}>
+    <div className="relative pb-5 border-b-2 border-gray-200 dark:border-gray-700 last:border-b-0 last:pb-0">
       {label && (
         <div className="flex items-center gap-2 mb-3 w-full">
-          <label className="inline-flex items-center px-3 py-1.5 bg-blue-600 text-white dark:bg-blue-500 text-xs font-bold uppercase tracking-wider rounded-md shadow-sm">{label}</label>
-          {tooltip && (
-            <div className="relative flex items-center">
-              <button
-                ref={tooltipTriggerRef}
-                type="button"
-                popoverTarget={supportsPopover ? tooltipId : undefined}
-                popoverTargetAction={supportsPopover ? 'toggle' : undefined}
-                onClick={!supportsPopover ? () => setIsTooltipOpen((prev) => !prev) : undefined}
-                aria-expanded={isTooltipOpen}
-                aria-label={label ? `More about ${label}` : 'More information'}
-                className="-my-3.5 -mx-2 min-w-[44px] min-h-[44px] inline-flex items-center justify-center rounded-full text-gray-400 hover:text-indigo-500 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-              >
-                <Info className="w-3.5 h-3.5" aria-hidden="true" />
-              </button>
-              {supportsPopover ? (
-                <div
-                  ref={tooltipRef}
-                  id={tooltipId}
-                  popover="auto"
-                  role="tooltip"
-                  onToggle={handleTooltipToggle}
-                  style={tooltipStyle}
-                  className="w-56 max-w-[calc(100vw-2rem)] p-2.5 bg-gray-800 text-white text-xs rounded-lg shadow-lg text-center font-normal leading-relaxed border border-gray-700/60"
-                >
-                  {tooltip}
-                </div>
-              ) : isTooltipOpen ? (
-                <div
-                  ref={tooltipRef}
-                  id={tooltipId}
-                  role="tooltip"
-                  className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-gray-800 text-white text-xs rounded shadow-lg z-50 text-center font-normal leading-relaxed"
-                >
-                  {tooltip}
-                  <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-800" />
-                </div>
-              ) : null}
-            </div>
-          )}
+          <label
+            htmlFor={triggerId}
+            className="inline-flex items-center px-3 py-1.5 bg-blue-600 text-white dark:bg-blue-500 text-xs font-bold uppercase tracking-wider rounded-md shadow-sm cursor-pointer"
+          >
+            {label}
+          </label>
+          {tooltip && <InfoTooltip label={label} text={tooltip} />}
           {options.length > 0 && (
             <div className="ml-auto flex items-center gap-1.5">
               <input
@@ -318,14 +210,18 @@ export const MultiSelectDropdown = React.memo(function MultiSelectDropdown({
       
       <div className="relative flex items-center w-full">
         <button
+          ref={triggerRef}
+          id={triggerId}
           type="button"
+          style={{ anchorName } as React.CSSProperties}
           onClick={() => !disabled && setIsOpen(!isOpen)}
           disabled={disabled}
           aria-haspopup="listbox"
           aria-expanded={isOpen}
+          aria-controls={listboxId}
           className={cn(
-            "w-full flex items-center justify-between p-3 bg-white dark:bg-gray-800 border rounded-lg text-sm transition-all text-left",
-            selectedOptions.length > 0 && !disabled ? "pr-14" : "",
+            "w-full min-h-[44px] flex items-center justify-between p-3 bg-white dark:bg-gray-800 border rounded-lg text-sm transition-all text-left",
+            selectedOptions.length > 0 && !disabled ? "pr-16" : "",
             disabled ? "bg-gray-50 dark:bg-gray-900 text-gray-400 cursor-not-allowed border-gray-200 dark:border-gray-700" : "hover:border-indigo-300 focus:ring-2 focus:ring-indigo-100 cursor-pointer border-gray-300 dark:border-gray-600",
             isOpen ? "border-indigo-500 ring-2 ring-indigo-100 dark:ring-indigo-900/50" : ""
           )}
@@ -340,7 +236,7 @@ export const MultiSelectDropdown = React.memo(function MultiSelectDropdown({
           <button
             type="button"
             onClick={clearSelection}
-            className="absolute right-8 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:text-gray-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+            className="absolute right-6 top-1/2 -translate-y-1/2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:text-gray-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
             aria-label="Clear selection"
           >
             <X className="w-3.5 h-3.5" aria-hidden="true" />
@@ -348,11 +244,15 @@ export const MultiSelectDropdown = React.memo(function MultiSelectDropdown({
         )}
       </div>
 
-      {isOpen && (
-        <div className={cn(
-          "absolute z-[60] w-full bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden animate-in fade-in zoom-in-95 duration-100 flex flex-col max-h-80",
-          menuPosition === 'top' ? "bottom-full mb-2" : "top-full mt-2"
-        )}>
+      <AnchoredPopover
+        isOpen={isOpen}
+        onClose={() => setIsOpen(false)}
+        triggerRef={triggerRef}
+        anchorName={anchorName}
+        matchAnchorWidth
+        maxHeightPx={320}
+        className="bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden flex flex-col"
+      >
           {/* Search Bar */}
           <div className="p-2 border-b border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 sticky top-0 z-10">
               <div className="relative">
@@ -387,6 +287,7 @@ export const MultiSelectDropdown = React.memo(function MultiSelectDropdown({
                 >
                   <ul
                       ref={listRef}
+                      id={listboxId}
                       role="listbox"
                       aria-multiselectable="true"
                       style={{ height: `${virtualizer.getTotalSize()}px`, width: '100%', position: 'relative' }}
@@ -448,8 +349,7 @@ export const MultiSelectDropdown = React.memo(function MultiSelectDropdown({
 
               )}
           </div>
-        </div>
-      )}
+      </AnchoredPopover>
     </div>
   );
 });

@@ -144,6 +144,8 @@ export const Toast: React.FC<ToastProps> = ({
       }}
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
+      onFocus={() => setIsPaused(true)}
+      onBlur={() => setIsPaused(false)}
       role={style.role}
       className={`relative w-full max-w-sm sm:max-w-md mx-auto pointer-events-auto rounded-xl border p-4 shadow-lg backdrop-blur-sm transition-colors ${style.bg} ${style.border}`}
     >
@@ -165,8 +167,9 @@ export const Toast: React.FC<ToastProps> = ({
 
         {/* Close Button */}
         <button
+          type="button"
           onClick={() => onRemove(id)}
-          className={`shrink-0 p-1 rounded-md opacity-50 hover:opacity-100 transition-opacity focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-slate-500 ${style.textColor}`}
+          className={`shrink-0 min-w-[44px] min-h-[44px] -m-2 flex items-center justify-center rounded-md opacity-60 hover:opacity-100 transition-opacity focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-slate-500 ${style.textColor}`}
           aria-label="Close"
         >
           <X className="w-4 h-4" />

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useId } from 'react';
 import {
   X,
   Check,
@@ -12,7 +12,8 @@ import {
   Sparkles,
   Target
 } from 'lucide-react';
-import { CANONICAL_EXAMS, CanonicalExam } from '../constants/examRegistry';
+import { CANONICAL_EXAMS } from '../constants/examRegistry';
+import { NativeDialog } from '@/components/ui/NativeDialog';
 
 interface ManageTargetExamsModalProps {
   isOpen: boolean;
@@ -43,36 +44,42 @@ export const ManageTargetExamsModal: React.FC<ManageTargetExamsModalProps> = ({
   onTogglePin,
   onSetActive,
 }) => {
-  if (!isOpen) return null;
-
+  const titleId = useId();
   const categories = Array.from(new Set(CANONICAL_EXAMS.map((e) => e.category)));
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-950/60 backdrop-blur-xs animate-in fade-in duration-200">
-      <div className="relative w-full sm:max-w-xl max-h-[88vh] sm:max-h-[85vh] flex flex-col bg-white dark:bg-slate-900 rounded-t-[28px] sm:rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden pb-[calc(1rem+env(safe-area-inset-bottom,0px))]">
-        {/* Header */}
-        <div className="flex items-center justify-between p-4 sm:p-5 border-b border-slate-100 dark:border-slate-800/80">
-          <div>
-            <div className="flex items-center gap-2">
-              <div className="p-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400">
-                <Target className="w-5 h-5" />
-              </div>
-              <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">
-                Manage Target Exams
-              </h2>
+    <NativeDialog
+      isOpen={isOpen}
+      onClose={onClose}
+      variant="bottom-sheet"
+      ariaLabelledBy={titleId}
+      className="sm:my-auto sm:p-4 max-w-xl"
+      panelClassName="relative w-full max-h-[88dvh] sm:max-h-[85dvh] flex flex-col bg-white dark:bg-slate-900 rounded-t-[28px] sm:rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden pb-[calc(1rem+env(safe-area-inset-bottom,0px))]"
+    >
+      {/* Header */}
+      <div className="flex items-center justify-between p-4 sm:p-5 border-b border-slate-100 dark:border-slate-800/80">
+        <div>
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400">
+              <Target className="w-5 h-5" />
             </div>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-              Pin multiple exams to your dashboard for fast switching & practice
-            </p>
+            <h2 id={titleId} className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">
+              Manage Target Exams
+            </h2>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="p-2 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+            Pin multiple exams to your dashboard for fast switching & practice
+          </p>
         </div>
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close modal"
+          className="min-w-[44px] min-h-[44px] -mr-2 flex items-center justify-center rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+        >
+          <X className="w-5 h-5" />
+        </button>
+      </div>
 
         {/* Exam List Body */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-5">
@@ -171,12 +178,11 @@ export const ManageTargetExamsModal: React.FC<ManageTargetExamsModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-bold transition-all cursor-pointer"
+            className="w-full sm:w-auto min-h-[44px] px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-bold transition-all cursor-pointer"
           >
             Done
           </button>
         </div>
-      </div>
-    </div>
+    </NativeDialog>
   );
 };

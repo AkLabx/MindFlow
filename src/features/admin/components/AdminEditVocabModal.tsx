@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { createPortal } from 'react-dom';
+import React, { useId, useState, useEffect } from 'react';
 import { X, Save, Loader2 } from 'lucide-react';
 import { useAdminEditVocab } from '../../vocab/hooks/useAdminEditVocab';
 import { MutationErrorBanner } from './MutationErrorBanner';
+import { NativeDialog } from '../../../components/ui/NativeDialog';
 
 type VocabType = 'idiom' | 'ows' | 'synonym';
 
@@ -19,6 +19,7 @@ export const AdminEditVocabModal: React.FC<AdminEditVocabModalProps> = ({
   type,
   cardData,
 }) => {
+  const titleId = useId();
   const [formData, setFormData] = useState<Record<string, any>>({});
   const [initialData, setInitialData] = useState<Record<string, any>>({});
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
@@ -79,27 +80,6 @@ export const AdminEditVocabModal: React.FC<AdminEditVocabModalProps> = ({
     }
   }, [isOpen, cardData, type]);
 
-
-  useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
-    }
-    return () => {
-      document.body.style.overflow = '';
-    };
-  }, [isOpen]);
-
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen) {
-        handleClose();
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, formData, initialData]);
 
   if (!isOpen) return null;
 
@@ -210,16 +190,20 @@ export const AdminEditVocabModal: React.FC<AdminEditVocabModalProps> = ({
     );
   };
 
-  return createPortal(
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={handleClose}>
-      <div
-        className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden border border-gray-200 dark:border-gray-800 mb-[env(safe-area-inset-bottom)]"
-        onClick={(e) => e.stopPropagation()}
-      >
+  return (
+    <NativeDialog
+      isOpen={isOpen}
+      onClose={handleClose}
+      isDirty={hasUnsavedChanges()}
+      onDirtyCloseAttempt={handleClose}
+      ariaLabelledBy={titleId}
+      className="max-w-2xl"
+      panelClassName="bg-white dark:bg-gray-900 rounded-2xl w-full max-h-[90dvh] flex flex-col shadow-2xl overflow-hidden border border-gray-200 dark:border-gray-800 mb-[env(safe-area-inset-bottom)]"
+    >
         {/* Header */}
         <div className="p-4 sm:p-6 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center bg-gray-50/50 dark:bg-gray-800/50">
           <div>
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+            <h2 id={titleId} className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
               <span className="text-2xl">✏️</span> Edit {type.toUpperCase()}
             </h2>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
@@ -227,8 +211,10 @@ export const AdminEditVocabModal: React.FC<AdminEditVocabModalProps> = ({
             </p>
           </div>
           <button
+            type="button"
             onClick={handleClose}
-            className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors"
+            aria-label="Close modal"
+            className="p-2 min-w-[44px] min-h-[44px] -mr-2 flex items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
@@ -302,8 +288,6 @@ export const AdminEditVocabModal: React.FC<AdminEditVocabModalProps> = ({
             Save Changes
           </button>
         </div>
-      </div>
-    </div>,
-    document.body
+    </NativeDialog>
   );
 };

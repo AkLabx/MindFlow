@@ -7,7 +7,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { syncService } from '../../../lib/syncService';
 import { db } from '../../../lib/db';
 import { AlertTriangle, LogOut, CheckCircle2 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { NativeDialog } from '../../../components/ui/NativeDialog';
 import { useNotificationStore } from '../../../stores/useNotificationStore';
 import { useQuizSessionStore } from '../../quiz/stores/useQuizSessionStore';
 import { useRecoveryStore } from '../../../stores/useRecoveryStore';
@@ -615,52 +615,49 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     <AuthContext.Provider value={value}>
       {children}
 
-      <AnimatePresence>
-        {sessionConflict && (
-          <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden border border-gray-100 dark:border-gray-700"
-            >
-              <div className="p-6">
-                <div className="w-12 h-12 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center mb-4 mx-auto">
-                  <AlertTriangle className="w-6 h-6 text-amber-600 dark:text-amber-500" />
-                </div>
-
-                <h3 className="text-xl font-bold text-center text-gray-900 dark:text-white mb-2">
-                  Session Already Active
-                </h3>
-
-                <p className="text-gray-600 dark:text-gray-300 text-center mb-6 text-sm">
-                  You are already logged in on another device. Would you like to sign out from the other device and continue here?
-                </p>
-
-                <div className="space-y-3">
-                  <button
-                    type="button"
-                    onClick={handleTakeoverSession}
-                    className="w-full min-h-[44px] flex items-center justify-center gap-2 py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-medium transition-colors"
-                  >
-                    <CheckCircle2 className="w-5 h-5" />
-                    <span>Yes, Continue Here</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={handleCancelTakeover}
-                    className="w-full min-h-[44px] flex items-center justify-center gap-2 py-3 px-4 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-xl font-medium transition-colors"
-                  >
-                    <LogOut className="w-5 h-5" />
-                    <span>Cancel & Sign Out</span>
-                  </button>
-                </div>
-              </div>
-            </motion.div>
+      <NativeDialog
+        isOpen={!!sessionConflict}
+        onClose={handleCancelTakeover}
+        role="alertdialog"
+        dismissible={false}
+        ariaLabelledBy="session-conflict-title"
+        className="max-w-md"
+        panelClassName="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full overflow-hidden border border-gray-100 dark:border-gray-700"
+      >
+        <div className="p-6">
+          <div className="w-12 h-12 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center mb-4 mx-auto">
+            <AlertTriangle className="w-6 h-6 text-amber-600 dark:text-amber-500" />
           </div>
-        )}
-      </AnimatePresence>
+
+          <h3 id="session-conflict-title" className="text-xl font-bold text-center text-gray-900 dark:text-white mb-2">
+            Session Already Active
+          </h3>
+
+          <p className="text-gray-600 dark:text-gray-300 text-center mb-6 text-sm">
+            You are already logged in on another device. Would you like to sign out from the other device and continue here?
+          </p>
+
+          <div className="space-y-3">
+            <button
+              type="button"
+              onClick={handleTakeoverSession}
+              className="w-full min-h-[44px] flex items-center justify-center gap-2 py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-medium transition-colors"
+            >
+              <CheckCircle2 className="w-5 h-5" />
+              <span>Yes, Continue Here</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleCancelTakeover}
+              className="w-full min-h-[44px] flex items-center justify-center gap-2 py-3 px-4 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-xl font-medium transition-colors"
+            >
+              <LogOut className="w-5 h-5" />
+              <span>Cancel & Sign Out</span>
+            </button>
+          </div>
+        </div>
+      </NativeDialog>
     </AuthContext.Provider>
   );
 };

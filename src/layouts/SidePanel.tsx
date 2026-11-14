@@ -3,13 +3,13 @@ import { useDebugStore } from '../stores/useDebugStore';
 import { PresenceAvatar } from '../components/ui/PresenceAvatar';
 import { getCanonicalAvatarUrl } from '../utils/avatar';
 import { getUserDisplayName } from '../utils/user';
-import { motion, AnimatePresence } from 'framer-motion';
 import {
     X, User, LogIn, Home, LayoutDashboard, Languages,
     Wrench, Download, Info, GraduationCap, FileText, Shield, LogOut
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../features/auth/context/AuthContext';
+import { NativeDialog } from '../components/ui/NativeDialog';
 
 interface SidePanelProps {
     isOpen: boolean;
@@ -38,33 +38,6 @@ export const SidePanel: React.FC<SidePanelProps> = ({ isOpen, onClose, onTabChan
 
     };
 
-    // --- Animation Variants ---
-
-    // 1. Overlay (Fade in with backdrop blur)
-    const overlayVariants = {
-        hidden: { opacity: 0, backdropFilter: 'blur(0px)' },
-        visible: {
-            opacity: 1,
-            backdropFilter: 'blur(8px)',
-            transition: { duration: 0.15 }
-        },
-        exit: {
-            opacity: 0,
-            backdropFilter: 'blur(0px)',
-            transition: { duration: 0.15 }
-        }
-    };
-
-    // 2. Panel Base (Slide in from right)
-    const panelVariants = {
-        hidden: { x: '100%' },
-        visible: { x: 0, transition: { ease: 'easeOut' as const, duration: 0.15 } },
-        exit: { x: '100%', transition: { ease: 'easeIn' as const, duration: 0.15 } }
-    };
-
-
-
-
     const menuItems = [
         { icon: Home, label: 'Home', path: 'HOME_LINK', colorClasses: 'text-indigo-600 dark:text-indigo-400', bgClasses: 'bg-indigo-50 dark:bg-indigo-900/20 group-hover:bg-indigo-100 dark:group-hover:bg-indigo-900/40' },
         { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard', tab: 'home', colorClasses: 'text-fuchsia-600 dark:text-fuchsia-400', bgClasses: 'bg-fuchsia-50 dark:bg-fuchsia-900/20 group-hover:bg-fuchsia-100 dark:group-hover:bg-fuchsia-900/40' },
@@ -76,40 +49,28 @@ export const SidePanel: React.FC<SidePanelProps> = ({ isOpen, onClose, onTabChan
     ];
 
     return (
-        <AnimatePresence>
-            {isOpen && (
-                <>
-                    {/* Overlay */}
-                    <motion.div
-                        variants={overlayVariants}
-                        initial="hidden"
-                        animate="visible"
-                        exit="exit"
+        <NativeDialog
+            isOpen={isOpen}
+            onClose={onClose}
+            variant="drawer-right"
+            ariaLabel="Navigation menu"
+            className="w-4/5 max-w-sm"
+            panelClassName="h-[100dvh] w-full bg-white dark:bg-slate-900 shadow-2xl flex flex-col overflow-hidden border-l border-white/20 dark:border-white/10 relative"
+        >
+            {/* Inner Glassmorphism Layer */}
+            <div className="absolute inset-0 bg-gradient-to-br from-indigo-50/50 to-white/80 dark:from-slate-800/50 dark:to-slate-900/80 backdrop-blur-3xl -z-10" />
+
+            <div className="flex flex-col h-full w-full relative">
+                {/* --- Top: Header & Profile --- */}
+                <div className="p-6 pb-4 border-b border-gray-100 dark:border-gray-800 relative">
+                    <button
+                        type="button"
                         onClick={onClose}
-                        className="fixed inset-0 z-[10010] bg-slate-900/40 dark:bg-slate-900/60"
-                        aria-hidden="true"
-                    />
-
-                    {/* Side Panel Container */}
-                    <motion.div
-                        variants={panelVariants}
-                        initial="hidden"
-                        animate="visible"
-                        exit="exit"
-                        className="fixed top-0 right-0 h-[100dvh] w-4/5 max-w-sm z-[10020] bg-white dark:bg-slate-900 shadow-2xl flex flex-col overflow-hidden border-l border-white/20 dark:border-white/10"
+                        aria-label="Close navigation menu"
+                        className="absolute top-3 right-3 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-gray-500 dark:text-gray-400"
                     >
-                        {/* Inner Glassmorphism Layer */}
-                        <div className="absolute inset-0 bg-gradient-to-br from-indigo-50/50 to-white/80 dark:from-slate-800/50 dark:to-slate-900/80 backdrop-blur-3xl -z-10" />
-
-                        <div className="flex flex-col h-full w-full relative">
-                            {/* --- Top: Header & Profile --- */}
-                            <div className="p-6 pb-4 border-b border-gray-100 dark:border-gray-800 relative">
-                                <button
-                                    onClick={onClose}
-                                    className="absolute top-4 right-4 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-gray-500 dark:text-gray-400"
-                                >
-                                    <X className="w-6 h-6" />
-                                </button>
+                        <X className="w-6 h-6" />
+                    </button>
 
                                 <div className="mt-8">
                                     {user ? (
@@ -240,10 +201,7 @@ export const SidePanel: React.FC<SidePanelProps> = ({ isOpen, onClose, onTabChan
                                     </button>
                                 </div>
                             </div>
-                        </div>
-                    </motion.div>
-                </>
-            )}
-        </AnimatePresence>
+            </div>
+        </NativeDialog>
     );
 };

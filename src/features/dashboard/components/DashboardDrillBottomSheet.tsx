@@ -1,7 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Capacitor } from '@capacitor/core';
-import { App } from '@capacitor/app';
+import { NativeDialog } from '@/components/ui/NativeDialog';
 import {
   X,
   Play,
@@ -67,45 +65,6 @@ export const DashboardDrillBottomSheet: React.FC<DashboardDrillBottomSheetProps>
     }
   }, [drillInfo]);
 
-  // Lock body scroll and handle Escape key
-  useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden';
-      const handleKeyDown = (e: KeyboardEvent) => {
-        if (e.key === 'Escape') {
-          onClose();
-        }
-      };
-      window.addEventListener('keydown', handleKeyDown);
-      return () => {
-        document.body.style.overflow = '';
-        window.removeEventListener('keydown', handleKeyDown);
-      };
-    } else {
-      document.body.style.overflow = '';
-    }
-  }, [isOpen, onClose]);
-
-  // Capacitor Android Hardware Back Button listener
-  useEffect(() => {
-    if (!isOpen) return;
-
-    let backHandler: any;
-    if (Capacitor.isNativePlatform()) {
-      App.addListener('backButton', () => {
-        onClose();
-      }).then((handle) => {
-        backHandler = handle;
-      });
-    }
-
-    return () => {
-      if (backHandler) {
-        backHandler.remove();
-      }
-    };
-  }, [isOpen, onClose]);
-
   // Telemetry when sheet is opened
   useEffect(() => {
     if (isOpen && drillInfo) {
@@ -122,10 +81,8 @@ export const DashboardDrillBottomSheet: React.FC<DashboardDrillBottomSheetProps>
     return Math.max(5, Math.round((selectedCount * 48) / 60));
   }, [selectedCount]);
 
-  if (!drillInfo) return null;
-
   const getBadgeStyle = () => {
-    switch (drillInfo.badgeVariant) {
+    switch (drillInfo?.badgeVariant) {
       case 'rose':
         return 'bg-rose-50 text-rose-700 dark:bg-rose-950/70 dark:text-rose-300 border-rose-200 dark:border-rose-800';
       case 'amber':
@@ -141,7 +98,7 @@ export const DashboardDrillBottomSheet: React.FC<DashboardDrillBottomSheetProps>
   };
 
   const getTypeIcon = () => {
-    switch (drillInfo.type) {
+    switch (drillInfo?.type) {
       case 'targeted_drill':
         return <Brain className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />;
       case 'daily_pyq':
@@ -155,6 +112,7 @@ export const DashboardDrillBottomSheet: React.FC<DashboardDrillBottomSheetProps>
   };
 
   const handleStart = () => {
+    if (!drillInfo) return;
     triggerHaptic('medium');
     telemetry.emit('dashboard_drill_started', {
       drillType: drillInfo.type,
@@ -166,6 +124,7 @@ export const DashboardDrillBottomSheet: React.FC<DashboardDrillBottomSheetProps>
   };
 
   const handleCustomize = () => {
+    if (!drillInfo) return;
     triggerHaptic('light');
     telemetry.emit('dashboard_drill_customize_clicked', {
       drillType: drillInfo.type,
@@ -177,67 +136,52 @@ export const DashboardDrillBottomSheet: React.FC<DashboardDrillBottomSheetProps>
   };
 
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <div className="fixed inset-0 z-[10000] flex items-end sm:items-center justify-center p-0 sm:p-4">
-          {/* Backdrop */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            onClick={onClose}
-            className="fixed inset-0 bg-black/60 backdrop-blur-xs cursor-pointer"
-            aria-hidden="true"
-          />
+    <NativeDialog
+      isOpen={isOpen && !!drillInfo}
+      onClose={onClose}
+      variant="bottom-sheet"
+      ariaLabelledBy="drill-sheet-title"
+      className="sm:my-auto max-w-lg"
+      panelClassName="w-full bg-white dark:bg-slate-900 rounded-t-3xl sm:rounded-2xl shadow-2xl border-t sm:border border-slate-200/90 dark:border-slate-800 p-4 sm:p-5 pb-[calc(env(safe-area-inset-bottom,0px)+1.5rem)] max-h-[90dvh] overflow-y-auto no-scrollbar"
+    >
+      {drillInfo && (
+        <>
+          {/* Grab / Drag Bar (Mobile visual cue) */}
+          <div className="w-12 h-1.5 bg-slate-300 dark:bg-slate-700 rounded-full mx-auto -mt-1 mb-3.5 sm:hidden" />
 
-          {/* Bottom Sheet Content */}
-          <motion.div
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="drill-sheet-title"
-            initial={{ y: '100%', opacity: 0.5 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: '100%', opacity: 0 }}
-            transition={{ type: 'spring', damping: 28, stiffness: 320 }}
-            className="relative z-10 w-full max-w-lg bg-white dark:bg-slate-900 rounded-t-3xl sm:rounded-2xl shadow-2xl border-t sm:border border-slate-200/90 dark:border-slate-800 p-4 sm:p-5 pb-[calc(env(safe-area-inset-bottom,0px)+1.5rem)] max-h-[90vh] overflow-y-auto no-scrollbar"
-          >
-            {/* Grab / Drag Bar (Mobile visual cue) */}
-            <div className="w-12 h-1.5 bg-slate-300 dark:bg-slate-700 rounded-full mx-auto -mt-1 mb-3.5 sm:hidden" />
-
-            {/* Header: Badges & Close Button */}
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex items-center gap-2 flex-wrap">
-                {/* Type & Category Badge */}
-                <div
-                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border shadow-2xs ${getBadgeStyle()}`}
-                >
-                  {getTypeIcon()}
-                  <span>{drillInfo.badgeLabel || 'Practice Drill'}</span>
-                </div>
-
-                {/* Target Exam Badge */}
-                {drillInfo.examShortCode && (
-                  <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200/80 dark:border-slate-700">
-                    <Target className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
-                    <span>{drillInfo.examShortCode}</span>
-                  </div>
-                )}
+          {/* Header: Badges & Close Button */}
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-center gap-2 flex-wrap">
+              {/* Type & Category Badge */}
+              <div
+                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border shadow-2xs ${getBadgeStyle()}`}
+              >
+                {getTypeIcon()}
+                <span>{drillInfo.badgeLabel || 'Practice Drill'}</span>
               </div>
 
-              {/* Close Button */}
-              <button
-                type="button"
-                onClick={() => {
-                  triggerHaptic('light');
-                  onClose();
-                }}
-                aria-label="Close dialog"
-                className="min-w-[40px] min-h-[40px] flex items-center justify-center -mr-1 -mt-1 rounded-full text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer select-none touch-manipulation active:scale-90"
-              >
-                <X className="w-5 h-5" />
-              </button>
+              {/* Target Exam Badge */}
+              {drillInfo.examShortCode && (
+                <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200/80 dark:border-slate-700">
+                  <Target className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+                  <span>{drillInfo.examShortCode}</span>
+                </div>
+              )}
             </div>
+
+            {/* Close Button */}
+            <button
+              type="button"
+              onClick={() => {
+                triggerHaptic('light');
+                onClose();
+              }}
+              aria-label="Close dialog"
+              className="min-w-[44px] min-h-[44px] flex items-center justify-center -mr-1.5 -mt-1.5 rounded-full text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer select-none touch-manipulation active:scale-90"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
 
             {/* Drill Title & Subtitle */}
             <div className="mt-2.5">
@@ -419,9 +363,8 @@ export const DashboardDrillBottomSheet: React.FC<DashboardDrillBottomSheetProps>
                 </button>
               </div>
             </div>
-          </motion.div>
-        </div>
+        </>
       )}
-    </AnimatePresence>
+    </NativeDialog>
   );
 };

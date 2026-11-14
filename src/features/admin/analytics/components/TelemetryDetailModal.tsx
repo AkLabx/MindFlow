@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useId } from 'react';
 import { X, Copy, Check, Clock, Smartphone, Globe, Shield } from 'lucide-react';
 import { TelemetryEventRecord } from '../services/adminAnalyticsService';
+import { NativeDialog } from '@/components/ui/NativeDialog';
 
 interface TelemetryDetailModalProps {
   event: TelemetryEventRecord | null;
@@ -8,6 +9,7 @@ interface TelemetryDetailModalProps {
 }
 
 export const TelemetryDetailModal: React.FC<TelemetryDetailModalProps> = ({ event, onClose }) => {
+  const titleId = useId();
   const [copied, setCopied] = React.useState(false);
 
   if (!event) return null;
@@ -22,8 +24,13 @@ export const TelemetryDetailModal: React.FC<TelemetryDetailModalProps> = ({ even
   const isAndroid = platform === 'android';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
-      <div className="relative w-full max-w-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
+    <NativeDialog
+      isOpen={Boolean(event)}
+      onClose={onClose}
+      ariaLabelledBy={titleId}
+      className="max-w-2xl"
+      panelClassName="relative w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[85dvh]"
+    >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/50">
           <div className="flex items-center gap-3">
@@ -32,7 +39,7 @@ export const TelemetryDetailModal: React.FC<TelemetryDetailModalProps> = ({ even
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 font-mono">
+                <h3 id={titleId} className="text-base font-bold text-slate-900 dark:text-slate-100 font-mono">
                   {event.event_name}
                 </h3>
                 <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full uppercase ${isAndroid ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300' : 'bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300'}`}>
@@ -47,15 +54,19 @@ export const TelemetryDetailModal: React.FC<TelemetryDetailModalProps> = ({ even
           </div>
           <div className="flex items-center gap-2">
             <button
+              type="button"
               onClick={handleCopy}
-              className="p-2 rounded-lg text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              aria-label="Copy JSON payload"
+              className="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
               title="Copy JSON Payload"
             >
               {copied ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
             </button>
             <button
+              type="button"
               onClick={onClose}
-              className="p-2 rounded-lg text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              aria-label="Close telemetry inspector"
+              className="p-2 min-w-[44px] min-h-[44px] -mr-2 flex items-center justify-center rounded-lg text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
             >
               <X className="w-4 h-4" />
             </button>
@@ -113,7 +124,6 @@ export const TelemetryDetailModal: React.FC<TelemetryDetailModalProps> = ({ even
             Close Inspector
           </button>
         </div>
-      </div>
-    </div>
+    </NativeDialog>
   );
 };

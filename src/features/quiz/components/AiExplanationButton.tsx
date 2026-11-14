@@ -1,7 +1,7 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useId } from 'react';
 import { Bot, X, Loader2, Sparkles, AlertCircle, Copy, Download, ThumbsUp, ThumbsDown } from 'lucide-react';
-import { createPortal } from 'react-dom';
 import html2canvas from 'html2canvas';
+import { NativeDialog } from '../../../components/ui/NativeDialog';
 import { useNotification } from '../../../stores/useNotificationStore';
 import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
@@ -359,31 +359,6 @@ Fun Fact: ${data.fun_fact}
         return () => clearInterval(interval);
     }, [isLoading]);
 
-    // Close modal on click outside and handle escape key (for hardware back)
-    useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            if (overlayRef.current && !overlayRef.current.contains(event.target as Node)) {
-                handleCloseModal();
-            }
-        };
-
-        const handleEscape = (event: KeyboardEvent) => {
-            if (event.key === 'Escape') {
-                handleCloseModal();
-            }
-        };
-
-        if (isOpen) {
-            document.addEventListener('mousedown', handleClickOutside);
-            document.addEventListener('keydown', handleEscape);
-        }
-
-        return () => {
-            document.removeEventListener('mousedown', handleClickOutside);
-            document.removeEventListener('keydown', handleEscape);
-        };
-    }, [isOpen]);
-
     // Question ID change reset & Strict Unmount Cleanup
     useEffect(() => {
         // Reset state if question identity changes
@@ -417,47 +392,52 @@ Fun Fact: ${data.fun_fact}
                 Ask AI Tutor
             </button>
 
-            {isOpen && createPortal(
-                <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
-                    <div
-                        ref={overlayRef}
-                        role="dialog"
-                        aria-modal="true"
-                        className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-lg max-h-[85vh] overflow-hidden flex flex-col animate-in slide-in-from-bottom-10 zoom-in-95 duration-300"
-                    >
-                        {/* Header */}
-                        <div className="flex items-center justify-between p-4 border-b border-gray-100 dark:border-gray-800 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/40 dark:to-purple-900/40">
-                            <div className="flex items-center gap-2 text-indigo-700 dark:text-indigo-400">
-                                <Sparkles className="w-5 h-5" />
-                                <h3 className="font-bold text-lg">AI Explanation</h3>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                {data && !isLoading && !error && (
-                                    <>
-                                        <button
-                                            onClick={handleCopy}
-                                            className="p-1.5 rounded-lg bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:shadow shadow-sm transition-all border border-gray-200 dark:border-gray-700"
-                                            title="Copy Text"
-                                         aria-label="Copy text">
-                                            <Copy className="w-4 h-4" />
-                                        </button>
-                                        <button
-                                            onClick={handleDownload}
-                                            className="p-1.5 rounded-lg bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:shadow shadow-sm transition-all border border-gray-200 dark:border-gray-700 mr-2"
-                                            title="Download as Image"
-                                         aria-label="Download file">
-                                            <Download className="w-4 h-4" />
-                                        </button>
-                                    </>
-                                )}
+            <NativeDialog
+                isOpen={isOpen}
+                onClose={handleCloseModal}
+                ariaLabel="AI Explanation"
+                className="max-w-lg"
+                panelClassName="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-h-[85dvh] overflow-hidden flex flex-col"
+            >
+                {/* Header */}
+                <div className="flex items-center justify-between p-4 border-b border-gray-100 dark:border-gray-800 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/40 dark:to-purple-900/40">
+                    <div className="flex items-center gap-2 text-indigo-700 dark:text-indigo-400">
+                        <Sparkles className="w-5 h-5" />
+                        <h3 className="font-bold text-lg">AI Explanation</h3>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        {data && !isLoading && !error && (
+                            <>
                                 <button
-                                    onClick={handleCloseModal}
-                                    className="p-1.5 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
+                                    type="button"
+                                    onClick={handleCopy}
+                                    className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:shadow shadow-sm transition-all border border-gray-200 dark:border-gray-700"
+                                    title="Copy Text"
+                                    aria-label="Copy text"
                                 >
-                                    <X className="w-5 h-5" />
+                                    <Copy className="w-4 h-4" />
                                 </button>
-                            </div>
-                        </div>
+                                <button
+                                    type="button"
+                                    onClick={handleDownload}
+                                    className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:shadow shadow-sm transition-all border border-gray-200 dark:border-gray-700 mr-1"
+                                    title="Download as Image"
+                                    aria-label="Download file"
+                                >
+                                    <Download className="w-4 h-4" />
+                                </button>
+                            </>
+                        )}
+                        <button
+                            type="button"
+                            onClick={handleCloseModal}
+                            aria-label="Close AI explanation"
+                            className="min-w-[44px] min-h-[44px] -mr-2 flex items-center justify-center rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
+                        >
+                            <X className="w-5 h-5" />
+                        </button>
+                    </div>
+                </div>
 
                         {/* Content */}
                         <div ref={contentRef} className="p-6 overflow-y-auto custom-scrollbar bg-white dark:bg-gray-800">
@@ -603,10 +583,7 @@ Fun Fact: ${data.fun_fact}
                                 </div>
                             ) : null}
                         </div>
-                    </div>
-                </div>,
-                document.body
-            )}
+            </NativeDialog>
         </>
     );
 };

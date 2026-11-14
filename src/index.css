@@ -183,3 +183,277 @@ input, textarea, [contenteditable] {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+/* MWG Native Top-Layer Dialog & Anchored Popover Primitives */
+@layer components {
+  dialog.mf-dialog {
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    max-width: none;
+    max-height: none;
+    opacity: 0;
+    transform: translateY(8px) scale(0.97);
+    transition:
+      opacity 180ms ease-out,
+      transform 180ms cubic-bezier(0.22, 1, 0.36, 1),
+      overlay 180ms ease-out allow-discrete,
+      display 180ms ease-out allow-discrete;
+  }
+
+  dialog.mf-dialog:modal {
+    overscroll-behavior: contain;
+  }
+
+  dialog.mf-dialog[open] {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+
+  dialog.mf-dialog[data-closing="true"] {
+    opacity: 0;
+    transform: translateY(8px) scale(0.97);
+    pointer-events: none;
+  }
+
+  @starting-style {
+    dialog.mf-dialog[open] {
+      opacity: 0;
+      transform: translateY(8px) scale(0.97);
+    }
+    dialog.mf-dialog[open]::backdrop {
+      opacity: 0;
+    }
+  }
+
+  dialog.mf-dialog::backdrop {
+    background: rgb(15 23 42 / 0.55);
+    backdrop-filter: blur(4px);
+    overflow: hidden;
+    overscroll-behavior: contain;
+    opacity: 0;
+    transition:
+      opacity 180ms ease-out,
+      overlay 180ms ease-out allow-discrete,
+      display 180ms ease-out allow-discrete;
+  }
+
+  dialog.mf-dialog[open]::backdrop {
+    opacity: 1;
+  }
+
+  dialog.mf-dialog[data-closing="true"]::backdrop {
+    opacity: 0;
+  }
+
+  dialog.mf-dialog--center {
+    margin: auto;
+    width: calc(100% - 2rem);
+    max-height: calc(100dvh - 2rem);
+    overflow: visible;
+  }
+
+  dialog.mf-dialog--command {
+    margin: 5rem auto auto auto;
+    width: calc(100% - 2rem);
+    max-height: calc(100dvh - 6rem);
+    overflow: visible;
+    transform: translateY(-10px) scale(0.96);
+  }
+
+  dialog.mf-dialog--command[open] {
+    transform: translateY(0) scale(1);
+  }
+
+  dialog.mf-dialog--command[data-closing="true"] {
+    transform: translateY(-10px) scale(0.96);
+  }
+
+  @starting-style {
+    dialog.mf-dialog--command[open] {
+      transform: translateY(-10px) scale(0.96);
+    }
+  }
+
+  dialog.mf-dialog--bottom-sheet {
+    margin: auto auto 0 auto;
+    width: 100%;
+    max-height: min(92dvh, 100dvh - env(safe-area-inset-top));
+    overflow: visible;
+    transform: translateY(100%);
+  }
+
+  dialog.mf-dialog--bottom-sheet[open] {
+    transform: translateY(0);
+  }
+
+  dialog.mf-dialog--bottom-sheet[data-closing="true"] {
+    transform: translateY(100%);
+  }
+
+  @starting-style {
+    dialog.mf-dialog--bottom-sheet[open] {
+      transform: translateY(100%);
+    }
+  }
+
+  dialog.mf-dialog--drawer-right {
+    margin: 0 0 0 auto;
+    height: 100dvh;
+    max-height: 100dvh;
+    width: 100%;
+    transform: translateX(100%);
+  }
+
+  dialog.mf-dialog--drawer-right[open] {
+    transform: translateX(0);
+  }
+
+  dialog.mf-dialog--drawer-right[data-closing="true"] {
+    transform: translateX(100%);
+  }
+
+  @starting-style {
+    dialog.mf-dialog--drawer-right[open] {
+      transform: translateX(100%);
+    }
+  }
+
+  dialog.mf-dialog--drawer-left {
+    margin: 0 auto 0 0;
+    height: 100dvh;
+    max-height: 100dvh;
+    width: 100%;
+    transform: translateX(-100%);
+  }
+
+  dialog.mf-dialog--drawer-left[open] {
+    transform: translateX(0);
+  }
+
+  dialog.mf-dialog--drawer-left[data-closing="true"] {
+    transform: translateX(-100%);
+  }
+
+  @starting-style {
+    dialog.mf-dialog--drawer-left[open] {
+      transform: translateX(-100%);
+    }
+  }
+
+  dialog.mf-dialog--fullscreen {
+    margin: 0;
+    width: 100vw;
+    height: 100dvh;
+    max-width: 100vw;
+    max-height: 100dvh;
+    transform: scale(0.98);
+  }
+
+  dialog.mf-dialog--fullscreen[open] {
+    transform: scale(1);
+  }
+
+  dialog.mf-dialog--fullscreen[data-closing="true"] {
+    transform: scale(0.98);
+  }
+
+  @starting-style {
+    dialog.mf-dialog--fullscreen[open] {
+      transform: scale(0.98);
+    }
+  }
+
+  [popover].mf-popover {
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    inset: auto;
+    margin: 0;
+    overflow: visible;
+    opacity: 0;
+    transform: scale(0.96);
+    transition:
+      opacity 140ms ease-out,
+      transform 140ms ease-out,
+      overlay 140ms ease-out allow-discrete,
+      display 140ms ease-out allow-discrete;
+  }
+
+  [popover].mf-popover:popover-open {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  @starting-style {
+    [popover].mf-popover:popover-open {
+      opacity: 0;
+      transform: scale(0.96);
+    }
+  }
+
+  @supports (position-area: top) {
+    [popover].mf-popover-anchored {
+      inset: auto;
+      margin: 0;
+      position-area: var(--mf-position-area, top);
+      position-try-fallbacks: flip-block, flip-inline, flip-start;
+      margin-block: var(--mf-anchor-offset, 0.5rem);
+      max-inline-size: min(var(--mf-popover-max-w, 20rem), calc(100vw - 1.5rem));
+      max-block-size: calc(100dvh - 2rem);
+    }
+
+    [popover].mf-popover-menu {
+      inset: auto;
+      margin: 0;
+      position-area: var(--mf-position-area, block-end span-inline-end);
+      position-try-fallbacks: flip-block, flip-inline;
+      margin-block: var(--mf-anchor-offset, 0.5rem);
+      max-inline-size: calc(100vw - 1.5rem);
+      max-block-size: min(var(--mf-popover-max-h, 20rem), calc(100dvh - 2rem));
+    }
+  }
+
+  @supports (position-area: top) and (min-width: anchor-size(width)) {
+    [popover].mf-popover-menu--match-width {
+      min-inline-size: anchor-size(width);
+      max-inline-size: min(anchor-size(width), calc(100vw - 1.5rem));
+    }
+  }
+
+  [popover].mf-toast-layer {
+    inset: 1rem 0 auto 0;
+    margin: 0;
+    padding: 0 1rem;
+    width: 100%;
+    max-width: none;
+    border: 0;
+    background: transparent;
+    overflow: visible;
+  }
+
+  @media (min-width: 640px) {
+    [popover].mf-toast-layer {
+      padding-left: 1.5rem;
+      padding-right: 1.5rem;
+    }
+  }
+
+  @media (min-width: 768px) {
+    [popover].mf-toast-layer {
+      padding-left: 2rem;
+      padding-right: 2rem;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    dialog.mf-dialog,
+    dialog.mf-dialog::backdrop,
+    [popover].mf-popover {
+      transition: none !important;
+      animation: none !important;
+    }
+  }
+}

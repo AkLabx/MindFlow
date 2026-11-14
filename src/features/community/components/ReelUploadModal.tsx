@@ -1,14 +1,14 @@
 import { uploadMediaToCloudinary } from '../../../services/mediaUploadService';
-import React, { useState, useRef, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { X, Upload, CheckCircle2, Film, Loader2 } from 'lucide-react';
+import React, { useState, useRef, useEffect, useId } from 'react';
+import { motion } from 'framer-motion';
+import { X, Upload, Film } from 'lucide-react';
 import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { Capacitor } from '@capacitor/core';
 import { supabase } from '../../../lib/supabase';
 import { useAuth } from '../../auth/context/AuthContext';
 import { useNotificationStore } from '../../../stores/useNotificationStore';
 import { cn } from '../../../utils/cn';
-import { KeyboardAwareSurface } from '../../../components/ui/KeyboardAwareSurface';
+import { NativeDialog } from '../../../components/ui/NativeDialog';
 
 interface ReelUploadModalProps {
   isOpen: boolean;
@@ -17,6 +17,7 @@ interface ReelUploadModalProps {
 }
 
 export const ReelUploadModal: React.FC<ReelUploadModalProps> = ({ isOpen, onClose, onSuccess }) => {
+  const titleId = useId();
   const { user } = useAuth();
   const { showToast } = useNotificationStore();
   const [videoFile, setVideoFile] = useState<File | null>(null);
@@ -130,27 +131,29 @@ export const ReelUploadModal: React.FC<ReelUploadModalProps> = ({ isOpen, onClos
   };
 
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <div className="fixed inset-0 z-[100] flex flex-col justify-end bg-black/60 sm:items-center sm:justify-center backdrop-blur-sm p-4">
-          <KeyboardAwareSurface
-            isModal={true}
-            hasGlobalFooter={true}
-            initial={{ opacity: 0, y: 100 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 100 }}
-            className="w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl shadow-2xl overflow-hidden flex flex-col pb-[env(safe-area-inset-bottom)]"
-            onClick={(e: any) => e.stopPropagation()}
-          >
-            {/* Header */}
-            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-slate-800">
-              <h2 className="text-lg font-bold text-gray-900 dark:text-white">New Reel</h2>
-              {!isUploading && (
-                  <button onClick={onClose} className="p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-full transition-colors">
-                    <X size={20} />
-                  </button>
-              )}
-            </div>
+    <NativeDialog
+      isOpen={isOpen}
+      onClose={onClose}
+      dismissible={!isUploading}
+      variant="bottom-sheet"
+      ariaLabelledBy={titleId}
+      className="sm:my-auto sm:p-4 max-w-md"
+      panelClassName="w-full bg-white dark:bg-slate-900 rounded-t-3xl sm:rounded-2xl shadow-2xl overflow-hidden flex flex-col pb-[env(safe-area-inset-bottom,0px)]"
+    >
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-slate-800">
+        <h2 id={titleId} className="text-lg font-bold text-gray-900 dark:text-white">New Reel</h2>
+        {!isUploading && (
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Close reel upload"
+              className="min-w-[44px] min-h-[44px] -mr-2 flex items-center justify-center text-gray-500 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-full transition-colors"
+            >
+              <X size={20} />
+            </button>
+        )}
+      </div>
 
             <div className="p-4 flex flex-col gap-4">
                 {/* Video Preview or Picker */}
@@ -230,9 +233,6 @@ export const ReelUploadModal: React.FC<ReelUploadModalProps> = ({ isOpen, onClos
                     </button>
                 )}
             </div>
-          </KeyboardAwareSurface>
-        </div>
-      )}
-    </AnimatePresence>
+    </NativeDialog>
   );
 };

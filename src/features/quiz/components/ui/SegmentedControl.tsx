@@ -1,7 +1,7 @@
 import React from 'react';
-import { Info } from 'lucide-react';
 import { cn } from '../../../../utils/cn';
 import { triggerHaptic } from '@/lib/haptics';
+import { InfoTooltip } from '@/components/ui/InfoTooltip';
 
 /**
  * A segmented control component (toggle button group).
@@ -33,15 +33,7 @@ export const SegmentedControl = React.memo(function SegmentedControl({
       {label && (
         <div className="flex items-center gap-2 mb-3">
           <label className="inline-flex items-center px-3 py-1.5 bg-blue-600 text-white dark:bg-blue-500 text-xs font-bold uppercase tracking-wider rounded-md shadow-sm">{label}</label>
-          {tooltip && (
-            <div className="group relative flex items-center">
-              <Info className="w-3.5 h-3.5 text-gray-400 cursor-help hover:text-indigo-500 transition-colors" />
-              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block w-48 p-2 bg-gray-800 text-white text-xs rounded shadow-lg z-50 pointer-events-none text-center font-normal leading-relaxed">
-                {tooltip}
-                <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-800" />
-              </div>
-            </div>
-          )}
+          {tooltip && <InfoTooltip label={label} text={tooltip} />}
         </div>
       )}
       <div className="flex flex-wrap p-1 bg-gray-100 dark:bg-gray-800 rounded-xl gap-1" role="group" aria-label={label || "Segmented Control"}>

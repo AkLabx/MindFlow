@@ -4,6 +4,7 @@ import { useSynonymProgress } from '../hooks/useSynonymProgress';
 import { FiSearch } from 'react-icons/fi';
 import { FiChevronLeft } from 'react-icons/fi';
 import { WordDetailModal } from './WordDetailModal';
+import { InfoTooltip } from '@/components/ui/InfoTooltip';
 
 interface SynonymClusterListProps {
   data: SynonymWord[];
@@ -313,38 +314,55 @@ export const SynonymClusterList: React.FC<SynonymClusterListProps> = ({
                   const isFirstMatch = isMatch && !hasScrolled;
 
                   return (
-                    <button
+                    <div
                       key={uWord.id}
-                      ref={isFirstMatch ? firstMatchRef : null}
-                      onClick={() => handleWordClick(uWord)}
-                      className={`flex flex-col items-start px-4 py-3 rounded-xl border ${style.border} ${isMatch ? 'bg-blue-100 dark:bg-blue-900/40 border-blue-400' : style.bg} transition-all active:scale-95 text-left min-w-[120px] max-w-full relative ${uWord.status === 'mastered' ? 'opacity-60 grayscale' : ''}`}
+                      className={`inline-flex items-stretch rounded-xl border ${style.border} ${isMatch ? 'bg-blue-100 dark:bg-blue-900/40 border-blue-400' : style.bg} transition-all max-w-full relative ${uWord.status === 'mastered' ? 'opacity-60 grayscale' : ''}`}
                     >
-                      {/* Status Icon */}
-                      <div className="absolute top-2 right-2 text-xs">
-                        {getStatusIcon(uWord.status)}
-                      </div>
+                      <button
+                        type="button"
+                        ref={isFirstMatch ? firstMatchRef : null}
+                        onClick={() => handleWordClick(uWord)}
+                        className={`flex flex-col items-start px-4 py-3 active:scale-95 transition-all text-left min-w-[120px] max-w-full relative rounded-xl flex-1 ${uWord.confusable_with && uWord.confusable_with.length > 0 ? 'pr-2' : ''}`}
+                      >
+                        {/* Status Icon */}
+                        <div className="absolute top-2 right-2 text-xs">
+                          {getStatusIcon(uWord.status)}
+                        </div>
 
-                      <div className="flex items-center gap-2 mb-1 pr-6">
-                        {uWord.isPivot && <span title="Pivot Word" className="text-lg">🏅</span>}
-                        <span className={`font-bold text-base ${isMatch ? 'text-blue-900 dark:text-blue-100' : style.text}`}>
-                          {uWord.word}
-                        </span>
-                        {style.icon && !uWord.isPivot && (
-                          <span className="text-sm" aria-hidden="true">{style.icon}</span>
-                        )}
-                        {uWord.confusable_with && uWord.confusable_with.length > 0 && (
-                          <span title={`Confusable with ${uWord.confusable_with.join(', ')}`} className="text-orange-500 cursor-help ml-1 border border-orange-200 rounded-full px-1.5 text-[10px] font-bold bg-orange-100 dark:bg-orange-900/30 dark:border-orange-800">!</span>
-                        )}
-                      </div>
+                        <div className="flex items-center gap-2 mb-1 pr-6">
+                          {uWord.isPivot && (
+                            <span role="img" aria-label="Pivot Word" className="text-lg">🏅</span>
+                          )}
+                          <span className={`font-bold text-base ${isMatch ? 'text-blue-900 dark:text-blue-100' : style.text}`}>
+                            {uWord.word}
+                          </span>
+                          {style.icon && !uWord.isPivot && (
+                            <span className="text-sm" aria-hidden="true">{style.icon}</span>
+                          )}
+                        </div>
 
-                      {!uWord.isSynonymOnly && (
-                        <div className={`flex items-center gap-2 text-[10px] font-bold tracking-wider ${isMatch ? 'text-blue-700 dark:text-blue-300' : style.freqColor}`}>
-                          {uWord.freq > 0 && <span>FREQ: {uWord.freq}</span>}
-                          {uWord.trend !== 0 && <span>TREND: {trendSign}{uWord.trend}</span>}
-                          {uWord.freq === 0 && uWord.trend === 0 && <span>SCORE: {uWord.importance_score}</span>}
+                        {!uWord.isSynonymOnly && (
+                          <div className={`flex items-center gap-2 text-[10px] font-bold tracking-wider ${isMatch ? 'text-blue-700 dark:text-blue-300' : style.freqColor}`}>
+                            {uWord.freq > 0 && <span>FREQ: {uWord.freq}</span>}
+                            {uWord.trend !== 0 && <span>TREND: {trendSign}{uWord.trend}</span>}
+                            {uWord.freq === 0 && uWord.trend === 0 && <span>SCORE: {uWord.importance_score}</span>}
+                          </div>
+                        )}
+                      </button>
+                      {uWord.confusable_with && uWord.confusable_with.length > 0 && (
+                        <div className="flex items-center pr-1.5">
+                          <InfoTooltip
+                            label={`Confusable words for ${uWord.word}`}
+                            text={`Confusable with: ${uWord.confusable_with.join(', ')}`}
+                            icon={
+                              <span className="text-orange-500 border border-orange-200 rounded-full px-1.5 py-0.5 text-[10px] font-bold bg-orange-100 dark:bg-orange-900/30 dark:border-orange-800 leading-none">
+                                !
+                              </span>
+                            }
+                          />
                         </div>
                       )}
-                    </button>
+                    </div>
                   );
                 })}
 

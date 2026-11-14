@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { NativeDialog } from '@/components/ui/NativeDialog';
 import {
     CreditCard,
     DollarSign,
@@ -352,33 +352,28 @@ export const AdminFinancialsPage: React.FC = () => {
             </div>
 
             {/* Webhook Payload Drawer */}
-            <AnimatePresence>
+            <NativeDialog
+                isOpen={Boolean(selectedPayment)}
+                onClose={() => setSelectedPayment(null)}
+                ariaLabelledBy="payment-details-title"
+                className="max-w-2xl"
+                panelClassName="relative w-full bg-white dark:bg-slate-900 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[85dvh] border border-slate-200 dark:border-slate-800"
+            >
                 {selectedPayment && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            onClick={() => setSelectedPayment(null)}
-                            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-                        />
-                        <motion.div
-                            initial={{ scale: 0.95, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            exit={{ scale: 0.95, opacity: 0 }}
-                            className="relative w-full max-w-2xl bg-white dark:bg-slate-900 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh] border border-slate-200 dark:border-slate-800"
-                        >
+                    <>
                             <div className="p-5 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-800/50">
                                 <div>
-                                    <h3 className="font-bold text-base text-slate-900 dark:text-white flex items-center gap-2">
+                                    <h3 id="payment-details-title" className="font-bold text-base text-slate-900 dark:text-white flex items-center gap-2">
                                         <CreditCard className="w-5 h-5 text-emerald-500" />
                                         Payment Transaction Details
                                     </h3>
                                     <p className="text-xs text-slate-400 mt-0.5 font-mono">{selectedPayment.id}</p>
                                 </div>
                                 <button
+                                    type="button"
                                     onClick={() => setSelectedPayment(null)}
-                                    className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                                    aria-label="Close payment details"
+                                    className="p-2 min-w-[44px] min-h-[44px] -mr-2 flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                                 >
                                     <X className="w-5 h-5" />
                                 </button>
@@ -428,10 +423,9 @@ export const AdminFinancialsPage: React.FC = () => {
                                     Close Inspector
                                 </button>
                             </div>
-                        </motion.div>
-                    </div>
+                    </>
                 )}
-            </AnimatePresence>
+            </NativeDialog>
         </div>
     );
 };

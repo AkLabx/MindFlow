@@ -25,6 +25,7 @@ import { cn } from '../../../utils/cn';
 import { QuizNavigationPanel } from '../components/QuizNavigationPanel';
 import { APP_CONFIG } from '../../../constants/config';
 import { useLearningTimer } from '../hooks/useLearningTimer';
+import { NativeDialog } from '../../../components/ui/NativeDialog';
 
 interface LearningSessionProps {
     questions: Question[];
@@ -553,18 +554,24 @@ export const LearningSession: React.FC<LearningSessionProps> = ({
             )}
 
             {showTimeUpModal && (
-                <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-4 bg-black/20 pointer-events-none">
+                <div
+                    role="status"
+                    aria-live="polite"
+                    className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-4 bg-black/20 pointer-events-none"
+                >
                     <div className="bg-white dark:bg-gray-800 border border-red-100 shadow-2xl rounded-2xl p-4 flex items-center gap-4 animate-in slide-in-from-bottom-10 pointer-events-auto max-w-sm w-full mx-auto">
                         <div className="bg-red-100 p-3 rounded-full text-red-600">
                             <AlertCircle className="w-6 h-6" />
                         </div>
                         <div>
-                            <h3 className="font-bold text-gray-900 dark:text-white dark:text-white">Time's Up!</h3>
+                            <h3 className="font-bold text-gray-900 dark:text-white">Time's Up!</h3>
                             <p className="text-xs text-gray-500 dark:text-gray-400">Revealing answer & explanation.</p>
                         </div>
                         <button
+                            type="button"
                             onClick={() => setShowTimeUpModal(false)}
-                            className="ml-auto text-gray-400 hover:text-gray-600 dark:text-gray-300"
+                            aria-label="Dismiss time up notification"
+                            className="ml-auto min-w-[44px] min-h-[44px] -mr-2 flex items-center justify-center rounded-full text-gray-400 hover:text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                         >
                             <X className="w-5 h-5" />
                         </button>
@@ -572,29 +579,30 @@ export const LearningSession: React.FC<LearningSessionProps> = ({
                 </div>
             )}
 
-            {/* Pause Overlay - Heavily Blurred */}
-            {isPaused && (
-                <div
-                    className="fixed inset-0 z-[70] flex flex-col items-center justify-center p-4 bg-black/10 backdrop-blur-md animate-in fade-in duration-300"
-                    data-testid="session-paused-overlay"
-                >
-                    <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-800 max-w-sm w-full text-center transform scale-100 animate-in zoom-in-95 duration-200">
-                        <div className="w-16 h-16 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                            <Pause className="w-8 h-8 fill-current" />
-                        </div>
-                        <h2 className="text-2xl font-bold text-gray-900 dark:text-white dark:text-white mb-2">Quiz Paused</h2>
-                        <p className="text-gray-500 dark:text-gray-400 mb-6">Take a break! Your progress is saved.</p>
-
-                        <Button
-                            onClick={handleResume}
-                            size="lg"
-                            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-200"
-                        >
-                            <Play className="w-5 h-5 mr-2 fill-current" /> Resume Quiz
-                        </Button>
-                    </div>
+            {/* Pause Overlay - Top Layer Modal */}
+            <NativeDialog
+                isOpen={isPaused}
+                onClose={handleResume}
+                dismissible={false}
+                ariaLabelledBy="learning-paused-title"
+                className="max-w-sm"
+                panelClassName="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-800 w-full text-center"
+                dataTestId="session-paused-overlay"
+            >
+                <div className="w-16 h-16 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Pause className="w-8 h-8 fill-current" />
                 </div>
-            )}
+                <h2 id="learning-paused-title" className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Quiz Paused</h2>
+                <p className="text-gray-500 dark:text-gray-400 mb-6">Take a break! Your progress is saved.</p>
+
+                <Button
+                    onClick={handleResume}
+                    size="lg"
+                    className="w-full min-h-[44px] bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-200"
+                >
+                    <Play className="w-5 h-5 mr-2 fill-current" /> Resume Quiz
+                </Button>
+            </NativeDialog>
         </>
     );
 
