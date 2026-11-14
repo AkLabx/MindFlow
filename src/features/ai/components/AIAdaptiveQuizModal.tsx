@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useId, useState } from 'react';
+import { NativeDialog } from '@/components/ui/NativeDialog';
 import { useNavigate } from 'react-router-dom';
 import {
   X,
@@ -32,10 +33,9 @@ export const AIAdaptiveQuizModal: React.FC<AIAdaptiveQuizModalProps> = ({
     hasMistakeData,
   } = useVulnerabilityEngine();
 
+  const titleId = useId();
   const [selectedMode, setSelectedMode] = useState<AdaptiveDrillMode>('weakness');
   const [questionCount, setQuestionCount] = useState<number>(15);
-
-  if (!isOpen) return null;
 
   const handleLaunch = () => {
     let drillFilters: any = {
@@ -97,8 +97,13 @@ export const AIAdaptiveQuizModal: React.FC<AIAdaptiveQuizModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
-      <div className="relative w-full max-w-lg bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col max-h-[90vh]">
+    <NativeDialog
+      isOpen={isOpen}
+      onClose={onClose}
+      ariaLabelledBy={titleId}
+      className="max-w-lg"
+      panelClassName="relative w-full bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col max-h-[90dvh]"
+    >
         {/* Modal Header */}
         <div className="relative p-5 sm:p-6 pb-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
@@ -106,7 +111,7 @@ export const AIAdaptiveQuizModal: React.FC<AIAdaptiveQuizModalProps> = ({
               <Sparkles className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+              <h3 id={titleId} className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
                 AI Adaptive Quiz
                 <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 font-extrabold uppercase tracking-wide">
                   Intelligence
@@ -120,7 +125,7 @@ export const AIAdaptiveQuizModal: React.FC<AIAdaptiveQuizModalProps> = ({
 
           <button
             onClick={onClose}
-            className="p-2 rounded-full text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+            className="p-2 min-w-[44px] min-h-[44px] -mr-2 flex items-center justify-center rounded-full text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
             aria-label="Close modal"
           >
             <X className="w-5 h-5" />
@@ -270,7 +275,6 @@ export const AIAdaptiveQuizModal: React.FC<AIAdaptiveQuizModalProps> = ({
             <ArrowRight className="w-4 h-4" />
           </button>
         </div>
-      </div>
-    </div>
+    </NativeDialog>
   );
 };

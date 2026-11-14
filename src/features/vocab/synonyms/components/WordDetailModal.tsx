@@ -1,5 +1,6 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useId } from 'react';
 import { SynonymWord } from '../../../../features/quiz/types';
+import { NativeDialog } from '../../../../components/ui/NativeDialog';
 
 interface WordDetailModalProps {
   word: SynonymWord;
@@ -14,59 +15,38 @@ export const WordDetailModal: React.FC<WordDetailModalProps> = ({
   onMarkMastered,
   onClose,
 }) => {
-  const modalRef = useRef<HTMLDivElement>(null);
-
-  // Handle ESC key press
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        onClose();
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [onClose]);
-
-  // Handle click outside modal content
-  const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (e.target === e.currentTarget) {
-      onClose();
-    }
-  };
+  const titleId = useId();
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm transition-opacity"
-      onClick={handleBackdropClick}
-      aria-modal="true"
-      role="dialog"
+    <NativeDialog
+      isOpen
+      onClose={onClose}
+      ariaLabelledBy={titleId}
+      className="max-w-md"
+      panelClassName="bg-white dark:bg-slate-800 rounded-2xl shadow-xl w-full max-h-[90dvh] overflow-hidden flex flex-col"
     >
-      <div
-        ref={modalRef}
-        className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl w-full max-w-md max-h-[90vh] overflow-hidden flex flex-col transform transition-all"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex justify-between items-start p-5 border-b border-slate-100 dark:border-slate-700/50">
-          <div>
-            <h2 className="text-3xl font-serif font-bold text-slate-900 dark:text-white mb-1">
-              {word.word}
-            </h2>
-            {word.pos && (
-              <span className="text-sm font-medium text-slate-500 dark:text-slate-400 italic">
-                {word.pos}
-              </span>
-            )}
-          </div>
-          <button
-            onClick={onClose}
-            className="p-2 -mr-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors rounded-full hover:bg-slate-100 dark:hover:bg-slate-700"
-            aria-label="Close modal"
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
+      <div className="flex justify-between items-start p-5 border-b border-slate-100 dark:border-slate-700/50">
+        <div>
+          <h2 id={titleId} className="text-3xl font-serif font-bold text-slate-900 dark:text-white mb-1">
+            {word.word}
+          </h2>
+          {word.pos && (
+            <span className="text-sm font-medium text-slate-500 dark:text-slate-400 italic">
+              {word.pos}
+            </span>
+          )}
         </div>
+        <button
+          type="button"
+          onClick={onClose}
+          className="min-w-[44px] min-h-[44px] -mr-2 -mt-1 flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors rounded-full hover:bg-slate-100 dark:hover:bg-slate-700"
+          aria-label="Close modal"
+        >
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
 
         <div className="overflow-y-auto p-5 space-y-5 flex-1">
           {/* Meaning Section */}
@@ -156,7 +136,6 @@ export const WordDetailModal: React.FC<WordDetailModalProps> = ({
             </div>
           )}
         </div>
-      </div>
-    </div>
+    </NativeDialog>
   );
 };

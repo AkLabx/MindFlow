@@ -1,5 +1,4 @@
-import React, { useEffect, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React from 'react';
 import {
   CheckCircle,
   XCircle,
@@ -9,6 +8,7 @@ import {
   X
 } from 'lucide-react';
 import { useNotification, PopupVariant } from '../../../stores/useNotificationStore';
+import { NativeDialog } from '../NativeDialog';
 
 const variantStyles = {
   success: {
@@ -40,62 +40,35 @@ const variantStyles = {
 
 export const Popup: React.FC = () => {
   const { activePopup, closePopup } = useNotification();
-  const overlayRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    // Prevent scrolling when popup is active
-    if (activePopup) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'auto';
-    }
-
-    return () => {
-      document.body.style.overflow = 'auto';
-    };
-  }, [activePopup]);
-
-  if (!activePopup) return null;
 
   const handleClose = () => {
-    if (activePopup.onClose) {
+    if (activePopup?.onClose) {
       activePopup.onClose();
     }
     closePopup();
   };
 
-  const handleOverlayClick = (e: React.MouseEvent) => {
-    if (e.target === overlayRef.current && activePopup.dismissible !== false) {
-      handleClose();
-    }
-  };
-
-  const { variant, title, message, actions, dismissible } = activePopup;
-  const style = variantStyles[variant as PopupVariant] || variantStyles.info;
+  const style = activePopup
+    ? variantStyles[activePopup.variant as PopupVariant] || variantStyles.info
+    : variantStyles.info;
   const Icon = style.icon;
 
   return (
-    <AnimatePresence>
-      <div
-        ref={overlayRef}
-        onClick={handleOverlayClick}
-        className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
-        aria-labelledby="popup-title"
-        role="dialog"
-        aria-modal="true"
-      >
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95, y: 10 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.95, y: 10 }}
-          transition={{ duration: 0.2, ease: "easeOut" }}
-          className="relative w-full max-w-sm sm:max-w-md bg-white dark:bg-slate-800 rounded-2xl shadow-2xl overflow-hidden border border-slate-200 dark:border-slate-700"
-          onClick={(e) => e.stopPropagation()}
-        >
-          {dismissible !== false && (
+    <NativeDialog
+      isOpen={!!activePopup}
+      onClose={handleClose}
+      dismissible={activePopup?.dismissible !== false}
+      ariaLabelledBy="popup-title"
+      className="max-w-sm sm:max-w-md"
+      panelClassName="relative w-full bg-white dark:bg-slate-800 rounded-2xl shadow-2xl overflow-hidden border border-slate-200 dark:border-slate-700"
+    >
+      {activePopup && (
+        <>
+          {activePopup.dismissible !== false && (
             <button
+              type="button"
               onClick={handleClose}
-              className="absolute top-4 right-4 p-1 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors focus:outline-none focus:ring-2 focus:ring-slate-400"
+              className="absolute top-2.5 right-2.5 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors focus:outline-none focus:ring-2 focus:ring-slate-400"
               aria-label="Close"
             >
               <X className="w-5 h-5" />
@@ -108,20 +81,20 @@ export const Popup: React.FC = () => {
             </div>
 
             <h3 id="popup-title" className="text-xl font-bold text-slate-900 dark:text-white mb-2">
-              {title}
+              {activePopup.title}
             </h3>
 
             <div className="text-slate-600 dark:text-slate-300 text-sm md:text-base mb-6">
-              {message}
+              {activePopup.message}
             </div>
 
             <div className="flex flex-col-reverse sm:flex-row gap-4 sm:gap-3 sm:justify-end">
-              {actions ? (
-                actions.map((action, index) => {
-                  const isPrimary = action.variant === 'primary' || (!action.variant && index === actions.length - 1);
+              {activePopup.actions ? (
+                activePopup.actions.map((action, index) => {
+                  const isPrimary = action.variant === 'primary' || (!action.variant && index === activePopup.actions!.length - 1);
                   const isDanger = action.variant === 'danger';
 
-                  let btnClasses = "px-4 py-3 rounded-xl font-medium text-sm md:text-base transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-slate-800 w-full sm:w-auto text-center";
+                  let btnClasses = "min-h-[44px] px-4 py-3 rounded-xl font-medium text-sm md:text-base transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-slate-800 w-full sm:w-auto text-center";
 
                   if (isPrimary) {
                     btnClasses += " bg-indigo-600 text-white hover:bg-indigo-700 focus:ring-indigo-500 shadow-sm";
@@ -133,6 +106,7 @@ export const Popup: React.FC = () => {
 
                   return (
                     <button
+                      type="button"
                       key={index}
                       onClick={() => {
                         action.onClick();
@@ -146,16 +120,17 @@ export const Popup: React.FC = () => {
                 })
               ) : (
                 <button
+                  type="button"
                   onClick={handleClose}
-                  className="px-6 py-3 bg-indigo-600 text-white rounded-xl font-medium text-sm md:text-base hover:bg-indigo-700 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-slate-800 w-full sm:w-auto shadow-sm"
+                  className="min-h-[44px] px-6 py-3 bg-indigo-600 text-white rounded-xl font-medium text-sm md:text-base hover:bg-indigo-700 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-slate-800 w-full sm:w-auto shadow-sm"
                 >
                   OK
                 </button>
               )}
             </div>
           </div>
-        </motion.div>
-      </div>
-    </AnimatePresence>
+        </>
+      )}
+    </NativeDialog>
   );
 };

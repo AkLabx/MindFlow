@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { createPortal } from 'react-dom';
 import { useAuth } from '../../../features/auth/context/AuthContext';
+import { NativeDialog } from '../../../components/ui/NativeDialog';
 import { useNotification } from '../../../hooks/useNotification';
 import { uploadMediaToCloudinary } from '../../../services/mediaUploadService';
 import { useQuestionImage } from '../hooks/useQuestionImage';
@@ -276,125 +276,128 @@ export const AdminQuestionImage: React.FC<AdminQuestionImageProps> = ({
       {/* ============================================================== */}
       {/* FULL-SCREEN PINCH-AND-PAN LIGHTBOX MODAL                       */}
       {/* ============================================================== */}
-      {isLightboxOpen && rawUrl && createPortal(
-        <div
-          className="fixed inset-0 z-[99999] bg-black/90 backdrop-blur-md flex flex-col animate-in fade-in duration-200"
-          onClick={() => {
-            setIsLightboxOpen(false);
-            setZoomLevel(1);
-          }}
-          role="dialog"
-          aria-modal="true"
-          aria-label={`Detailed ${kind} diagram view`}
-        >
-          {/* Lightbox Toolbar */}
-          <div
-            className="flex items-center justify-between px-4 py-3 bg-black/40 border-b border-white/10 z-10 shrink-0"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-semibold text-white tracking-wide uppercase">
-                {kind === 'explanation' ? 'Explanation Diagram' : 'Question Diagram'}
-              </span>
-              <span className="text-[11px] font-mono text-gray-400 px-2 py-0.5 bg-white/10 rounded">
-                {Math.round(zoomLevel * 100)}%
-              </span>
+      <NativeDialog
+        isOpen={isLightboxOpen && !!rawUrl}
+        onClose={() => {
+          setIsLightboxOpen(false);
+          setZoomLevel(1);
+        }}
+        variant="fullscreen"
+        ariaLabel={`Detailed ${kind} diagram view`}
+        panelClassName="h-[100dvh] w-full bg-black/90 backdrop-blur-md flex flex-col"
+      >
+        {rawUrl && (
+          <>
+            {/* Lightbox Toolbar */}
+            <div className="flex items-center justify-between px-4 py-3 bg-black/40 border-b border-white/10 z-10 shrink-0">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-semibold text-white tracking-wide uppercase">
+                  {kind === 'explanation' ? 'Explanation Diagram' : 'Question Diagram'}
+                </span>
+                <span className="text-[11px] font-mono text-gray-400 px-2 py-0.5 bg-white/10 rounded">
+                  {Math.round(zoomLevel * 100)}%
+                </span>
+              </div>
+
+              <div className="flex items-center gap-1 sm:gap-2">
+                {/* Zoom Out */}
+                <button
+                  type="button"
+                  onClick={() => setZoomLevel((prev) => Math.max(prev - 0.5, 1))}
+                  disabled={zoomLevel <= 1}
+                  className="min-w-[44px] min-h-[44px] flex items-center justify-center text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                  title="Zoom Out (-)"
+                  aria-label="Zoom out"
+                >
+                  <ZoomOut className="w-4 h-4" />
+                </button>
+
+                {/* Reset Zoom */}
+                <button
+                  type="button"
+                  onClick={() => setZoomLevel(1)}
+                  className="min-w-[44px] min-h-[44px] flex items-center justify-center text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                  title="Reset Zoom (1:1)"
+                  aria-label="Reset zoom"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                </button>
+
+                {/* Zoom In */}
+                <button
+                  type="button"
+                  onClick={() => setZoomLevel((prev) => Math.min(prev + 0.5, 3))}
+                  disabled={zoomLevel >= 3}
+                  className="min-w-[44px] min-h-[44px] flex items-center justify-center text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                  title="Zoom In (+)"
+                  aria-label="Zoom in"
+                >
+                  <ZoomIn className="w-4 h-4" />
+                </button>
+
+                <div className="w-px h-5 bg-white/20 mx-1"></div>
+
+                {/* Open High-Res in New Window */}
+                <a
+                  href={rawUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="min-w-[44px] min-h-[44px] flex items-center justify-center text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                  title="Open high-resolution original"
+                  aria-label="Open high-resolution original"
+                >
+                  <ExternalLink className="w-4 h-4" />
+                </a>
+
+                {/* Close Lightbox */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsLightboxOpen(false);
+                    setZoomLevel(1);
+                  }}
+                  className="min-w-[44px] min-h-[44px] flex items-center justify-center text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition-colors ml-1"
+                  title="Close (Esc)"
+                  aria-label="Close diagram view"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
             </div>
 
-            <div className="flex items-center gap-2">
-              {/* Zoom Out */}
-              <button
-                type="button"
-                onClick={() => setZoomLevel((prev) => Math.max(prev - 0.5, 1))}
-                disabled={zoomLevel <= 1}
-                className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                title="Zoom Out (-)"
-              >
-                <ZoomOut className="w-4 h-4" />
-              </button>
-
-              {/* Reset Zoom */}
-              <button
-                type="button"
-                onClick={() => setZoomLevel(1)}
-                className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
-                title="Reset Zoom (1:1)"
-              >
-                <RotateCcw className="w-4 h-4" />
-              </button>
-
-              {/* Zoom In */}
-              <button
-                type="button"
-                onClick={() => setZoomLevel((prev) => Math.min(prev + 0.5, 3))}
-                disabled={zoomLevel >= 3}
-                className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                title="Zoom In (+)"
-              >
-                <ZoomIn className="w-4 h-4" />
-              </button>
-
-              <div className="w-px h-5 bg-white/20 mx-1"></div>
-
-              {/* Open High-Res in New Window */}
-              <a
-                href={rawUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
-                title="Open high-resolution original"
-              >
-                <ExternalLink className="w-4 h-4" />
-              </a>
-
-              {/* Close Lightbox */}
-              <button
-                type="button"
-                onClick={() => {
+            {/* Lightbox Canvas Area */}
+            <div
+              className="flex-1 overflow-auto flex items-center justify-center p-4 select-none cursor-grab active:cursor-grabbing"
+              onClick={(e) => {
+                if (e.target === e.currentTarget) {
                   setIsLightboxOpen(false);
                   setZoomLevel(1);
-                }}
-                className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition-colors ml-1"
-                title="Close (Esc)"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-          </div>
-
-          {/* Lightbox Canvas Area */}
-          <div
-            className="flex-1 overflow-auto flex items-center justify-center p-4 select-none cursor-grab active:cursor-grabbing"
-            onClick={(e) => {
-              if (e.target === e.currentTarget) {
-                setIsLightboxOpen(false);
-                setZoomLevel(1);
-              }
-            }}
-          >
-            <div
-              className="relative max-w-full max-h-full flex items-center justify-center transition-transform duration-200 ease-out"
-              style={{
-                transform: `scale(${zoomLevel})`,
-                transformOrigin: 'center center'
+                }
               }}
-              onClick={(e) => e.stopPropagation()}
             >
-              <img
-                src={rawUrl}
-                alt={`Full-resolution ${kind} diagram`}
-                className="max-h-[82vh] max-w-[90vw] object-contain rounded-lg shadow-2xl"
-              />
+              <div
+                className="relative max-w-full max-h-full flex items-center justify-center transition-transform duration-200 ease-out"
+                style={{
+                  transform: `scale(${zoomLevel})`,
+                  transformOrigin: 'center center'
+                }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <img
+                  src={rawUrl}
+                  alt={`Full-resolution ${kind} diagram`}
+                  className="max-h-[82vh] max-w-[90vw] object-contain rounded-lg shadow-2xl"
+                />
+              </div>
             </div>
-          </div>
 
-          {/* Lightbox Footer Guidance */}
-          <div className="py-2 text-center text-xs text-gray-400 bg-black/40 border-t border-white/5 shrink-0">
-            Use pinch or +/- buttons to inspect fine diagram labels • Press Esc to exit
-          </div>
-        </div>,
-        document.body
-      )}
+            {/* Lightbox Footer Guidance */}
+            <div className="py-2 text-center text-xs text-gray-400 bg-black/40 border-t border-white/5 shrink-0">
+              Use pinch or +/- buttons to inspect fine diagram labels • Press Esc to exit
+            </div>
+          </>
+        )}
+      </NativeDialog>
     </div>
   );
 };

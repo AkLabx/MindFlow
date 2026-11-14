@@ -1,7 +1,8 @@
-import React, { useState, useMemo } from 'react';
+import React, { useId, useMemo, useState } from 'react';
 import { X, Search, ArrowUpDown } from 'lucide-react';
 import type { ShiftDirectoryItem } from '../../hooks/useShiftAverages';
 import { formatMarks, formatIndianNumber } from '../../utils/format';
+import { NativeDialog } from '@/components/ui/NativeDialog';
 
 interface AllShiftsSlideOverProps {
   isOpen: boolean;
@@ -16,6 +17,7 @@ export const AllShiftsSlideOver: React.FC<AllShiftsSlideOverProps> = ({
   shifts,
   userShiftCode,
 }) => {
+  const titleId = useId();
   const [searchTerm, setSearchTerm] = useState('');
   const [sortOrder, setSortOrder] = useState<'hardest' | 'easiest'>('hardest');
 
@@ -38,34 +40,34 @@ export const AllShiftsSlideOver: React.FC<AllShiftsSlideOverProps> = ({
     return result;
   }, [shifts, searchTerm, sortOrder]);
 
-  if (!isOpen) return null;
-
   return (
-    <div
-      className="fixed inset-0 z-50 overflow-hidden bg-black/50 backdrop-blur-sm flex justify-end transition-opacity"
-      role="dialog"
-      aria-modal="true"
-      aria-label="All Shifts Directory"
+    <NativeDialog
+      isOpen={isOpen}
+      onClose={onClose}
+      variant="drawer-right"
+      ariaLabelledBy={titleId}
+      className="max-w-md"
+      panelClassName="w-full h-full bg-white dark:bg-card-dark shadow-2xl flex flex-col"
     >
-      <div className="w-full max-w-md bg-white dark:bg-card-dark h-full shadow-2xl flex flex-col z-10 animate-slide-left">
-        {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-white/10">
-          <div>
-            <h3 className="text-base font-bold text-slate-900 dark:text-white">
-              All Shifts Directory
-            </h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              {shifts.length} shifts ranked by average difficulty
-            </p>
-          </div>
-          <button
-            onClick={onClose}
-            className="p-2 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 transition-colors"
-            aria-label="Close sheet"
-          >
-            <X className="w-5 h-5" />
-          </button>
+      {/* Header */}
+      <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-white/10">
+        <div>
+          <h3 id={titleId} className="text-base font-bold text-slate-900 dark:text-white">
+            All Shifts Directory
+          </h3>
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            {shifts.length} shifts ranked by average difficulty
+          </p>
         </div>
+        <button
+          type="button"
+          onClick={onClose}
+          className="min-w-[44px] min-h-[44px] -mr-2 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 transition-colors"
+          aria-label="Close sheet"
+        >
+          <X className="w-5 h-5" />
+        </button>
+      </div>
 
         {/* Filter and Search Bar */}
         <div className="p-4 border-b border-slate-200 dark:border-white/10 flex gap-2">
@@ -129,7 +131,6 @@ export const AllShiftsSlideOver: React.FC<AllShiftsSlideOverProps> = ({
             );
           })}
         </div>
-      </div>
-    </div>
+    </NativeDialog>
   );
 };

@@ -13,6 +13,7 @@ import { APP_CONFIG } from '../../../constants/config';
 import { useMockSessionTimer } from '../hooks/useMockSessionTimer';
 import { useAntiCheat } from '../hooks/useAntiCheat';
 import { quizEngine } from '../engine';
+import { NativeDialog } from '../../../components/ui/NativeDialog';
 
 interface MockSessionProps {
     questions: Question[];
@@ -280,29 +281,32 @@ export const MockSession: React.FC<MockSessionProps> = ({ questions, initialTime
                             mode="mock"
                             onReorderQuestions={reorderActiveQuestions}
                         />
-                        {showConfirmModal && (
-                            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
-                                <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-sm p-6 text-center scale-100 animate-in zoom-in-95 duration-200">
-                                    <div className={cn(
-                                        "w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4",
-                                        questions.length - attemptedCount > 0 ? "bg-amber-100 text-amber-600" : "bg-green-100 text-green-600"
-                                    )}>
-                                        {questions.length - attemptedCount > 0 ? <AlertTriangle className="w-8 h-8" /> : <CheckCircle className="w-8 h-8" />}
-                                    </div>
-
-                                    <h2 className="text-xl font-bold text-gray-900 dark:text-white dark:text-white mb-2">Submit Test?</h2>
-
-                                    <div className="text-gray-600 dark:text-gray-300 mb-6 space-y-1">
-                                        <p>You have attempted <span className="font-bold text-indigo-600">{attemptedCount}</span> out of <span className="font-bold">{questions.length}</span> questions.</p>
-                                    </div>
-
-                                    <div className="grid grid-cols-2 gap-3">
-                                        <Button variant="outline" onClick={() => setShowConfirmModal(false)}>Keep Playing</Button>
-                                        <Button className="bg-amber-500 hover:bg-amber-600 text-white" onClick={finishSession}>Submit</Button>
-                                    </div>
-                                </div>
+                        <NativeDialog
+                            isOpen={showConfirmModal}
+                            onClose={() => setShowConfirmModal(false)}
+                            role="alertdialog"
+                            ariaLabelledBy="mock-submit-title"
+                            className="max-w-sm"
+                            panelClassName="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full p-6 text-center"
+                        >
+                            <div className={cn(
+                                "w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4",
+                                questions.length - attemptedCount > 0 ? "bg-amber-100 text-amber-600" : "bg-green-100 text-green-600"
+                            )}>
+                                {questions.length - attemptedCount > 0 ? <AlertTriangle className="w-8 h-8" /> : <CheckCircle className="w-8 h-8" />}
                             </div>
-                        )}
+
+                            <h2 id="mock-submit-title" className="text-xl font-bold text-gray-900 dark:text-white mb-2">Submit Test?</h2>
+
+                            <div className="text-gray-600 dark:text-gray-300 mb-6 space-y-1">
+                                <p>You have attempted <span className="font-bold text-indigo-600">{attemptedCount}</span> out of <span className="font-bold">{questions.length}</span> questions.</p>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-3">
+                                <Button variant="outline" className="min-h-[44px]" onClick={() => setShowConfirmModal(false)}>Keep Playing</Button>
+                                <Button className="min-h-[44px] bg-amber-500 hover:bg-amber-600 text-white" onClick={finishSession}>Submit</Button>
+                            </div>
+                        </NativeDialog>
                     </>
                 }
             >

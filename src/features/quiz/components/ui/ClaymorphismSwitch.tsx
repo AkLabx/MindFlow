@@ -3,14 +3,16 @@ import { cn } from '../../../../utils/cn';
 import './ClaymorphismSwitch.css'; // Extracting styles to a CSS file to avoid clutter
 
 interface ClaymorphismSwitchProps {
+    id?: string;
     checked: boolean;
     onChange: () => void;
     className?: string;
 }
 
-export function ClaymorphismSwitch({ checked, onChange, className }: ClaymorphismSwitchProps) {
+export function ClaymorphismSwitch({ id, checked, onChange, className }: ClaymorphismSwitchProps) {
     return (
         <button
+            id={id}
             type="button"
             role="switch"
             aria-checked={checked}

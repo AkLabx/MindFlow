@@ -1,5 +1,5 @@
-import React, { useEffect, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React from 'react';
+import { NativeDialog } from '@/components/ui/NativeDialog';
 import { X, Shield, FileText, CheckCircle2 } from 'lucide-react';
 import { triggerHaptic } from '@/lib/haptics';
 
@@ -14,55 +14,26 @@ export const AuthLegalModal: React.FC<AuthLegalModalProps> = ({
   type,
   onClose
 }) => {
-  const modalRef = useRef<HTMLDivElement>(null);
-
   const handleClose = () => {
     triggerHaptic('light');
     onClose();
   };
 
-  // Close on Escape key press
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen) {
-        handleClose();
-      }
-    };
-    if (isOpen) {
-      window.addEventListener('keydown', handleKeyDown);
-      document.body.style.overflow = 'hidden';
-    }
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-      document.body.style.overflow = '';
-    };
-  }, [isOpen]);
-
   const isTerms = type === 'terms';
 
   return (
-    <AnimatePresence>
-      {isOpen && type && (
-        <div
-          className="fixed inset-0 z-[10060] flex items-end sm:items-center justify-center p-0 sm:p-6 bg-slate-950/70 backdrop-blur-sm"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="legal-modal-title"
-          onClick={handleClose}
-        >
-          <motion.div
-            ref={modalRef}
-            initial={{ y: '100%', opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: '100%', opacity: 0 }}
-            transition={{ type: 'spring', damping: 28, stiffness: 320 }}
-            className="relative w-full max-w-2xl max-h-[88vh] sm:max-h-[85vh] flex flex-col bg-white dark:bg-slate-900 border-t sm:border border-slate-200 dark:border-slate-800 rounded-t-3xl sm:rounded-2xl shadow-2xl overflow-hidden pb-[env(safe-area-inset-bottom,0px)]"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Android Drag Handle Pill on Mobile */}
-            <div className="sm:hidden pt-3 pb-1 flex justify-center w-full shrink-0 select-none">
-              <div className="w-12 h-1.5 rounded-full bg-slate-300 dark:bg-slate-700" />
-            </div>
+    <NativeDialog
+      isOpen={isOpen && !!type}
+      onClose={handleClose}
+      variant="bottom-sheet"
+      ariaLabelledBy="legal-modal-title"
+      className="sm:my-auto sm:p-6 max-w-2xl"
+      panelClassName="relative w-full max-h-[88dvh] sm:max-h-[85dvh] flex flex-col bg-white dark:bg-slate-900 border-t sm:border border-slate-200 dark:border-slate-800 rounded-t-3xl sm:rounded-2xl shadow-2xl overflow-hidden pb-[env(safe-area-inset-bottom,0px)]"
+    >
+      {/* Android Drag Handle Pill on Mobile */}
+      <div className="sm:hidden pt-3 pb-1 flex justify-center w-full shrink-0 select-none">
+        <div className="w-12 h-1.5 rounded-full bg-slate-300 dark:bg-slate-700" />
+      </div>
 
             {/* Header */}
             <div className="flex items-center justify-between px-5 sm:px-6 py-3.5 sm:py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/70 select-none">
@@ -212,9 +183,6 @@ export const AuthLegalModal: React.FC<AuthLegalModalProps> = ({
             I Understand
           </button>
         </div>
-      </motion.div>
-    </div>
-      )}
-    </AnimatePresence>
+    </NativeDialog>
   );
 };

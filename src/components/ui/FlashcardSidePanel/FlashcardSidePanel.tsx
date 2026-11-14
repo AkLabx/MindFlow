@@ -1,9 +1,9 @@
 import { LearningStatus, getLearningStatusColor } from '../../../utils/learning/statusColors';
-import React, { useState, useEffect } from 'react';
-import { createPortal } from 'react-dom';
+import React, { useState, useEffect, useId } from 'react';
 import { X, ChevronDown, ChevronRight, Map, ArrowDown, Loader2, ListFilter, Download, FileText, FileJson } from 'lucide-react';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { cn } from '../../../utils/cn';
+import { NativeDialog } from '../NativeDialog';
 
 export type PanelThemeColor = 'teal' | 'amber' | 'blue';
 
@@ -150,7 +150,8 @@ export function FlashcardSidePanel<T>({
     }
   }, [isOpen, currentIndex, chunkSize]);
 
-  if (!isOpen) return null;
+  const titleId = useId();
+  const [portalContainer, setPortalContainer] = useState<HTMLDivElement | null>(null);
 
   const totalChunks = Math.ceil(data.length / chunkSize);
   const theme = themeClasses[themeColor];
@@ -173,14 +174,16 @@ export function FlashcardSidePanel<T>({
     }
   };
 
-  return createPortal(
-    <>
-      <div
-        className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[60] animate-in fade-in duration-300"
-        onClick={onClose}
-      />
-
-      <div className="fixed top-0 right-0 h-full w-80 bg-white dark:bg-gray-800 shadow-2xl z-[70] flex flex-col border-l border-gray-200 dark:border-gray-700 animate-in slide-in-from-right duration-300">
+  return (
+    <NativeDialog
+      isOpen={isOpen}
+      onClose={onClose}
+      variant="drawer-right"
+      ariaLabelledBy={titleId}
+      className="max-w-xs sm:w-80"
+      panelClassName="h-full w-full bg-white dark:bg-gray-800 shadow-2xl flex flex-col border-l border-gray-200 dark:border-gray-700"
+    >
+      <div ref={setPortalContainer} className="flex flex-col h-full w-full overflow-hidden">
         <div className={cn("p-5 border-b space-y-3", theme.header)}>
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-3">
@@ -188,11 +191,15 @@ export function FlashcardSidePanel<T>({
                 <Map className="w-5 h-5" />
               </div>
               <div>
-                <h2 className={cn("font-bold leading-tight", theme.title)}>{title}</h2>
+                <h2 id={titleId} className={cn("font-bold leading-tight", theme.title)}>{title}</h2>
                 <p className={cn("text-xs font-medium", theme.subtitle)}>{data.length} {totalLabel}</p>
               </div>
             </div>
-            <button onClick={onClose} className={cn("p-2 rounded-full transition-colors", theme.closeBtn)}>
+            <button
+              onClick={onClose}
+              aria-label="Close map"
+              className={cn("p-2 min-w-[44px] min-h-[44px] -mr-2 flex items-center justify-center rounded-full transition-colors", theme.closeBtn)}
+            >
               <X className="w-5 h-5" />
             </button>
           </div>
@@ -274,7 +281,7 @@ export function FlashcardSidePanel<T>({
                               )}
                            </button>
                          </DropdownMenu.Trigger>
-                         <DropdownMenu.Portal>
+                         <DropdownMenu.Portal container={portalContainer}>
                            <DropdownMenu.Content
                              onClick={(e) => e.stopPropagation()}
                              onPointerDown={(e) => e.stopPropagation()}
@@ -326,7 +333,6 @@ export function FlashcardSidePanel<T>({
           })}
         </div>
       </div>
-    </>,
-    document.body
+    </NativeDialog>
   );
 }

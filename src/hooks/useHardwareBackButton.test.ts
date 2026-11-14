@@ -1,8 +1,8 @@
 /**
  * @vitest-environment jsdom
  */
-import { describe, it, expect } from 'vitest';
-import { resolveHardwareBackTarget } from './useHardwareBackButton';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { resolveHardwareBackTarget, dismissTopmostOverlay } from './useHardwareBackButton';
 
 describe('resolveHardwareBackTarget (Phase 9 Hierarchical Back Navigation)', () => {
   it('routes /quiz/subject/:name/topics back to /quiz/subject/:name', () => {
@@ -69,5 +69,65 @@ describe('resolveHardwareBackTarget (Phase 9 Hierarchical Back Navigation)', () 
     expect(resolveHardwareBackTarget('/quiz/session/learning/123')).toBe('/dashboard');
     expect(resolveHardwareBackTarget('/quiz/subject/Polity')).toBe('/dashboard');
     expect(resolveHardwareBackTarget('/unknown-deep-link')).toBe('/dashboard');
+  });
+});
+
+describe('dismissTopmostOverlay (LIFO Top Layer Priority)', () => {
+  beforeEach(() => {
+    document.body.innerHTML = '';
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    document.body.innerHTML = '';
+  });
+
+  it('closes only the topmost open <dialog> when multiple dialogs are stacked', () => {
+    const baseDialog = document.createElement('dialog');
+    const confirmDialog = document.createElement('dialog');
+    baseDialog.setAttribute('open', '');
+    confirmDialog.setAttribute('open', '');
+    baseDialog.close = vi.fn(() => baseDialog.removeAttribute('open'));
+    confirmDialog.close = vi.fn(() => confirmDialog.removeAttribute('open'));
+
+    document.body.append(baseDialog, confirmDialog);
+
+    const handled = dismissTopmostOverlay(document);
+    expect(handled).toBe(true);
+    expect(confirmDialog.close).toHaveBeenCalledTimes(1);
+    expect(baseDialog.close).not.toHaveBeenCalled();
+    expect(baseDialog.hasAttribute('open')).toBe(true);
+  });
+
+  it('respects cancel event preventDefault() for non-dismissible or dirty dialogs', () => {
+    const dirtyDialog = document.createElement('dialog');
+    dirtyDialog.setAttribute('open', '');
+    dirtyDialog.close = vi.fn();
+    dirtyDialog.addEventListener('cancel', (e) => e.preventDefault());
+    document.body.appendChild(dirtyDialog);
+
+    const handled = dismissTopmostOverlay(document);
+    expect(handled).toBe(true);
+    expect(dirtyDialog.close).not.toHaveBeenCalled();
+    expect(dirtyDialog.hasAttribute('open')).toBe(true);
+  });
+
+  it('dispatches synthetic Escape fallback for legacy role=dialog or alertdialog overlays', () => {
+    const legacy = document.createElement('div');
+    legacy.setAttribute('role', 'alertdialog');
+    document.body.appendChild(legacy);
+
+    const keyListener = vi.fn();
+    document.addEventListener('keydown', keyListener);
+
+    const handled = dismissTopmostOverlay(document);
+    expect(handled).toBe(true);
+    expect(keyListener).toHaveBeenCalledTimes(1);
+    expect((keyListener.mock.calls[0][0] as KeyboardEvent).key).toBe('Escape');
+    document.removeEventListener('keydown', keyListener);
+  });
+
+  it('returns false when no overlays are open', () => {
+    expect(dismissTopmostOverlay(document)).toBe(false);
   });
 });

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useId } from 'react';
 import {
   X,
   Sparkles,
@@ -13,6 +13,7 @@ import {
   Flame
 } from 'lucide-react';
 import { useExamReadiness } from '../hooks/useExamReadiness';
+import { NativeDialog } from '@/components/ui/NativeDialog';
 
 interface AIStudyPlannerModalProps {
   isOpen: boolean;
@@ -23,6 +24,7 @@ export const AIStudyPlannerModal: React.FC<AIStudyPlannerModalProps> = ({
   isOpen,
   onClose,
 }) => {
+  const titleId = useId();
   const {
     isLoading,
     activeExam,
@@ -37,38 +39,42 @@ export const AIStudyPlannerModal: React.FC<AIStudyPlannerModalProps> = ({
     launchRevisionDrill,
   } = useExamReadiness();
 
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
-      <div className="relative w-full max-w-lg bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col max-h-[90vh]">
-        {/* Header */}
-        <div className="p-5 sm:p-6 pb-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-500 to-orange-500 text-white flex items-center justify-center shadow-md shadow-amber-500/20">
-              <Calendar className="w-5 h-5" />
-            </div>
-            <div>
-              <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
-                AI Study Planner
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300 font-extrabold uppercase tracking-wide">
-                  Spaced Repetition
-                </span>
-              </h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                Predictive readiness & memory retention schedules
-              </p>
-            </div>
+    <NativeDialog
+      isOpen={isOpen}
+      onClose={onClose}
+      ariaLabelledBy={titleId}
+      className="max-w-lg"
+      panelClassName="relative w-full bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col max-h-[90dvh]"
+    >
+      {/* Header */}
+      <div className="p-5 sm:p-6 pb-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+        <div className="flex items-center gap-2.5">
+          <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-500 to-orange-500 text-white flex items-center justify-center shadow-md shadow-amber-500/20">
+            <Calendar className="w-5 h-5" />
           </div>
-
-          <button
-            onClick={onClose}
-            className="p-2 rounded-full text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-            aria-label="Close modal"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          <div>
+            <h3 id={titleId} className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+              AI Study Planner
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300 font-extrabold uppercase tracking-wide">
+                Spaced Repetition
+              </span>
+            </h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Predictive readiness & memory retention schedules
+            </p>
+          </div>
         </div>
+
+        <button
+          type="button"
+          onClick={onClose}
+          className="min-w-[44px] min-h-[44px] -mr-2 flex items-center justify-center rounded-full text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+          aria-label="Close modal"
+        >
+          <X className="w-5 h-5" />
+        </button>
+      </div>
 
         {/* Body */}
         <div className="p-5 sm:p-6 overflow-y-auto space-y-4">
@@ -184,18 +190,18 @@ export const AIStudyPlannerModal: React.FC<AIStudyPlannerModalProps> = ({
           </button>
           {revisionDueTopics.length > 0 && (
             <button
+              type="button"
               onClick={() => {
                 onClose();
                 launchRevisionDrill();
               }}
-              className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-600 hover:to-orange-600 text-white font-bold text-xs sm:text-sm shadow-md shadow-amber-500/25 flex items-center gap-2 active:scale-[0.98] transition-all cursor-pointer"
+              className="min-h-[44px] px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-600 hover:to-orange-600 text-white font-bold text-xs sm:text-sm shadow-md shadow-amber-500/25 flex items-center gap-2 active:scale-[0.98] transition-all cursor-pointer"
             >
               <span>Start All Due Revisions</span>
               <RotateCcw className="w-4 h-4" />
             </button>
           )}
         </div>
-      </div>
-    </div>
+    </NativeDialog>
   );
 };
