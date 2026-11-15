@@ -367,13 +367,14 @@ export const MistakeNotebookPage: React.FC = () => {
             {filteredQuestions.length > 0 ? (
               <div className="space-y-4">
                 {filteredQuestions.map((record, idx) => (
-                  <MistakeQuestionCard
-                    key={record.id || record.question_id}
-                    record={record}
-                    displayIndex={idx + 1}
-                    onStatusChange={handleStatusChange}
-                    onPracticeSolo={handlePracticeSolo}
-                  />
+                  <div key={record.id || record.question_id} className="cv-card-mistake">
+                    <MistakeQuestionCard
+                      record={record}
+                      displayIndex={idx + 1}
+                      onStatusChange={handleStatusChange}
+                      onPracticeSolo={handlePracticeSolo}
+                    />
+                  </div>
                 ))}
               </div>
             ) : (

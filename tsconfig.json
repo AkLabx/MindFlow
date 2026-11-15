@@ -54,6 +54,9 @@
   ],
   // Files/directories to exclude
   "exclude": [
-    "node_modules"
+    "node_modules",
+    "dist",
+    "src/archive",
+    "src/features/quiz/components/archive"
   ]
 }

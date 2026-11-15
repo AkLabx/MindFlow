@@ -1,7 +1,7 @@
 {
   "name": "mindflow-quiz",
   "private": true,
-  "version": "1.0.357",
+  "version": "1.0.362",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -35,7 +35,6 @@
     "@types/uuid": "^10.0.0",
     "date-fns": "^4.1.0",
     "dompurify": "^3.4.11",
-    "dotenv": "^17.3.1",
     "framer-motion": "^12.43.0",
     "jszip": "^3.10.1",
     "katex": "^0.16.38",
@@ -43,14 +42,12 @@
     "mammoth": "^1.12.0",
     "markdown-it": "^14.1.1",
     "pptxgenjs": "^4.0.1",
-    "protobufjs": "^8.2.0",
     "react": "^19.2.1",
     "react-dom": "^19.2.1",
     "react-easy-crop": "^5.5.5",
     "react-hot-toast": "^2.6.0",
     "react-icons": "^5.5.0",
     "react-intersection-observer": "^10.0.3",
-    "react-latex-next": "^3.0.0",
     "react-markdown": "^10.1.0",
     "react-router-dom": "^7.9.6",
     "react-syntax-highlighter": "^16.1.1",
@@ -63,7 +60,6 @@
     "three": "^0.174.0",
     "tus-js-client": "^4.3.1",
     "uuid": "^13.0.0",
-    "workbox-window": "^7.0.0",
     "zustand": "^5.0.11"
   },
   "devDependencies": {

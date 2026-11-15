@@ -39,8 +39,11 @@ export function useOptimizedFilterCounts({
                 validIds = new Set(categoryIds);
             } else {
                 const intersected = new Set<string>();
-                validIds.forEach(id => {
-                    if (categoryIds.has(id)) {
+                const [smaller, larger] = validIds.size <= categoryIds.size
+                    ? [validIds, categoryIds]
+                    : [categoryIds, validIds];
+                smaller.forEach(id => {
+                    if (larger.has(id)) {
                         intersected.add(id);
                     }
                 });
@@ -62,9 +65,12 @@ export function useOptimizedFilterCounts({
                 // No filters applied, count is just the size of the set
                 count = questionIds.size;
             } else {
-                // Intersect the option's IDs with the valid IDs
-                questionIds.forEach(id => {
-                    if (validQuestionIds.has(id)) {
+                // Intersect the option's IDs with the valid IDs by iterating the smaller Set
+                const [smaller, larger] = questionIds.size <= validQuestionIds.size
+                    ? [questionIds, validQuestionIds]
+                    : [validQuestionIds, questionIds];
+                smaller.forEach(id => {
+                    if (larger.has(id)) {
                         count++;
                     }
                 });

@@ -4,41 +4,47 @@ import { Question, InitialFilters, filterKeys, getQuestionValue } from '../types
 export type QuestionIndex = Record<string, Record<string, Set<string>>>;
 
 /**
+ * Builds an inverted index mapping for rapid filtering.
+ * Format: { subject: { "History": Set("id1", "id2"), ... }, ... }
+ */
+export function buildQuestionIndex(questions: Question[]): QuestionIndex {
+  const index: QuestionIndex = {};
+
+  // Initialize the structure for all filter keys
+  filterKeys.forEach(key => {
+    index[key] = {};
+  });
+
+  questions.forEach(question => {
+    filterKeys.forEach(key => {
+      const value = getQuestionValue(question, key as keyof InitialFilters);
+
+      if (Array.isArray(value)) {
+        value.forEach(v => {
+          if (!index[key][v]) {
+            index[key][v] = new Set();
+          }
+          index[key][v].add(question.id);
+        });
+      } else if (value !== undefined && value !== null) {
+        const strValue = String(value); // Ensure it's a string (e.g. year)
+        if (!index[key][strValue]) {
+          index[key][strValue] = new Set();
+        }
+        index[key][strValue].add(question.id);
+      }
+    });
+  });
+
+  return index;
+}
+
+/**
  * Hook to build an inverted index mapping for rapid filtering.
  * Format: { subject: { "History": Set("id1", "id2"), ... }, ... }
  */
 export function useQuestionIndex(questions: Question[]) {
-  return useMemo(() => {
-    const index: QuestionIndex = {};
-
-    // Initialize the structure for all filter keys
-    filterKeys.forEach(key => {
-      index[key] = {};
-    });
-
-    questions.forEach(question => {
-      filterKeys.forEach(key => {
-        const value = getQuestionValue(question, key as keyof InitialFilters);
-
-        if (Array.isArray(value)) {
-          value.forEach(v => {
-            if (!index[key][v]) {
-              index[key][v] = new Set();
-            }
-            index[key][v].add(question.id);
-          });
-        } else if (value !== undefined && value !== null) {
-          const strValue = String(value); // Ensure it's a string (e.g. year)
-          if (!index[key][strValue]) {
-            index[key][strValue] = new Set();
-          }
-          index[key][strValue].add(question.id);
-        }
-      });
-    });
-
-    return index;
-  }, [questions]);
+  return useMemo(() => buildQuestionIndex(questions), [questions]);
 }
 
 /**
@@ -71,8 +77,11 @@ export function filterQuestionsByIndex(
       activeIds = new Set(categoryIds);
     } else {
       const intersected = new Set<string>();
-      activeIds.forEach(id => {
-        if (categoryIds.has(id)) {
+      const [smaller, larger] = activeIds.size <= categoryIds.size
+        ? [activeIds, categoryIds]
+        : [categoryIds, activeIds];
+      smaller.forEach(id => {
+        if (larger.has(id)) {
           intersected.add(id);
         }
       });

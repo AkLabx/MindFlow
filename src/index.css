@@ -7,8 +7,17 @@
 
 /* Global Mobile Experience Optimizations */
 :root {
+  color-scheme: light;
+  --scrollbar-thumb: #64748b;
+  --scrollbar-track: transparent;
   /* Removes the blue flash when tapping on mobile */
   -webkit-tap-highlight-color: transparent;
+}
+
+.dark {
+  color-scheme: dark;
+  --scrollbar-thumb: #94a3b8;
+  --scrollbar-track: transparent;
 }
 
 body {
@@ -182,6 +191,26 @@ input, textarea, [contenteditable] {
 .scrollbar-hide {
   -ms-overflow-style: none;
   scrollbar-width: none;
+}
+
+/* Accessible thin scrollbar with dark/light contrast */
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+
+@supports not (scrollbar-color: auto) {
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: var(--scrollbar-track);
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background-color: var(--scrollbar-thumb);
+    border-radius: 9999px;
+  }
 }
 
 /* MWG Native Top-Layer Dialog & Anchored Popover Primitives */
@@ -460,5 +489,16 @@ input, textarea, [contenteditable] {
       transition: none !important;
       animation: none !important;
     }
+  }
+
+  /* Off-screen list rendering optimization (Baseline content-visibility) */
+  .cv-card-quiz {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 180px;
+  }
+
+  .cv-card-mistake {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 260px;
   }
 }

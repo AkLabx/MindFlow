@@ -753,7 +753,7 @@ export const OnboardingFlow: React.FC = () => {
                           }, 160);
                         }}
                         onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
+                          if (e.key === 'Enter' && !e.nativeEvent.isComposing && e.keyCode !== 229) {
                             e.preventDefault();
                             handleNextStep();
                           }

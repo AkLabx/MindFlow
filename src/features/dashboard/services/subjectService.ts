@@ -1,6 +1,7 @@
 import { supabase } from '@/lib/supabase';
 import { db } from '@/lib/db';
 import { Question } from '@/features/quiz/types';
+import { CanonicalExam, matchesCanonicalExam } from '../constants/examRegistry';
 
 export interface SubjectTopicsHierarchy {
   [topic: string]: Set<string>;
@@ -23,7 +24,7 @@ export const subjectService = {
    * Fetches the complete aggregated taxonomy (topics, subtopics, question counts)
    * using a 3-tier strategy: RAM -> Local IndexedDB -> Postgres Summary RPC.
    */
-  async fetchSubjectTaxonomy(subject: string): Promise<SubjectTaxonomy> {
+  async fetchSubjectTaxonomy(subject: string, activeExam?: CanonicalExam | null): Promise<SubjectTaxonomy> {
     if (!subject) {
       return { hierarchy: {}, counts: {}, totalQuestions: 0 };
     }
@@ -32,11 +33,17 @@ export const subjectService = {
     try {
       const cachedData = await db.getQuizMetadataCache();
       if (cachedData && cachedData.length > 0) {
-        const subjectQuestions = cachedData.filter(
+        const allSubjectQuestions = cachedData.filter(
           (q) => (q.subject ?? q.classification?.subject) === subject
         );
 
-        if (subjectQuestions.length > 0) {
+        if (allSubjectQuestions.length > 0) {
+          const subjectQuestions = activeExam
+            ? allSubjectQuestions.filter((q) =>
+                matchesCanonicalExam(activeExam, q.examName ?? q.sourceInfo?.examName)
+              )
+            : allSubjectQuestions;
+
           const hierarchy: Record<string, Set<string>> = {};
           const counts: Record<string, Record<string, number>> = {};
           let totalQuestions = 0;
@@ -75,82 +82,85 @@ export const subjectService = {
       console.warn('[subjectService] Local IndexedDB read warning:', err);
     }
 
-    // 2. Tier 2: Call Server Aggregation RPC (15ms, ~1.5 KB payload)
-    try {
-      const { data, error } = await supabase.rpc('get_subject_topics_summary', {
-        p_subject: subject,
-      });
+    // 2. Tier 2: Call Server Aggregation RPC (15ms, ~1.5 KB payload) when unfiltered by exam
+    if (!activeExam) {
+      try {
+        const { data, error } = await supabase.rpc('get_subject_topics_summary', {
+          p_subject: subject,
+        });
 
-      if (error) {
-        console.error('[subjectService] Error calling get_subject_topics_summary RPC:', error);
-        throw error;
-      }
-
-      if (!data || typeof data !== 'object') {
-        return { hierarchy: {}, counts: {}, totalQuestions: 0 };
-      }
-
-      const rawSummary = data as Record<
-        string,
-        { total?: number; subtopics?: Record<string, number> }
-      >;
-
-      const hierarchy: Record<string, string[]> = {};
-      const counts: Record<string, Record<string, number>> = {};
-      let totalQuestions = 0;
-
-      for (const [topic, info] of Object.entries(rawSummary)) {
-        const subMap = info.subtopics || {};
-        hierarchy[topic] = Object.keys(subMap).sort();
-        counts[topic] = subMap;
-        totalQuestions += info.total || 0;
-      }
-
-      return {
-        hierarchy,
-        counts,
-        totalQuestions,
-      };
-    } catch (rpcErr) {
-      console.error('[subjectService] RPC failed, falling back to REST query:', rpcErr);
-
-      // Fallback: PostgREST query if RPC fails
-      const { data, error } = await supabase
-        .from('questions')
-        .select('topic, subTopic')
-        .eq('subject', subject)
-        .is('deleted_at', null);
-
-      if (error) throw error;
-      if (!data) return { hierarchy: {}, counts: {}, totalQuestions: 0 };
-
-      const hierarchySets: Record<string, Set<string>> = {};
-      const counts: Record<string, Record<string, number>> = {};
-      let total = 0;
-
-      for (const row of data) {
-        if (!row.topic) continue;
-        const sub = row.subTopic || 'General';
-
-        if (!hierarchySets[row.topic]) {
-          hierarchySets[row.topic] = new Set<string>();
+        if (error) {
+          console.error('[subjectService] Error calling get_subject_topics_summary RPC:', error);
+          throw error;
         }
-        hierarchySets[row.topic].add(sub);
 
-        if (!counts[row.topic]) {
-          counts[row.topic] = {};
+        if (!data || typeof data !== 'object') {
+          return { hierarchy: {}, counts: {}, totalQuestions: 0 };
         }
-        counts[row.topic][sub] = (counts[row.topic][sub] || 0) + 1;
-        total++;
-      }
 
-      const hierarchy: Record<string, string[]> = {};
-      for (const [t, set] of Object.entries(hierarchySets)) {
-        hierarchy[t] = Array.from(set).sort();
-      }
+        const rawSummary = data as Record<
+          string,
+          { total?: number; subtopics?: Record<string, number> }
+        >;
 
-      return { hierarchy, counts, totalQuestions: total };
+        const hierarchy: Record<string, string[]> = {};
+        const counts: Record<string, Record<string, number>> = {};
+        let totalQuestions = 0;
+
+        for (const [topic, info] of Object.entries(rawSummary)) {
+          const subMap = info.subtopics || {};
+          hierarchy[topic] = Object.keys(subMap).sort();
+          counts[topic] = subMap;
+          totalQuestions += info.total || 0;
+        }
+
+        return {
+          hierarchy,
+          counts,
+          totalQuestions,
+        };
+      } catch (rpcErr) {
+        console.error('[subjectService] RPC failed, falling back to REST query:', rpcErr);
+      }
     }
+
+    // Filtered by activeExam or Fallback: PostgREST query
+    const { data, error } = await supabase
+      .from('questions')
+      .select('topic, subTopic, examName')
+      .eq('subject', subject)
+      .is('deleted_at', null);
+
+    if (error) throw error;
+    if (!data) return { hierarchy: {}, counts: {}, totalQuestions: 0 };
+
+    const hierarchySets: Record<string, Set<string>> = {};
+    const counts: Record<string, Record<string, number>> = {};
+    let total = 0;
+
+    for (const row of data) {
+      if (activeExam && !matchesCanonicalExam(activeExam, (row as any).examName)) continue;
+      if (!row.topic) continue;
+      const sub = row.subTopic || 'General';
+
+      if (!hierarchySets[row.topic]) {
+        hierarchySets[row.topic] = new Set<string>();
+      }
+      hierarchySets[row.topic].add(sub);
+
+      if (!counts[row.topic]) {
+        counts[row.topic] = {};
+      }
+      counts[row.topic][sub] = (counts[row.topic][sub] || 0) + 1;
+      total++;
+    }
+
+    const hierarchy: Record<string, string[]> = {};
+    for (const [t, set] of Object.entries(hierarchySets)) {
+      hierarchy[t] = Array.from(set).sort();
+    }
+
+    return { hierarchy, counts, totalQuestions: total };
   },
 
   /**
@@ -160,7 +170,8 @@ export const subjectService = {
   async fetchSubtopicMetadata(
     subject: string,
     topic: string,
-    subTopic: string
+    subTopic: string,
+    activeExam?: CanonicalExam | null
   ): Promise<Question[]> {
     // 1. Check local IndexedDB first
     try {
@@ -171,7 +182,8 @@ export const subjectService = {
             (q.subject ?? q.classification?.subject) === subject &&
             (q.topic ?? q.classification?.topic) === topic &&
             ((q.subTopic ?? q.classification?.subTopic) === subTopic ||
-              (subTopic === 'General' && !(q.subTopic ?? q.classification?.subTopic)))
+              (subTopic === 'General' && !(q.subTopic ?? q.classification?.subTopic))) &&
+            (!activeExam || matchesCanonicalExam(activeExam, q.examName ?? q.sourceInfo?.examName))
         );
         if (matched.length > 0) {
           return matched;
@@ -199,6 +211,7 @@ export const subjectService = {
       const mapped: Question[] = data.map((row: any) => ({
         id: row.id,
         v1_id: row.v1_id || '',
+        examName: row.examName || '',
         subject: row.subject,
         topic: row.topic,
         subTopic: row.subTopic,
@@ -229,7 +242,9 @@ export const subjectService = {
         console.warn('[subjectService] Failed to cache subtopic metadata in IDB:', e)
       );
 
-      return mapped;
+      return activeExam
+        ? mapped.filter((q) => matchesCanonicalExam(activeExam, q.examName ?? q.sourceInfo?.examName))
+        : mapped;
     } catch (err) {
       console.error('[subjectService] Subtopic metadata fetch error:', err);
       return [];

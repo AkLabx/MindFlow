@@ -1,7 +1,5 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
-import { Capacitor } from '@capacitor/core';
-import { App } from '@capacitor/app';
 import { ROUTES } from '@/config/routes';
 import { useLayoutStore } from '@/stores/useLayoutStore';
 import { triggerHaptic } from '@/lib/haptics';
@@ -124,23 +122,6 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
     }
     navigate(ROUTES.DASHBOARD || '/dashboard');
   }, [onBack, location.state, isFixedSubjectContext, fixedSubject, navigate]);
-
-  // Capacitor Android Hardware Back Button listener
-  useEffect(() => {
-    let backHandler: any;
-    if (Capacitor.isNativePlatform()) {
-      App.addListener('backButton', () => {
-        handleBack();
-      }).then((handle) => {
-        backHandler = handle;
-      });
-    }
-    return () => {
-      if (backHandler) {
-        backHandler.remove();
-      }
-    };
-  }, [handleBack]);
 
   useEffect(() => {
     const locState = location.state as any;

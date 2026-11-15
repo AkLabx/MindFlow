@@ -4,6 +4,7 @@ import { supabase } from '../../../lib/supabase';
 import { Question, InitialFilters, QuizMode, SavedQuiz } from '../types';
 import { APP_CONFIG } from '../../../constants/config';
 import { initialState } from '../stores/useQuizSessionStore';
+import { useSyncStore } from '../stores/useSyncStore';
 import { telemetry } from '../../../lib/telemetry';
 import { performanceTracker, PERF_BUDGETS } from '../../../lib/performance';
 
@@ -126,7 +127,7 @@ export const quizCreationService = {
         console.warn("Failed to cache quiz in local IndexedDB:", err);
       });
 
-      // 4. Atomic Cloud Persistence via single-transaction RPC (saved_quizzes + bridge_saved_quiz_questions)
+      // 4. Atomic Cloud Persistence via single-transaction RPC with offline queue fallback
       // Exclude heavy activeQuestions from remote state payload; questions are normalized in bridge_saved_quiz_questions
       const { activeQuestions, ...stateWithoutQuestions } = (newQuiz.state as any) || {};
       const bridgeData = newQuiz.questions.map((q, index) => ({
@@ -134,7 +135,7 @@ export const quizCreationService = {
         sort_order: index,
       }));
 
-      const { error: rpcError } = await supabase.rpc('create_quiz_session', {
+      const rpcPayload = {
         p_quiz_id: newQuiz.id,
         p_user_id: userId,
         p_name: newQuiz.name,
@@ -143,16 +144,30 @@ export const quizCreationService = {
         p_mode: newQuiz.mode,
         p_state: stateWithoutQuestions,
         p_questions: bridgeData,
-      });
+      };
 
-      if (rpcError) {
-        console.error('Error creating atomic quiz session via RPC:', rpcError);
-        // Roll back local IndexedDB entry so orphan sessions are not retained after server rejection
-        await db.deleteQuiz(newQuiz.id, { skipRemotePush: true }).catch(() => {});
-        performanceTracker.endMark('quiz_generation');
-        const error = 'Failed to save quiz to server. Please try again.';
-        telemetry.emit('quiz_generation_failed', { reason: error, filterIntersection: filters });
-        return { quizId: '', reused: false, error };
+      if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+        useSyncStore.getState().addEvent({
+          type: 'quiz_created',
+          payload: rpcPayload,
+        });
+      } else {
+        try {
+          const { error: rpcError } = await supabase.rpc('create_quiz_session', rpcPayload);
+          if (rpcError) {
+            console.warn('Error creating atomic quiz session via RPC; queued for offline sync:', rpcError);
+            useSyncStore.getState().addEvent({
+              type: 'quiz_created',
+              payload: rpcPayload,
+            });
+          }
+        } catch (rpcErr) {
+          console.warn('Network error creating atomic quiz session via RPC; queued for offline sync:', rpcErr);
+          useSyncStore.getState().addEvent({
+            type: 'quiz_created',
+            payload: rpcPayload,
+          });
+        }
       }
 
       queryClient.invalidateQueries({ queryKey: ['latest-paused-quiz'] });

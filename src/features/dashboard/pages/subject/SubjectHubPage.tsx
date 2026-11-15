@@ -1,8 +1,6 @@
 import React, { useEffect, useMemo } from "react";
 import { useLayoutStore } from "@/stores/useLayoutStore";
 import { useParams, useNavigate } from "react-router-dom";
-import { Capacitor } from "@capacitor/core";
-import { App } from "@capacitor/app";
 import { SlidersHorizontal, ListTree, Target } from "lucide-react";
 import { ROUTES } from "@/config/routes";
 import { queryClient } from "@/lib/queryClient";
@@ -27,23 +25,6 @@ export const SubjectHubPage: React.FC = () => {
     setHideGlobalHeader(true);
     return () => setHideGlobalHeader(false);
   }, [setHideGlobalHeader]);
-
-  // Capacitor Android Hardware Back Button listener (Logical Parent: Dashboard)
-  useEffect(() => {
-    let backHandler: any;
-    if (Capacitor.isNativePlatform()) {
-      App.addListener("backButton", () => {
-        navigate(ROUTES.DASHBOARD);
-      }).then((handle) => {
-        backHandler = handle;
-      });
-    }
-    return () => {
-      if (backHandler) {
-        backHandler.remove();
-      }
-    };
-  }, [navigate]);
 
   const decodedSubject = subjectName ? decodeURIComponent(subjectName) : "";
 

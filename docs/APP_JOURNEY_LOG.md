@@ -26,6 +26,81 @@ This document is the single source of truth for the evolution of the MindFlow ap
 
 ## 🚀 App Journey Changelog
 
+## [v1.0.362] - 15 November 2026, 10:43 AM IST
+
+**Executive Summary:** Completed Phase 5 INP filter calculation optimization, off-screen list rendering (`content-visibility: auto`), and Content-Security-Policy (`script-src`) hardening.
+
+### ⚡ Performance & Refactoring
+- **INP Set Intersection & Worker Optimization**: Updated `useOptimizedFilterCounts.ts` and `useQuestionIndex.ts` (`filterQuestionsByIndex`) to always iterate over the smaller `Set` (`smaller.size <= larger.size`), extracted and exported `buildQuestionIndex(questions)` in `src/features/quiz/hooks/useQuestionIndex.ts`, and upgraded `src/features/quiz/workers/filterWorker.ts` from a linear `cachedAllQuestions.filter(...)` scan to an inverted `Set` index (`cachedIndex`) built on `'INIT'`.
+- **Off-Screen List Rendering (`content-visibility: auto`)**: Added `.cv-card-quiz` (`content-visibility: auto; contain-intrinsic-size: auto 180px;`) and `.cv-card-mistake` (`content-visibility: auto; contain-intrinsic-size: auto 260px;`) in `src/index.css` (`@layer components`), and wrapped mapped card items in `src/features/quiz/components/SavedQuizzesList.tsx`, `src/features/quiz/components/AttemptedQuizzesList.tsx`, and `src/features/mistakes/pages/MistakeNotebookPage.tsx`.
+
+### 🔒 Security & Architecture
+- **CSP `script-src` Hardening**: Removed `'unsafe-eval'` from the `Content-Security-Policy` `<meta>` tag in `index.html` (`script-src 'self' 'unsafe-inline' blob:;`).
+
+**Impacted Scope:** `index.html`, `src/index.css`, `src/features/quiz/hooks/`, `src/features/quiz/workers/filterWorker.ts`, `src/features/quiz/components/`, `src/features/mistakes/pages/MistakeNotebookPage.tsx`.
+
+---
+
+## [v1.0.361] - 14 November 2026, 05:38 PM IST
+
+**Executive Summary:** Completed Phase 4 top-layer drawer listener cleanup, circular dependency decoupling between `db.ts` and `syncService.ts`, and modular extraction of `AppConfigHub.tsx` into 5 dedicated configuration panels.
+
+### ⚡ Performance & Refactoring
+- **Circular Dependency Decoupling (`db.ts <-> syncService.ts`)**: Extracted remote push and quiz deletion fallback logic into `syncService.pushEntityChange` and `syncService.deleteSavedQuizWithOfflineFallback` in `src/lib/syncService.ts`, replacing static `syncService` and `useSyncStore` imports in `src/lib/db.ts` with lazy dynamic `import('./syncService')`.
+- **`AppConfigHub.tsx` Modularization (1,057 lines -> 87 lines)**: Extracted `IntroConfigPanel.tsx`, `ThemeConfigPanel.tsx`, `BrandingConfigPanel.tsx`, `LoadingConfigPanel.tsx`, and `OnboardingConfigPanel.tsx` into `src/features/admin/app-config/components/` and bound accessible `htmlFor`/`id` attributes on `<select>` controls.
+- **Top-Layer Escape Consolidation**: Removed redundant `window.addEventListener('keydown', ...)` Escape listener from `src/features/admin/question-builder/components/QuestionPreviewDrawer.tsx` in favor of `RightDrawer` / `NativeDialog` Top-Layer dismissal.
+
+**Impacted Scope:** `package.json`, `docs/APP_JOURNEY_LOG.md`, `src/lib/db.ts`, `src/lib/syncService.ts`, `src/features/admin/question-builder/components/QuestionPreviewDrawer.tsx`, `src/features/admin/app-config/pages/AppConfigHub.tsx`, `src/features/admin/app-config/components/*`
+
+## [v1.0.360] - 14 November 2026, 05:20 PM IST
+
+**Executive Summary:** Completed Phase 3 offline-first persistence resilience and active target exam context enforcement—eliminating destructive offline quiz creation rollbacks and submission failures while scoping subject taxonomy and subtopic counts to the user's selected exam.
+
+### 🐛 Bug Fixes
+- **Offline-First Quiz Creation & Submission Queue**: Extended `SyncEvent['type']` in `useSyncStore.ts` with `'quiz_created'` and `'quiz_submitted'` and added RPC replay handlers in `syncService.ts` (`processEventQueue`). Removed the destructive `db.deleteQuiz` rollback in `quizCreationService.ts` when offline or when `create_quiz_session` RPC fails, and updated `useQuiz.ts` (`submitSessionResults`) to persist `historyRecord`, serializable `stateWithoutQuestions`, and `masteryService.recordInteractions` locally to IndexedDB before attempting `submit_quiz_session` RPC—queueing `'quiz_submitted'` on offline/network error instead of failing the session.
+- **Target Exam Context Enforcement in Subject Topics**: Updated `subjectService.ts` (`fetchSubjectTaxonomy` and `fetchSubtopicMetadata`) and `SubjectTopicsPage.tsx` to filter local IndexedDB metadata, cold-cache PostgREST fallback queries, and JIT subtopic fetches by `activeExam` via `matchesCanonicalExam`, and included `activeExam?.id` in the React Query key.
+
+### ⚡ Performance & Refactoring
+- **Singleton Question Metadata Memory Cache & Ownership Alignment**: Added a module-level `memoryMetadataCache` with a 5-minute delta check TTL (`DELTA_CHECK_TTL_MS`) in `useQuestionMetadata.ts` to eliminate redundant IndexedDB `getAll()` reads and background delta checks on warm mounts, and updated `stateOwnershipRegistry.ts` (`draft_quiz_filters.soleOwnerStore` to `useSessionStore + QuizConfig (sessionStorage)` and storage descriptions to `IndexedDB (idb)`).
+
+**Impacted Scope:** `package.json`, `docs/APP_JOURNEY_LOG.md`, `src/features/quiz/stores/useSyncStore.ts`, `src/lib/syncService.ts`, `src/features/quiz/services/quizCreationService.ts`, `src/features/quiz/hooks/useQuiz.ts`, `src/features/dashboard/services/subjectService.ts`, `src/features/dashboard/pages/subject/SubjectTopicsPage.tsx`, `src/features/quiz/hooks/useQuestionMetadata.ts`, `src/lib/state/stateOwnershipRegistry.ts`
+
+---
+
+## [v1.0.359] - 14 November 2026, 04:35 PM IST
+
+**Executive Summary:** Completed Phase 2 navigation consolidation, theme split-brain resolution, and IME/autofill hardening—unifying Android hardware back handling into a single controller while eliminating dark-mode FOUC and CSS injection risks.
+
+### 🐛 Bug Fixes
+- **Single-Controller Android Hardware Back Navigation**: Consolidated duplicate Capacitor `App.addListener('backButton')` listeners from `QuizConfig.tsx`, `LearningSession.tsx`, `SubjectHubPage.tsx`, and `SubjectTopicsPage.tsx` into `src/hooks/useHardwareBackButton.ts`. Preserved `location.state.returnTo`, `location.state.from`, and fixed-subject `ROUTES.SUBJECT.view(fixedSubject)` routing on `/quiz/config`, excluded the persistent `session-paused-overlay` dialog from generic top-layer dismissal, and ensured second-press Back on a paused quiz calls `quizStore.goHome()`.
+- **Theme Split-Brain & FOUC Elimination**: Removed hardcoded dark inline styles on `<html>` in `index.html`, added `<meta name="color-scheme" content="light dark" />` and a synchronous FOUC-prevention script reading `mindflow-settings`, synced `document.documentElement.style.colorScheme` in `useSettingsStore.ts`, and guarded `ThemeAndBrandingInjector.tsx` so remote default theme settings never overwrite an explicit local user dark-mode preference.
+
+### 🔒 Security & Architecture
+- **CSS Injection Prevention & Native Scrollbar / Form Hygiene**: Validated `primaryColor` against `^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$` and switched `<style id="mindflow-theme-styles">` injection from `.innerHTML` to `.textContent` in `ThemeAndBrandingInjector.tsx`. Added `.scrollbar-thin` with `scrollbar-width: thin` and `@supports` WebKit fallback in `src/index.css`, IME composition (`!e.nativeEvent.isComposing && e.keyCode !== 229`) guards in `OnboardingFlow.tsx` and `AdminEditQuestionModal.tsx`, and `autoComplete="new-password"` attributes in `SettingsPage.tsx`.
+
+**Impacted Scope:** `package.json`, `docs/APP_JOURNEY_LOG.md`, `index.html`, `src/index.css`, `src/hooks/useHardwareBackButton.ts`, `src/hooks/useHardwareBackButton.test.ts`, `src/stores/useSettingsStore.ts`, `src/providers/ThemeAndBrandingInjector.tsx`, `src/features/quiz/components/QuizConfig.tsx`, `src/features/quiz/learning/LearningSession.tsx`, `src/features/dashboard/pages/subject/SubjectHubPage.tsx`, `src/features/dashboard/pages/subject/SubjectTopicsPage.tsx`, `src/features/onboarding/pages/OnboardingFlow.tsx`, `src/features/admin/components/AdminEditQuestionModal.tsx`, `src/features/auth/components/SettingsPage.tsx`
+
+---
+
+## [v1.0.358] - 14 November 2026, 11:35 AM IST
+
+**Executive Summary:** Completed Phase 1 codebase hygiene, build isolation, and Vitest stabilization on Windows—removing confirmed orphaned files and unused dependencies while ensuring all 32 test suites pass reliably.
+
+### ⚡ Performance & Refactoring
+- **Orphaned Source Cleanup**: Deleted 16 confirmed Category A orphaned files in `src/` (`Synonym.html`, `questions.ts`, `starterDiagnosticQuestions.ts`, `validate_synonyms_data.js`, `validation_report.json`, `SynapticLoader.tsx`, `EnglishQuizHomePage.tsx`, `DownloadOptionsModal.tsx`, `KeyboardAwareSurface.tsx`, `audio-player.ts`, `audio-recorder.ts`, `useQuizSessionTimer.ts`, `TestEngineController.ts`, `useQueueControls.ts`, `useWordLineage.ts`, `cropImage.ts`) while strictly preserving raw vocabulary JSON datasets (`Synonym data.json`, `ows.json`, `idioms.json`) and Category B archives.
+- **Unused Dependency Pruning**: Removed 4 unused JS packages (`dotenv`, `protobufjs`, `react-latex-next`, `workbox-window`) from `package.json` while preserving `@capacitor/status-bar` (`^8.0.2`) for Capacitor Android builds.
+- **TypeScript Archive Isolation**: Updated `tsconfig.json` `"exclude"` to isolate `dist`, `src/archive`, and `src/features/quiz/components/archive` from active compilation while keeping unit tests typechecked.
+
+### 🐛 Bug Fixes
+- **Vitest Windows Stability & Assertion Alignment**: Configured `pool: 'forks'` in `vitest.config.ts` to eliminate Windows `pool: 'threads'` worker-startup timeouts, and updated stale `bg-green-50` / `border-green-500` / `bg-green-50/50` assertions in `src/features/quiz/components/QuizOption.test.tsx` to match `QuizOption.tsx`'s emerald styling (`bg-emerald-50`, `border-emerald-500`, `bg-emerald-50/60`).
+
+### 🔒 Security & Architecture
+- **Full Verification Passing**: Confirmed `npx tsc --noEmit` (`0` errors), `npx vite build`, and `npx vitest --run` (`32/32` test files, `189/189` tests passing) all succeed cleanly.
+
+**Impacted Scope:** `package.json`, `tsconfig.json`, `vitest.config.ts`, `src/features/quiz/components/QuizOption.test.tsx`, `src/` orphaned Category A files
+
+---
+
 ## [v1.0.357] - 14 November 2026, 07:50 AM IST
 
 **Executive Summary:** Completed all four phases of the Modern Web Guidance (MWG) Top-Layer Modal, Popover & Tooltip Modernization across shared UI primitives, student/quiz/vocab/community flows, and admin consoles without adding external npm dependencies.
