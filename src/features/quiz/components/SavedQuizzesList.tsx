@@ -458,16 +458,17 @@ export const SavedQuizzesList: React.FC<SavedQuizzesListProps> = ({ viewMode, se
                         )}
                         <div className={`grid gap-4 sm:gap-6 z-20 ${viewMode === 'list' ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'}`}>
                         {filteredQuizzes.map((quiz, index) => (
-                            <SavedQuizCard
-                                key={quiz.id}
-                                quiz={quiz}
-                                index={index}
-                                onResume={handleResume}
-                                onDelete={handleDelete}
-                                onEditName={(id, newName) => {
-                                    saveEditCard(id, newName);
-                                }}
-                            />
+                            <div key={quiz.id} className="cv-card-quiz">
+                                <SavedQuizCard
+                                    quiz={quiz}
+                                    index={index}
+                                    onResume={handleResume}
+                                    onDelete={handleDelete}
+                                    onEditName={(id, newName) => {
+                                        saveEditCard(id, newName);
+                                    }}
+                                />
+                            </div>
                         ))}
                         </div>
                     </motion.div>

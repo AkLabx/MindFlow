@@ -26,6 +26,21 @@ This document is the single source of truth for the evolution of the MindFlow ap
 
 ## 🚀 App Journey Changelog
 
+## [v1.0.362] - 15 November 2026, 10:43 AM IST
+
+**Executive Summary:** Completed Phase 5 INP filter calculation optimization, off-screen list rendering (`content-visibility: auto`), and Content-Security-Policy (`script-src`) hardening.
+
+### ⚡ Performance & Refactoring
+- **INP Set Intersection & Worker Optimization**: Updated `useOptimizedFilterCounts.ts` and `useQuestionIndex.ts` (`filterQuestionsByIndex`) to always iterate over the smaller `Set` (`smaller.size <= larger.size`), extracted and exported `buildQuestionIndex(questions)` in `src/features/quiz/hooks/useQuestionIndex.ts`, and upgraded `src/features/quiz/workers/filterWorker.ts` from a linear `cachedAllQuestions.filter(...)` scan to an inverted `Set` index (`cachedIndex`) built on `'INIT'`.
+- **Off-Screen List Rendering (`content-visibility: auto`)**: Added `.cv-card-quiz` (`content-visibility: auto; contain-intrinsic-size: auto 180px;`) and `.cv-card-mistake` (`content-visibility: auto; contain-intrinsic-size: auto 260px;`) in `src/index.css` (`@layer components`), and wrapped mapped card items in `src/features/quiz/components/SavedQuizzesList.tsx`, `src/features/quiz/components/AttemptedQuizzesList.tsx`, and `src/features/mistakes/pages/MistakeNotebookPage.tsx`.
+
+### 🔒 Security & Architecture
+- **CSP `script-src` Hardening**: Removed `'unsafe-eval'` from the `Content-Security-Policy` `<meta>` tag in `index.html` (`script-src 'self' 'unsafe-inline' blob:;`).
+
+**Impacted Scope:** `index.html`, `src/index.css`, `src/features/quiz/hooks/`, `src/features/quiz/workers/filterWorker.ts`, `src/features/quiz/components/`, `src/features/mistakes/pages/MistakeNotebookPage.tsx`.
+
+---
+
 ## [v1.0.361] - 14 November 2026, 05:38 PM IST
 
 **Executive Summary:** Completed Phase 4 top-layer drawer listener cleanup, circular dependency decoupling between `db.ts` and `syncService.ts`, and modular extraction of `AppConfigHub.tsx` into 5 dedicated configuration panels.

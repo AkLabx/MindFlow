@@ -490,4 +490,15 @@ input, textarea, [contenteditable] {
       animation: none !important;
     }
   }
+
+  /* Off-screen list rendering optimization (Baseline content-visibility) */
+  .cv-card-quiz {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 180px;
+  }
+
+  .cv-card-mistake {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 260px;
+  }
 }
