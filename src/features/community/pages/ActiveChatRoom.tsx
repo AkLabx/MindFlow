@@ -1,89 +1,170 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { cn } from '../../../utils/cn';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../../auth/context/AuthContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { fetchUserRooms, fetchMessages, sendMessage, uploadChatMedia, ChatRoom, ChatMessage } from '../api/chatApi';
+import {
+  fetchUserRooms,
+  fetchMessages,
+  sendMessage,
+  uploadChatMedia,
+  markMessagesAsRead,
+  toggleMessageLike,
+  ChatMessage,
+  ChatRoom,
+} from '../api/chatApi';
+import { chatCacheService } from '../services/chatCacheService';
 import { supabase } from '../../../lib/supabase';
 import { Virtuoso, VirtuosoHandle } from 'react-virtuoso';
-import { motion } from 'framer-motion';
-import { getCanonicalAvatarUrl } from '../../../utils/avatar';
 import { useSocialRealtime } from '../hooks/useSocialRealtime';
-import { PresenceAvatar } from '../../../components/ui/PresenceAvatar';
-import { PresenceDot } from '../../../components/ui/PresenceDot';
-import { Send, Image as ImageIcon, File, ArrowLeft } from 'lucide-react';
-import { ChatIntro } from './ChatIntro';
+import { usePresenceStore } from '../../../stores/usePresenceStore';
+import { WhatsAppTopBar } from '../components/chat/WhatsAppTopBar';
+import { WhatsAppWallpaper } from '../components/chat/WhatsAppWallpaper';
+import { WhatsAppInputBar } from '../components/chat/WhatsAppInputBar';
 import { ChatMessageItem } from './ChatMessageItem';
-import { ChatInputBar } from './ChatInputBar';
-import { Info, MoreVertical } from 'lucide-react';
-import { Menu, Transition } from '@headlessui/react';
-import { submitReport } from '../api/reportsApi';
+import { MediaLightbox } from '../components/chat/MediaLightbox';
 import { ReportModal } from '../components/reports/ReportModal';
 import { BlockUserPromptModal } from '../components/reports/BlockUserPromptModal';
-import { ShieldAlert } from 'lucide-react';
 import { checkBlockStatus, blockUser, unblockUser } from '../api/communityApi';
+import { submitReport } from '../api/reportsApi';
 import { useNotification } from '../../../hooks/useNotification';
-import { SynapticLoader } from '../../../components/ui/SynapticLoader';
-import { usePresenceStore } from '../../../stores/usePresenceStore';
+import { getCanonicalAvatarUrl } from '../../../utils/avatar';
 
 export const ActiveChatRoom: React.FC = () => {
   const { roomId } = useParams<{ roomId: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const virtuosoRef = useRef<VirtuosoHandle>(null);
+  const { showToast } = useNotification();
 
+  // Modals & Media State
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [isBlockPromptOpen, setIsBlockPromptOpen] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [replyingTo, setReplyingTo] = useState<ChatMessage | null>(null);
+  const [lightboxMedia, setLightboxMedia] = useState<{
+    url: string;
+    senderName?: string;
+    timestamp?: string;
+  } | null>(null);
 
-  const { data: rooms, isLoading: isRoomsLoading } = useQuery({
+  // Fetch Rooms
+  const { data: rooms } = useQuery({
     queryKey: ['chat-rooms', user?.id],
     queryFn: () => fetchUserRooms(user!.id),
     enabled: !!user,
   });
 
-  const room = rooms?.find(r => r.id === roomId) || { id: roomId!, type: 'direct' as const, created_at: '', updated_at: '' };
-  const onBack = () => navigate('/messages');
+  const room: ChatRoom = rooms?.find((r) => r.id === roomId) || {
+    id: roomId!,
+    type: 'direct',
+    created_at: '',
+    updated_at: '',
+  };
 
-  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
-  const [isBlockPromptOpen, setIsBlockPromptOpen] = useState(false);
+  const otherParticipant = room.participants?.find((p) => p.user_id !== user?.id);
 
-  const queryClient = useQueryClient();
-  const { sendTypingStatus } = useSocialRealtime();
+  // Realtime Events (Typing, Receipts)
+  const { isOtherUserTyping, sendTypingStatus, broadcastReceipt } = useSocialRealtime(room.id);
 
+  // Presence Store
+  const isOnline = usePresenceStore((state) =>
+    otherParticipant ? state.isUserOnline(otherParticipant.user_id) : false
+  );
 
-  const virtuosoRef = useRef<VirtuosoHandle>(null);
-
-
-  const [isUploading, setIsUploading] = useState(false);
-
-
-
+  // Messages Query with 0ms Offline-First Cache Pre-seeding
   const { data: messages, isLoading } = useQuery({
     queryKey: ['chat-messages', room.id],
     queryFn: () => fetchMessages(room.id),
+    staleTime: 1000 * 30, // 30s fresh window
   });
 
-  // Realtime subscription for incoming messages
+  // Hydrate from IndexedDB on initial mount if React Query cache is empty
   useEffect(() => {
-    const channel = supabase.channel(`room:${room.id}`)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_room_messages', filter: `room_id=eq.${room.id}` }, (payload) => {
-        const newMsg = payload.new as ChatMessage;
+    if (!messages && room.id) {
+      chatCacheService.getCachedMessages(room.id).then((cached) => {
+        if (cached && cached.length > 0) {
+          queryClient.setQueryData(['chat-messages', room.id], cached);
+        }
+      });
+    }
+  }, [room.id, messages, queryClient]);
 
-        // If we sent it, we already optimistic updated. We might need to reconcile id, but standard cache invalidation works.
-        if (newMsg.sender_id !== user?.id) {
+  // Mark unread incoming messages as read and broadcast receipt
+  useEffect(() => {
+    if (!messages || !user || !room.id) return;
+
+    const unreadIncoming = messages.filter(
+      (m) => m.sender_id !== user.id && !m.read_at && m.status !== 'read'
+    );
+
+    if (unreadIncoming.length > 0) {
+      const ids = unreadIncoming.map((m) => m.id);
+      markMessagesAsRead(room.id, ids);
+      broadcastReceipt('read', ids);
+
+      // Optimistically update local query cache
+      queryClient.setQueryData<ChatMessage[]>(['chat-messages', room.id], (old) => {
+        if (!old) return old;
+        return old.map((m) => (ids.includes(m.id) ? { ...m, status: 'read' } : m));
+      });
+    }
+  }, [messages, user, room.id, broadcastReceipt, queryClient]);
+
+  // Supabase Postgres Realtime Subscription for incoming new messages
+  useEffect(() => {
+    if (!room.id) return;
+
+    const channel = supabase
+      .channel(`room_messages:${room.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'chat_room_messages',
+          filter: `room_id=eq.${room.id}`,
+        },
+        (payload) => {
+          const newMsg = payload.new as ChatMessage;
+
+          if (newMsg.sender_id !== user?.id) {
+            const incoming: ChatMessage = {
+              ...newMsg,
+              status: 'delivered',
+            };
+
             queryClient.setQueryData<ChatMessage[]>(['chat-messages', room.id], (old) => {
-                if (!old) return [newMsg];
-                // avoid dupes
-                if (old.find(m => m.id === newMsg.id)) return old;
-                return [...old, { ...newMsg, status: 'sent' }];
+              if (!old) return [incoming];
+              if (old.some((m) => m.id === newMsg.id)) return old;
+              return [...old, incoming];
             });
 
+            // Automatically emit delivered receipt
+            broadcastReceipt('delivered', [newMsg.id]);
+
+            // Save to IndexedDB
+            chatCacheService.upsertCachedMessage(incoming);
+
+            // Scroll to bottom
+            setTimeout(() => {
+              virtuosoRef.current?.scrollToIndex({
+                index: 'LAST',
+                align: 'end',
+                behavior: 'smooth',
+              });
+            }, 100);
+          }
         }
-      })
+      )
       .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [room.id, queryClient, user]);
+  }, [room.id, queryClient, user, broadcastReceipt]);
 
+  // Send Message Mutation with Optimistic UI & Reconciled Cache
   const sendMutation = useMutation({
     mutationFn: (msg: Partial<ChatMessage>) => sendMessage(msg),
     onMutate: async (newMsg) => {
@@ -95,71 +176,102 @@ export const ActiveChatRoom: React.FC = () => {
         room_id: room.id,
         sender_id: user!.id,
         text_content: newMsg.text_content || '',
+        media_url: newMsg.media_url,
+        media_type: newMsg.media_type,
+        voice_duration: newMsg.voice_duration,
+        reply_to_id: newMsg.reply_to_id,
+        reply_to: replyingTo
+          ? {
+              id: replyingTo.id,
+              sender_id: replyingTo.sender_id,
+              sender_name: replyingTo.sender_id === user!.id ? 'You' : otherParticipant?.full_name || 'User',
+              text_content: replyingTo.text_content,
+              media_type: replyingTo.media_type,
+            }
+          : null,
         created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        status: 'sending'
+        status: 'sending',
       };
 
       queryClient.setQueryData<ChatMessage[]>(['chat-messages', room.id], (old) => {
         return old ? [...old, optimisticMsg] : [optimisticMsg];
       });
 
+      // Clear replying state
+      setReplyingTo(null);
 
+      // Scroll to bottom
+      setTimeout(() => {
+        virtuosoRef.current?.scrollToIndex({ index: 'LAST', align: 'end', behavior: 'smooth' });
+      }, 50);
 
       return { previousMessages, tempId: optimisticMsg.id };
     },
     onSuccess: (realMsg, variables, context) => {
-       queryClient.setQueryData<ChatMessage[]>(['chat-messages', room.id], (old) => {
-         if (!old) return [realMsg];
-         return old.map(m => m.id === context?.tempId ? { ...realMsg, status: 'sent' } : m);
-       });
+      queryClient.setQueryData<ChatMessage[]>(['chat-messages', room.id], (old) => {
+        if (!old) return [realMsg];
+        return old.map((m) =>
+          m.id === context?.tempId ? { ...realMsg, reply_to: m.reply_to, status: 'sent' } : m
+        );
+      });
     },
     onError: (err, newMsg, context) => {
       if (context?.previousMessages) {
         queryClient.setQueryData(['chat-messages', room.id], context.previousMessages);
       }
-    }
+      showToast({ title: 'Error', message: 'Failed to send message.', variant: 'error' });
+    },
   });
 
-
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>, type: 'image' | 'file') => {
-    const file = event.target.files?.[0];
-    if (!file || !user) return;
-
+  // Media Upload Handlers
+  const handleUploadMedia = async (fileOrBlob: File | Blob, type: 'image' | 'file') => {
+    if (!user) return;
     try {
       setIsUploading(true);
+      const ext = type === 'image' ? 'webp' : undefined;
+      const publicUrl = await uploadChatMedia(fileOrBlob, user.id, ext);
 
-      // Step A: Upload raw file to bucket
-      const publicUrl = await uploadChatMedia(file, user.id);
-
-      // Step B & C: Optimistic UI & Postgres Insert handled by sendMutation
       sendMutation.mutate({
         room_id: room.id,
         sender_id: user.id,
-        text_content: type === 'image' ? 'Sent an image' : 'Sent a file',
+        text_content: type === 'image' ? '' : 'Sent an attachment',
         media_url: publicUrl,
-        media_type: type
+        media_type: type,
+        reply_to_id: replyingTo?.id,
       });
-
-    } catch (error) {
-      console.error("Failed to upload media:", error);
-      // Fallback: Notify user of failure (could use toast here)
-      alert("Failed to upload media. Please try again.");
+    } catch (err) {
+      console.error('Failed to upload media:', err);
+      showToast({ title: 'Error', message: 'Failed to upload media.', variant: 'error' });
     } finally {
       setIsUploading(false);
-      // Reset input
-      event.target.value = '';
     }
   };
 
+  // Voice Note Upload Handler
+  const handleSendVoice = async (audioBlob: Blob, durationSecs: number) => {
+    if (!user) return;
+    try {
+      setIsUploading(true);
+      const publicUrl = await uploadChatMedia(audioBlob, user.id, 'webm');
 
+      sendMutation.mutate({
+        room_id: room.id,
+        sender_id: user.id,
+        text_content: '',
+        media_url: publicUrl,
+        media_type: 'voice',
+        voice_duration: durationSecs,
+        reply_to_id: replyingTo?.id,
+      });
+    } catch (err) {
+      console.error('Failed to upload voice note:', err);
+      showToast({ title: 'Error', message: 'Failed to send voice note.', variant: 'error' });
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
-
-
-
-  const { showToast } = useNotification();
-  const otherParticipant = room.participants?.find(p => p.user_id !== user?.id);
-
+  // Block & Report Mutations
   const { data: blockStatus, refetch: refetchBlockStatus } = useQuery({
     queryKey: ['blockStatus', user?.id, otherParticipant?.user_id],
     queryFn: () => checkBlockStatus(user!.id, otherParticipant!.user_id),
@@ -169,249 +281,139 @@ export const ActiveChatRoom: React.FC = () => {
   const blockMutation = useMutation({
     mutationFn: () => blockUser(user!.id, otherParticipant!.user_id),
     onSuccess: () => {
-      showToast({ title: 'User Blocked', message: 'You have blocked this user.', variant: 'success' });
+      showToast({ title: 'Contact Blocked', message: 'You have blocked this contact.', variant: 'success' });
       refetchBlockStatus();
     },
     onError: () => {
-      showToast({ title: 'Error', message: 'Failed to block user. Please try again.', variant: 'error' });
-    }
+      showToast({ title: 'Error', message: 'Failed to block contact.', variant: 'error' });
+    },
   });
 
   const unblockMutation = useMutation({
     mutationFn: () => unblockUser(user!.id, otherParticipant!.user_id),
     onSuccess: () => {
-      showToast({ title: 'User Unblocked', message: 'You have unblocked this user.', variant: 'success' });
+      showToast({ title: 'Contact Unblocked', message: 'Contact unblocked.', variant: 'success' });
       refetchBlockStatus();
     },
     onError: () => {
-      showToast({ title: 'Error', message: 'Failed to unblock user. Please try again.', variant: 'error' });
-    }
+      showToast({ title: 'Error', message: 'Failed to unblock contact.', variant: 'error' });
+    },
   });
-
 
   const reportMutation = useMutation({
-    mutationFn: (data: { reason: string, customNote: string }) => {
-        return submitReport({
-            target_id: otherParticipant!.user_id,
-            reporter_id: user!.id,
-            reason: data.reason,
-            custom_note: data.customNote,
-            evidence_data: {
-                id: otherParticipant!.user_id,
-                username: otherParticipant!.full_name || 'Unknown',
-                full_name: otherParticipant!.full_name || 'Unknown',
-                avatar_url: otherParticipant!.avatar_url,
-                bio: null // Not available in ChatRoom participants by default
-            }
-        });
-    },
+    mutationFn: (data: { reason: string; customNote: string }) =>
+      submitReport({
+        target_id: otherParticipant!.user_id,
+        reporter_id: user!.id,
+        reason: data.reason,
+        custom_note: data.customNote,
+        evidence_data: {
+          id: otherParticipant!.user_id,
+          username: otherParticipant!.full_name || 'User',
+          full_name: otherParticipant!.full_name || 'User',
+          avatar_url: otherParticipant!.avatar_url,
+          bio: null,
+        },
+      }),
     onSuccess: () => {
-        setIsReportModalOpen(false);
-        showToast({ title: 'Report Submitted', message: 'Thank you for keeping MindFlow safe. We are reviewing this.', variant: 'success' });
-        setIsBlockPromptOpen(true);
+      setIsReportModalOpen(false);
+      showToast({
+        title: 'Report Submitted',
+        message: 'Thank you for keeping MindFlow safe.',
+        variant: 'success',
+      });
+      setIsBlockPromptOpen(true);
     },
     onError: () => {
-        showToast({ title: 'Error', message: 'Failed to submit report. Please try again.', variant: 'error' });
-    }
+      showToast({ title: 'Error', message: 'Failed to submit report.', variant: 'error' });
+    },
   });
 
-  const title = room.type === 'direct' ? otherParticipant?.full_name || 'Unknown User' : 'Group Chat';
-
-  const isOnline = usePresenceStore(state => otherParticipant ? state.isUserOnline(otherParticipant.user_id) : false);
-
-  const formatTimeAgo = (dateString?: string) => {
-    if (!dateString) return 'Offline';
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-
-    if (diffInSeconds < 60) return 'Active just now';
-    if (diffInSeconds < 3600) return `Active ${Math.floor(diffInSeconds / 60)}m ago`;
-    if (diffInSeconds < 86400) return `Active ${Math.floor(diffInSeconds / 3600)}h ago`;
-
-    const diffInDays = Math.floor(diffInSeconds / 86400);
-    if (diffInDays === 1) return 'Active yesterday';
-    return `Active ${diffInDays}d ago`;
-  };
+  const handleScrollToMessage = useCallback(
+    (targetMessageId: string) => {
+      if (!messages) return;
+      const index = messages.findIndex((m) => m.id === targetMessageId);
+      if (index !== -1) {
+        virtuosoRef.current?.scrollToIndex({
+          index,
+          align: 'center',
+          behavior: 'smooth',
+        });
+      }
+    },
+    [messages]
+  );
 
   return (
-    <div className="flex flex-col flex-1 h-full w-full bg-white dark:bg-slate-950 md:relative md:min-h-[100dvh] md:max-w-3xl md:mx-auto md:border-x md:border-gray-100 md:dark:border-slate-800 md:shadow-sm">
-      {/* Header */}
-      <div className="flex items-center gap-2 px-3 py-2 bg-white/90 dark:bg-slate-950/90 backdrop-blur-xl border-b border-gray-200 dark:border-slate-800 sticky top-0 z-10">
-        <button onClick={onBack} className="p-2 -ml-2 rounded-full hover:bg-gray-100 dark:hover:bg-slate-800 text-gray-800 dark:text-slate-300" aria-label="Go back">
-          <ArrowLeft size={20} />
-        </button>
-        <div className="w-8 h-8 rounded-full overflow-hidden shadow-sm">
-             <PresenceAvatar
-                userId={otherParticipant?.user_id || ''}
-                avatarUrl={getCanonicalAvatarUrl(otherParticipant, null)}
-                altText={otherParticipant?.full_name || 'User'}
-                className="w-full h-full"
-             />
-        </div>
-        <div className="flex-1 overflow-hidden">
-            <div className="font-semibold text-gray-900 dark:text-slate-100 truncate flex items-center gap-2">
-              {title}
-              {room.type === 'direct' && otherParticipant?.user_id && (
-                <PresenceDot userId={otherParticipant.user_id} />
-              )}
-            </div>
-            {room.type === 'direct' && (
-              <div className="text-xs text-gray-500 dark:text-slate-400 truncate flex items-center gap-1">
-                {isOnline ? (
-                  <>
-                    <div className="w-2 h-2 bg-green-500 rounded-full" />
-                    <span className="text-green-600 font-medium">Active now</span>
-                  </>
-                ) : (
-                  <span>{formatTimeAgo(otherParticipant?.last_seen ?? undefined)}</span>
-                )}
-              </div>
-            )}
-        </div>
+    <div className="flex flex-col flex-1 h-[100dvh] w-full bg-[#EFEAE2] dark:bg-[#0B141A] relative md:max-w-2xl md:mx-auto md:border-x md:border-black/10 md:dark:border-white/10 md:shadow-xl overflow-hidden select-none">
+      {/* WhatsApp Doodle Wallpaper */}
+      <WhatsAppWallpaper />
 
-        <Menu as="div" className="relative">
-            <Menu.Button
-                aria-label="Conversation options"
-                className="p-2 min-w-[44px] min-h-[44px] -mr-2 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-slate-800 text-gray-800 dark:text-slate-300 focus:outline-none"
-            >
-                <Info size={24} strokeWidth={1.5} />
-            </Menu.Button>
-            <Transition
-                as={React.Fragment}
-                enter="transition ease-out duration-100"
-                enterFrom="transform opacity-0 scale-95"
-                enterTo="transform opacity-100 scale-100"
-                leave="transition ease-in duration-75"
-                leaveFrom="transform opacity-100 scale-100"
-                leaveTo="transform opacity-0 scale-95"
-            >
-                <Menu.Items anchor={{ to: 'bottom end', gap: 8 }} className="w-48 origin-top-right rounded-xl bg-white dark:bg-slate-900 shadow-lg ring-1 ring-black/5 dark:ring-white/10 focus:outline-none overflow-hidden z-50">
-                    <div className="py-1">
-                        {blockStatus?.hasBlocked ? (
-                            <Menu.Item>
-                                {({ active }) => (
-                                    <button
-                                        onClick={() => unblockMutation.mutate()}
-                                        className={cn(
-                                            active ? 'bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-slate-100' : 'text-gray-700 dark:text-slate-300',
-                                            'block w-full text-left px-4 py-2.5 text-sm font-medium'
-                                        )}
-                                    >
-                                        Unblock User
-                                    </button>
-                                )}
-                            </Menu.Item>
-                        ) : (
-                            <Menu.Item>
-                                {({ active }) => (
-                                    <button
-                                        onClick={() => blockMutation.mutate()}
-                                        className={cn(
-                                            active ? 'bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400' : 'text-red-600 dark:text-red-400',
-                                            'block w-full text-left px-4 py-2.5 text-sm font-medium'
-                                        )}
-                                    >
-                                        Block User
-                                    </button>
-                                )}
-                            </Menu.Item>
-                        )}
-                        <Menu.Item>
-                            {({ active }) => (
-                                <button
-                                    onClick={() => setIsReportModalOpen(true)}
-                                    className={cn(
-                                        active ? 'bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400' : 'text-red-600 dark:text-red-400',
-                                        'group flex w-full items-center gap-2 px-4 py-2 text-sm transition-colors'
-                                    )}
-                                >
-                                    <ShieldAlert className="w-4 h-4" /> Report User
-                                </button>
-                            )}
-                        </Menu.Item>
-                    </div>
-                </Menu.Items>
-            </Transition>
-        </Menu>
+      {/* WhatsApp Emerald App Bar */}
+      <WhatsAppTopBar
+        onBack={() => navigate('/messages')}
+        participant={otherParticipant}
+        isOnline={isOnline}
+        isTyping={isOtherUserTyping}
+        isBlockedByMe={Boolean(blockStatus?.hasBlocked)}
+        onToggleBlock={() => {
+          if (blockStatus?.hasBlocked) unblockMutation.mutate();
+          else blockMutation.mutate();
+        }}
+        onOpenReport={() => setIsReportModalOpen(true)}
+        onViewProfile={() => {
+          if (otherParticipant?.user_id) {
+            navigate(`/community/profile/${otherParticipant.user_id}`);
+          }
+        }}
+      />
 
-      </div>
-
-      {/* Messages Area (Virtualized) */}
-      <div className="flex-1 min-h-0 bg-white dark:bg-slate-950 flex flex-col">
-        {isLoading ? (
-          <div className="flex justify-center p-10 text-gray-600 dark:text-slate-400">Loading messages...</div>
+      {/* Virtualized Message Stream */}
+      <div className="flex-1 min-h-0 relative z-10 flex flex-col">
+        {isLoading && !messages ? (
+          <div className="flex justify-center items-center h-full text-xs font-semibold text-gray-500 dark:text-slate-400">
+            Loading conversation...
+          </div>
         ) : (
           <Virtuoso
             ref={virtuosoRef}
             style={{ height: '100%' }}
             followOutput="smooth"
-            components={{
-              Header: () => (
-                room.type === 'direct' && otherParticipant ? <ChatIntro user={otherParticipant} /> : <div className="h-4" />
-              )
-            }}
             data={messages || []}
             initialTopMostItemIndex={(messages?.length || 0) - 1}
             itemContent={(index, msg) => {
               const prevMsg = index > 0 ? messages?.[index - 1] : null;
               let showTimeSeparator = false;
-              let timeSeparatorText = '';
 
               if (msg && msg.created_at) {
+                if (!prevMsg) {
+                  showTimeSeparator = true;
+                } else {
                   const currentMsgDate = new Date(msg.created_at);
-                  if (!prevMsg) {
-                      showTimeSeparator = true;
-                  } else {
-                      const prevMsgDate = new Date(prevMsg.created_at);
-                      const diffInHours = (currentMsgDate.getTime() - prevMsgDate.getTime()) / (1000 * 60 * 60);
-
-                      const isDifferentDay = currentMsgDate.toDateString() !== prevMsgDate.toDateString();
-
-                      if (diffInHours > 1 || isDifferentDay) {
-                          showTimeSeparator = true;
-                      }
+                  const prevMsgDate = new Date(prevMsg.created_at);
+                  const isDifferentDay =
+                    currentMsgDate.toDateString() !== prevMsgDate.toDateString();
+                  if (isDifferentDay) {
+                    showTimeSeparator = true;
                   }
-
-                  if (showTimeSeparator) {
-                      const today = new Date();
-                      const isToday = currentMsgDate.toDateString() === today.toDateString();
-
-                      const timeStr = currentMsgDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                      if (isToday) {
-                          timeSeparatorText = `Today ${timeStr}`;
-                      } else {
-                          const dateStr = currentMsgDate.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
-                          timeSeparatorText = `${dateStr} ${timeStr}`;
-                      }
-                  }
+                }
               }
 
-              const handleLikeToggle = (messageId: string, isLiked: boolean) => {
-                  queryClient.setQueryData<ChatMessage[]>(['chat-messages', room.id], (old) => {
-                      if (!old) return old;
-                      return old.map(m => {
-                          if (m.id === messageId) {
-                              const likes = m.likes || [];
-                              if (isLiked) {
-                                  return { ...m, likes: likes.filter(l => l.user_id !== user?.id) };
-                              } else {
-                                  return { ...m, likes: [...likes, { user_id: user!.id }] };
-                              }
-                          }
-                          return m;
-                      });
-                  });
-              };
               const isMine = msg.sender_id === user?.id;
+
               return (
                 <ChatMessageItem
+                  key={msg.id}
                   msg={msg}
                   isMine={isMine}
                   showTimeSeparator={showTimeSeparator}
-                  timeSeparatorText={timeSeparatorText}
                   otherParticipantAvatar={getCanonicalAvatarUrl(otherParticipant, null)}
-                  onLikeToggle={handleLikeToggle}
+                  otherParticipantName={otherParticipant?.full_name || 'User'}
+                  onReply={(targetMsg) => setReplyingTo(targetMsg)}
+                  onOpenMedia={(url, name, time) =>
+                    setLightboxMedia({ url, senderName: name, timestamp: time })
+                  }
+                  onScrollToMessage={handleScrollToMessage}
                 />
               );
             }}
@@ -419,24 +421,46 @@ export const ActiveChatRoom: React.FC = () => {
         )}
       </div>
 
-      {/* Input Area */}
-      <ChatInputBar
-        isBlocker={blockStatus?.hasBlocked}
-        isBlocked={blockStatus?.isBlockedBy}
-        onUnblock={() => unblockMutation.mutate()}
-        onSend={(text) => {
-          virtuosoRef.current?.scrollToIndex({ index: 'LAST', align: 'end', behavior: 'smooth' });
+      {/* WhatsApp Input Bar */}
+      <WhatsAppInputBar
+        onSend={(text) =>
           sendMutation.mutate({
             room_id: room.id,
             sender_id: user!.id,
-            text_content: text
-          });
-        }}
-        onUpload={handleFileUpload}
+            text_content: text,
+            reply_to_id: replyingTo?.id,
+          })
+        }
+        onSendVoice={handleSendVoice}
+        onUploadMedia={handleUploadMedia}
+        onTyping={(isTyping) => sendTypingStatus(isTyping)}
         isUploading={isUploading}
-        onTyping={(isTyping) => sendTypingStatus(room.id, isTyping)}
+        replyingTo={
+          replyingTo
+            ? {
+                id: replyingTo.id,
+                sender_name: replyingTo.sender_id === user?.id ? 'You' : otherParticipant?.full_name || 'User',
+                text_content: replyingTo.text_content,
+                media_type: replyingTo.media_type,
+              }
+            : null
+        }
+        onDismissReply={() => setReplyingTo(null)}
+        isBlocked={blockStatus?.isBlockedBy}
+        isBlocker={blockStatus?.hasBlocked}
+        onUnblock={() => unblockMutation.mutate()}
       />
 
+      {/* Full-Screen Zoomable Media Lightbox */}
+      <MediaLightbox
+        isOpen={Boolean(lightboxMedia)}
+        onClose={() => setLightboxMedia(null)}
+        mediaUrl={lightboxMedia?.url || null}
+        senderName={lightboxMedia?.senderName}
+        timestamp={lightboxMedia?.timestamp}
+      />
+
+      {/* Modals */}
       <ReportModal
         isOpen={isReportModalOpen}
         onClose={() => setIsReportModalOpen(false)}
