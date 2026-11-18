@@ -1,51 +1,82 @@
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useState } from 'react';
 import { supabase } from '../../../lib/supabase';
 import { useAuth } from '../../auth/context/AuthContext';
 import { useQueryClient } from '@tanstack/react-query';
 
-export function useSocialRealtime() {
+export function useSocialRealtime(roomId?: string) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const [isOtherUserTyping, setIsOtherUserTyping] = useState(false);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || !roomId) return;
 
-    // Postgres Changes for Feed (New Posts)
-    const postSubscription = supabase
-      .channel('public:posts')
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'posts' },
-        (payload: any) => {
-          // Optimistically update feed cache with new post
-          queryClient.invalidateQueries({ queryKey: ['community-posts'] });
-        }
-      )
-      .subscribe();
+    let typingTimeout: any = null;
 
-    // Broadcast for ephemeral Typing Indicators (Global or Room specific)
-    const typingChannel = supabase.channel('chat_typing_status');
-    typingChannel
+    // Room-specific broadcast channel for ephemeral events (typing, receipts)
+    const roomChannel = supabase.channel(`room_events:${roomId}`);
+
+    roomChannel
       .on('broadcast', { event: 'typing' }, (payload: any) => {
-         // Payload shape { room_id: string, user_id: string, isTyping: boolean }
+        if (payload?.payload?.user_id !== user.id) {
+          setIsOtherUserTyping(Boolean(payload?.payload?.isTyping));
+
+          // Auto-clear typing after 4 seconds of silence
+          if (payload?.payload?.isTyping) {
+            clearTimeout(typingTimeout);
+            typingTimeout = setTimeout(() => {
+              setIsOtherUserTyping(false);
+            }, 4000);
+          }
+        }
+      })
+      .on('broadcast', { event: 'receipt' }, (payload: any) => {
+        // Receipt payload: { status: 'delivered' | 'read', messageIds: string[], reader_id: string }
+        if (payload?.payload?.reader_id !== user.id) {
+          const { status, messageIds } = payload.payload;
+          if (messageIds && messageIds.length > 0) {
+            queryClient.setQueryData<any[]>(['chat-messages', roomId], (old) => {
+              if (!old) return old;
+              return old.map((m) =>
+                messageIds.includes(m.id) ? { ...m, status } : m
+              );
+            });
+          }
+        }
       })
       .subscribe();
 
     return () => {
-      supabase.removeChannel(postSubscription);
-      supabase.removeChannel(typingChannel);
+      clearTimeout(typingTimeout);
+      supabase.removeChannel(roomChannel);
     };
-  }, [user, queryClient]);
+  }, [user, roomId, queryClient]);
 
-  const sendTypingStatus = useCallback(async (roomId: string, isTyping: boolean) => {
-    if (!user) return;
-    const channel = supabase.channel('chat_typing_status');
-    await channel.send({
-      type: 'broadcast',
-      event: 'typing',
-      payload: { room_id: roomId, user_id: user.id, isTyping },
-    });
-  }, [user]);
+  const sendTypingStatus = useCallback(
+    async (isTyping: boolean) => {
+      if (!user || !roomId) return;
+      const channel = supabase.channel(`room_events:${roomId}`);
+      await channel.send({
+        type: 'broadcast',
+        event: 'typing',
+        payload: { room_id: roomId, user_id: user.id, isTyping },
+      });
+    },
+    [user, roomId]
+  );
 
-  return { sendTypingStatus };
+  const broadcastReceipt = useCallback(
+    async (status: 'delivered' | 'read', messageIds: string[]) => {
+      if (!user || !roomId || messageIds.length === 0) return;
+      const channel = supabase.channel(`room_events:${roomId}`);
+      await channel.send({
+        type: 'broadcast',
+        event: 'receipt',
+        payload: { room_id: roomId, reader_id: user.id, status, messageIds },
+      });
+    },
+    [user, roomId]
+  );
+
+  return { isOtherUserTyping, sendTypingStatus, broadcastReceipt };
 }

@@ -1,10 +1,16 @@
-import React, { useState, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { File, Heart, Copy } from 'lucide-react';
-import { cn } from '../../../utils/cn';
-import { ChatMessage, toggleMessageLike } from '../api/chatApi';
+import React, { useState, useCallback, useTransition } from 'react';
+import { motion } from 'framer-motion';
+import { File, Reply, Copy } from 'lucide-react';
+import { ChatMessage } from '../api/chatApi';
 import { useAuth } from '../../auth/context/AuthContext';
-import { MessageActionMenu, MessageAction } from '../components/MessageActionMenu';
+import { WhatsAppReceiptTicks } from '../components/chat/WhatsAppReceiptTicks';
+import { WhatsAppBubbleTail } from '../components/chat/WhatsAppBubbleTail';
+import { WhatsAppDatePill } from '../components/chat/WhatsAppDatePill';
+import { QuotedMessagePreview } from '../components/chat/QuotedMessagePreview';
+import { VoiceNotePlayer } from '../components/chat/VoiceNotePlayer';
+import { FloatingReactionPill } from '../components/chat/FloatingReactionPill';
+import { useSwipeToReply } from '../hooks/useSwipeToReply';
+import { formatMessageTime } from '../utils/whatsappTheme';
 import toast from 'react-hot-toast';
 
 interface ChatMessageItemProps {
@@ -13,7 +19,13 @@ interface ChatMessageItemProps {
   showTimeSeparator: boolean;
   timeSeparatorText?: string;
   otherParticipantAvatar?: string | null;
-  onLikeToggle: (messageId: string, isLiked: boolean) => void;
+  otherParticipantName?: string;
+  onReply?: (msg: ChatMessage) => void;
+  onOpenMedia?: (url: string, senderName?: string, timestamp?: string) => void;
+  onLikeToggle?: (messageId: string, isLiked: boolean) => void;
+  onDelete?: (messageId: string) => void;
+  onReact?: (messageId: string, emoji: string) => void;
+  onScrollToMessage?: (messageId: string) => void;
 }
 
 export const ChatMessageItem: React.FC<ChatMessageItemProps> = React.memo(({
@@ -22,30 +34,27 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = React.memo(({
   showTimeSeparator,
   timeSeparatorText,
   otherParticipantAvatar,
-  onLikeToggle
+  otherParticipantName = 'User',
+  onReply,
+  onOpenMedia,
+  onDelete,
+  onReact,
+  onScrollToMessage,
 }) => {
   const { user } = useAuth();
-  const [showHeartAnim, setShowHeartAnim] = useState(false);
-  const isLiked = msg.likes?.some(l => l.user_id === user?.id) || false;
+  const [isReactionMenuOpen, setIsReactionMenuOpen] = useState(false);
+  const [, startTransition] = useTransition();
 
-  const handleToggleLike = useCallback((showAnimation: boolean = false) => {
-    if (!user) return;
-
-    if (!isLiked && showAnimation) {
-      setShowHeartAnim(true);
-      setTimeout(() => setShowHeartAnim(false), 1000);
+  const handleReply = useCallback(() => {
+    if (onReply) {
+      onReply(msg);
     }
+  }, [onReply, msg]);
 
-    onLikeToggle(msg.id, isLiked);
-    toggleMessageLike(msg.id, user.id, isLiked).catch(err => {
-      console.error('Failed to toggle like', err);
-      onLikeToggle(msg.id, !isLiked);
-    });
-  }, [user, isLiked, msg.id, onLikeToggle]);
-
-  const handleDoubleClick = useCallback(() => {
-    handleToggleLike(true);
-  }, [handleToggleLike]);
+  const { offsetX, touchHandlers } = useSwipeToReply({
+    onReply: handleReply,
+    disabled: !onReply,
+  });
 
   const handleCopy = useCallback(() => {
     if (msg.text_content) {
@@ -57,103 +66,177 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = React.memo(({
     }
   }, [msg.text_content]);
 
-  const actions: MessageAction[] = [
-    {
-      id: 'like',
-      label: isLiked ? 'Unlike' : 'Like',
-      icon: <Heart className={cn("w-4 h-4", isLiked ? "fill-red-500 text-red-500" : "text-gray-600 dark:text-slate-400")} />,
-      onClick: () => handleToggleLike(false) // No big animation for menu click
+  const handleLongPress = useCallback((e: React.MouseEvent | React.TouchEvent) => {
+    e.preventDefault();
+    if (typeof navigator !== 'undefined' && navigator.vibrate) {
+      navigator.vibrate(20);
     }
-  ];
-
-  if (msg.text_content) {
-    actions.push({
-      id: 'copy',
-      label: 'Copy',
-      icon: <Copy className="w-4 h-4 text-gray-600 dark:text-slate-400" />,
-      onClick: handleCopy
+    startTransition(() => {
+      setIsReactionMenuOpen(true);
     });
-  }
+  }, []);
+
+  const timeFormatted = formatMessageTime(msg.created_at);
+  const myReaction = msg.reactions?.find((r) => r.user_id === user?.id)?.emoji || null;
 
   return (
-    <div className="w-full flex flex-col">
+    <div className="w-full flex flex-col select-none relative">
+      {/* Sticky WhatsApp Date Pill */}
       {showTimeSeparator && (
-        <div className="flex justify-center my-3">
-          <span className="text-[10px] font-medium text-gray-400 bg-gray-50/80 dark:bg-slate-800 dark:border-slate-700 px-2 py-0.5 rounded-full border border-gray-100/50">
-            {timeSeparatorText}
-          </span>
-        </div>
+        <WhatsAppDatePill dateString={msg.created_at || timeSeparatorText} />
       )}
-      <div className={cn("px-4 py-1.5 flex items-end gap-2 group", isMine ? "justify-end" : "justify-start")}>
 
-        {!isMine && (
-          <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 bg-indigo-500 shadow-sm border border-white">
-            {otherParticipantAvatar ? (
-              <img src={otherParticipantAvatar} className="w-full h-full object-cover" alt="avatar" />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center text-white text-xs font-bold">U</div>
-            )}
+      {/* Message Row with Swipe-to-Reply Translation */}
+      <div
+        className={`px-3 py-1 flex items-end gap-1.5 relative group ${
+          isMine ? 'justify-end' : 'justify-start'
+        }`}
+        {...touchHandlers}
+        onContextMenu={handleLongPress}
+      >
+        {/* Swipe-to-Reply Arrow Indicator (Revealed on Swipe Right) */}
+        {offsetX > 0 && (
+          <div
+            style={{
+              transform: `translateX(${Math.min(offsetX - 40, 20)}px)`,
+              opacity: Math.min(offsetX / 45, 1),
+            }}
+            className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-[#00A884] text-white flex items-center justify-center pointer-events-none shadow-md z-10"
+          >
+            <Reply size={16} strokeWidth={2.5} />
           </div>
         )}
 
-        {/* Note: select-none removed to allow standard text selection. cursor-default to not imply a link. */}
+        {/* Speech Bubble Container with Elastic Horizontal Offset */}
         <div
-          className="relative max-w-[75%]"
-          onDoubleClick={handleDoubleClick}
+          style={{ transform: `translateX(${offsetX}px)` }}
+          className="relative max-w-[82%] sm:max-w-[70%] transition-transform duration-75"
         >
-          <MessageActionMenu actions={actions}>
-            <AnimatePresence>
-              {showHeartAnim && (
-                <motion.div
-                  initial={{ scale: 0.5, opacity: 0 }}
-                  animate={{ scale: 1.5, opacity: 1, y: -20 }}
-                  exit={{ scale: 0.8, opacity: 0 }}
-                  transition={{ duration: 0.5 }}
-                  className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none"
-                >
-                  <Heart className="w-16 h-16 text-red-500 fill-red-500 drop-shadow-md" />
-                </motion.div>
-              )}
-            </AnimatePresence>
+          {/* WhatsApp Speech Bubble Tail */}
+          <WhatsAppBubbleTail isMine={isMine} />
 
-            <div
-              className={cn(
-                "px-4 py-2.5 relative transition-all duration-200 select-text",
-                isMine
-                  ? "bg-blue-600 text-white rounded-2xl rounded-br-sm shadow-sm"
-                  : "bg-gray-100 dark:bg-slate-800 text-black dark:text-slate-100 rounded-2xl rounded-bl-sm",
-                msg.status === 'sending' && "opacity-60"
-              )}
-            >
-              {msg.media_url && msg.media_type === 'image' && (
-                <div className="mb-2 rounded-xl overflow-hidden bg-black/5 -mx-1 -mt-1">
-                  <img src={msg.media_url} alt="chat media" className="max-w-full h-auto object-cover max-h-64" loading="lazy" />
+          {/* Speech Bubble Card */}
+          <div
+            className={`px-3 pt-2 pb-1.5 rounded-[10px] shadow-[0_1px_0.5px_rgba(11,20,26,0.13)] select-text relative ${
+              isMine
+                ? 'bg-[#D9FDD3] dark:bg-[#005C4B] text-[#111B21] dark:text-[#E9EDEF] rounded-tr-none'
+                : 'bg-white dark:bg-[#1F2C34] text-[#111B21] dark:text-[#E9EDEF] rounded-tl-none'
+            }`}
+          >
+            {/* Embedded Quoted Reply Snippet */}
+            {msg.reply_to && (
+              <QuotedMessagePreview
+                message={msg.reply_to}
+                variant="inlineBubble"
+                onClick={() => onScrollToMessage?.(msg.reply_to!.id)}
+              />
+            )}
+
+            {/* Media: Image (with high-res tap-to-lightbox) */}
+            {msg.media_url && msg.media_type === 'image' && (
+              <div
+                onClick={() =>
+                  onOpenMedia?.(
+                    msg.media_url!,
+                    isMine ? 'You' : otherParticipantName,
+                    timeFormatted
+                  )
+                }
+                className="mb-1.5 rounded-lg overflow-hidden bg-black/5 -mx-1 -mt-0.5 cursor-pointer hover:opacity-95 transition-opacity"
+              >
+                <img
+                  src={msg.media_url}
+                  alt="Shared media"
+                  className="w-full h-auto object-cover max-h-72 rounded-lg"
+                  loading="lazy"
+                />
+              </div>
+            )}
+
+            {/* Media: Voice Note Player with Waveform */}
+            {msg.media_url && msg.media_type === 'voice' && (
+              <VoiceNotePlayer
+                audioUrl={msg.media_url}
+                duration={msg.voice_duration}
+                senderAvatar={isMine ? user?.user_metadata?.avatar_url : otherParticipantAvatar}
+                senderName={isMine ? 'You' : otherParticipantName}
+                senderId={msg.sender_id}
+                isMine={isMine}
+              />
+            )}
+
+            {/* Media: Document Attachment */}
+            {msg.media_url && msg.media_type === 'file' && (
+              <a
+                href={msg.media_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2.5 p-2.5 bg-black/5 dark:bg-white/5 rounded-lg mb-1.5 hover:bg-black/10 transition select-none"
+              >
+                <div className="w-9 h-9 rounded-full bg-[#00A884] text-white flex items-center justify-center shrink-0">
+                  <File size={18} />
                 </div>
-              )}
-              {msg.media_url && msg.media_type === 'file' && (
-                <a href={msg.media_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 p-3 bg-black/5 rounded-xl mb-2 hover:bg-black/10 transition select-none">
-                  <File size={24} className={isMine ? "text-white" : "text-gray-900 dark:text-slate-100"} />
-                  <span className="text-sm font-medium underline">Attachment</span>
-                </a>
-              )}
-              <div className="whitespace-pre-wrap break-words leading-relaxed text-[15px]">{msg.text_content}</div>
-            </div>
-          </MessageActionMenu>
+                <div className="flex-1 min-w-0">
+                  <span className="text-xs font-semibold text-gray-900 dark:text-slate-100 truncate block">
+                    Document
+                  </span>
+                  <span className="text-[11px] text-gray-500 dark:text-slate-400">Tap to view</span>
+                </div>
+              </a>
+            )}
 
-          {msg.likes && msg.likes.length > 0 && (
+            {/* Text Message Content + Inline Micro-Timestamp & Ticks */}
+            <div className="leading-[1.35] text-[14.5px] break-words whitespace-pre-wrap">
+              {msg.text_content}
+
+              {/* Inline-block spacer so text never overlaps timestamp */}
+              <span className="inline-block w-14 h-3" />
+            </div>
+
+            {/* Micro-Timestamp and Delivery Ticks docked bottom-right */}
+            <div className="absolute right-2 bottom-1 flex items-center gap-1 select-none pointer-events-none">
+              <span className="text-[10px] text-[#667781] dark:text-[#8696A0] tracking-tight">
+                {timeFormatted}
+              </span>
+              {isMine && <WhatsAppReceiptTicks status={msg.status} />}
+            </div>
+          </div>
+
+          {/* Docked Reactions Badge Pill (Bottom Edge) */}
+          {msg.reactions && msg.reactions.length > 0 && (
             <motion.div
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
-              className={cn(
-                "absolute -bottom-2 w-6 h-6 bg-white dark:bg-slate-800 rounded-full flex items-center justify-center shadow-sm border border-gray-100 dark:border-slate-700 z-10",
-                isMine ? "right-1" : "right-1"
-              )}
+              className={`absolute -bottom-2 bg-white dark:bg-[#1F2C34] rounded-full px-1.5 py-0.5 shadow-sm border border-black/5 dark:border-white/10 flex items-center gap-1 text-[12px] z-10 cursor-pointer ${
+                isMine ? 'right-2' : 'left-2'
+              }`}
+              onClick={() => setIsReactionMenuOpen(true)}
             >
-              <Heart className="w-3.5 h-3.5 text-red-500 fill-red-500" />
+              {msg.reactions.slice(0, 3).map((r, i) => (
+                <span key={i}>{r.emoji}</span>
+              ))}
+              {msg.reactions.length > 1 && (
+                <span className="text-[10px] font-bold text-gray-500 dark:text-slate-400">
+                  {msg.reactions.length}
+                </span>
+              )}
             </motion.div>
           )}
         </div>
       </div>
+
+      {/* Long-Press Floating Reaction & Action Menu */}
+      <FloatingReactionPill
+        isOpen={isReactionMenuOpen}
+        onClose={() => setIsReactionMenuOpen(false)}
+        onReact={(emoji) => onReact?.(msg.id, emoji)}
+        onReply={handleReply}
+        onCopy={handleCopy}
+        onDelete={() => onDelete?.(msg.id)}
+        canDelete={isMine}
+        isMine={isMine}
+        currentReaction={myReaction}
+      />
     </div>
   );
 });
