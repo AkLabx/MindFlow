@@ -26,6 +26,31 @@ This document is the single source of truth for the evolution of the MindFlow ap
 
 ## 🚀 App Journey Changelog
 
+## [v1.0.364] - 18 November 2026, 08:35 AM IST
+
+**Executive Summary:** Complete MindFlow Social Chatroom Brand Realignment & Full Feature Activation. Re-skinned the chatroom from an overt WhatsApp clone into MindFlow's distinct Indigo / Deep Violet & Slate / Cyber-Glassmorphic design system with a custom Neural Synapse background, while strictly preserving familiar messenger ergonomics (dual-capsule input, bubble tails, micro-timestamps, and swipe-to-reply). Expanded PostgreSQL schema (`reply_to_id`, `voice_duration`, `file_name`, `file_size`, `deleted_at`, `chat_message_reactions`), unlocked Supabase Storage bucket for voice notes & office documents up to 25 MB, and wired complete document sharing with extension badges, real file names, and formatted file sizes.
+
+### ✨ Features Added
+- **MindFlow Brand Realignment (`chatTheme.ts`, `ChatTopBar.tsx`, `ChatReceiptTicks.tsx`)**: Transformed all hardcoded WhatsApp greens (`#008069`, `#00A884`, `#25D366`, `#D9FDD3`, `#005C4B`) and tan canvas (`#EFEAE2`) into MindFlow Indigo gradients (`from-indigo-600 to-indigo-700`), crisp Slate card surfaces (`bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800`), MindFlow Sky-400 read receipt checkmarks (`#38BDF8`), and an elevated glassmorphic top app bar.
+- **MindFlow Neural Synapse Wallpaper (`ChatWallpaper.tsx`)**: Replaced WhatsApp coffee-cup/heart doodles with a bespoke vector learning mesh depicting neural synapses, interconnected nodes, and constellation pathways at 2-3% opacity.
+- **Rich PDF & Document Sharing**: Captures original filename and file size on document selection, rendering rich document bubbles with file extension badges (`PDF`, `DOCX`, `TXT`), formatted byte sizes (e.g. `2.4 MB`), and direct download actions.
+- **Fully Wired Reactions & Soft Delete**: Created `chat_message_reactions` table in Supabase, wired `onReact` with optimistic cache reconciliation and docked reaction badges, and added author soft deletion (`deleted_at`) with clean "This message was deleted" indicator cards.
+- **Storage Bucket MIME & Size Expansion**: Configured `chat_media` Supabase Storage bucket to accept voice notes (`audio/webm`, `audio/mp4`, `audio/mpeg`, `audio/ogg`, `audio/wav`) and study notes (`application/pdf`, `.docx`, `.doc`, `.txt`) with an expanded 25 MB limit.
+- **Attachment Drawer Parity (`AttachmentBottomSheet.tsx`)**: Re-skinned the attachment drawer with MindFlow colors and study-relevant options (Documents/PDFs, Camera, Gallery, Audio, and Quiz Question sharing).
+
+### 🐛 Bug Fixes
+- **Resolved Missing Column Insert Failures**: Fixed critical PostgreSQL errors where replying or sending voice notes failed due to missing `reply_to_id` and `voice_duration` columns in `public.chat_room_messages`.
+- **Resolved Storage Rejection on Voice Notes**: Fixed bucket MIME type rejection that previously blocked `.webm` audio recordings from uploading to Supabase Storage.
+- **Discarded Metadata Recovery**: Solved the issue where uploaded documents lost their original filename and file size, resulting in a generic "Document" card.
+
+### 🔒 Security & Architecture
+- **Cryptographic UUID File Paths**: Replaced predictable `${userId}-${Date.now()}` file names with unguessable `crypto.randomUUID()` paths (`${userId}/${crypto.randomUUID()}.${ext}`).
+- **Additive Database Migrations**: Executed zero-downtime additive migrations (`ADD COLUMN IF NOT EXISTS`) and created indexed `chat_message_reactions` with foreign-key cascades and RLS policies.
+- **Safe Component Re-exports**: Maintained aliased exports for all legacy `WhatsApp*` component and token names to prevent breakage across any existing import sites.
+
+**Impacted Scope:** `package.json`, `docs/APP_JOURNEY_LOG.md`, `src/features/community/utils/chatTheme.ts`, `src/features/community/utils/whatsappTheme.ts`, `src/features/community/api/chatApi.ts`, `src/features/community/pages/ActiveChatRoom.tsx`, `src/features/community/pages/ChatMessageItem.tsx`, `src/features/community/pages/ChatRooms.tsx`, `src/features/community/components/chat/*`.
+
+
 ## [v1.0.363] - 18 November 2026, 07:15 AM IST
 
 **Executive Summary:** Complete 10-phase WhatsApp Android parity uplift across Social Media Chatrooms (`src/features/community`). Implemented offline-first 0ms IndexedDB hydration, authentic emerald theme with SVG speech bubble tails & doodle wallpaper, 4-stage message status pipeline (clock/sent/delivered/read double blue ticks), native swipe-to-reply gestures with haptics, quoted replies, floating emoji reactions, dynamic input capsule & FAB, client-side WebP compression, full-screen lightbox, and voice note player with waveform scrubbing.

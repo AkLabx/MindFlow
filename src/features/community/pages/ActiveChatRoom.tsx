@@ -8,7 +8,8 @@ import {
   sendMessage,
   uploadChatMedia,
   markMessagesAsRead,
-  toggleMessageLike,
+  toggleMessageReaction,
+  deleteChatMessage,
   ChatMessage,
   ChatRoom,
 } from '../api/chatApi';
@@ -17,9 +18,9 @@ import { supabase } from '../../../lib/supabase';
 import { Virtuoso, VirtuosoHandle } from 'react-virtuoso';
 import { useSocialRealtime } from '../hooks/useSocialRealtime';
 import { usePresenceStore } from '../../../stores/usePresenceStore';
-import { WhatsAppTopBar } from '../components/chat/WhatsAppTopBar';
-import { WhatsAppWallpaper } from '../components/chat/WhatsAppWallpaper';
-import { WhatsAppInputBar } from '../components/chat/WhatsAppInputBar';
+import { ChatTopBar } from '../components/chat/ChatTopBar';
+import { ChatWallpaper } from '../components/chat/ChatWallpaper';
+import { ChatInputBar } from '../components/chat/ChatInputBar';
 import { ChatMessageItem } from './ChatMessageItem';
 import { MediaLightbox } from '../components/chat/MediaLightbox';
 import { ReportModal } from '../components/reports/ReportModal';
@@ -111,7 +112,7 @@ export const ActiveChatRoom: React.FC = () => {
     }
   }, [messages, user, room.id, broadcastReceipt, queryClient]);
 
-  // Supabase Postgres Realtime Subscription for incoming new messages
+  // Supabase Postgres Realtime Subscription for incoming new messages & updates
   useEffect(() => {
     if (!room.id) return;
 
@@ -120,40 +121,49 @@ export const ActiveChatRoom: React.FC = () => {
       .on(
         'postgres_changes',
         {
-          event: 'INSERT',
+          event: '*',
           schema: 'public',
           table: 'chat_room_messages',
           filter: `room_id=eq.${room.id}`,
         },
         (payload) => {
-          const newMsg = payload.new as ChatMessage;
+          if (payload.eventType === 'INSERT') {
+            const newMsg = payload.new as ChatMessage;
 
-          if (newMsg.sender_id !== user?.id) {
-            const incoming: ChatMessage = {
-              ...newMsg,
-              status: 'delivered',
-            };
+            if (newMsg.sender_id !== user?.id) {
+              const incoming: ChatMessage = {
+                ...newMsg,
+                status: 'delivered',
+              };
 
-            queryClient.setQueryData<ChatMessage[]>(['chat-messages', room.id], (old) => {
-              if (!old) return [incoming];
-              if (old.some((m) => m.id === newMsg.id)) return old;
-              return [...old, incoming];
-            });
-
-            // Automatically emit delivered receipt
-            broadcastReceipt('delivered', [newMsg.id]);
-
-            // Save to IndexedDB
-            chatCacheService.upsertCachedMessage(incoming);
-
-            // Scroll to bottom
-            setTimeout(() => {
-              virtuosoRef.current?.scrollToIndex({
-                index: 'LAST',
-                align: 'end',
-                behavior: 'smooth',
+              queryClient.setQueryData<ChatMessage[]>(['chat-messages', room.id], (old) => {
+                if (!old) return [incoming];
+                if (old.some((m) => m.id === newMsg.id)) return old;
+                return [...old, incoming];
               });
-            }, 100);
+
+              // Automatically emit delivered receipt
+              broadcastReceipt('delivered', [newMsg.id]);
+
+              // Save to IndexedDB
+              chatCacheService.upsertCachedMessage(incoming);
+
+              // Scroll to bottom
+              setTimeout(() => {
+                virtuosoRef.current?.scrollToIndex({
+                  index: 'LAST',
+                  align: 'end',
+                  behavior: 'smooth',
+                });
+              }, 100);
+            }
+          } else if (payload.eventType === 'UPDATE') {
+            const updatedMsg = payload.new as ChatMessage;
+            queryClient.setQueryData<ChatMessage[]>(['chat-messages', room.id], (old) => {
+              if (!old) return old;
+              return old.map((m) => (m.id === updatedMsg.id ? { ...m, ...updatedMsg } : m));
+            });
+            chatCacheService.upsertCachedMessage(updatedMsg);
           }
         }
       )
@@ -179,6 +189,8 @@ export const ActiveChatRoom: React.FC = () => {
         media_url: newMsg.media_url,
         media_type: newMsg.media_type,
         voice_duration: newMsg.voice_duration,
+        file_name: newMsg.file_name,
+        file_size: newMsg.file_size,
         reply_to_id: newMsg.reply_to_id,
         reply_to: replyingTo
           ? {
@@ -223,8 +235,12 @@ export const ActiveChatRoom: React.FC = () => {
     },
   });
 
-  // Media Upload Handlers
-  const handleUploadMedia = async (fileOrBlob: File | Blob, type: 'image' | 'file') => {
+  // Media Upload Handlers with Filename & Size Metadata
+  const handleUploadMedia = async (
+    fileOrBlob: File | Blob,
+    type: 'image' | 'file',
+    metadata?: { name?: string; size?: number }
+  ) => {
     if (!user) return;
     try {
       setIsUploading(true);
@@ -234,9 +250,11 @@ export const ActiveChatRoom: React.FC = () => {
       sendMutation.mutate({
         room_id: room.id,
         sender_id: user.id,
-        text_content: type === 'image' ? '' : 'Sent an attachment',
+        text_content: type === 'image' ? '' : metadata?.name || 'Sent an attachment',
         media_url: publicUrl,
         media_type: type,
+        file_name: metadata?.name || (fileOrBlob instanceof File ? fileOrBlob.name : null),
+        file_size: metadata?.size || (fileOrBlob instanceof File ? fileOrBlob.size : null),
         reply_to_id: replyingTo?.id,
       });
     } catch (err) {
@@ -268,6 +286,45 @@ export const ActiveChatRoom: React.FC = () => {
       showToast({ title: 'Error', message: 'Failed to send voice note.', variant: 'error' });
     } finally {
       setIsUploading(false);
+    }
+  };
+
+  // Reactions Handler
+  const handleToggleReaction = async (messageId: string, emoji: string) => {
+    if (!user) return;
+    try {
+      const res = await toggleMessageReaction(messageId, user.id, emoji);
+      queryClient.setQueryData<ChatMessage[]>(['chat-messages', room.id], (old) => {
+        if (!old) return old;
+        return old.map((m) => {
+          if (m.id !== messageId) return m;
+          const currentReactions = m.reactions || [];
+          const filtered = currentReactions.filter((r) => r.user_id !== user.id);
+          if (res.added) {
+            filtered.push({ emoji: res.emoji, user_id: user.id });
+          }
+          return { ...m, reactions: filtered };
+        });
+      });
+    } catch (err) {
+      console.error('Failed to update reaction:', err);
+    }
+  };
+
+  // Message Deletion Handler
+  const handleDeleteMessage = async (messageId: string) => {
+    try {
+      await deleteChatMessage(messageId);
+      queryClient.setQueryData<ChatMessage[]>(['chat-messages', room.id], (old) => {
+        if (!old) return old;
+        return old.map((m) =>
+          m.id === messageId ? { ...m, deleted_at: new Date().toISOString() } : m
+        );
+      });
+      showToast({ title: 'Message Deleted', message: 'Message was deleted.', variant: 'info' });
+    } catch (err) {
+      console.error('Failed to delete message:', err);
+      showToast({ title: 'Error', message: 'Failed to delete message.', variant: 'error' });
     }
   };
 
@@ -345,12 +402,12 @@ export const ActiveChatRoom: React.FC = () => {
   );
 
   return (
-    <div className="flex flex-col flex-1 h-[100dvh] w-full bg-[#EFEAE2] dark:bg-[#0B141A] relative md:max-w-2xl md:mx-auto md:border-x md:border-black/10 md:dark:border-white/10 md:shadow-xl overflow-hidden select-none">
-      {/* WhatsApp Doodle Wallpaper */}
-      <WhatsAppWallpaper />
+    <div className="flex flex-col flex-1 h-[100dvh] w-full bg-slate-50 dark:bg-[#020617] relative md:max-w-2xl md:mx-auto md:border-x md:border-slate-200/80 md:dark:border-slate-800 md:shadow-xl overflow-hidden select-none">
+      {/* MindFlow Neural Synapse Wallpaper */}
+      <ChatWallpaper />
 
-      {/* WhatsApp Emerald App Bar */}
-      <WhatsAppTopBar
+      {/* MindFlow Elevated Glass Top Bar */}
+      <ChatTopBar
         onBack={() => navigate('/messages')}
         participant={otherParticipant}
         isOnline={isOnline}
@@ -371,7 +428,7 @@ export const ActiveChatRoom: React.FC = () => {
       {/* Virtualized Message Stream */}
       <div className="flex-1 min-h-0 relative z-10 flex flex-col">
         {isLoading && !messages ? (
-          <div className="flex justify-center items-center h-full text-xs font-semibold text-gray-500 dark:text-slate-400">
+          <div className="flex justify-center items-center h-full text-xs font-semibold text-slate-500 dark:text-slate-400">
             Loading conversation...
           </div>
         ) : (
@@ -413,6 +470,8 @@ export const ActiveChatRoom: React.FC = () => {
                   onOpenMedia={(url, name, time) =>
                     setLightboxMedia({ url, senderName: name, timestamp: time })
                   }
+                  onReact={handleToggleReaction}
+                  onDelete={handleDeleteMessage}
                   onScrollToMessage={handleScrollToMessage}
                 />
               );
@@ -421,8 +480,8 @@ export const ActiveChatRoom: React.FC = () => {
         )}
       </div>
 
-      {/* WhatsApp Input Bar */}
-      <WhatsAppInputBar
+      {/* MindFlow Dual-Capsule Input Bar */}
+      <ChatInputBar
         onSend={(text) =>
           sendMutation.mutate({
             room_id: room.id,

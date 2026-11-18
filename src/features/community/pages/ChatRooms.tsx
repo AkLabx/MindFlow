@@ -9,7 +9,7 @@ import { PresenceDot } from '../../../components/ui/PresenceDot';
 import { ArrowLeft, Search, X, MessageSquarePlus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { ChatListSkeleton } from '../components/ChatListSkeleton';
-import { WhatsAppReceiptTicks } from '../components/chat/WhatsAppReceiptTicks';
+import { ChatReceiptTicks } from '../components/chat/ChatReceiptTicks';
 
 export const ChatRooms: React.FC = () => {
   const { user } = useAuth();
@@ -67,9 +67,9 @@ export const ChatRooms: React.FC = () => {
   }
 
   return (
-    <div className="flex flex-col w-full h-[100dvh] max-w-3xl mx-auto bg-white dark:bg-[#0B141A] select-none overflow-hidden">
-      {/* WhatsApp Emerald App Bar */}
-      <div className="bg-[#008069] dark:bg-[#1F2C34] text-white px-3 py-3 shadow-[0_1px_2px_rgba(0,0,0,0.15)] z-10">
+    <div className="flex flex-col w-full h-[100dvh] max-w-3xl mx-auto bg-slate-50 dark:bg-[#020617] select-none overflow-hidden">
+      {/* MindFlow App Bar */}
+      <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800 text-slate-900 dark:text-slate-100 px-3.5 py-3 shadow-[0_1px_3px_rgba(0,0,0,0.04)] z-10">
         {isSearchOpen ? (
           <div className="flex items-center gap-2">
             <button
@@ -77,7 +77,7 @@ export const ChatRooms: React.FC = () => {
                 setIsSearchOpen(false);
                 setSearchQuery('');
               }}
-              className="p-1.5 text-white/90 hover:text-white"
+              className="p-1.5 text-slate-500 hover:text-slate-900 dark:hover:text-slate-100 transition-colors"
               aria-label="Close search"
             >
               <ArrowLeft size={22} />
@@ -86,14 +86,14 @@ export const ChatRooms: React.FC = () => {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search chats..."
+              placeholder="Search conversations..."
               autoFocus
-              className="flex-1 bg-transparent border-none text-white text-[16px] placeholder:text-white/60 focus:ring-0 outline-none"
+              className="flex-1 bg-transparent border-none text-slate-900 dark:text-slate-100 text-[15px] placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:ring-0 outline-none"
             />
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery('')}
-                className="p-1 text-white/80 hover:text-white"
+                className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
                 aria-label="Clear search"
               >
                 <X size={18} />
@@ -102,21 +102,21 @@ export const ChatRooms: React.FC = () => {
           </div>
         ) : (
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2.5">
               <button
                 onClick={() => navigate('/community')}
-                className="p-1 -ml-1 text-white hover:text-white/90 active:scale-95 transition-transform"
+                className="p-1 -ml-1 text-slate-700 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 active:scale-95 transition-transform"
                 aria-label="Go to community"
               >
                 <ArrowLeft size={22} strokeWidth={2.2} />
               </button>
-              <h1 className="text-[20px] font-bold tracking-tight text-white">MindFlow Chats</h1>
+              <h1 className="text-[20px] font-bold tracking-tight text-slate-900 dark:text-slate-100">MindFlow Chats</h1>
             </div>
 
             <div className="flex items-center gap-1">
               <button
                 onClick={() => setIsSearchOpen(true)}
-                className="p-2 rounded-full hover:bg-white/10 active:scale-95 transition-transform"
+                className="p-2 rounded-full text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 active:scale-95 transition-transform"
                 aria-label="Search conversations"
               >
                 <Search size={20} strokeWidth={2.2} />
@@ -127,7 +127,7 @@ export const ChatRooms: React.FC = () => {
       </div>
 
       {/* Conversations List */}
-      <div className="flex-1 overflow-y-auto divide-y divide-gray-100 dark:divide-[#1F2C34]/60">
+      <div className="flex-1 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/60 bg-white dark:bg-slate-900">
         {filteredRooms?.map((room) => {
           const otherParticipant = room.participants?.find((p) => p.user_id !== user?.id);
           const title = room.type === 'direct' ? otherParticipant?.full_name || 'User' : 'Group Chat';
@@ -138,10 +138,10 @@ export const ChatRooms: React.FC = () => {
             <div
               key={room.id}
               onClick={() => navigate(`/messages/${room.id}`)}
-              className="w-full px-4 py-3 flex items-center gap-3.5 hover:bg-black/[0.03] dark:hover:bg-white/[0.03] active:bg-black/[0.06] dark:active:bg-white/[0.06] transition-colors cursor-pointer text-left select-none"
+              className="w-full px-4 py-3 flex items-center gap-3.5 hover:bg-slate-50 dark:hover:bg-slate-800/50 active:bg-slate-100 dark:active:bg-slate-800 transition-colors cursor-pointer text-left select-none"
             >
-              {/* 50px Avatar with Presence Indicator */}
-              <div className="relative w-12 h-12 rounded-full overflow-hidden shrink-0 shadow-sm bg-gray-200 dark:bg-slate-700">
+              {/* 48px Avatar with Presence Indicator */}
+              <div className="relative w-12 h-12 rounded-full overflow-hidden shrink-0 shadow-xs bg-slate-100 dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700">
                 <PresenceAvatar
                   userId={otherParticipant?.user_id || ''}
                   avatarUrl={avatar}
@@ -153,27 +153,27 @@ export const ChatRooms: React.FC = () => {
               {/* Chat Meta & Snippet */}
               <div className="flex-1 min-w-0 flex flex-col justify-center">
                 <div className="flex items-center justify-between mb-0.5">
-                  <div className="font-semibold text-[16px] text-[#111B21] dark:text-[#E9EDEF] truncate flex items-center gap-1.5">
+                  <div className="font-semibold text-[15.5px] text-slate-900 dark:text-slate-100 truncate flex items-center gap-1.5">
                     {title}
                     {room.type === 'direct' && otherParticipant?.user_id && (
                       <PresenceDot userId={otherParticipant.user_id} />
                     )}
                   </div>
-                  <div className="text-[12px] text-[#667781] dark:text-[#8696A0] shrink-0 font-medium">
+                  <div className="text-[12px] text-slate-400 dark:text-slate-500 shrink-0 font-medium">
                     {formatInboxTime(room.last_message_created_at)}
                   </div>
                 </div>
 
                 <div className="flex items-center justify-between">
-                  <div className="text-[13.5px] text-[#667781] dark:text-[#8696A0] truncate flex items-center gap-1">
+                  <div className="text-[13.5px] text-slate-500 dark:text-slate-400 truncate flex items-center gap-1">
                     {isSentByMe && (
-                      <WhatsAppReceiptTicks status="delivered" className="shrink-0" />
+                      <ChatReceiptTicks status="delivered" inOutgoingBubble={false} className="shrink-0" />
                     )}
                     <span className="truncate">{room.last_message || 'Tap to open chat'}</span>
                   </div>
 
                   {room.unread_count && room.unread_count > 0 ? (
-                    <div className="min-w-[20px] h-5 px-1.5 rounded-full bg-[#25D366] text-white text-[11px] font-bold flex items-center justify-center shrink-0 shadow-sm">
+                    <div className="min-w-[20px] h-5 px-1.5 rounded-full bg-indigo-600 text-white text-[11px] font-bold flex items-center justify-center shrink-0 shadow-xs">
                       {room.unread_count}
                     </div>
                   ) : null}
@@ -185,14 +185,14 @@ export const ChatRooms: React.FC = () => {
 
         {filteredRooms?.length === 0 && (
           <div className="flex flex-col items-center justify-center py-20 text-center px-4">
-            <div className="w-16 h-16 rounded-full bg-[#008069]/10 text-[#008069] dark:text-[#25D366] flex items-center justify-center mb-3">
+            <div className="w-16 h-16 rounded-full bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mb-3 shadow-xs">
               <MessageSquarePlus size={28} />
             </div>
-            <div className="text-base font-semibold text-gray-800 dark:text-slate-200">
-              No messages found
+            <div className="text-base font-semibold text-slate-800 dark:text-slate-200">
+              No conversations found
             </div>
-            <div className="text-xs text-gray-500 dark:text-slate-400 mt-1 max-w-xs">
-              Start a new conversation with classmates and peers from the Community feed!
+            <div className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-xs">
+              Connect with classmates and peers from the Community feed to begin chatting!
             </div>
           </div>
         )}
