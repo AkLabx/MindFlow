@@ -5,6 +5,7 @@ import { QuotedMessagePreview } from './QuotedMessagePreview';
 import { KeyboardAwareBottomBar } from '../../../../components/ui/KeyboardAwareBottomBar';
 import { isNativeApp } from '../../../../utils/platform';
 import { compressImageToWebP } from '../../utils/mediaCompression';
+import { useNotification } from '../../../../hooks/useNotification';
 
 interface ChatInputBarProps {
   onSend: (text: string) => void;
@@ -36,10 +37,14 @@ export const ChatInputBar: React.FC<ChatInputBarProps> = ({
   isBlocker,
   onUnblock,
 }) => {
+  const { showToast } = useNotification();
   const [text, setText] = useState('');
   const [isAttachmentOpen, setIsAttachmentOpen] = useState(false);
+  const [isEmojiOpen, setIsEmojiOpen] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [recordSeconds, setRecordSeconds] = useState(0);
+
+  const QUICK_EMOJIS = ['😀', '😂', '😍', '🔥', '👍', '🙏', '🎉', '💯', '✨', '📚', '💡', '✍️', '🤔', '🙌', '💪', '🎯'];
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
@@ -49,6 +54,14 @@ export const ChatInputBar: React.FC<ChatInputBarProps> = ({
   const audioChunksRef = useRef<Blob[]>([]);
 
   const hasText = text.trim().length > 0;
+
+  const handleSelectEmoji = (emoji: string) => {
+    setText((prev) => prev + emoji);
+    onTyping(true);
+    if (textareaRef.current) {
+      textareaRef.current.focus();
+    }
+  };
 
   // Auto-resize textarea
   const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -75,6 +88,7 @@ export const ChatInputBar: React.FC<ChatInputBarProps> = ({
     if (!hasText && !isUploading) return;
     onSend(text.trim());
     setText('');
+    setIsEmojiOpen(false);
     onTyping(false);
     if (textareaRef.current) {
       textareaRef.current.style.height = '42px';
@@ -107,7 +121,7 @@ export const ChatInputBar: React.FC<ChatInputBarProps> = ({
   const startRecording = async () => {
     try {
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        alert('Audio recording is not supported on this browser.');
+        showToast({ title: 'Not Supported', message: 'Audio recording is not supported on this browser.', variant: 'error' });
         return;
       }
 
@@ -135,6 +149,7 @@ export const ChatInputBar: React.FC<ChatInputBarProps> = ({
       }, 1000);
     } catch (err) {
       console.error('Microphone permission denied or recording failed:', err);
+      showToast({ title: 'Microphone Error', message: 'Could not access microphone. Please check permissions.', variant: 'error' });
     }
   };
 
@@ -237,7 +252,13 @@ export const ChatInputBar: React.FC<ChatInputBarProps> = ({
         onClose={() => setIsAttachmentOpen(false)}
         onPickImage={() => imageInputRef.current?.click()}
         onPickDocument={() => docInputRef.current?.click()}
-        onComingSoon={(feature) => alert(`${feature} is coming soon in MindFlow!`)}
+        onComingSoon={(feature) =>
+          showToast({
+            title: 'Coming Soon',
+            message: `${feature} is coming soon in MindFlow!`,
+            variant: 'info',
+          })
+        }
       />
 
       {/* Quoted Message Preview pinned above input */}
@@ -247,6 +268,23 @@ export const ChatInputBar: React.FC<ChatInputBarProps> = ({
           onDismiss={onDismissReply}
           variant="inputBar"
         />
+      )}
+
+      {/* Quick Emoji Strip */}
+      {isEmojiOpen && (
+        <div className="mb-2 p-1.5 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-md flex items-center gap-1 overflow-x-auto no-scrollbar">
+          {QUICK_EMOJIS.map((emoji) => (
+            <button
+              key={emoji}
+              type="button"
+              onClick={() => handleSelectEmoji(emoji)}
+              className="text-xl p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 active:scale-90 transition-transform shrink-0"
+              aria-label={`Insert ${emoji}`}
+            >
+              {emoji}
+            </button>
+          ))}
+        </div>
       )}
 
       {/* Main MindFlow Dual-Capsule Layout */}
@@ -275,9 +313,13 @@ export const ChatInputBar: React.FC<ChatInputBarProps> = ({
             <>
               <button
                 type="button"
-                onClick={() => {}}
-                className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 active:scale-95 transition-transform shrink-0"
-                aria-label="Emoji picker"
+                onClick={() => setIsEmojiOpen((prev) => !prev)}
+                className={`p-1 active:scale-95 transition-transform shrink-0 ${
+                  isEmojiOpen
+                    ? 'text-indigo-600 dark:text-indigo-400'
+                    : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'
+                }`}
+                aria-label="Toggle emoji picker"
               >
                 <Smile size={23} strokeWidth={1.8} />
               </button>

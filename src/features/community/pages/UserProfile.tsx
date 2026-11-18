@@ -53,10 +53,7 @@ export const UserProfile: React.FC = () => {
         mutationFn: () => getOrCreateChatRoom(currentUser!.id, profile!.id),
         onSuccess: (roomId) => {
             if (roomId) {
-                // Navigate to messages, perhaps passing room ID or assuming chat screen loads recent
-                // The current ChatRooms component uses activeRoomId local state.
-                // We'll navigate to /messages and in a real app would pass the ID via state.
-                navigate('/messages', { state: { roomId } });
+                navigate(`/messages/${roomId}`);
             }
         }
     });

@@ -6,17 +6,28 @@ import { chatCacheService } from '../services/chatCacheService';
 import { useAuth } from '../../auth/context/AuthContext';
 import { PresenceAvatar } from '../../../components/ui/PresenceAvatar';
 import { PresenceDot } from '../../../components/ui/PresenceDot';
-import { ArrowLeft, Search, X, MessageSquarePlus } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { ArrowLeft, Search, X, MessageSquarePlus, Plus, Users } from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { ChatListSkeleton } from '../components/ChatListSkeleton';
 import { ChatReceiptTicks } from '../components/chat/ChatReceiptTicks';
+import { NewChatModal } from '../components/chat/NewChatModal';
 
 export const ChatRooms: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isNewChatOpen, setIsNewChatOpen] = useState(false);
+
+  // Auto-redirect if routed from profile with state.roomId
+  useEffect(() => {
+    const stateRoomId = (location.state as any)?.roomId;
+    if (stateRoomId) {
+      navigate(`/messages/${stateRoomId}`, { replace: true });
+    }
+  }, [location.state, navigate]);
 
   const { data: rooms, isLoading } = useQuery({
     queryKey: ['chat-rooms', user?.id],
@@ -115,6 +126,14 @@ export const ChatRooms: React.FC = () => {
 
             <div className="flex items-center gap-1">
               <button
+                onClick={() => setIsNewChatOpen(true)}
+                className="p-2 rounded-full text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 active:scale-95 transition-transform"
+                aria-label="New chat"
+                title="Start new conversation"
+              >
+                <Plus size={22} strokeWidth={2.4} />
+              </button>
+              <button
                 onClick={() => setIsSearchOpen(true)}
                 className="p-2 rounded-full text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 active:scale-95 transition-transform"
                 aria-label="Search conversations"
@@ -184,19 +203,51 @@ export const ChatRooms: React.FC = () => {
         })}
 
         {filteredRooms?.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-20 text-center px-4">
+          <div className="flex flex-col items-center justify-center py-16 text-center px-4">
             <div className="w-16 h-16 rounded-full bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mb-3 shadow-xs">
               <MessageSquarePlus size={28} />
             </div>
             <div className="text-base font-semibold text-slate-800 dark:text-slate-200">
-              No conversations found
+              {searchQuery ? 'No matching conversations' : 'No conversations yet'}
             </div>
-            <div className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-xs">
-              Connect with classmates and peers from the Community feed to begin chatting!
+            <div className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-xs mb-5">
+              {searchQuery
+                ? 'Try a different search term or start a new conversation below.'
+                : 'Connect with classmates, share study notes, and discuss questions together.'}
+            </div>
+            <div className="flex flex-col sm:flex-row items-center gap-2.5 w-full max-w-xs">
+              <button
+                onClick={() => setIsNewChatOpen(true)}
+                className="w-full py-2.5 px-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-xl text-xs font-bold shadow-md shadow-indigo-500/25 active:scale-95 transition-all flex items-center justify-center gap-2"
+              >
+                <MessageSquarePlus size={16} /> Start a Conversation
+              </button>
+              <button
+                onClick={() => navigate('/community')}
+                className="w-full py-2.5 px-4 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-semibold active:scale-95 transition-all flex items-center justify-center gap-2"
+              >
+                <Users size={16} /> Explore Community
+              </button>
             </div>
           </div>
         )}
       </div>
+
+      {/* Android Floating Action Button (FAB) */}
+      <button
+        onClick={() => setIsNewChatOpen(true)}
+        className="fixed bottom-6 right-6 w-14 h-14 rounded-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white shadow-xl shadow-indigo-500/35 flex items-center justify-center active:scale-90 transition-transform z-30"
+        aria-label="Start new conversation"
+        title="Start new conversation"
+      >
+        <MessageSquarePlus size={24} strokeWidth={2.2} />
+      </button>
+
+      {/* New Conversation Modal */}
+      <NewChatModal
+        isOpen={isNewChatOpen}
+        onClose={() => setIsNewChatOpen(false)}
+      />
     </div>
   );
 };

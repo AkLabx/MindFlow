@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useTransition } from 'react';
+import React, { useState, useCallback, useTransition, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { FileText, Reply, Ban, Download } from 'lucide-react';
 import { ChatMessage } from '../api/chatApi';
@@ -66,16 +66,65 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = React.memo(({
     }
   }, [msg.text_content, msg.deleted_at]);
 
-  const handleLongPress = useCallback((e: React.MouseEvent | React.TouchEvent) => {
-    e.preventDefault();
+  const longPressTimerRef = useRef<any>(null);
+  const touchStartPosRef = useRef<{ x: number; y: number } | null>(null);
+
+  const triggerReactionMenu = useCallback(() => {
     if (msg.deleted_at) return;
     if (typeof navigator !== 'undefined' && navigator.vibrate) {
-      navigator.vibrate(20);
+      navigator.vibrate(25);
     }
     startTransition(() => {
       setIsReactionMenuOpen(true);
     });
   }, [msg.deleted_at]);
+
+  const handleLongPress = useCallback((e: React.MouseEvent | React.TouchEvent) => {
+    e.preventDefault();
+    triggerReactionMenu();
+  }, [triggerReactionMenu]);
+
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    touchHandlers.onTouchStart(e);
+    if (msg.deleted_at) return;
+    const touch = e.touches[0];
+    touchStartPosRef.current = { x: touch.clientX, y: touch.clientY };
+
+    if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
+    longPressTimerRef.current = setTimeout(() => {
+      triggerReactionMenu();
+    }, 450);
+  }, [touchHandlers, msg.deleted_at, triggerReactionMenu]);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    touchHandlers.onTouchMove(e);
+    if (touchStartPosRef.current && longPressTimerRef.current) {
+      const touch = e.touches[0];
+      const dist = Math.hypot(touch.clientX - touchStartPosRef.current.x, touch.clientY - touchStartPosRef.current.y);
+      if (dist > 10) {
+        clearTimeout(longPressTimerRef.current);
+        longPressTimerRef.current = null;
+      }
+    }
+  }, [touchHandlers]);
+
+  const handleTouchEnd = useCallback(() => {
+    touchHandlers.onTouchEnd();
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+    touchStartPosRef.current = null;
+  }, [touchHandlers]);
+
+  const handleTouchCancel = useCallback(() => {
+    touchHandlers.onTouchCancel();
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+    touchStartPosRef.current = null;
+  }, [touchHandlers]);
 
   const timeFormatted = formatMessageTime(msg.created_at);
   const myReaction = msg.reactions?.find((r) => r.user_id === user?.id)?.emoji || null;
@@ -102,7 +151,10 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = React.memo(({
         className={`px-3 py-1 flex items-end gap-1.5 relative group ${
           isMine ? 'justify-end' : 'justify-start'
         }`}
-        {...touchHandlers}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onTouchCancel={handleTouchCancel}
         onContextMenu={handleLongPress}
       >
         {/* Swipe-to-Reply Arrow Indicator (Revealed on Swipe Right) */}

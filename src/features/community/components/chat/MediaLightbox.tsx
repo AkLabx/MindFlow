@@ -19,13 +19,22 @@ export const MediaLightbox: React.FC<MediaLightboxProps> = ({
 }) => {
   if (!isOpen || !mediaUrl) return null;
 
-  const handleDownload = () => {
-    const a = document.createElement('a');
-    a.href = mediaUrl;
-    a.download = `mindflow-media-${Date.now()}.webp`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+  const handleDownload = async () => {
+    if (!mediaUrl) return;
+    try {
+      const response = await fetch(mediaUrl, { mode: 'cors' });
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = `mindflow-media-${Date.now()}.webp`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+    } catch {
+      window.open(mediaUrl, '_blank');
+    }
   };
 
   return (

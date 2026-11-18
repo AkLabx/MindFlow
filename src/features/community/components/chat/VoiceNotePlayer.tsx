@@ -26,17 +26,32 @@ export const VoiceNotePlayer: React.FC<VoiceNotePlayerProps> = ({
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
+    if (duration && duration > 0) {
+      setTotalDuration(Math.round(duration));
+    }
+  }, [duration]);
+
+  useEffect(() => {
     const audio = new Audio(audioUrl);
     audioRef.current = audio;
 
     audio.onloadedmetadata = () => {
       if (audio.duration && !isNaN(audio.duration) && isFinite(audio.duration)) {
         setTotalDuration(Math.round(audio.duration));
+      } else if (duration && duration > 0) {
+        setTotalDuration(Math.round(duration));
       }
     };
 
     audio.ontimeupdate = () => {
       setCurrentTime(audio.currentTime);
+      if (!isFinite(totalDuration) || totalDuration <= 0) {
+        if (audio.duration && isFinite(audio.duration)) {
+          setTotalDuration(Math.round(audio.duration));
+        } else if (duration && duration > 0) {
+          setTotalDuration(Math.round(duration));
+        }
+      }
     };
 
     audio.onended = () => {
@@ -48,7 +63,7 @@ export const VoiceNotePlayer: React.FC<VoiceNotePlayerProps> = ({
       audio.pause();
       audioRef.current = null;
     };
-  }, [audioUrl]);
+  }, [audioUrl, duration, totalDuration]);
 
   const togglePlay = () => {
     if (!audioRef.current) return;
