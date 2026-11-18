@@ -152,6 +152,45 @@ export const fetchUserRooms = async (userId: string): Promise<ChatRoom[]> => {
   }
 };
 
+export const fetchRoomById = async (roomId: string): Promise<ChatRoom | null> => {
+  try {
+    const { data: room, error: rError } = await supabase
+      .from('chat_rooms')
+      .select(`
+        id, type, created_at, updated_at,
+        chat_participants(
+          user_id
+        )
+      `)
+      .eq('id', roomId)
+      .maybeSingle();
+
+    if (rError || !room) return null;
+
+    const participantUserIds = (room.chat_participants || []).map((p: any) => p.user_id);
+    const { data: profiles } = await supabase
+      .from('profiles')
+      .select('id, username, full_name, avatar_url, last_seen')
+      .in('id', participantUserIds);
+
+    const profileMap = new Map((profiles || []).map((p: any) => [p.id, p]));
+
+    return {
+      id: room.id,
+      type: room.type,
+      created_at: room.created_at,
+      updated_at: room.updated_at,
+      participants: (room.chat_participants || []).map((p: any) => ({
+        user_id: p.user_id,
+        ...profileMap.get(p.user_id),
+      })),
+    };
+  } catch (err) {
+    console.error('Fetch room by id error:', err);
+    return null;
+  }
+};
+
 export const uploadChatMedia = async (file: File | Blob, userId: string, customExt?: string): Promise<string> => {
   const fileExt = customExt || (file instanceof File ? file.name.split('.').pop() : 'webp');
   // Use crypto.randomUUID for unguessable and secure filenames

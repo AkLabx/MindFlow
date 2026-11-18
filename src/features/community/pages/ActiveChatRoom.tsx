@@ -4,6 +4,7 @@ import { useAuth } from '../../auth/context/AuthContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   fetchUserRooms,
+  fetchRoomById,
   fetchMessages,
   sendMessage,
   uploadChatMedia,
@@ -16,6 +17,8 @@ import {
 import { chatCacheService } from '../services/chatCacheService';
 import { supabase } from '../../../lib/supabase';
 import { Virtuoso, VirtuosoHandle } from 'react-virtuoso';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ArrowDown } from 'lucide-react';
 import { useSocialRealtime } from '../hooks/useSocialRealtime';
 import { usePresenceStore } from '../../../stores/usePresenceStore';
 import { ChatTopBar } from '../components/chat/ChatTopBar';
@@ -48,6 +51,33 @@ export const ActiveChatRoom: React.FC = () => {
     senderName?: string;
     timestamp?: string;
   } | null>(null);
+  const [viewportHeight, setViewportHeight] = useState<number | null>(null);
+  const [showScrollToBottom, setShowScrollToBottom] = useState(false);
+
+  // Dynamic visual viewport accommodation for mobile software keyboard
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.visualViewport) return;
+    const updateViewport = () => {
+      if (window.visualViewport) {
+        setViewportHeight(window.visualViewport.height);
+      }
+    };
+    updateViewport();
+    window.visualViewport.addEventListener('resize', updateViewport);
+    window.visualViewport.addEventListener('scroll', updateViewport);
+    return () => {
+      window.visualViewport?.removeEventListener('resize', updateViewport);
+      window.visualViewport?.removeEventListener('scroll', updateViewport);
+    };
+  }, []);
+
+  const scrollToBottom = useCallback((behavior: 'smooth' | 'auto' = 'smooth') => {
+    virtuosoRef.current?.scrollToIndex({
+      index: 'LAST',
+      align: 'end',
+      behavior,
+    });
+  }, []);
 
   // Fetch Rooms
   const { data: rooms } = useQuery({
@@ -56,7 +86,16 @@ export const ActiveChatRoom: React.FC = () => {
     enabled: !!user,
   });
 
-  const room: ChatRoom = rooms?.find((r) => r.id === roomId) || {
+  const cachedRoom = rooms?.find((r) => r.id === roomId);
+
+  const { data: fetchedRoom } = useQuery({
+    queryKey: ['chat-room-detail', roomId],
+    queryFn: () => fetchRoomById(roomId!),
+    enabled: !!roomId && !cachedRoom?.participants?.length,
+    staleTime: 1000 * 60,
+  });
+
+  const room: ChatRoom = cachedRoom || fetchedRoom || {
     id: roomId!,
     type: 'direct',
     created_at: '',
@@ -402,7 +441,10 @@ export const ActiveChatRoom: React.FC = () => {
   );
 
   return (
-    <div className="flex flex-col flex-1 h-[100dvh] w-full bg-slate-50 dark:bg-[#020617] relative md:max-w-2xl md:mx-auto md:border-x md:border-slate-200/80 md:dark:border-slate-800 md:shadow-xl overflow-hidden select-none">
+    <div
+      style={viewportHeight ? { height: `${viewportHeight}px` } : undefined}
+      className="flex flex-col flex-1 h-[100dvh] w-full bg-slate-50 dark:bg-[#020617] relative md:max-w-2xl md:mx-auto md:border-x md:border-slate-200/80 md:dark:border-slate-800 md:shadow-xl overflow-hidden select-none"
+    >
       {/* MindFlow Neural Synapse Wallpaper */}
       <ChatWallpaper />
 
@@ -419,8 +461,9 @@ export const ActiveChatRoom: React.FC = () => {
         }}
         onOpenReport={() => setIsReportModalOpen(true)}
         onViewProfile={() => {
-          if (otherParticipant?.user_id) {
-            navigate(`/community/profile/${otherParticipant.user_id}`);
+          const target = otherParticipant?.username || otherParticipant?.user_id;
+          if (target) {
+            navigate(`/u/${target}`);
           }
         }}
       />
@@ -437,7 +480,8 @@ export const ActiveChatRoom: React.FC = () => {
             style={{ height: '100%' }}
             followOutput="smooth"
             data={messages || []}
-            initialTopMostItemIndex={(messages?.length || 0) - 1}
+            initialTopMostItemIndex={Math.max(0, (messages?.length || 1) - 1)}
+            atBottomStateChange={(atBottom) => setShowScrollToBottom(!atBottom)}
             itemContent={(index, msg) => {
               const prevMsg = index > 0 ? messages?.[index - 1] : null;
               let showTimeSeparator = false;
@@ -479,6 +523,23 @@ export const ActiveChatRoom: React.FC = () => {
           />
         )}
       </div>
+
+      {/* Floating Scroll to Bottom Button */}
+      <AnimatePresence>
+        {showScrollToBottom && (
+          <motion.button
+            initial={{ opacity: 0, scale: 0.8, y: 10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.8, y: 10 }}
+            onClick={() => scrollToBottom('smooth')}
+            className="absolute right-4 bottom-20 z-30 w-10 h-10 rounded-full bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 border border-slate-200/90 dark:border-slate-800 shadow-xl active:scale-90 transition-all flex items-center justify-center hover:bg-slate-50 dark:hover:bg-slate-800"
+            aria-label="Scroll to latest messages"
+            title="Scroll to latest messages"
+          >
+            <ArrowDown size={19} strokeWidth={2.4} />
+          </motion.button>
+        )}
+      </AnimatePresence>
 
       {/* MindFlow Dual-Capsule Input Bar */}
       <ChatInputBar

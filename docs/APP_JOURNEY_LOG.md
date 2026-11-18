@@ -26,6 +26,32 @@ This document is the single source of truth for the evolution of the MindFlow ap
 
 ## 🚀 App Journey Changelog
 
+## [v1.0.365] - 18 November 2026, 10:10 AM IST
+
+**Executive Summary:** MindFlow Social Media Chatroom Comprehensive UI/UX Uplift & Robustness Architecture. Resolved critical navigation flow-breakers (fixed 404 routing on "View profile", direct room routing from user profiles, and `location.state?.roomId` inbox forwarding), implemented complete "New Chat" discovery with an Android-style FAB and interactive user search modal, engineered direction-locked swipe-to-reply and haptic touch long-press to eliminate mobile scrolling jitter, established dynamic visual viewport keyboard avoidance, activated an interactive quick emoji strip, and fixed Chromium WebM voice note duration freezes and cross-origin lightbox downloads.
+
+### ✨ Features Added
+- **"New Conversation" Discovery Engine (`NewChatModal.tsx`, `ChatRooms.tsx`)**: Designed and integrated a mobile-first user search bottom sheet powered by `searchProfiles` and `getOrCreateChatRoom`, allowing users to search peers by name or `@username` and instantly launch direct chats from the inbox.
+- **Android Floating Action Button (FAB)**: Added a prominent bottom-right FAB with tactile touch scaling (`active:scale-90`) and header quick-action for creating new conversations from `ChatRooms`.
+- **Zero Dead-Ends Inbox Recovery**: Transformed the empty conversation list into an actionable hub offering one-tap "Start a Conversation" and "Explore Community" CTA buttons per Constitution directives.
+- **Floating "Scroll to Bottom" Jump Button (`ActiveChatRoom.tsx`)**: Built a smooth floating FAB that appears when the user scrolls away from recent messages, featuring smooth auto-scroll anchoring (`scrollToBottom('smooth')`).
+- **Interactive Inline Quick Emoji Strip (`ChatInputBar.tsx`)**: Replaced the previous dead emoji button with a toggleable, rapid-access emoji shelf containing popular study and peer communication reactions, inserting directly at the cursor in the message textarea.
+
+### 🐛 Bug Fixes
+- **Resolved 404 Route Failure on View Profile (`ActiveChatRoom.tsx`)**: Corrected top bar avatar and menu navigation from non-existent `/community/profile/:id` to canonical `/u/:username` (`ROUTES.SOCIAL.USER_PROFILE`), eliminating navigation crashes.
+- **Resolved Silent Inbox Drop from User Profiles (`UserProfile.tsx`, `ChatRooms.tsx`)**: Fixed the "Message" button on user profiles to navigate directly to `/messages/:roomId` instead of dropping users into `/messages`, and added `location.state?.roomId` forwarding in `ChatRooms` as a resilient fallback.
+- **Eliminated Chat Bubble Jitter on Touchscreens (`useSwipeToReply.ts`)**: Implemented two-dimensional axis locking ($| \Delta Y | > | \Delta X |$ locks to vertical scroll), preventing message bubbles from wobbling or triggering accidental replies during vertical scrolling.
+- **Robust Mobile Long-Press Engine (`ChatMessageItem.tsx`)**: Replaced erratic `onContextMenu` with a dedicated 450ms touch timer with movement cancellation ($>10\text{px}$) and tactile haptic vibration (`navigator.vibrate(25)`).
+- **Resolved Chromium WebM Voice Note Duration Freeze (`VoiceNotePlayer.tsx`)**: Added fallback handling for Chromium's `audio.duration = Infinity` quirk on MediaRecorder WebM blobs, restoring accurate total duration display and waveform scrubbing.
+- **Fixed Cross-Origin Image Downloads (`MediaLightbox.tsx`)**: Implemented fetch-to-blob object URL downloading, preventing browser security blocks on remote Supabase Storage assets.
+- **Replaced Disruptive `alert()` Modals**: Converted raw browser `window.alert(...)` modals in `AttachmentBottomSheet` and `ChatInputBar` to native MindFlow toasts via `useNotification`.
+
+### 🔒 Security & Architecture
+- **Single-Room Deep Link Fetcher (`fetchRoomById` in `chatApi.ts`)**: Added fallback room query to guarantee participant profiles and headers hydrate instantly even when direct-linking to a room not yet in the active `fetchUserRooms` cache.
+- **Dynamic Visual Viewport Keyboard Accommodation**: Adapted `ActiveChatRoom` container height to dynamic `window.visualViewport.height`, preventing mobile virtual keyboards from obscuring the input bar and textarea on Android Capacitor and mobile browsers.
+
+---
+
 ## [v1.0.364] - 18 November 2026, 08:35 AM IST
 
 **Executive Summary:** Complete MindFlow Social Chatroom Brand Realignment & Full Feature Activation. Re-skinned the chatroom from an overt WhatsApp clone into MindFlow's distinct Indigo / Deep Violet & Slate / Cyber-Glassmorphic design system with a custom Neural Synapse background, while strictly preserving familiar messenger ergonomics (dual-capsule input, bubble tails, micro-timestamps, and swipe-to-reply). Expanded PostgreSQL schema (`reply_to_id`, `voice_duration`, `file_name`, `file_size`, `deleted_at`, `chat_message_reactions`), unlocked Supabase Storage bucket for voice notes & office documents up to 25 MB, and wired complete document sharing with extension badges, real file names, and formatted file sizes.
