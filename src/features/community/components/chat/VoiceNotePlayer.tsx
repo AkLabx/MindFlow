@@ -94,17 +94,17 @@ export const VoiceNotePlayer: React.FC<VoiceNotePlayerProps> = ({
   const progressPercent = totalDuration > 0 ? (currentTime / totalDuration) * 100 : 0;
 
   return (
-    <div className="flex items-center gap-3 py-1 min-w-[220px] max-w-[280px] select-none">
+    <div className="flex items-center gap-2.5 py-1 min-w-[220px] max-w-[280px] select-none">
       {/* Sender Avatar with Microphone badge */}
-      <div className="relative w-11 h-11 rounded-full shrink-0">
+      <div className="relative w-10 h-10 rounded-full shrink-0">
         <PresenceAvatar
           userId={senderId}
           avatarUrl={senderAvatar}
           altText={senderName}
           className="w-full h-full rounded-full object-cover"
         />
-        <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-[#00A884] text-white flex items-center justify-center border-2 border-white dark:border-[#1F2C34] shadow-sm">
-          <Mic size={11} strokeWidth={2.5} />
+        <div className={`absolute -bottom-1 -right-1 w-4.5 h-4.5 rounded-full ${isMine ? 'bg-indigo-700 text-white' : 'bg-indigo-600 text-white'} flex items-center justify-center border-2 border-white dark:border-slate-900 shadow-xs`}>
+          <Mic size={10} strokeWidth={2.5} />
         </div>
       </div>
 
@@ -112,10 +112,14 @@ export const VoiceNotePlayer: React.FC<VoiceNotePlayerProps> = ({
       <button
         type="button"
         onClick={togglePlay}
-        className="w-8 h-8 rounded-full bg-[#00A884] text-white flex items-center justify-center shrink-0 shadow-sm active:scale-95 transition-transform"
+        className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 shadow-sm active:scale-95 transition-all ${
+          isMine
+            ? 'bg-white text-indigo-600 hover:bg-white/90'
+            : 'bg-indigo-600 text-white hover:bg-indigo-700'
+        }`}
         aria-label={isPlaying ? 'Pause voice message' : 'Play voice message'}
       >
-        {isPlaying ? <Pause size={16} fill="white" /> : <Play size={16} fill="white" className="ml-0.5" />}
+        {isPlaying ? <Pause size={15} fill="currentColor" /> : <Play size={15} fill="currentColor" className="ml-0.5" />}
       </button>
 
       {/* Waveform Scrubber & Timer */}
@@ -135,22 +139,28 @@ export const VoiceNotePlayer: React.FC<VoiceNotePlayerProps> = ({
                 style={{ height: `${barHeight}%` }}
                 className={`w-[3px] rounded-full transition-colors ${
                   isFilled
-                    ? 'bg-[#00A884]'
+                    ? isMine
+                      ? 'bg-white'
+                      : 'bg-indigo-600 dark:bg-indigo-400'
                     : isMine
-                    ? 'bg-[#111B21]/30 dark:bg-white/30'
-                    : 'bg-gray-400 dark:bg-slate-600'
+                    ? 'bg-white/30'
+                    : 'bg-slate-300 dark:bg-slate-700'
                 }`}
               />
             );
           })}
         </div>
 
-        <div className="flex items-center justify-between text-[11px] text-gray-500 dark:text-slate-400 font-medium">
+        <div className={`flex items-center justify-between text-[11px] font-medium ${isMine ? 'text-indigo-100' : 'text-slate-500 dark:text-slate-400'}`}>
           <span>{isPlaying ? formatSecs(currentTime) : formatSecs(totalDuration)}</span>
           <button
             type="button"
             onClick={cycleSpeed}
-            className="text-[10px] font-bold bg-black/5 dark:bg-white/10 hover:bg-black/10 px-1.5 py-0.5 rounded-full text-[#111B21] dark:text-slate-200 transition-colors"
+            className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full transition-colors ${
+              isMine
+                ? 'bg-white/20 text-white hover:bg-white/30'
+                : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200'
+            }`}
           >
             {playbackRate}x
           </button>

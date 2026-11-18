@@ -1,16 +1,16 @@
 import React, { useState, useCallback, useTransition } from 'react';
 import { motion } from 'framer-motion';
-import { File, Reply, Copy } from 'lucide-react';
+import { FileText, Reply, Ban, Download } from 'lucide-react';
 import { ChatMessage } from '../api/chatApi';
 import { useAuth } from '../../auth/context/AuthContext';
-import { WhatsAppReceiptTicks } from '../components/chat/WhatsAppReceiptTicks';
-import { WhatsAppBubbleTail } from '../components/chat/WhatsAppBubbleTail';
-import { WhatsAppDatePill } from '../components/chat/WhatsAppDatePill';
+import { ChatReceiptTicks } from '../components/chat/ChatReceiptTicks';
+import { ChatBubbleTail } from '../components/chat/ChatBubbleTail';
+import { ChatDatePill } from '../components/chat/ChatDatePill';
 import { QuotedMessagePreview } from '../components/chat/QuotedMessagePreview';
 import { VoiceNotePlayer } from '../components/chat/VoiceNotePlayer';
 import { FloatingReactionPill } from '../components/chat/FloatingReactionPill';
 import { useSwipeToReply } from '../hooks/useSwipeToReply';
-import { formatMessageTime } from '../utils/whatsappTheme';
+import { formatMessageTime, formatFileSize } from '../utils/chatTheme';
 import toast from 'react-hot-toast';
 
 interface ChatMessageItemProps {
@@ -46,44 +46,55 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = React.memo(({
   const [, startTransition] = useTransition();
 
   const handleReply = useCallback(() => {
-    if (onReply) {
+    if (onReply && !msg.deleted_at) {
       onReply(msg);
     }
   }, [onReply, msg]);
 
   const { offsetX, touchHandlers } = useSwipeToReply({
     onReply: handleReply,
-    disabled: !onReply,
+    disabled: !onReply || Boolean(msg.deleted_at),
   });
 
   const handleCopy = useCallback(() => {
-    if (msg.text_content) {
+    if (msg.text_content && !msg.deleted_at) {
       navigator.clipboard.writeText(msg.text_content).then(() => {
         toast.success('Message copied');
       }).catch(() => {
         toast.error('Failed to copy');
       });
     }
-  }, [msg.text_content]);
+  }, [msg.text_content, msg.deleted_at]);
 
   const handleLongPress = useCallback((e: React.MouseEvent | React.TouchEvent) => {
     e.preventDefault();
+    if (msg.deleted_at) return;
     if (typeof navigator !== 'undefined' && navigator.vibrate) {
       navigator.vibrate(20);
     }
     startTransition(() => {
       setIsReactionMenuOpen(true);
     });
-  }, []);
+  }, [msg.deleted_at]);
 
   const timeFormatted = formatMessageTime(msg.created_at);
   const myReaction = msg.reactions?.find((r) => r.user_id === user?.id)?.emoji || null;
 
+  // Extract file extension and display name for document attachments
+  const getFileExtension = (nameOrUrl?: string | null) => {
+    if (!nameOrUrl) return 'FILE';
+    const clean = nameOrUrl.split('?')[0];
+    const ext = clean.split('.').pop();
+    return ext ? ext.toUpperCase().slice(0, 4) : 'FILE';
+  };
+
+  const isDeleted = Boolean(msg.deleted_at);
+
   return (
     <div className="w-full flex flex-col select-none relative">
-      {/* Sticky WhatsApp Date Pill */}
+      {/* Sticky Date Pill */}
       {showTimeSeparator && (
-        <WhatsAppDatePill dateString={msg.created_at || timeSeparatorText} />
+        <ChatDatePill dateString={msg.created_at || timeSeparatorText} />
       )}
 
       {/* Message Row with Swipe-to-Reply Translation */}
@@ -101,7 +112,7 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = React.memo(({
               transform: `translateX(${Math.min(offsetX - 40, 20)}px)`,
               opacity: Math.min(offsetX / 45, 1),
             }}
-            className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-[#00A884] text-white flex items-center justify-center pointer-events-none shadow-md z-10"
+            className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-indigo-600 text-white flex items-center justify-center pointer-events-none shadow-md z-10"
           >
             <Reply size={16} strokeWidth={2.5} />
           </div>
@@ -110,104 +121,138 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = React.memo(({
         {/* Speech Bubble Container with Elastic Horizontal Offset */}
         <div
           style={{ transform: `translateX(${offsetX}px)` }}
-          className="relative max-w-[82%] sm:max-w-[70%] transition-transform duration-75"
+          className="relative max-w-[84%] sm:max-w-[72%] transition-transform duration-75"
         >
-          {/* WhatsApp Speech Bubble Tail */}
-          <WhatsAppBubbleTail isMine={isMine} />
+          {/* Bubble Tail */}
+          {!isDeleted && <ChatBubbleTail isMine={isMine} />}
 
           {/* Speech Bubble Card */}
           <div
-            className={`px-3 pt-2 pb-1.5 rounded-[10px] shadow-[0_1px_0.5px_rgba(11,20,26,0.13)] select-text relative ${
-              isMine
-                ? 'bg-[#D9FDD3] dark:bg-[#005C4B] text-[#111B21] dark:text-[#E9EDEF] rounded-tr-none'
-                : 'bg-white dark:bg-[#1F2C34] text-[#111B21] dark:text-[#E9EDEF] rounded-tl-none'
+            className={`px-3 pt-2 pb-1.5 rounded-[14px] shadow-[0_1px_2px_rgba(0,0,0,0.06)] select-text relative ${
+              isDeleted
+                ? 'bg-slate-100 dark:bg-slate-900 border border-slate-200/70 dark:border-slate-800 text-slate-400 italic'
+                : isMine
+                ? 'bg-gradient-to-br from-indigo-600 to-indigo-700 text-white shadow-indigo-500/15 rounded-tr-none'
+                : 'bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 text-slate-900 dark:text-slate-100 rounded-tl-none'
             }`}
           >
-            {/* Embedded Quoted Reply Snippet */}
-            {msg.reply_to && (
-              <QuotedMessagePreview
-                message={msg.reply_to}
-                variant="inlineBubble"
-                onClick={() => onScrollToMessage?.(msg.reply_to!.id)}
-              />
-            )}
-
-            {/* Media: Image (with high-res tap-to-lightbox) */}
-            {msg.media_url && msg.media_type === 'image' && (
-              <div
-                onClick={() =>
-                  onOpenMedia?.(
-                    msg.media_url!,
-                    isMine ? 'You' : otherParticipantName,
-                    timeFormatted
-                  )
-                }
-                className="mb-1.5 rounded-lg overflow-hidden bg-black/5 -mx-1 -mt-0.5 cursor-pointer hover:opacity-95 transition-opacity"
-              >
-                <img
-                  src={msg.media_url}
-                  alt="Shared media"
-                  className="w-full h-auto object-cover max-h-72 rounded-lg"
-                  loading="lazy"
-                />
+            {/* Deleted Message State */}
+            {isDeleted ? (
+              <div className="flex items-center gap-1.5 text-[13px] py-0.5">
+                <Ban size={15} className="shrink-0 text-slate-400" />
+                <span>This message was deleted</span>
               </div>
+            ) : (
+              <>
+                {/* Embedded Quoted Reply Snippet */}
+                {msg.reply_to && (
+                  <QuotedMessagePreview
+                    message={msg.reply_to}
+                    variant="inlineBubble"
+                    isMine={isMine}
+                    onClick={() => onScrollToMessage?.(msg.reply_to!.id)}
+                  />
+                )}
+
+                {/* Media: Image (with high-res tap-to-lightbox) */}
+                {msg.media_url && msg.media_type === 'image' && (
+                  <div
+                    onClick={() =>
+                      onOpenMedia?.(
+                        msg.media_url!,
+                        isMine ? 'You' : otherParticipantName,
+                        timeFormatted
+                      )
+                    }
+                    className="mb-1.5 rounded-xl overflow-hidden bg-black/10 -mx-1 -mt-0.5 cursor-pointer hover:opacity-95 transition-opacity"
+                  >
+                    <img
+                      src={msg.media_url}
+                      alt="Shared media"
+                      className="w-full h-auto object-cover max-h-72 rounded-xl"
+                      loading="lazy"
+                    />
+                  </div>
+                )}
+
+                {/* Media: Voice Note Player with Waveform */}
+                {msg.media_url && msg.media_type === 'voice' && (
+                  <VoiceNotePlayer
+                    audioUrl={msg.media_url}
+                    duration={msg.voice_duration}
+                    senderAvatar={isMine ? user?.user_metadata?.avatar_url : otherParticipantAvatar}
+                    senderName={isMine ? 'You' : otherParticipantName}
+                    senderId={msg.sender_id}
+                    isMine={isMine}
+                  />
+                )}
+
+                {/* Media: Document / PDF Attachment with Real Name & Size */}
+                {msg.media_url && msg.media_type === 'file' && (
+                  <a
+                    href={msg.media_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={`flex items-center gap-3 p-2.5 rounded-xl mb-1.5 transition-all select-none ${
+                      isMine
+                        ? 'bg-black/15 hover:bg-black/25 text-white'
+                        : 'bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-200/80 text-slate-900 dark:text-slate-100 border border-slate-200/60 dark:border-slate-700/60'
+                    }`}
+                  >
+                    <div
+                      className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 font-bold text-[10px] tracking-wider uppercase shadow-xs ${
+                        isMine
+                          ? 'bg-white text-indigo-700'
+                          : 'bg-indigo-600 text-white'
+                      }`}
+                    >
+                      <div className="flex flex-col items-center">
+                        <FileText size={16} strokeWidth={2.2} />
+                        <span className="text-[9px] -mt-0.5 font-black">{getFileExtension(msg.file_name || msg.media_url)}</span>
+                      </div>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <span className="text-[13px] font-semibold truncate block leading-tight">
+                        {msg.file_name || 'Document'}
+                      </span>
+                      <span className={`text-[11px] block mt-0.5 ${isMine ? 'text-indigo-200' : 'text-slate-500 dark:text-slate-400'}`}>
+                        {formatFileSize(msg.file_size) || 'Tap to view'}
+                      </span>
+                    </div>
+                    <div className={`p-1.5 rounded-full ${isMine ? 'hover:bg-white/10' : 'hover:bg-slate-200 dark:hover:bg-slate-700'}`}>
+                      <Download size={16} className={isMine ? 'text-white' : 'text-slate-500'} />
+                    </div>
+                  </a>
+                )}
+
+                {/* Text Message Content + Inline Micro-Timestamp & Ticks */}
+                {msg.text_content && (
+                  <div className="leading-[1.38] text-[14.5px] break-words whitespace-pre-wrap">
+                    {msg.text_content}
+                    {/* Inline-block spacer so text never overlaps timestamp */}
+                    <span className="inline-block w-14 h-3" />
+                  </div>
+                )}
+              </>
             )}
-
-            {/* Media: Voice Note Player with Waveform */}
-            {msg.media_url && msg.media_type === 'voice' && (
-              <VoiceNotePlayer
-                audioUrl={msg.media_url}
-                duration={msg.voice_duration}
-                senderAvatar={isMine ? user?.user_metadata?.avatar_url : otherParticipantAvatar}
-                senderName={isMine ? 'You' : otherParticipantName}
-                senderId={msg.sender_id}
-                isMine={isMine}
-              />
-            )}
-
-            {/* Media: Document Attachment */}
-            {msg.media_url && msg.media_type === 'file' && (
-              <a
-                href={msg.media_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2.5 p-2.5 bg-black/5 dark:bg-white/5 rounded-lg mb-1.5 hover:bg-black/10 transition select-none"
-              >
-                <div className="w-9 h-9 rounded-full bg-[#00A884] text-white flex items-center justify-center shrink-0">
-                  <File size={18} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <span className="text-xs font-semibold text-gray-900 dark:text-slate-100 truncate block">
-                    Document
-                  </span>
-                  <span className="text-[11px] text-gray-500 dark:text-slate-400">Tap to view</span>
-                </div>
-              </a>
-            )}
-
-            {/* Text Message Content + Inline Micro-Timestamp & Ticks */}
-            <div className="leading-[1.35] text-[14.5px] break-words whitespace-pre-wrap">
-              {msg.text_content}
-
-              {/* Inline-block spacer so text never overlaps timestamp */}
-              <span className="inline-block w-14 h-3" />
-            </div>
 
             {/* Micro-Timestamp and Delivery Ticks docked bottom-right */}
             <div className="absolute right-2 bottom-1 flex items-center gap-1 select-none pointer-events-none">
-              <span className="text-[10px] text-[#667781] dark:text-[#8696A0] tracking-tight">
+              <span className={`text-[10px] tracking-tight ${isMine ? 'text-indigo-200' : 'text-slate-400 dark:text-slate-500'}`}>
                 {timeFormatted}
               </span>
-              {isMine && <WhatsAppReceiptTicks status={msg.status} />}
+              {isMine && !isDeleted && (
+                <ChatReceiptTicks status={msg.status} inOutgoingBubble={true} />
+              )}
             </div>
           </div>
 
           {/* Docked Reactions Badge Pill (Bottom Edge) */}
-          {msg.reactions && msg.reactions.length > 0 && (
+          {!isDeleted && msg.reactions && msg.reactions.length > 0 && (
             <motion.div
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
-              className={`absolute -bottom-2 bg-white dark:bg-[#1F2C34] rounded-full px-1.5 py-0.5 shadow-sm border border-black/5 dark:border-white/10 flex items-center gap-1 text-[12px] z-10 cursor-pointer ${
+              className={`absolute -bottom-2 bg-white dark:bg-slate-800 rounded-full px-2 py-0.5 shadow-sm border border-slate-200/80 dark:border-slate-700 flex items-center gap-1 text-[12px] z-10 cursor-pointer ${
                 isMine ? 'right-2' : 'left-2'
               }`}
               onClick={() => setIsReactionMenuOpen(true)}
@@ -216,7 +261,7 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = React.memo(({
                 <span key={i}>{r.emoji}</span>
               ))}
               {msg.reactions.length > 1 && (
-                <span className="text-[10px] font-bold text-gray-500 dark:text-slate-400">
+                <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400">
                   {msg.reactions.length}
                 </span>
               )}

@@ -27,6 +27,8 @@ export type ChatMessage = {
   media_url?: string | null;
   media_type?: string | null;
   voice_duration?: number | null;
+  file_name?: string | null;
+  file_size?: number | null;
   reply_to_id?: string | null;
   reply_to?: {
     id: string;
@@ -39,6 +41,7 @@ export type ChatMessage = {
   updated_at?: string;
   delivered_at?: string | null;
   read_at?: string | null;
+  deleted_at?: string | null;
   likes?: { user_id: string }[];
   reactions?: { emoji: string; user_id: string }[];
   status?: 'sending' | 'sent' | 'delivered' | 'read' | 'error';
@@ -86,7 +89,7 @@ export const fetchUserRooms = async (userId: string): Promise<ChatRoom[]> => {
     // 4. Fetch latest message snippet for each room
     const { data: latestMessages } = await supabase
       .from('chat_room_messages')
-      .select('room_id, text_content, media_type, created_at, sender_id')
+      .select('room_id, text_content, media_type, file_name, created_at, sender_id, deleted_at')
       .in('room_id', roomIds)
       .order('created_at', { ascending: false });
 
@@ -103,10 +106,17 @@ export const fetchUserRooms = async (userId: string): Promise<ChatRoom[]> => {
       const latestMsg = latestMessageMap.get(r.id);
       let snippet: string | null = null;
       if (latestMsg) {
-        if (latestMsg.media_type === 'image') snippet = '📷 Photo';
-        else if (latestMsg.media_type === 'voice') snippet = '🎤 Voice message';
-        else if (latestMsg.media_type === 'file') snippet = '📄 Document';
-        else snippet = latestMsg.text_content || '';
+        if (latestMsg.deleted_at) {
+          snippet = '🚫 Message was deleted';
+        } else if (latestMsg.media_type === 'image') {
+          snippet = '📷 Photo';
+        } else if (latestMsg.media_type === 'voice') {
+          snippet = '🎤 Voice note';
+        } else if (latestMsg.media_type === 'file') {
+          snippet = `📄 ${latestMsg.file_name || 'Document'}`;
+        } else {
+          snippet = latestMsg.text_content || '';
+        }
       }
 
       return {
@@ -144,13 +154,22 @@ export const fetchUserRooms = async (userId: string): Promise<ChatRoom[]> => {
 
 export const uploadChatMedia = async (file: File | Blob, userId: string, customExt?: string): Promise<string> => {
   const fileExt = customExt || (file instanceof File ? file.name.split('.').pop() : 'webp');
-  const fileName = `${userId}-${Date.now()}.${fileExt}`;
-  const filePath = `${userId}/${fileName}`;
+  // Use crypto.randomUUID for unguessable and secure filenames
+  const uniqueId = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+  const filePath = `${userId}/${uniqueId}.${fileExt}`;
+
+  let detectedContentType = file.type;
+  if (!detectedContentType) {
+    if (fileExt === 'webp') detectedContentType = 'image/webp';
+    else if (fileExt === 'webm') detectedContentType = 'audio/webm';
+    else if (fileExt === 'pdf') detectedContentType = 'application/pdf';
+    else detectedContentType = 'application/octet-stream';
+  }
 
   const { error: uploadError } = await supabase.storage
     .from('chat_media')
     .upload(filePath, file, {
-      contentType: file.type || 'image/webp',
+      contentType: detectedContentType,
       upsert: true,
     });
 
@@ -169,19 +188,46 @@ export const fetchMessages = async (roomId: string, limit = 100): Promise<ChatMe
   try {
     const { data, error } = await supabase
       .from('chat_room_messages')
-      .select('*, likes:chat_message_likes(user_id)')
+      .select('*, reactions:chat_message_reactions(emoji, user_id)')
       .eq('room_id', roomId)
       .order('created_at', { ascending: false })
       .limit(limit);
 
     if (error) throw error;
 
+    // Fetch reply_to references in batch if present
+    const replyIds = (data || []).map((m: any) => m.reply_to_id).filter(Boolean);
+    let replyMap = new Map<string, any>();
+    if (replyIds.length > 0) {
+      const { data: replyRows } = await supabase
+        .from('chat_room_messages')
+        .select('id, sender_id, text_content, media_type')
+        .in('id', replyIds);
+      if (replyRows) {
+        replyMap = new Map(replyRows.map((r: any) => [r.id, r]));
+      }
+    }
+
     const messages: ChatMessage[] = (data as ChatMessage[])
       .reverse()
-      .map((m) => ({
-        ...m,
-        status: m.read_at ? 'read' : m.delivered_at ? 'delivered' : 'sent',
-      }));
+      .map((m: any) => {
+        let replyObj = null;
+        if (m.reply_to_id && replyMap.has(m.reply_to_id)) {
+          const rawReply = replyMap.get(m.reply_to_id);
+          replyObj = {
+            id: rawReply.id,
+            sender_id: rawReply.sender_id,
+            text_content: rawReply.text_content,
+            media_type: rawReply.media_type,
+          };
+        }
+
+        return {
+          ...m,
+          reply_to: replyObj || m.reply_to,
+          status: m.read_at ? 'read' : m.delivered_at ? 'delivered' : 'sent',
+        };
+      });
 
     // Cache locally in IndexedDB for 0ms instant retrieval on subsequent visits
     chatCacheService.saveCachedMessages(roomId, messages).catch(() => {});
@@ -207,6 +253,12 @@ export const sendMessage = async (message: Partial<ChatMessage>): Promise<ChatMe
   }
   if (message.voice_duration) {
     insertPayload.voice_duration = message.voice_duration;
+  }
+  if (message.file_name) {
+    insertPayload.file_name = message.file_name;
+  }
+  if (message.file_size) {
+    insertPayload.file_size = message.file_size;
   }
 
   const { data, error } = await supabase
@@ -239,6 +291,55 @@ export const markMessagesAsRead = async (roomId: string, messageIds: string[]): 
   } catch (e) {
     console.warn('Failed to mark messages as read:', e);
   }
+};
+
+export const toggleMessageReaction = async (
+  messageId: string,
+  userId: string,
+  emoji: string
+): Promise<{ added: boolean; emoji: string }> => {
+  // Check if existing reaction exists
+  const { data: existing } = await supabase
+    .from('chat_message_reactions')
+    .select('id, emoji')
+    .eq('message_id', messageId)
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (existing) {
+    if (existing.emoji === emoji) {
+      // Remove reaction
+      await supabase
+        .from('chat_message_reactions')
+        .delete()
+        .eq('id', existing.id);
+      return { added: false, emoji };
+    } else {
+      // Update reaction to new emoji
+      await supabase
+        .from('chat_message_reactions')
+        .update({ emoji })
+        .eq('id', existing.id);
+      return { added: true, emoji };
+    }
+  }
+
+  // Insert new reaction
+  const { error } = await supabase
+    .from('chat_message_reactions')
+    .insert({ message_id: messageId, user_id: userId, emoji });
+
+  if (error) throw error;
+  return { added: true, emoji };
+};
+
+export const deleteChatMessage = async (messageId: string): Promise<void> => {
+  const { error } = await supabase
+    .from('chat_room_messages')
+    .update({ deleted_at: new Date().toISOString() })
+    .eq('id', messageId);
+
+  if (error) throw error;
 };
 
 export const toggleMessageLike = async (messageId: string, userId: string, isLiked: boolean): Promise<void> => {
