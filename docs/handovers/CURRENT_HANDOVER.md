@@ -60,7 +60,7 @@
   - `DEC-0014` (`useNotification()` Top-Layer Popover toasts instead of `react-hot-toast`, relational `TEST_SELECT_QUERY`/`SERIES_SELECT_QUERY` mutation returns).
 - **Real-World Verification Goal:**
   - *Static:* `npx.cmd tsc --noEmit` (0 errors) + `npx.cmd vitest --run --pool=forks` + `npx.cmd vite build` (clean).
-  - *Live Browser (`http://localhost:3000/#/admin/test-series?tab=tests` on Desktop `1280x800` + Mobile `390x844`):* Filter Tests by Category (`BPSC`) and Status (`Draft`), clone an existing BPSC test as `"(Copy)"`, verify zero-question publish guard displays a Popover warning, toggle Publish/Unpublish with 1 tap, verify cascade `ConfirmDialog` displays exact child counts, clean up the cloned test, and verify 0 console errors + `>=44x44px` controls.
+  - *Live Browser (`http://localhost:3000/#/admin/test-series?tab=tests` on **Desktop `1280x800` only** — Admin Panel is desktop-primary; reserve mobile `390x844` browser testing for student-facing steps `v1.0.371`+):* Filter Tests by Category (`BPSC`) and Status (`Draft`), clone an existing BPSC test as `"(Copy)"`, verify zero-question publish guard displays a Popover warning, toggle Publish/Unpublish with 1 tap, verify cascade `ConfirmDialog` displays exact child counts, clean up the cloned test, and verify 0 console errors.
 
 ---
 
@@ -89,6 +89,6 @@ Please follow this exact cold-start protocol:
 2. Verify git status on main and perform the 30-second Circuit Breaker sanity check.
 3. Run System-2 Cognitive Pre-Flight: simulate lifecycles, identify 3 runtime failure modes, and enforce zero-shortcut real implementations.
 4. Execute the brief in Section 3 of CURRENT_HANDOVER.md (Target: v1.0.369 — Admin Mock Tests CMS Controls: Filters, Quick Publish, Clone & Cascade Guard).
-5. Verify statically (npx.cmd tsc --noEmit && npx.cmd vitest --run --pool=forks && npx.cmd vite build) and test live on http://localhost:3000/#/admin/test-series?tab=tests (desktop 1280x800 + mobile 390x844 viewport).
+5. Verify statically (npx.cmd tsc --noEmit && npx.cmd vitest --run --pool=forks && npx.cmd vite build) and test live on http://localhost:3000/#/admin/test-series?tab=tests (Desktop 1280x800 only — skip mobile browser check for Admin CMS).
 6. Execute the mandatory 7-step Phase 4 closeout ritual, update docs/blueprint/v1.0_blueprint.md, overwrite CURRENT_HANDOVER.md with Step 4 (v1.0.370), and output the starter prompt for v1.0.370.
 ```
