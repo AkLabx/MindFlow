@@ -1,3 +1,5 @@
+export const CANONICAL_EXAM_PREFIX = 'canonical:' as const;
+
 export interface QuestionLightweight {
     id: string;
     v1_id: string;
@@ -17,6 +19,7 @@ export interface QuestionFilterParams {
     search?: string;
     subject?: string;
     difficulty?: string;
+    /** Accepts `'canonical:<examId>'` (e.g., `'canonical:bpsc'`) or a raw DB `examName`. */
     examName?: string;
     examYear?: number;
     topic?: string;

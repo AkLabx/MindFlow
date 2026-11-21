@@ -21,10 +21,6 @@ export const QuestionResultCard: React.FC<Props> = ({
     onToggleLeftSelect,
     onPreview
 }) => {
-
-    // Minimal rendering for the question text
-    const truncate = (str: string, max = 120) => str.length > max ? str.substring(0, max) + '...' : str;
-
     // Check for quality warnings
     const hasExplanation = !!question.explanation?.summary || !!question.explanation?.analysis_correct || !!question.explanation?.analysis_incorrect || !!question.explanation?.fact;
     const hasOptions = Array.isArray(question.options) && question.options.length > 0;
@@ -37,44 +33,48 @@ export const QuestionResultCard: React.FC<Props> = ({
 
     return (
         <div
-            className={`p-4 border-b border-slate-100 dark:border-slate-700/50 transition-all flex gap-4
+            className={`p-4 border-b border-slate-100 dark:border-slate-700/50 transition-all flex gap-3
             ${isSelected ? 'bg-indigo-50/50 dark:bg-indigo-900/20' : 'hover:bg-slate-50 dark:hover:bg-slate-800/30'}
             ${isLeftSelected ? 'bg-blue-50/40 dark:bg-blue-900/10' : ''}
             `}
         >
-            <div className="pt-1 flex flex-col gap-2 items-center">
+            <div className="flex flex-col gap-1 items-center">
                 {/* Left panel bulk select checkbox */}
                 {onToggleLeftSelect && !isSelected && (
-                    <div className="relative flex items-center justify-center">
+                    <label
+                        className="min-w-[44px] min-h-[44px] inline-flex items-center justify-center cursor-pointer rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                        title="Select for bulk add"
+                    >
                         <input
                             type="checkbox"
+                            aria-label="Select question for bulk add"
                             checked={isLeftSelected || false}
                             onChange={(e) => onToggleLeftSelect(question.id, e.target.checked)}
                             className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-600 cursor-pointer dark:border-slate-600 dark:bg-slate-800 transition-colors"
-                            title="Select for bulk add"
                         />
-                    </div>
+                    </label>
                 )}
 
-                {/* Direct Add/Remove checkbox */}
+                {/* Direct Add/Remove button */}
                 <div className="relative flex items-center justify-center mt-auto">
-                    {isSelected ? (
-                        <button
-                            onClick={() => onToggleSelect(question.id, false)}
-                            className="w-5 h-5 rounded-md bg-indigo-600 text-white flex items-center justify-center shadow-sm hover:bg-indigo-700 transition-colors"
-                            title="Remove from test"
+                    <button
+                        type="button"
+                        onClick={() => onToggleSelect(question.id, !isSelected)}
+                        aria-label={isSelected ? 'Remove question from test' : 'Add question to test'}
+                        aria-pressed={isSelected}
+                        title={isSelected ? 'Remove from test' : 'Add to test'}
+                        className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl transition-all active:scale-95 hover:bg-slate-100 dark:hover:bg-slate-800"
+                    >
+                        <span
+                            className={`w-6 h-6 rounded-md flex items-center justify-center transition-colors ${
+                                isSelected
+                                    ? 'bg-indigo-600 text-white shadow-sm'
+                                    : 'border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-transparent hover:border-indigo-400 hover:text-indigo-200'
+                            }`}
                         >
-                            <Check className="w-3.5 h-3.5" />
-                        </button>
-                    ) : (
-                        <button
-                            onClick={() => onToggleSelect(question.id, true)}
-                            className="w-5 h-5 rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-transparent hover:border-indigo-400 hover:text-indigo-200 transition-colors flex items-center justify-center"
-                            title="Add to test"
-                        >
-                            <Check className="w-3.5 h-3.5" />
-                        </button>
-                    )}
+                            <Check className="w-4 h-4" aria-hidden="true" />
+                        </span>
+                    </button>
                 </div>
             </div>
 
@@ -96,7 +96,7 @@ export const QuestionResultCard: React.FC<Props> = ({
 
                 <div
                     className="text-sm text-slate-900 dark:text-white line-clamp-3 prose prose-sm dark:prose-invert max-w-none"
-                    dangerouslySetInnerHTML={{ __html: truncate(renderMathText(question.question)) }}
+                    dangerouslySetInnerHTML={{ __html: renderMathText(question.question) }}
                 />
 
                 {warnings.length > 0 && (
@@ -113,14 +113,15 @@ export const QuestionResultCard: React.FC<Props> = ({
             <div className="flex flex-col items-center justify-start">
                 <button
                     type="button"
+                    aria-label="Preview question"
                     onClick={(e) => {
                         e.stopPropagation();
                         onPreview(question.id);
                     }}
-                    className="p-2 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                    className="min-w-[44px] min-h-[44px] flex items-center justify-center text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-all active:scale-95"
                     title="Preview Question"
                 >
-                    <Eye className="w-5 h-5" />
+                    <Eye className="w-5 h-5" aria-hidden="true" />
                 </button>
             </div>
         </div>
