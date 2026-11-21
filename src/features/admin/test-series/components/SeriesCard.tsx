@@ -46,16 +46,20 @@ export const SeriesCard: React.FC<SeriesCardProps> = ({ series, onEdit, onDelete
                 </div>
             </div>
 
-            <div className="mt-auto flex justify-end gap-2 border-t border-slate-100 dark:border-slate-700/50 pt-4 opacity-0 group-hover:opacity-100 transition-opacity">
+            <div className="mt-auto flex justify-end gap-2 border-t border-slate-100 dark:border-slate-700/50 pt-4">
                 <button
+                    type="button"
+                    aria-label={`Edit ${series.name}`}
                     onClick={() => onEdit(series)}
-                    className="p-2 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-lg transition-colors"
+                    className="min-w-[44px] min-h-[44px] flex items-center justify-center text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-lg transition-all active:scale-95"
                 >
                     <Edit2 className="w-4 h-4" />
                 </button>
                 <button
+                    type="button"
+                    aria-label={`Delete ${series.name}`}
                     onClick={() => onDelete(series.id)}
-                    className="p-2 text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors"
+                    className="min-w-[44px] min-h-[44px] flex items-center justify-center text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-all active:scale-95"
                 >
                     <Trash2 className="w-4 h-4" />
                 </button>

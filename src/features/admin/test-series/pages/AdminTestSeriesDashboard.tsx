@@ -1,23 +1,31 @@
-import React, { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ChevronRight, Plus, BookOpen, Layers, CheckSquare } from 'lucide-react';
+import React, { useState, useMemo, useCallback } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Plus, BookOpen, Layers, CheckSquare } from 'lucide-react';
+import { ROUTES } from '@/config/routes';
 import {
     KPICard, SearchBar, SkeletonList, EmptyState, ConfirmDialog,
     CategoryCard, CategoryDrawer,
     SeriesCard, SeriesDrawer,
-    TestCard, TestDrawer
+    TestCard
 } from '../components';
 import { useCategories, useSeries, useTests } from '../hooks';
 
+type DashboardTab = 'categories' | 'series' | 'tests';
+
+const parseTabParam = (value: string | null): DashboardTab => {
+    if (value === 'series' || value === 'tests') return value;
+    return 'categories';
+};
+
 export const AdminTestSeriesDashboard: React.FC = () => {
     const navigate = useNavigate();
-    const [activeTab, setActiveTab] = useState<'categories' | 'series' | 'tests'>('categories');
+    const [searchParams, setSearchParams] = useSearchParams();
+    const activeTab = parseTabParam(searchParams.get('tab'));
     const [searchQuery, setSearchQuery] = useState('');
 
     // UI State
     const [isCatDrawerOpen, setCatDrawerOpen] = useState(false);
     const [isSeriesDrawerOpen, setSeriesDrawerOpen] = useState(false);
-    const [isTestDrawerOpen, setTestDrawerOpen] = useState(false);
 
     const [selectedItem, setSelectedItem] = useState<any>(null);
     const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, id: '', type: '' });
@@ -25,7 +33,12 @@ export const AdminTestSeriesDashboard: React.FC = () => {
     // Data Hooks
     const { categories, loading: catLoading, addCategory, editCategory, removeCategory } = useCategories();
     const { series, loading: seriesLoading, addSeries, editSeries, removeSeries } = useSeries();
-    const { tests, loading: testsLoading, addTest, editTest, removeTest } = useTests();
+    const { tests, loading: testsLoading, removeTest } = useTests();
+
+    const handleTabChange = useCallback((tab: DashboardTab) => {
+        setSearchParams({ tab }, { replace: true });
+        setSearchQuery('');
+    }, [setSearchParams]);
 
     // Derived KPIs
     const kpis = useMemo(() => {
@@ -38,6 +51,36 @@ export const AdminTestSeriesDashboard: React.FC = () => {
             publishedTests,
             draftTests
         };
+    }, [categories, series, tests]);
+
+    // Precompute category stats in O(C + S + T) time
+    const categoryStats = useMemo(() => {
+        const stats = new Map<string, { seriesCount: number; testsCount: number }>();
+        const seriesToCategory = new Map<string, string>();
+
+        for (const cat of categories || []) {
+            if (cat?.id) {
+                stats.set(cat.id, { seriesCount: 0, testsCount: 0 });
+            }
+        }
+
+        for (const s of series || []) {
+            if (!s?.category_id) continue;
+            seriesToCategory.set(s.id, s.category_id);
+            const entry = stats.get(s.category_id) ?? { seriesCount: 0, testsCount: 0 };
+            entry.seriesCount += 1;
+            stats.set(s.category_id, entry);
+        }
+
+        for (const t of tests || []) {
+            const catId = t?.series_id ? seriesToCategory.get(t.series_id) : undefined;
+            if (!catId) continue;
+            const entry = stats.get(catId) ?? { seriesCount: 0, testsCount: 0 };
+            entry.testsCount += 1;
+            stats.set(catId, entry);
+        }
+
+        return stats;
     }, [categories, series, tests]);
 
     // Filtering logic based on search
@@ -58,17 +101,23 @@ export const AdminTestSeriesDashboard: React.FC = () => {
 
     // Handlers
     const openCreate = () => {
+        if (activeTab === 'tests') {
+            navigate(ROUTES.ADMIN.TEST_NEW);
+            return;
+        }
         setSelectedItem(null);
         if (activeTab === 'categories') setCatDrawerOpen(true);
         if (activeTab === 'series') setSeriesDrawerOpen(true);
-        if (activeTab === 'tests') setTestDrawerOpen(true);
     };
 
     const handleEdit = (item: any) => {
+        if (activeTab === 'tests') {
+            navigate(ROUTES.ADMIN.TEST_EDIT_PATH(item.id), { state: { test: item } });
+            return;
+        }
         setSelectedItem(item);
         if (activeTab === 'categories') setCatDrawerOpen(true);
         if (activeTab === 'series') setSeriesDrawerOpen(true);
-        if (activeTab === 'tests') setTestDrawerOpen(true);
     };
 
     const handleDeleteClick = (id: string) => {
@@ -95,11 +144,6 @@ export const AdminTestSeriesDashboard: React.FC = () => {
         else await addSeries(payload);
     };
 
-    const handleSaveTest = async (payload: any) => {
-        if (selectedItem) await editTest(selectedItem.id, payload);
-        else await addTest(payload);
-    };
-
     return (
         <div className="space-y-6 pb-12">
             <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -112,8 +156,9 @@ export const AdminTestSeriesDashboard: React.FC = () => {
                     </p>
                 </div>
                 <button
+                    type="button"
                     onClick={openCreate}
-                    className="flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2.5 rounded-xl text-xs font-bold transition-all shadow-md shadow-indigo-600/20"
+                    className="flex items-center justify-center gap-2 min-h-[44px] bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2.5 rounded-xl text-xs font-bold transition-all active:scale-95 shadow-md shadow-indigo-600/20"
                 >
                     <Plus className="w-4 h-4" /> Create New
                 </button>
@@ -131,20 +176,23 @@ export const AdminTestSeriesDashboard: React.FC = () => {
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
                     <div className="flex space-x-2 bg-white dark:bg-slate-800 p-1 rounded-xl shadow-sm w-fit border border-slate-200 dark:border-slate-700">
                         <button
-                            onClick={() => { setActiveTab('categories'); setSearchQuery(''); }}
-                            className={`px-4 py-2 rounded-lg font-medium text-sm flex items-center gap-2 transition-colors ${activeTab === 'categories' ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300' : 'text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-700'}`}
+                            type="button"
+                            onClick={() => handleTabChange('categories')}
+                            className={`min-h-[44px] px-4 py-2 rounded-lg font-medium text-sm flex items-center gap-2 transition-all active:scale-95 ${activeTab === 'categories' ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300' : 'text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-700'}`}
                         >
                             <BookOpen className="w-4 h-4" /> Categories
                         </button>
                         <button
-                            onClick={() => { setActiveTab('series'); setSearchQuery(''); }}
-                            className={`px-4 py-2 rounded-lg font-medium text-sm flex items-center gap-2 transition-colors ${activeTab === 'series' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300' : 'text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-700'}`}
+                            type="button"
+                            onClick={() => handleTabChange('series')}
+                            className={`min-h-[44px] px-4 py-2 rounded-lg font-medium text-sm flex items-center gap-2 transition-all active:scale-95 ${activeTab === 'series' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300' : 'text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-700'}`}
                         >
                             <Layers className="w-4 h-4" /> Series
                         </button>
                         <button
-                            onClick={() => { setActiveTab('tests'); setSearchQuery(''); }}
-                            className={`px-4 py-2 rounded-lg font-medium text-sm flex items-center gap-2 transition-colors ${activeTab === 'tests' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-300' : 'text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-700'}`}
+                            type="button"
+                            onClick={() => handleTabChange('tests')}
+                            className={`min-h-[44px] px-4 py-2 rounded-lg font-medium text-sm flex items-center gap-2 transition-all active:scale-95 ${activeTab === 'tests' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-300' : 'text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-700'}`}
                         >
                             <CheckSquare className="w-4 h-4" /> Tests
                         </button>
@@ -162,16 +210,19 @@ export const AdminTestSeriesDashboard: React.FC = () => {
                         catLoading ? <SkeletonList count={3} /> :
                         filteredCategories.length > 0 ? (
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                {filteredCategories.map(cat => (
-                                    <CategoryCard
-                                        key={cat.id}
-                                        category={cat}
-                                        onEdit={handleEdit}
-                                        onDelete={handleDeleteClick}
-                                        seriesCount={series.filter(s => s.category_id === cat.id).length}
-                                        testsCount={tests.filter(t => series.find(s => s.category_id === cat.id)?.id === t.series_id).length}
-                                    />
-                                ))}
+                                {filteredCategories.map(cat => {
+                                    const stats = categoryStats.get(cat.id) ?? { seriesCount: 0, testsCount: 0 };
+                                    return (
+                                        <CategoryCard
+                                            key={cat.id}
+                                            category={cat}
+                                            onEdit={handleEdit}
+                                            onDelete={handleDeleteClick}
+                                            seriesCount={stats.seriesCount}
+                                            testsCount={stats.testsCount}
+                                        />
+                                    );
+                                })}
                             </div>
                         ) : (
                             <EmptyState
@@ -236,25 +287,17 @@ export const AdminTestSeriesDashboard: React.FC = () => {
                 {/* Drawers */}
                 <CategoryDrawer
                     isOpen={isCatDrawerOpen}
-                    onClose={() => setCatDrawerOpen(false)}
-                    category={selectedItem}
+                    onClose={() => { setCatDrawerOpen(false); setSelectedItem(null); }}
+                    category={activeTab === 'categories' ? selectedItem : null}
                     onSave={handleSaveCategory}
                 />
 
                 <SeriesDrawer
                     isOpen={isSeriesDrawerOpen}
-                    onClose={() => setSeriesDrawerOpen(false)}
-                    series={selectedItem}
+                    onClose={() => { setSeriesDrawerOpen(false); setSelectedItem(null); }}
+                    series={activeTab === 'series' ? selectedItem : null}
                     categories={categories}
                     onSave={handleSaveSeries}
-                />
-
-                <TestDrawer
-                    isOpen={isTestDrawerOpen}
-                    onClose={() => setTestDrawerOpen(false)}
-                    test={selectedItem}
-                    series={series}
-                    onSave={handleSaveTest}
                 />
 
                 {/* Confirmation */}

@@ -60,6 +60,9 @@ export function resolveHardwareBackTarget(currentPath: string, locationState?: u
     }
 
     // Test Series & MCQs Hierarchy
+    if (normalized.startsWith('/admin/test-series/')) {
+        return '/admin/test-series?tab=tests';
+    }
     if (normalized.startsWith('/mcqs/test-series/')) {
         return '/mcqs/test-series';
     }
