@@ -105,4 +105,5 @@ powershell.cmd
 
 powershell.bat
 
-.agents/
+.agents/*
+!.agents/skills/
