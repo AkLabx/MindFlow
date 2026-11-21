@@ -26,7 +26,9 @@ export const TestCard: React.FC<TestCardProps> = ({ test, onEdit, onDelete }) =>
             </div>
 
             <p className="text-xs font-semibold text-purple-600 dark:text-purple-400 uppercase tracking-wider mb-1 line-clamp-1">
-                {test.test_series?.name || 'Unassigned Series'}
+                {test.test_series?.exam_categories?.name
+                    ? `${test.test_series.exam_categories.name} · ${test.test_series.name}`
+                    : (test.test_series?.name || 'Unassigned Series')}
             </p>
             <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-1 line-clamp-1">{test.name}</h3>
             {test.description && (
@@ -42,21 +44,31 @@ export const TestCard: React.FC<TestCardProps> = ({ test, onEdit, onDelete }) =>
                 <div>
                     <span className="text-slate-900 dark:text-white font-bold">{test.total_marks}</span> Marks
                 </div>
+                <div>
+                    <span className="text-slate-900 dark:text-white font-bold">Pass: {test.passing_marks ?? 0}</span>
+                </div>
+                <div>
+                    <span>{Number(test.negative_marks) > 0 ? `-${test.negative_marks} neg` : 'No Negative'}</span>
+                </div>
                 <div className="col-span-2 pt-2 border-t border-slate-200 dark:border-slate-700 mt-1">
                     <span className="text-slate-900 dark:text-white font-bold">{test.question_ids?.length || 0}</span> Questions
                 </div>
             </div>
 
-            <div className="mt-auto flex justify-end gap-2 border-t border-slate-100 dark:border-slate-700/50 pt-4 opacity-0 group-hover:opacity-100 transition-opacity">
+            <div className="mt-auto flex justify-end gap-2 border-t border-slate-100 dark:border-slate-700/50 pt-4">
                 <button
+                    type="button"
+                    aria-label={`Edit ${test.name}`}
                     onClick={() => onEdit(test)}
-                    className="p-2 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-lg transition-colors"
+                    className="min-w-[44px] min-h-[44px] flex items-center justify-center text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-lg transition-all active:scale-95"
                 >
                     <Edit2 className="w-4 h-4" />
                 </button>
                 <button
+                    type="button"
+                    aria-label={`Delete ${test.name}`}
                     onClick={() => onDelete(test.id)}
-                    className="p-2 text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors"
+                    className="min-w-[44px] min-h-[44px] flex items-center justify-center text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-all active:scale-95"
                 >
                     <Trash2 className="w-4 h-4" />
                 </button>

@@ -1,5 +1,23 @@
 import { supabase } from '@/lib/supabase';
 
+const SERIES_SELECT_QUERY = '*, exam_categories(id, name)';
+const TEST_SELECT_QUERY = '*, test_series(id, name, category_id, exam_categories(id, name))';
+
+export interface TestMutationPayload {
+    series_id: string;
+    name: string;
+    description?: string;
+    duration_minutes: number;
+    total_marks: number;
+    passing_marks: number;
+    negative_marks: number;
+    question_ids: string[];
+    is_published?: boolean;
+    display_order?: number;
+    release_date?: string | null;
+    expiry_date?: string | null;
+}
+
 // EXAM CATEGORIES
 
 export const fetchExamCategories = async () => {
@@ -50,7 +68,7 @@ export const deleteExamCategory = async (id: string) => {
 export const fetchTestSeries = async (categoryId?: string) => {
     let query = supabase
         .from('test_series')
-        .select('*, exam_categories(name)')
+        .select(SERIES_SELECT_QUERY)
         .order('created_at', { ascending: false });
 
     if (categoryId) {
@@ -66,7 +84,7 @@ export const createTestSeries = async (payload: { category_id: string; name: str
     const { data, error } = await supabase
         .from('test_series')
         .insert([payload])
-        .select()
+        .select(SERIES_SELECT_QUERY)
         .single();
 
     if (error) throw error;
@@ -78,7 +96,7 @@ export const updateTestSeries = async (id: string, payload: any) => {
         .from('test_series')
         .update(payload)
         .eq('id', id)
-        .select()
+        .select(SERIES_SELECT_QUERY)
         .single();
 
     if (error) throw error;
@@ -99,7 +117,7 @@ export const deleteTestSeries = async (id: string) => {
 export const fetchTests = async (seriesId?: string) => {
     let query = supabase
         .from('tests')
-        .select('*, test_series(name)')
+        .select(TEST_SELECT_QUERY)
         .order('display_order', { ascending: true })
         .order('created_at', { ascending: false });
 
@@ -112,23 +130,34 @@ export const fetchTests = async (seriesId?: string) => {
     return data;
 };
 
-export const createTest = async (payload: { series_id: string; name: string; description?: string; duration_minutes: number; total_marks: number; passing_marks: number; negative_marks: number; question_ids: string[]; is_published?: boolean; display_order?: number }) => {
+export const fetchTestById = async (id: string) => {
     const { data, error } = await supabase
         .from('tests')
-        .insert([payload])
-        .select()
+        .select(TEST_SELECT_QUERY)
+        .eq('id', id)
         .single();
 
     if (error) throw error;
     return data;
 };
 
-export const updateTest = async (id: string, payload: any) => {
+export const createTest = async (payload: TestMutationPayload) => {
+    const { data, error } = await supabase
+        .from('tests')
+        .insert([payload])
+        .select(TEST_SELECT_QUERY)
+        .single();
+
+    if (error) throw error;
+    return data;
+};
+
+export const updateTest = async (id: string, payload: Partial<TestMutationPayload>) => {
     const { data, error } = await supabase
         .from('tests')
         .update(payload)
         .eq('id', id)
-        .select()
+        .select(TEST_SELECT_QUERY)
         .single();
 
     if (error) throw error;

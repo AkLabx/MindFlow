@@ -37,6 +37,8 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({
     if (path.includes('/admin/vocab')) return { group: 'Academic Content', title: 'Vocabulary Matrix' };
     if (path.includes('/admin/materials') || path.includes('/admin/upload')) return { group: 'Academic Content', title: 'Study Materials' };
     if (path.includes('/admin/content')) return { group: 'Academic Content', title: 'AI Ingestion Plane' };
+    if (path.includes('/admin/test-series/tests/new')) return { group: 'Exams & CMS', title: 'Create Mock Test' };
+    if (path.includes('/admin/test-series/tests/')) return { group: 'Exams & CMS', title: 'Edit Mock Test' };
     if (path.includes('/admin/test-series')) return { group: 'Exams & CMS', title: 'Mock Test Series' };
     if (path.includes('/admin/enrichment')) return { group: 'Control Room', title: 'AI Pipeline Engine' };
     if (path.includes('/admin/app-config')) return { group: 'Control Room', title: 'Remote App Config' };

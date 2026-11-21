@@ -26,6 +26,20 @@ This document is the single source of truth for the evolution of the MindFlow ap
 
 ## 🚀 App Journey Changelog
 
+## [v1.0.367] - 21 November 2026, 09:08 PM IST
+
+**Executive Summary:** Dedicated 4-Step Full-Page Mock Test Studio, Relational CMS Selects & Touch-Accessible Cards. Replaced the incomplete side-drawer Mock Test form with a full-page 4-step studio (`AdminTestBuilderPage`), unified CMS notifications onto MindFlow's Top-Layer Popover system, fixed multi-series category test counts, and made all CMS card actions visibly tappable on mobile.
+
+### ✨ Features Added
+- **4-Step Full-Page Mock Test Studio (`src/features/admin/test-series/pages/AdminTestBuilderPage.tsx`)**: Implemented Create (`/admin/test-series/tests/new`) and deep-linkable Edit (`/admin/test-series/tests/:testId/edit`) flows with URL step synchronization (`?step=1..4`), accessible `<nav>` stepper, step heading focus management, 3 exam presets (`BPSC Prelims`, `BPSC Sectional`, `General / SSC`), optional release/expiry schedule window, full-width `QuestionBuilder` workspace, Step 4 Review & Publish readiness checks, sticky action bar (`Save Draft` / `Next` / `Publish Test`), and `ConfirmDialog` unsaved-changes guard.
+- **Routing, Breadcrumbs & Hardware Back (`src/config/routes.ts`, `src/routes/AppRoutes.tsx`, `src/features/admin/layouts/AdminHeader.tsx`, `src/hooks/useHardwareBackButton.ts`)**: Registered lazy-loaded builder routes, added admin header breadcrumbs for Create/Edit Mock Test, and mapped Android hardware back from `/admin/test-series/*` to `/admin/test-series?tab=tests`.
+- **Relational API Hydration (`src/features/admin/test-series/api/adminTestSeriesApi.ts`)**: Added `fetchTestById(id)`, typed `TestMutationPayload`, and relational `.select(...)` joins on test/series fetch and mutation queries so parent Exam Category and Series names populate immediately.
+
+### 🐛 Bug Fixes
+- **Form Isolation & Render-Phase Guard (`TestDrawer.tsx`, `AdminTestBuilderPage.tsx`)**: Isolated `<QuestionBuilder>` outside `<form>` to prevent internal buttons from triggering accidental submissions, deferred `onChange` updates via `queueMicrotask` + `isMountedRef`, enforced integer `duration_minutes`, and preserved falsy-zero numeric values (`0`) via `??` and string-backed form state.
+- **Popover Toasts & Category Aggregation (`AdminTestSeriesDashboard.tsx`, `TestDrawer.tsx`)**: Replaced unmounted `react-hot-toast` and `window.alert()` with MindFlow's Top-Layer Popover `useNotification()` toasts, and replaced the `series.find(...)` bug with an $O(C+S+T)$ `categoryStats` `Map` summing tests across all series per category.
+- **Mobile Touch Ergonomics (`TestCard.tsx`, `SeriesCard.tsx`, `CategoryCard.tsx`)**: Removed hover-only `opacity-0 group-hover:opacity-100` classes, enforced `min-w-[44px] min-h-[44px]` `active:scale-95` Edit/Delete buttons with `aria-label`s, and displayed Category · Series, passing marks, and negative marking on `TestCard`.
+
 ## [v1.0.366] - 21 November 2026, 03:58 PM IST
 
 **Executive Summary:** Autonomous "1 Chat = 1 Version" Workflow System & Closed-Loop Memory Engine. Established supreme repository governance via `AGENTS.md` and `GEMINI.md`, installed the `version-ritual` skill, deployed a 10-step milestone blueprint architecture, and launched an ultra-lean (<20 KB) Hot Context cold-start system centered on `CURRENT_HANDOVER.md` and `DECISIONS_MASTER.md`.

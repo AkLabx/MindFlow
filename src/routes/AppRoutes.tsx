@@ -80,6 +80,7 @@ const AdminUploadMaterials = lazy(() => import('../features/admin/components/Adm
 const AdminContentStudio = lazy(() => import("../features/admin/content/pages/AdminContentStudio").then(m => ({ default: m.AdminContentStudio })));
 
 const AdminTestSeriesDashboard = lazy(() => import('../features/admin/test-series/pages/AdminTestSeriesDashboard').then(m => ({ default: m.AdminTestSeriesDashboard })));
+const AdminTestBuilderPage = lazy(() => import('../features/admin/test-series/pages/AdminTestBuilderPage').then(m => ({ default: m.AdminTestBuilderPage })));
 const ExamCategoriesPage = lazy(() => import('../features/mock-tests/pages/ExamCategoriesPage').then(m => ({ default: m.ExamCategoriesPage })));
 const TestSeriesPage = lazy(() => import('../features/mock-tests/pages/TestSeriesPage').then(m => ({ default: m.TestSeriesPage })));
 const TestsListPage = lazy(() => import('../features/mock-tests/pages/TestsListPage').then(m => ({ default: m.TestsListPage })));
@@ -554,6 +555,8 @@ const handleReattempt = async (quizId: string, mode: string) => {
                         <Route path={ROUTES.ADMIN.UPLOAD_SYNONYMS} element={<AdminUploadSynonyms />} />
                         <Route path={ROUTES.ADMIN.ENRICHMENT} element={<AdminEnrichmentControlCenter />} />
                         <Route path={ROUTES.ADMIN.TEST_SERIES} element={<AdminTestSeriesDashboard />} />
+                        <Route path={ROUTES.ADMIN.TEST_NEW} element={<AdminTestBuilderPage />} />
+                        <Route path={ROUTES.ADMIN.TEST_EDIT} element={<AdminTestBuilderPage />} />
                         <Route path={ROUTES.ADMIN.CONTENT} element={<AdminContentStudio />} />
                         <Route path={ROUTES.ADMIN.NOTIFICATIONS} element={<AdminNotifications />} />
                         <Route path={ROUTES.ADMIN.FINANCIALS} element={<AdminFinancialsPage />} />
