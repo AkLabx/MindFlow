@@ -26,6 +26,22 @@ This document is the single source of truth for the evolution of the MindFlow ap
 
 ## 🚀 App Journey Changelog
 
+## [v1.0.368] - 21 November 2026, 11:27 PM IST
+
+**Executive Summary:** Admin `QuestionBuilder` Performance, Refetch-Loop Fix & Canonical BPSC Filter. Eliminated redundant UUID refetches and React render-phase warnings on question selection, replaced the 1,000-row unpaged metadata scan with an SWR-cached `get_distinct_values` RPC pipeline, added canonical exam group filtering (`canonical:bpsc` resolving 20 aliases / 5,794 questions), and upgraded mobile `< lg` tabs and `>=44x44px` touch controls.
+
+### ✨ Features Added
+- **Canonical Exam Group Filtering (`src/features/dashboard/constants/examRegistry.ts`, `src/features/admin/question-builder/types/questionBuilder.types.ts`, `QuestionFilterBar.tsx`, `questionBuilderApi.ts`)**: Added `BPSC TRE3`, `getCanonicalExamById()`, `resolveCanonicalExamNames()`, `CANONICAL_EXAM_PREFIX`, and grouped `"Canonical Exam Groups"` (`All BPSC (All Aliases)`) above `"Specific Exam Papers"` so `searchQuestions()` filters `.in('examName', resolvedNames)` across all 20 BPSC aliases while excluding soft-deleted rows (`.is('deleted_at', null)`).
+- **Mobile 2-Tab Switcher & Vitest Suite (`QuestionBuilder.tsx`, `src/features/admin/question-builder/__tests__/questionBuilder.test.tsx`)**: Added a native-style `< lg` 2-tab switcher (`Search Bank` | `Selected (N)`) preserving search state via CSS visibility, plus 5 automated unit/component tests covering canonical alias resolution, PostgREST query safety, RPC caching, 100-UUID chunking, and refetch/toast behavior.
+
+### 🐛 Bug Fixes
+- **Eliminated Selection Refetch Loop & Render-Phase `onChange` (`QuestionBuilder.tsx`)**: Added `selectedQuestionsRef`, `lastSyncedIdsKeyRef`, `onChangeRef`, and `commitSelection()` so echoed `initialQuestionIds` never trigger redundant `questions?id=in.(...)` refetches and `onChange` never runs inside `setSelectedQuestions` updaters.
+- **PostgREST Search Sanitization & Popover Toasts (`questionBuilderApi.ts`, `QuestionBuilder.tsx`, `QuestionSearchPanel.tsx`)**: Added `sanitizePostgrestSearch()` to strip `,`, `(`, `)` from `.or()` queries, trimmed empty `""` difficulty options from RPC responses, migrated Bulk Add/Import/Undo notifications to MindFlow's Top-Layer Popover `useNotification()` store (`DEC-0014`), and added inline `role="alert"` search error + Retry recovery.
+
+### ⚡ Performance & Refactoring
+- **SWR `get_distinct_values` RPC Metadata Cache & Chunked Hydration (`questionBuilderApi.ts`)**: Replaced the unpaged `.from('questions')` metadata scan with 5 parallel `supabase.rpc('get_distinct_values', { column_name })` calls backed by a 5-minute memory TTL, in-flight deduplication, `localStorage` snapshot (`mindflow_qb_filter_options_v1`), and offline `db.getQuizMetadataCache()` fallback; chunked `fetchQuestionsByUUIDs()` into parallel batches of `100` UUIDs.
+- **Touch Ergonomics & Form Safety (`QuestionFilterBar.tsx`, `QuestionResultCard.tsx`, `QuestionSearchPanel.tsx`, `SelectedQuestionsPanel.tsx`)**: Enforced explicit `type="button"` on all 62 builder buttons, `>=44x44px` `active:scale-95` touch targets, and always-visible `Remove question` buttons in `SelectedQuestionsPanel`.
+
 ## [v1.0.367] - 21 November 2026, 09:08 PM IST
 
 **Executive Summary:** Dedicated 4-Step Full-Page Mock Test Studio, Relational CMS Selects & Touch-Accessible Cards. Replaced the incomplete side-drawer Mock Test form with a full-page 4-step studio (`AdminTestBuilderPage`), unified CMS notifications onto MindFlow's Top-Layer Popover system, fixed multi-series category test counts, and made all CMS card actions visibly tappable on mobile.

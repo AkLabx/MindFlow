@@ -44,6 +44,7 @@ export const CANONICAL_EXAMS: CanonicalExam[] = [
     dbExamNames: [
       'BPSC CSE PRE',
       'BPSC TRE2',
+      'BPSC TRE3',
       'BPSC AEDO',
       'BPSC AUDITOR',
       'BPSC Motor Vehicle Inspectors. QP',
@@ -124,6 +125,63 @@ export const CANONICAL_EXAMS: CanonicalExam[] = [
     isDefaultFeatured: false,
   },
 ];
+
+/**
+ * Finds a canonical exam by its ID (case-insensitive).
+ */
+export const getCanonicalExamById = (examId: string): CanonicalExam | undefined => {
+  const normalized = examId.trim().toLowerCase();
+  if (!normalized) return undefined;
+  return CANONICAL_EXAMS.find(exam => exam.id.toLowerCase() === normalized);
+};
+
+/**
+ * Resolves a canonical exam (or its ID / displayName) into a deduplicated list of DB examName strings,
+ * preserving canonical order first and appending any dynamic matches from knownDbExamNames.
+ */
+export const resolveCanonicalExamNames = (
+  canonicalIdOrExam: string | CanonicalExam,
+  knownDbExamNames?: string[]
+): string[] => {
+  let exam: CanonicalExam | undefined;
+  if (typeof canonicalIdOrExam === 'string') {
+    const normalized = canonicalIdOrExam.trim().toLowerCase();
+    if (!normalized) return [];
+    exam = CANONICAL_EXAMS.find(
+      e => e.id.toLowerCase() === normalized || e.displayName.toLowerCase() === normalized
+    );
+  } else {
+    exam = canonicalIdOrExam;
+  }
+
+  if (!exam) return [];
+
+  const seen = new Set<string>();
+  const resolved: string[] = [];
+
+  const appendUnique = (raw: string | null | undefined) => {
+    if (!raw) return;
+    const trimmed = raw.trim();
+    if (!trimmed) return;
+    const key = trimmed.toLowerCase();
+    if (!seen.has(key)) {
+      seen.add(key);
+      resolved.push(trimmed);
+    }
+  };
+
+  exam.dbExamNames.forEach(appendUnique);
+
+  if (knownDbExamNames && knownDbExamNames.length > 0) {
+    knownDbExamNames.forEach(name => {
+      if (matchesCanonicalExam(exam!, name)) {
+        appendUnique(name);
+      }
+    });
+  }
+
+  return resolved;
+};
 
 /**
  * Checks if a question matches a canonical exam definition.

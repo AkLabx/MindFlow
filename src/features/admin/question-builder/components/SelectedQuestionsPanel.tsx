@@ -48,8 +48,6 @@ const SortableQuestionItem = ({ question, index, isSelected, onToggleSelect, onR
         zIndex: isDragging ? 50 : 'auto',
     };
 
-    const truncate = (str: string, max = 80) => str.length > max ? str.substring(0, max) + '...' : str;
-
     // Check for quality warnings
     const hasExplanation = !!question.explanation?.summary || !!question.explanation?.analysis_correct || !!question.explanation?.analysis_incorrect || !!question.explanation?.fact;
     const hasOptions = Array.isArray(question.options) && question.options.length > 0;
@@ -64,29 +62,35 @@ const SortableQuestionItem = ({ question, index, isSelected, onToggleSelect, onR
         <div
             ref={setNodeRef}
             style={style}
-            className={`bg-white dark:bg-slate-800 p-3 rounded-xl border ${isSelected ? 'border-indigo-300 dark:border-indigo-600 ring-1 ring-indigo-500/20' : 'border-slate-200 dark:border-slate-700'} shadow-sm flex gap-3 group relative transition-colors ${isDragging ? 'opacity-80 shadow-lg scale-[1.02]' : ''}`}
+            className={`bg-white dark:bg-slate-800 p-3 rounded-xl border ${isSelected ? 'border-indigo-300 dark:border-indigo-600 ring-1 ring-indigo-500/20' : 'border-slate-200 dark:border-slate-700'} shadow-sm flex gap-2 items-start group relative transition-colors ${isDragging ? 'opacity-80 shadow-lg scale-[1.02]' : ''}`}
         >
             <div
                 {...attributes}
                 {...listeners}
-                className="flex items-center justify-center cursor-grab active:cursor-grabbing text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                aria-label={`Reorder question ${index + 1}`}
+                className="touch-none min-w-[36px] min-h-[44px] flex items-center justify-center cursor-grab active:cursor-grabbing text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg"
             >
-                <GripVertical className="w-4 h-4" />
+                <GripVertical className="w-4 h-4" aria-hidden="true" />
             </div>
 
-            <div className="pt-0.5 flex flex-col gap-2 items-center">
-                <input
-                    type="checkbox"
-                    checked={isSelected}
-                    onChange={(e) => onToggleSelect(question.id, e.target.checked)}
-                    className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-600 cursor-pointer dark:border-slate-600 dark:bg-slate-800"
-                />
+            <div className="flex flex-col gap-0.5 items-center">
+                <label
+                    className="min-w-[44px] min-h-[44px] inline-flex items-center justify-center cursor-pointer rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors"
+                    aria-label={`Select question ${index + 1}`}
+                >
+                    <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={(e) => onToggleSelect(question.id, e.target.checked)}
+                        className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-600 cursor-pointer dark:border-slate-600 dark:bg-slate-800"
+                    />
+                </label>
                 <div className="text-[10px] font-bold text-slate-400 dark:text-slate-500 w-6 text-center">
                     {index + 1}
                 </div>
             </div>
 
-            <div className="flex-1 min-w-0 flex flex-col justify-center">
+            <div className="flex-1 min-w-0 flex flex-col justify-center py-1">
                 <div className="flex items-center gap-2 flex-wrap text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
                     <span className="font-mono bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-slate-700 dark:text-slate-300">
                         {question.v1_id || 'NO-ID'}
@@ -100,16 +104,18 @@ const SortableQuestionItem = ({ question, index, isSelected, onToggleSelect, onR
                 </div>
                 <div
                     className="text-sm text-slate-700 dark:text-slate-200 line-clamp-2 prose prose-sm dark:prose-invert max-w-none"
-                    dangerouslySetInnerHTML={{ __html: truncate(renderMathText(question.question)) }}
+                    dangerouslySetInnerHTML={{ __html: renderMathText(question.question) }}
                 />
             </div>
 
             <button
+                type="button"
+                aria-label="Remove question"
                 onClick={() => onRemove(question.id)}
-                className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100 h-fit"
+                className="min-w-[44px] min-h-[44px] flex items-center justify-center text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all active:scale-95 h-fit shrink-0"
                 title="Remove Question"
             >
-                <Trash2 className="w-4 h-4" />
+                <Trash2 className="w-4 h-4" aria-hidden="true" />
             </button>
         </div>
     );
@@ -146,6 +152,21 @@ export const SelectedQuestionsPanel: React.FC<Props> = ({
     const [showStats, setShowStats] = useState(false);
     const [rightSelectedIds, setRightSelectedIds] = useState<Set<string>>(new Set());
     const [showClearConfirm, setShowClearConfirm] = useState(false);
+
+    // Prune stale IDs from rightSelectedIds whenever selectedQuestions changes
+    useEffect(() => {
+        const validIds = new Set(selectedQuestions.map(q => q.id));
+        setRightSelectedIds(prev => {
+            if (prev.size === 0) return prev;
+            let changed = false;
+            const next = new Set<string>();
+            prev.forEach(id => {
+                if (validIds.has(id)) next.add(id);
+                else changed = true;
+            });
+            return changed ? next : prev;
+        });
+    }, [selectedQuestions]);
 
     // Auto-open quality panel if there are issues
     useEffect(() => {
@@ -286,10 +307,11 @@ export const SelectedQuestionsPanel: React.FC<Props> = ({
                         </h3>
                         {canUndo && (
                             <button
+                                type="button"
                                 onClick={onUndo}
-                                className="flex items-center gap-1 text-xs font-medium text-slate-500 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-indigo-400 transition-colors bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-md"
+                                className="min-h-[44px] px-3 flex items-center gap-1 text-xs font-medium text-slate-500 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-indigo-400 transition-all active:scale-95 bg-slate-100 dark:bg-slate-800 rounded-lg"
                             >
-                                <Undo2 className="w-3.5 h-3.5" />
+                                <Undo2 className="w-3.5 h-3.5" aria-hidden="true" />
                                 Undo
                             </button>
                         )}
@@ -297,18 +319,20 @@ export const SelectedQuestionsPanel: React.FC<Props> = ({
 
                     <div className="flex items-center gap-2">
                         <button
+                            type="button"
                             onClick={() => setShowStats(!showStats)}
-                            className={`p-1.5 rounded-lg text-xs font-medium transition-colors ${showStats ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700'}`}
+                            className={`min-h-[44px] px-3 rounded-lg text-xs font-medium transition-all active:scale-95 ${showStats ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700'}`}
                             title="Toggle Statistics"
                         >
                             Stats
                         </button>
                         <button
+                            type="button"
                             onClick={() => setShowQuality(!showQuality)}
-                            className={`p-1.5 rounded-lg text-xs font-medium flex items-center gap-1 transition-colors ${showQuality ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700'}`}
+                            className={`min-h-[44px] px-3 rounded-lg text-xs font-medium flex items-center gap-1 transition-all active:scale-95 ${showQuality ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700'}`}
                             title="Toggle Quality Panel"
                         >
-                            {(stats.warningsCount > 0 || stats.dupCount > 0) && <AlertTriangle className="w-3.5 h-3.5" />}
+                            {(stats.warningsCount > 0 || stats.dupCount > 0) && <AlertTriangle className="w-3.5 h-3.5" aria-hidden="true" />}
                             Quality
                         </button>
                     </div>
@@ -316,9 +340,9 @@ export const SelectedQuestionsPanel: React.FC<Props> = ({
 
                 {/* Secondary Action Bar (Module 2 & 7) */}
                 {selectedQuestions.length > 0 && (
-                    <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-900 p-2 rounded-lg border border-slate-200 dark:border-slate-700">
-                        <div className="flex items-center gap-3">
-                            <label className="flex items-center gap-2 text-xs font-medium text-slate-600 dark:text-slate-300 cursor-pointer pl-1">
+                    <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-900 p-1.5 rounded-lg border border-slate-200 dark:border-slate-700">
+                        <div className="flex items-center gap-2">
+                            <label className="min-h-[44px] min-w-[44px] flex items-center gap-2 text-xs font-medium text-slate-600 dark:text-slate-300 cursor-pointer px-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
                                 <input
                                     type="checkbox"
                                     checked={rightSelectedIds.size > 0 && rightSelectedIds.size === selectedQuestions.length}
@@ -337,18 +361,22 @@ export const SelectedQuestionsPanel: React.FC<Props> = ({
                         <div className="flex items-center gap-2">
                             {rightSelectedIds.size > 0 ? (
                                 <button
+                                    type="button"
                                     onClick={handleRemoveSelected}
-                                    className="text-xs font-medium text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 px-3 py-1.5 rounded-md hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors flex items-center gap-1"
+                                    className="min-h-[44px] text-xs font-medium text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 px-3 py-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-all active:scale-95 flex items-center gap-1"
                                 >
-                                    <Trash2 className="w-3.5 h-3.5" />
+                                    <Trash2 className="w-3.5 h-3.5" aria-hidden="true" />
                                     Remove
                                 </button>
                             ) : (
                                 <>
                                     <DropdownMenu.Root>
                                         <DropdownMenu.Trigger asChild>
-                                            <button className="text-xs font-medium text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white px-3 py-1.5 rounded-md hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors flex items-center gap-1">
-                                                <ListFilter className="w-3.5 h-3.5" />
+                                            <button
+                                                type="button"
+                                                className="min-h-[44px] text-xs font-medium text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white px-3 py-1.5 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-all active:scale-95 flex items-center gap-1"
+                                            >
+                                                <ListFilter className="w-3.5 h-3.5" aria-hidden="true" />
                                                 Sort
                                             </button>
                                         </DropdownMenu.Trigger>
@@ -366,7 +394,10 @@ export const SelectedQuestionsPanel: React.FC<Props> = ({
 
                                     <DropdownMenu.Root>
                                         <DropdownMenu.Trigger asChild>
-                                            <button className="text-xs font-medium text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white px-3 py-1.5 rounded-md hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors flex items-center gap-1">
+                                            <button
+                                                type="button"
+                                                className="min-h-[44px] text-xs font-medium text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white px-3 py-1.5 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-all active:scale-95 flex items-center gap-1"
+                                            >
                                                 More
                                             </button>
                                         </DropdownMenu.Trigger>
@@ -457,14 +488,15 @@ export const SelectedQuestionsPanel: React.FC<Props> = ({
             {/* Advanced Import Accordion */}
             <div className="border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/80">
                 <button
+                    type="button"
                     onClick={() => setShowImport(!showImport)}
-                    className="w-full flex items-center justify-between p-3 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                    className="w-full min-h-[44px] flex items-center justify-between p-3 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all active:scale-95"
                 >
                     <span className="flex items-center gap-2">
-                        <RefreshCw className="w-4 h-4 text-slate-400" />
+                        <RefreshCw className="w-4 h-4 text-slate-400" aria-hidden="true" />
                         Advanced UUID Import
                     </span>
-                    {showImport ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                    {showImport ? <ChevronDown className="w-4 h-4" aria-hidden="true" /> : <ChevronRight className="w-4 h-4" aria-hidden="true" />}
                 </button>
 
                 {showImport && (
@@ -481,12 +513,13 @@ export const SelectedQuestionsPanel: React.FC<Props> = ({
                             disabled={isImporting}
                         />
                         <button
+                            type="button"
                             onClick={handleImportSubmit}
                             disabled={isImporting || !importText.trim()}
-                            className="w-full py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-lg text-sm font-medium transition-colors flex justify-center items-center gap-2"
+                            className="w-full min-h-[44px] py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-lg text-sm font-medium transition-all active:scale-95 flex justify-center items-center gap-2"
                         >
                             {isImporting ? (
-                                <><Loader2 className="w-4 h-4 animate-spin" /> Importing...</>
+                                <><Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> Importing...</>
                             ) : (
                                 'Import & Merge'
                             )}
