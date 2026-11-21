@@ -26,6 +26,25 @@ This document is the single source of truth for the evolution of the MindFlow ap
 
 ## 🚀 App Journey Changelog
 
+## [v1.0.366] - 21 November 2026, 03:58 PM IST
+
+**Executive Summary:** Autonomous "1 Chat = 1 Version" Workflow System & Closed-Loop Memory Engine. Established supreme repository governance via `AGENTS.md` and `GEMINI.md`, installed the `version-ritual` skill, deployed a 10-step milestone blueprint architecture, and launched an ultra-lean (<20 KB) Hot Context cold-start system centered on `CURRENT_HANDOVER.md` and `DECISIONS_MASTER.md`.
+
+### ✨ Features Added
+- **Autonomous Version Ritual Skill (`.agents/skills/version-ritual/SKILL.md`)**: Configured the perpetual 4-phase lifecycle (Cold-Start & Pre-Flight, Isolated Execution & Manifest Sync, Real Verification, and Mandatory 7-Step Closeout Ritual).
+- **Master Technical Decision Ledger (`docs/DECISIONS_MASTER.md`)**: Consolidated all active invariants (`DEC-0001` through `DEC-0013`) and retired approaches (`OLD-001` through `OLD-005`) into an immutable reference table.
+- **Live Handover Baton (`docs/handovers/CURRENT_HANDOVER.md`)**: Created the single living baton containing verified baseline snapshots, workstation port rules, pre-planned execution briefs, and copy-paste starter prompts.
+- **Multi-Generation Roadmap & v1.0 Blueprint (`docs/blueprint/`)**: Mapped generational horizons and detailed the 10 concrete milestone increments for Generation 1.
+- **Per-Version Release Dossier Architecture (`docs/versions/`)**: Scaffolding for comprehensive release documentation tracking Path A vs Path B engineering choices.
+
+### 🔒 Security & Architecture
+- **System-2 Cognitive Pre-Flight (`AGENTS.md`)**: Enforced mandatory lifecycle simulation and 3-runtime-failure-mode analysis before writing code, strictly banning cosmetic dummy mocks.
+- **Circuit Breakers ("Stop & Ask")**: Hard pause triggers established for >10 files, dependency changes, database migrations, and auth adjustments.
+- **Ultra-Lean Cold-Start Protocol (`GEMINI.md`)**: Shifted historical changelogs to on-demand archives, reducing session cold-start context from ~70k tokens down to ~5k tokens (<20 KB).
+- **Git Tracking Hygiene (`.gitignore`)**: Whitelisted `.agents/skills/` to ensure skill distribution while maintaining isolation for ephemeral agent workspaces.
+
+---
+
 ## [v1.0.365] - 18 November 2026, 10:10 AM IST
 
 **Executive Summary:** MindFlow Social Media Chatroom Comprehensive UI/UX Uplift & Robustness Architecture. Resolved critical navigation flow-breakers (fixed 404 routing on "View profile", direct room routing from user profiles, and `location.state?.roomId` inbox forwarding), implemented complete "New Chat" discovery with an Android-style FAB and interactive user search modal, engineered direction-locked swipe-to-reply and haptic touch long-press to eliminate mobile scrolling jitter, established dynamic visual viewport keyboard avoidance, activated an interactive quick emoji strip, and fixed Chromium WebM voice note duration freezes and cross-origin lightbox downloads.
