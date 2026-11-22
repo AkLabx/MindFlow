@@ -64,6 +64,11 @@ export function resolveHardwareBackTarget(currentPath: string, locationState?: u
         return '/admin/test-series?tab=tests';
     }
     if (normalized.startsWith('/mcqs/test-series/')) {
+        const st = locationState as { returnTo?: unknown; from?: unknown } | null | undefined;
+        const candidate = st?.returnTo ?? st?.from;
+        if (typeof candidate === 'string' && candidate.startsWith('/') && !candidate.startsWith('//')) {
+            return candidate;
+        }
         return '/mcqs/test-series';
     }
     if (normalized.startsWith('/mcqs/')) {

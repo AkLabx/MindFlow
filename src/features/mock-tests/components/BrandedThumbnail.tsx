@@ -38,11 +38,11 @@ export const BrandedThumbnail: React.FC<BrandedThumbnailProps> = ({ title, type,
         <div className={`relative flex items-center justify-center p-4 overflow-hidden shadow-inner ${bgClass} ${className}`}>
             <div className="absolute inset-0 bg-black/10"></div>
             {/* Minimal Icon Background */}
-            <Icon className="absolute -bottom-4 -right-4 w-32 h-32 text-white opacity-10 transform -rotate-12" />
+            <Icon aria-hidden="true" className="absolute -bottom-4 -right-4 w-32 h-32 text-white opacity-10 transform -rotate-12" />
             {/* Large Typography */}
-            <h2 className="relative z-10 text-white font-black text-4xl sm:text-5xl tracking-tighter drop-shadow-md text-center line-clamp-2 leading-none">
+            <span aria-hidden="true" className="relative z-10 text-white font-black text-4xl sm:text-5xl tracking-tighter drop-shadow-md text-center line-clamp-2 leading-none">
                 {shortName}
-            </h2>
+            </span>
         </div>
     );
 };

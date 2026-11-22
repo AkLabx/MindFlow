@@ -30,6 +30,21 @@ describe('resolveHardwareBackTarget (Phase 9 Hierarchical Back Navigation)', () 
     expect(resolveHardwareBackTarget('/mcqs/test-series/category/ssc')).toBe('/mcqs/test-series');
     expect(resolveHardwareBackTarget('/mcqs/test-series/series/cgl-1')).toBe('/mcqs/test-series');
     expect(resolveHardwareBackTarget('/mcqs/test-series/test/mock-1')).toBe('/mcqs/test-series');
+    expect(
+      resolveHardwareBackTarget('/mcqs/test-series/test/mock-1', {
+        returnTo: '/mcqs/test-series/bpsc',
+      })
+    ).toBe('/mcqs/test-series/bpsc');
+    expect(
+      resolveHardwareBackTarget('/mcqs/test-series/test/mock-1', {
+        from: '/mcqs/test-series/series/cgl-1',
+      })
+    ).toBe('/mcqs/test-series/series/cgl-1');
+    expect(
+      resolveHardwareBackTarget('/mcqs/test-series/test/mock-1', {
+        returnTo: '//evil.com',
+      })
+    ).toBe('/mcqs/test-series');
     expect(resolveHardwareBackTarget('/mcqs/test-series')).toBe('/mcqs');
     expect(resolveHardwareBackTarget('/mcqs/uploadcustomquiz')).toBe('/mcqs');
     expect(resolveHardwareBackTarget('/mcqs')).toBe('/dashboard');

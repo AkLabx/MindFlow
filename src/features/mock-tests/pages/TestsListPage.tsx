@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Layers, Clock, FileText, CheckSquare, Award } from 'lucide-react';
 import { fetchSeriesDetails, fetchPublishedTests } from '../api/mockTestsApi';
@@ -10,6 +10,7 @@ import { HeroSkeleton, ListSkeleton } from '../components/Skeletons';
 
 export const TestsListPage: React.FC = () => {
     const navigate = useNavigate();
+    const location = useLocation();
     const { seriesId } = useParams<{ seriesId: string }>();
     const [series, setSeries] = useState<any>(null);
     const [tests, setTests] = useState<any[]>([]);
@@ -114,7 +115,11 @@ export const TestsListPage: React.FC = () => {
                                             <motion.div
                                                 key={t.id}
                                                 whileHover={{ y: -2, transition: { duration: 0.2 } }}
-                                                onClick={() => navigate(`/mcqs/test-series/test/${t.id}`)}
+                                                onClick={() =>
+                                                    navigate(`/mcqs/test-series/test/${t.id}`, {
+                                                        state: { returnTo: location.pathname },
+                                                    })
+                                                }
                                                 className="group cursor-pointer bg-white dark:bg-slate-800 rounded-[20px] p-5 shadow-sm hover:shadow-md border border-slate-200/60 dark:border-slate-700/60 transition-all duration-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4"
                                             >
                                                 <div className="flex items-start sm:items-center gap-4 sm:gap-6 w-full sm:w-auto">
