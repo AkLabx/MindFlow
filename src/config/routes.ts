@@ -129,6 +129,11 @@ export const ROUTES = {
   // Test Series / Mock Tests
   TEST_SERIES: {
     ROOT: '/mcqs/test-series',
+    BPSC: '/mcqs/test-series/bpsc',
+    EXAM: (examSlug: string) =>
+      examSlug.startsWith(':')
+        ? `/mcqs/test-series/exam/${examSlug}`
+        : `/mcqs/test-series/exam/${encodeURIComponent(examSlug)}`,
     COMING_SOON: '/mcqs/test-series/coming-soon',
     CATEGORY: (categoryId: string | number) => `/mcqs/test-series/category/${categoryId}`,
     SERIES: (seriesId: string | number) => `/mcqs/test-series/series/${seriesId}`,
@@ -204,3 +209,16 @@ export const ROUTES = {
     PRIVACY_POLICY: '/privacy-policy',
   }
 } as const;
+
+/**
+ * Resolves the canonical student prepared mock tests route for a given exam ID.
+ * BPSC routes to the dedicated `/mcqs/test-series/bpsc` path; other canonical exams
+ * route to `/mcqs/test-series/exam/:examSlug`.
+ */
+export const getPreparedMockTestsRoute = (examId?: string | null): string => {
+  const normalized = String(examId ?? '').trim().toLowerCase().replace(/-/g, '_');
+  if (!normalized || normalized === 'bpsc') {
+    return ROUTES.TEST_SERIES.BPSC;
+  }
+  return ROUTES.TEST_SERIES.EXAM(normalized);
+};

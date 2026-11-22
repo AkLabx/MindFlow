@@ -1,36 +1,68 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Play, Sparkles, BookOpen } from 'lucide-react';
-import { fetchActiveExamCategories, fetchRecommendedSeries } from '../api/mockTestsApi';
+import {
+    fetchActiveExamCategories,
+    fetchRecommendedSeries,
+    getCachedMockHomeSnapshot,
+    hydrateMockHomeFromIndexedDB,
+} from '../api/mockTestsApi';
+import { ROUTES } from '@/config/routes';
 import { BrandedThumbnail } from '../components/BrandedThumbnail';
 import { EmptyState } from '../components/EmptyState';
+import { PreparedMockTestsShortcutCard } from '../components/PreparedMockTestsShortcutCard';
 import { GridSkeleton } from '../components/Skeletons';
 
 export const ExamCategoriesPage: React.FC = () => {
     const navigate = useNavigate();
-    const [categories, setCategories] = useState<any[]>([]);
-    const [recommended, setRecommended] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
+    const initialSnapshot = getCachedMockHomeSnapshot();
+    const [categories, setCategories] = useState<any[]>(() => initialSnapshot.categories || []);
+    const [recommended, setRecommended] = useState<any[]>(() => initialSnapshot.recommendedSeries || []);
+    const [loading, setLoading] = useState<boolean>(
+        () => !(initialSnapshot.categories || initialSnapshot.recommendedSeries)
+    );
+    const hasHydratedRef = useRef<boolean>(
+        Boolean(initialSnapshot.categories || initialSnapshot.recommendedSeries)
+    );
 
     useEffect(() => {
-        loadDashboard();
-    }, []);
+        let isMounted = true;
+        const loadDashboard = async () => {
+            try {
+                if (!hasHydratedRef.current) {
+                    const idbSnapshot = await hydrateMockHomeFromIndexedDB();
+                    if (!isMounted) return;
+                    if (idbSnapshot.categories || idbSnapshot.recommendedSeries) {
+                        setCategories(idbSnapshot.categories || []);
+                        setRecommended(idbSnapshot.recommendedSeries || []);
+                        hasHydratedRef.current = true;
+                        setLoading(false);
+                    }
+                }
 
-    const loadDashboard = async () => {
-        try {
-            const [catData, recData] = await Promise.all([
-                fetchActiveExamCategories(),
-                fetchRecommendedSeries()
-            ]);
-            setCategories(catData || []);
-            setRecommended(recData || []);
-        } catch (error) {
-            console.error('Error fetching dashboard data:', error);
-        } finally {
-            setLoading(false);
-        }
-    };
+                const [catData, recData] = await Promise.all([
+                    fetchActiveExamCategories(),
+                    fetchRecommendedSeries(),
+                ]);
+                if (!isMounted) return;
+                setCategories(catData || []);
+                setRecommended(recData || []);
+                hasHydratedRef.current = true;
+            } catch (error) {
+                console.error('Error fetching dashboard data:', error);
+            } finally {
+                if (isMounted) {
+                    setLoading(false);
+                }
+            }
+        };
+
+        loadDashboard();
+        return () => {
+            isMounted = false;
+        };
+    }, []);
 
     const navToCat = (id: string) => navigate(`/mcqs/test-series/category/${id}`);
     const navToSeries = (id: string) => navigate(`/mcqs/test-series/series/${id}`);
@@ -40,7 +72,7 @@ export const ExamCategoriesPage: React.FC = () => {
             <div className="flex-1 w-full max-w-7xl mx-auto pb-20">
 
                 {/* Hero Banner (Static, Premium) */}
-                <div className="relative w-full rounded-[32px] overflow-hidden bg-gradient-to-br from-indigo-900 via-purple-900 to-slate-900 mb-10 sm:mb-16 p-8 sm:p-12 shadow-2xl isolate border border-indigo-500/20">
+                <div className="relative w-full rounded-[32px] overflow-hidden bg-gradient-to-br from-indigo-900 via-purple-900 to-slate-900 mb-6 sm:mb-8 p-6 sm:p-10 shadow-2xl isolate border border-indigo-500/20">
                     <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay"></div>
                     <div className="absolute top-0 right-0 -mr-20 -mt-20 w-96 h-96 bg-fuchsia-500 rounded-full blur-[120px] opacity-20 pointer-events-none"></div>
 
@@ -56,12 +88,17 @@ export const ExamCategoriesPage: React.FC = () => {
                             High-quality mock tests, previous year papers, and detailed analytics designed to elevate your score.
                         </p>
                         <button
+                            type="button"
                             onClick={() => document.getElementById('categories-section')?.scrollIntoView({ behavior: 'smooth' })}
-                            className="bg-white text-indigo-900 hover:bg-indigo-50 px-8 py-4 rounded-full font-bold transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 flex items-center gap-2"
+                            className="min-h-[44px] bg-white text-indigo-900 hover:bg-indigo-50 px-8 py-4 rounded-full font-bold transition-all active:scale-95 shadow-lg hover:shadow-xl hover:-translate-y-0.5 flex items-center gap-2 cursor-pointer"
                         >
                             Explore Categories <BookOpen className="w-5 h-5" />
                         </button>
                     </div>
+                </div>
+
+                <div className="mb-8 sm:mb-10">
+                    <PreparedMockTestsShortcutCard source="mock_tests" returnTo={ROUTES.TEST_SERIES.ROOT} />
                 </div>
 
                 {loading ? (

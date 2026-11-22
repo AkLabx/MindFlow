@@ -11,6 +11,8 @@ import { useAuth } from "@/features/auth";
 import { useNavSpinner } from "@/hooks/useNavSpinner";
 import { Loader2, ChevronRight } from "lucide-react";
 import { MainLayout } from "@/layouts/MainLayout";
+import { PreparedMockTestsShortcutCard } from "@/features/mock-tests/components/PreparedMockTestsShortcutCard";
+import { ROUTES } from "@/config/routes";
 
 /**
  * Props for the McqsQuizHome component.
@@ -73,6 +75,10 @@ export const McqsQuizHomePage: React.FC<McqsQuizHomeProps> = ({ onBack }) => {
             </button>
           </div>
         </header>
+
+        <div className="w-full max-w-7xl mx-auto z-20">
+          <PreparedMockTestsShortcutCard source="mcqs" returnTo={ROUTES.MCQS} />
+        </div>
 
         {/* Cards Grid */}
         <motion.div
