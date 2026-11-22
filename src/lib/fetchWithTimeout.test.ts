@@ -19,6 +19,10 @@ describe('isSafeToRetry', () => {
         expect(isSafeToRetry('https://api.supabase.co/rest/v1/rpc/get_reels_feed', { method: 'POST' })).toBe(true);
     });
 
+    it('allows idempotent PATCH updates to quiz_sessions', () => {
+        expect(isSafeToRetry('https://api.supabase.co/rest/v1/quiz_sessions?id=eq.123', { method: 'PATCH' })).toBe(true);
+    });
+
     it('rejects unlisted RPCs and destructive mutations', () => {
         expect(isSafeToRetry('https://api.supabase.co/rest/v1/rpc/delete_content_by_admin', { method: 'POST' })).toBe(false);
         expect(isSafeToRetry('https://api.supabase.co/rest/v1/data', { method: 'POST' })).toBe(false);

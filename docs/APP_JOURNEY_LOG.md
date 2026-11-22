@@ -26,6 +26,17 @@ This document is the single source of truth for the evolution of the MindFlow ap
 
 ## 🚀 App Journey Changelog
 
+## [v1.0.370.1] - 22 November 2026, 11:20 AM IST
+
+**Executive Summary:** Backend Assessment Nomenclature (`mock_*` / `quiz_*`), Atomic 10-RPC Sync & Modular `src/config/dbTables.ts` Registry. Non-destructively grouped Admin-Prepared Preset Mock Tests (`mock_categories`, `mock_series`, `mock_tests`, `mock_test_attempts`) and Custom Student Quizzes (`quiz_sessions`, `quiz_session_questions`, `quiz_session_results`) in Supabase, documented all 18 assessment/adjacent tables with `COMMENT ON TABLE`, atomically updated all 10 dependent PostgreSQL functions, and centralized frontend table/RPC identifiers in `src/config/dbTables.ts` while preserving local IndexedDB stores (`DEC-0004`).
+
+### 🔒 Security & Architecture
+- **Non-Destructive Database Nomenclature & RPC Sync (`supabase/migrations/20261122010000_standardize_assessment_nomenclature.sql`)**: Renamed Block A (`exam_categories` $\rightarrow$ `mock_categories`, `test_series` $\rightarrow$ `mock_series`, `tests` $\rightarrow$ `mock_tests`, `user_test_attempts` $\rightarrow$ `mock_test_attempts`) and Block B (`saved_quizzes` $\rightarrow$ `quiz_sessions`, `bridge_saved_quiz_questions` $\rightarrow$ `quiz_session_questions`, `quiz_history` $\rightarrow$ `quiz_session_results`) via zero-`DROP` `ALTER TABLE ... RENAME TO ...`, retaining all 14 RLS policies and 22 constraints; added `COMMENT ON TABLE` metadata across 18 tables; atomically updated all 10 live PostgreSQL functions (plus canonical `public.get_mock_test_leaderboard`) with locked `SET search_path TO 'public', 'pg_temp'` and `REVOKE ALL ... FROM PUBLIC, anon`.
+
+### ⚡ Performance & Refactoring
+- **Modular Registry & Call-Site Sync (`src/config/dbTables.ts`)**: Created `DB_TABLES` (`MOCK`, `QUIZ`, `BANK`, `BLUEPRINT`, `RANKER`) and `DB_RPCS`, exported `as const` PostgREST relational select queries in `adminTestSeriesApi.ts`, migrated all 25 Block A/Block B APIs, UI cards, guards, stores, sync services (`syncService.ts`), retry allowlists (`fetchWithTimeout.ts`), and Vitest suites (`adminTestSeriesCms.test.tsx`, `fetchWithTimeout.test.ts`), and strictly preserved local browser IndexedDB store names (`'saved_quizzes'`, `'quiz_history'`) in `src/lib/db.ts`.
+- **Verification**: Verified live `pg_tables`, `pg_policies`, `pg_constraint`, `pg_proc` (`0` stale table references), and `get_advisors(type="security")`; passed `npx.cmd tsc --noEmit` (`0` errors), `npx.cmd vitest --run --pool=forks --maxWorkers=1` (`34/34` files, `214/214` tests), and `npx.cmd vite build` (`5480` modules, PWA precache `196` entries / `6635.12 KiB`).
+
 ## [v1.0.370] - 22 November 2026, 09:26 AM IST
 
 **Executive Summary:** Mock Tests & Admin RBAC Database Security, Schedule-Window Enforcement & Privacy-Safe Leaderboard RPC. Eliminated the cross-user `user_test_attempts.answers` JSONB privacy leak, scoped student Mock Tests RLS policies `TO authenticated` with schedule-window and parent-active checks, enforced publish integrity in Postgres constraints and Admin CMS APIs, and added 100-UUID chunked soft-delete-aware question validation.

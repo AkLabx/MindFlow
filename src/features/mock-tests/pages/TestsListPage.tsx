@@ -34,13 +34,15 @@ export const TestsListPage: React.FC = () => {
         }
     };
 
+    const category = series?.mock_categories ?? series?.exam_categories;
+
     return (
         <div className="flex flex-col min-h-screen -m-4 sm:-m-6 lg:-m-8 p-4 sm:p-6 lg:p-8 bg-slate-50 dark:bg-slate-900 transition-colors duration-700">
             <div className="flex-1 w-full max-w-7xl mx-auto pb-20">
 
                 <Breadcrumbs items={[
                     { label: 'Mock Tests', path: '/mcqs/test-series' },
-                    { label: series?.exam_categories?.name || 'Category', path: series?.exam_categories?.id ? `/mcqs/test-series/category/${series.exam_categories.id}` : undefined },
+                    { label: category?.name || 'Category', path: category?.id ? `/mcqs/test-series/category/${category.id}` : undefined },
                     { label: series?.name || 'Series' }
                 ]} />
 

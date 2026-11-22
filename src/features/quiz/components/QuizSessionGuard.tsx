@@ -8,6 +8,7 @@ import { SynapticLoader } from '../../../components/ui/SynapticLoader';
 import { ErrorState } from '../../../components/ui/ErrorState';
 import { ArrowLeft } from 'lucide-react';
 import { fetchQuestionsByIds } from '../services/questionService';
+import { DB_TABLES } from '../../../config/dbTables';
 
 const WINDOW_SIZE = 50;
 const PREFETCH_THRESHOLD = 10;
@@ -67,8 +68,8 @@ export const QuizSessionGuard = ({ children }: { children: React.ReactNode }) =>
 
                 // 1. Fetch lightweight structure (IDs only)
                 const { data: quizData, error } = await supabase
-                    .from('saved_quizzes')
-                    .select('*, bridge_saved_quiz_questions(question_id, sort_order)')
+                    .from(DB_TABLES.QUIZ.SESSIONS)
+                    .select(`*, ${DB_TABLES.QUIZ.SESSION_QUESTIONS}(question_id, sort_order)`)
                     .eq('id', quizId)
                     .single();
 
@@ -85,7 +86,7 @@ export const QuizSessionGuard = ({ children }: { children: React.ReactNode }) =>
                     return;
                 }
 
-                const bridgeData = quizData.bridge_saved_quiz_questions || [];
+                const bridgeData = (quizData as any).quiz_session_questions ?? (quizData as any).bridge_saved_quiz_questions ?? [];
                 bridgeData.sort((a: any, b: any) => a.sort_order - b.sort_order);
                 const allQuestionIds = bridgeData.map((bq: any) => bq.question_id);
 
@@ -118,7 +119,7 @@ export const QuizSessionGuard = ({ children }: { children: React.ReactNode }) =>
                     const windowIds = allQuestionIds.slice(startIndex, endIndex);
 
                     const { data: qData, error: qError } = await supabase
-                        .from('questions')
+                        .from(DB_TABLES.BANK.QUESTIONS)
                         .select('*')
                         .in('id', windowIds);
 

@@ -21,6 +21,7 @@ import { QuizLibrarySkeleton } from './QuizLibrarySkeleton';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useNotification } from '@/stores/useNotificationStore';
 import { telemetry } from '@/lib/telemetry';
+import { DB_TABLES } from '@/config/dbTables';
 
 /**
  * Screen for managing saved quizzes.
@@ -99,8 +100,8 @@ export const SavedQuizzesList: React.FC<SavedQuizzesListProps> = ({ viewMode, se
 
             try {
                 const { data, error: fetchError } = await supabase
-                    .from('saved_quizzes')
-                    .select('id, name, created_at, mode, status, filters, state, bridge_saved_quiz_questions(count)')
+                    .from(DB_TABLES.QUIZ.SESSIONS)
+                    .select(`id, name, created_at, mode, status, filters, state, ${DB_TABLES.QUIZ.SESSION_QUESTIONS}(count)`)
                     .eq('user_id', user.id)
                     .neq('status', 'result')
                     .is('deleted_at', null)
@@ -112,7 +113,7 @@ export const SavedQuizzesList: React.FC<SavedQuizzesListProps> = ({ viewMode, se
                 return data
                     .filter(rq => !pendingDeletes.has(rq.id))
                     .map(rq => {
-                        const countObj = (rq.bridge_saved_quiz_questions as any)?.[0];
+                        const countObj = ((rq as any).quiz_session_questions ?? (rq as any).bridge_saved_quiz_questions)?.[0];
                         const questionsCount = typeof countObj?.count === 'number' ? countObj.count : 0;
                         const questions = new Array(questionsCount).fill({});
 

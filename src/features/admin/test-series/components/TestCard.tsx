@@ -24,6 +24,8 @@ export const TestCard: React.FC<TestCardProps> = ({
 }) => {
     const isBusy = Boolean(busyAction);
     const isPublished = Boolean(test.is_published);
+    const parentSeries = test.mock_series ?? test.test_series;
+    const parentCategory = parentSeries?.mock_categories ?? parentSeries?.exam_categories;
 
     return (
         <motion.article
@@ -41,9 +43,9 @@ export const TestCard: React.FC<TestCardProps> = ({
             </div>
 
             <p className="text-xs font-semibold text-purple-600 dark:text-purple-400 uppercase tracking-wider mb-1 line-clamp-1">
-                {test.test_series?.exam_categories?.name
-                    ? `${test.test_series.exam_categories.name} · ${test.test_series.name}`
-                    : (test.test_series?.name || 'Unassigned Series')}
+                {parentCategory?.name
+                    ? `${parentCategory.name} · ${parentSeries?.name}`
+                    : (parentSeries?.name || 'Unassigned Series')}
             </p>
             <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-1 line-clamp-1">{test.name}</h3>
             {test.description ? (

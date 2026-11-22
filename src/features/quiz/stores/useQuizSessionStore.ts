@@ -7,6 +7,7 @@ import { create } from 'zustand';
 import { APP_CONFIG } from '../../../constants/config';
 import { QuizRuntimeState, QuizPersistentState, QuizStatus, QuizMode, Question, InitialFilters } from '../types';
 import { fetchWithTimeout } from '../../../lib/fetchWithTimeout';
+import { DB_TABLES } from '../../../config/dbTables';
 
 interface QuizSessionState extends QuizRuntimeState {
   toggleToolbar: () => void;
@@ -119,7 +120,7 @@ const enqueueCloudSync = async (state: QuizRuntimeState, set: any, source: strin
 
             try {
                 const { error: updateError } = await supabase
-                    .from('saved_quizzes')
+                    .from(DB_TABLES.QUIZ.SESSIONS)
                     .update({ state: stateWithoutQuestions })
                     .eq('id', state.quizId)
                     .eq('user_id', session.user.id);

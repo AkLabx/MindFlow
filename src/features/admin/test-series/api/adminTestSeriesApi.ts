@@ -1,7 +1,8 @@
 import { supabase } from '@/lib/supabase';
+import { DB_TABLES } from '@/config/dbTables';
 
-const SERIES_SELECT_QUERY = '*, exam_categories(id, name)';
-const TEST_SELECT_QUERY = '*, test_series(id, name, category_id, is_published, exam_categories(id, name))';
+export const SERIES_SELECT_QUERY = `*, ${DB_TABLES.MOCK.CATEGORIES}(id, name)` as const;
+export const TEST_SELECT_QUERY = `*, ${DB_TABLES.MOCK.SERIES}(id, name, category_id, is_published, ${DB_TABLES.MOCK.CATEGORIES}(id, name))` as const;
 
 export interface TestMutationPayload {
     series_id: string;
@@ -22,7 +23,7 @@ export interface TestMutationPayload {
 
 export const fetchExamCategories = async () => {
     const { data, error } = await supabase
-        .from('exam_categories')
+        .from(DB_TABLES.MOCK.CATEGORIES)
         .select('*')
         .order('display_order', { ascending: true })
         .order('created_at', { ascending: false });
@@ -33,7 +34,7 @@ export const fetchExamCategories = async () => {
 
 export const createExamCategory = async (payload: { name: string; description?: string; image_url?: string; is_active?: boolean; display_order?: number }) => {
     const { data, error } = await supabase
-        .from('exam_categories')
+        .from(DB_TABLES.MOCK.CATEGORIES)
         .insert([payload])
         .select()
         .single();
@@ -44,7 +45,7 @@ export const createExamCategory = async (payload: { name: string; description?: 
 
 export const updateExamCategory = async (id: string, payload: any) => {
     const { data, error } = await supabase
-        .from('exam_categories')
+        .from(DB_TABLES.MOCK.CATEGORIES)
         .update(payload)
         .eq('id', id)
         .select()
@@ -56,7 +57,7 @@ export const updateExamCategory = async (id: string, payload: any) => {
 
 export const deleteExamCategory = async (id: string) => {
     const { error } = await supabase
-        .from('exam_categories')
+        .from(DB_TABLES.MOCK.CATEGORIES)
         .delete()
         .eq('id', id);
 
@@ -67,7 +68,7 @@ export const deleteExamCategory = async (id: string) => {
 
 export const fetchTestSeries = async (categoryId?: string) => {
     let query = supabase
-        .from('test_series')
+        .from(DB_TABLES.MOCK.SERIES)
         .select(SERIES_SELECT_QUERY)
         .order('created_at', { ascending: false });
 
@@ -82,7 +83,7 @@ export const fetchTestSeries = async (categoryId?: string) => {
 
 export const createTestSeries = async (payload: { category_id: string; name: string; slug: string; description?: string; thumbnail_url?: string; is_premium?: boolean; is_published?: boolean }) => {
     const { data, error } = await supabase
-        .from('test_series')
+        .from(DB_TABLES.MOCK.SERIES)
         .insert([payload])
         .select(SERIES_SELECT_QUERY)
         .single();
@@ -93,7 +94,7 @@ export const createTestSeries = async (payload: { category_id: string; name: str
 
 export const updateTestSeries = async (id: string, payload: any) => {
     const { data, error } = await supabase
-        .from('test_series')
+        .from(DB_TABLES.MOCK.SERIES)
         .update(payload)
         .eq('id', id)
         .select(SERIES_SELECT_QUERY)
@@ -105,7 +106,7 @@ export const updateTestSeries = async (id: string, payload: any) => {
 
 export const deleteTestSeries = async (id: string) => {
     const { error } = await supabase
-        .from('test_series')
+        .from(DB_TABLES.MOCK.SERIES)
         .delete()
         .eq('id', id);
 
@@ -116,7 +117,7 @@ export const deleteTestSeries = async (id: string) => {
 
 export const fetchTests = async (seriesId?: string) => {
     let query = supabase
-        .from('tests')
+        .from(DB_TABLES.MOCK.TESTS)
         .select(TEST_SELECT_QUERY)
         .order('display_order', { ascending: true })
         .order('created_at', { ascending: false });
@@ -132,7 +133,7 @@ export const fetchTests = async (seriesId?: string) => {
 
 export const fetchTestById = async (id: string) => {
     const { data, error } = await supabase
-        .from('tests')
+        .from(DB_TABLES.MOCK.TESTS)
         .select(TEST_SELECT_QUERY)
         .eq('id', id)
         .single();
@@ -150,7 +151,7 @@ export const createTest = async (payload: TestMutationPayload) => {
     }
 
     const { data, error } = await supabase
-        .from('tests')
+        .from(DB_TABLES.MOCK.TESTS)
         .insert([payload])
         .select(TEST_SELECT_QUERY)
         .single();
@@ -203,7 +204,7 @@ export const updateTest = async (id: string, payload: Partial<TestMutationPayloa
     }
 
     const { data, error } = await supabase
-        .from('tests')
+        .from(DB_TABLES.MOCK.TESTS)
         .update(payload)
         .eq('id', id)
         .select(TEST_SELECT_QUERY)
@@ -215,7 +216,7 @@ export const updateTest = async (id: string, payload: Partial<TestMutationPayloa
 
 export const deleteTest = async (id: string) => {
     const { error } = await supabase
-        .from('tests')
+        .from(DB_TABLES.MOCK.TESTS)
         .delete()
         .eq('id', id);
 
@@ -378,7 +379,7 @@ export const validateQuestionIds = async (ids: string[]) => {
     for (let i = 0; i < formatValidIds.length; i += QUESTION_ID_CHUNK_SIZE) {
         const chunk = formatValidIds.slice(i, i + QUESTION_ID_CHUNK_SIZE);
         const { data, error } = await supabase
-            .from('questions')
+            .from(DB_TABLES.BANK.QUESTIONS)
             .select('id')
             .is('deleted_at', null)
             .in('id', chunk);

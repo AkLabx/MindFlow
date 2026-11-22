@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase';
 import { AppRole } from '@/config/permissions';
+import { DB_TABLES } from '@/config/dbTables';
 
 export interface UserSummary {
   id: string;
@@ -142,9 +143,9 @@ export const fetchUserDetails = async (userId: string): Promise<UserDetailData> 
     { count: bmarkCount },
     { count: testCount }
   ] = await Promise.all([
-    supabase.from('quiz_history').select('id', { count: 'exact', head: true }).eq('user_id', userId),
+    supabase.from(DB_TABLES.QUIZ.SESSION_RESULTS).select('id', { count: 'exact', head: true }).eq('user_id', userId),
     supabase.from('user_bookmarks').select('id', { count: 'exact', head: true }).eq('user_id', userId),
-    supabase.from('user_test_attempts').select('id', { count: 'exact', head: true }).eq('user_id', userId)
+    supabase.from(DB_TABLES.MOCK.ATTEMPTS).select('id', { count: 'exact', head: true }).eq('user_id', userId)
   ]);
 
   return {

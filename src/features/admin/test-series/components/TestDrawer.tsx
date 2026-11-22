@@ -192,7 +192,7 @@ export const TestDrawer: React.FC<TestDrawerProps> = ({ isOpen, onClose, test, s
     const groupedSeries = useMemo(() => {
         const groups = new Map<string, any[]>();
         for (const s of series || []) {
-            const catName = s?.exam_categories?.name || 'Uncategorized';
+            const catName = (s?.mock_categories ?? s?.exam_categories)?.name || 'Uncategorized';
             const list = groups.get(catName) ?? [];
             list.push(s);
             groups.set(catName, list);

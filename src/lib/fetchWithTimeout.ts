@@ -9,6 +9,7 @@
 
 import { triggerAppRecovery } from './recovery/RecoveryManager';
 import { useRecoveryStore } from '../stores/useRecoveryStore';
+import { DB_TABLES, DB_RPCS } from '../config/dbTables';
 
 // Diagnostic counter to track requests
 let requestIdCounter = 0;
@@ -30,7 +31,7 @@ const SAFE_RPCS = [
     'get_word_lineage', // read
     'get_pipeline_timeline', // read
     'get_prompt_registry_metrics', // read
-    'submit_quiz_session', // idempotent upsert guard included
+    DB_RPCS.SUBMIT_QUIZ_SESSION, // idempotent upsert guard included
 ];
 
 export const isSafeToRetry = (urlStr: string, options?: RequestInit): boolean => {
@@ -50,8 +51,11 @@ export const isSafeToRetry = (urlStr: string, options?: RequestInit): boolean =>
         return SAFE_RPCS.some(rpc => urlStr.includes(`/rpc/${rpc}`));
     }
 
-    // PATCH to saved_quizzes is an idempotent background quiz state update
-    if (method === 'PATCH' && urlStr.includes('/rest/v1/saved_quizzes')) {
+    // PATCH to quiz_sessions (or legacy saved_quizzes) is an idempotent background quiz state update
+    if (
+        method === 'PATCH' &&
+        (urlStr.includes(`/rest/v1/${DB_TABLES.QUIZ.SESSIONS}`) || urlStr.includes('/rest/v1/saved_quizzes'))
+    ) {
         return true;
     }
 

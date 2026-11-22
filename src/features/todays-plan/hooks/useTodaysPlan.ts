@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useTransition } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { db } from '@/lib/db';
 import { supabase } from '@/lib/supabase';
+import { DB_TABLES } from '@/config/dbTables';
 import { useQuestionMetadata } from '@/features/quiz/hooks/useQuestionMetadata';
 import { fetchQuestionsByIds } from '@/features/quiz/services/questionService';
 import { quizCreationService } from '@/features/quiz/services/quizCreationService';
@@ -50,7 +51,7 @@ export const useTodaysPlan = (): UseTodaysPlanReturn => {
           const { data: { session } } = await supabase.auth.getSession();
           if (session?.user?.id) {
             const { data: remoteQuizzes } = await supabase
-              .from('saved_quizzes')
+              .from(DB_TABLES.QUIZ.SESSIONS)
               .select('*')
               .eq('user_id', session.user.id)
               .order('created_at', { ascending: false })
@@ -92,7 +93,7 @@ export const useTodaysPlan = (): UseTodaysPlanReturn => {
       if (!catalog || catalog.length === 0) {
         try {
           const { data: starterQuestions } = await supabase
-            .from('questions')
+            .from(DB_TABLES.BANK.QUESTIONS)
             .select('id, subject, topic, subTopic, difficulty, question, options, correct, explanation')
             .is('deleted_at', null)
             .limit(30);

@@ -24,6 +24,7 @@ import {
   BarChart3
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { DB_TABLES } from '@/config/dbTables';
 import { useAuth } from '@/features/auth';
 
 interface SystemMetric {
@@ -71,9 +72,9 @@ export const AdminOverviewPage: React.FC = () => {
         { count: owsCount },
         { count: telemCount }
       ] = await Promise.all([
-        supabase.from('questions').select('id', { count: 'exact', head: true }),
+        supabase.from(DB_TABLES.BANK.QUESTIONS).select('id', { count: 'exact', head: true }),
         supabase.from('profiles').select('id', { count: 'exact', head: true }),
-        supabase.from('tests').select('id', { count: 'exact', head: true }),
+        supabase.from(DB_TABLES.MOCK.TESTS).select('id', { count: 'exact', head: true }),
         supabase.from('reports').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
         supabase.from('enrichment_dlq').select('id', { count: 'exact', head: true }),
         supabase.from('study_materials').select('id', { count: 'exact', head: true }),

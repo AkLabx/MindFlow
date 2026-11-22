@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase';
+import { DB_TABLES, DB_RPCS } from '@/config/dbTables';
 
 export interface TestLeaderboardEntry {
     rank: number;
@@ -68,7 +69,7 @@ export const fetchTestLeaderboard = async (
     if (!trimmedTestId) return [];
 
     const safeLimit = Math.max(1, Math.min(Number.isFinite(limit) ? Math.trunc(limit) : 50, 100));
-    const { data, error } = await supabase.rpc('get_test_leaderboard', {
+    const { data, error } = await supabase.rpc(DB_RPCS.MOCK_LEADERBOARD, {
         p_test_id: trimmedTestId,
         p_limit: safeLimit,
     });
@@ -82,7 +83,7 @@ export const fetchTestLeaderboard = async (
 export const fetchActiveExamCategories = async () => {
     // Only return active categories
     const { data, error } = await supabase
-        .from('exam_categories')
+        .from(DB_TABLES.MOCK.CATEGORIES)
         .select('*')
         .eq('is_active', true)
         .order('display_order', { ascending: true })
@@ -95,11 +96,11 @@ export const fetchActiveExamCategories = async () => {
 export const fetchPublishedTestSeries = async (categoryId: string) => {
     // Check that parent category is active AND series is published
     const { data, error } = await supabase
-        .from('test_series')
-        .select('*, exam_categories!inner(is_active)')
+        .from(DB_TABLES.MOCK.SERIES)
+        .select(`*, ${DB_TABLES.MOCK.CATEGORIES}!inner(is_active)`)
         .eq('category_id', categoryId)
         .eq('is_published', true)
-        .eq('exam_categories.is_active', true)
+        .eq(`${DB_TABLES.MOCK.CATEGORIES}.is_active`, true)
         .order('created_at', { ascending: false });
 
     if (error) throw error;
@@ -109,12 +110,12 @@ export const fetchPublishedTestSeries = async (categoryId: string) => {
 export const fetchPublishedTests = async (seriesId: string, nowMs: number = Date.now()) => {
     // Check that parent category is active, parent series is published, test is published, and test is within schedule window
     const { data, error } = await supabase
-        .from('tests')
-        .select('*, test_series!inner(is_published, exam_categories!inner(is_active))')
+        .from(DB_TABLES.MOCK.TESTS)
+        .select(`*, ${DB_TABLES.MOCK.SERIES}!inner(is_published, ${DB_TABLES.MOCK.CATEGORIES}!inner(is_active))`)
         .eq('series_id', seriesId)
         .eq('is_published', true)
-        .eq('test_series.is_published', true)
-        .eq('test_series.exam_categories.is_active', true)
+        .eq(`${DB_TABLES.MOCK.SERIES}.is_published`, true)
+        .eq(`${DB_TABLES.MOCK.SERIES}.${DB_TABLES.MOCK.CATEGORIES}.is_active`, true)
         .order('display_order', { ascending: true })
         .order('created_at', { ascending: false });
 
@@ -126,7 +127,7 @@ export const fetchPublishedTests = async (seriesId: string, nowMs: number = Date
 // FETCH SINGLE ENTITIES FOR DETAIL PAGES
 export const fetchCategoryDetails = async (categoryId: string) => {
     const { data, error } = await supabase
-        .from('exam_categories')
+        .from(DB_TABLES.MOCK.CATEGORIES)
         .select('*')
         .eq('id', categoryId)
         .eq('is_active', true)
@@ -137,11 +138,11 @@ export const fetchCategoryDetails = async (categoryId: string) => {
 
 export const fetchSeriesDetails = async (seriesId: string) => {
     const { data, error } = await supabase
-        .from('test_series')
-        .select('*, exam_categories!inner(id, name, is_active)')
+        .from(DB_TABLES.MOCK.SERIES)
+        .select(`*, ${DB_TABLES.MOCK.CATEGORIES}!inner(id, name, is_active)`)
         .eq('id', seriesId)
         .eq('is_published', true)
-        .eq('exam_categories.is_active', true)
+        .eq(`${DB_TABLES.MOCK.CATEGORIES}.is_active`, true)
         .single();
     if (error) throw error;
     return data;
@@ -149,12 +150,12 @@ export const fetchSeriesDetails = async (seriesId: string) => {
 
 export const fetchTestDetails = async (testId: string, nowMs: number = Date.now()) => {
     const { data, error } = await supabase
-        .from('tests')
-        .select('*, test_series!inner(id, name, is_premium, is_published, exam_categories!inner(id, name, is_active))')
+        .from(DB_TABLES.MOCK.TESTS)
+        .select(`*, ${DB_TABLES.MOCK.SERIES}!inner(id, name, is_premium, is_published, ${DB_TABLES.MOCK.CATEGORIES}!inner(id, name, is_active))`)
         .eq('id', testId)
         .eq('is_published', true)
-        .eq('test_series.is_published', true)
-        .eq('test_series.exam_categories.is_active', true)
+        .eq(`${DB_TABLES.MOCK.SERIES}.is_published`, true)
+        .eq(`${DB_TABLES.MOCK.SERIES}.${DB_TABLES.MOCK.CATEGORIES}.is_active`, true)
         .single();
     if (error) throw error;
     if (!isTestWithinScheduleWindow(data, nowMs)) {
@@ -167,7 +168,7 @@ export const fetchTestDetails = async (testId: string, nowMs: number = Date.now(
 export const searchCategoriesApi = async (query: string) => {
     if (!query) return [];
     const { data, error } = await supabase
-        .from('exam_categories')
+        .from(DB_TABLES.MOCK.CATEGORIES)
         .select('*')
         .eq('is_active', true)
         .ilike('name', `%${query}%`)
@@ -180,10 +181,10 @@ export const searchCategoriesApi = async (query: string) => {
 export const searchSeriesApi = async (query: string) => {
     if (!query) return [];
     const { data, error } = await supabase
-        .from('test_series')
-        .select('*, exam_categories!inner(id, name, is_active)')
+        .from(DB_TABLES.MOCK.SERIES)
+        .select(`*, ${DB_TABLES.MOCK.CATEGORIES}!inner(id, name, is_active)`)
         .eq('is_published', true)
-        .eq('exam_categories.is_active', true)
+        .eq(`${DB_TABLES.MOCK.CATEGORIES}.is_active`, true)
         .ilike('name', `%${query}%`)
         .order('created_at', { ascending: false })
         .limit(5);
@@ -194,11 +195,11 @@ export const searchSeriesApi = async (query: string) => {
 export const searchTestsApi = async (query: string, nowMs: number = Date.now()) => {
     if (!query) return [];
     const { data, error } = await supabase
-        .from('tests')
-        .select('*, test_series!inner(id, name, is_published, exam_categories!inner(id, name, is_active))')
+        .from(DB_TABLES.MOCK.TESTS)
+        .select(`*, ${DB_TABLES.MOCK.SERIES}!inner(id, name, is_published, ${DB_TABLES.MOCK.CATEGORIES}!inner(id, name, is_active))`)
         .eq('is_published', true)
-        .eq('test_series.is_published', true)
-        .eq('test_series.exam_categories.is_active', true)
+        .eq(`${DB_TABLES.MOCK.SERIES}.is_published`, true)
+        .eq(`${DB_TABLES.MOCK.SERIES}.${DB_TABLES.MOCK.CATEGORIES}.is_active`, true)
         .ilike('name', `%${query}%`)
         .order('created_at', { ascending: false })
         .limit(5);
@@ -210,10 +211,10 @@ export const searchTestsApi = async (query: string, nowMs: number = Date.now()) 
 export const fetchRecommendedSeries = async () => {
     // For now, fetch top 4 recently published premium or popular series.
     const { data, error } = await supabase
-        .from('test_series')
-        .select('*, exam_categories!inner(is_active)')
+        .from(DB_TABLES.MOCK.SERIES)
+        .select(`*, ${DB_TABLES.MOCK.CATEGORIES}!inner(is_active)`)
         .eq('is_published', true)
-        .eq('exam_categories.is_active', true)
+        .eq(`${DB_TABLES.MOCK.CATEGORIES}.is_active`, true)
         .order('created_at', { ascending: false })
         .limit(4);
     if (error) throw error;

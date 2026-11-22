@@ -1,5 +1,6 @@
 import { queryClient } from './queryClient';
 import { supabase } from "./supabase";
+import { DB_TABLES, DB_RPCS } from "../config/dbTables";
 import {
   db,
   SynonymInteraction,
@@ -209,7 +210,7 @@ export const syncService = {
     // Strip questions from payload to save space
     const { activeQuestions, ...stateWithoutQuestions } = quiz.state;
 
-    const { error } = await supabase.from("saved_quizzes").upsert({
+    const { error } = await supabase.from(DB_TABLES.QUIZ.SESSIONS).upsert({
       id: quiz.id,
       user_id: userId,
       name: quiz.name,
@@ -234,7 +235,7 @@ export const syncService = {
 
     if (bridgeRecords.length > 0) {
       const { error: bridgeError } = await supabase
-        .from("bridge_saved_quiz_questions")
+        .from(DB_TABLES.QUIZ.SESSION_QUESTIONS)
         .upsert(bridgeRecords, { onConflict: "quiz_id, question_id" });
       if (bridgeError) {
         console.error("Error pushing bridge questions:", bridgeError);
@@ -246,7 +247,7 @@ export const syncService = {
    * Pushes a single quiz history record to Supabase.
    */
   pushQuizHistory: async (userId: string, history: QuizHistoryRecord) => {
-    const { error: historyError } = await supabase.from("quiz_history").upsert({
+    const { error: historyError } = await supabase.from(DB_TABLES.QUIZ.SESSION_RESULTS).upsert({
       id: history.id,
       quiz_id: history.quiz_id,
       user_id: userId,
@@ -270,7 +271,7 @@ export const syncService = {
    * Deletes all quiz history for a user from Supabase.
     // }
 
-    const { error: historyError } = await supabase.from('quiz_history').delete().eq('user_id', userId);
+    const { error: historyError } = await supabase.from(DB_TABLES.QUIZ.SESSION_RESULTS).delete().eq('user_id', userId);
     if (historyError) {
       console.error('Error deleting quiz history:', historyError);
     }
@@ -388,7 +389,7 @@ export const syncService = {
    */
   deleteSavedQuiz: async (userId: string, quizId: string, throwOnError = false) => {
     const { error } = await supabase
-      .from("saved_quizzes")
+      .from(DB_TABLES.QUIZ.SESSIONS)
       .update({ deleted_at: new Date().toISOString() })
       .match({ id: quizId, user_id: userId });
 
@@ -403,7 +404,7 @@ export const syncService = {
    */
   renameSavedQuiz: async (userId: string, quizId: string, name: string, throwOnError = false) => {
     const { error } = await supabase
-      .from("saved_quizzes")
+      .from(DB_TABLES.QUIZ.SESSIONS)
       .update({ name })
       .match({ id: quizId, user_id: userId });
 
@@ -479,14 +480,14 @@ export const syncService = {
             break;
 
           case 'quiz_created': {
-            const { error } = await supabase.rpc('create_quiz_session', event.payload);
+            const { error } = await supabase.rpc(DB_RPCS.CREATE_QUIZ_SESSION, event.payload);
             if (error) throw error;
             hasQuizChanges = true;
             break;
           }
 
           case 'quiz_submitted': {
-            const { error } = await supabase.rpc('submit_quiz_session', event.payload);
+            const { error } = await supabase.rpc(DB_RPCS.SUBMIT_QUIZ_SESSION, event.payload);
             if (error) throw error;
             hasQuizChanges = true;
             break;
@@ -581,14 +582,14 @@ export const syncService = {
           { data: remoteIdioms },
           { data: remoteSavedQuizzes },
         ] = await Promise.all([
-          supabase.from("quiz_history").select("*").eq("user_id", userId),
+          supabase.from(DB_TABLES.QUIZ.SESSION_RESULTS).select("*").eq("user_id", userId),
           supabase.from("user_bookmarks").select("question_id").eq("user_id", userId),
           supabase.from("user_synonym_interactions").select("*").eq("user_id", userId),
           supabase.from("user_ows_interactions").select("*").eq("user_id", userId),
           supabase.from("user_idiom_interactions").select("*").eq("user_id", userId),
           supabase
-            .from("saved_quizzes")
-            .select("id, name, created_at, mode, filters, state, bridge_saved_quiz_questions(question_id, sort_order)")
+            .from(DB_TABLES.QUIZ.SESSIONS)
+            .select(`id, name, created_at, mode, filters, state, ${DB_TABLES.QUIZ.SESSION_QUESTIONS}(question_id, sort_order)`)
             .eq("user_id", userId)
             .neq("status", "result")
             .is("deleted_at", null)
@@ -662,7 +663,7 @@ export const syncService = {
           );
           for (const rq of remoteSavedQuizzes) {
             if (pendingDeletes.has(rq.id)) continue;
-            const bridgeData = (rq.bridge_saved_quiz_questions as any) || [];
+            const bridgeData = (rq as any).quiz_session_questions ?? (rq as any).bridge_saved_quiz_questions ?? [];
             const quizObj: SavedQuiz = {
               id: rq.id,
               name: rq.name,
