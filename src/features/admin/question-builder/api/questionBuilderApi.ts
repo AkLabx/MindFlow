@@ -14,7 +14,7 @@ import {
 } from '@/features/dashboard/constants/examRegistry';
 
 const FILTER_OPTIONS_TTL_MS = 5 * 60 * 1000;
-const FILTER_OPTIONS_STORAGE_KEY = 'mindflow_qb_filter_options_v1';
+const FILTER_OPTIONS_STORAGE_KEY = 'mindflow_qb_filter_options_v2';
 const UUID_CHUNK_SIZE = 100;
 
 interface CachedFilterSnapshot {
@@ -39,7 +39,9 @@ const readStorageSnapshot = (): CachedFilterSnapshot | null => {
             Array.isArray(parsed.data.difficulties) &&
             Array.isArray(parsed.data.examNames) &&
             Array.isArray(parsed.data.examYears) &&
-            Array.isArray(parsed.data.topics)
+            Array.isArray(parsed.data.topics) &&
+            Array.isArray(parsed.data.subTopics) &&
+            Array.isArray(parsed.data.examDateShifts)
         ) {
             return parsed;
         }
@@ -119,6 +121,8 @@ const buildFilterOptionsFromMetadataCache = async (): Promise<FilterOptions | nu
     const examNames = new Set<string>();
     const examYears = new Set<number>();
     const topics = new Set<string>();
+    const subTopics = new Set<string>();
+    const examDateShifts = new Set<string>();
 
     const addStr = (target: Set<string>, val: unknown) => {
         if (val === null || val === undefined) return;
@@ -129,8 +133,10 @@ const buildFilterOptionsFromMetadataCache = async (): Promise<FilterOptions | nu
     for (const row of rows) {
         addStr(subjects, row.classification?.subject || row.subject);
         addStr(topics, row.classification?.topic || row.topic);
+        addStr(subTopics, row.classification?.subTopic || row.subTopic);
         addStr(difficulties, row.properties?.difficulty || row.difficulty);
         addStr(examNames, row.sourceInfo?.examName || row.examName);
+        addStr(examDateShifts, row.sourceInfo?.examDateShift || row.examDateShift);
 
         const rawYear = row.sourceInfo?.examYear || row.examYear;
         if (rawYear !== null && rawYear !== undefined && String(rawYear).trim() !== '') {
@@ -145,6 +151,8 @@ const buildFilterOptionsFromMetadataCache = async (): Promise<FilterOptions | nu
         examNames: Array.from(examNames).sort((a, b) => a.localeCompare(b)),
         examYears: Array.from(examYears).sort((a, b) => b - a),
         topics: Array.from(topics).sort((a, b) => a.localeCompare(b)),
+        subTopics: Array.from(subTopics).sort((a, b) => a.localeCompare(b)),
+        examDateShifts: Array.from(examDateShifts).sort((a, b) => a.localeCompare(b)),
     };
 };
 
@@ -170,12 +178,22 @@ export const fetchFilterOptions = async (): Promise<FilterOptions> => {
                 throw new Error('Offline: cannot fetch distinct filter options');
             }
 
-            const [subjectRes, difficultyRes, examNameRes, examYearRes, topicRes] = await Promise.all([
+            const [
+                subjectRes,
+                difficultyRes,
+                examNameRes,
+                examYearRes,
+                topicRes,
+                subTopicRes,
+                examDateShiftRes,
+            ] = await Promise.all([
                 supabase.rpc('get_distinct_values', { column_name: 'subject' }),
                 supabase.rpc('get_distinct_values', { column_name: 'difficulty' }),
                 supabase.rpc('get_distinct_values', { column_name: 'examName' }),
                 supabase.rpc('get_distinct_values', { column_name: 'examYear' }),
                 supabase.rpc('get_distinct_values', { column_name: 'topic' }),
+                supabase.rpc('get_distinct_values', { column_name: 'subTopic' }),
+                supabase.rpc('get_distinct_values', { column_name: 'examDateShift' }),
             ]);
 
             const rpcError =
@@ -183,7 +201,9 @@ export const fetchFilterOptions = async (): Promise<FilterOptions> => {
                 difficultyRes.error ||
                 examNameRes.error ||
                 examYearRes.error ||
-                topicRes.error;
+                topicRes.error ||
+                subTopicRes.error ||
+                examDateShiftRes.error;
 
             if (rpcError) throw rpcError;
 
@@ -193,6 +213,8 @@ export const fetchFilterOptions = async (): Promise<FilterOptions> => {
                 examNames: extractDistinctStrings(examNameRes.data),
                 examYears: extractDistinctYears(examYearRes.data),
                 topics: extractDistinctStrings(topicRes.data),
+                subTopics: extractDistinctStrings(subTopicRes.data),
+                examDateShifts: extractDistinctStrings(examDateShiftRes.data),
             };
 
             const snapshot: CachedFilterSnapshot = {
@@ -238,7 +260,7 @@ export const searchQuestions = async (
 ): Promise<{ data: QuestionLightweight[]; total: number }> => {
     let query = supabase
         .from('questions')
-        .select('id, v1_id, question, subject, difficulty, examName, examYear, questionType, tags, explanation, options, correct', { count: 'exact' })
+        .select('id, v1_id, question, subject, topic, subTopic, difficulty, examName, examYear, examDateShift, questionType, tags, explanation, options, correct', { count: 'exact' })
         .is('deleted_at', null);
 
     const sanitizedSearch = sanitizePostgrestSearch(params.search);
@@ -251,6 +273,7 @@ export const searchQuestions = async (
 
     if (params.subject) query = query.eq('subject', params.subject);
     if (params.topic) query = query.eq('topic', params.topic);
+    if (params.subTopic) query = query.eq('subTopic', params.subTopic);
     if (params.difficulty) query = query.eq('difficulty', params.difficulty);
 
     if (params.examName) {
@@ -283,6 +306,7 @@ export const searchQuestions = async (
     }
 
     if (params.examYear) query = query.eq('examYear', params.examYear);
+    if (params.examDateShift) query = query.eq('examDateShift', params.examDateShift);
 
     // Ordering by creation date descending to show latest first when empty search
     query = query.order('created_at', { ascending: false });
@@ -315,7 +339,7 @@ export const fetchQuestionsByUUIDs = async (ids: string[]): Promise<QuestionLigh
         chunks.map(chunk =>
             supabase
                 .from('questions')
-                .select('id, v1_id, question, subject, difficulty, examName, examYear, questionType, tags, explanation, options, correct')
+                .select('id, v1_id, question, subject, topic, subTopic, difficulty, examName, examYear, examDateShift, questionType, tags, explanation, options, correct')
                 .in('id', chunk)
         )
     );

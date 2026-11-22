@@ -5,9 +5,12 @@ export interface QuestionLightweight {
     v1_id: string;
     question: string;
     subject: string | null;
+    topic?: string | null;
+    subTopic?: string | null;
     difficulty: string | null;
     examName: string | null;
     examYear: number | null;
+    examDateShift?: string | null;
     questionType: string | null;
     tags: string[];
     explanation?: any; // Just for warning validation
@@ -23,6 +26,8 @@ export interface QuestionFilterParams {
     examName?: string;
     examYear?: number;
     topic?: string;
+    subTopic?: string;
+    examDateShift?: string;
 }
 
 export interface FilterOptions {
@@ -31,4 +36,6 @@ export interface FilterOptions {
     examNames: string[];
     examYears: number[];
     topics: string[];
+    subTopics: string[];
+    examDateShifts: string[];
 }

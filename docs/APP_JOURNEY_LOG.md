@@ -26,6 +26,22 @@ This document is the single source of truth for the evolution of the MindFlow ap
 
 ## 🚀 App Journey Changelog
 
+## [v1.0.369] - 22 November 2026, 08:09 AM IST
+
+**Executive Summary:** Admin Mock Tests CMS Controls & High-Cardinality `QuestionBuilder` Filtering. Added URL-synced Category/Series/Status filtering, 1-tap readiness-guarded Publish/Unpublish, smart Draft cloning, and cascade-safe delete warnings with child counts in `/admin/test-series`, alongside `subTopic` (424) and `examDateShift` (332) filtering powered by an accessible `SearchableFilterCombobox` (`maxVisible=50`) in `QuestionBuilder`.
+
+### ✨ Features Added
+- **Admin Mock Tests CMS Controls (`src/features/admin/test-series/pages/AdminTestSeriesDashboard.tsx`, `adminTestSeriesApi.ts`, `TestCard.tsx`, `SearchBar.tsx`, `EmptyState.tsx`)**: Added URL-synced Category, category-scoped Series, and Status (`All`/`Published`/`Draft`) filters with cross-tab `category` preservation, semantic `<search>` bar + `role="status"` summary + 1-tap `Reset Filters`, 1-tap readiness-guarded Publish/Unpublish (using shared `validateTestForPublish` and Draft-parent-series warning), 1-tap smart Draft cloning (`cloneTest` nulling `release_date`/`expiry_date` and switching `status=published` $\rightarrow$ `All`), and `>=44x44px` `type="button"` `active:scale-95` card controls.
+- **High-Cardinality `subTopic` & `examDateShift` Filters (`src/features/admin/question-builder/components/SearchableFilterCombobox.tsx`, `QuestionFilterBar.tsx`, `questionBuilderApi.ts`, `QuestionResultCard.tsx`, `questionBuilder.types.ts`)**: Extended `fetchFilterOptions()` to 7 parallel `get_distinct_values` RPCs (`mindflow_qb_filter_options_v2` SWR cache), wired `.eq('subTopic')` and `.eq('examDateShift')` query filters + card badges, and introduced `SearchableFilterCombobox` (`maxVisible=50` capped listbox with truncation hint, `<input type="search">`, `44x44px` clear button, and `Escape`/outside-click dismiss).
+- **Automated CMS & QuestionBuilder Test Coverage (`adminTestSeriesCms.test.tsx`, `questionBuilder.test.tsx`)**: Expanded test coverage to `17/17` passing Vitest tests (`10` CMS + `7` QuestionBuilder).
+
+### 🐛 Bug Fixes
+- **CMS Popover Toast Migration & Cascade Sync (`useCategories.ts`, `useSeries.ts`, `useTests.ts`, `AdminTestSeriesDashboard.tsx`)**: Migrated all three CMS hooks off unmounted `react-hot-toast` onto MindFlow's `useNotification()` Popover toast store (`DEC-0014`), added `isMountedRef` lifecycle safety, added `busyTestIdsRef` double-click protection, and wired `ConfirmDialog` child counts (`X test series and Y mock tests`, `Y mock tests`, question count) + loading lock + downstream `refreshSeries()`/`refreshTests()` sync after Postgres cascade deletes.
+- **Eliminated Step 3 Accessibility Tree Timeout (`SearchableFilterCombobox.tsx`, `QuestionFilterBar.tsx`)**: Replaced 756+ raw `<option>` nodes for `subTopic` (424) and `examDateShift` (332) with `SearchableFilterCombobox` (single `<button>` trigger when closed, `maxVisible=50` when open), eliminating `OP_TIMEOUT` (43–46s) freezes on mount.
+
+### ⚡ Performance & Refactoring
+- **Single-Pass CMS Aggregation & Semantic Markup (`AdminTestSeriesDashboard.tsx`, `TestCard.tsx`)**: Computed `categoryStats`, `seriesTestCounts`, `seriesById`, and `seriesToCategory` maps in a single $O(C+S+T)$ pass with post-hydration URL reconciliation and upgraded `TestCard` to semantic `motion.article` + `<footer>`.
+
 ## [v1.0.368] - 21 November 2026, 11:27 PM IST
 
 **Executive Summary:** Admin `QuestionBuilder` Performance, Refetch-Loop Fix & Canonical BPSC Filter. Eliminated redundant UUID refetches and React render-phase warnings on question selection, replaced the 1,000-row unpaged metadata scan with an SWR-cached `get_distinct_values` RPC pipeline, added canonical exam group filtering (`canonical:bpsc` resolving 20 aliases / 5,794 questions), and upgraded mobile `< lg` tabs and `>=44x44px` touch controls.
