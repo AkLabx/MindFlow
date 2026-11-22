@@ -23,6 +23,7 @@ import {
 } from '@/features/mock-tests/api/mockTestsApi';
 import { AdminTestSeriesDashboard } from '../pages/AdminTestSeriesDashboard';
 import { useNotificationStore } from '@/stores/useNotificationStore';
+import { DB_TABLES, DB_RPCS } from '@/config/dbTables';
 
 const { fromMock, rpcMock } = vi.hoisted(() => ({
     fromMock: vi.fn(),
@@ -75,7 +76,7 @@ const createSupabaseMock = (state: MockStoreState) => {
     };
 
     fromMock.mockImplementation((table: string) => {
-        if (table === 'exam_categories') {
+        if (table === DB_TABLES.MOCK.CATEGORIES) {
             return {
                 select: vi.fn(() => {
                     calls.fetchCategoriesCount += 1;
@@ -109,7 +110,7 @@ const createSupabaseMock = (state: MockStoreState) => {
             };
         }
 
-        if (table === 'test_series') {
+        if (table === DB_TABLES.MOCK.SERIES) {
             return {
                 select: vi.fn(() => {
                     calls.fetchSeriesCount += 1;
@@ -140,7 +141,7 @@ const createSupabaseMock = (state: MockStoreState) => {
             };
         }
 
-        if (table === 'tests') {
+        if (table === DB_TABLES.MOCK.TESTS) {
             return {
                 select: vi.fn((query: string) => {
                     calls.selectTestsQueries.push(query);
@@ -179,7 +180,7 @@ const createSupabaseMock = (state: MockStoreState) => {
                                     ...payload,
                                     id: `test-cloned-${calls.insertTestPayloads.length}`,
                                     created_at: '2026-11-22T00:00:00Z',
-                                    test_series: parentSeries,
+                                    mock_series: parentSeries,
                                 };
                                 state.tests = [...state.tests, created];
                                 return { data: created, error: null };
@@ -221,7 +222,7 @@ const createSupabaseMock = (state: MockStoreState) => {
             };
         }
 
-        if (table === 'questions') {
+        if (table === DB_TABLES.BANK.QUESTIONS) {
             return {
                 select: vi.fn(() => {
                     const chain: any = {
@@ -258,21 +259,21 @@ const makeFixtureState = (): MockStoreState => {
         category_id: 'cat-1',
         name: 'BPSC Prelims 2026',
         is_published: true,
-        exam_categories: { id: 'cat-1', name: 'BPSC' },
+        mock_categories: { id: 'cat-1', name: 'BPSC' },
     };
     const serBpscDraft = {
         id: 'ser-2',
         category_id: 'cat-1',
         name: 'BPSC Draft Series',
         is_published: false,
-        exam_categories: { id: 'cat-1', name: 'BPSC' },
+        mock_categories: { id: 'cat-1', name: 'BPSC' },
     };
     const serSscPub = {
         id: 'ser-3',
         category_id: 'cat-2',
         name: 'SSC CGL Tier 1',
         is_published: true,
-        exam_categories: { id: 'cat-2', name: 'SSC' },
+        mock_categories: { id: 'cat-2', name: 'SSC' },
     };
 
     const tests = [
@@ -289,7 +290,7 @@ const makeFixtureState = (): MockStoreState => {
             is_published: true,
             display_order: 1,
             created_at: '2026-11-20T10:00:00Z',
-            test_series: serBpscPub,
+            mock_series: serBpscPub,
         },
         {
             id: 'test-2',
@@ -304,7 +305,7 @@ const makeFixtureState = (): MockStoreState => {
             is_published: false,
             display_order: 2,
             created_at: '2026-11-20T09:00:00Z',
-            test_series: serBpscDraft,
+            mock_series: serBpscDraft,
         },
         {
             id: 'test-3',
@@ -319,7 +320,7 @@ const makeFixtureState = (): MockStoreState => {
             is_published: false,
             display_order: 3,
             created_at: '2026-11-20T08:00:00Z',
-            test_series: serSscPub,
+            mock_series: serSscPub,
         },
     ];
 
@@ -441,7 +442,7 @@ describe('Admin Mock Tests CMS Controls (v1.0.369)', () => {
             expect(payload.question_ids).not.toBe(source.question_ids);
             expect(cloned.is_published).toBe(false);
             expect(calls.selectTestsQueries[0]).toBe(
-                '*, test_series(id, name, category_id, is_published, exam_categories(id, name))'
+                '*, mock_series(id, name, category_id, is_published, mock_categories(id, name))'
             );
         });
     });
@@ -865,6 +866,39 @@ describe('Admin Mock Tests CMS Controls (v1.0.369)', () => {
             const sanitized = sanitizeLeaderboardEntry({ user_id: 'u9', answers: { secret: true } }, 0);
             expect(sanitized.rank).toBe(1);
             expect((sanitized as any).answers).toBeUndefined();
+        });
+    });
+
+    describe('DB_TABLES & DB_RPCS registry contracts', () => {
+        it('exposes canonical table names and RPC identifiers across all assessment blocks', () => {
+            expect(DB_TABLES.MOCK).toEqual({
+                CATEGORIES: 'mock_categories',
+                SERIES: 'mock_series',
+                TESTS: 'mock_tests',
+                ATTEMPTS: 'mock_test_attempts',
+            });
+            expect(DB_TABLES.QUIZ).toEqual({
+                SESSIONS: 'quiz_sessions',
+                SESSION_QUESTIONS: 'quiz_session_questions',
+                SESSION_RESULTS: 'quiz_session_results',
+            });
+            expect(DB_TABLES.BANK).toEqual({
+                QUESTIONS: 'questions',
+                MASTERY: 'user_question_mastery',
+                SUBJECT_METADATA_CACHE: 'subject_metadata_cache',
+            });
+            expect(DB_TABLES.BLUEPRINT).toEqual({
+                BLUEPRINTS: 'user_exam_blueprints',
+                SEEN_QUESTIONS: 'blueprint_seen_questions',
+            });
+            expect(DB_TABLES.RANKER).toEqual({
+                CONFIGS: 'exam_configs',
+                SUBMISSIONS: 'exam_submissions',
+                SECTION_RESULTS: 'exam_section_results',
+                STATS_SNAPSHOTS: 'exam_stats_snapshots',
+                OFFICIAL_KEYS: 'official_answer_keys',
+            });
+            expect(DB_RPCS.MOCK_LEADERBOARD).toBe('get_test_leaderboard');
         });
     });
 });

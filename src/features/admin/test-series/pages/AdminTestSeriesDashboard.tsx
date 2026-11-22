@@ -108,7 +108,7 @@ export const AdminTestSeriesDashboard: React.FC = () => {
         for (const t of tests || []) {
             if (!t?.series_id) continue;
             sTestCounts.set(t.series_id, (sTestCounts.get(t.series_id) ?? 0) + 1);
-            const catId = sToCat.get(t.series_id) ?? t?.test_series?.category_id;
+            const catId = sToCat.get(t.series_id) ?? (t?.mock_series ?? t?.test_series)?.category_id;
             if (catId) {
                 const entry = catStats.get(catId) ?? { seriesCount: 0, testsCount: 0 };
                 entry.testsCount += 1;
@@ -237,7 +237,7 @@ export const AdminTestSeriesDashboard: React.FC = () => {
     const filteredTests = useMemo(() => {
         return (tests || []).filter(t => {
             if (selectedCategoryId) {
-                const testCatId = seriesToCategory.get(t?.series_id) ?? t?.test_series?.category_id;
+                const testCatId = seriesToCategory.get(t?.series_id) ?? (t?.mock_series ?? t?.test_series)?.category_id;
                 if (testCatId !== selectedCategoryId) return false;
             }
             if (selectedSeriesId && t?.series_id !== selectedSeriesId) return false;
@@ -319,8 +319,8 @@ export const AdminTestSeriesDashboard: React.FC = () => {
             const updated = await toggleTestPublish(test.id, nextPublished, { silent: true });
             if (nextPublished) {
                 const parentSeriesPublished =
-                    updated?.test_series?.is_published ??
-                    test?.test_series?.is_published ??
+                    (updated?.mock_series ?? updated?.test_series)?.is_published ??
+                    (test?.mock_series ?? test?.test_series)?.is_published ??
                     seriesById.get(test.series_id)?.is_published;
 
                 if (parentSeriesPublished === false) {

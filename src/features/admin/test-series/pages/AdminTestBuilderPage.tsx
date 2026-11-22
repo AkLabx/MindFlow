@@ -354,7 +354,7 @@ export const AdminTestBuilderPage: React.FC = () => {
     const groupedSeries = useMemo(() => {
         const groups = new Map<string, any[]>();
         for (const s of series || []) {
-            const catName = s?.exam_categories?.name || 'Uncategorized';
+            const catName = (s?.mock_categories ?? s?.exam_categories)?.name || 'Uncategorized';
             const list = groups.get(catName) ?? [];
             list.push(s);
             groups.set(catName, list);
@@ -363,7 +363,7 @@ export const AdminTestBuilderPage: React.FC = () => {
     }, [series]);
 
     const selectedSeriesObj = useMemo(
-        () => series.find(s => s.id === formData.series_id) ?? loadedTest?.test_series ?? null,
+        () => series.find(s => s.id === formData.series_id) ?? (loadedTest?.mock_series ?? loadedTest?.test_series) ?? null,
         [series, formData.series_id, loadedTest]
     );
 
@@ -711,8 +711,9 @@ export const AdminTestBuilderPage: React.FC = () => {
     }
 
     const activeStepMeta = STEPS.find(s => s.number === currentStep) ?? STEPS[0];
-    const seriesLabel = selectedSeriesObj?.exam_categories?.name
-        ? `${selectedSeriesObj.exam_categories.name} · ${selectedSeriesObj.name}`
+    const selectedCategoryName = (selectedSeriesObj?.mock_categories ?? selectedSeriesObj?.exam_categories)?.name;
+    const seriesLabel = selectedCategoryName
+        ? `${selectedCategoryName} · ${selectedSeriesObj.name}`
         : selectedSeriesObj?.name || 'Not selected';
 
     return (

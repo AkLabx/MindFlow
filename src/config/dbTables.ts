@@ -1,0 +1,57 @@
+/**
+ * Centralized Supabase PostgreSQL Table & RPC Registry for MindFlow Assessments.
+ *
+ * NOTE (`DEC-0004`): Local browser IndexedDB object store names in `src/lib/db.ts`
+ * (`'saved_quizzes'`, `'quiz_history'`) remain intentionally separate so existing
+ * offline user caches are never wiped. Always use `DB_TABLES` for remote Supabase
+ * `.from(...)` queries and PostgREST relational embeds.
+ */
+export const DB_TABLES = {
+  /** Block A — Admin-Prepared Preset Mock Tests (`mock_*`) */
+  MOCK: {
+    CATEGORIES: 'mock_categories',
+    SERIES: 'mock_series',
+    TESTS: 'mock_tests',
+    ATTEMPTS: 'mock_test_attempts',
+  },
+  /** Block B — Custom Student Quizzes (`quiz_*`) */
+  QUIZ: {
+    SESSIONS: 'quiz_sessions',
+    SESSION_QUESTIONS: 'quiz_session_questions',
+    SESSION_RESULTS: 'quiz_session_results',
+  },
+  /** Core Question Bank & Adaptive Mastery */
+  BANK: {
+    QUESTIONS: 'questions',
+    MASTERY: 'user_question_mastery',
+    SUBJECT_METADATA_CACHE: 'subject_metadata_cache',
+  },
+  /** Exam Blueprints */
+  BLUEPRINT: {
+    BLUEPRINTS: 'user_exam_blueprints',
+    SEEN_QUESTIONS: 'blueprint_seen_questions',
+  },
+  /** Answer Key & Ranker Engine */
+  RANKER: {
+    CONFIGS: 'exam_configs',
+    SUBMISSIONS: 'exam_submissions',
+    SECTION_RESULTS: 'exam_section_results',
+    STATS_SNAPSHOTS: 'exam_stats_snapshots',
+    OFFICIAL_KEYS: 'official_answer_keys',
+  },
+} as const;
+
+export const DB_RPCS = {
+  MOCK_LEADERBOARD: 'get_test_leaderboard',
+  GET_TEST_LEADERBOARD: 'get_test_leaderboard',
+  GET_MOCK_TEST_LEADERBOARD: 'get_mock_test_leaderboard',
+  CREATE_QUIZ_SESSION: 'create_quiz_session',
+  SUBMIT_QUIZ_SESSION: 'submit_quiz_session',
+  CLONE_SHARED_QUIZ: 'clone_shared_quiz',
+  EXPORT_USER_DATA: 'export_user_data',
+  BACKFILL_USER_QUESTION_MASTERY: 'backfill_user_question_mastery',
+  CLEANUP_ORPHANED_BRIDGE_ROWS: 'cleanup_orphaned_bridge_rows',
+  GET_USER_PERFORMANCE_METRICS: 'get_user_performance_metrics',
+  RECORD_QUESTION_INTERACTIONS: 'record_question_interactions',
+  RESET_USER_ANALYTICS: 'reset_user_analytics',
+} as const;

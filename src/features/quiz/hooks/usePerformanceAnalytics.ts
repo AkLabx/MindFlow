@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../../lib/supabase';
+import { DB_TABLES, DB_RPCS } from '../../../config/dbTables';
 
 export interface PerformanceMetrics {
   total_quizzes: number;
@@ -23,9 +24,9 @@ export const usePerformanceAnalytics = () => {
   const query = useQuery({
     queryKey: ['performance-analytics'],
     queryFn: async (): Promise<PerformanceMetrics> => {
-      // Fetch directly from quiz_history instead of broken RPC
+      // Fetch directly from quiz_session_results instead of broken RPC
       const { data: historyData, error: historyError } = await supabase
-        .from('quiz_history')
+        .from(DB_TABLES.QUIZ.SESSION_RESULTS)
         .select('*');
 
       let metrics = {
@@ -40,7 +41,7 @@ export const usePerformanceAnalytics = () => {
       };
 
       if (historyError) {
-        console.warn('Failed to fetch from remote quiz_history, falling back to local.', historyError);
+        console.warn('Failed to fetch from remote quiz_session_results, falling back to local.', historyError);
         // Fallback to local DB
         const { db } = await import('../../../lib/db');
         const localHistory = await db.getQuizHistory();
@@ -101,7 +102,7 @@ export const usePerformanceAnalytics = () => {
 
   const resetMutation = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.rpc('reset_user_analytics');
+      const { error } = await supabase.rpc(DB_RPCS.RESET_USER_ANALYTICS);
       if (error) {
         console.error('Failed to reset analytics:', error);
         throw error;

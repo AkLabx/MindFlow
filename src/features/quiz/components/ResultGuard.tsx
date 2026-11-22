@@ -6,6 +6,7 @@ import { supabase } from '../../../lib/supabase';
 import { SynapticLoader } from '../../../components/ui/SynapticLoader';
 import { ErrorState } from '../../../components/ui/ErrorState';
 import { ArrowLeft } from 'lucide-react';
+import { DB_TABLES } from '../../../config/dbTables';
 
 export const ResultGuard = ({ children }: { children: React.ReactNode }) => {
     const { quizId } = useParams<{ quizId: string }>();
@@ -32,8 +33,8 @@ export const ResultGuard = ({ children }: { children: React.ReactNode }) => {
             }
 
             const { data: quizData, error: err } = await supabase
-                .from('saved_quizzes')
-                .select('*, bridge_saved_quiz_questions(question_id, sort_order)')
+                .from(DB_TABLES.QUIZ.SESSIONS)
+                .select(`*, ${DB_TABLES.QUIZ.SESSION_QUESTIONS}(question_id, sort_order)`)
                 .eq('id', quizId)
                 .single();
 
@@ -55,7 +56,7 @@ export const ResultGuard = ({ children }: { children: React.ReactNode }) => {
                  throw new Error("This quiz has not been completed yet.");
             }
 
-            const bridgeData = quizData.bridge_saved_quiz_questions || [];
+            const bridgeData = (quizData as any).quiz_session_questions ?? (quizData as any).bridge_saved_quiz_questions ?? [];
             bridgeData.sort((a: any, b: any) => a.sort_order - b.sort_order);
             const questionIds = bridgeData.map((bq: any) => bq.question_id);
 
@@ -65,7 +66,7 @@ export const ResultGuard = ({ children }: { children: React.ReactNode }) => {
             }
 
             const { data: qData, error: qError } = await supabase
-                .from('questions')
+                .from(DB_TABLES.BANK.QUESTIONS)
                 .select('*')
                 .in('id', questionIds);
 

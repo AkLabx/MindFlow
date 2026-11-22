@@ -37,6 +37,7 @@ export interface DBSaveOptions {
 
 const DB_NAME = 'MindFlowDB';
 const DB_VERSION = 15;
+// DEC-0004: Keep local browser IndexedDB store names ('saved_quizzes', 'quiz_history') unchanged to preserve offline caches; remote Supabase sync uses DB_TABLES.QUIZ.*
 const STORE_NAME = 'saved_quizzes';
 const HISTORY_STORE_NAME = 'quiz_history';
 const BOOKMARKS_STORE_NAME = 'global_bookmarks';

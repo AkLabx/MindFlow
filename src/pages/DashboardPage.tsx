@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth, useProfileStats } from "@/features/auth";
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
+import { DB_TABLES } from '@/config/dbTables';
 import { SavedQuiz } from '@/features/quiz/types';
 import { useNotification } from "@/stores/useNotificationStore";
 import { useQuizContext } from '@/features/quiz/context/QuizContext';
@@ -109,8 +110,8 @@ export const DashboardPage: React.FC<DashboardProps> = ({ onBackToIntro }) => {
     gcTime: 1000 * 60 * 10,
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('saved_quizzes')
-        .select('id, name, created_at, mode, filters, state, bridge_saved_quiz_questions(question_id, sort_order)')
+        .from(DB_TABLES.QUIZ.SESSIONS)
+        .select(`id, name, created_at, mode, filters, state, ${DB_TABLES.QUIZ.SESSION_QUESTIONS}(question_id, sort_order)`)
         .eq('user_id', user!.id)
         .neq('status', 'result')
         .is('deleted_at', null)
@@ -121,7 +122,7 @@ export const DashboardPage: React.FC<DashboardProps> = ({ onBackToIntro }) => {
       if (!data || data.length === 0) return null;
 
       const rq = data[0];
-      const bridgeData = (rq.bridge_saved_quiz_questions as any) || [];
+      const bridgeData = (rq as any).quiz_session_questions ?? (rq as any).bridge_saved_quiz_questions ?? [];
       const remoteQuiz: SavedQuiz = {
         id: rq.id,
         name: rq.name,

@@ -49,8 +49,8 @@ export const TestDetailPage: React.FC = () => {
         );
     }
 
-    const series = test.test_series;
-    const category = series?.exam_categories;
+    const series = test.mock_series ?? test.test_series;
+    const category = series?.mock_categories ?? series?.exam_categories;
 
     return (
         <div className="flex flex-col min-h-screen -m-4 sm:-m-6 lg:-m-8 p-4 sm:p-6 lg:p-8 bg-slate-50 dark:bg-slate-900 transition-colors duration-700">

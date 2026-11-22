@@ -32,7 +32,7 @@ export const SeriesCard: React.FC<SeriesCardProps> = ({ series, onEdit, onDelete
             </div>
 
             <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wider mb-1">
-                {series.exam_categories?.name || 'Uncategorized'}
+                {(series.mock_categories ?? series.exam_categories)?.name || 'Uncategorized'}
             </p>
             <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-1 line-clamp-1">{series.name}</h3>
             {series.description && (

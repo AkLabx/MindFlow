@@ -1,6 +1,7 @@
 import { queryClient } from '../../../lib/queryClient';
 import { db } from '../../../lib/db';
 import { supabase } from '../../../lib/supabase';
+import { DB_RPCS } from '../../../config/dbTables';
 import { Question, InitialFilters, QuizMode, SavedQuiz } from '../types';
 import { APP_CONFIG } from '../../../constants/config';
 import { initialState } from '../stores/useQuizSessionStore';
@@ -128,7 +129,7 @@ export const quizCreationService = {
       });
 
       // 4. Atomic Cloud Persistence via single-transaction RPC with offline queue fallback
-      // Exclude heavy activeQuestions from remote state payload; questions are normalized in bridge_saved_quiz_questions
+      // Exclude heavy activeQuestions from remote state payload; questions are normalized in quiz_session_questions
       const { activeQuestions, ...stateWithoutQuestions } = (newQuiz.state as any) || {};
       const bridgeData = newQuiz.questions.map((q, index) => ({
         question_id: q.id,
@@ -153,7 +154,7 @@ export const quizCreationService = {
         });
       } else {
         try {
-          const { error: rpcError } = await supabase.rpc('create_quiz_session', rpcPayload);
+          const { error: rpcError } = await supabase.rpc(DB_RPCS.CREATE_QUIZ_SESSION, rpcPayload);
           if (rpcError) {
             console.warn('Error creating atomic quiz session via RPC; queued for offline sync:', rpcError);
             useSyncStore.getState().addEvent({
