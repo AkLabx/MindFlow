@@ -1,7 +1,8 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Plus, BookOpen, Layers, CheckSquare } from 'lucide-react';
+import { Plus, BookOpen, Layers, CheckSquare, RotateCcw } from 'lucide-react';
 import { ROUTES } from '@/config/routes';
+import { useNotification } from '@/stores/useNotificationStore';
 import {
     KPICard, SearchBar, SkeletonList, EmptyState, ConfirmDialog,
     CategoryCard, CategoryDrawer,
@@ -9,36 +10,62 @@ import {
     TestCard
 } from '../components';
 import { useCategories, useSeries, useTests } from '../hooks';
+import { validateTestForPublish } from '../api/adminTestSeriesApi';
 
 type DashboardTab = 'categories' | 'series' | 'tests';
+type StatusFilter = 'all' | 'published' | 'draft';
 
 const parseTabParam = (value: string | null): DashboardTab => {
     if (value === 'series' || value === 'tests') return value;
     return 'categories';
 };
 
+const parseStatusParam = (value: string | null): StatusFilter => {
+    if (value === 'published' || value === 'draft') return value;
+    return 'all';
+};
+
 export const AdminTestSeriesDashboard: React.FC = () => {
     const navigate = useNavigate();
     const [searchParams, setSearchParams] = useSearchParams();
+    const { showToast } = useNotification();
+
     const activeTab = parseTabParam(searchParams.get('tab'));
+    const selectedCategoryId = searchParams.get('category') || '';
+    const selectedSeriesId = searchParams.get('series') || '';
+    const statusFilter = parseStatusParam(searchParams.get('status'));
+
     const [searchQuery, setSearchQuery] = useState('');
 
     // UI State
     const [isCatDrawerOpen, setCatDrawerOpen] = useState(false);
     const [isSeriesDrawerOpen, setSeriesDrawerOpen] = useState(false);
-
     const [selectedItem, setSelectedItem] = useState<any>(null);
-    const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, id: '', type: '' });
+
+    const [confirmDialog, setConfirmDialog] = useState<{
+        isOpen: boolean;
+        id: string;
+        type: DashboardTab | '';
+        title: string;
+        message: string;
+    }>({ isOpen: false, id: '', type: '', title: '', message: '' });
+    const [isDeleting, setIsDeleting] = useState(false);
+
+    const busyTestIdsRef = useRef<Set<string>>(new Set());
+    const [busyActionByTestId, setBusyActionByTestId] = useState<Record<string, 'publish' | 'clone'>>({});
+    const isMountedRef = useRef(true);
+
+    useEffect(() => {
+        isMountedRef.current = true;
+        return () => {
+            isMountedRef.current = false;
+        };
+    }, []);
 
     // Data Hooks
     const { categories, loading: catLoading, addCategory, editCategory, removeCategory } = useCategories();
-    const { series, loading: seriesLoading, addSeries, editSeries, removeSeries } = useSeries();
-    const { tests, loading: testsLoading, removeTest } = useTests();
-
-    const handleTabChange = useCallback((tab: DashboardTab) => {
-        setSearchParams({ tab }, { replace: true });
-        setSearchQuery('');
-    }, [setSearchParams]);
+    const { series, loading: seriesLoading, addSeries, editSeries, removeSeries, refresh: refreshSeries } = useSeries();
+    const { tests, loading: testsLoading, removeTest, duplicateTest, toggleTestPublish, refresh: refreshTests } = useTests();
 
     // Derived KPIs
     const kpis = useMemo(() => {
@@ -53,51 +80,200 @@ export const AdminTestSeriesDashboard: React.FC = () => {
         };
     }, [categories, series, tests]);
 
-    // Precompute category stats in O(C + S + T) time
-    const categoryStats = useMemo(() => {
-        const stats = new Map<string, { seriesCount: number; testsCount: number }>();
-        const seriesToCategory = new Map<string, string>();
+    // Single-pass O(C + S + T) lookup and aggregation maps
+    const { categoryStats, seriesTestCounts, seriesById, seriesToCategory } = useMemo(() => {
+        const catStats = new Map<string, { seriesCount: number; testsCount: number }>();
+        const sTestCounts = new Map<string, number>();
+        const sById = new Map<string, any>();
+        const sToCat = new Map<string, string>();
 
         for (const cat of categories || []) {
             if (cat?.id) {
-                stats.set(cat.id, { seriesCount: 0, testsCount: 0 });
+                catStats.set(cat.id, { seriesCount: 0, testsCount: 0 });
             }
         }
 
         for (const s of series || []) {
-            if (!s?.category_id) continue;
-            seriesToCategory.set(s.id, s.category_id);
-            const entry = stats.get(s.category_id) ?? { seriesCount: 0, testsCount: 0 };
-            entry.seriesCount += 1;
-            stats.set(s.category_id, entry);
+            if (!s?.id) continue;
+            sById.set(s.id, s);
+            sTestCounts.set(s.id, 0);
+            if (s.category_id) {
+                sToCat.set(s.id, s.category_id);
+                const entry = catStats.get(s.category_id) ?? { seriesCount: 0, testsCount: 0 };
+                entry.seriesCount += 1;
+                catStats.set(s.category_id, entry);
+            }
         }
 
         for (const t of tests || []) {
-            const catId = t?.series_id ? seriesToCategory.get(t.series_id) : undefined;
-            if (!catId) continue;
-            const entry = stats.get(catId) ?? { seriesCount: 0, testsCount: 0 };
-            entry.testsCount += 1;
-            stats.set(catId, entry);
+            if (!t?.series_id) continue;
+            sTestCounts.set(t.series_id, (sTestCounts.get(t.series_id) ?? 0) + 1);
+            const catId = sToCat.get(t.series_id) ?? t?.test_series?.category_id;
+            if (catId) {
+                const entry = catStats.get(catId) ?? { seriesCount: 0, testsCount: 0 };
+                entry.testsCount += 1;
+                catStats.set(catId, entry);
+            }
         }
 
-        return stats;
+        return {
+            categoryStats: catStats,
+            seriesTestCounts: sTestCounts,
+            seriesById: sById,
+            seriesToCategory: sToCat,
+        };
     }, [categories, series, tests]);
 
-    // Filtering logic based on search
+    // Post-hydration reconciliation for stale or mismatched URL params
+    useEffect(() => {
+        if (catLoading || seriesLoading) return;
+        const rawCategory = searchParams.get('category') || '';
+        const rawSeries = searchParams.get('series') || '';
+        if (!rawCategory && !rawSeries) return;
+
+        const validCategoryIds = new Set((categories || []).map(c => c?.id).filter(Boolean));
+        const isCategoryValid = !rawCategory || validCategoryIds.has(rawCategory);
+        const effectiveCategory = isCategoryValid ? rawCategory : '';
+
+        const matchedSeries = rawSeries ? seriesById.get(rawSeries) : undefined;
+        const isSeriesValid =
+            !rawSeries ||
+            (Boolean(matchedSeries) && (!effectiveCategory || matchedSeries.category_id === effectiveCategory));
+
+        if (!isCategoryValid || !isSeriesValid) {
+            setSearchParams(prev => {
+                const next = new URLSearchParams(prev);
+                if (!isCategoryValid) next.delete('category');
+                if (!isSeriesValid) next.delete('series');
+                return next;
+            }, { replace: true });
+        }
+    }, [catLoading, seriesLoading, categories, seriesById, searchParams, setSearchParams]);
+
+    const scopedSeriesOptions = useMemo(() => {
+        if (!selectedCategoryId) return series || [];
+        return (series || []).filter(s => s?.category_id === selectedCategoryId);
+    }, [series, selectedCategoryId]);
+
+    const handleTabChange = useCallback((tab: DashboardTab) => {
+        setSearchParams(prev => {
+            const next = new URLSearchParams(prev);
+            next.set('tab', tab);
+            if (tab === 'categories') {
+                next.delete('category');
+            }
+            if (tab !== 'tests') {
+                next.delete('series');
+                next.delete('status');
+            }
+            return next;
+        }, { replace: true });
+        setSearchQuery('');
+    }, [setSearchParams]);
+
+    const handleCategoryFilterChange = useCallback((nextCategoryId: string) => {
+        setSearchParams(prev => {
+            const next = new URLSearchParams(prev);
+            if (nextCategoryId) {
+                next.set('category', nextCategoryId);
+                const currentSeriesId = next.get('series') || '';
+                if (currentSeriesId && seriesById.get(currentSeriesId)?.category_id !== nextCategoryId) {
+                    next.delete('series');
+                }
+            } else {
+                next.delete('category');
+            }
+            return next;
+        }, { replace: true });
+    }, [setSearchParams, seriesById]);
+
+    const handleSeriesFilterChange = useCallback((nextSeriesId: string) => {
+        setSearchParams(prev => {
+            const next = new URLSearchParams(prev);
+            if (nextSeriesId) next.set('series', nextSeriesId);
+            else next.delete('series');
+            return next;
+        }, { replace: true });
+    }, [setSearchParams]);
+
+    const handleStatusFilterChange = useCallback((nextStatus: StatusFilter) => {
+        setSearchParams(prev => {
+            const next = new URLSearchParams(prev);
+            if (nextStatus === 'all') next.delete('status');
+            else next.set('status', nextStatus);
+            return next;
+        }, { replace: true });
+    }, [setSearchParams]);
+
+    const handleResetFilters = useCallback(() => {
+        setSearchQuery('');
+        setSearchParams(prev => {
+            const next = new URLSearchParams(prev);
+            next.delete('category');
+            next.delete('series');
+            next.delete('status');
+            return next;
+        }, { replace: true });
+    }, [setSearchParams]);
+
+    // Filtering logic
+    const normalizedSearch = searchQuery.trim().toLowerCase();
+
     const filteredCategories = useMemo(() => {
-        if (!searchQuery) return categories;
-        return (categories || []).filter(c => (c?.name || '').toLowerCase().includes(searchQuery.toLowerCase()));
-    }, [categories, searchQuery]);
+        if (!normalizedSearch) return categories || [];
+        return (categories || []).filter(c =>
+            (c?.name || '').toLowerCase().includes(normalizedSearch)
+        );
+    }, [categories, normalizedSearch]);
 
     const filteredSeries = useMemo(() => {
-        if (!searchQuery) return series;
-        return (series || []).filter(s => (s?.name || '').toLowerCase().includes(searchQuery.toLowerCase()));
-    }, [series, searchQuery]);
+        return (series || []).filter(s => {
+            if (selectedCategoryId && s?.category_id !== selectedCategoryId) return false;
+            if (normalizedSearch && !(s?.name || '').toLowerCase().includes(normalizedSearch)) return false;
+            return true;
+        });
+    }, [series, selectedCategoryId, normalizedSearch]);
 
     const filteredTests = useMemo(() => {
-        if (!searchQuery) return tests;
-        return (tests || []).filter(t => (t?.name || '').toLowerCase().includes(searchQuery.toLowerCase()));
-    }, [tests, searchQuery]);
+        return (tests || []).filter(t => {
+            if (selectedCategoryId) {
+                const testCatId = seriesToCategory.get(t?.series_id) ?? t?.test_series?.category_id;
+                if (testCatId !== selectedCategoryId) return false;
+            }
+            if (selectedSeriesId && t?.series_id !== selectedSeriesId) return false;
+            if (statusFilter === 'published' && !t?.is_published) return false;
+            if (statusFilter === 'draft' && Boolean(t?.is_published)) return false;
+            if (normalizedSearch && !(t?.name || '').toLowerCase().includes(normalizedSearch)) return false;
+            return true;
+        });
+    }, [tests, selectedCategoryId, selectedSeriesId, statusFilter, normalizedSearch, seriesToCategory]);
+
+    const hasActiveFilters = useMemo(() => {
+        if (normalizedSearch) return true;
+        if (activeTab === 'series') return Boolean(selectedCategoryId);
+        if (activeTab === 'tests') {
+            return Boolean(selectedCategoryId || selectedSeriesId || statusFilter !== 'all');
+        }
+        return false;
+    }, [activeTab, normalizedSearch, selectedCategoryId, selectedSeriesId, statusFilter]);
+
+    const resultSummary = useMemo(() => {
+        if (activeTab === 'categories') {
+            return `Showing ${filteredCategories.length} of ${(categories || []).length} categories`;
+        }
+        if (activeTab === 'series') {
+            return `Showing ${filteredSeries.length} of ${(series || []).length} series`;
+        }
+        return `Showing ${filteredTests.length} of ${(tests || []).length} tests`;
+    }, [
+        activeTab,
+        filteredCategories.length,
+        categories,
+        filteredSeries.length,
+        series,
+        filteredTests.length,
+        tests,
+    ]);
 
     // Handlers
     const openCreate = () => {
@@ -120,17 +296,196 @@ export const AdminTestSeriesDashboard: React.FC = () => {
         if (activeTab === 'series') setSeriesDrawerOpen(true);
     };
 
+    const handleTogglePublish = useCallback(async (test: any) => {
+        if (!test?.id || busyTestIdsRef.current.has(test.id)) return;
+
+        const nextPublished = !test.is_published;
+        if (nextPublished) {
+            const { canPublish, reasons } = validateTestForPublish(test);
+            if (!canPublish) {
+                showToast({
+                    variant: 'warning',
+                    title: 'Test Not Ready to Publish',
+                    message: reasons.join(' '),
+                });
+                return;
+            }
+        }
+
+        busyTestIdsRef.current.add(test.id);
+        setBusyActionByTestId(prev => ({ ...prev, [test.id]: 'publish' }));
+
+        try {
+            const updated = await toggleTestPublish(test.id, nextPublished, { silent: true });
+            if (nextPublished) {
+                const parentSeriesPublished =
+                    updated?.test_series?.is_published ??
+                    test?.test_series?.is_published ??
+                    seriesById.get(test.series_id)?.is_published;
+
+                if (parentSeriesPublished === false) {
+                    showToast({
+                        variant: 'warning',
+                        title: 'Test Published (Parent Series is Draft)',
+                        message: `"${updated?.name || test.name}" is published, but its parent series is still in Draft so students cannot see it yet.`,
+                    });
+                } else {
+                    showToast({
+                        variant: 'success',
+                        title: 'Test Published',
+                        message: `"${updated?.name || test.name}" is now live to students.`,
+                    });
+                }
+            } else {
+                showToast({
+                    variant: 'success',
+                    title: 'Test Moved to Draft',
+                    message: `"${updated?.name || test.name}" is now hidden from students.`,
+                });
+            }
+        } catch {
+            // Error toast handled in useTests
+        } finally {
+            busyTestIdsRef.current.delete(test.id);
+            if (isMountedRef.current) {
+                setBusyActionByTestId(prev => {
+                    const next = { ...prev };
+                    delete next[test.id];
+                    return next;
+                });
+            }
+        }
+    }, [toggleTestPublish, showToast, seriesById]);
+
+    const handleCloneTest = useCallback(async (test: any) => {
+        if (!test?.id || busyTestIdsRef.current.has(test.id)) return;
+
+        busyTestIdsRef.current.add(test.id);
+        setBusyActionByTestId(prev => ({ ...prev, [test.id]: 'clone' }));
+
+        try {
+            const cloned = await duplicateTest(test, { silent: true });
+            if (statusFilter === 'published') {
+                setSearchParams(prev => {
+                    const next = new URLSearchParams(prev);
+                    next.delete('status');
+                    return next;
+                }, { replace: true });
+                showToast({
+                    variant: 'success',
+                    title: 'Test Cloned as Draft',
+                    message: `Created "${cloned?.name || 'Draft copy'}" and switched status filter to All so it stays visible.`,
+                });
+            } else {
+                showToast({
+                    variant: 'success',
+                    title: 'Test Cloned as Draft',
+                    message: `Created "${cloned?.name || 'Draft copy'}".`,
+                });
+            }
+        } catch {
+            // Error toast handled in useTests
+        } finally {
+            busyTestIdsRef.current.delete(test.id);
+            if (isMountedRef.current) {
+                setBusyActionByTestId(prev => {
+                    const next = { ...prev };
+                    delete next[test.id];
+                    return next;
+                });
+            }
+        }
+    }, [duplicateTest, statusFilter, setSearchParams, showToast]);
+
     const handleDeleteClick = (id: string) => {
-        setConfirmDialog({ isOpen: true, id, type: activeTab });
+        if (
+            (activeTab === 'categories' && (seriesLoading || testsLoading)) ||
+            (activeTab === 'series' && testsLoading)
+        ) {
+            showToast({
+                variant: 'info',
+                title: 'Loading Related Items',
+                message: 'Still loading child items. Please try again in a moment.',
+            });
+            return;
+        }
+
+        if (activeTab === 'categories') {
+            const cat = (categories || []).find(c => c.id === id);
+            const stats = categoryStats.get(id) ?? { seriesCount: 0, testsCount: 0 };
+            setConfirmDialog({
+                isOpen: true,
+                id,
+                type: 'categories',
+                title: 'Delete Exam Category?',
+                message: `Deleting "${cat?.name || 'this category'}" will permanently cascade-delete ${stats.seriesCount} test series and ${stats.testsCount} mock tests, along with all associated student attempts. This action cannot be undone.`,
+            });
+            return;
+        }
+
+        if (activeTab === 'series') {
+            const ser = seriesById.get(id) ?? (series || []).find(s => s.id === id);
+            const testsCount = seriesTestCounts.get(id) ?? 0;
+            setConfirmDialog({
+                isOpen: true,
+                id,
+                type: 'series',
+                title: 'Delete Test Series?',
+                message: `Deleting "${ser?.name || 'this test series'}" will permanently cascade-delete ${testsCount} mock tests and all associated student attempts. This action cannot be undone.`,
+            });
+            return;
+        }
+
+        const test = (tests || []).find(t => t.id === id);
+        const qCount = Array.isArray(test?.question_ids) ? test.question_ids.length : 0;
+        const statusLabel = test?.is_published ? 'Published (live to students)' : 'Draft';
+        setConfirmDialog({
+            isOpen: true,
+            id,
+            type: 'tests',
+            title: 'Delete Mock Test?',
+            message: `Deleting "${test?.name || 'this mock test'}" (${statusLabel}, ${qCount} questions) will permanently remove the test and all associated student attempts. This action cannot be undone.`,
+        });
     };
 
     const confirmDelete = async () => {
+        if (!confirmDialog.id || !confirmDialog.type || isDeleting) return;
+        setIsDeleting(true);
         try {
-            if (confirmDialog.type === 'categories') await removeCategory(confirmDialog.id);
-            if (confirmDialog.type === 'series') await removeSeries(confirmDialog.id);
-            if (confirmDialog.type === 'tests') await removeTest(confirmDialog.id);
+            if (confirmDialog.type === 'categories') {
+                await removeCategory(confirmDialog.id);
+                await Promise.all([refreshSeries(), refreshTests()]);
+                setSearchParams(prev => {
+                    const next = new URLSearchParams(prev);
+                    if (next.get('category') === confirmDialog.id) {
+                        next.delete('category');
+                        next.delete('series');
+                    } else {
+                        const currentSeriesId = next.get('series');
+                        if (currentSeriesId && seriesToCategory.get(currentSeriesId) === confirmDialog.id) {
+                            next.delete('series');
+                        }
+                    }
+                    return next;
+                }, { replace: true });
+            } else if (confirmDialog.type === 'series') {
+                await removeSeries(confirmDialog.id);
+                await refreshTests();
+                setSearchParams(prev => {
+                    const next = new URLSearchParams(prev);
+                    if (next.get('series') === confirmDialog.id) {
+                        next.delete('series');
+                    }
+                    return next;
+                }, { replace: true });
+            } else if (confirmDialog.type === 'tests') {
+                await removeTest(confirmDialog.id);
+            }
         } finally {
-            setConfirmDialog({ isOpen: false, id: '', type: '' });
+            if (isMountedRef.current) {
+                setIsDeleting(false);
+                setConfirmDialog({ isOpen: false, id: '', type: '', title: '', message: '' });
+            }
         }
     };
 
@@ -160,155 +515,286 @@ export const AdminTestSeriesDashboard: React.FC = () => {
                     onClick={openCreate}
                     className="flex items-center justify-center gap-2 min-h-[44px] bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2.5 rounded-xl text-xs font-bold transition-all active:scale-95 shadow-md shadow-indigo-600/20"
                 >
-                    <Plus className="w-4 h-4" /> Create New
+                    <Plus className="w-4 h-4" aria-hidden="true" /> Create New
                 </button>
             </header>
-                {/* KPI Cards */}
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
-                    <KPICard title="Categories" value={kpis.totalCategories} icon={BookOpen} color="indigo" />
-                    <KPICard title="Series" value={kpis.totalSeries} icon={Layers} color="blue" />
-                    <KPICard title="Tests" value={kpis.totalTests} icon={CheckSquare} color="purple" />
-                    <KPICard title="Published" value={kpis.publishedTests} icon={CheckSquare} color="emerald" />
-                    <KPICard title="Draft" value={kpis.draftTests} icon={CheckSquare} color="amber" />
-                </div>
 
-                {/* Controls */}
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+            {/* KPI Cards */}
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
+                <KPICard title="Categories" value={kpis.totalCategories} icon={BookOpen} color="indigo" />
+                <KPICard title="Series" value={kpis.totalSeries} icon={Layers} color="blue" />
+                <KPICard title="Tests" value={kpis.totalTests} icon={CheckSquare} color="purple" />
+                <KPICard title="Published" value={kpis.publishedTests} icon={CheckSquare} color="emerald" />
+                <KPICard title="Draft" value={kpis.draftTests} icon={CheckSquare} color="amber" />
+            </div>
+
+            {/* Tabs & Semantic Filter Controls */}
+            <div className="space-y-4 mb-6">
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                     <div className="flex space-x-2 bg-white dark:bg-slate-800 p-1 rounded-xl shadow-sm w-fit border border-slate-200 dark:border-slate-700">
                         <button
                             type="button"
                             onClick={() => handleTabChange('categories')}
                             className={`min-h-[44px] px-4 py-2 rounded-lg font-medium text-sm flex items-center gap-2 transition-all active:scale-95 ${activeTab === 'categories' ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300' : 'text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-700'}`}
                         >
-                            <BookOpen className="w-4 h-4" /> Categories
+                            <BookOpen className="w-4 h-4" aria-hidden="true" /> Categories
                         </button>
                         <button
                             type="button"
                             onClick={() => handleTabChange('series')}
                             className={`min-h-[44px] px-4 py-2 rounded-lg font-medium text-sm flex items-center gap-2 transition-all active:scale-95 ${activeTab === 'series' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300' : 'text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-700'}`}
                         >
-                            <Layers className="w-4 h-4" /> Series
+                            <Layers className="w-4 h-4" aria-hidden="true" /> Series
                         </button>
                         <button
                             type="button"
                             onClick={() => handleTabChange('tests')}
                             className={`min-h-[44px] px-4 py-2 rounded-lg font-medium text-sm flex items-center gap-2 transition-all active:scale-95 ${activeTab === 'tests' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-300' : 'text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-700'}`}
                         >
-                            <CheckSquare className="w-4 h-4" /> Tests
+                            <CheckSquare className="w-4 h-4" aria-hidden="true" /> Tests
                         </button>
                     </div>
+                </div>
 
-                    <div className="w-full md:w-auto">
-                        <SearchBar value={searchQuery} onChange={setSearchQuery} placeholder="Search content..." />
+                <search
+                    aria-label="Filter CMS content"
+                    className="bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 shadow-sm space-y-3"
+                >
+                    <div className="flex flex-col lg:flex-row lg:items-end gap-3 flex-wrap">
+                        <div className="w-full lg:flex-1 lg:min-w-[220px]">
+                            <SearchBar
+                                value={searchQuery}
+                                onChange={setSearchQuery}
+                                placeholder="Search content..."
+                                ariaLabel="Search CMS content"
+                            />
+                        </div>
+
+                        {(activeTab === 'series' || activeTab === 'tests') && (
+                            <div className="flex flex-col gap-1 min-w-[180px]">
+                                <label
+                                    htmlFor="cms-category-filter"
+                                    className="text-xs font-semibold text-slate-600 dark:text-slate-300"
+                                >
+                                    Category
+                                </label>
+                                <select
+                                    id="cms-category-filter"
+                                    value={selectedCategoryId}
+                                    onChange={(e) => handleCategoryFilterChange(e.target.value)}
+                                    className="min-h-[44px] px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                >
+                                    <option value="">All Categories</option>
+                                    {(categories || []).map(cat => (
+                                        <option key={cat.id} value={cat.id}>
+                                            {cat.name}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
+
+                        {activeTab === 'tests' && (
+                            <div className="flex flex-col gap-1 min-w-[180px]">
+                                <label
+                                    htmlFor="cms-series-filter"
+                                    className="text-xs font-semibold text-slate-600 dark:text-slate-300"
+                                >
+                                    Test Series
+                                </label>
+                                <select
+                                    id="cms-series-filter"
+                                    value={selectedSeriesId}
+                                    onChange={(e) => handleSeriesFilterChange(e.target.value)}
+                                    className="min-h-[44px] px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                >
+                                    <option value="">All Series</option>
+                                    {scopedSeriesOptions.map(s => (
+                                        <option key={s.id} value={s.id}>
+                                            {s.name}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
+
+                        {activeTab === 'tests' && (
+                            <div className="flex flex-col gap-1">
+                                <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">
+                                    Status
+                                </span>
+                                <div
+                                    role="group"
+                                    aria-label="Filter tests by status"
+                                    className="inline-flex items-center gap-1 bg-slate-100 dark:bg-slate-900/70 p-1 rounded-xl border border-slate-200 dark:border-slate-700"
+                                >
+                                    {([
+                                        { value: 'all', label: 'All' },
+                                        { value: 'published', label: 'Published' },
+                                        { value: 'draft', label: 'Draft' },
+                                    ] as const).map(opt => {
+                                        const isPressed = statusFilter === opt.value;
+                                        return (
+                                            <button
+                                                key={opt.value}
+                                                type="button"
+                                                aria-pressed={isPressed}
+                                                onClick={() => handleStatusFilterChange(opt.value)}
+                                                className={`min-h-[44px] px-3 py-1.5 rounded-lg text-xs font-semibold transition-all active:scale-95 ${
+                                                    isPressed
+                                                        ? 'bg-white dark:bg-slate-800 text-purple-700 dark:text-purple-300 shadow-sm'
+                                                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                                                }`}
+                                            >
+                                                {opt.label}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
                     </div>
-                </div>
 
-                {/* Content Area */}
-                <div className="min-h-[400px]">
-                    {/* Categories Tab */}
-                    {activeTab === 'categories' && (
-                        catLoading ? <SkeletonList count={3} /> :
-                        filteredCategories.length > 0 ? (
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                {filteredCategories.map(cat => {
-                                    const stats = categoryStats.get(cat.id) ?? { seriesCount: 0, testsCount: 0 };
-                                    return (
-                                        <CategoryCard
-                                            key={cat.id}
-                                            category={cat}
-                                            onEdit={handleEdit}
-                                            onDelete={handleDeleteClick}
-                                            seriesCount={stats.seriesCount}
-                                            testsCount={stats.testsCount}
-                                        />
-                                    );
-                                })}
-                            </div>
-                        ) : (
-                            <EmptyState
-                                icon={BookOpen} title="No Categories Found"
-                                message={searchQuery ? "Try a different search term." : "Get started by creating your first exam category."}
-                                actionLabel={!searchQuery ? "Create Category" : undefined}
-                                onAction={openCreate}
-                            />
-                        )
-                    )}
-
-                    {/* Series Tab */}
-                    {activeTab === 'series' && (
-                        seriesLoading ? <SkeletonList count={3} /> :
-                        filteredSeries.length > 0 ? (
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                {filteredSeries.map(s => (
-                                    <SeriesCard
-                                        key={s.id}
-                                        series={s}
-                                        onEdit={handleEdit}
-                                        onDelete={handleDeleteClick}
-                                        testsCount={tests.filter(t => t.series_id === s.id).length}
-                                    />
-                                ))}
-                            </div>
-                        ) : (
-                            <EmptyState
-                                icon={Layers} title="No Test Series Found"
-                                message={searchQuery ? "Try a different search term." : "Create test series to organize your mock tests."}
-                                actionLabel={!searchQuery ? "Create Series" : undefined}
-                                onAction={openCreate}
-                            />
-                        )
-                    )}
-
-                    {/* Tests Tab */}
-                    {activeTab === 'tests' && (
-                        testsLoading ? <SkeletonList count={3} /> :
-                        filteredTests.length > 0 ? (
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                {filteredTests.map(t => (
-                                    <TestCard
-                                        key={t.id}
-                                        test={t}
-                                        onEdit={handleEdit}
-                                        onDelete={handleDeleteClick}
-                                    />
-                                ))}
-                            </div>
-                        ) : (
-                            <EmptyState
-                                icon={CheckSquare} title="No Tests Found"
-                                message={searchQuery ? "Try a different search term." : "Build your first mock test and publish it to students."}
-                                actionLabel={!searchQuery ? "Create Test" : undefined}
-                                onAction={openCreate}
-                            />
-                        )
-                    )}
-                </div>
-
-                {/* Drawers */}
-                <CategoryDrawer
-                    isOpen={isCatDrawerOpen}
-                    onClose={() => { setCatDrawerOpen(false); setSelectedItem(null); }}
-                    category={activeTab === 'categories' ? selectedItem : null}
-                    onSave={handleSaveCategory}
-                />
-
-                <SeriesDrawer
-                    isOpen={isSeriesDrawerOpen}
-                    onClose={() => { setSeriesDrawerOpen(false); setSelectedItem(null); }}
-                    series={activeTab === 'series' ? selectedItem : null}
-                    categories={categories}
-                    onSave={handleSaveSeries}
-                />
-
-                {/* Confirmation */}
-                <ConfirmDialog
-                    isOpen={confirmDialog.isOpen}
-                    onClose={() => setConfirmDialog({ isOpen: false, id: '', type: '' })}
-                    onConfirm={confirmDelete}
-                    title="Delete Confirmation"
-                    message="Are you sure you want to delete this item? This action cannot be undone."
-                    confirmText="Delete Permanently"
-                />
+                    <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100 dark:border-slate-700/60">
+                        <p
+                            role="status"
+                            aria-live="polite"
+                            className="text-xs font-medium text-slate-500 dark:text-slate-400"
+                        >
+                            {resultSummary}
+                        </p>
+                        {hasActiveFilters && (
+                            <button
+                                type="button"
+                                onClick={handleResetFilters}
+                                className="min-h-[44px] px-3 py-1.5 rounded-xl text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 inline-flex items-center gap-1.5 transition-all active:scale-95"
+                            >
+                                <RotateCcw className="w-3.5 h-3.5" aria-hidden="true" />
+                                <span>Reset Filters</span>
+                            </button>
+                        )}
+                    </div>
+                </search>
             </div>
+
+            {/* Content Area */}
+            <div className="min-h-[400px]">
+                {/* Categories Tab */}
+                {activeTab === 'categories' && (
+                    catLoading ? <SkeletonList count={3} /> :
+                    filteredCategories.length > 0 ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {filteredCategories.map(cat => {
+                                const stats = categoryStats.get(cat.id) ?? { seriesCount: 0, testsCount: 0 };
+                                return (
+                                    <CategoryCard
+                                        key={cat.id}
+                                        category={cat}
+                                        onEdit={handleEdit}
+                                        onDelete={handleDeleteClick}
+                                        seriesCount={stats.seriesCount}
+                                        testsCount={stats.testsCount}
+                                    />
+                                );
+                            })}
+                        </div>
+                    ) : (
+                        <EmptyState
+                            icon={BookOpen}
+                            title={hasActiveFilters ? "No Matching Categories" : "No Categories Found"}
+                            message={hasActiveFilters ? "Try adjusting your search criteria." : "Get started by creating your first exam category."}
+                            actionLabel={hasActiveFilters ? "Reset Filters" : "Create Category"}
+                            onAction={hasActiveFilters ? handleResetFilters : openCreate}
+                        />
+                    )
+                )}
+
+                {/* Series Tab */}
+                {activeTab === 'series' && (
+                    seriesLoading ? <SkeletonList count={3} /> :
+                    filteredSeries.length > 0 ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {filteredSeries.map(s => (
+                                <SeriesCard
+                                    key={s.id}
+                                    series={s}
+                                    onEdit={handleEdit}
+                                    onDelete={handleDeleteClick}
+                                    testsCount={seriesTestCounts.get(s.id) ?? 0}
+                                />
+                            ))}
+                        </div>
+                    ) : (
+                        <EmptyState
+                            icon={Layers}
+                            title={hasActiveFilters ? "No Matching Test Series" : "No Test Series Found"}
+                            message={hasActiveFilters ? "Try adjusting your category or search filter." : "Create test series to organize your mock tests."}
+                            actionLabel={hasActiveFilters ? "Reset Filters" : "Create Series"}
+                            onAction={hasActiveFilters ? handleResetFilters : openCreate}
+                        />
+                    )
+                )}
+
+                {/* Tests Tab */}
+                {activeTab === 'tests' && (
+                    testsLoading ? <SkeletonList count={3} /> :
+                    filteredTests.length > 0 ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {filteredTests.map(t => (
+                                <TestCard
+                                    key={t.id}
+                                    test={t}
+                                    onEdit={handleEdit}
+                                    onDelete={handleDeleteClick}
+                                    onTogglePublish={handleTogglePublish}
+                                    onClone={handleCloneTest}
+                                    busyAction={busyActionByTestId[t.id] ?? null}
+                                    isDeleteDisabled={isDeleting}
+                                />
+                            ))}
+                        </div>
+                    ) : (
+                        <EmptyState
+                            icon={CheckSquare}
+                            title={hasActiveFilters ? "No Matching Mock Tests" : "No Tests Found"}
+                            message={hasActiveFilters ? "Try adjusting your category, series, status, or search filters." : "Build your first mock test and publish it to students."}
+                            actionLabel={hasActiveFilters ? "Reset Filters" : "Create Test"}
+                            onAction={hasActiveFilters ? handleResetFilters : openCreate}
+                        />
+                    )
+                )}
+            </div>
+
+            {/* Drawers */}
+            <CategoryDrawer
+                isOpen={isCatDrawerOpen}
+                onClose={() => { setCatDrawerOpen(false); setSelectedItem(null); }}
+                category={activeTab === 'categories' ? selectedItem : null}
+                onSave={handleSaveCategory}
+            />
+
+            <SeriesDrawer
+                isOpen={isSeriesDrawerOpen}
+                onClose={() => { setSeriesDrawerOpen(false); setSelectedItem(null); }}
+                series={activeTab === 'series' ? selectedItem : null}
+                categories={categories}
+                onSave={handleSaveSeries}
+            />
+
+            {/* Confirmation */}
+            <ConfirmDialog
+                isOpen={confirmDialog.isOpen}
+                onClose={() => {
+                    if (!isDeleting) {
+                        setConfirmDialog({ isOpen: false, id: '', type: '', title: '', message: '' });
+                    }
+                }}
+                onConfirm={confirmDelete}
+                title={confirmDialog.title || 'Delete Confirmation'}
+                message={confirmDialog.message || 'Are you sure you want to delete this item? This action cannot be undone.'}
+                confirmText="Delete Permanently"
+                isLoading={isDeleting}
+            />
+        </div>
     );
 };

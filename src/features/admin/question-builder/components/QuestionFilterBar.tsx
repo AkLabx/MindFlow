@@ -2,6 +2,7 @@ import React from 'react';
 import { CANONICAL_EXAM_PREFIX, FilterOptions, QuestionFilterParams } from '../types/questionBuilder.types';
 import { CANONICAL_EXAMS, getCanonicalExamById } from '@/features/dashboard/constants/examRegistry';
 import { X } from 'lucide-react';
+import { SearchableFilterCombobox } from './SearchableFilterCombobox';
 
 interface Props {
     options: FilterOptions;
@@ -28,7 +29,15 @@ export const QuestionFilterBar: React.FC<Props> = ({ options, params, onChange, 
         return `Exam: ${examValue}`;
     };
 
-    const hasActiveFilters = Boolean(params.subject || params.topic || params.difficulty || params.examName || params.examYear);
+    const hasActiveFilters = Boolean(
+        params.subject ||
+        params.topic ||
+        params.subTopic ||
+        params.difficulty ||
+        params.examName ||
+        params.examYear ||
+        params.examDateShift
+    );
 
     return (
         <div className="flex flex-col border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
@@ -55,6 +64,19 @@ export const QuestionFilterBar: React.FC<Props> = ({ options, params, onChange, 
                                 type="button"
                                 aria-label="Remove Topic filter"
                                 onClick={() => removeFilter('topic')}
+                                className="min-w-[28px] min-h-[28px] flex items-center justify-center p-1 -mr-1 hover:text-indigo-900 dark:hover:text-indigo-100 rounded-full focus:outline-none focus:ring-2 focus:ring-indigo-500 active:scale-95 transition-transform"
+                            >
+                                <X className="w-3.5 h-3.5" aria-hidden="true" />
+                            </button>
+                        </span>
+                    )}
+                    {params.subTopic && (
+                        <span className="inline-flex items-center gap-1 min-h-[36px] px-3 py-1 rounded-full text-xs font-medium bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300">
+                            Sub-Topic: {params.subTopic}
+                            <button
+                                type="button"
+                                aria-label="Remove Sub-Topic filter"
+                                onClick={() => removeFilter('subTopic')}
                                 className="min-w-[28px] min-h-[28px] flex items-center justify-center p-1 -mr-1 hover:text-indigo-900 dark:hover:text-indigo-100 rounded-full focus:outline-none focus:ring-2 focus:ring-indigo-500 active:scale-95 transition-transform"
                             >
                                 <X className="w-3.5 h-3.5" aria-hidden="true" />
@@ -100,6 +122,19 @@ export const QuestionFilterBar: React.FC<Props> = ({ options, params, onChange, 
                             </button>
                         </span>
                     )}
+                    {params.examDateShift && (
+                        <span className="inline-flex items-center gap-1 min-h-[36px] px-3 py-1 rounded-full text-xs font-medium bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300">
+                            Shift: {params.examDateShift}
+                            <button
+                                type="button"
+                                aria-label="Remove Exam Date / Shift filter"
+                                onClick={() => removeFilter('examDateShift')}
+                                className="min-w-[28px] min-h-[28px] flex items-center justify-center p-1 -mr-1 hover:text-indigo-900 dark:hover:text-indigo-100 rounded-full focus:outline-none focus:ring-2 focus:ring-indigo-500 active:scale-95 transition-transform"
+                            >
+                                <X className="w-3.5 h-3.5" aria-hidden="true" />
+                            </button>
+                        </span>
+                    )}
                     <button
                         type="button"
                         onClick={() => onChange({ search: params.search })}
@@ -137,6 +172,16 @@ export const QuestionFilterBar: React.FC<Props> = ({ options, params, onChange, 
                         <option key={topic} value={topic}>{topic}</option>
                     ))}
                 </select>
+
+                <SearchableFilterCombobox
+                    label="Sub-Topic"
+                    ariaLabel="Filter by Sub-Topic"
+                    options={options.subTopics}
+                    value={params.subTopic}
+                    onChange={val => handleChange('subTopic', val)}
+                    disabled={isLoading}
+                    placeholder="Search sub-topics..."
+                />
 
                 <select
                     aria-label="Filter by Difficulty"
@@ -187,6 +232,16 @@ export const QuestionFilterBar: React.FC<Props> = ({ options, params, onChange, 
                         <option key={year} value={year}>{year}</option>
                     ))}
                 </select>
+
+                <SearchableFilterCombobox
+                    label="Date / Shift"
+                    ariaLabel="Filter by Exam Date / Shift"
+                    options={options.examDateShifts}
+                    value={params.examDateShift}
+                    onChange={val => handleChange('examDateShift', val)}
+                    disabled={isLoading}
+                    placeholder="Search date or shift..."
+                />
             </div>
         </div>
     );

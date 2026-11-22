@@ -1,7 +1,7 @@
 import { supabase } from '@/lib/supabase';
 
 const SERIES_SELECT_QUERY = '*, exam_categories(id, name)';
-const TEST_SELECT_QUERY = '*, test_series(id, name, category_id, exam_categories(id, name))';
+const TEST_SELECT_QUERY = '*, test_series(id, name, category_id, is_published, exam_categories(id, name))';
 
 export interface TestMutationPayload {
     series_id: string;
@@ -171,6 +171,123 @@ export const deleteTest = async (id: string) => {
         .eq('id', id);
 
     if (error) throw error;
+};
+
+/**
+ * Builds a collision-free cloned test name using `(Copy)` / `(Copy N)` suffixes.
+ */
+export const buildClonedTestName = (sourceName: string, existingNames?: string[]): string => {
+    const trimmed = String(sourceName ?? '').trim() || 'Untitled Test';
+    const copyMatch = trimmed.match(/\s+\(Copy(?:\s+(\d+))?\)$/i);
+    const baseName = copyMatch
+        ? trimmed.slice(0, copyMatch.index).trim() || 'Untitled Test'
+        : trimmed;
+
+    if (existingNames !== undefined) {
+        const normalizedExisting = new Set(
+            existingNames.map((n) => String(n ?? '').trim().toLowerCase()).filter(Boolean)
+        );
+        const firstCandidate = `${baseName} (Copy)`;
+        if (!normalizedExisting.has(firstCandidate.toLowerCase())) {
+            return firstCandidate;
+        }
+        let counter = 2;
+        while (normalizedExisting.has(`${baseName} (Copy ${counter})`.toLowerCase())) {
+            counter += 1;
+        }
+        return `${baseName} (Copy ${counter})`;
+    }
+
+    if (copyMatch) {
+        const existingCopyNum = copyMatch[1] ? Number(copyMatch[1]) : null;
+        return existingCopyNum !== null && Number.isFinite(existingCopyNum)
+            ? `${baseName} (Copy ${existingCopyNum + 1})`
+            : `${baseName} (Copy 2)`;
+    }
+
+    return `${baseName} (Copy)`;
+};
+
+/**
+ * Validates whether a mock test meets all publish readiness rules matching AdminTestBuilderPage.
+ */
+export const validateTestForPublish = (test: any): { canPublish: boolean; reasons: string[] } => {
+    const reasons: string[] = [];
+
+    if (!String(test?.name ?? '').trim()) {
+        reasons.push('Test name is required before publishing.');
+    }
+
+    if (!test?.series_id) {
+        reasons.push('Assign a Test Series before publishing.');
+    }
+
+    const qIds = Array.isArray(test?.question_ids) ? test.question_ids : [];
+    if (qIds.length === 0) {
+        reasons.push('Add at least one question before publishing.');
+    } else if (new Set(qIds).size < qIds.length) {
+        reasons.push('Remove duplicate questions before publishing.');
+    }
+
+    const duration = Number(test?.duration_minutes);
+    if (!Number.isFinite(duration) || !Number.isInteger(duration) || duration <= 0) {
+        reasons.push('Duration must be a whole number greater than 0 minutes.');
+    }
+
+    const totalMarks = Number(test?.total_marks);
+    if (!Number.isFinite(totalMarks) || totalMarks <= 0) {
+        reasons.push('Total marks must be greater than 0.');
+    }
+
+    const passingMarks = Number(test?.passing_marks ?? 0);
+    if (
+        !Number.isFinite(passingMarks) ||
+        passingMarks < 0 ||
+        (Number.isFinite(totalMarks) && passingMarks > totalMarks)
+    ) {
+        reasons.push('Passing marks must be between 0 and Total Marks.');
+    }
+
+    const negativeMarks = Number(test?.negative_marks ?? 0);
+    if (!Number.isFinite(negativeMarks) || negativeMarks < 0) {
+        reasons.push('Negative marks must be 0 or greater.');
+    }
+
+    if (test?.release_date && test?.expiry_date) {
+        const rel = new Date(test.release_date);
+        const exp = new Date(test.expiry_date);
+        if (!Number.isNaN(rel.getTime()) && !Number.isNaN(exp.getTime()) && exp <= rel) {
+            reasons.push('Expiry date must be after Release date.');
+        }
+    }
+
+    return { canPublish: reasons.length === 0, reasons };
+};
+
+/**
+ * Clones an existing mock test as an unpublished Draft with a deduplicated `(Copy)` name.
+ */
+export const cloneTest = async (sourceTest: any, existingNames?: string[]) => {
+    const questionIds = Array.isArray(sourceTest?.question_ids)
+        ? [...sourceTest.question_ids]
+        : [];
+
+    const payload: TestMutationPayload = {
+        series_id: sourceTest.series_id,
+        name: buildClonedTestName(sourceTest?.name ?? '', existingNames),
+        description: sourceTest?.description ?? '',
+        duration_minutes: Number(sourceTest?.duration_minutes ?? 60),
+        total_marks: Number(sourceTest?.total_marks ?? 0),
+        passing_marks: Number(sourceTest?.passing_marks ?? 0),
+        negative_marks: Number(sourceTest?.negative_marks ?? 0),
+        question_ids: questionIds,
+        is_published: false,
+        display_order: (Number(sourceTest?.display_order) || 0) + 1,
+        release_date: null,
+        expiry_date: null,
+    };
+
+    return await createTest(payload);
 };
 
 // VALIDATION

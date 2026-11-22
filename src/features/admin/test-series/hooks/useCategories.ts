@@ -1,65 +1,127 @@
-import { useState, useEffect, useCallback } from 'react';
-import { fetchExamCategories, createExamCategory, updateExamCategory, deleteExamCategory } from '../api/adminTestSeriesApi';
-import toast from 'react-hot-toast';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import {
+    fetchExamCategories,
+    createExamCategory,
+    updateExamCategory,
+    deleteExamCategory,
+} from '../api/adminTestSeriesApi';
+import { useNotification } from '@/stores/useNotificationStore';
 
 export const useCategories = () => {
     const [categories, setCategories] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const { showToast } = useNotification();
+    const isMountedRef = useRef(true);
+
+    useEffect(() => {
+        isMountedRef.current = true;
+        return () => {
+            isMountedRef.current = false;
+        };
+    }, []);
 
     const loadCategories = useCallback(async () => {
-        setLoading(true);
+        if (isMountedRef.current) {
+            setLoading(true);
+        }
         try {
             const data = await fetchExamCategories();
-            setCategories(data || []);
+            if (isMountedRef.current) {
+                setCategories(data || []);
+            }
         } catch (error) {
             console.error('Error loading categories:', error);
-            toast.error('Failed to load categories');
+            if (isMountedRef.current) {
+                showToast({
+                    variant: 'error',
+                    title: 'Failed to Load Categories',
+                    message: 'Could not load exam categories.',
+                });
+            }
         } finally {
-            setLoading(false);
+            if (isMountedRef.current) {
+                setLoading(false);
+            }
         }
-    }, []);
+    }, [showToast]);
 
     useEffect(() => {
         loadCategories();
     }, [loadCategories]);
 
-    const addCategory = async (payload: any) => {
+    const addCategory = useCallback(async (payload: any) => {
         try {
             const newCat = await createExamCategory(payload);
-            setCategories(prev => [newCat, ...prev].sort((a, b) => (a.display_order || 0) - (b.display_order || 0)));
-            toast.success('Category created successfully');
+            if (isMountedRef.current) {
+                setCategories((prev) =>
+                    [newCat, ...prev].sort((a, b) => (a.display_order || 0) - (b.display_order || 0))
+                );
+            }
+            showToast({
+                variant: 'success',
+                title: 'Category Created',
+                message: `"${newCat?.name || 'Category'}" created successfully.`,
+            });
             return newCat;
         } catch (error: any) {
             console.error('Create error:', error);
-            toast.error(error.message || 'Failed to create category');
+            showToast({
+                variant: 'error',
+                title: 'Create Failed',
+                message: error?.message || 'Failed to create category',
+            });
             throw error;
         }
-    };
+    }, [showToast]);
 
-    const editCategory = async (id: string, payload: any) => {
+    const editCategory = useCallback(async (id: string, payload: any) => {
         try {
             const updated = await updateExamCategory(id, payload);
-            setCategories(prev => prev.map(c => c.id === id ? updated : c).sort((a, b) => (a.display_order || 0) - (b.display_order || 0)));
-            toast.success('Category updated');
+            if (isMountedRef.current) {
+                setCategories((prev) =>
+                    prev
+                        .map((c) => (c.id === id ? updated : c))
+                        .sort((a, b) => (a.display_order || 0) - (b.display_order || 0))
+                );
+            }
+            showToast({
+                variant: 'success',
+                title: 'Category Updated',
+                message: `"${updated?.name || 'Category'}" updated successfully.`,
+            });
             return updated;
         } catch (error: any) {
             console.error('Update error:', error);
-            toast.error(error.message || 'Failed to update category');
+            showToast({
+                variant: 'error',
+                title: 'Update Failed',
+                message: error?.message || 'Failed to update category',
+            });
             throw error;
         }
-    };
+    }, [showToast]);
 
-    const removeCategory = async (id: string) => {
+    const removeCategory = useCallback(async (id: string) => {
         try {
             await deleteExamCategory(id);
-            setCategories(prev => prev.filter(c => c.id !== id));
-            toast.success('Category deleted');
+            if (isMountedRef.current) {
+                setCategories((prev) => prev.filter((c) => c.id !== id));
+            }
+            showToast({
+                variant: 'success',
+                title: 'Category Deleted',
+                message: 'Exam category deleted permanently.',
+            });
         } catch (error: any) {
             console.error('Delete error:', error);
-            toast.error(error.message || 'Failed to delete category');
+            showToast({
+                variant: 'error',
+                title: 'Delete Failed',
+                message: error?.message || 'Failed to delete category',
+            });
             throw error;
         }
-    };
+    }, [showToast]);
 
     return { categories, loading, addCategory, editCategory, removeCategory, refresh: loadCategories };
 };

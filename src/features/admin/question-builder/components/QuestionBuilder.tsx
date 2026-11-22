@@ -13,6 +13,8 @@ const EMPTY_FILTER_OPTIONS: FilterOptions = {
     examNames: [],
     examYears: [],
     topics: [],
+    subTopics: [],
+    examDateShifts: [],
 };
 
 interface Props {

@@ -84,8 +84,10 @@ export const QuestionResultCard: React.FC<Props> = ({
                         {question.v1_id || 'NO-ID'}
                     </span>
                     {question.subject && <span>• {question.subject}</span>}
+                    {question.subTopic && <span>• {question.subTopic}</span>}
                     {question.difficulty && <span>• {question.difficulty}</span>}
                     {question.examName && <span>• {question.examName} {question.examYear}</span>}
+                    {question.examDateShift && <span>• {question.examDateShift}</span>}
 
                     {isSelected && (
                         <span className="px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300 text-[10px] ml-auto font-bold uppercase tracking-wide">

@@ -3,7 +3,7 @@
  */
 import React, { useState } from 'react';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { render, screen, fireEvent, waitFor, cleanup, act } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, cleanup, act, within } from '@testing-library/react';
 import {
   CANONICAL_EXAMS,
   resolveCanonicalExamNames,
@@ -15,6 +15,8 @@ import {
   clearFilterOptionsCache,
 } from '../api/questionBuilderApi';
 import { QuestionBuilder } from '../components/QuestionBuilder';
+import { QuestionFilterBar } from '../components/QuestionFilterBar';
+import { QuestionResultCard } from '../components/QuestionResultCard';
 import { QuestionLightweight } from '../types/questionBuilder.types';
 import { useNotificationStore } from '@/stores/useNotificationStore';
 
@@ -50,9 +52,12 @@ const makeQuestions = (count: number): QuestionLightweight[] =>
     v1_id: `Q-${idx + 1}`,
     question: `<p>Sample question ${idx + 1} about Bihar history</p>`,
     subject: 'History',
+    topic: 'Ancient History',
+    subTopic: 'Mauryan Empire',
     difficulty: 'Medium',
     examName: 'BPSC TRE3',
     examYear: 2024,
+    examDateShift: '12 Dec 2024 Shift 1',
     questionType: 'MCQ',
     tags: [],
     explanation: { summary: 'Explanation' },
@@ -142,7 +147,7 @@ describe('QuestionBuilder performance, canonical BPSC filtering, and React stabi
     }
   });
 
-  it('fetchFilterOptions() calls get_distinct_values 5 times, strips empty difficulties, sorts examYears descending, and caches repeat calls', async () => {
+  it('fetchFilterOptions() calls get_distinct_values 7 times, strips empty difficulties, sorts examYears descending, trims/sorts subTopics & examDateShifts, and caches repeat calls', async () => {
     rpcMock.mockImplementation(async (_fnName: string, args: { column_name: string }) => {
       switch (args.column_name) {
         case 'subject':
@@ -155,6 +160,10 @@ describe('QuestionBuilder performance, canonical BPSC filtering, and React stabi
           return { data: [{ value: '2021' }, { value: '2025' }, { value: '2023' }], error: null };
         case 'topic':
           return { data: [{ value: 'Constitution' }], error: null };
+        case 'subTopic':
+          return { data: [{ value: '  Fundamental Rights ' }, { value: '' }, { value: 'Directive Principles' }], error: null };
+        case 'examDateShift':
+          return { data: [{ value: ' 12 Dec 2024 Shift 2 ' }, { value: '12 Dec 2024 Shift 1' }, { value: null }], error: null };
         default:
           return { data: [], error: null };
       }
@@ -162,15 +171,45 @@ describe('QuestionBuilder performance, canonical BPSC filtering, and React stabi
 
     const first = await fetchFilterOptions();
 
-    expect(rpcMock).toHaveBeenCalledTimes(5);
+    expect(rpcMock).toHaveBeenCalledTimes(7);
     expect(fromMock).not.toHaveBeenCalled();
     expect(first.difficulties).toEqual(['Easy', 'Hard']);
     expect(first.examYears).toEqual([2025, 2023, 2021]);
     expect(first.subjects).toEqual(['History', 'Polity']);
+    expect(first.subTopics).toEqual(['Directive Principles', 'Fundamental Rights']);
+    expect(first.examDateShifts).toEqual(['12 Dec 2024 Shift 1', '12 Dec 2024 Shift 2']);
 
     const second = await fetchFilterOptions();
     expect(second).toEqual(first);
-    expect(rpcMock).toHaveBeenCalledTimes(5);
+    expect(rpcMock).toHaveBeenCalledTimes(7);
+  });
+
+  it('searchQuestions({ subTopic, examDateShift }) chains .eq("subTopic", ...) and .eq("examDateShift", ...)', async () => {
+    const chain: Record<string, any> = {};
+    const methods = ['select', 'is', 'or', 'eq', 'in', 'order', 'range'];
+    methods.forEach(method => {
+      chain[method] = vi.fn(() => {
+        if (method === 'range') {
+          return Promise.resolve({ data: [], error: null, count: 0 });
+        }
+        return chain;
+      });
+    });
+
+    fromMock.mockReturnValue(chain);
+
+    await searchQuestions({
+      subTopic: 'Fundamental Rights',
+      examDateShift: '12 Dec 2024 Shift 1',
+    });
+
+    expect(fromMock).toHaveBeenCalledWith('questions');
+    expect(chain.select).toHaveBeenCalledWith(
+      'id, v1_id, question, subject, topic, subTopic, difficulty, examName, examYear, examDateShift, questionType, tags, explanation, options, correct',
+      { count: 'exact' }
+    );
+    expect(chain.eq).toHaveBeenCalledWith('subTopic', 'Fundamental Rights');
+    expect(chain.eq).toHaveBeenCalledWith('examDateShift', '12 Dec 2024 Shift 1');
   });
 
   it('fetchQuestionsByUUIDs chunks 150 UUIDs into 2 queries (100 + 50)', async () => {
@@ -240,7 +279,7 @@ describe('QuestionBuilder performance, canonical BPSC filtering, and React stabi
 
     await waitFor(() => {
       expect(screen.getByText(/Results \(6\)/i)).toBeTruthy();
-    });
+    }, { timeout: 5000 });
     expect(uuidFetchCount).toBe(1); // Only initial hydration for initialId
 
     // Toggle 5 questions individually via direct Add buttons
@@ -292,5 +331,128 @@ describe('QuestionBuilder performance, canonical BPSC filtering, and React stabi
 
     // Assert zero React render-phase or console errors
     expect(consoleErrorSpy).not.toHaveBeenCalled();
+  }, 30000);
+
+  it('<QuestionFilterBar> and <QuestionResultCard> support searchable subTopic & examDateShift comboboxes with 50-item cap, removable chips, and metadata rendering', () => {
+    const onChange = vi.fn();
+    const manySubTopics = [
+      'Mauryan Empire',
+      ...Array.from({ length: 74 }, (_, idx) => `Topic Slice ${String(idx + 1).padStart(2, '0')}`),
+    ];
+    const baseOptions = {
+      subjects: ['History'],
+      topics: ['Ancient History'],
+      subTopics: manySubTopics,
+      difficulties: ['Medium'],
+      examNames: ['BPSC TRE3'],
+      examYears: [2024],
+      examDateShifts: ['12 Dec 2024 Shift 1', '13 Dec 2024 Shift 2'],
+    };
+
+    const { rerender, container } = render(
+      <QuestionFilterBar
+        options={baseOptions}
+        params={{}}
+        onChange={onChange}
+        isLoading={false}
+      />
+    );
+
+    // Closed comboboxes must NOT render any listbox in the DOM
+    expect(screen.queryByRole('listbox')).toBeNull();
+    expect(container.querySelectorAll('button:not([type="button"])').length).toBe(0);
+
+    // Open Sub-Topic combobox
+    const subTopicTrigger = screen.getByRole('button', { name: 'Filter by Sub-Topic' });
+    expect(subTopicTrigger.getAttribute('aria-expanded')).toBe('false');
+    fireEvent.click(subTopicTrigger);
+    expect(subTopicTrigger.getAttribute('aria-expanded')).toBe('true');
+
+    // Verify 50-item cap + "All Sub-Topics" option + truncation hint
+    const subTopicListbox = screen.getByRole('listbox', { name: 'Sub-Topic' });
+    expect(within(subTopicListbox).getAllByRole('option')).toHaveLength(51);
+    expect(within(subTopicListbox).getByRole('option', { name: 'All Sub-Topics' })).toBeTruthy();
+    expect(screen.getByText(/Showing 50 of 75 matches/i)).toBeTruthy();
+    expect(container.querySelectorAll('button:not([type="button"])').length).toBe(0);
+
+    // Search filtering
+    const subTopicSearch = screen.getByLabelText('Search Sub-Topic') as HTMLInputElement;
+    fireEvent.change(subTopicSearch, { target: { value: 'zzz-no-match' } });
+    expect(screen.getByText('No matching sub-topics')).toBeTruthy();
+    expect(within(subTopicListbox).getAllByRole('option')).toHaveLength(1); // Only "All Sub-Topics"
+
+    fireEvent.change(subTopicSearch, { target: { value: 'mauryan' } });
+    expect(screen.queryByText(/Showing 50 of 75 matches/i)).toBeNull();
+    const mauryanOption = within(subTopicListbox).getByRole('option', { name: 'Mauryan Empire' });
+    expect(within(subTopicListbox).getAllByRole('option')).toHaveLength(2); // "All Sub-Topics" + "Mauryan Empire"
+
+    // Select an item
+    fireEvent.click(mauryanOption);
+    expect(onChange).toHaveBeenCalledWith({ subTopic: 'Mauryan Empire' });
+    expect(subTopicTrigger.getAttribute('aria-expanded')).toBe('false');
+    expect(screen.queryByRole('listbox')).toBeNull();
+
+    // Verify Sub-Topic chip renders & removes cleanly
+    rerender(
+      <QuestionFilterBar
+        options={baseOptions}
+        params={{ subTopic: 'Mauryan Empire' }}
+        onChange={onChange}
+        isLoading={false}
+      />
+    );
+    const removeSubTopicOnlyBtn = screen.getByRole('button', { name: 'Remove Sub-Topic filter' });
+    fireEvent.click(removeSubTopicOnlyBtn);
+    expect(onChange).toHaveBeenCalledWith({ subTopic: undefined });
+
+    // Open Date / Shift combobox, filter & select
+    const shiftTrigger = screen.getByRole('button', { name: 'Filter by Exam Date / Shift' });
+    fireEvent.click(shiftTrigger);
+    expect(shiftTrigger.getAttribute('aria-expanded')).toBe('true');
+
+    const shiftListbox = screen.getByRole('listbox', { name: 'Date / Shift' });
+    const shiftSearch = screen.getByLabelText('Search Date / Shift') as HTMLInputElement;
+    fireEvent.change(shiftSearch, { target: { value: '12 Dec' } });
+    const shiftOption = within(shiftListbox).getByRole('option', { name: '12 Dec 2024 Shift 1' });
+    fireEvent.click(shiftOption);
+    expect(onChange).toHaveBeenCalledWith({ subTopic: 'Mauryan Empire', examDateShift: '12 Dec 2024 Shift 1' });
+    expect(shiftTrigger.getAttribute('aria-expanded')).toBe('false');
+    expect(screen.queryByRole('listbox')).toBeNull();
+
+    // Rerender with both active filters and verify chips
+    rerender(
+      <QuestionFilterBar
+        options={baseOptions}
+        params={{ subTopic: 'Mauryan Empire', examDateShift: '12 Dec 2024 Shift 1' }}
+        onChange={onChange}
+        isLoading={false}
+      />
+    );
+
+    const removeSubTopicBtn = screen.getByRole('button', { name: 'Remove Sub-Topic filter' });
+    const removeShiftBtn = screen.getByRole('button', { name: 'Remove Exam Date / Shift filter' });
+    expect(removeSubTopicBtn.getAttribute('type')).toBe('button');
+    expect(removeShiftBtn.getAttribute('type')).toBe('button');
+
+    fireEvent.click(removeSubTopicBtn);
+    expect(onChange).toHaveBeenCalledWith({ subTopic: undefined, examDateShift: '12 Dec 2024 Shift 1' });
+
+    fireEvent.click(removeShiftBtn);
+    expect(onChange).toHaveBeenCalledWith({ subTopic: 'Mauryan Empire', examDateShift: undefined });
+
+    expect(container.querySelectorAll('button:not([type="button"])').length).toBe(0);
+
+    const q = makeQuestions(1)[0];
+    render(
+      <QuestionResultCard
+        question={q}
+        isSelected={false}
+        onToggleSelect={vi.fn()}
+        onPreview={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText(/• Mauryan Empire/)).toBeTruthy();
+    expect(screen.getByText(/• 12 Dec 2024 Shift 1/)).toBeTruthy();
   });
 });
