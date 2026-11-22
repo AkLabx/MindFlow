@@ -5,6 +5,7 @@ import {
     updateTest,
     deleteTest,
     cloneTest,
+    validateTestForPublish,
 } from '../api/adminTestSeriesApi';
 import { useNotification } from '@/stores/useNotificationStore';
 
@@ -179,6 +180,15 @@ export const useTests = (seriesId?: string) => {
         options?: { silent?: boolean }
     ) => {
         try {
+            if (nextPublished) {
+                const existingTest = testsRef.current.find((t) => t.id === id);
+                if (existingTest) {
+                    const validation = validateTestForPublish(existingTest);
+                    if (!validation.canPublish) {
+                        throw new Error(validation.reasons[0] || 'Cannot publish incomplete mock test.');
+                    }
+                }
+            }
             const updated = await updateTest(id, { is_published: nextPublished });
             if (isMountedRef.current) {
                 setTests((prev) => {
