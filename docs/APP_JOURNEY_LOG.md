@@ -26,6 +26,18 @@ This document is the single source of truth for the evolution of the MindFlow ap
 
 ## 🚀 App Journey Changelog
 
+## [v1.0.371] - 22 November 2026, 02:17 PM IST
+
+**Executive Summary:** Dedicated BPSC Prepared Mock Tests Page, Canonical Exam Routing & 0ms Offline Hydration. Built the student-facing listing page (`/mcqs/test-series/bpsc` & `/mcqs/test-series/exam/:examSlug`) backed by `DB_TABLES.MOCK.*`, `examRegistry.ts` canonical aliasing, schedule-window enforcement (`DEC-0017`), 3-tier Memory/`localStorage`/IndexedDB (`SYNC_METADATA_STORE`) caching (`DEC-0004`), `>=44x44px` filter chips, deterministic `<ArrowLeft />` parent navigation (`DEC-0002`), and a unified context-aware discovery card across Dashboard, MCQs Hub, and Mock Tests Home (`DEC-0003`, `DEC-0019`).
+
+### ✨ Features Added
+- **Dedicated BPSC & Canonical Exam Mock Tests Page (`src/features/mock-tests/pages/ExamPreparedMockTestsPage.tsx`, `src/config/routes.ts`, `src/routes/AppRoutes.tsx`)**: Registered `ROUTES.TEST_SERIES.BPSC` (`/mcqs/test-series/bpsc`), `ROUTES.TEST_SERIES.EXAM(':examSlug')`, and `getPreparedMockTestsRoute()`, rendering published series and prepared mock tests with `>=44x44px` `type="button"` `active:scale-95` filter chips (`All`, `Full-Length`, `Free`, `Attempted`), searchable filtering, official specs (`duration_minutes`, `question_count`, `total_marks`, `negative_marks`), off-screen `content-visibility: auto`, actionable empty/offline recovery states, and deterministic `<ArrowLeft />` logical return.
+- **Context-Aware Discovery Card (`src/features/mock-tests/components/PreparedMockTestsShortcutCard.tsx`, `src/pages/DashboardPage.tsx`, `src/pages/McqsQuizHomePage.tsx`, `src/features/mock-tests/pages/ExamCategoriesPage.tsx`)**: Added a unified `useExamContextStore`-driven shortcut card linking to the active exam's prepared mocks plus a 1-tap `BPSC Mocks` CTA across Dashboard, MCQs Hub, and Mock Tests Home, with `scroll-mb-28` bottom-bar clearance (`WCAG 2.4.11`).
+
+### ⚡ Performance & Architecture
+- **Canonical Exam-Aware API & 0ms Offline SWR Cache (`src/features/mock-tests/api/mockTestsApi.ts`, `src/lib/db.ts`)**: Added `fetchPreparedMockTestsByExam`, `materializePreparedMockTests`, `doesTextMatchCanonicalExam`, `isFullLengthMockTest`, `getCachedPreparedMockTestsSnapshot`, and `readPreparedMockTestsIndexedDBCache` powered by `DB_TABLES.MOCK.*` and `MindFlowDB` (`getCacheEntry`/`setCacheEntry` on `SYNC_METADATA_STORE`), enforcing `isTestWithinScheduleWindow()` on both cached and live data and scoping attempt status caches by user ID.
+- **Automated Verification (`src/features/mock-tests/__tests__/examPreparedMockTests.test.tsx`)**: Added `7` Vitest unit and component tests covering canonical aliasing (`BPSSC` non-collision), schedule-window cache expiration, IndexedDB fallback hydration, filter chips, `>=44x44px` buttons, offline retry recovery, and logical back return (`35/35` test files, `221/221` tests green).
+
 ## [v1.0.370.1] - 22 November 2026, 11:20 AM IST
 
 **Executive Summary:** Backend Assessment Nomenclature (`mock_*` / `quiz_*`), Atomic 10-RPC Sync & Modular `src/config/dbTables.ts` Registry. Non-destructively grouped Admin-Prepared Preset Mock Tests (`mock_categories`, `mock_series`, `mock_tests`, `mock_test_attempts`) and Custom Student Quizzes (`quiz_sessions`, `quiz_session_questions`, `quiz_session_results`) in Supabase, documented all 18 assessment/adjacent tables with `COMMENT ON TABLE`, atomically updated all 10 dependent PostgreSQL functions, and centralized frontend table/RPC identifiers in `src/config/dbTables.ts` while preserving local IndexedDB stores (`DEC-0004`).

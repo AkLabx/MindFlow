@@ -17,6 +17,7 @@ import { useExamContextStore } from "@/stores/useExamContextStore";
 import { TopicVulnerability } from "@/features/ai/hooks/useVulnerabilityEngine";
 
 import { AIPrescriptionCard } from "@/features/ai/components/AIPrescriptionCard";
+import { PreparedMockTestsShortcutCard } from "@/features/mock-tests/components/PreparedMockTestsShortcutCard";
 import { triggerHaptic } from "@/lib/haptics";
 import {
   DashboardGreeting,
@@ -364,6 +365,9 @@ export const DashboardPage: React.FC<DashboardProps> = ({ onBackToIntro }) => {
           onSelectExam={handleSelectExam}
           onQuickDrill={handleExamQuickDrill}
         />
+
+        {/* Tier 1.6: Admin-Prepared Mock Tests Shortcut (Context-Aware) */}
+        <PreparedMockTestsShortcutCard source="dashboard" returnTo={ROUTES.DASHBOARD} />
 
         {/* Tier 1.8: AI Study Prescription (Phase 5A Intelligence Layer) */}
         <AIPrescriptionCard onStartDrill={handleAIPrescriptionDrill} />

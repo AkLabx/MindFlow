@@ -1052,6 +1052,32 @@ export const db = {
         });
     },
 
+    getCacheEntry: async <T = unknown>(key: string): Promise<{ key: string; data: T; updatedAt: number } | null> => {
+        if (typeof indexedDB === 'undefined') return null;
+        const dbInstance = await openDB();
+        return new Promise((resolve, reject) => {
+            const transaction = dbInstance.transaction(SYNC_METADATA_STORE, 'readonly');
+            const store = transaction.objectStore(SYNC_METADATA_STORE);
+            const request = store.get(key);
+
+            request.onsuccess = () => resolve((request.result as { key: string; data: T; updatedAt: number }) ?? null);
+            request.onerror = (event) => reject((event.target as IDBRequest).error);
+        });
+    },
+
+    setCacheEntry: async <T = unknown>(key: string, data: T): Promise<void> => {
+        if (typeof indexedDB === 'undefined') return;
+        const dbInstance = await openDB();
+        return new Promise((resolve, reject) => {
+            const transaction = dbInstance.transaction(SYNC_METADATA_STORE, 'readwrite');
+            const store = transaction.objectStore(SYNC_METADATA_STORE);
+            const request = store.put({ key, data, updatedAt: Date.now() });
+
+            request.onsuccess = () => resolve();
+            request.onerror = (event) => reject((event.target as IDBRequest).error);
+        });
+    },
+
     saveIdiomMetadataCache: async (metadata: any[]): Promise<void> => {
         const dbInstance = await openDB();
         return new Promise((resolve, reject) => {

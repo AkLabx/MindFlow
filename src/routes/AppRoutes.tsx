@@ -82,6 +82,7 @@ const AdminContentStudio = lazy(() => import("../features/admin/content/pages/Ad
 const AdminTestSeriesDashboard = lazy(() => import('../features/admin/test-series/pages/AdminTestSeriesDashboard').then(m => ({ default: m.AdminTestSeriesDashboard })));
 const AdminTestBuilderPage = lazy(() => import('../features/admin/test-series/pages/AdminTestBuilderPage').then(m => ({ default: m.AdminTestBuilderPage })));
 const ExamCategoriesPage = lazy(() => import('../features/mock-tests/pages/ExamCategoriesPage').then(m => ({ default: m.ExamCategoriesPage })));
+const ExamPreparedMockTestsPage = lazy(() => import('../features/mock-tests/pages/ExamPreparedMockTestsPage').then(m => ({ default: m.ExamPreparedMockTestsPage })));
 const TestSeriesPage = lazy(() => import('../features/mock-tests/pages/TestSeriesPage').then(m => ({ default: m.TestSeriesPage })));
 const TestsListPage = lazy(() => import('../features/mock-tests/pages/TestsListPage').then(m => ({ default: m.TestsListPage })));
 const TestDetailPage = lazy(() => import('../features/mock-tests/pages/TestDetailPage').then(m => ({ default: m.TestDetailPage })));
@@ -281,6 +282,8 @@ const handleReattempt = async (quizId: string, mode: string) => {
                     <Route path={ROUTES.VOCAB.IDIOMS.CONFIG} element={<Suspense fallback={<SynapticLoader />}><IdiomsConfig onBack={() => { navigate(ROUTES.ENGLISH); }} onStart={(data: any, filters: any, mode: any) => { flashcardStore.startIdioms(data as any, filters, mode as "basic" | "review"); navigate(ROUTES.VOCAB.IDIOMS.SESSION.root); }} /></Suspense>} />
                     <Route path={ROUTES.VOCAB.OWS.CONFIG} element={<Suspense fallback={<SynapticLoader />}><OWSConfig onBack={() => { navigate(ROUTES.ENGLISH); }} onStart={(data: any, filters: any, mode: any) => { flashcardStore.startOWS(data, filters, mode as "basic" | "review"); navigate(ROUTES.VOCAB.OWS.SESSION.root); }} /></Suspense>} />
                     <Route path={ROUTES.TEST_SERIES.ROOT} element={<Suspense fallback={<SynapticLoader />}><ExamCategoriesPage /></Suspense>} />
+                    <Route path={ROUTES.TEST_SERIES.BPSC} element={<Suspense fallback={<SynapticLoader />}><ExamPreparedMockTestsPage /></Suspense>} />
+                    <Route path={ROUTES.TEST_SERIES.EXAM(':examSlug')} element={<Suspense fallback={<SynapticLoader />}><ExamPreparedMockTestsPage /></Suspense>} />
                     <Route path={ROUTES.TEST_SERIES.CATEGORY(':categoryId')} element={<Suspense fallback={<SynapticLoader />}><TestSeriesPage /></Suspense>} />
                     <Route path={ROUTES.TEST_SERIES.SERIES(':seriesId')} element={<Suspense fallback={<SynapticLoader />}><TestsListPage /></Suspense>} />
                     <Route path={ROUTES.TEST_SERIES.TEST(':testId')} element={<Suspense fallback={<SynapticLoader />}><TestDetailPage /></Suspense>} />
