@@ -8,7 +8,7 @@
 ## 1. Current Verified Baseline Snapshot
 
 - **Repository:** `MindFlow` (Full-Stack React 19 + TypeScript + Vite + TailwindCSS + Capacitor Android + Supabase + Dexie)
-- **Current Baseline Version:** `v1.0.370`
+- **Current Baseline Version:** `v1.0.370` (PR `#1112`, commit `7f300b30` on `main`)
 - **Android App Version:** `versionCode 6`, `versionName "1.6"` (`android/app/build.gradle`)
 - **Current Git Branch:** `main` (Slot 1 Anchor / Host)
 - **Static Typecheck:** Passed (`0` errors via `npx.cmd tsc --noEmit`)
@@ -18,11 +18,11 @@
   - Applied migration `supabase/migrations/20261122000000_harden_mock_tests_rls_and_leaderboard.sql`: locked `"Public read for leaderboard if completed"` (`USING (false)`), scoped all 11 policies on `exam_categories`, `test_series`, `tests`, and `user_test_attempts` `TO authenticated` with cascading active-parent + `release_date`/`expiry_date` schedule-window RLS, added `user_test_attempts.accuracy` + status/publish/schedule `CHECK` constraints, and created `public.get_test_leaderboard(p_test_id uuid, p_limit integer)` (`SECURITY DEFINER SET search_path = public, pg_temp`, `anon` execute revoked, `authenticated` execute granted).
   - `supabase_mcp.get_advisors(type="security")`: `0` mock-test RLS or anonymous `SECURITY DEFINER` issues.
 - **Live Browser Verification (Built-In Browser, Desktop `1280x800` at `http://localhost:3000/`):**
-  - *`#/admin/test-series?tab=tests`:* Initial cold load hit a `getSession` 2500ms timeout (`AuthTimeout`) before reload; after reload hydrated cleanly across `Categories` (`SSC CGL`), `Series` (`SSC CGL 2025 GK`), and `Tests` (`HISTORY [ Easy ]`, Draft, 28 Questions) with `0` console errors.
+  - *`#/admin/test-series?tab=tests`:* Hydrated cleanly across `Categories` (`SSC CGL`), `Series` (`SSC CGL 2025 GK`), and `Tests` (`HISTORY [ Easy ]`, Draft, `28 Questions`) with `0` console errors after reload.
   - *`#/mcqs/test-series`:* Rendered `MindFlow v1.0.370`, `Master Your Next Examination.`, `Continue Learning`, `Popular Series` (`SSC CGL 2025 GK`), and `Browse Categories` (`SSC CGL`) with `0` console errors.
 - **Master Blueprint Index:** [`docs/blueprint/main_blueprint.md`](../blueprint/main_blueprint.md)
 - **Active Generation Blueprint:** [`docs/blueprint/v1.0_blueprint.md`](../blueprint/v1.0_blueprint.md) — **Gen 1B (`v1.0.367` $\rightarrow$ `v1.0.380`): Admin Panel & Dedicated BPSC Prepared Mock Tests Hardening**
-- **Next Active Step:** **Step 5 (`v1.0.371`) — Dedicated BPSC Prepared Mock Tests Page (Student Listing & Discovery)**
+- **Next Active Step:** **Step 4B (`v1.0.370.1`) — Backend Assessment Nomenclature (`mock_*` / `quiz_*`), Modular `dbTables.ts` Registry & Frontend Sync (Approved Option A)**
 
 ---
 
@@ -42,49 +42,68 @@
 
 ---
 
-## 3. Pre-Planned Execution Brief for Next Version (v1.0.371)
+## 3. Pre-Planned Execution Brief for Next Version (`v1.0.370.1` — Approved Option A)
 
-- **Target Version:** `v1.0.371`
-- **Target Branch:** `feat/v1.0.371-dedicated-bpsc-mock-tests-page`
-- **Blueprint Reference:** Gen 1B, **Step 5** in [`docs/blueprint/v1.0_blueprint.md`](../blueprint/v1.0_blueprint.md)
-- **Objective:** Deliver a dedicated, offline-resilient student listing and discovery page for **BPSC Prepared Mock Tests** (and exam-aware prepared mock test discovery), backed by canonical exam aliasing, schedule-window-filtered queries (`DEC-0017`), and context-aware shortcuts from Dashboard / MCQs Hub / Mock Tests Home.
-- **Exact Scope & Targets:**
-  1. **Exam-Aware Prepared Mock Tests Data Layer ([`mockTestsApi.ts`](../../src/features/mock-tests/api/mockTestsApi.ts) & IndexedDB/SWR cache):**
-     - Add `fetchPreparedMockTestsByExam(examId)` resolving canonical exam aliases via `getCanonicalExamById()` / `resolveCanonicalExamNames()` (`src/features/dashboard/constants/examRegistry.ts`) across active `exam_categories`, published `test_series`, and `isTestWithinScheduleWindow()`-filtered published `tests`.
-     - Provide 0ms local cache hydration + background sync (`DEC-0004`).
-  2. **Dedicated BPSC & Exam-Aware Listing Route (`src/features/mock-tests/pages/ExamPreparedMockTestsPage.tsx`, `src/config/`, [`AppRoutes.tsx`](../../src/routes/AppRoutes.tsx)):**
-     - Add `/mcqs/test-series/bpsc` and `/mcqs/test-series/exam/:examSlug` routes in `src/config/` `ROUTES` and `AppRoutes.tsx`.
-     - Render prepared BPSC test series & mock tests with `>=44x44px` `active:scale-95` filter chips (`All`, `Full-Length`, `Free`, `Attempted`), official exam specs (`duration_minutes`, `question_ids.length`, `total_marks`, `negative_marks`), direct Launch/Detail CTAs (`TestDetailPage`), and strict `DEC-0002` logical `<ArrowLeft />` return (no `navigate(-1)`).
-  3. **Context-Aware Discovery Shortcuts ([`DashboardPage.tsx`](../../src/pages/DashboardPage.tsx), [`McqsQuizHomePage.tsx`](../../src/pages/McqsQuizHomePage.tsx), [`ExamCategoriesPage.tsx`](../../src/features/mock-tests/pages/ExamCategoriesPage.tsx)):**
-     - Surface a prominent shortcut card to `/mcqs/test-series/bpsc` (or active exam slug) driven by `useExamContextStore((s) => s.activeExamId)` (`DEC-0001` & `DEC-0003`).
-- **Circuit Breaker Check:**
-  - *Files count:* Estimated `<= 7` modified/created (`<= 10` threshold). *New npm/Gradle dependencies:* **None**. *DB/RLS changes:* **None**.
+- **Target Milestone:** `v1.0.370.1` (`package.json` SemVer: `1.0.370-1` so `v1.0.371`–`v1.0.380` numbering stays intact)
+- **Target Branch:** `feat/v1.0.370.1-assessment-db-nomenclature`
+- **Blueprint Reference:** Gen 1B, **Step 4B** in [`docs/blueprint/v1.0_blueprint.md`](../blueprint/v1.0_blueprint.md)
+- **Objective:** Standardize MindFlow's assessment backend nomenclature in Supabase (`public` schema) so **Admin-Prepared Preset Mock Tests (`mock_*`)** and **Custom Student Quizzes (`quiz_*`)** group cleanly in alphabetical blocks inside the Supabase Table Editor, update all 10 dependent PostgreSQL functions atomically, add `COMMENT ON TABLE` descriptions across assessment tables, and introduce a centralized `src/config/dbTables.ts` registry across the frontend.
+- **CRITICAL CIRCUIT BREAKERS:**
+  - **DB DDL / RPC MIGRATION:** **STOP and ask the user for explicit approval of the exact SQL migration before calling `apply_migration`!** First inspect live `pg_get_functiondef()` for all 10 affected functions in Supabase (`project_id: sjcfagpjstbfxuiwhlps`), draft the non-destructive `ALTER TABLE ... RENAME TO ...` + `CREATE OR REPLACE FUNCTION` + `COMMENT ON TABLE` migration (ZERO `DROP` statements so Supabase MCP elicitation doesn't auto-cancel), present it clearly, and wait for confirmation.
+  - **>10 FILES THRESHOLD:** **Pre-approved by user under Option A** (`~22–26` files across `src/config/dbTables.ts`, APIs, components, sync services, and tests). *New npm/Gradle dependencies:* **None**.
+- **Exact Scope & Targets (Approved Option A — Clean Rename):**
+  1. **Non-Destructive PostgreSQL Table Renames (`supabase/migrations/20261122010000_standardize_assessment_nomenclature.sql`):**
+     - **Block A — Admin-Prepared Preset Mock Tests (`mock_*`):**
+       - `exam_categories` $\rightarrow$ **`mock_categories`**
+       - `test_series` $\rightarrow$ **`mock_series`**
+       - `tests` $\rightarrow$ **`mock_tests`**
+       - `user_test_attempts` $\rightarrow$ **`mock_test_attempts`**
+     - **Block B — Custom Student Quizzes (`quiz_*`):**
+       - `saved_quizzes` $\rightarrow$ **`quiz_sessions`**
+       - `bridge_saved_quiz_questions` $\rightarrow$ **`quiz_session_questions`**
+       - `quiz_history` $\rightarrow$ **`quiz_session_results`**
+     - Add `COMMENT ON TABLE` descriptions on all 7 renamed tables plus `questions`, `user_question_mastery`, `subject_metadata_cache`, `exam_configs`/`exam_submissions`/`exam_section_results`/`exam_stats_snapshots`/`official_answer_keys`, `user_exam_blueprints`/`blueprint_seen_questions`, and deprecation comment on unused `user_answers`.
+  2. **Atomic Update of All 10 Live PostgreSQL Functions (Verified via `pg_proc.prosrc`):**
+     - `public.get_test_leaderboard` *(plus `public.get_mock_test_leaderboard` alias or clean update with `REVOKE ALL ... FROM PUBLIC, anon; GRANT EXECUTE ... TO authenticated;`)*
+     - `public.create_quiz_session`
+     - `public.submit_quiz_session`
+     - `public.clone_shared_quiz`
+     - `public.export_user_data`
+     - `public.backfill_user_question_mastery`
+     - `public.cleanup_orphaned_bridge_rows`
+     - `public.get_user_performance_metrics`
+     - `public.record_question_interactions`
+     - `public.reset_user_analytics`
+  3. **Centralized Modular Registry (`src/config/dbTables.ts`) & Frontend Call-Site Sync:**
+     - Create `src/config/dbTables.ts` exporting `DB_TABLES` (`MOCK`, `QUIZ`, `BANK`, `BLUEPRINT`, `RANKER`) and `DB_RPCS`.
+     - Replace all raw `.from(...)` and PostgREST nested relation queries across Admin CMS (`adminTestSeriesApi.ts`, `AdminOverviewPage.tsx`, `AdminTestSeriesDashboard.tsx`, `AdminTestBuilderPage.tsx`, `SeriesCard.tsx`, `TestCard.tsx`, `TestDrawer.tsx`, `adminUsersService.ts`, `adminTestSeriesCms.test.tsx`), Student Mock Tests (`mockTestsApi.ts`, `TestDetailPage.tsx`, `TestsListPage.tsx`), and Custom Quizzes / Sync (`AttemptedQuizzesList.tsx`, `QuizSessionGuard.tsx`, `ResultGuard.tsx`, `SavedQuizzesList.tsx`, `useQuizSessionStore.ts`, `usePerformanceAnalytics.ts`, `quizCreationService.ts`, `quizProgressService.ts`, `useTodaysPlan.ts`, `DashboardPage.tsx`, `db.ts`, `syncService.ts`).
+     - **CRITICAL OFFLINE-STORAGE RULE (`DEC-0004`):** Keep local browser IndexedDB store names (`'saved_quizzes'`, `'quiz_history'`) in `src/lib/db.ts` **unchanged** so existing offline user data is preserved; update ONLY remote Supabase `.from(DB_TABLES.QUIZ.*)` calls!
+     - **PostgREST Relational Select Consistency (`DEC-0014`):** Ensure nested selects (`mock_series(..., mock_categories(...))`) match component property reads (or use clean PostgREST aliases / typed DTOs) so zero `"Unassigned Series"` UI flashes occur.
 - **Invariants to Protect:**
-  - `DEC-0001` (Canonical `BPSC` exam aliasing from `examRegistry.ts`).
-  - `DEC-0002` (Deterministic logical `<ArrowLeft />` back navigation via `NavigationManager`; never `navigate(-1)`).
-  - `DEC-0003` (Single State Ownership Matrix via `useExamContextStore`).
-  - `DEC-0004` (0ms offline-first IndexedDB cache).
-  - `DEC-0008` (Native Android feel, `>=44x44px` touch targets, `active:scale-95`).
-  - `DEC-0017` (`isTestWithinScheduleWindow()` + active-parent checks on student queries).
+  - `DEC-0004` (IndexedDB offline-first preservation — do NOT wipe or rename local `MindFlowDB` object stores).
+  - `DEC-0014` (Relational mutation selects & `useNotification()` Popover toasts).
+  - `DEC-0016` (CMS filters, publish parity, draft clone, cascade sync).
+  - `DEC-0017` (All RLS policies `TO authenticated`, `mock_test_attempts` privacy lock, `get_test_leaderboard` `anon` revoke & `isTestWithinScheduleWindow()`).
 - **Real-World Verification Goal:**
-  - *Static:* `npx.cmd tsc --noEmit` (0 errors) + `npx.cmd vitest --run --pool=forks --maxWorkers=1` (with new Vitest coverage for canonical BPSC filtering & listing filters) + `npx.cmd vite build` (clean).
-  - *Live Browser (`http://localhost:3000/` via built-in browser):* Verify `/mcqs/test-series/bpsc` and context-aware Dashboard/MCQs Hub entry on both Desktop (`1280x800`) and Mobile (`390x844`) viewports, checking instant listing, filter chips, `>=44x44px` touch targets, logical `<ArrowLeft />` navigation, and 0 console errors.
+  - *Supabase Verification:* Query `pg_tables`, `pg_policies`, `pg_constraint`, `pg_proc.prosrc` (confirm `0` stale references to old table names across all `public` functions), and `supabase_mcp.get_advisors(type="security")`.
+  - *Static:* `npx.cmd tsc --noEmit` (`0` errors) + `npx.cmd vitest --run --pool=forks --maxWorkers=1` (100% passing) + `npx.cmd vite build`.
+  - *Live Browser (`http://localhost:3000/` via built-in browser at Desktop `1280x800`):* Verify `#/admin/test-series?tab=tests`, `#/mcqs/test-series`, and `#/quiz/config` (custom quiz load/history) render real data with `0` console errors.
 
 ---
 
 ## 4. Mandatory Closeout Checklist (Every Chat MUST Complete All 7)
 
-- [ ] **Step 1:** Create release dossier `docs/versions/v1.0.371.md` using `docs/versions/00-template.md`.
-- [ ] **Step 2:** Register newly made decisions in `docs/DECISIONS_MASTER.md` (Table 1 or Table 2).
+- [ ] **Step 1:** Create release dossier `docs/versions/v1.0.370.1.md` using `docs/versions/00-template.md`.
+- [ ] **Step 2:** Register newly made decisions in `docs/DECISIONS_MASTER.md` (`DEC-0018`, `OLD-010`).
 - [ ] **Step 3:** Prepend release entry to `docs/APP_JOURNEY_LOG.md` with exact IST timestamp.
-- [ ] **Step 4:** Mark Step 5 (`v1.0.371`) as `[x] DONE` with PR/commit in `docs/blueprint/v1.0_blueprint.md`, promote Step 6 (`v1.0.372`) to High-Definition Spec, and refine Step 10 (`v1.0.376`) to Medium Detail.
-- [ ] **Step 5:** Completely overwrite `docs/handovers/CURRENT_HANDOVER.md` with the new baseline and Step 6 (`v1.0.372`) brief.
+- [ ] **Step 4:** Mark Step 4B (`v1.0.370.1`) as `[x] DONE` with PR `#` in `docs/blueprint/v1.0_blueprint.md` and promote Step 5 (`v1.0.371`) to High-Definition Spec (`[ ] NEXT`).
+- [ ] **Step 5:** Completely overwrite `docs/handovers/CURRENT_HANDOVER.md` with the `v1.0.370.1` verified baseline and Step 5 (`v1.0.371`) brief.
 - [ ] **Step 6:** Run secret/privacy scan on staged git changes (zero API keys, tokens, personal emails, or local OS paths).
-- [ ] **Step 7:** Commit, push, open PR via GitHub CLI `gh pr create`, record PR #, squash merge, and verify clean `main`.
+- [ ] **Step 7:** Commit, push, open PR via GitHub CLI `gh pr create`, record PR #, wait for CI check, squash merge, and verify clean `main`.
 
 ---
 
-## 5. Copy-Paste Starter Prompt for Fresh Chat
+## 5. Copy-Paste Starter Prompt for Fresh Chat (`v1.0.370.1`)
 
 ```text
 I am continuing development on MindFlow using the autonomous "1 Chat = 1 Version" workflow system governed by AGENTS.md, GEMINI.md, and the version-ritual skill.
@@ -93,10 +112,10 @@ Please follow this exact cold-start protocol:
 1. Read the Hot Context (<20 KB):
    - docs/handovers/CURRENT_HANDOVER.md
    - docs/DECISIONS_MASTER.md
-   - Active Step 5 in docs/blueprint/v1.0_blueprint.md
-2. Verify git status on main and perform the 30-second Circuit Breaker sanity check (<=10 files, 0 new npm packages, 0 DB changes).
-3. Run System-2 Cognitive Pre-Flight: simulate lifecycles, identify 3 runtime failure modes, and enforce zero-shortcut real implementations.
-4. Execute the brief in Section 3 of CURRENT_HANDOVER.md (Target: v1.0.371 — Dedicated BPSC Prepared Mock Tests Page).
-5. Verify statically (npx.cmd tsc --noEmit && npx.cmd vitest --run --pool=forks --maxWorkers=1 && npx.cmd vite build) and run live smoke checks using the built-in browser at http://localhost:3000/#/mcqs/test-series/bpsc on Desktop (1280x800) and Mobile (390x844).
-6. Execute the mandatory 7-step Phase 4 closeout ritual, update docs/blueprint/v1.0_blueprint.md (marking Step 5 DONE, promoting Step 6 v1.0.372, refining Step 10 v1.0.376), overwrite CURRENT_HANDOVER.md with Step 6 (v1.0.372), and output the starter prompt for v1.0.372.
+   - Active Step 4B (v1.0.370.1) in docs/blueprint/v1.0_blueprint.md
+2. Verify git status on main and perform the 30-second Circuit Breaker sanity check — NOTE: Option A (>10 files) is pre-approved, but Step 4B involves Supabase table renames & RPC updates, so inspect live function bodies via pg_get_functiondef() first and STOP to ask for my explicit approval of the exact non-destructive migration SQL before calling apply_migration.
+3. Run System-2 Cognitive Pre-Flight: simulate lifecycles (including IndexedDB offline store preservation in src/lib/db.ts and PostgREST relational join keys), identify 3 runtime failure modes, and enforce zero-shortcut real implementations.
+4. Execute the brief in Section 3 of CURRENT_HANDOVER.md (Target: v1.0.370.1 — Backend Assessment Nomenclature mock_* / quiz_*, Modular src/config/dbTables.ts Registry & Frontend Sync).
+5. Verify via Supabase live queries (pg_tables, pg_policies, pg_proc stale-reference check, get_advisors type="security"), statically (npx.cmd tsc --noEmit && npx.cmd vitest --run --pool=forks --maxWorkers=1 && npx.cmd vite build), and run a Desktop 1280x800 live smoke check using the built-in browser on http://localhost:3000/#/admin/test-series?tab=tests, http://localhost:3000/#/mcqs/test-series, and http://localhost:3000/#/quiz/config.
+6. Execute the mandatory 7-step Phase 4 closeout ritual, update docs/blueprint/v1.0_blueprint.md (marking Step 4B v1.0.370.1 DONE and promoting Step 5 v1.0.371 to High-Def NEXT), overwrite CURRENT_HANDOVER.md with Step 5 (v1.0.371), and output the starter prompt for v1.0.371.
 ```
