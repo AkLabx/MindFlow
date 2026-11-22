@@ -26,6 +26,18 @@ This document is the single source of truth for the evolution of the MindFlow ap
 
 ## 🚀 App Journey Changelog
 
+## [v1.0.370] - 22 November 2026, 09:26 AM IST
+
+**Executive Summary:** Mock Tests & Admin RBAC Database Security, Schedule-Window Enforcement & Privacy-Safe Leaderboard RPC. Eliminated the cross-user `user_test_attempts.answers` JSONB privacy leak, scoped student Mock Tests RLS policies `TO authenticated` with schedule-window and parent-active checks, enforced publish integrity in Postgres constraints and Admin CMS APIs, and added 100-UUID chunked soft-delete-aware question validation.
+
+### 🔒 Security & Architecture
+- **Mock Tests & Leaderboard Database Hardening (`supabase/migrations/20261122000000_harden_mock_tests_rls_and_leaderboard.sql`)**: Locked down `"Public read for leaderboard if completed"` on `public.user_test_attempts` (`USING (false)`), scoped all student Mock Tests policies (`exam_categories`, `test_series`, `tests`, `user_test_attempts`) `TO authenticated` with cascading active-category/published-series and `release_date` / `expiry_date` schedule-window enforcement, added `accuracy NUMERIC(5,2)` + status/publish/schedule `CHECK` constraints, and introduced authenticated `SECURITY DEFINER` RPC `public.get_test_leaderboard` (`SET search_path = public, pg_temp`) that ranks each user's best completed attempt without exposing `answers` JSONB.
+- **Student Schedule-Window & Leaderboard DTO Hardening (`src/features/mock-tests/api/mockTestsApi.ts`)**: Added `TestLeaderboardEntry`, `isTestWithinScheduleWindow()`, `sanitizeLeaderboardEntry()`, and `fetchTestLeaderboard()`, plus cascading `is_published` / `is_active` and schedule-window guards across `fetchPublishedTests`, `fetchSeriesDetails`, `fetchTestDetails`, and `searchTestsApi`.
+- **Admin Publish Integrity & Chunked Validation (`src/features/admin/test-series/api/adminTestSeriesApi.ts`, `src/features/admin/test-series/hooks/useTests.ts`)**: Enforced `validateTestForPublish` inside `createTest`, `updateTest`, and `useTests.toggleTestPublish`, added blank question ID and invalid schedule-date rejection, and upgraded `validateQuestionIds` with 100-UUID batch chunking and `.is('deleted_at', null)` soft-delete filtering.
+
+### ✨ Features Added
+- **Mock Tests Security & Contract Test Suite (`src/features/admin/test-series/__tests__/adminTestSeriesCms.test.tsx`)**: Added automated Vitest coverage for publish integrity guards, 150-UUID chunked `validateQuestionIds`, `mockTestsApi` schedule-window filtering, and `get_test_leaderboard` DTO sanitization (`212/212` tests passing across `34` files).
+
 ## [v1.0.369] - 22 November 2026, 08:09 AM IST
 
 **Executive Summary:** Admin Mock Tests CMS Controls & High-Cardinality `QuestionBuilder` Filtering. Added URL-synced Category/Series/Status filtering, 1-tap readiness-guarded Publish/Unpublish, smart Draft cloning, and cascade-safe delete warnings with child counts in `/admin/test-series`, alongside `subTopic` (424) and `examDateShift` (332) filtering powered by an accessible `SearchableFilterCombobox` (`maxVisible=50`) in `QuestionBuilder`.

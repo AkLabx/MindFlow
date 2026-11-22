@@ -142,6 +142,13 @@ export const fetchTestById = async (id: string) => {
 };
 
 export const createTest = async (payload: TestMutationPayload) => {
+    if (payload.is_published === true) {
+        const validation = validateTestForPublish(payload);
+        if (!validation.canPublish) {
+            throw new Error(validation.reasons[0] || 'Test does not meet publish integrity requirements.');
+        }
+    }
+
     const { data, error } = await supabase
         .from('tests')
         .insert([payload])
@@ -153,6 +160,48 @@ export const createTest = async (payload: TestMutationPayload) => {
 };
 
 export const updateTest = async (id: string, payload: Partial<TestMutationPayload>) => {
+    if (payload.question_ids !== undefined) {
+        if (payload.is_published === true && (!Array.isArray(payload.question_ids) || payload.question_ids.length === 0)) {
+            throw new Error('Add at least one question before publishing.');
+        }
+        if (Array.isArray(payload.question_ids) && payload.question_ids.length > 0) {
+            if (payload.question_ids.some((q) => typeof q !== 'string' || !q.trim())) {
+                throw new Error('All question IDs must be valid non-empty strings.');
+            }
+            if (new Set(payload.question_ids.map((q) => q.trim())).size < payload.question_ids.length) {
+                throw new Error('Remove duplicate questions before publishing.');
+            }
+        }
+    }
+
+    if (payload.release_date && payload.expiry_date) {
+        const rel = new Date(payload.release_date);
+        const exp = new Date(payload.expiry_date);
+        if (Number.isNaN(rel.getTime())) {
+            throw new Error('Release date is invalid.');
+        }
+        if (Number.isNaN(exp.getTime())) {
+            throw new Error('Expiry date is invalid.');
+        }
+        if (exp <= rel) {
+            throw new Error('Expiry date must be after Release date.');
+        }
+    }
+
+    if (
+        payload.is_published === true &&
+        payload.name !== undefined &&
+        payload.series_id !== undefined &&
+        payload.question_ids !== undefined &&
+        payload.duration_minutes !== undefined &&
+        payload.total_marks !== undefined
+    ) {
+        const validation = validateTestForPublish(payload);
+        if (!validation.canPublish) {
+            throw new Error(validation.reasons[0] || 'Test does not meet publish integrity requirements.');
+        }
+    }
+
     const { data, error } = await supabase
         .from('tests')
         .update(payload)
@@ -225,8 +274,14 @@ export const validateTestForPublish = (test: any): { canPublish: boolean; reason
     const qIds = Array.isArray(test?.question_ids) ? test.question_ids : [];
     if (qIds.length === 0) {
         reasons.push('Add at least one question before publishing.');
-    } else if (new Set(qIds).size < qIds.length) {
-        reasons.push('Remove duplicate questions before publishing.');
+    } else {
+        if (qIds.some((id: unknown) => typeof id !== 'string' || !id.trim())) {
+            reasons.push('All question IDs must be valid non-empty strings.');
+        }
+        const trimmedIds = qIds.map((id: unknown) => (typeof id === 'string' ? id.trim() : ''));
+        if (new Set(trimmedIds).size < trimmedIds.length) {
+            reasons.push('Remove duplicate questions before publishing.');
+        }
     }
 
     const duration = Number(test?.duration_minutes);
@@ -253,12 +308,16 @@ export const validateTestForPublish = (test: any): { canPublish: boolean; reason
         reasons.push('Negative marks must be 0 or greater.');
     }
 
-    if (test?.release_date && test?.expiry_date) {
-        const rel = new Date(test.release_date);
-        const exp = new Date(test.expiry_date);
-        if (!Number.isNaN(rel.getTime()) && !Number.isNaN(exp.getTime()) && exp <= rel) {
-            reasons.push('Expiry date must be after Release date.');
-        }
+    const rel = test?.release_date ? new Date(test.release_date) : null;
+    const exp = test?.expiry_date ? new Date(test.expiry_date) : null;
+    if (rel && Number.isNaN(rel.getTime())) {
+        reasons.push('Release date is invalid.');
+    }
+    if (exp && Number.isNaN(exp.getTime())) {
+        reasons.push('Expiry date is invalid.');
+    }
+    if (rel && exp && !Number.isNaN(rel.getTime()) && !Number.isNaN(exp.getTime()) && exp <= rel) {
+        reasons.push('Expiry date must be after Release date.');
     }
 
     return { canPublish: reasons.length === 0, reasons };
@@ -292,35 +351,50 @@ export const cloneTest = async (sourceTest: any, existingNames?: string[]) => {
 
 // VALIDATION
 
+const QUESTION_ID_CHUNK_SIZE = 100;
+
 export const validateQuestionIds = async (ids: string[]) => {
     if (!ids || ids.length === 0) return { valid: [], invalid: [] };
 
-    // Deduplicate array
-    const uniqueIds = Array.from(new Set(ids));
+    // Trim & deduplicate array
+    const uniqueIds = Array.from(
+        new Set(
+            ids
+                .map((id) => (typeof id === 'string' ? id.trim() : String(id ?? '').trim()))
+                .filter(Boolean)
+        )
+    );
+    if (uniqueIds.length === 0) return { valid: [], invalid: [] };
 
     // Check if they are valid UUID format
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     const formatValidIds = uniqueIds.filter(id => uuidRegex.test(id));
-    const formatInvalidIds = uniqueIds.filter(id => !uuidRegex.test(id));
 
     if (formatValidIds.length === 0) {
         return { valid: [], invalid: uniqueIds };
     }
 
-    // Query DB for existing IDs
-    const { data, error } = await supabase
-        .from('questions')
-        .select('id')
-        .in('id', formatValidIds);
+    const existingIdSet = new Set<string>();
+    for (let i = 0; i < formatValidIds.length; i += QUESTION_ID_CHUNK_SIZE) {
+        const chunk = formatValidIds.slice(i, i + QUESTION_ID_CHUNK_SIZE);
+        const { data, error } = await supabase
+            .from('questions')
+            .select('id')
+            .is('deleted_at', null)
+            .in('id', chunk);
 
-    if (error) {
-        console.error("Error validating questions:", error);
-        return { valid: [], invalid: uniqueIds };
+        if (error) {
+            console.error("Error validating questions:", error);
+            return { valid: [], invalid: uniqueIds };
+        }
+
+        for (const row of data || []) {
+            if (row?.id) existingIdSet.add(row.id);
+        }
     }
 
-    const existingIds = data.map(q => q.id);
-    const valid = existingIds;
-    const invalid = uniqueIds.filter(id => !existingIds.includes(id));
+    const valid = formatValidIds.filter(id => existingIdSet.has(id));
+    const invalid = uniqueIds.filter(id => !existingIdSet.has(id));
 
     return { valid, invalid };
 };

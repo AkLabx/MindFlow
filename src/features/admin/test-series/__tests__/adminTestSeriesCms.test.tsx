@@ -9,17 +9,30 @@ import {
     buildClonedTestName,
     validateTestForPublish,
     cloneTest,
+    createTest,
+    updateTest,
+    validateQuestionIds,
 } from '../api/adminTestSeriesApi';
+import {
+    isTestWithinScheduleWindow,
+    sanitizeLeaderboardEntry,
+    fetchTestLeaderboard,
+    fetchPublishedTests,
+    fetchTestDetails,
+    searchTestsApi,
+} from '@/features/mock-tests/api/mockTestsApi';
 import { AdminTestSeriesDashboard } from '../pages/AdminTestSeriesDashboard';
 import { useNotificationStore } from '@/stores/useNotificationStore';
 
-const { fromMock } = vi.hoisted(() => ({
+const { fromMock, rpcMock } = vi.hoisted(() => ({
     fromMock: vi.fn(),
+    rpcMock: vi.fn(),
 }));
 
 vi.mock('@/lib/supabase', () => ({
     supabase: {
         from: fromMock,
+        rpc: rpcMock,
     },
 }));
 
@@ -35,6 +48,7 @@ interface MockStoreState {
     categories: any[];
     series: any[];
     tests: any[];
+    activeQuestionIds?: Set<string>;
     categoriesPending?: boolean;
     seriesPending?: boolean;
     testsPending?: boolean;
@@ -53,6 +67,8 @@ const createSupabaseMock = (state: MockStoreState) => {
         deleteCategoryIds: [] as string[],
         deleteSeriesIds: [] as string[],
         deleteTestIds: [] as string[],
+        questionInChunks: [] as string[][],
+        questionDeletedAtNullChecked: false,
         fetchCategoriesCount: 0,
         fetchSeriesCount: 0,
         fetchTestsCount: 0,
@@ -132,6 +148,12 @@ const createSupabaseMock = (state: MockStoreState) => {
                     const chain: any = {
                         order: vi.fn(() => chain),
                         eq: vi.fn(() => chain),
+                        ilike: vi.fn(() => chain),
+                        limit: vi.fn(() => chain),
+                        single: vi.fn(async () => ({
+                            data: state.tests[0] ?? null,
+                            error: state.tests[0] ? null : { message: 'Not found' },
+                        })),
                         then: (resolve: any, reject: any) => {
                             if (state.testsPending) {
                                 return new Promise(() => {}).then(resolve, reject);
@@ -196,6 +218,28 @@ const createSupabaseMock = (state: MockStoreState) => {
                         return { error: null };
                     }),
                 })),
+            };
+        }
+
+        if (table === 'questions') {
+            return {
+                select: vi.fn(() => {
+                    const chain: any = {
+                        is: vi.fn((col: string, val: any) => {
+                            if (col === 'deleted_at' && val === null) {
+                                calls.questionDeletedAtNullChecked = true;
+                            }
+                            return chain;
+                        }),
+                        in: vi.fn(async (_col: string, ids: string[]) => {
+                            calls.questionInChunks.push(ids);
+                            const activeSet = state.activeQuestionIds ?? new Set<string>();
+                            const matched = ids.filter((id) => activeSet.has(id)).map((id) => ({ id }));
+                            return { data: matched, error: null };
+                        }),
+                    };
+                    return chain;
+                }),
             };
         }
 
@@ -663,6 +707,164 @@ describe('Admin Mock Tests CMS Controls (v1.0.369)', () => {
             expect(screen.queryByText('Delete Exam Category?')).toBeNull();
             const toasts = useNotificationStore.getState().toasts;
             expect(toasts[toasts.length - 1].variant).toBe('info');
+        });
+    });
+
+    describe('Mock Tests Security, Schedule Window & Publish Integrity (v1.0.370)', () => {
+        it('enforces synchronous publish integrity guards in createTest and updateTest', async () => {
+            const state = makeFixtureState();
+            const calls = createSupabaseMock(state);
+
+            await expect(
+                createTest({
+                    series_id: 'ser-1',
+                    name: 'Empty Published Test',
+                    duration_minutes: 60,
+                    total_marks: 100,
+                    passing_marks: 40,
+                    negative_marks: 0.25,
+                    question_ids: [],
+                    is_published: true,
+                })
+            ).rejects.toThrow(/Add at least one question before publishing/i);
+            expect(calls.insertTestPayloads).toHaveLength(0);
+
+            await expect(
+                createTest({
+                    series_id: 'ser-1',
+                    name: 'Duplicate Question Published Test',
+                    duration_minutes: 60,
+                    total_marks: 100,
+                    passing_marks: 40,
+                    negative_marks: 0.25,
+                    question_ids: ['q1', 'q1'],
+                    is_published: true,
+                })
+            ).rejects.toThrow(/Remove duplicate questions before publishing/i);
+            expect(calls.insertTestPayloads).toHaveLength(0);
+
+            await expect(
+                updateTest('test-1', {
+                    is_published: true,
+                    question_ids: [],
+                })
+            ).rejects.toThrow(/Add at least one question before publishing/i);
+
+            await expect(
+                updateTest('test-1', {
+                    release_date: '2026-11-25T10:00:00Z',
+                    expiry_date: '2026-11-20T10:00:00Z',
+                })
+            ).rejects.toThrow(/Expiry date must be after Release date/i);
+            expect(calls.updateTestCalls).toHaveLength(0);
+        });
+
+        it('chunks >100 UUIDs in validateQuestionIds and filters out soft-deleted or malformed IDs', async () => {
+            const validUuids = Array.from({ length: 150 }, (_, idx) => {
+                const hex = idx.toString(16).padStart(12, '0');
+                return `00000000-0000-4000-8000-${hex}`;
+            });
+            const softDeletedUuid = validUuids[149];
+            const activeSet = new Set(validUuids.slice(0, 149));
+
+            const state = makeFixtureState();
+            state.activeQuestionIds = activeSet;
+            const calls = createSupabaseMock(state);
+
+            const result = await validateQuestionIds([...validUuids, 'not-a-uuid', validUuids[0]]);
+            expect(calls.questionDeletedAtNullChecked).toBe(true);
+            expect(calls.questionInChunks).toHaveLength(2);
+            expect(calls.questionInChunks[0]).toHaveLength(100);
+            expect(calls.questionInChunks[1]).toHaveLength(50);
+            expect(result.valid).toHaveLength(149);
+            expect(result.invalid).toEqual([softDeletedUuid, 'not-a-uuid']);
+        });
+
+        it('enforces schedule window filtering across isTestWithinScheduleWindow, fetchPublishedTests, searchTestsApi, and fetchTestDetails', async () => {
+            const nowMs = Date.parse('2026-11-22T09:00:00Z');
+            expect(isTestWithinScheduleWindow({ release_date: null, expiry_date: null }, nowMs)).toBe(true);
+            expect(isTestWithinScheduleWindow({ release_date: '2026-11-22T08:00:00Z', expiry_date: '2026-11-23T00:00:00Z' }, nowMs)).toBe(true);
+            expect(isTestWithinScheduleWindow({ release_date: '2026-11-23T00:00:00Z', expiry_date: null }, nowMs)).toBe(false);
+            expect(isTestWithinScheduleWindow({ release_date: null, expiry_date: '2026-11-22T08:59:59Z' }, nowMs)).toBe(false);
+            expect(isTestWithinScheduleWindow({ release_date: 'invalid-date' }, nowMs)).toBe(false);
+
+            const state = makeFixtureState();
+            state.tests = [
+                { ...state.tests[0], id: 'test-active', name: 'Active BPSC Mock', release_date: '2026-11-20T00:00:00Z', expiry_date: '2026-11-25T00:00:00Z' },
+                { ...state.tests[0], id: 'test-unscheduled', name: 'Always-On BPSC Mock', release_date: null, expiry_date: null },
+                { ...state.tests[0], id: 'test-future', name: 'Upcoming BPSC Mock', release_date: '2026-11-25T00:00:00Z', expiry_date: null },
+                { ...state.tests[0], id: 'test-expired', name: 'Expired BPSC Mock', release_date: '2026-11-01T00:00:00Z', expiry_date: '2026-11-21T00:00:00Z' },
+            ];
+            createSupabaseMock(state);
+
+            const listed = await fetchPublishedTests('ser-1', nowMs);
+            expect(listed.map((t: any) => t.id)).toEqual(['test-active', 'test-unscheduled']);
+
+            const searched = await searchTestsApi('BPSC', nowMs);
+            expect(searched.map((t: any) => t.id)).toEqual(['test-active', 'test-unscheduled']);
+
+            state.tests = [
+                { ...state.tests[0], id: 'test-expired', release_date: '2026-11-01T00:00:00Z', expiry_date: '2026-11-21T00:00:00Z' },
+            ];
+            await expect(fetchTestDetails('test-expired', nowMs)).rejects.toThrow(
+                /not currently available outside its scheduled window/i
+            );
+        });
+
+        it('projects privacy-safe leaderboard DTOs via get_test_leaderboard RPC and strips answers payloads', async () => {
+            rpcMock.mockResolvedValueOnce({
+                data: [
+                    {
+                        rank: 1,
+                        user_id: 'user-1',
+                        display_name: '  Aarav Kumar  ',
+                        avatar_url: 'https://example.com/a.png',
+                        score: 128.5,
+                        accuracy: 85.67,
+                        time_taken_seconds: 5400,
+                        completed_at: '2026-11-22T08:00:00Z',
+                        is_current_user: false,
+                        answers: { q1: 'A', q2: 'C' },
+                    },
+                    {
+                        rank: 2,
+                        user_id: 'user-2',
+                        display_name: '   ',
+                        avatar_url: null,
+                        score: 112,
+                        accuracy: 74.67,
+                        time_taken_seconds: null,
+                        completed_at: null,
+                        is_current_user: true,
+                    },
+                ],
+                error: null,
+            });
+
+            const leaderboard = await fetchTestLeaderboard('test-1', 250);
+            expect(rpcMock).toHaveBeenCalledWith('get_test_leaderboard', {
+                p_test_id: 'test-1',
+                p_limit: 100,
+            });
+            expect(leaderboard).toHaveLength(2);
+            expect(leaderboard[0]).toEqual({
+                rank: 1,
+                user_id: 'user-1',
+                display_name: 'Aarav Kumar',
+                avatar_url: 'https://example.com/a.png',
+                score: 128.5,
+                accuracy: 85.67,
+                time_taken_seconds: 5400,
+                completed_at: '2026-11-22T08:00:00Z',
+                is_current_user: false,
+            });
+            expect('answers' in leaderboard[0]).toBe(false);
+            expect(leaderboard[1].display_name).toBe('MindFlow Aspirant');
+            expect(leaderboard[1].is_current_user).toBe(true);
+
+            const sanitized = sanitizeLeaderboardEntry({ user_id: 'u9', answers: { secret: true } }, 0);
+            expect(sanitized.rank).toBe(1);
+            expect((sanitized as any).answers).toBeUndefined();
         });
     });
 });
