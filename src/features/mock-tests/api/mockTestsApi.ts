@@ -158,18 +158,25 @@ export const fetchSeriesDetails = async (seriesId: string) => {
 };
 
 export const fetchTestDetails = async (testId: string, nowMs: number = Date.now()) => {
+    const trimmedId = String(testId ?? '').trim();
     const { data, error } = await supabase
         .from(DB_TABLES.MOCK.TESTS)
         .select(`*, ${DB_TABLES.MOCK.SERIES}!inner(id, name, is_premium, is_published, ${DB_TABLES.MOCK.CATEGORIES}!inner(id, name, is_active))`)
-        .eq('id', testId)
+        .eq('id', trimmedId)
         .eq('is_published', true)
         .eq(`${DB_TABLES.MOCK.SERIES}.is_published`, true)
         .eq(`${DB_TABLES.MOCK.SERIES}.${DB_TABLES.MOCK.CATEGORIES}.is_active`, true)
-        .single();
+        .maybeSingle();
     if (error) throw error;
-    if (!isTestWithinScheduleWindow(data, nowMs)) {
+    if (!data || !isTestWithinScheduleWindow(data, nowMs) || !isCachedTestDetailVisible(data, nowMs)) {
+        memoryTestDetailCache.delete(trimmedId);
+        safeRemoveLocalStorage(`${MOCK_TEST_DETAIL_STORAGE_PREFIX}${trimmedId}`);
         throw new Error('This mock test is not currently available outside its scheduled window.');
     }
+    const payload = { test: data, fetchedAt: Date.now() };
+    memoryTestDetailCache.set(trimmedId, payload);
+    safeWriteLocalStorage(`${MOCK_TEST_DETAIL_STORAGE_PREFIX}${trimmedId}`, payload);
+    db.setCacheEntry(`${MOCK_TEST_DETAIL_IDB_PREFIX}${trimmedId}`, payload).catch(() => {});
     return data;
 };
 
@@ -302,10 +309,331 @@ const MOCK_HOME_STORAGE_KEY = 'mindflow_mock_home_cache_v1';
 const MOCK_HOME_IDB_KEY = 'mock_home_cache_v1';
 const MOCK_ATTEMPTS_STORAGE_PREFIX = 'mindflow_mock_attempts_v1_';
 const MOCK_ATTEMPTS_IDB_PREFIX = 'mock_attempts_v1_';
+const MOCK_TEST_DETAIL_STORAGE_PREFIX = 'mindflow_mock_test_detail_v1_';
+const MOCK_TEST_DETAIL_IDB_PREFIX = 'mock_test_detail_v1_';
+const MOCK_TEST_ATTEMPTS_STORAGE_PREFIX = 'mindflow_mock_test_attempts_v1_';
+const MOCK_TEST_ATTEMPTS_IDB_PREFIX = 'mock_test_attempts_v1_';
+const MOCK_SAVED_TESTS_STORAGE_PREFIX = 'mindflow_saved_mock_tests_v1_';
+const MOCK_SAVED_TESTS_IDB_PREFIX = 'saved_mock_tests_v1_';
 
 let memoryCatalogCache: MockCatalogCachePayload | null = null;
 let memoryHomeCache: MockHomeCachePayload | null = null;
 const memoryAttemptsCache = new Map<string, { ids: string[]; fetchedAt: number }>();
+const memoryTestDetailCache = new Map<string, { test: any; fetchedAt: number }>();
+const memoryTestAttemptsCache = new Map<string, { attempts: UserTestAttemptItem[]; fetchedAt: number }>();
+const memorySavedTestsCache = new Map<string, string[]>();
+
+export interface UserTestAttemptItem {
+    id: string;
+    test_id: string;
+    start_time: string | null;
+    end_time: string | null;
+    time_taken_seconds: number | null;
+    score: number;
+    accuracy: number;
+    status: 'in_progress' | 'completed' | 'abandoned';
+    created_at: string | null;
+}
+
+/**
+ * Normalizes a `mock_test_attempts` row and strips any sensitive `answers` JSONB payload.
+ */
+export const sanitizeUserTestAttempt = (row: any): UserTestAttemptItem => {
+    const rawStatus = String(row?.status ?? '').trim();
+    const status: UserTestAttemptItem['status'] =
+        rawStatus === 'completed' || rawStatus === 'abandoned' || rawStatus === 'in_progress'
+            ? rawStatus
+            : 'in_progress';
+    const rawScore = Number(row?.score ?? 0);
+    const rawAccuracy = Number(row?.accuracy ?? 0);
+    const rawDuration = row?.time_taken_seconds != null ? Number(row.time_taken_seconds) : null;
+
+    return {
+        id: String(row?.id ?? ''),
+        test_id: String(row?.test_id ?? ''),
+        start_time: row?.start_time ? String(row.start_time) : null,
+        end_time: row?.end_time ? String(row.end_time) : null,
+        time_taken_seconds: rawDuration != null && Number.isFinite(rawDuration) ? rawDuration : null,
+        score: Number.isFinite(rawScore) ? rawScore : 0,
+        accuracy: Number.isFinite(rawAccuracy) ? rawAccuracy : 0,
+        status,
+        created_at: row?.created_at ? String(row.created_at) : null,
+    };
+};
+
+const isCachedTestDetailVisible = (test: any, nowMs: number = Date.now()): boolean => {
+    if (!test || test.is_published === false || !isTestWithinScheduleWindow(test, nowMs)) {
+        return false;
+    }
+    const series = test[DB_TABLES.MOCK.SERIES] ?? test.mock_series ?? test.test_series;
+    if (series && series.is_published === false) {
+        return false;
+    }
+    const category =
+        series?.[DB_TABLES.MOCK.CATEGORIES] ??
+        series?.mock_categories ??
+        series?.exam_categories;
+    if (category && category.is_active === false) {
+        return false;
+    }
+    return true;
+};
+
+/**
+ * Synchronous 0ms cache lookup for a single mock test detail page (Memory -> `localStorage` -> prepared catalog snapshot),
+ * always validating `DEC-0017` schedule window and active/published parent status.
+ */
+export const getCachedTestDetailsSnapshot = (
+    testId: string,
+    nowMs: number = Date.now()
+): any | null => {
+    const trimmedId = String(testId ?? '').trim();
+    if (!trimmedId) return null;
+
+    const mem = memoryTestDetailCache.get(trimmedId);
+    if (mem?.test && isCachedTestDetailVisible(mem.test, nowMs)) {
+        return mem.test;
+    }
+
+    const stored = safeReadLocalStorage<{ test: any; fetchedAt: number }>(
+        `${MOCK_TEST_DETAIL_STORAGE_PREFIX}${trimmedId}`
+    );
+    if (stored?.test && isCachedTestDetailVisible(stored.test, nowMs)) {
+        memoryTestDetailCache.set(trimmedId, stored);
+        return stored.test;
+    }
+
+    const catalogTest = readCatalogFromSyncCache()?.tests.find((t) => t?.id === trimmedId);
+    if (catalogTest && isCachedTestDetailVisible(catalogTest, nowMs)) {
+        return catalogTest;
+    }
+
+    return null;
+};
+
+/**
+ * Async IndexedDB fallback hydration for single mock test details (`MindFlowDB.sync_metadata`).
+ */
+export const readTestDetailsIndexedDBCache = async (
+    testId: string,
+    nowMs: number = Date.now()
+): Promise<any | null> => {
+    const trimmedId = String(testId ?? '').trim();
+    if (!trimmedId) return null;
+
+    const syncSnapshot = getCachedTestDetailsSnapshot(trimmedId, nowMs);
+    if (syncSnapshot) return syncSnapshot;
+
+    try {
+        const entry = await db.getCacheEntry<{ test: any; fetchedAt: number }>(
+            `${MOCK_TEST_DETAIL_IDB_PREFIX}${trimmedId}`
+        );
+        if (entry?.data?.test && isCachedTestDetailVisible(entry.data.test, nowMs)) {
+            memoryTestDetailCache.set(trimmedId, entry.data);
+            safeWriteLocalStorage(`${MOCK_TEST_DETAIL_STORAGE_PREFIX}${trimmedId}`, entry.data);
+            return entry.data.test;
+        }
+
+        const catalogEntry = await db.getCacheEntry<MockCatalogCachePayload>(MOCK_CATALOG_IDB_KEY);
+        const catalogTest = catalogEntry?.data?.tests?.find((t) => t?.id === trimmedId);
+        if (catalogTest && isCachedTestDetailVisible(catalogTest, nowMs)) {
+            return catalogTest;
+        }
+    } catch {
+        // Ignore IndexedDB unavailability
+    }
+
+    return null;
+};
+
+/**
+ * Synchronous 0ms cache lookup for user-scoped attempt history on a specific mock test (`DEC-0004`).
+ */
+export const getCachedUserTestAttemptsSnapshot = (
+    testId: string,
+    userId?: string | null
+): UserTestAttemptItem[] | null => {
+    const trimmedTestId = String(testId ?? '').trim();
+    const trimmedUserId = String(userId ?? '').trim();
+    if (!trimmedTestId || !trimmedUserId) return null;
+
+    const cacheKey = `${trimmedUserId}_${trimmedTestId}`;
+    const mem = memoryTestAttemptsCache.get(cacheKey);
+    if (mem) return mem.attempts;
+
+    const stored = safeReadLocalStorage<{ attempts: any[]; fetchedAt: number }>(
+        `${MOCK_TEST_ATTEMPTS_STORAGE_PREFIX}${cacheKey}`
+    );
+    if (stored && Array.isArray(stored.attempts)) {
+        const sanitized = stored.attempts.map(sanitizeUserTestAttempt);
+        memoryTestAttemptsCache.set(cacheKey, {
+            attempts: sanitized,
+            fetchedAt: stored.fetchedAt ?? Date.now(),
+        });
+        return sanitized;
+    }
+
+    return null;
+};
+
+/**
+ * Async IndexedDB fallback hydration for user-scoped attempt history (`MindFlowDB.sync_metadata`).
+ */
+export const readUserTestAttemptsIndexedDBCache = async (
+    testId: string,
+    userId?: string | null
+): Promise<UserTestAttemptItem[] | null> => {
+    const syncSnapshot = getCachedUserTestAttemptsSnapshot(testId, userId);
+    if (syncSnapshot !== null) return syncSnapshot;
+
+    const trimmedTestId = String(testId ?? '').trim();
+    const trimmedUserId = String(userId ?? '').trim();
+    if (!trimmedTestId || !trimmedUserId) return null;
+
+    const cacheKey = `${trimmedUserId}_${trimmedTestId}`;
+    try {
+        const entry = await db.getCacheEntry<{ attempts: any[]; fetchedAt: number }>(
+            `${MOCK_TEST_ATTEMPTS_IDB_PREFIX}${cacheKey}`
+        );
+        if (entry?.data && Array.isArray(entry.data.attempts)) {
+            const sanitized = entry.data.attempts.map(sanitizeUserTestAttempt);
+            const payload = { attempts: sanitized, fetchedAt: entry.data.fetchedAt ?? Date.now() };
+            memoryTestAttemptsCache.set(cacheKey, payload);
+            safeWriteLocalStorage(`${MOCK_TEST_ATTEMPTS_STORAGE_PREFIX}${cacheKey}`, payload);
+            return sanitized;
+        }
+    } catch {
+        // Ignore IndexedDB unavailability
+    }
+
+    return null;
+};
+
+/**
+ * Fetches real `mock_test_attempts` history for the authenticated student (`DEC-0018`),
+ * stripping `answers` JSONB and hydrating 0ms local caches (`DEC-0004`).
+ */
+export const fetchUserTestAttempts = async (
+    testId: string,
+    userId?: string | null
+): Promise<UserTestAttemptItem[]> => {
+    const trimmedTestId = String(testId ?? '').trim();
+    const trimmedUserId = String(userId ?? '').trim();
+    if (!trimmedTestId || !trimmedUserId) return [];
+
+    const { data, error } = await supabase
+        .from(DB_TABLES.MOCK.ATTEMPTS)
+        .select('id, test_id, start_time, end_time, time_taken_seconds, score, accuracy, status, created_at')
+        .eq('test_id', trimmedTestId)
+        .eq('user_id', trimmedUserId)
+        .order('created_at', { ascending: false });
+
+    if (error) throw error;
+
+    const attempts = (Array.isArray(data) ? data : []).map(sanitizeUserTestAttempt);
+    const cacheKey = `${trimmedUserId}_${trimmedTestId}`;
+    const payload = { attempts, fetchedAt: Date.now() };
+    memoryTestAttemptsCache.set(cacheKey, payload);
+    safeWriteLocalStorage(`${MOCK_TEST_ATTEMPTS_STORAGE_PREFIX}${cacheKey}`, payload);
+    db.setCacheEntry(`${MOCK_TEST_ATTEMPTS_IDB_PREFIX}${cacheKey}`, payload).catch(() => {});
+
+    return attempts;
+};
+
+const normalizeSavedTestIds = (raw: unknown): string[] => {
+    const list = Array.isArray(raw)
+        ? raw
+        : raw && typeof raw === 'object' && Array.isArray((raw as { ids?: unknown }).ids)
+          ? (raw as { ids: unknown[] }).ids
+          : [];
+    const unique = new Set<string>();
+    for (const item of list) {
+        const id = String(item ?? '').trim();
+        if (id) unique.add(id);
+    }
+    return Array.from(unique);
+};
+
+/**
+ * Synchronous 0ms read of user-scoped saved/bookmarked mock test IDs (Memory -> `localStorage`).
+ */
+export const getSavedMockTestIds = (userId?: string | null): string[] => {
+    const trimmedUserId = String(userId ?? '').trim();
+    if (!trimmedUserId) return [];
+
+    const mem = memorySavedTestsCache.get(trimmedUserId);
+    if (mem) return [...mem];
+
+    const stored = safeReadLocalStorage<unknown>(`${MOCK_SAVED_TESTS_STORAGE_PREFIX}${trimmedUserId}`);
+    if (stored !== null) {
+        const ids = normalizeSavedTestIds(stored);
+        memorySavedTestsCache.set(trimmedUserId, ids);
+        return [...ids];
+    }
+
+    return [];
+};
+
+export const isMockTestSaved = (testId: string, userId?: string | null): boolean => {
+    const trimmedTestId = String(testId ?? '').trim();
+    if (!trimmedTestId || !userId) return false;
+    return getSavedMockTestIds(userId).includes(trimmedTestId);
+};
+
+/**
+ * Async IndexedDB fallback hydration for user-scoped saved/bookmarked mock test IDs.
+ */
+export const readSavedMockTestsIndexedDB = async (userId?: string | null): Promise<string[]> => {
+    const trimmedUserId = String(userId ?? '').trim();
+    if (!trimmedUserId) return [];
+
+    const hasSync =
+        memorySavedTestsCache.has(trimmedUserId) ||
+        safeReadLocalStorage<unknown>(`${MOCK_SAVED_TESTS_STORAGE_PREFIX}${trimmedUserId}`) !== null;
+    if (hasSync) {
+        return getSavedMockTestIds(trimmedUserId);
+    }
+
+    try {
+        const entry = await db.getCacheEntry<unknown>(`${MOCK_SAVED_TESTS_IDB_PREFIX}${trimmedUserId}`);
+        if (entry?.data !== undefined && entry?.data !== null) {
+            const ids = normalizeSavedTestIds(entry.data);
+            memorySavedTestsCache.set(trimmedUserId, ids);
+            safeWriteLocalStorage(`${MOCK_SAVED_TESTS_STORAGE_PREFIX}${trimmedUserId}`, ids);
+            return [...ids];
+        }
+    } catch {
+        // Ignore IndexedDB unavailability
+    }
+
+    return [];
+};
+
+/**
+ * Toggles a mock test's saved/bookmarked status across Memory, `localStorage`, and `MindFlowDB.sync_metadata`.
+ */
+export const toggleSavedMockTest = (
+    testId: string,
+    userId: string
+): { saved: boolean; ids: string[] } => {
+    const trimmedTestId = String(testId ?? '').trim();
+    const trimmedUserId = String(userId ?? '').trim();
+    if (!trimmedTestId || !trimmedUserId) {
+        return { saved: false, ids: [] };
+    }
+
+    const currentIds = getSavedMockTestIds(trimmedUserId);
+    const exists = currentIds.includes(trimmedTestId);
+    const nextIds = exists
+        ? currentIds.filter((id) => id !== trimmedTestId)
+        : Array.from(new Set([trimmedTestId, ...currentIds]));
+
+    memorySavedTestsCache.set(trimmedUserId, nextIds);
+    safeWriteLocalStorage(`${MOCK_SAVED_TESTS_STORAGE_PREFIX}${trimmedUserId}`, nextIds);
+    db.setCacheEntry(`${MOCK_SAVED_TESTS_IDB_PREFIX}${trimmedUserId}`, nextIds).catch(() => {});
+
+    return { saved: !exists, ids: nextIds };
+};
 
 const escapeRegex = (value: string): string =>
     value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -785,11 +1113,41 @@ export const readPreparedMockTestsIndexedDBCache = async (
 export const clearPreparedMockTestsCache = (userId?: string | null): void => {
     memoryCatalogCache = null;
     memoryHomeCache = null;
+    memoryTestDetailCache.clear();
     if (userId) {
-        memoryAttemptsCache.delete(userId);
-        safeRemoveLocalStorage(`${MOCK_ATTEMPTS_STORAGE_PREFIX}${userId}`);
+        const trimmedUserId = String(userId).trim();
+        memoryAttemptsCache.delete(trimmedUserId);
+        safeRemoveLocalStorage(`${MOCK_ATTEMPTS_STORAGE_PREFIX}${trimmedUserId}`);
+        memorySavedTestsCache.delete(trimmedUserId);
+        safeRemoveLocalStorage(`${MOCK_SAVED_TESTS_STORAGE_PREFIX}${trimmedUserId}`);
+        for (const key of Array.from(memoryTestAttemptsCache.keys())) {
+            if (key.startsWith(`${trimmedUserId}_`)) {
+                memoryTestAttemptsCache.delete(key);
+                safeRemoveLocalStorage(`${MOCK_TEST_ATTEMPTS_STORAGE_PREFIX}${key}`);
+            }
+        }
     } else {
         memoryAttemptsCache.clear();
+        memoryTestAttemptsCache.clear();
+        memorySavedTestsCache.clear();
+        try {
+            if (typeof window !== 'undefined' && window.localStorage) {
+                for (let i = window.localStorage.length - 1; i >= 0; i -= 1) {
+                    const storageKey = window.localStorage.key(i);
+                    if (
+                        storageKey &&
+                        (storageKey.startsWith(MOCK_TEST_DETAIL_STORAGE_PREFIX) ||
+                            storageKey.startsWith(MOCK_TEST_ATTEMPTS_STORAGE_PREFIX) ||
+                            storageKey.startsWith(MOCK_SAVED_TESTS_STORAGE_PREFIX) ||
+                            storageKey.startsWith(MOCK_ATTEMPTS_STORAGE_PREFIX))
+                    ) {
+                        window.localStorage.removeItem(storageKey);
+                    }
+                }
+            }
+        } catch {
+            // Ignore localStorage enumeration errors
+        }
     }
     safeRemoveLocalStorage(MOCK_CATALOG_STORAGE_KEY);
     safeRemoveLocalStorage(MOCK_HOME_STORAGE_KEY);

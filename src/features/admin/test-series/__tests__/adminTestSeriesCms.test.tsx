@@ -155,6 +155,10 @@ const createSupabaseMock = (state: MockStoreState) => {
                             data: state.tests[0] ?? null,
                             error: state.tests[0] ? null : { message: 'Not found' },
                         })),
+                        maybeSingle: vi.fn(async () => ({
+                            data: state.tests[0] ?? null,
+                            error: null,
+                        })),
                         then: (resolve: any, reject: any) => {
                             if (state.testsPending) {
                                 return new Promise(() => {}).then(resolve, reject);
