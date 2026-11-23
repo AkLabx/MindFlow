@@ -332,6 +332,7 @@ const renderExamRunner = (
             <Routes>
                 <Route path="/exam/:testId" element={<PreparedMockExamPage />} />
                 <Route path="/mcqs/test-series/test/:testId" element={<LocationDisplay />} />
+                <Route path="/mcqs/test-series/test/:testId/result/:attemptId" element={<LocationDisplay />} />
                 <Route path={ROUTES.TEST_SERIES.BPSC} element={<LocationDisplay />} />
                 <Route path={ROUTES.TEST_SERIES.ROOT} element={<LocationDisplay />} />
             </Routes>
@@ -689,8 +690,8 @@ describe('v1.0.373 Live Timed CBT Mock Runner (PreparedMockExamPage)', () => {
         fireEvent.click(screen.getByTestId('cbt-confirm-submit-btn'));
 
         await waitFor(() => {
-            expect(screen.getByTestId('location-display').textContent).toBe(
-                '/mcqs/test-series/test/test-bpsc-69'
+            expect(screen.getByTestId('location-display').textContent).toContain(
+                '/mcqs/test-series/test/test-bpsc-69/result/'
             );
         });
 

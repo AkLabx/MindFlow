@@ -818,27 +818,43 @@ export const TestDetailPage: React.FC = () => {
                                                         )}
                                                     </div>
 
-                                                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs font-semibold text-slate-600 dark:text-slate-300">
-                                                        <span>
-                                                            Score:{' '}
-                                                            <strong className="text-slate-900 dark:text-white">
-                                                                {attempt.score} / {totalMarks}
-                                                            </strong>
-                                                        </span>
-                                                        <span>
-                                                            Accuracy:{' '}
-                                                            <strong className="text-slate-900 dark:text-white">
-                                                                {attempt.accuracy}%
-                                                            </strong>
-                                                        </span>
-                                                        <span>{formatDurationSeconds(attempt.time_taken_seconds)}</span>
-                                                        <span className="text-slate-500 dark:text-slate-400">
-                                                            {formatAttemptDate(
-                                                                attempt.end_time ??
-                                                                    attempt.start_time ??
-                                                                    attempt.created_at
-                                                            )}
-                                                        </span>
+                                                    <div className="flex flex-wrap items-center justify-between sm:justify-end gap-x-4 gap-y-2 text-xs font-semibold text-slate-600 dark:text-slate-300">
+                                                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                                                            <span>
+                                                                Score:{' '}
+                                                                <strong className="text-slate-900 dark:text-white">
+                                                                    {attempt.score} / {totalMarks}
+                                                                </strong>
+                                                            </span>
+                                                            <span>
+                                                                Accuracy:{' '}
+                                                                <strong className="text-slate-900 dark:text-white">
+                                                                    {attempt.accuracy}%
+                                                                </strong>
+                                                            </span>
+                                                            <span>{formatDurationSeconds(attempt.time_taken_seconds)}</span>
+                                                            <span className="text-slate-500 dark:text-slate-400">
+                                                                {formatAttemptDate(
+                                                                    attempt.end_time ??
+                                                                        attempt.start_time ??
+                                                                        attempt.created_at
+                                                                )}
+                                                            </span>
+                                                        </div>
+
+                                                        {isCompleted && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    triggerHaptic();
+                                                                    navigate(ROUTES.TEST_SERIES.RESULT(test.id, attempt.id));
+                                                                }}
+                                                                className="px-3 py-1.5 min-h-[44px] min-w-[44px] rounded-xl text-xs font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:hover:bg-indigo-900/50 dark:text-indigo-300 transition-all active:scale-95 inline-flex items-center gap-1 shrink-0"
+                                                                aria-label={`View solutions for Attempt #${attemptNumber}`}
+                                                            >
+                                                                <span>View Solution</span>
+                                                            </button>
+                                                        )}
                                                     </div>
                                                 </li>
                                             );

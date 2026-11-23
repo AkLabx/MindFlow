@@ -69,6 +69,15 @@ export function resolveHardwareBackTarget(currentPath: string, locationState?: u
         }
         return ROUTES.TEST_SERIES.TEST(examRunnerMatch[1]);
     }
+    const testResultMatch = normalized.match(/^\/mcqs\/test-series\/test\/([^/]+)\/result\/([^/]+)$/);
+    if (testResultMatch) {
+        const st = locationState as { returnTo?: unknown; from?: unknown } | null | undefined;
+        const candidate = st?.returnTo ?? st?.from;
+        if (typeof candidate === 'string' && candidate.startsWith('/') && !candidate.startsWith('//')) {
+            return candidate;
+        }
+        return ROUTES.TEST_SERIES.TEST(testResultMatch[1]);
+    }
     if (normalized.startsWith('/admin/test-series/')) {
         return '/admin/test-series?tab=tests';
     }

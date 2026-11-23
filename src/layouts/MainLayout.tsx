@@ -79,7 +79,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
     '/vocab/ows/config',
     '/mistake-notebook',
     '/quiz/mistakes'
-  ].includes(location.pathname) || location.pathname.startsWith('/about') || location.pathname.startsWith('/result') || location.pathname.startsWith('/tools/answer-key-calculator');
+  ].includes(location.pathname) || location.pathname.startsWith('/about') || location.pathname.startsWith('/result') || location.pathname.includes('/result/') || location.pathname.startsWith('/tools/answer-key-calculator');
 
   // Auto toggle based on pathname if user lands directly on a social route
   useEffect(() => {

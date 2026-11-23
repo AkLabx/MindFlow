@@ -88,6 +88,7 @@ const TestsListPage = lazy(() => import('../features/mock-tests/pages/TestsListP
 const TestDetailPage = lazy(() => import('../features/mock-tests/pages/TestDetailPage').then(m => ({ default: m.TestDetailPage })));
 const ExamPlaceholderPage = lazy(() => import('../features/mock-tests/pages/ExamPlaceholderPage').then(m => ({ default: m.ExamPlaceholderPage })));
 const PreparedMockExamPage = lazy(() => import('../features/mock-tests/pages/PreparedMockExamPage').then(m => ({ default: m.PreparedMockExamPage })));
+const PreparedMockResultPage = lazy(() => import('../features/mock-tests/pages/PreparedMockResultPage').then(m => ({ default: m.PreparedMockResultPage })));
 const AdminNotifications = lazy(() => import('../features/notifications/admin/AdminNotifications').then(m => ({ default: m.AdminNotifications })));
 const AdminFinancialsPage = lazy(() => import('../features/admin/financials/pages/AdminFinancialsPage').then(m => ({ default: m.AdminFinancialsPage })));
 const AdminAnalyticsPage = lazy(() => import('../features/admin/analytics/pages/AdminAnalyticsPage').then(m => ({ default: m.AdminAnalyticsPage || m.default })));
@@ -288,6 +289,7 @@ const handleReattempt = async (quizId: string, mode: string) => {
                     <Route path={ROUTES.TEST_SERIES.CATEGORY(':categoryId')} element={<Suspense fallback={<SynapticLoader />}><TestSeriesPage /></Suspense>} />
                     <Route path={ROUTES.TEST_SERIES.SERIES(':seriesId')} element={<Suspense fallback={<SynapticLoader />}><TestsListPage /></Suspense>} />
                     <Route path={ROUTES.TEST_SERIES.TEST(':testId')} element={<Suspense fallback={<SynapticLoader />}><TestDetailPage /></Suspense>} />
+                    <Route path={ROUTES.TEST_SERIES.RESULT(':testId', ':attemptId')} element={<Suspense fallback={<SynapticLoader />}><PreparedMockResultPage /></Suspense>} />
                     <Route path={ROUTES.TEST_SERIES.COMING_SOON} element={<Suspense fallback={<SynapticLoader />}><ExamPlaceholderPage /></Suspense>} />
                     <Route path={ROUTES.PROFILE.SUPPORT} element={<Suspense fallback={<SynapticLoader />}><SupportPage onBack={() => navigate(ROUTES.PROFILE.ROOT)} /></Suspense>} />
                     <Route path={ROUTES.QUIZ.LIBRARY} element={<Suspense fallback={<SynapticLoader />}><QuizLibrary /></Suspense>} />

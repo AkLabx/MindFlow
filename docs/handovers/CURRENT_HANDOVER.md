@@ -8,19 +8,19 @@
 ## 1. Current Verified Baseline Snapshot
 
 - **Repository:** `MindFlow` (Full-Stack React 19 + TypeScript + Vite + TailwindCSS + Capacitor Android + Supabase + IndexedDB)
-- **Current Baseline Version:** `v1.0.373` (`package.json` SemVer: `1.0.373`, PR `#1117`, on `main`)
+- **Current Baseline Version:** `v1.0.374` (`package.json` SemVer: `1.0.374`, PR `#1118`, on `main`)
 - **Android App Version:** `versionCode 6`, `versionName "1.6"` (`android/app/build.gradle`)
 - **Current Git Branch:** `main` (Slot 1 Anchor / Host)
-- **Static Typecheck:** Passed (`0` errors via `npx.cmd tsc --noEmit`)
-- **Unit & Component Tests:** Passed (`37/37` test files, `233/233` tests passed via `npx.cmd vitest --run --pool=forks --maxWorkers=1`, including `6/6` in `src/features/mock-tests/__tests__/preparedMockExamRunner.test.tsx`, `6/6` in `src/features/mock-tests/__tests__/testDetailPage.test.tsx`, `15/15` in `src/features/admin/test-series/__tests__/adminTestSeriesCms.test.tsx`, `13/13` in `src/hooks/useHardwareBackButton.test.ts`, `7/7` in `src/features/mock-tests/__tests__/examPreparedMockTests.test.tsx`, and `7/7` in `src/features/admin/question-builder/__tests__/questionBuilder.test.tsx`)
-- **Production Build:** Verified cleanly via `npx.cmd vite build` (`5483` modules transformed, PWA precache `202` entries / `6741.72 KiB`)
+- **Static Typecheck:** Passed (`0` errors via `node --max-old-space-size=4096 ./node_modules/typescript/bin/tsc --noEmit`)
+- **Unit & Component Tests:** Passed (`38/38` test files, `239/239` tests passed via `npx.cmd vitest --run --pool=forks --maxWorkers=1`, including `6/6` in `src/features/mock-tests/__tests__/preparedMockScoringReview.test.tsx`, `6/6` in `src/features/mock-tests/__tests__/preparedMockExamRunner.test.tsx`, `6/6` in `src/features/mock-tests/__tests__/testDetailPage.test.tsx`, `15/15` in `src/features/admin/test-series/__tests__/adminTestSeriesCms.test.tsx`, `13/13` in `src/hooks/useHardwareBackButton.test.ts`, `7/7` in `src/features/mock-tests/__tests__/examPreparedMockTests.test.tsx`, and `7/7` in `src/features/admin/question-builder/__tests__/questionBuilder.test.tsx`)
+- **Production Build:** Verified cleanly via `npx.cmd vite build` (`5484` modules transformed, PWA precache `205` entries / `6773.43 KiB`)
 - **Live Browser Verification (Chrome DevTools MCP against `http://localhost:3000/`):**
-  - Confirmed `DEC-0017` unpublished protection directly on `#/exam/4ca359c7-4d19-4441-9ee2-83d0148e29e6` (`Test Not Found` EmptyState when `BPSC PYQs Prelims` has `is_published = false`), then temporarily published series `40e2567b-79b6-4fb7-811a-0af425d3cf45` to verify **`69th BPSC Prelims PYQs`** (`103` Qs, `120 mins`, `150` total marks, `95` passing, `-0.33` negative marks) end-to-end before restoring `is_published = false`.
-  - **Desktop (`1280x800`):** Verified live monotonic countdown (`01:59:55` $\rightarrow$ `01:59:53`), `103`-Q chunked ordered hydration inside persistent right-hand Question Palette sidebar, Q1 answer + Mark toggle (`aria-pressed="true"`), Q103 jump + answer, and mid-exam **page reload** crash recovery (`Q 103 / 103 • 2 Answered`, Option B checked, `01:59:32`).
-  - **Mobile (`390x844`):** Verified `0px` horizontal overflow (`scrollWidth: 390 === 390`), `0` buttons below `44x44px`, `0` `button:not([type="button"])`, `<NativeDialog variant="drawer-right">` Question Palette drawer + Q2 jump, Pause & Exit `<NativeDialog role="alertdialog">` returning to `TestDetailPage` (`Resume Attempt` + `In Progress` row), re-entry at `01:58:25`, Submit `<NativeDialog>` (`Re-attempt Test` + `Completed` row), and `0` console errors.
+  - Verified `69th BPSC Prelims PYQs` (`103` Qs, `120 mins`, `150` total marks, `95` passing marks, `-0.33` negative marks) end-to-end.
+  - **Desktop (`1280x800`):** Scorecard hydration (`score / total_marks` with exact `-0.33` negative marking), 13-subject accuracy breakdown with progress bars, Dual-View Switcher to 1-by-1 bilingual paged Solution Review carousel (`Bilingual`, `English`, `Hindi`), KaTeX math formatting, `Incorrect (-0.33)` filter chip, user-picked vs correct option indicators, structured explanation blocks (`Summary`, `Correct Analysis`, `Incorrect Analysis`, `Conclusion`), and quick-jump Question Palette.
+  - **Mobile (`390x844`):** Verified `0px` horizontal overflow (`scrollWidth: 390 === 390`), `0` buttons below `44x44px`, `0` `button:not([type="button"])`, `<NativeDialog variant="drawer-right">` Question Palette drawer, completed attempt deep-linking from `TestDetailPage` ("View Solution" action button), deterministic `<ArrowLeft />` navigation back to `TestDetailPage`, and `0` console errors. Restored `is_published = false` in Supabase (`DEC-0017`).
 - **Master Blueprint Index:** [`docs/blueprint/main_blueprint.md`](../blueprint/main_blueprint.md)
 - **Active Generation Blueprint:** [`docs/blueprint/v1.0_blueprint.md`](../blueprint/v1.0_blueprint.md) — **Gen 1B (`v1.0.367` $\rightarrow$ `v1.0.380`): Admin Panel & Dedicated BPSC Prepared Mock Tests Hardening**
-- **Next Active Step:** **Step 8 (`v1.0.374`) — Prepared Mock Test Scoring, Negative Marking & Solution Review Pipeline**
+- **Next Active Step:** **Step 9 (`v1.0.375`) — Student Resume ("Continue Learning"), Series Progress & Safe Leaderboard**
 
 ---
 
@@ -32,6 +32,7 @@
   - **Slot 3 (Worker 2):** Port `3002` (`http://localhost:3002/`) — Tertiary session.
 - **Windows Command Runner Protocol:**
   - Use `npx.cmd` or `npm.cmd` on Windows shells to prevent PowerShell script execution policy errors.
+  - Use `node --max-old-space-size=4096 ./node_modules/typescript/bin/tsc --noEmit` for typechecking across large codebases.
   - Dev server startup: `npm.cmd run dev` (in Slot 1) or `npm.cmd run dev -- --port 3001` (in Worker 1).
 - **Vite HMR Zero-Commit Live Preview:**
   - Vite hot-reloads edits on disk in milliseconds. AI agents and developers do NOT need to commit to git to preview or verify UI changes.
@@ -40,47 +41,60 @@
 
 ---
 
-## 3. Pre-Planned Execution Brief for Next Version (`v1.0.374`)
+## 3. Pre-Planned Execution Brief for Next Version (`v1.0.375`)
 
-- **Target Milestone:** `v1.0.374` (`package.json` SemVer: `1.0.374`)
-- **Target Branch:** `feat/v1.0.374-mock-scoring-solution-review`
-- **Blueprint Reference:** Gen 1B, **Step 8** in [`docs/blueprint/v1.0_blueprint.md`](../blueprint/v1.0_blueprint.md)
-- **Objective:** Upgrade the post-submission experience for prepared BPSC mock tests from a toast-only return to `TestDetailPage` into an exam-grade **Result Scorecard & Bilingual Solution Review Pipeline** with idempotent offline submission replay (`useSyncStore`), subject-wise accuracy breakdowns, and clickable completed attempt inspection from `TestDetailPage`.
+- **Target Milestone:** `v1.0.375` (`package.json` SemVer: `1.0.375`)
+- **Target Branch:** `feat/v1.0.375-student-resume-progress-leaderboard`
+- **Blueprint Reference:** Gen 1B, **Step 9** in [`docs/blueprint/v1.0_blueprint.md`](../blueprint/v1.0_blueprint.md)
+- **Objective:** Replace the remaining static placeholders in `ExamCategoriesPage.tsx` (`Continue Learning` placeholder) and `TestsListPage.tsx` (`Your Progress` placeholder and static `Leaderboard` stub) with real student attempt progress, live series completion stats, and privacy-safe ranked leaderboards backed by Step 4/4B's hardened database RPC (`DB_RPCS.MOCK_LEADERBOARD`).
 - **Exact Scope & Targets:**
-  1. **Offline Submission Replay & Attempt Result Hydration (`src/features/mock-tests/api/mockTestsApi.ts`, `src/features/quiz/stores/useSyncStore.ts`):**
-     - Add idempotent offline queue replay in `useSyncStore` for `mock_test_attempt_submit` (`DB_TABLES.MOCK.ATTEMPTS` `.upsert(..., { onConflict: 'id' })`) when `submitPreparedMockAttempt()` runs offline or encounters a transient network error (`DEC-0004`).
-     - Add `fetchPreparedMockAttemptById(testId, attemptId, userId)` + local result cache so `PreparedMockResultPage` hydrates in 0ms offline or fetches the student's own attempt (including `answers` JSONB strictly filtered by `user_id`, `DEC-0017`) paired with `fetchPreparedMockTestQuestions()` (`100`-UUID chunked ordered hydration, `DEC-0021`).
-  2. **Result & Solution Review Route + `TestDetailPage` History Deep-Link (`src/config/routes.ts`, `src/routes/AppRoutes.tsx`, `src/features/mock-tests/pages/PreparedMockExamPage.tsx`, `src/features/mock-tests/pages/TestDetailPage.tsx`):**
-     - Register `ROUTES.TEST_SERIES.RESULT(testId, attemptId)` in `src/config/routes.ts` and mount `<PreparedMockResultPage />` in `src/routes/AppRoutes.tsx`.
-     - Navigate directly from `PreparedMockExamPage` upon **Confirm & Submit** / `00:00` auto-submit into the new Result & Solution Review screen, and make `"Completed"` attempt entries in `TestDetailPage` (**Your Attempt History**) interactive so students can revisit any past attempt's Solution Review (`>=44x44px` `type="button"`).
-  3. **Score Breakdown & Bilingual Solution Review UI (`src/features/mock-tests/pages/PreparedMockResultPage.tsx`):**
-     - Render scorecard summary (`score / total_marks`, exact `-0.33` / positive-marking math, `accuracy %`, `Pass` / `Below Cutoff` vs `passing_marks`, `Correct` / `Wrong` / `Unanswered`, and time taken), subject-wise breakdown bars, filterable Solution Review (`All`, `Correct`, `Incorrect`, `Unanswered`) with bilingual stems, KaTeX math, picked vs correct option badges, detailed `explanation` cards, `scroll-mb-28`, and deterministic `<ArrowLeft />` / hardware back return to `TestDetailPage` (`DEC-0002`, `useHardwareBackButton.ts`).
-  4. **Automated Vitest Suite (`src/features/mock-tests/__tests__/`):**
-     - Test subject-wise breakdown + BPSC `-0.33` scoring math, offline submission queuing & idempotent `useSyncStore` replay, Solution Review filtering (`Correct`/`Incorrect`/`Unanswered`) & bilingual explanation rendering, `TestDetailPage` completed-attempt navigation, and `DEC-0002` logical/hardware back navigation.
-  - *Out of scope:* `"Continue Learning"` home resume cards & series progress / leaderboard UI (Step 9 `v1.0.375`) and Admin Insights aggregation (Step 10 `v1.0.376`).
+  1. **Real "Continue Learning" Cards (`src/features/mock-tests/pages/ExamCategoriesPage.tsx`):**
+     - Query student's active `in_progress` or recently completed `mock_test_attempts` joined with `mock_tests` (filtered by active schedule window `isTestWithinScheduleWindow`, `DEC-0017`).
+     - Hydrate from IndexedDB in 0ms (`DEC-0004`) with background sync.
+     - Display test title, progress bar (`answered / total`), time remaining, and 1-tap "Resume Test" (`ROUTES.TEST_SERIES.EXAM_RUNNER(testId)`) or "View Solution" (`ROUTES.TEST_SERIES.RESULT(testId, attemptId)`).
+     - Render clean empty state when no recent attempts exist.
+  2. **Live "Your Progress" Series Stats (`src/features/mock-tests/pages/TestsListPage.tsx`):**
+     - Replace static/mock counters with real stats calculated from the student's `mock_test_attempts`:
+       - Tests completed / total published tests in the series.
+       - Best score / Average score across completed tests.
+       - Series overall accuracy % and total time spent.
+  3. **Privacy-Safe Series/Test Leaderboard (`src/features/mock-tests/pages/TestsListPage.tsx`, `src/features/mock-tests/api/mockTestsApi.ts`):**
+     - Connect Leaderboard section to `fetchTestLeaderboard(testId)` / `DB_RPCS.MOCK_LEADERBOARD` (`public.get_mock_test_leaderboard`).
+     - Display ranked list: Rank, Anonymous/Public Student Handle, Score, Accuracy, Time Taken.
+     - Highlight `is_current_user` row prominently (`DEC-0017`).
+     - Strictly zero leakage of raw `answers` JSONB or private student metadata.
+     - Support empty state ("Be the first to complete this test!") and offline fallback.
+  4. **Accessibility, Android Ergonomics & Automated Tests (`src/features/mock-tests/__tests__/`):**
+     - Touch targets `>=44x44px`, `type="button"`, `active:scale-95`, `scroll-mb-28` clearance above bottom nav.
+     - Vitest suite `mockTestsProgressLeaderboard.test.tsx` verifying:
+       - Resume attempt resolution.
+       - Series progress calculation.
+       - Leaderboard RLS / DTO privacy sanitization (no `answers` JSONB).
+       - Empty and offline states.
+  - *Out of scope:* Admin analytics aggregation inspector (Step 10 `v1.0.376`) and global admin shell refactor (Step 11 `v1.0.377`).
 - **Circuit Breakers & Constraints:**
-  - *Estimated files:* `<= 8` files (`<= 10` threshold).
-  - *New npm dependencies:* **None**. *DB schema changes:* **None**.
-  - *Invariants to protect:* `DEC-0002` (zero `navigate(-1)`), `DEC-0004` (0ms IndexedDB & idempotent sync replay), `DEC-0007` (native `<dialog>` / Popover), `DEC-0008` (`>=44x44px` `active:scale-95`), `DEC-0014` (`useNotification()` Popover toasts), `DEC-0017` (`isTestWithinScheduleWindow()` & strict own-attempt RLS), `DEC-0018` (`DB_TABLES.MOCK.*`), `DEC-0019` (`scroll-mb-28`), `DEC-0020` (`negative_marks`), `DEC-0021` (`100`-UUID chunked ordered hydration & clean `answers` JSONB).
+  - *Estimated files:* `<= 6` files (`ExamCategoriesPage.tsx`, `TestsListPage.tsx`, `mockTestsApi.ts`, tests).
+  - *New npm dependencies:* **None**. *DB schema changes:* **None** (uses existing `get_mock_test_leaderboard` RPC and `mock_test_attempts` table).
+  - *Invariants to protect:* `DEC-0002` (zero `navigate(-1)`), `DEC-0004` (0ms IndexedDB hydration & offline resilience), `DEC-0007` (native `<dialog>` / Popovers), `DEC-0008` (`>=44x44px` `active:scale-95`), `DEC-0014` (`useNotification()`), `DEC-0017` (schedule check & own-attempt privacy), `DEC-0018` (`DB_TABLES.MOCK.*`), `DEC-0019` (`scroll-mb-28`), `DEC-0020` (`negative_marks`), `DEC-0021` (`answers` JSONB clean isolation), `DEC-0022` (`PreparedMockResultPage` Dual-View & 0ms result cache).
 - **Real-World Verification Goal:**
-  - *Static:* `npx.cmd tsc --noEmit` (`0` errors) + `npx.cmd vitest --run --pool=forks --maxWorkers=1` + `npx.cmd vite build`.
-  - *Live Browser (`http://localhost:3000/` via Chrome DevTools on Desktop `1280x800` & Mobile `390x844`):* Submit a BPSC mock test (online + offline-then-reconnect), verify exact negative-marking math, subject breakdown, Solution Review filters, completed attempt inspection from `TestDetailPage`, `>=44x44px` controls, `0px` mobile overflow, and `0` console errors.
+  - *Static:* `node --max-old-space-size=4096 ./node_modules/typescript/bin/tsc --noEmit` (`0` errors) + `npx.cmd vitest --run --pool=forks --maxWorkers=1` + `npx.cmd vite build`.
+  - *Live Browser (Desktop `1280x800` & Mobile `390x844`):* Resume an in-progress BPSC mock test from `"Continue Learning"`, verify live series progress statistics in `TestsListPage.tsx`, and inspect ranked leaderboard output on Desktop and Mobile (`390x844`) with 0 `answers` JSONB leakage and 0 console errors.
 
 ---
 
 ## 4. Mandatory Closeout Checklist (Every Chat MUST Complete All 7)
 
-- [ ] **Step 1:** Create release dossier `docs/versions/v1.0.374.md` using `docs/versions/00-template.md`.
-- [ ] **Step 2:** Register newly made decisions in `docs/DECISIONS_MASTER.md` (`DEC-0022`, and `OLD-013` if applicable).
+- [ ] **Step 1:** Create release dossier `docs/versions/v1.0.375.md` using `docs/versions/00-template.md`.
+- [ ] **Step 2:** Register newly made decisions in `docs/DECISIONS_MASTER.md` (`DEC-0023`, and `OLD-014` if applicable).
 - [ ] **Step 3:** Prepend release entry to `docs/APP_JOURNEY_LOG.md` with exact IST timestamp.
-- [ ] **Step 4:** Mark Step 8 (`v1.0.374`) as `[x] DONE` with PR `#` in `docs/blueprint/v1.0_blueprint.md`, promote Step 9 (`v1.0.375`) to High-Definition Spec (`[ ] NEXT`), and refine Step 14 (`v1.0.380`) into `Medium` detail.
-- [ ] **Step 5:** Completely overwrite `docs/handovers/CURRENT_HANDOVER.md` with the `v1.0.374` verified baseline and Step 9 (`v1.0.375`) brief.
+- [ ] **Step 4:** Mark Step 9 (`v1.0.375`) as `[x] DONE` with PR `#` in `docs/blueprint/v1.0_blueprint.md`, promote Step 10 (`v1.0.376`) to High-Definition Spec (`[ ] NEXT`), and refine Step 14 (`v1.0.380`) / Step 15 into `Medium` detail.
+- [ ] **Step 5:** Completely overwrite `docs/handovers/CURRENT_HANDOVER.md` with the `v1.0.375` verified baseline and Step 10 (`v1.0.376`) brief.
 - [ ] **Step 6:** Run secret/privacy scan on staged git changes (zero API keys, tokens, personal emails, or local OS paths).
 - [ ] **Step 7:** Commit, push, open PR via GitHub CLI `gh pr create`, record PR #, wait for CI check, squash merge, and verify clean `main`.
 
 ---
 
-## 5. Copy-Paste Starter Prompt for Fresh Chat (`v1.0.374`)
+## 5. Copy-Paste Starter Prompt for Fresh Chat (`v1.0.375`)
 
 ```text
 I am continuing development on MindFlow using the autonomous "1 Chat = 1 Version" workflow system governed by AGENTS.md, GEMINI.md, and the version-ritual skill.
@@ -89,11 +103,11 @@ Please follow this exact cold-start protocol:
 1. Read ONLY the Hot Context (<20 KB):
    - docs/handovers/CURRENT_HANDOVER.md
    - docs/DECISIONS_MASTER.md
-   - Active Step 8 (v1.0.374) in docs/blueprint/v1.0_blueprint.md
+   - Active Step 9 (v1.0.375) in docs/blueprint/v1.0_blueprint.md
    (Do NOT read historical dossiers or full changelogs on startup.)
 2. Verify git status on main and perform the 30-second Circuit Breaker sanity check (confirm <= 10 files, zero new npm packages, zero DB DDL changes).
-3. Run System-2 Cognitive Pre-Flight: simulate the Prepared Mock Test Scoring & Solution Review lifecycle (online + offline submission replay via useSyncStore, 0ms attempt result hydration with clean answers JSONB, negative-marking & subject breakdown calculation, bilingual/KaTeX Solution Review filtering, TestDetailPage completed-attempt deep-linking, and deterministic <ArrowLeft /> / Android hardware back), identify 3 runtime failure modes, and enforce zero-shortcut real implementations.
-4. Execute the brief in Section 3 of CURRENT_HANDOVER.md (Target: v1.0.374 — Prepared Mock Test Scoring, Negative Marking & Solution Review Pipeline).
-5. Verify statically (npx.cmd tsc --noEmit && npx.cmd vitest --run --pool=forks --maxWorkers=1 && npx.cmd vite build) and visually in Chrome across Desktop (1280x800) + Mobile (390x844) at http://localhost:3000/ (confirming negative-marking math, offline replay, Solution Review filters, >=44x44px controls, 0px mobile overflow, and 0 console errors).
-6. Execute the mandatory 7-step Phase 4 closeout ritual, update docs/blueprint/v1.0_blueprint.md (marking Step 8 v1.0.374 DONE, promoting Step 9 v1.0.375 to High-Def NEXT, and refining Step 14 v1.0.380), overwrite CURRENT_HANDOVER.md with Step 9 (v1.0.375), and output the starter prompt for v1.0.375.
+3. Run System-2 Cognitive Pre-Flight: simulate the Student Resume ("Continue Learning"), Series Progress & Safe Leaderboard lifecycle (0ms IndexedDB hydration of user's active/completed mock attempts with schedule-window filtering, live calculation of series completion stats, privacy-safe fetchTestLeaderboard via DB_RPCS.MOCK_LEADERBOARD highlighting current user with zero answers JSONB leakage, and deterministic <ArrowLeft /> / Android hardware back), identify 3 runtime failure modes, and enforce zero-shortcut real implementations.
+4. Execute the brief in Section 3 of CURRENT_HANDOVER.md (Target: v1.0.375 — Student Resume ("Continue Learning"), Series Progress & Safe Leaderboard).
+5. Verify statically (node --max-old-space-size=4096 ./node_modules/typescript/bin/tsc --noEmit && npx.cmd vitest --run --pool=forks --maxWorkers=1 && npx.cmd vite build) and visually in Chrome across Desktop (1280x800) + Mobile (390x844) at http://localhost:3000/ (confirming 1-tap test resume, live series progress counters, ranked leaderboard output with 0 answers leakage, >=44x44px controls, 0px mobile overflow, and 0 console errors).
+6. Execute the mandatory 7-step Phase 4 closeout ritual, update docs/blueprint/v1.0_blueprint.md (marking Step 9 v1.0.375 DONE, promoting Step 10 v1.0.376 to High-Def NEXT), overwrite CURRENT_HANDOVER.md with Step 10 (v1.0.376), and output the starter prompt for v1.0.375.
 ```

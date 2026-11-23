@@ -443,17 +443,9 @@ export const PreparedMockExamPage: React.FC = () => {
                     duration: 4500,
                 });
 
-                const targetDetailRoute = ROUTES.TEST_SERIES.TEST(currentTest.id);
-                const detailBackCandidate = resolvePreparedExamBackTarget(
-                    location.state,
-                    currentTest.id
-                );
-                navigate(targetDetailRoute, {
+                const targetResultRoute = ROUTES.TEST_SERIES.RESULT(currentTest.id, result.attempt.id);
+                navigate(targetResultRoute, {
                     replace: true,
-                    state:
-                        detailBackCandidate !== targetDetailRoute
-                            ? { returnTo: detailBackCandidate }
-                            : undefined,
                 });
             } catch (err: any) {
                 isSubmittingRef.current = false;
