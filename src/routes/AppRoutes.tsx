@@ -87,6 +87,7 @@ const TestSeriesPage = lazy(() => import('../features/mock-tests/pages/TestSerie
 const TestsListPage = lazy(() => import('../features/mock-tests/pages/TestsListPage').then(m => ({ default: m.TestsListPage })));
 const TestDetailPage = lazy(() => import('../features/mock-tests/pages/TestDetailPage').then(m => ({ default: m.TestDetailPage })));
 const ExamPlaceholderPage = lazy(() => import('../features/mock-tests/pages/ExamPlaceholderPage').then(m => ({ default: m.ExamPlaceholderPage })));
+const PreparedMockExamPage = lazy(() => import('../features/mock-tests/pages/PreparedMockExamPage').then(m => ({ default: m.PreparedMockExamPage })));
 const AdminNotifications = lazy(() => import('../features/notifications/admin/AdminNotifications').then(m => ({ default: m.AdminNotifications })));
 const AdminFinancialsPage = lazy(() => import('../features/admin/financials/pages/AdminFinancialsPage').then(m => ({ default: m.AdminFinancialsPage })));
 const AdminAnalyticsPage = lazy(() => import('../features/admin/analytics/pages/AdminAnalyticsPage').then(m => ({ default: m.AdminAnalyticsPage || m.default })));
@@ -391,6 +392,7 @@ const handleReattempt = async (quizId: string, mode: string) => {
 
                     {/* Vocab Libraries & Immersive Fullscreen Routes */}
                     <Route element={<NavigationManager key="auth-immersive" type={RouteAccessType.AUTHENTICATED}><div className="min-h-[100dvh] w-full flex flex-col bg-slate-50 dark:bg-slate-950"><Outlet /></div></NavigationManager>}>
+                    <Route path={ROUTES.TEST_SERIES.EXAM_RUNNER(':testId')} element={<Suspense fallback={<SynapticLoader />}><PreparedMockExamPage /></Suspense>} />
                     <Route path={ROUTES.VOCAB.OWS.LIBRARY} element={<Suspense fallback={<SynapticLoader />}><VocabLibraryPage vocabType="ows" onBack={() => navTo(`${ROUTES.ENGLISH}?tab=vocabows`)} onStartDeck={(id) => { navTo(ROUTES.VOCAB.OWS.SESSION.dynamic(id)); }} /></Suspense>} />
                     <Route path={ROUTES.VOCAB.IDIOMS.LIBRARY} element={<Suspense fallback={<SynapticLoader />}><VocabLibraryPage vocabType="idiom" onBack={() => navTo(`${ROUTES.ENGLISH}?tab=vocabidiom`)} onStartDeck={(id) => { navTo(ROUTES.VOCAB.IDIOMS.SESSION.dynamic(id)); }} /></Suspense>} />
                     <Route path={ROUTES.VOCAB.SYNONYMS.LIBRARY} element={<Suspense fallback={<SynapticLoader />}><VocabLibraryPage vocabType="synonym" onBack={() => navTo(`${ROUTES.ENGLISH}?tab=vocabsynonyms`)} onStartDeck={(id) => { navTo(ROUTES.VOCAB.SYNONYMS.SESSION.dynamic(id)); }} /></Suspense>} />
