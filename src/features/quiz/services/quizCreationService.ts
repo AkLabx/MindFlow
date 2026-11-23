@@ -10,6 +10,7 @@ import { telemetry } from '../../../lib/telemetry';
 import { performanceTracker, PERF_BUDGETS } from '../../../lib/performance';
 
 export const MAX_QUIZ_QUESTIONS = 100;
+export const MAX_PREPARED_MOCK_QUESTIONS = 250;
 export const DEFAULT_DRILL_QUESTION_COUNT = 25;
 
 export interface QuizCreationResult {
@@ -38,7 +39,8 @@ export const quizCreationService = {
     questions: Question[],
     filters: InitialFilters,
     mode: QuizMode,
-    quizName?: string
+    quizName?: string,
+    options?: { maxQuestions?: number }
   ): Promise<QuizCreationResult> => {
     performanceTracker.startMark('quiz_generation');
 
@@ -58,13 +60,18 @@ export const quizCreationService = {
       const savedQuizzes = await db.getAllSavedQuizzes();
       const unfinishedQuizzes = savedQuizzes.filter(q => q.state && q.state.status !== 'result');
 
-      // 0. Hard System Ceiling Enforcement (Prevent Accidental Mega-Quizzes)
-      const sanitizedQuestions = questions.length > MAX_QUIZ_QUESTIONS
-        ? questions.slice(0, MAX_QUIZ_QUESTIONS)
+      // 0. Hard System Ceiling Enforcement (Prevent Accidental Mega-Quizzes while allowing Prepared Mocks up to 250)
+      const rawMax = options?.maxQuestions;
+      const effectiveCeiling =
+        typeof rawMax === 'number' && Number.isFinite(rawMax) && rawMax > 0
+          ? Math.min(Math.trunc(rawMax), MAX_PREPARED_MOCK_QUESTIONS)
+          : MAX_QUIZ_QUESTIONS;
+      const sanitizedQuestions = questions.length > effectiveCeiling
+        ? questions.slice(0, effectiveCeiling)
         : questions;
 
-      if (questions.length > MAX_QUIZ_QUESTIONS) {
-        console.warn(`[quizCreationService] Clamped quiz questions from ${questions.length} to MAX_QUIZ_QUESTIONS (${MAX_QUIZ_QUESTIONS})`);
+      if (questions.length > effectiveCeiling) {
+        console.warn(`[quizCreationService] Clamped quiz questions from ${questions.length} to ceiling (${effectiveCeiling})`);
       }
 
       const targetQuestionIds = sanitizedQuestions.map(q => q.id).join(',');

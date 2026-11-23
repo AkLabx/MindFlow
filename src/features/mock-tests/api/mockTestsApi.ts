@@ -1,6 +1,7 @@
 import { supabase } from '@/lib/supabase';
 import { DB_TABLES, DB_RPCS } from '@/config/dbTables';
 import { db } from '@/lib/db';
+import type { Question } from '@/types/models';
 import {
     CANONICAL_EXAMS,
     CanonicalExam,
@@ -315,6 +316,12 @@ const MOCK_TEST_ATTEMPTS_STORAGE_PREFIX = 'mindflow_mock_test_attempts_v1_';
 const MOCK_TEST_ATTEMPTS_IDB_PREFIX = 'mock_test_attempts_v1_';
 const MOCK_SAVED_TESTS_STORAGE_PREFIX = 'mindflow_saved_mock_tests_v1_';
 const MOCK_SAVED_TESTS_IDB_PREFIX = 'saved_mock_tests_v1_';
+const MOCK_TEST_QUESTIONS_STORAGE_PREFIX = 'mindflow_mock_test_questions_v1_';
+const MOCK_TEST_QUESTIONS_IDB_PREFIX = 'mock_test_questions_v1_';
+const MOCK_ACTIVE_ATTEMPT_STORAGE_PREFIX = 'mindflow_mock_active_attempt_v1_';
+const MOCK_ACTIVE_ATTEMPT_IDB_PREFIX = 'mock_active_attempt_v1_';
+const UUID_CHUNK_SIZE = 100;
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 let memoryCatalogCache: MockCatalogCachePayload | null = null;
 let memoryHomeCache: MockHomeCachePayload | null = null;
@@ -322,6 +329,11 @@ const memoryAttemptsCache = new Map<string, { ids: string[]; fetchedAt: number }
 const memoryTestDetailCache = new Map<string, { test: any; fetchedAt: number }>();
 const memoryTestAttemptsCache = new Map<string, { attempts: UserTestAttemptItem[]; fetchedAt: number }>();
 const memorySavedTestsCache = new Map<string, string[]>();
+const memoryTestQuestionsCache = new Map<
+    string,
+    { questions: Question[]; questionIdsKey: string; fetchedAt: number }
+>();
+const memoryActiveAttemptCache = new Map<string, PreparedMockActiveAttemptState>();
 
 export interface UserTestAttemptItem {
     id: string;
@@ -1114,6 +1126,7 @@ export const clearPreparedMockTestsCache = (userId?: string | null): void => {
     memoryCatalogCache = null;
     memoryHomeCache = null;
     memoryTestDetailCache.clear();
+    memoryTestQuestionsCache.clear();
     if (userId) {
         const trimmedUserId = String(userId).trim();
         memoryAttemptsCache.delete(trimmedUserId);
@@ -1126,10 +1139,17 @@ export const clearPreparedMockTestsCache = (userId?: string | null): void => {
                 safeRemoveLocalStorage(`${MOCK_TEST_ATTEMPTS_STORAGE_PREFIX}${key}`);
             }
         }
+        for (const key of Array.from(memoryActiveAttemptCache.keys())) {
+            if (key.startsWith(`${trimmedUserId}_`)) {
+                memoryActiveAttemptCache.delete(key);
+                safeRemoveLocalStorage(`${MOCK_ACTIVE_ATTEMPT_STORAGE_PREFIX}${key}`);
+            }
+        }
     } else {
         memoryAttemptsCache.clear();
         memoryTestAttemptsCache.clear();
         memorySavedTestsCache.clear();
+        memoryActiveAttemptCache.clear();
         try {
             if (typeof window !== 'undefined' && window.localStorage) {
                 for (let i = window.localStorage.length - 1; i >= 0; i -= 1) {
@@ -1139,7 +1159,9 @@ export const clearPreparedMockTestsCache = (userId?: string | null): void => {
                         (storageKey.startsWith(MOCK_TEST_DETAIL_STORAGE_PREFIX) ||
                             storageKey.startsWith(MOCK_TEST_ATTEMPTS_STORAGE_PREFIX) ||
                             storageKey.startsWith(MOCK_SAVED_TESTS_STORAGE_PREFIX) ||
-                            storageKey.startsWith(MOCK_ATTEMPTS_STORAGE_PREFIX))
+                            storageKey.startsWith(MOCK_ATTEMPTS_STORAGE_PREFIX) ||
+                            storageKey.startsWith(MOCK_TEST_QUESTIONS_STORAGE_PREFIX) ||
+                            storageKey.startsWith(MOCK_ACTIVE_ATTEMPT_STORAGE_PREFIX))
                     ) {
                         window.localStorage.removeItem(storageKey);
                     }
@@ -1256,4 +1278,1083 @@ export const fetchPreparedMockTestsByExam = async (
         'network',
         fetchedAt
     );
+};
+
+// ============================================================================
+// LIVE TIMED CBT MOCK RUNNER: CHUNKED HYDRATION & CRASH-SAFE ATTEMPTS (v1.0.373)
+// ============================================================================
+
+export type PreparedMockPaletteStatus =
+    | 'not_visited'
+    | 'not_answered'
+    | 'answered'
+    | 'marked_for_review'
+    | 'answered_and_marked';
+
+export interface PreparedMockActiveAttemptState {
+    attemptId: string;
+    testId: string;
+    userId: string;
+    status: 'in_progress' | 'completed' | 'abandoned';
+    startedAt: string;
+    updatedAt: string;
+    totalDurationSeconds: number;
+    remainingSeconds: number;
+    elapsedSeconds: number;
+    currentIndex: number;
+    answers: Record<string, string>;
+    markedForReview: string[];
+    visitedQuestionIds: string[];
+    timeSpentByQuestion: Record<string, number>;
+    remotePersisted: boolean;
+}
+
+export interface PreparedMockScoreSummary {
+    score: number;
+    accuracy: number;
+    correctCount: number;
+    wrongCount: number;
+    unansweredCount: number;
+    attemptedCount: number;
+    totalQuestions: number;
+    totalMarks: number;
+    passingMarks: number;
+    negativeMarks: number;
+    marksPerQuestion: number;
+    passed: boolean;
+}
+
+export interface PreparedMockSubmitResult {
+    attempt: UserTestAttemptItem;
+    summary: PreparedMockScoreSummary;
+    remoteSynced: boolean;
+}
+
+interface ActiveAttemptCbtMeta {
+    markedForReview?: unknown[];
+    visitedQuestionIds?: unknown[];
+    currentIndex?: unknown;
+    remainingSeconds?: unknown;
+    timeSpentByQuestion?: Record<string, unknown>;
+    updatedAt?: unknown;
+}
+
+const generateAttemptUuid = (): string => {
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+        return crypto.randomUUID();
+    }
+    const hex = () => Math.floor((1 + Math.random()) * 0x10000).toString(16).slice(1);
+    return `${hex()}${hex()}-${hex()}-4${hex().slice(1)}-8${hex().slice(1)}-${hex()}${hex()}${hex()}`;
+};
+
+export const normalizePreparedMockQuestion = (row: any, index: number = 0): Question => {
+    const options = Array.isArray(row?.options)
+        ? row.options.map((opt: unknown) => String(opt ?? ''))
+        : [];
+    const optionsHi = Array.isArray(row?.options_hi)
+        ? row.options_hi.map((opt: unknown) => String(opt ?? ''))
+        : undefined;
+    const subject = String(row?.subject ?? row?.classification?.subject ?? 'General Studies');
+    const topic = String(row?.topic ?? row?.classification?.topic ?? 'General');
+    const subTopic = row?.subTopic ?? row?.classification?.subTopic ?? undefined;
+    const examName = String(row?.examName ?? row?.sourceInfo?.examName ?? 'BPSC');
+    const parsedYear = Number(row?.examYear ?? row?.sourceInfo?.examYear ?? 0);
+    const examYear = Number.isFinite(parsedYear) ? parsedYear : 0;
+    const examDateShift = row?.examDateShift ?? row?.sourceInfo?.examDateShift ?? undefined;
+    const difficulty = String(row?.properties?.difficulty ?? row?.difficulty ?? 'Medium');
+    const questionType = String(row?.properties?.questionType ?? row?.questionType ?? 'MCQ');
+
+    return {
+        id: String(row?.id ?? `q-${index + 1}`),
+        v1_id: row?.v1_id ? String(row.v1_id) : undefined,
+        subject,
+        topic,
+        subTopic: subTopic ? String(subTopic) : undefined,
+        examName,
+        examYear,
+        examDateShift: examDateShift ? String(examDateShift) : undefined,
+        question: String(row?.question ?? ''),
+        question_hi: row?.question_hi ? String(row.question_hi) : undefined,
+        options,
+        options_hi: optionsHi,
+        correct: String(row?.correct ?? ''),
+        explanation:
+            row?.explanation && typeof row.explanation === 'object' ? row.explanation : {},
+        question_image_url: row?.question_image_url ? String(row.question_image_url) : undefined,
+        explanation_image_url: row?.explanation_image_url
+            ? String(row.explanation_image_url)
+            : undefined,
+        tags: Array.isArray(row?.tags) ? row.tags.map((tag: unknown) => String(tag)) : [],
+        sourceInfo: {
+            examName,
+            examYear,
+            examDateShift: examDateShift ? String(examDateShift) : undefined,
+        },
+        classification: {
+            subject,
+            topic,
+            subTopic: subTopic ? String(subTopic) : undefined,
+        },
+        properties: {
+            difficulty,
+            questionType,
+        },
+    };
+};
+
+const normalizeQuestionIdsList = (questionIds: unknown): string[] => {
+    if (!Array.isArray(questionIds)) return [];
+    const seen = new Set<string>();
+    const ordered: string[] = [];
+    for (const raw of questionIds) {
+        const id = String(raw ?? '').trim();
+        if (!id || seen.has(id)) continue;
+        seen.add(id);
+        ordered.push(id);
+    }
+    return ordered;
+};
+
+/**
+ * Synchronous 0ms cache lookup for hydrated prepared mock-test questions (`DEC-0004`).
+ */
+export const getCachedPreparedTestQuestionsSnapshot = (
+    testId: string,
+    expectedQuestionIds?: string[]
+): Question[] | null => {
+    const trimmedTestId = String(testId ?? '').trim();
+    if (!trimmedTestId) return null;
+
+    const normalizedExpected = normalizeQuestionIdsList(expectedQuestionIds);
+    const expectedKey = normalizedExpected.join(',');
+
+    const mem = memoryTestQuestionsCache.get(trimmedTestId);
+    if (
+        mem &&
+        Array.isArray(mem.questions) &&
+        mem.questions.length > 0 &&
+        (!expectedKey || mem.questionIdsKey === expectedKey)
+    ) {
+        return mem.questions;
+    }
+
+    const stored = safeReadLocalStorage<{
+        questions: any[];
+        questionIdsKey: string;
+        fetchedAt: number;
+    }>(`${MOCK_TEST_QUESTIONS_STORAGE_PREFIX}${trimmedTestId}`);
+    if (
+        stored &&
+        Array.isArray(stored.questions) &&
+        stored.questions.length > 0 &&
+        (!expectedKey || stored.questionIdsKey === expectedKey)
+    ) {
+        const normalized = stored.questions.map((q, idx) => normalizePreparedMockQuestion(q, idx));
+        const entry = {
+            questions: normalized,
+            questionIdsKey: stored.questionIdsKey || expectedKey,
+            fetchedAt: stored.fetchedAt ?? Date.now(),
+        };
+        memoryTestQuestionsCache.set(trimmedTestId, entry);
+        return normalized;
+    }
+
+    return null;
+};
+
+/**
+ * Async IndexedDB fallback hydration for prepared mock-test questions (`MindFlowDB.sync_metadata`).
+ */
+export const readPreparedTestQuestionsIndexedDBCache = async (
+    testId: string,
+    expectedQuestionIds?: string[]
+): Promise<Question[] | null> => {
+    const syncSnapshot = getCachedPreparedTestQuestionsSnapshot(testId, expectedQuestionIds);
+    if (syncSnapshot) return syncSnapshot;
+
+    const trimmedTestId = String(testId ?? '').trim();
+    if (!trimmedTestId) return null;
+
+    const normalizedExpected = normalizeQuestionIdsList(expectedQuestionIds);
+    const expectedKey = normalizedExpected.join(',');
+
+    try {
+        const entry = await db.getCacheEntry<{
+            questions: any[];
+            questionIdsKey: string;
+            fetchedAt: number;
+        }>(`${MOCK_TEST_QUESTIONS_IDB_PREFIX}${trimmedTestId}`);
+        if (
+            entry?.data &&
+            Array.isArray(entry.data.questions) &&
+            entry.data.questions.length > 0 &&
+            (!expectedKey || entry.data.questionIdsKey === expectedKey)
+        ) {
+            const normalized = entry.data.questions.map((q, idx) =>
+                normalizePreparedMockQuestion(q, idx)
+            );
+            const payload = {
+                questions: normalized,
+                questionIdsKey: entry.data.questionIdsKey || expectedKey,
+                fetchedAt: entry.data.fetchedAt ?? Date.now(),
+            };
+            memoryTestQuestionsCache.set(trimmedTestId, payload);
+            safeWriteLocalStorage(`${MOCK_TEST_QUESTIONS_STORAGE_PREFIX}${trimmedTestId}`, payload);
+            return normalized;
+        }
+    } catch {
+        // Ignore IndexedDB unavailability
+    }
+
+    return null;
+};
+
+/**
+ * Fetches ordered questions for a prepared mock test in 100-UUID chunks (`DB_TABLES.BANK.QUESTIONS`,
+ * `.is('deleted_at', null)`), supporting >100-question BPSC mocks (e.g., 103 or 150 Qs) without
+ * truncation and updating 0ms Memory/`localStorage`/IndexedDB caches (`DEC-0004`).
+ */
+export const fetchPreparedMockTestQuestions = async (
+    testId: string,
+    questionIds: string[]
+): Promise<Question[]> => {
+    const trimmedTestId = String(testId ?? '').trim();
+    const orderedIds = normalizeQuestionIdsList(questionIds);
+    if (!trimmedTestId || orderedIds.length === 0) return [];
+
+    const uuidIds = orderedIds.filter((id) => UUID_PATTERN.test(id));
+    const legacyIds = orderedIds.filter((id) => !UUID_PATTERN.test(id));
+
+    const chunkList = (ids: string[]): string[][] => {
+        const chunks: string[][] = [];
+        for (let i = 0; i < ids.length; i += UUID_CHUNK_SIZE) {
+            chunks.push(ids.slice(i, i + UUID_CHUNK_SIZE));
+        }
+        return chunks;
+    };
+
+    try {
+        const chunkPromises: Promise<any[]>[] = [];
+
+        for (const chunk of chunkList(uuidIds)) {
+            chunkPromises.push(
+                (async () => {
+                    const { data, error } = await supabase
+                        .from(DB_TABLES.BANK.QUESTIONS)
+                        .select('*')
+                        .in('id', chunk)
+                        .is('deleted_at', null);
+                    if (error) throw error;
+                    return Array.isArray(data) ? data : [];
+                })()
+            );
+        }
+
+        for (const chunk of chunkList(legacyIds)) {
+            chunkPromises.push(
+                (async () => {
+                    const { data, error } = await supabase
+                        .from(DB_TABLES.BANK.QUESTIONS)
+                        .select('*')
+                        .in('v1_id', chunk)
+                        .is('deleted_at', null);
+                    if (error) throw error;
+                    return Array.isArray(data) ? data : [];
+                })()
+            );
+        }
+
+        const chunkResults = await Promise.all(chunkPromises);
+        const byIdMap = new Map<string, Question>();
+        const byLegacyIdMap = new Map<string, Question>();
+
+        chunkResults.flat().forEach((row, idx) => {
+            const normalized = normalizePreparedMockQuestion(row, idx);
+            if (normalized.id) {
+                byIdMap.set(normalized.id, normalized);
+            }
+            if (normalized.v1_id) {
+                byLegacyIdMap.set(normalized.v1_id, normalized);
+            }
+        });
+
+        const orderedQuestions: Question[] = [];
+        for (const reqId of orderedIds) {
+            const found = byIdMap.get(reqId) ?? byLegacyIdMap.get(reqId);
+            if (found) {
+                orderedQuestions.push(found);
+            }
+        }
+
+        if (orderedQuestions.length > 0) {
+            const payload = {
+                questions: orderedQuestions,
+                questionIdsKey: orderedIds.join(','),
+                fetchedAt: Date.now(),
+            };
+            memoryTestQuestionsCache.set(trimmedTestId, payload);
+            safeWriteLocalStorage(`${MOCK_TEST_QUESTIONS_STORAGE_PREFIX}${trimmedTestId}`, payload);
+            db.setCacheEntry(`${MOCK_TEST_QUESTIONS_IDB_PREFIX}${trimmedTestId}`, payload).catch(
+                () => {}
+            );
+        }
+
+        return orderedQuestions;
+    } catch (err) {
+        const cached = await readPreparedTestQuestionsIndexedDBCache(trimmedTestId, orderedIds);
+        if (cached && cached.length > 0) {
+            return cached;
+        }
+        throw err;
+    }
+};
+
+/**
+ * Pure palette state projection for CBT question tiles.
+ */
+export const resolveQuestionPaletteStatus = (
+    questionId: string,
+    state: Pick<
+        PreparedMockActiveAttemptState,
+        'answers' | 'markedForReview' | 'visitedQuestionIds'
+    >
+): PreparedMockPaletteStatus => {
+    const selected = state.answers[questionId];
+    const hasAnswer = selected !== undefined && selected !== null && String(selected).trim() !== '';
+    const isMarked = state.markedForReview.includes(questionId);
+    const isVisited = state.visitedQuestionIds.includes(questionId);
+
+    if (hasAnswer && isMarked) return 'answered_and_marked';
+    if (hasAnswer) return 'answered';
+    if (isMarked) return 'marked_for_review';
+    if (isVisited) return 'not_answered';
+    return 'not_visited';
+};
+
+/**
+ * Separates clean question-UUID answers from embedded `__cbt_meta` crash-recovery metadata
+ * stored on `in_progress` `mock_test_attempts.answers` JSONB rows.
+ */
+export const extractAttemptAnswersAndMeta = (
+    rawAnswers: unknown
+): {
+    answers: Record<string, string>;
+    meta: {
+        markedForReview: string[];
+        visitedQuestionIds: string[];
+        currentIndex: number;
+        remainingSeconds: number | null;
+        timeSpentByQuestion: Record<string, number>;
+        updatedAt: string | null;
+    };
+} => {
+    const cleanAnswers: Record<string, string> = {};
+    let rawMeta: ActiveAttemptCbtMeta = {};
+
+    if (rawAnswers && typeof rawAnswers === 'object' && !Array.isArray(rawAnswers)) {
+        for (const [key, value] of Object.entries(rawAnswers as Record<string, unknown>)) {
+            if (key === '__cbt_meta' && value && typeof value === 'object') {
+                rawMeta = value as ActiveAttemptCbtMeta;
+                continue;
+            }
+            if (typeof value === 'string' && value.trim() !== '') {
+                cleanAnswers[key] = value;
+            }
+        }
+    }
+
+    const markedForReview = Array.isArray(rawMeta.markedForReview)
+        ? Array.from(new Set(rawMeta.markedForReview.map((id) => String(id).trim()).filter(Boolean)))
+        : [];
+    const visitedQuestionIds = Array.isArray(rawMeta.visitedQuestionIds)
+        ? Array.from(
+              new Set(rawMeta.visitedQuestionIds.map((id) => String(id).trim()).filter(Boolean))
+          )
+        : [];
+    const parsedIndex = Number(rawMeta.currentIndex);
+    const currentIndex = Number.isFinite(parsedIndex) && parsedIndex >= 0 ? Math.trunc(parsedIndex) : 0;
+    const parsedRemaining =
+        rawMeta.remainingSeconds !== undefined && rawMeta.remainingSeconds !== null
+            ? Number(rawMeta.remainingSeconds)
+            : NaN;
+    const remainingSeconds =
+        Number.isFinite(parsedRemaining) && parsedRemaining >= 0
+            ? Math.trunc(parsedRemaining)
+            : null;
+
+    const timeSpentByQuestion: Record<string, number> = {};
+    if (rawMeta.timeSpentByQuestion && typeof rawMeta.timeSpentByQuestion === 'object') {
+        for (const [qId, secs] of Object.entries(rawMeta.timeSpentByQuestion)) {
+            const num = Number(secs);
+            if (Number.isFinite(num) && num >= 0) {
+                timeSpentByQuestion[qId] = Math.trunc(num);
+            }
+        }
+    }
+
+    return {
+        answers: cleanAnswers,
+        meta: {
+            markedForReview,
+            visitedQuestionIds,
+            currentIndex,
+            remainingSeconds,
+            timeSpentByQuestion,
+            updatedAt: rawMeta.updatedAt ? String(rawMeta.updatedAt) : null,
+        },
+    };
+};
+
+const normalizeActiveAttemptState = (
+    raw: any,
+    fallback?: { testId?: string; userId?: string; totalDurationSeconds?: number }
+): PreparedMockActiveAttemptState | null => {
+    if (!raw || typeof raw !== 'object') return null;
+    const attemptId = String(raw.attemptId ?? '').trim();
+    const testId = String(raw.testId ?? fallback?.testId ?? '').trim();
+    const userId = String(raw.userId ?? fallback?.userId ?? '').trim();
+    if (!attemptId || !testId || !userId) return null;
+
+    const totalDurationSeconds = Math.max(
+        60,
+        Number.isFinite(Number(raw.totalDurationSeconds))
+            ? Math.trunc(Number(raw.totalDurationSeconds))
+            : Number(fallback?.totalDurationSeconds ?? 3600)
+    );
+    const remainingRaw = Number(raw.remainingSeconds);
+    const remainingSeconds = Number.isFinite(remainingRaw)
+        ? Math.max(0, Math.min(totalDurationSeconds, Math.trunc(remainingRaw)))
+        : totalDurationSeconds;
+    const elapsedRaw = Number(raw.elapsedSeconds);
+    const elapsedSeconds = Number.isFinite(elapsedRaw) && elapsedRaw >= 0
+        ? Math.trunc(elapsedRaw)
+        : Math.max(0, totalDurationSeconds - remainingSeconds);
+    const currentIndexRaw = Number(raw.currentIndex);
+    const currentIndex =
+        Number.isFinite(currentIndexRaw) && currentIndexRaw >= 0 ? Math.trunc(currentIndexRaw) : 0;
+
+    const cleanAnswers: Record<string, string> = {};
+    if (raw.answers && typeof raw.answers === 'object') {
+        for (const [qId, opt] of Object.entries(raw.answers)) {
+            if (qId !== '__cbt_meta' && typeof opt === 'string' && opt.trim() !== '') {
+                cleanAnswers[qId] = opt;
+            }
+        }
+    }
+
+    const timeSpentByQuestion: Record<string, number> = {};
+    if (raw.timeSpentByQuestion && typeof raw.timeSpentByQuestion === 'object') {
+        for (const [qId, secs] of Object.entries(raw.timeSpentByQuestion)) {
+            const num = Number(secs);
+            if (Number.isFinite(num) && num >= 0) {
+                timeSpentByQuestion[qId] = Math.trunc(num);
+            }
+        }
+    }
+
+    const status =
+        raw.status === 'completed' || raw.status === 'abandoned' || raw.status === 'in_progress'
+            ? raw.status
+            : 'in_progress';
+
+    return {
+        attemptId,
+        testId,
+        userId,
+        status,
+        startedAt: String(raw.startedAt ?? new Date().toISOString()),
+        updatedAt: String(raw.updatedAt ?? new Date().toISOString()),
+        totalDurationSeconds,
+        remainingSeconds,
+        elapsedSeconds,
+        currentIndex,
+        answers: cleanAnswers,
+        markedForReview: Array.isArray(raw.markedForReview)
+            ? Array.from(new Set(raw.markedForReview.map((id: unknown) => String(id).trim()).filter(Boolean)))
+            : [],
+        visitedQuestionIds: Array.isArray(raw.visitedQuestionIds)
+            ? Array.from(
+                  new Set(raw.visitedQuestionIds.map((id: unknown) => String(id).trim()).filter(Boolean))
+              )
+            : [],
+        timeSpentByQuestion,
+        remotePersisted: Boolean(raw.remotePersisted),
+    };
+};
+
+const buildActiveAttemptCacheKey = (testId: string, userId: string): string =>
+    `${userId.trim()}_${testId.trim()}`;
+
+const upsertCachedUserAttemptSummary = (
+    userId: string,
+    testId: string,
+    item: UserTestAttemptItem
+): void => {
+    const cacheKey = `${userId}_${testId}`;
+    const existing = getCachedUserTestAttemptsSnapshot(testId, userId) ?? [];
+    const filtered = existing.filter((a) => a.id !== item.id);
+    const nextList = [item, ...filtered];
+    const payload = { attempts: nextList, fetchedAt: Date.now() };
+    memoryTestAttemptsCache.set(cacheKey, payload);
+    safeWriteLocalStorage(`${MOCK_TEST_ATTEMPTS_STORAGE_PREFIX}${cacheKey}`, payload);
+    db.setCacheEntry(`${MOCK_TEST_ATTEMPTS_IDB_PREFIX}${cacheKey}`, payload).catch(() => {});
+
+    const existingAttemptedIds = readAttemptsFromSyncCache(userId);
+    if (!existingAttemptedIds.includes(testId)) {
+        writeAttemptsToCache(userId, [testId, ...existingAttemptedIds]);
+    }
+};
+
+/**
+ * Synchronous 0ms cache lookup for an active `in_progress` mock-test session (`DEC-0004`).
+ */
+export const getCachedActivePreparedMockAttempt = (
+    testId: string,
+    userId?: string | null,
+    resumeAttemptId?: string | null
+): PreparedMockActiveAttemptState | null => {
+    const trimmedTestId = String(testId ?? '').trim();
+    const trimmedUserId = String(userId ?? '').trim();
+    if (!trimmedTestId || !trimmedUserId) return null;
+
+    const cacheKey = buildActiveAttemptCacheKey(trimmedTestId, trimmedUserId);
+    const matchesResume = (candidate: PreparedMockActiveAttemptState | null): boolean => {
+        if (!candidate || candidate.status !== 'in_progress') return false;
+        if (resumeAttemptId && candidate.attemptId !== resumeAttemptId) return false;
+        return true;
+    };
+
+    const mem = memoryActiveAttemptCache.get(cacheKey) ?? null;
+    if (matchesResume(mem)) return mem;
+
+    const stored = normalizeActiveAttemptState(
+        safeReadLocalStorage<unknown>(`${MOCK_ACTIVE_ATTEMPT_STORAGE_PREFIX}${cacheKey}`),
+        { testId: trimmedTestId, userId: trimmedUserId }
+    );
+    if (matchesResume(stored) && stored) {
+        memoryActiveAttemptCache.set(cacheKey, stored);
+        return stored;
+    }
+
+    return null;
+};
+
+/**
+ * Async IndexedDB fallback lookup for an active `in_progress` mock-test session.
+ */
+export const readActivePreparedMockAttemptIndexedDB = async (
+    testId: string,
+    userId?: string | null,
+    resumeAttemptId?: string | null
+): Promise<PreparedMockActiveAttemptState | null> => {
+    const syncSnapshot = getCachedActivePreparedMockAttempt(testId, userId, resumeAttemptId);
+    if (syncSnapshot) return syncSnapshot;
+
+    const trimmedTestId = String(testId ?? '').trim();
+    const trimmedUserId = String(userId ?? '').trim();
+    if (!trimmedTestId || !trimmedUserId) return null;
+
+    const cacheKey = buildActiveAttemptCacheKey(trimmedTestId, trimmedUserId);
+
+    try {
+        const activeSessionRaw = await db.getActiveSession?.(`mock_exam_${cacheKey}`);
+        const fromActiveStore = normalizeActiveAttemptState(activeSessionRaw, {
+            testId: trimmedTestId,
+            userId: trimmedUserId,
+        });
+        if (
+            fromActiveStore &&
+            fromActiveStore.status === 'in_progress' &&
+            (!resumeAttemptId || fromActiveStore.attemptId === resumeAttemptId)
+        ) {
+            memoryActiveAttemptCache.set(cacheKey, fromActiveStore);
+            safeWriteLocalStorage(`${MOCK_ACTIVE_ATTEMPT_STORAGE_PREFIX}${cacheKey}`, fromActiveStore);
+            return fromActiveStore;
+        }
+    } catch {
+        // Ignore active_test_session lookup errors
+    }
+
+    try {
+        const idbEntry = await db.getCacheEntry<unknown>(`${MOCK_ACTIVE_ATTEMPT_IDB_PREFIX}${cacheKey}`);
+        const fromCacheStore = normalizeActiveAttemptState(idbEntry?.data, {
+            testId: trimmedTestId,
+            userId: trimmedUserId,
+        });
+        if (
+            fromCacheStore &&
+            fromCacheStore.status === 'in_progress' &&
+            (!resumeAttemptId || fromCacheStore.attemptId === resumeAttemptId)
+        ) {
+            memoryActiveAttemptCache.set(cacheKey, fromCacheStore);
+            safeWriteLocalStorage(`${MOCK_ACTIVE_ATTEMPT_STORAGE_PREFIX}${cacheKey}`, fromCacheStore);
+            return fromCacheStore;
+        }
+    } catch {
+        // Ignore IndexedDB unavailability
+    }
+
+    return null;
+};
+
+const clearActivePreparedMockAttemptCache = async (
+    testId: string,
+    userId: string
+): Promise<void> => {
+    const cacheKey = buildActiveAttemptCacheKey(testId, userId);
+    memoryActiveAttemptCache.delete(cacheKey);
+    safeRemoveLocalStorage(`${MOCK_ACTIVE_ATTEMPT_STORAGE_PREFIX}${cacheKey}`);
+    await Promise.allSettled([
+        db.clearActiveSession?.(`mock_exam_${cacheKey}`) ?? Promise.resolve(),
+        db.setCacheEntry(`${MOCK_ACTIVE_ATTEMPT_IDB_PREFIX}${cacheKey}`, null),
+    ]);
+};
+
+const buildRemoteAttemptPayloadAnswers = (state: PreparedMockActiveAttemptState) => ({
+    ...state.answers,
+    __cbt_meta: {
+        markedForReview: state.markedForReview,
+        visitedQuestionIds: state.visitedQuestionIds,
+        currentIndex: state.currentIndex,
+        remainingSeconds: state.remainingSeconds,
+        timeSpentByQuestion: state.timeSpentByQuestion,
+        updatedAt: state.updatedAt,
+    },
+});
+
+/**
+ * Crash-safely persists active CBT attempt progress to Memory, `localStorage`, IndexedDB
+ * (`active_test_session` + `sync_metadata`), and optionally Supabase `DB_TABLES.MOCK.ATTEMPTS`.
+ */
+export const savePreparedMockAttemptProgress = async (
+    state: PreparedMockActiveAttemptState,
+    options?: { syncRemote?: boolean }
+): Promise<PreparedMockActiveAttemptState> => {
+    const nextState: PreparedMockActiveAttemptState = {
+        ...state,
+        updatedAt: new Date().toISOString(),
+    };
+
+    const cacheKey = buildActiveAttemptCacheKey(nextState.testId, nextState.userId);
+    memoryActiveAttemptCache.set(cacheKey, nextState);
+    safeWriteLocalStorage(`${MOCK_ACTIVE_ATTEMPT_STORAGE_PREFIX}${cacheKey}`, nextState);
+
+    db.saveActiveSession?.(`mock_exam_${cacheKey}`, nextState).catch(() => {});
+    db.setCacheEntry(`${MOCK_ACTIVE_ATTEMPT_IDB_PREFIX}${cacheKey}`, nextState).catch(() => {});
+
+    upsertCachedUserAttemptSummary(nextState.userId, nextState.testId, {
+        id: nextState.attemptId,
+        test_id: nextState.testId,
+        start_time: nextState.startedAt,
+        end_time: null,
+        time_taken_seconds: nextState.elapsedSeconds,
+        score: 0,
+        accuracy: 0,
+        status: 'in_progress',
+        created_at: nextState.startedAt,
+    });
+
+    if (
+        options?.syncRemote &&
+        (typeof navigator === 'undefined' || navigator.onLine !== false)
+    ) {
+        try {
+            const payloadAnswers = buildRemoteAttemptPayloadAnswers(nextState);
+            if (nextState.remotePersisted) {
+                const { error } = await supabase
+                    .from(DB_TABLES.MOCK.ATTEMPTS)
+                    .update({
+                        time_taken_seconds: nextState.elapsedSeconds,
+                        status: 'in_progress',
+                        answers: payloadAnswers,
+                    })
+                    .eq('id', nextState.attemptId)
+                    .eq('user_id', nextState.userId);
+                if (error) throw error;
+            } else {
+                const { error } = await supabase.from(DB_TABLES.MOCK.ATTEMPTS).upsert(
+                    {
+                        id: nextState.attemptId,
+                        user_id: nextState.userId,
+                        test_id: nextState.testId,
+                        start_time: nextState.startedAt,
+                        time_taken_seconds: nextState.elapsedSeconds,
+                        score: 0,
+                        accuracy: 0,
+                        status: 'in_progress',
+                        answers: payloadAnswers,
+                    },
+                    { onConflict: 'id' }
+                );
+                if (!error) {
+                    nextState.remotePersisted = true;
+                    memoryActiveAttemptCache.set(cacheKey, nextState);
+                    safeWriteLocalStorage(
+                        `${MOCK_ACTIVE_ATTEMPT_STORAGE_PREFIX}${cacheKey}`,
+                        nextState
+                    );
+                }
+            }
+        } catch {
+            // Keep local crash-safe snapshot intact when offline or network drops
+        }
+    }
+
+    return nextState;
+};
+
+/**
+ * Starts a fresh `in_progress` attempt or resumes an existing crash-saved / `resumeAttemptId`
+ * attempt, reconciling local IndexedDB and remote `DB_TABLES.MOCK.ATTEMPTS`.
+ */
+export const startOrResumePreparedMockAttempt = async (params: {
+    test: any;
+    questions: Question[];
+    userId: string;
+    resumeAttemptId?: string | null;
+}): Promise<PreparedMockActiveAttemptState> => {
+    const testId = String(params.test?.id ?? '').trim();
+    const userId = String(params.userId ?? '').trim();
+    if (!testId || !userId) {
+        throw new Error('Authenticated user and valid test ID are required to launch the exam.');
+    }
+
+    const totalDurationSeconds = Math.max(60, Math.round(Number(params.test?.duration_minutes ?? 60) * 60));
+    const maxQuestionIndex = Math.max(0, params.questions.length - 1);
+    const firstQuestionId = params.questions[0]?.id;
+    const requestedResumeId = params.resumeAttemptId ? String(params.resumeAttemptId).trim() : null;
+
+    const localCandidate = await readActivePreparedMockAttemptIndexedDB(
+        testId,
+        userId,
+        requestedResumeId
+    );
+
+    let remoteRow: any = null;
+    if (typeof navigator === 'undefined' || navigator.onLine !== false) {
+        try {
+            if (requestedResumeId) {
+                const { data, error } = await supabase
+                    .from(DB_TABLES.MOCK.ATTEMPTS)
+                    .select('id, test_id, start_time, end_time, time_taken_seconds, score, accuracy, status, answers, created_at')
+                    .eq('id', requestedResumeId)
+                    .eq('user_id', userId)
+                    .maybeSingle();
+                if (!error && data) {
+                    if (data.status === 'in_progress') {
+                        remoteRow = data;
+                    } else if (localCandidate?.attemptId === requestedResumeId) {
+                        await clearActivePreparedMockAttemptCache(testId, userId);
+                    }
+                }
+            } else {
+                const { data, error } = await supabase
+                    .from(DB_TABLES.MOCK.ATTEMPTS)
+                    .select('id, test_id, start_time, end_time, time_taken_seconds, score, accuracy, status, answers, created_at')
+                    .eq('test_id', testId)
+                    .eq('user_id', userId)
+                    .eq('status', 'in_progress')
+                    .order('created_at', { ascending: false })
+                    .limit(1)
+                    .maybeSingle();
+                if (!error && data) {
+                    remoteRow = data;
+                }
+            }
+        } catch {
+            // Network unavailable; rely on local IndexedDB candidate if present
+        }
+    }
+
+    let remoteCandidate: PreparedMockActiveAttemptState | null = null;
+    if (remoteRow) {
+        const extracted = extractAttemptAnswersAndMeta(remoteRow.answers);
+        const remoteElapsed = Math.max(0, Number(remoteRow.time_taken_seconds ?? 0));
+        const derivedRemaining =
+            extracted.meta.remainingSeconds !== null
+                ? Math.max(0, Math.min(totalDurationSeconds, extracted.meta.remainingSeconds))
+                : Math.max(1, totalDurationSeconds - remoteElapsed);
+
+        remoteCandidate = {
+            attemptId: String(remoteRow.id),
+            testId,
+            userId,
+            status: 'in_progress',
+            startedAt: String(remoteRow.start_time ?? remoteRow.created_at ?? new Date().toISOString()),
+            updatedAt: String(
+                extracted.meta.updatedAt ??
+                    remoteRow.created_at ??
+                    remoteRow.start_time ??
+                    new Date().toISOString()
+            ),
+            totalDurationSeconds,
+            remainingSeconds: derivedRemaining,
+            elapsedSeconds: remoteElapsed,
+            currentIndex: Math.min(maxQuestionIndex, Math.max(0, extracted.meta.currentIndex)),
+            answers: extracted.answers,
+            markedForReview: extracted.meta.markedForReview,
+            visitedQuestionIds: extracted.meta.visitedQuestionIds,
+            timeSpentByQuestion: extracted.meta.timeSpentByQuestion,
+            remotePersisted: true,
+        };
+    }
+
+    let resolved: PreparedMockActiveAttemptState | null = null;
+    if (localCandidate && remoteCandidate) {
+        const localUpdatedMs = Date.parse(localCandidate.updatedAt) || 0;
+        const remoteUpdatedMs = Date.parse(remoteCandidate.updatedAt) || 0;
+        const primary =
+            localCandidate.attemptId === remoteCandidate.attemptId && localUpdatedMs >= remoteUpdatedMs
+                ? localCandidate
+                : remoteUpdatedMs > localUpdatedMs
+                  ? remoteCandidate
+                  : localCandidate;
+        const secondary = primary === localCandidate ? remoteCandidate : localCandidate;
+
+        resolved = {
+            ...primary,
+            remotePersisted: true,
+            currentIndex: Math.min(maxQuestionIndex, Math.max(0, primary.currentIndex)),
+            remainingSeconds:
+                primary.attemptId === secondary.attemptId
+                    ? Math.min(primary.remainingSeconds, secondary.remainingSeconds)
+                    : primary.remainingSeconds,
+            elapsedSeconds:
+                primary.attemptId === secondary.attemptId
+                    ? Math.max(primary.elapsedSeconds, secondary.elapsedSeconds)
+                    : primary.elapsedSeconds,
+            visitedQuestionIds: Array.from(
+                new Set([
+                    ...primary.visitedQuestionIds,
+                    ...(primary.attemptId === secondary.attemptId
+                        ? secondary.visitedQuestionIds
+                        : []),
+                ])
+            ),
+        };
+    } else if (localCandidate) {
+        resolved = {
+            ...localCandidate,
+            currentIndex: Math.min(maxQuestionIndex, Math.max(0, localCandidate.currentIndex)),
+        };
+    } else if (remoteCandidate) {
+        resolved = remoteCandidate;
+    }
+
+    if (resolved) {
+        const activeQId = params.questions[resolved.currentIndex]?.id;
+        if (activeQId && !resolved.visitedQuestionIds.includes(activeQId)) {
+            resolved.visitedQuestionIds = [...resolved.visitedQuestionIds, activeQId];
+        }
+        return savePreparedMockAttemptProgress(resolved, { syncRemote: false });
+    }
+
+    const nowIso = new Date().toISOString();
+    const freshAttemptId = generateAttemptUuid();
+    let remotePersisted = false;
+
+    const initialMeta = {
+        markedForReview: [],
+        visitedQuestionIds: firstQuestionId ? [firstQuestionId] : [],
+        currentIndex: 0,
+        remainingSeconds: totalDurationSeconds,
+        timeSpentByQuestion: {},
+        updatedAt: nowIso,
+    };
+
+    if (typeof navigator === 'undefined' || navigator.onLine !== false) {
+        try {
+            const { data, error } = await supabase
+                .from(DB_TABLES.MOCK.ATTEMPTS)
+                .insert({
+                    id: freshAttemptId,
+                    user_id: userId,
+                    test_id: testId,
+                    start_time: nowIso,
+                    time_taken_seconds: 0,
+                    score: 0,
+                    accuracy: 0,
+                    status: 'in_progress',
+                    answers: { __cbt_meta: initialMeta },
+                })
+                .select('id, start_time')
+                .maybeSingle();
+
+            if (!error && data?.id) {
+                remotePersisted = true;
+            }
+        } catch {
+            // Offline fallback keeps generated UUID in local IndexedDB
+        }
+    }
+
+    const created: PreparedMockActiveAttemptState = {
+        attemptId: freshAttemptId,
+        testId,
+        userId,
+        status: 'in_progress',
+        startedAt: nowIso,
+        updatedAt: nowIso,
+        totalDurationSeconds,
+        remainingSeconds: totalDurationSeconds,
+        elapsedSeconds: 0,
+        currentIndex: 0,
+        answers: {},
+        markedForReview: [],
+        visitedQuestionIds: firstQuestionId ? [firstQuestionId] : [],
+        timeSpentByQuestion: {},
+        remotePersisted,
+    };
+
+    return savePreparedMockAttemptProgress(created, { syncRemote: false });
+};
+
+/**
+ * Pure scoring helper supporting positive marks per question and negative marking (e.g. BPSC -0.33).
+ */
+export const computePreparedMockScore = (params: {
+    questions: Question[];
+    answers: Record<string, string>;
+    totalMarks: number;
+    negativeMarks: number;
+    passingMarks: number;
+}): PreparedMockScoreSummary => {
+    const totalQuestions = params.questions.length;
+    const totalMarks = Number(params.totalMarks ?? 0);
+    const passingMarks = Number(params.passingMarks ?? 0);
+    const negativeMarks = Math.abs(Number(params.negativeMarks ?? 0));
+    const marksPerQuestion =
+        totalQuestions > 0 && totalMarks > 0 ? totalMarks / totalQuestions : 1;
+
+    let correctCount = 0;
+    let wrongCount = 0;
+    let unansweredCount = 0;
+
+    for (const q of params.questions) {
+        const selected = params.answers[q.id];
+        if (!selected || String(selected).trim() === '') {
+            unansweredCount += 1;
+            continue;
+        }
+        if (String(selected).trim() === String(q.correct ?? '').trim()) {
+            correctCount += 1;
+        } else {
+            wrongCount += 1;
+        }
+    }
+
+    const attemptedCount = correctCount + wrongCount;
+    const rawScore = correctCount * marksPerQuestion - wrongCount * negativeMarks;
+    const score = Number(rawScore.toFixed(2));
+    const accuracy =
+        attemptedCount > 0 ? Number(((correctCount / attemptedCount) * 100).toFixed(2)) : 0;
+    const passed = passingMarks > 0 ? score >= passingMarks : true;
+
+    return {
+        score,
+        accuracy,
+        correctCount,
+        wrongCount,
+        unansweredCount,
+        attemptedCount,
+        totalQuestions,
+        totalMarks,
+        passingMarks,
+        negativeMarks,
+        marksPerQuestion,
+        passed,
+    };
+};
+
+/**
+ * Finalizes and submits an active prepared mock attempt to `DB_TABLES.MOCK.ATTEMPTS` (`status = 'completed'`),
+ * clears the in-flight crash-recovery snapshot, and updates `userId`-scoped attempt history caches (`DEC-0020`).
+ */
+export const submitPreparedMockAttempt = async (params: {
+    state: PreparedMockActiveAttemptState;
+    test: any;
+    questions: Question[];
+}): Promise<PreparedMockSubmitResult> => {
+    const { state, test, questions } = params;
+    const summary = computePreparedMockScore({
+        questions,
+        answers: state.answers,
+        totalMarks: Number(test?.total_marks ?? questions.length),
+        negativeMarks: Number(test?.negative_marks ?? 0),
+        passingMarks: Number(test?.passing_marks ?? 0),
+    });
+
+    const cleanAnswers: Record<string, string> = {};
+    for (const [qId, opt] of Object.entries(state.answers)) {
+        if (qId !== '__cbt_meta' && typeof opt === 'string' && opt.trim() !== '') {
+            cleanAnswers[qId] = opt;
+        }
+    }
+
+    const nowIso = new Date().toISOString();
+    const timeTakenSeconds = Math.max(1, Math.trunc(state.elapsedSeconds));
+    let remoteSynced = false;
+
+    if (typeof navigator === 'undefined' || navigator.onLine !== false) {
+        try {
+            if (state.remotePersisted) {
+                const { error } = await supabase
+                    .from(DB_TABLES.MOCK.ATTEMPTS)
+                    .update({
+                        status: 'completed',
+                        score: summary.score,
+                        accuracy: summary.accuracy,
+                        time_taken_seconds: timeTakenSeconds,
+                        end_time: nowIso,
+                        answers: cleanAnswers,
+                    })
+                    .eq('id', state.attemptId)
+                    .eq('user_id', state.userId);
+                if (error) throw error;
+                remoteSynced = true;
+            } else {
+                const { error } = await supabase.from(DB_TABLES.MOCK.ATTEMPTS).upsert(
+                    {
+                        id: state.attemptId,
+                        user_id: state.userId,
+                        test_id: state.testId,
+                        start_time: state.startedAt,
+                        end_time: nowIso,
+                        time_taken_seconds: timeTakenSeconds,
+                        score: summary.score,
+                        accuracy: summary.accuracy,
+                        status: 'completed',
+                        answers: cleanAnswers,
+                    },
+                    { onConflict: 'id' }
+                );
+                if (error) throw error;
+                remoteSynced = true;
+            }
+        } catch {
+            remoteSynced = false;
+        }
+    }
+
+    await clearActivePreparedMockAttemptCache(state.testId, state.userId);
+
+    const completedAttempt: UserTestAttemptItem = {
+        id: state.attemptId,
+        test_id: state.testId,
+        start_time: state.startedAt,
+        end_time: nowIso,
+        time_taken_seconds: timeTakenSeconds,
+        score: summary.score,
+        accuracy: summary.accuracy,
+        status: 'completed',
+        created_at: state.startedAt,
+    };
+
+    upsertCachedUserAttemptSummary(state.userId, state.testId, completedAttempt);
+
+    return {
+        attempt: completedAttempt,
+        summary,
+        remoteSynced,
+    };
 };

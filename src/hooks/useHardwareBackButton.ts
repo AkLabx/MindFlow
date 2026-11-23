@@ -60,6 +60,15 @@ export function resolveHardwareBackTarget(currentPath: string, locationState?: u
     }
 
     // Test Series & MCQs Hierarchy
+    const examRunnerMatch = normalized.match(/^\/exam\/([^/]+)$/);
+    if (examRunnerMatch) {
+        const st = locationState as { returnTo?: unknown; from?: unknown } | null | undefined;
+        const candidate = st?.returnTo ?? st?.from;
+        if (typeof candidate === 'string' && candidate.startsWith('/') && !candidate.startsWith('//')) {
+            return candidate;
+        }
+        return ROUTES.TEST_SERIES.TEST(examRunnerMatch[1]);
+    }
     if (normalized.startsWith('/admin/test-series/')) {
         return '/admin/test-series?tab=tests';
     }
@@ -212,6 +221,13 @@ export const useHardwareBackButton = () => {
                 // --- 3.5 ROUTE-LOCAL STEP / AUTH DELEGATION ---
                 if (currentPath === '/onboarding' || currentPath === '/' || currentPath === '/login') {
                     return; // Step decrement and root minimization are managed locally by OnboardingFlow / AuthPage
+                }
+
+                if (currentPath.startsWith('/exam/')) {
+                    const examBackEvent = new CustomEvent('mindflow:exam-back-request', { cancelable: true });
+                    if (!window.dispatchEvent(examBackEvent)) {
+                        return; // Active CBT runner intercepted hardware back to show exit confirmation dialog
+                    }
                 }
 
                 // --- 4. CRITICAL WORKFLOW PROTECTION (Quiz, etc) ---

@@ -26,6 +26,20 @@ This document is the single source of truth for the evolution of the MindFlow ap
 
 ## 🚀 App Journey Changelog
 
+## [v1.0.373] - 23 November 2026, 02:12 PM IST
+
+**Executive Summary:** Live Timed CBT Mock Runner on `/exam/:testId` (`PreparedMockExamPage`). Replaced the `"Coming in Phase 4"` `ExamPlaceholderPage` stub and raw `navigate(-1)` with an immersive, crash-safe Computer-Based Test (CBT) engine supporting `>100`-question BPSC mocks (`103`–`150` Qs) via `100`-UUID chunked ordered hydration, a monotonic `visibilitychange`-resilient countdown timer, Memory/`localStorage`/IndexedDB + `DB_TABLES.MOCK.ATTEMPTS` `in_progress` reload recovery, Desktop persistent sidebar & Mobile `NativeDialog` Question Palette drawer, and native `<dialog>` Pause & Exit / Submit flows with BPSC `-0.33` negative marking (`DEC-0021`, `OLD-012`).
+
+### ✨ Features Added
+- **Live Timed CBT Mock Runner & Palette Navigation (`src/features/mock-tests/pages/PreparedMockExamPage.tsx`, `src/config/routes.ts`, `src/routes/AppRoutes.tsx`)**: Registered `ROUTES.TEST_SERIES.EXAM_RUNNER(testId)` (`/exam/:testId`) in the `auth-immersive` fullscreen route group, rendering bilingual English/Hindi + KaTeX stems and options, font zoom (`A-`/`A+`), `>=44x44px` `type="button"` `active:scale-95` `scroll-mb-28` controls, 5-state palette legend & filters (`All`, `Unanswered`, `Marked`), persistent Desktop sidebar (`1280x800`), Mobile `<NativeDialog variant="drawer-right">` palette drawer (`390x844`), and native `<NativeDialog role="alertdialog">` Pause & Exit and Submit Confirmation flows with `useNotification()` Popover toasts.
+- **Chunked `>100`-Q Ordered Hydration & Crash-Safe Attempt Persistence (`src/features/mock-tests/api/mockTestsApi.ts`, `src/features/quiz/services/quizCreationService.ts`)**: Added `fetchPreparedMockTestQuestions()` (`100`-UUID chunking against `DB_TABLES.BANK.QUESTIONS` with `.is('deleted_at', null)` preserving exact `question_ids` sequence), 3-tier question/active-attempt caching (`DEC-0004`), `startOrResumePreparedMockAttempt()` (`resumeAttemptId` + reload recovery), `savePreparedMockAttemptProgress()`, `computePreparedMockScore()`, `submitPreparedMockAttempt()`, and `MAX_PREPARED_MOCK_QUESTIONS = 250` while keeping custom student quizzes capped at `100`.
+
+### 🐛 Bug Fixes & Navigation Safety
+- **Dead-End Removal & Hardware Back Delegation (`src/features/mock-tests/pages/ExamPlaceholderPage.tsx`, `src/hooks/useHardwareBackButton.ts`)**: Eliminated `ExamPlaceholderPage` `"Coming in Phase 4"` dead-end, external noise SVG, and raw `navigate(-1)`; added `/exam/:testId` handling in `resolveHardwareBackTarget()` plus cancelable `mindflow:exam-back-request` interception so Android hardware back opens the Pause & Exit `<dialog>` during live tests (`DEC-0002`).
+
+### ⚡ Performance & Verification
+- **Automated & Live Verification (`src/features/mock-tests/__tests__/preparedMockExamRunner.test.tsx`)**: Added `6` Vitest unit/component tests; passed `npx.cmd tsc --noEmit` (`0` errors), `npx.cmd vitest --run --pool=forks --maxWorkers=1` (`37/37` files, `233/233` tests), `npx.cmd vite build` (`5483` modules, PWA precache `202` entries / `6741.72 KiB`), and live Chrome verification across Desktop (`1280x800`) + Mobile (`390x844`) on `69th BPSC Prelims PYQs` (`103` Qs, `120 mins`, `-0.33` negative marking) confirming live countdown, mid-exam reload recovery, mobile drawer, Pause/Resume/Submit `<dialog>` flows, `0px` mobile overflow, and `0` console errors.
+
 ## [v1.0.372] - 22 November 2026, 09:11 PM IST
 
 **Executive Summary:** Student `TestDetailPage` Bug Fixes, Real Attempt History, 0ms Offline Caching & Save/Share Actions. Fixed `negative_marks_per_question` (`-0.33` for BPSC) and `BrandedThumbnail` heading-level nesting, replaced raw `navigate(-1)` with deterministic logical `<ArrowLeft />` & Android hardware back return (`DEC-0002`), wired real `DB_TABLES.MOCK.ATTEMPTS` history (`userId`-scoped 0ms cache + adaptive `Start`/`Resume`/`Re-attempt` CTA), added user-scoped Save/Bookmark & canonical Share actions with `useNotification()` Popover toasts (`DEC-0014`), and hardened `.maybeSingle()` detail fetching (`DEC-0020`).

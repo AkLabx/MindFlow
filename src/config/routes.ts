@@ -138,6 +138,7 @@ export const ROUTES = {
     CATEGORY: (categoryId: string | number) => `/mcqs/test-series/category/${categoryId}`,
     SERIES: (seriesId: string | number) => `/mcqs/test-series/series/${seriesId}`,
     TEST: (testId: string | number) => `/mcqs/test-series/test/${testId}`,
+    EXAM_RUNNER: (testId: string | number) => `/exam/${testId}`,
   },
 
   // Community / Social
