@@ -1,6 +1,7 @@
 import { supabase } from '@/lib/supabase';
 import { DB_TABLES, DB_RPCS } from '@/config/dbTables';
 import { db } from '@/lib/db';
+import { useSyncStore } from '@/features/quiz/stores/useSyncStore';
 import type { Question } from '@/types/models';
 import {
     CANONICAL_EXAMS,
@@ -2336,6 +2337,26 @@ export const submitPreparedMockAttempt = async (params: {
         }
     }
 
+    const upsertPayload = {
+        id: state.attemptId,
+        user_id: state.userId,
+        test_id: state.testId,
+        start_time: state.startedAt,
+        end_time: nowIso,
+        time_taken_seconds: timeTakenSeconds,
+        score: summary.score,
+        accuracy: summary.accuracy,
+        status: 'completed' as const,
+        answers: cleanAnswers,
+    };
+
+    if (!remoteSynced) {
+        useSyncStore.getState().addEvent({
+            type: 'mock_test_attempt_submit',
+            payload: upsertPayload,
+        });
+    }
+
     await clearActivePreparedMockAttemptCache(state.testId, state.userId);
 
     const completedAttempt: UserTestAttemptItem = {
@@ -2352,9 +2373,226 @@ export const submitPreparedMockAttempt = async (params: {
 
     upsertCachedUserAttemptSummary(state.userId, state.testId, completedAttempt);
 
+    // Cache full attempt detail (including answers JSONB and summary) for 0ms result hydration
+    cachePreparedMockAttemptDetail({
+        ...upsertPayload,
+        created_at: state.startedAt,
+    });
+
     return {
         attempt: completedAttempt,
         summary,
         remoteSynced,
     };
+};
+
+export interface PreparedMockCompletedAttemptDetail {
+    id: string;
+    test_id: string;
+    user_id: string;
+    start_time: string | null;
+    end_time: string | null;
+    time_taken_seconds: number | null;
+    score: number;
+    accuracy: number;
+    status: 'completed' | 'in_progress' | 'abandoned';
+    answers: Record<string, string>;
+    created_at?: string | null;
+}
+
+const MOCK_ATTEMPT_DETAIL_STORAGE_PREFIX = 'mindflow_mock_attempt_detail_';
+const MOCK_ATTEMPT_DETAIL_IDB_PREFIX = 'mindflow_mock_attempt_detail_idb_';
+const memoryAttemptDetailCache = new Map<string, { detail: PreparedMockCompletedAttemptDetail; fetchedAt: number }>();
+
+export const cachePreparedMockAttemptDetail = (detail: PreparedMockCompletedAttemptDetail): void => {
+    if (!detail?.id) return;
+    const cacheKey = String(detail.id).trim();
+    const payload = { detail, fetchedAt: Date.now() };
+    memoryAttemptDetailCache.set(cacheKey, payload);
+    safeWriteLocalStorage(`${MOCK_ATTEMPT_DETAIL_STORAGE_PREFIX}${cacheKey}`, payload);
+    db.setCacheEntry(`${MOCK_ATTEMPT_DETAIL_IDB_PREFIX}${cacheKey}`, payload).catch(() => {});
+};
+
+export const getCachedPreparedMockAttemptByIdSnapshot = (
+    attemptId?: string | null
+): PreparedMockCompletedAttemptDetail | null => {
+    const trimmedId = String(attemptId ?? '').trim();
+    if (!trimmedId) return null;
+
+    const mem = memoryAttemptDetailCache.get(trimmedId);
+    if (mem?.detail) return mem.detail;
+
+    const stored = safeReadLocalStorage<{ detail?: PreparedMockCompletedAttemptDetail }>(
+        `${MOCK_ATTEMPT_DETAIL_STORAGE_PREFIX}${trimmedId}`
+    );
+    if (stored?.detail) {
+        memoryAttemptDetailCache.set(trimmedId, { detail: stored.detail, fetchedAt: Date.now() });
+        return stored.detail;
+    }
+
+    return null;
+};
+
+export const readPreparedMockAttemptByIdIndexedDBCache = async (
+    attemptId: string
+): Promise<PreparedMockCompletedAttemptDetail | null> => {
+    const trimmedId = String(attemptId ?? '').trim();
+    if (!trimmedId) return null;
+    try {
+        const cached = await db.getCacheEntry<{ detail?: PreparedMockCompletedAttemptDetail }>(
+            `${MOCK_ATTEMPT_DETAIL_IDB_PREFIX}${trimmedId}`
+        );
+        if (cached?.data?.detail) {
+            memoryAttemptDetailCache.set(trimmedId, { detail: cached.data.detail, fetchedAt: Date.now() });
+            safeWriteLocalStorage(`${MOCK_ATTEMPT_DETAIL_STORAGE_PREFIX}${trimmedId}`, cached.data);
+            return cached.data.detail;
+        }
+    } catch {
+        // IDB fallback
+    }
+    return null;
+};
+
+/**
+ * Fetches a student's own completed mock test attempt including answers JSONB (DEC-0017).
+ * Reads 0ms local snapshot first, then hydrates from Supabase if online.
+ */
+export const fetchPreparedMockAttemptById = async (
+    testId: string,
+    attemptId: string,
+    userId: string
+): Promise<PreparedMockCompletedAttemptDetail> => {
+    const trimmedTestId = String(testId ?? '').trim();
+    const trimmedAttemptId = String(attemptId ?? '').trim();
+    const trimmedUserId = String(userId ?? '').trim();
+
+    if (!trimmedAttemptId) {
+        throw new Error('Attempt ID is required');
+    }
+
+    const syncSnapshot = getCachedPreparedMockAttemptByIdSnapshot(trimmedAttemptId);
+    if (syncSnapshot && (!trimmedUserId || syncSnapshot.user_id === trimmedUserId)) {
+        if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+            return syncSnapshot;
+        }
+    }
+
+    const idbSnapshot = await readPreparedMockAttemptByIdIndexedDBCache(trimmedAttemptId);
+    if (idbSnapshot && (!trimmedUserId || idbSnapshot.user_id === trimmedUserId)) {
+        if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+            return idbSnapshot;
+        }
+    }
+
+    let query = supabase
+        .from(DB_TABLES.MOCK.ATTEMPTS)
+        .select('id, test_id, user_id, start_time, end_time, time_taken_seconds, score, accuracy, status, answers, created_at')
+        .eq('id', trimmedAttemptId);
+
+    if (trimmedUserId) {
+        query = query.eq('user_id', trimmedUserId);
+    }
+    if (trimmedTestId) {
+        query = query.eq('test_id', trimmedTestId);
+    }
+
+    const { data, error } = await query.maybeSingle();
+
+    if (error) {
+        if (syncSnapshot) return syncSnapshot;
+        if (idbSnapshot) return idbSnapshot;
+        throw error;
+    }
+
+    if (!data) {
+        if (syncSnapshot) return syncSnapshot;
+        if (idbSnapshot) return idbSnapshot;
+        throw new Error('Mock test attempt not found.');
+    }
+
+    const rawAnswers = (data.answers && typeof data.answers === 'object') ? data.answers : {};
+    const cleanAnswers: Record<string, string> = {};
+    for (const [k, v] of Object.entries(rawAnswers)) {
+        if (k !== '__cbt_meta' && typeof v === 'string') {
+            cleanAnswers[k] = v;
+        }
+    }
+
+    const detail: PreparedMockCompletedAttemptDetail = {
+        id: String(data.id),
+        test_id: String(data.test_id),
+        user_id: String(data.user_id),
+        start_time: data.start_time ?? null,
+        end_time: data.end_time ?? null,
+        time_taken_seconds: data.time_taken_seconds !== null ? Number(data.time_taken_seconds) : null,
+        score: Number(data.score ?? 0),
+        accuracy: Number(data.accuracy ?? 0),
+        status: (data.status as PreparedMockCompletedAttemptDetail['status']) || 'completed',
+        answers: cleanAnswers,
+        created_at: data.created_at ?? null,
+    };
+
+    cachePreparedMockAttemptDetail(detail);
+    return detail;
+};
+
+export interface PreparedMockSubjectBreakdown {
+    subject: string;
+    totalQuestions: number;
+    correctCount: number;
+    wrongCount: number;
+    unansweredCount: number;
+    marks: number;
+    accuracy: number;
+}
+
+/**
+ * Computes subject-wise breakdown of scores, counts, and accuracy.
+ */
+export const computePreparedMockSubjectBreakdown = (
+    questions: Question[],
+    answers: Record<string, string>,
+    marksPerQuestion: number,
+    negativeMarks: number
+): PreparedMockSubjectBreakdown[] => {
+    const subjectMap = new Map<string, { total: number; correct: number; wrong: number; unanswered: number }>();
+
+    for (const q of questions) {
+        const subject = (q.subject || q.classification?.subject || (q as any)?.properties?.subject || 'General').trim() || 'General';
+        let stats = subjectMap.get(subject);
+        if (!stats) {
+            stats = { total: 0, correct: 0, wrong: 0, unanswered: 0 };
+            subjectMap.set(subject, stats);
+        }
+        stats.total += 1;
+
+        const selected = answers[q.id];
+        if (!selected || String(selected).trim() === '') {
+            stats.unanswered += 1;
+        } else if (String(selected).trim() === String(q.correct ?? '').trim()) {
+            stats.correct += 1;
+        } else {
+            stats.wrong += 1;
+        }
+    }
+
+    const result: PreparedMockSubjectBreakdown[] = [];
+    for (const [subject, stats] of subjectMap.entries()) {
+        const attempted = stats.correct + stats.wrong;
+        const rawScore = stats.correct * marksPerQuestion - stats.wrong * negativeMarks;
+        const marks = Number(rawScore.toFixed(2));
+        const accuracy = attempted > 0 ? Number(((stats.correct / attempted) * 100).toFixed(1)) : 0;
+
+        result.push({
+            subject,
+            totalQuestions: stats.total,
+            correctCount: stats.correct,
+            wrongCount: stats.wrong,
+            unansweredCount: stats.unanswered,
+            marks,
+            accuracy,
+        });
+    }
+
+    return result.sort((a, b) => b.totalQuestions - a.totalQuestions || a.subject.localeCompare(b.subject));
 };

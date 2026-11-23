@@ -492,6 +492,14 @@ export const syncService = {
             hasQuizChanges = true;
             break;
           }
+
+          case 'mock_test_attempt_submit': {
+            const { error } = await supabase
+              .from(DB_TABLES.MOCK.ATTEMPTS)
+              .upsert(event.payload, { onConflict: 'id' });
+            if (error) throw error;
+            break;
+          }
         }
         return event.id;
       });
