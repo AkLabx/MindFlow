@@ -1,12 +1,13 @@
 {
   "name": "mindflow-quiz",
   "private": true,
-  "version": "1.0.378",
+  "version": "1.0.379",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@capacitor/android": "^8.3.1",

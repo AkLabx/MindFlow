@@ -421,7 +421,13 @@ describe('v1.0.372 Student TestDetailPage Bug Fixes, Attempt History & Save/Shar
     it('hydrates in 0ms from localStorage and IDB, enforces DEC-0017 expired snapshot rejection, and shows non-blocking offline retry banner', async () => {
         // 1. Seed valid cache, then fail network -> 0ms render + offline banner + Retry recovery
         setupSupabaseMocks({ test: buildMockTest(), attempts: [] });
-        await fetchTestDetails('test-bpsc-69', Date.parse('2026-11-22T12:00:00Z'));
+        const realNow = Date.now();
+        const dateNowSpy = vi.spyOn(Date, 'now').mockReturnValue(realNow - 10 * 60 * 1000);
+        try {
+            await fetchTestDetails('test-bpsc-69', Date.parse('2026-11-22T12:00:00Z'));
+        } finally {
+            dateNowSpy.mockRestore();
+        }
 
         setupSupabaseMocks({
             testError: new Error('Network unreachable'),

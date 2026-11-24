@@ -519,7 +519,13 @@ describe('v1.0.371 Dedicated BPSC Prepared Mock Tests & Canonical Routing', () =
     it('hydrates 0ms from local cache even when background network fails, showing offline warning banner', async () => {
         const fixture = buildFixtureData();
         setupSupabaseTables(fixture);
-        await fetchPreparedMockTestsByExam('bpsc', { userId: mockUser.id, nowMs: NOW_MS });
+        const realNow = Date.now();
+        const dateNowSpy = vi.spyOn(Date, 'now').mockReturnValue(realNow - 10 * 60 * 1000);
+        try {
+            await fetchPreparedMockTestsByExam('bpsc', { userId: mockUser.id, nowMs: NOW_MS });
+        } finally {
+            dateNowSpy.mockRestore();
+        }
 
         // Subsequent visit while offline
         setupSupabaseTables({ ...fixture, failCatalog: true });

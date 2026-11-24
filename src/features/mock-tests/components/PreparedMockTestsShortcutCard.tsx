@@ -1,11 +1,15 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ArrowRight, ClipboardCheck, Layers, Scale } from 'lucide-react';
 import { ROUTES, getPreparedMockTestsRoute } from '@/config/routes';
 import { CANONICAL_EXAMS, getCanonicalExamById } from '@/features/dashboard/constants/examRegistry';
 import { useExamContextStore } from '@/stores/useExamContextStore';
 import { triggerHaptic } from '@/lib/haptics';
-import { getCachedPreparedMockTestsSnapshot } from '../api/mockTestsApi';
+import {
+    MOCK_CACHE_INVALIDATED_EVENT,
+    MOCK_CACHE_VERSION_KEY,
+    getCachedPreparedMockTestsSnapshot,
+} from '../api/mockTestsApi';
 
 interface PreparedMockTestsShortcutCardProps {
     source: 'dashboard' | 'mcqs' | 'mock_tests';
@@ -21,6 +25,39 @@ export const PreparedMockTestsShortcutCard: React.FC<PreparedMockTestsShortcutCa
     const navigate = useNavigate();
     const location = useLocation();
     const activeExamId = useExamContextStore((s) => s.activeExamId);
+    const [cacheEpoch, setCacheEpoch] = useState(0);
+
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+
+        const bump = () => setCacheEpoch((prev) => prev + 1);
+        const handleStorage = (e: StorageEvent) => {
+            if (e.key === MOCK_CACHE_VERSION_KEY) {
+                bump();
+            }
+        };
+
+        window.addEventListener(MOCK_CACHE_INVALIDATED_EVENT, bump);
+        window.addEventListener('storage', handleStorage);
+
+        let channel: BroadcastChannel | null = null;
+        if (typeof BroadcastChannel !== 'undefined') {
+            try {
+                channel = new BroadcastChannel('mindflow-mock-cache');
+                channel.onmessage = () => bump();
+            } catch {
+                channel = null;
+            }
+        }
+
+        return () => {
+            window.removeEventListener(MOCK_CACHE_INVALIDATED_EVENT, bump);
+            window.removeEventListener('storage', handleStorage);
+            if (channel) {
+                channel.close();
+            }
+        };
+    }, []);
 
     const activeExam = useMemo(
         () => getCanonicalExamById(activeExamId) || getCanonicalExamById('bpsc') || CANONICAL_EXAMS[0],
@@ -29,12 +66,12 @@ export const PreparedMockTestsShortcutCard: React.FC<PreparedMockTestsShortcutCa
 
     const activeSnapshot = useMemo(
         () => getCachedPreparedMockTestsSnapshot(activeExam.id),
-        [activeExam.id]
+        [activeExam.id, cacheEpoch]
     );
 
     const bpscSnapshot = useMemo(
         () => (activeExam.id === 'bpsc' ? activeSnapshot : getCachedPreparedMockTestsSnapshot('bpsc')),
-        [activeExam.id, activeSnapshot]
+        [activeExam.id, activeSnapshot, cacheEpoch]
     );
 
     const targetReturnTo = returnTo || location.pathname || ROUTES.DASHBOARD;

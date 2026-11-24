@@ -26,6 +26,19 @@ This document is the single source of truth for the evolution of the MindFlow ap
 
 ## 🚀 App Journey Changelog
 
+## [v1.0.379] - 24 November 2026, 09:55 PM IST
+
+Implemented Gen 1B Step 13: standardized 3-tier SWR & IndexedDB caching contracts across Student Mock Tests and Admin CMS, cross-feature Admin $\rightarrow$ Student cache invalidation cascades, scoring/offline replay hardening, and full Vitest + Playwright E2E regression suites.
+
+### ✨ Features Added
+- **Unified SWR Stale-Time Contracts (`src/features/mock-tests/api/mockTestsApi.ts`, `src/features/admin/test-series/api/adminTestSeriesApi.ts`)**: Added `MOCK_SWR_STALE_TIMES_MS`, `ADMIN_CMS_STALE_TIME_MS`, `isMockCacheFresh()`, and `{ forceRefresh?: boolean }` gates across student discovery, test details, question hydration, leaderboards, attempt summaries, and Admin CMS category/series/test fetchers.
+- **Cross-Feature Admin $\rightarrow$ Student Invalidation & Epoch Broadcast (`PreparedMockTestsShortcutCard.tsx`, `ExamPreparedMockTestsPage.tsx`, `AdminTestSeriesDashboard.tsx`)**: Centralized `invalidateAdminCmsCatalogCaches()` and `invalidateMockTestsCatalogCaches()` across Memory, `localStorage`, and `MindFlowDB.sync_metadata`, broadcasting `MOCK_CACHE_INVALIDATED_EVENT` / `BroadcastChannel` updates to shortcut cards and open catalog views while strictly preserving `mock_active_attempt_*`.
+- **Comprehensive Vitest & Playwright E2E Suites (`mockTestsSwrRegression.test.tsx`, `playwright.config.ts`, `e2e/mock-tests-smoke.spec.ts`)**: Added integration specs for SWR invalidation cascades, schedule window boundaries, `-0.33` vs `-0.25` negative marking math, offline `mock_test_attempt_submit` replay idempotency, `<16ms` filter transitions, and automated end-to-end Playwright smoke testing across `#/mcqs/test-series/bpsc` $\rightarrow$ CBT Runner $\rightarrow$ Scorecard $\rightarrow$ 1-by-1 Solution Review.
+
+### 🐛 Bug Fixes
+- **Result & Solution Review Footer Overlap (`PreparedMockResultPage.tsx`)**: Hid the global `MainLayout` sticky bottom tab bar via `useLayoutStore().setHideGlobalFooter(true)` so bottom Scorecard and Solution Review controls remain unobstructed.
+- **Scoring Sign Normalization, IDB Cleanup & Offline Replay Lock (`mockTestsApi.ts`, `syncService.ts`)**: Normalized `Math.abs` in `computePreparedMockSubjectBreakdown()`, fixed IDB cleanup on schedule rejection and `clearPreparedMockTestsCache()`, coalesced concurrent `syncService.processEventQueue()` flushes via `inFlightEventQueueSync`, guarded `mock_test_attempt_submit` user ownership, and triggered `invalidatePreparedMockPostReplayCaches()` after replay.
+
 ## [v1.0.378] - 24 November 2026, 02:22 PM IST
 
 **Executive Summary:** Admin Question Bank & Preview Sync Reliability for Mock Preparation (`AdminQuestionsPage`, `QuestionInspectorDrawer`, `QuestionPreviewDrawer`, `AdminTestBuilderPage`, `questionBankCache.ts`). Completed Gen 1B Step 12: Coordinated multi-tier question cache invalidation across React Query, localStorage, IndexedDB `sync_metadata` prefix purging, and in-memory singletons without purging active student CBT attempts, standardized shared bilingual (English/Hindi) and KaTeX preview formatting (`QuestionBilingualPreview.tsx`), added live test builder item synchronization with 1-tap orphaned question detection and pruning, and upgraded mobile card responsiveness and touch ergonomics (`DEC-0026`).
