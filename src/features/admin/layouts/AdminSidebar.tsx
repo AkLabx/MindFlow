@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import {
   LayoutDashboard,
   Users,
@@ -17,13 +17,15 @@ import {
   ChevronRight,
   ArrowLeft,
   Shield,
-  Layers,
-  Database,
   CreditCard,
-  BarChart3
+  BarChart3,
+  CheckSquare,
+  PlusCircle,
+  GraduationCap,
+  X
 } from 'lucide-react';
 import { cn } from '@/utils/cn';
-import { BrandLogo } from '@/components/brand';
+import { ROUTES } from '@/config/routes';
 import { useAuth } from '@/features/auth';
 
 interface AdminSidebarProps {
@@ -32,7 +34,7 @@ interface AdminSidebarProps {
   onCloseMobile?: () => void;
 }
 
-interface NavItem {
+export interface AdminNavItem {
   label: string;
   to: string;
   icon: React.ComponentType<{ className?: string }>;
@@ -40,9 +42,78 @@ interface NavItem {
   highlight?: boolean;
 }
 
-interface NavGroup {
+export interface AdminNavGroup {
   groupTitle: string;
-  items: NavItem[];
+  items: AdminNavItem[];
+}
+
+export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
+  {
+    groupTitle: 'Control Room',
+    items: [
+      { label: 'Overview', to: ROUTES.ADMIN.OVERVIEW, icon: LayoutDashboard },
+      { label: 'Live Telemetry', to: ROUTES.ADMIN.ANALYTICS, icon: BarChart3 },
+      { label: 'AI Pipeline Engine', to: ROUTES.ADMIN.ENRICHMENT, icon: Activity },
+      { label: 'Remote App Config', to: ROUTES.ADMIN.APP_CONFIG, icon: Sliders }
+    ]
+  },
+  {
+    groupTitle: 'Access & IAM',
+    items: [
+      { label: 'User Directory', to: ROUTES.ADMIN.USERS, icon: Users }
+    ]
+  },
+  {
+    groupTitle: 'Academic Content',
+    items: [
+      { label: 'Question Bank', to: ROUTES.ADMIN.QUESTIONS, icon: HelpCircle },
+      { label: 'Vocabulary Matrix', to: ROUTES.ADMIN.VOCAB, icon: Languages },
+      { label: 'AI Ingestion Plane', to: ROUTES.ADMIN.CONTENT, icon: Sparkles },
+      { label: 'Study Materials', to: ROUTES.ADMIN.MATERIALS, icon: FileText }
+    ]
+  },
+  {
+    groupTitle: 'Mock Tests CMS',
+    items: [
+      { label: 'Test Series & Categories', to: ROUTES.ADMIN.TEST_SERIES, icon: Award },
+      { label: 'Mock Tests Catalog', to: `${ROUTES.ADMIN.TEST_SERIES}?tab=tests`, icon: CheckSquare },
+      { label: 'Create Mock Test', to: ROUTES.ADMIN.TEST_NEW, icon: PlusCircle },
+      { label: 'BPSC Student Preview', to: ROUTES.TEST_SERIES.BPSC, icon: GraduationCap }
+    ]
+  },
+  {
+    groupTitle: 'Governance & Billing',
+    items: [
+      { label: 'Moderation Queue', to: ROUTES.ADMIN.REPORTS, icon: ShieldAlert },
+      { label: 'Broadcast Center', to: ROUTES.ADMIN.NOTIFICATIONS, icon: Megaphone },
+      { label: 'Financials & Revenue', to: ROUTES.ADMIN.FINANCIALS, icon: CreditCard }
+    ]
+  }
+];
+
+function isNavItemActive(itemTo: string, pathname: string, search: string): boolean {
+  const tabParam = new URLSearchParams(search).get('tab');
+
+  if (itemTo === ROUTES.ADMIN.OVERVIEW) {
+    return pathname === ROUTES.ADMIN.ROOT || pathname === ROUTES.ADMIN.OVERVIEW;
+  }
+  if (itemTo === ROUTES.ADMIN.TEST_SERIES) {
+    return pathname === ROUTES.ADMIN.TEST_SERIES && tabParam !== 'tests';
+  }
+  if (itemTo === `${ROUTES.ADMIN.TEST_SERIES}?tab=tests`) {
+    return pathname === ROUTES.ADMIN.TEST_SERIES && tabParam === 'tests';
+  }
+  if (itemTo === ROUTES.ADMIN.TEST_NEW) {
+    return (
+      pathname === ROUTES.ADMIN.TEST_NEW ||
+      /^\/admin\/test-series\/tests\/[^/]+\/edit/.test(pathname)
+    );
+  }
+  if (itemTo === ROUTES.TEST_SERIES.BPSC) {
+    return pathname === ROUTES.TEST_SERIES.BPSC;
+  }
+
+  return pathname === itemTo || pathname.startsWith(`${itemTo}/`);
 }
 
 export const AdminSidebar: React.FC<AdminSidebarProps> = ({
@@ -56,47 +127,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
 
   const isSuperAdmin = Boolean(roles?.includes('super_admin'));
   const primaryRole = isSuperAdmin ? 'Super Admin' : isAdmin ? 'Admin' : 'Staff';
-
-  const navGroups: NavGroup[] = [
-    {
-      groupTitle: 'Control Room',
-      items: [
-        { label: 'Overview', to: '/admin/overview', icon: LayoutDashboard },
-        { label: 'Live Telemetry', to: '/admin/analytics', icon: BarChart3 },
-        { label: 'AI Pipeline Engine', to: '/admin/enrichment', icon: Activity },
-        { label: 'Remote App Config', to: '/admin/app-config', icon: Sliders }
-      ]
-    },
-    {
-      groupTitle: 'Access & IAM',
-      items: [
-        { label: 'User Directory', to: '/admin/users', icon: Users }
-      ]
-    },
-    {
-      groupTitle: 'Academic Content',
-      items: [
-        { label: 'Question Bank', to: '/admin/questions', icon: HelpCircle },
-        { label: 'Vocabulary Matrix', to: '/admin/vocab', icon: Languages },
-        { label: 'AI Ingestion Plane', to: '/admin/content', icon: Sparkles },
-        { label: 'Study Materials', to: '/admin/materials', icon: FileText }
-      ]
-    },
-    {
-      groupTitle: 'Mock Tests CMS',
-      items: [
-        { label: 'Test Series & Exams', to: '/admin/test-series', icon: Award }
-      ]
-    },
-    {
-      groupTitle: 'Governance & Billing',
-      items: [
-        { label: 'Moderation Queue', to: '/admin/reports', icon: ShieldAlert },
-        { label: 'Broadcast Center', to: '/admin/notifications', icon: Megaphone },
-        { label: 'Financials & Revenue', to: '/admin/financials', icon: CreditCard }
-      ]
-    }
-  ];
+  const isMobileDrawer = Boolean(onCloseMobile);
 
   const handleLinkClick = () => {
     if (onCloseMobile) {
@@ -108,17 +139,21 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
     <aside
       className={cn(
         'relative flex flex-col h-full bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 transition-all duration-300 z-30 select-none shadow-sm',
-        isCollapsed ? 'w-20' : 'w-64'
+        isMobileDrawer ? 'w-full' : isCollapsed ? 'w-20' : 'w-64'
       )}
     >
       {/* Brand Header */}
-      <div className="h-16 flex items-center justify-between px-4 border-b border-slate-200 dark:border-slate-800">
-        <div
-          onClick={() => navigate('/admin/overview')}
-          className="flex items-center gap-3 cursor-pointer overflow-hidden"
+      <div className="min-h-16 flex items-center justify-between gap-2 px-3 py-2 border-b border-slate-200 dark:border-slate-800 pt-[calc(0.5rem+env(safe-area-inset-top))]">
+        <button
+          type="button"
+          onClick={() => {
+            onCloseMobile?.();
+            navigate(ROUTES.ADMIN.OVERVIEW);
+          }}
+          className="min-h-[44px] flex items-center gap-3 px-1.5 rounded-xl overflow-hidden text-left transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 min-w-0"
         >
           <div className="shrink-0 w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-cyan-500 flex items-center justify-center text-white shadow-md shadow-indigo-500/20">
-            <Shield className="w-5 h-5" />
+            <Shield className="w-5 h-5" aria-hidden="true" />
           </div>
           {!isCollapsed && (
             <motion.div
@@ -131,7 +166,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
                 <span className="font-bold text-base tracking-tight text-slate-900 dark:text-slate-100 font-display truncate">
                   MindFlow
                 </span>
-                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-indigo-100 dark:bg-indigo-950/80 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 uppercase tracking-wider">
+                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-indigo-100 dark:bg-indigo-950/80 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 uppercase tracking-wider shrink-0">
                   Admin
                 </span>
               </div>
@@ -140,45 +175,64 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
               </span>
             </motion.div>
           )}
-        </div>
-
-        {/* Collapse toggle button for desktop */}
-        <button
-          onClick={onToggleCollapse}
-          className="hidden md:flex p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-          title={isCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
-          aria-label={isCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
-        >
-          {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
         </button>
+
+        {/* Close button inside mobile drawer */}
+        {isMobileDrawer ? (
+          <button
+            type="button"
+            onClick={onCloseMobile}
+            className="md:hidden min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all active:scale-95 shrink-0"
+            aria-label="Close navigation menu"
+          >
+            <X className="w-5 h-5" aria-hidden="true" />
+          </button>
+        ) : (
+          /* Collapse toggle button for desktop */
+          <button
+            type="button"
+            onClick={onToggleCollapse}
+            className="hidden md:flex min-w-[44px] min-h-[44px] items-center justify-center rounded-xl text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all active:scale-95 shrink-0"
+            title={isCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
+            aria-label={isCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
+          >
+            {isCollapsed ? (
+              <ChevronRight className="w-4 h-4" aria-hidden="true" />
+            ) : (
+              <ChevronLeft className="w-4 h-4" aria-hidden="true" />
+            )}
+          </button>
+        )}
       </div>
 
       {/* Navigation Groups */}
-      <div className="flex-1 overflow-y-auto px-3 py-4 space-y-6 scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-700">
-        {navGroups.map((group, groupIdx) => (
-          <div key={groupIdx} className="space-y-1">
+      <nav
+        aria-label="Admin sections"
+        className="flex-1 overflow-y-auto px-3 py-4 space-y-6 scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-700"
+      >
+        {ADMIN_NAV_GROUPS.map((group) => (
+          <div key={group.groupTitle} className="space-y-1">
             {!isCollapsed ? (
-              <h4 className="px-3 text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">
+              <p className="px-3 text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">
                 {group.groupTitle}
-              </h4>
+              </p>
             ) : (
               <div className="h-px bg-slate-200 dark:bg-slate-800 my-3 mx-2" />
             )}
 
             {group.items.map((item) => {
               const Icon = item.icon;
-              const isActive =
-                item.to === '/admin/overview'
-                  ? location.pathname === '/admin' || location.pathname === '/admin/overview'
-                  : location.pathname.startsWith(item.to);
+              const isActive = isNavItemActive(item.to, location.pathname, location.search);
 
               return (
                 <NavLink
                   key={item.to}
                   to={item.to}
                   onClick={handleLinkClick}
+                  aria-current={isActive ? 'page' : undefined}
                   className={cn(
-                    'group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150',
+                    'group relative min-h-[44px] flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-150 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500',
+                    isCollapsed && 'justify-center px-0',
                     isActive
                       ? 'bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 shadow-sm border border-indigo-200/60 dark:border-indigo-800/60 font-semibold'
                       : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-slate-200'
@@ -186,6 +240,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
                   title={isCollapsed ? item.label : undefined}
                 >
                   <Icon
+                    aria-hidden="true"
                     className={cn(
                       'shrink-0 w-5 h-5 transition-transform group-hover:scale-105',
                       isActive
@@ -213,10 +268,10 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
             })}
           </div>
         ))}
-      </div>
+      </nav>
 
       {/* Footer Area: User Card & Return to App */}
-      <div className="p-3 border-t border-slate-200 dark:border-slate-800 space-y-2 bg-slate-50/50 dark:bg-slate-900/50">
+      <div className="p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] border-t border-slate-200 dark:border-slate-800 space-y-2 bg-slate-50/50 dark:bg-slate-900/50">
         {!isCollapsed && (
           <div className="px-3 py-2 rounded-xl bg-slate-100/80 dark:bg-slate-800/60 border border-slate-200/50 dark:border-slate-700/50 flex items-center justify-between">
             <div className="flex flex-col min-w-0 pr-2">
@@ -227,20 +282,25 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
                 {primaryRole}
               </span>
             </div>
-            <div className="w-2 h-2 rounded-full bg-emerald-500 ring-4 ring-emerald-500/20" title="Online & Connected" />
+            <div className="w-2 h-2 rounded-full bg-emerald-500 ring-4 ring-emerald-500/20 shrink-0" title="Online & Connected" />
           </div>
         )}
 
         {/* Exit to Student App */}
         <button
-          onClick={() => navigate('/dashboard')}
+          type="button"
+          onClick={() => {
+            onCloseMobile?.();
+            navigate(ROUTES.DASHBOARD);
+          }}
           className={cn(
-            'w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/70 dark:hover:bg-slate-800 transition-colors',
+            'w-full min-h-[44px] flex items-center gap-2.5 px-3 py-2 text-xs font-medium rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/70 dark:hover:bg-slate-800 transition-all active:scale-95',
             isCollapsed && 'justify-center px-0'
           )}
           title="Exit Admin to Student App"
+          aria-label="Return to MindFlow"
         >
-          <ArrowLeft className="w-4 h-4 shrink-0" />
+          <ArrowLeft className="w-4 h-4 shrink-0" aria-hidden="true" />
           {!isCollapsed && <span>Return to MindFlow</span>}
         </button>
       </div>

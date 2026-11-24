@@ -26,6 +26,21 @@ This document is the single source of truth for the evolution of the MindFlow ap
 
 ## 🚀 App Journey Changelog
 
+## [v1.0.377] - 24 November 2026, 01:22 PM IST
+
+**Executive Summary:** Admin Panel Global Shell, RBAC Route Guards, Command Palette & UX Hardening (`AdminLayout`, `AdminSidebar`, `AdminHeader`, `AdminCommandPalette`). Completed Gen 1B Step 11: Upgraded `Ctrl+K` / `Cmd+K` with direct BPSC Mock Tests CMS / Builder / Student Preview quick actions and WAI-ARIA combobox keyboard navigation, isolated Admin `<Outlet />` inside a route-keyed `<ErrorBoundary>` + `<Suspense>` shell, hardened mobile `NativeDialog` drawer sizing and auto-close ergonomics, enforced `>=44x44px` `type="button"` `active:scale-95` controls with safe-area clearance, and verified `RouteAccessType.ADMIN` RBAC enforcement via automated Vitest checks (`DEC-0025`, `OLD-015`).
+
+### ✨ Features Added
+- **Admin Command Palette Quick Actions & WAI-ARIA Combobox (`src/features/admin/layouts/AdminCommandPalette.tsx`)**: Added direct `Ctrl+K` / `Cmd+K` quick actions to `/admin/test-series?tab=tests`, `ROUTES.ADMIN.TEST_NEW`, `ROUTES.TEST_SERIES.BPSC`, and `ROUTES.ADMIN.ANALYTICS`, multi-token filtering across title/category/subtitle/keywords, `useId()`-scoped WAI-ARIA `combobox`/`listbox`/`option` semantics with `scrollIntoView({ block: 'nearest' })`, `initialFocusRef`, and `>=44x44px` `type="button"` `active:scale-95` items.
+- **Sidebar & Header Route Coverage (`src/features/admin/layouts/AdminSidebar.tsx`, `src/features/admin/layouts/AdminHeader.tsx`)**: Exported `ADMIN_NAV_GROUPS` mapped directly to `ROUTES.ADMIN.*` and `ROUTES.TEST_SERIES.BPSC` (adding Mock Tests Catalog, Create Mock Test, and BPSC Student Preview with query-aware active matching) and expanded `AdminHeader` breadcrumbs for `?tab=tests`, Live Telemetry (`/admin/analytics`), and Financials (`/admin/financials`).
+
+### 🐛 Bug Fixes & Resiliency Improvements
+- **Admin `<Outlet />` Error Isolation & Mobile Drawer Auto-Close (`src/features/admin/layouts/AdminLayout.tsx`)**: Wrapped `<Outlet />` in a route-keyed `<ErrorBoundary>` + `<Suspense>` with reload-free `Reload Screen` recovery (`telemetry.emit('recovery_action_clicked', ...)`), fixed stale `query` / negative `selectedIndex` / global `Enter` hijack on the palette Close button, closed mobile `NativeDialog` drawer on `[location.pathname, location.search]` switches, removed the `64px` mobile drawer width mismatch (`w-[min(18.5rem,85vw)]`), added an explicit mobile `X` close button, replaced clickable `<div>`/`<span>` elements with semantic `<button type="button">` controls, and enforced `100dvh`, `scroll-mb-28`, and `env(safe-area-inset-bottom)` / `env(safe-area-inset-top)` clearance.
+
+### 🔒 Security, RBAC Audit & Verification
+- **RBAC Guard Verification (`src/features/admin/layouts/__tests__/adminShellRbac.test.tsx`)**: Audited `NavigationManager` (`RouteAccessType.ADMIN`), `AuthPolicy.isAdmin`, `AuthContext`, and all 21 `AppRoutes.tsx` admin routes (zero auth rule edits needed), and added 5 Vitest specs verifying unauthenticated `/` redirect with saved intent, non-admin `/dashboard` redirect, `ErrorBoundary` isolation, mobile drawer auto-close, `Ctrl+K` quick navigation, and zero broken `ADMIN_NAV_GROUPS` routes.
+- **Verification**: Passed `node --max-old-space-size=4096 ./node_modules/typescript/bin/tsc --noEmit` (`0` errors), `npx.cmd vitest --run --pool=forks --maxWorkers=1` (`41/41` files, `261/261` tests), `npx.cmd vite build` (`5487` modules, PWA precache `207` entries / `6868.19 KiB`), and live Chrome DevTools checks across Desktop (`1280x800`) and Mobile (`390x844`) with `0px` overflow, `>=44x44px` `type="button"` controls, and `0` console errors.
+
 ## [v1.0.376] - 24 November 2026, 12:48 PM IST
 
 **Executive Summary:** Admin Mock Test Analytics & Student Attempt Quality Inspector (`AdminTestAnalyticsDrawer`, `computeMockTestAnalytics`, `fetchMockTestAnalytics`). Completed Gen 1B Step 10: Equipped `/admin/test-series?tab=tests` with a 1-tap `Insights` drawer providing 0ms SWR-hydrated attempt KPIs, pass-cutoff and 4-band score distributions, and per-question difficulty/skip diagnostics with direct LIFO drill-down into `QuestionPreviewDrawer`, using a zero-DDL paginated client aggregator that strictly strips all student PII (`DEC-0024`).
