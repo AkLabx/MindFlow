@@ -11,3 +11,4 @@ export * from './SeriesCard';
 export * from './SeriesDrawer';
 export * from './TestCard';
 export * from './TestDrawer';
+export * from './AdminTestAnalyticsDrawer';
