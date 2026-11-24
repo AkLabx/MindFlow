@@ -355,7 +355,10 @@ export const cloneTest = async (sourceTest: any, existingNames?: string[]) => {
 
 const QUESTION_ID_CHUNK_SIZE = 100;
 
-export const validateQuestionIds = async (ids: string[]) => {
+export const validateQuestionIds = async (
+    ids: string[],
+    options?: { throwOnError?: boolean }
+) => {
     if (!ids || ids.length === 0) return { valid: [], invalid: [] };
 
     // Trim & deduplicate array
@@ -376,6 +379,10 @@ export const validateQuestionIds = async (ids: string[]) => {
         return { valid: [], invalid: uniqueIds };
     }
 
+    if (options?.throwOnError && typeof navigator !== 'undefined' && navigator.onLine === false) {
+        throw new Error('You appear to be offline. Connect to verify question bank availability.');
+    }
+
     const existingIdSet = new Set<string>();
     for (let i = 0; i < formatValidIds.length; i += QUESTION_ID_CHUNK_SIZE) {
         const chunk = formatValidIds.slice(i, i + QUESTION_ID_CHUNK_SIZE);
@@ -387,6 +394,9 @@ export const validateQuestionIds = async (ids: string[]) => {
 
         if (error) {
             console.error("Error validating questions:", error);
+            if (options?.throwOnError) {
+                throw error;
+            }
             return { valid: [], invalid: uniqueIds };
         }
 

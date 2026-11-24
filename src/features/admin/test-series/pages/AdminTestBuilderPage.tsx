@@ -15,16 +15,23 @@ import {
     Clock,
     ListChecks,
     Send,
+    AlertTriangle,
+    Trash2,
+    RefreshCw,
 } from 'lucide-react';
 import { ROUTES } from '@/config/routes';
 import { useNotification } from '@/stores/useNotificationStore';
+import { telemetry } from '@/lib/telemetry';
 import {
     fetchTestSeries,
     fetchTestById,
     createTest,
     updateTest,
+    validateQuestionIds,
+    invalidateMockTestAnalyticsCache,
     TestMutationPayload,
 } from '../api/adminTestSeriesApi';
+import { invalidatePreparedMockQuestionCaches } from '@/features/mock-tests/api/mockTestsApi';
 import { QuestionBuilder } from '../../question-builder/components';
 import { ConfirmDialog, StatusBadge } from '../components';
 
@@ -191,8 +198,12 @@ export const AdminTestBuilderPage: React.FC = () => {
     const saving = savingAction !== null;
     const [showLeaveDialog, setShowLeaveDialog] = useState(false);
     const [builderSessionKey, setBuilderSessionKey] = useState(0);
+    const [missingQuestionIds, setMissingQuestionIds] = useState<string[]>([]);
+    const [checkingMissingQuestions, setCheckingMissingQuestions] = useState(false);
+    const [missingCheckError, setMissingCheckError] = useState<string | null>(null);
 
     const isMountedRef = useRef(true);
+    const validationSeqRef = useRef(0);
     const hasMountedStepRef = useRef(false);
     const stepHeadingRef = useRef<HTMLHeadingElement | null>(null);
     const errorSummaryRef = useRef<HTMLDivElement | null>(null);
@@ -371,6 +382,79 @@ export const AdminTestBuilderPage: React.FC = () => {
         setTouched(prev => (prev[key] ? prev : { ...prev, [key]: true }));
     }, []);
 
+    const questionIdsKey = useMemo(
+        () => formData.question_ids.map(id => String(id ?? '').trim()).join(','),
+        [formData.question_ids]
+    );
+
+    const verifyMissingQuestions = useCallback(async (idsToVerify: string[]) => {
+        const cleanIds = idsToVerify.map(id => String(id ?? '').trim()).filter(Boolean);
+        const seq = ++validationSeqRef.current;
+
+        if (cleanIds.length === 0) {
+            if (isMountedRef.current && seq === validationSeqRef.current) {
+                setMissingQuestionIds([]);
+                setMissingCheckError(null);
+                setCheckingMissingQuestions(false);
+            }
+            return;
+        }
+
+        setCheckingMissingQuestions(true);
+        setMissingCheckError(null);
+        try {
+            const { invalid } = await validateQuestionIds(cleanIds, { throwOnError: true });
+            if (!isMountedRef.current || seq !== validationSeqRef.current) return;
+            setMissingQuestionIds(invalid);
+        } catch (err: any) {
+            if (!isMountedRef.current || seq !== validationSeqRef.current) return;
+            setMissingQuestionIds([]);
+            setMissingCheckError(err?.message || 'Unable to verify question bank availability.');
+        } finally {
+            if (isMountedRef.current && seq === validationSeqRef.current) {
+                setCheckingMissingQuestions(false);
+            }
+        }
+    }, []);
+
+    useEffect(() => {
+        if (hydratingTest || notFoundError) return;
+        verifyMissingQuestions(formData.question_ids);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [hydratingTest, notFoundError, questionIdsKey, verifyMissingQuestions]);
+
+    const handlePruneMissingQuestions = useCallback(() => {
+        if (missingQuestionIds.length === 0) return;
+        const missingSet = new Set(missingQuestionIds.map(id => id.trim()));
+        const prunedCount =
+            formData.question_ids.filter(rawId => missingSet.has(String(rawId ?? '').trim())).length ||
+            missingQuestionIds.length;
+
+        setFormData(prev => ({
+            ...prev,
+            question_ids: prev.question_ids.filter(rawId => !missingSet.has(String(rawId ?? '').trim())),
+        }));
+
+        setMissingQuestionIds([]);
+        setMissingCheckError(null);
+        setBuilderSessionKey(k => k + 1);
+
+        try {
+            telemetry.emit('recovery_action_clicked', {
+                view: 'admin_test_builder',
+                actionChosen: 'prune_missing_questions',
+            });
+        } catch {
+            // Safe ignore
+        }
+
+        showToast({
+            title: 'Missing Questions Pruned',
+            message: `Removed ${prunedCount} missing or soft-deleted question(s). Save Draft or Publish to persist.`,
+            variant: 'success',
+        });
+    }, [missingQuestionIds, formData.question_ids, showToast]);
+
     const handleQuestionIdsChange = useCallback((newIds: string[]) => {
         queueMicrotask(() => {
             if (!isMountedRef.current) return;
@@ -449,6 +533,11 @@ export const AdminTestBuilderPage: React.FC = () => {
             if (dupCount > 0) {
                 publishErrors.push(`Found ${dupCount} duplicate question(s). Remove duplicates before publishing.`);
             }
+            if (missingQuestionIds.length > 0) {
+                publishErrors.push(
+                    `Found ${missingQuestionIds.length} missing or soft-deleted question(s). Prune missing questions before publishing.`
+                );
+            }
         }
 
         const warnings: string[] = [];
@@ -475,7 +564,7 @@ export const AdminTestBuilderPage: React.FC = () => {
                 displayOrder,
             },
         };
-    }, [formData]);
+    }, [formData, missingQuestionIds.length]);
 
     const showFieldError = (key: FieldKey, step: StepNumber) =>
         Boolean(validation.fieldErrors[key]) &&
@@ -639,6 +728,12 @@ export const AdminTestBuilderPage: React.FC = () => {
                         ? await updateTest(testId, payload)
                         : await createTest(payload);
 
+                const savedId = saved?.id ?? testId;
+                if (savedId) {
+                    invalidateMockTestAnalyticsCache(savedId);
+                }
+                invalidatePreparedMockQuestionCaches();
+
                 showToast({
                     title: publishFlag ? 'Test Published' : 'Draft Saved',
                     message: `"${saved?.name || payload.name}" saved successfully.`,
@@ -715,6 +810,81 @@ export const AdminTestBuilderPage: React.FC = () => {
     const seriesLabel = selectedCategoryName
         ? `${selectedCategoryName} · ${selectedSeriesObj.name}`
         : selectedSeriesObj?.name || 'Not selected';
+
+    const renderMissingQuestionsBanner = () => {
+        if (missingCheckError) {
+            return (
+                <div
+                    role="status"
+                    className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/70 flex flex-wrap items-center justify-between gap-3 text-xs text-amber-900 dark:text-amber-200"
+                >
+                    <div className="flex items-start gap-2.5 min-w-0 flex-1">
+                        <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" aria-hidden="true" />
+                        <div>
+                            <p className="font-bold">Could not verify question bank status</p>
+                            <p className="mt-0.5 text-amber-800 dark:text-amber-300">{missingCheckError}</p>
+                        </div>
+                    </div>
+                    <button
+                        type="button"
+                        disabled={checkingMissingQuestions}
+                        onClick={() => {
+                            try {
+                                telemetry.emit('recovery_action_clicked', {
+                                    view: 'admin_test_builder',
+                                    actionChosen: 'retry_question_validation',
+                                });
+                            } catch {
+                                // Safe ignore
+                            }
+                            verifyMissingQuestions(formData.question_ids);
+                        }}
+                        className="min-h-[44px] px-3.5 py-2 rounded-xl bg-white dark:bg-slate-900 border border-amber-300 dark:border-amber-700 text-xs font-bold text-amber-800 dark:text-amber-200 hover:bg-amber-100/60 dark:hover:bg-amber-900/40 inline-flex items-center gap-1.5 shrink-0 transition-all active:scale-95 disabled:opacity-50"
+                    >
+                        <RefreshCw className={`w-3.5 h-3.5 ${checkingMissingQuestions ? 'animate-spin' : ''}`} aria-hidden="true" />
+                        <span>Retry Check</span>
+                    </button>
+                </div>
+            );
+        }
+
+        if (missingQuestionIds.length === 0) return null;
+
+        const previewSample = missingQuestionIds
+            .slice(0, 3)
+            .map(id => (id.length > 14 ? `${id.slice(0, 8)}…${id.slice(-4)}` : id))
+            .join(', ');
+
+        return (
+            <div
+                role="alert"
+                className="p-4 rounded-2xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-rose-900 dark:text-rose-200"
+            >
+                <div className="flex items-start gap-3 min-w-0">
+                    <AlertTriangle className="w-5 h-5 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" aria-hidden="true" />
+                    <div className="space-y-1 min-w-0">
+                        <p className="text-sm font-bold text-rose-950 dark:text-rose-100">
+                            {missingQuestionIds.length} missing or soft-deleted question
+                            {missingQuestionIds.length === 1 ? '' : 's'} detected
+                        </p>
+                        <p className="text-rose-800 dark:text-rose-300 leading-relaxed">
+                            These question IDs are archived or missing from the Question Bank ({previewSample}
+                            {missingQuestionIds.length > 3 ? ` +${missingQuestionIds.length - 3} more` : ''}). Prune them so students never hit skipped items.
+                        </p>
+                    </div>
+                </div>
+
+                <button
+                    type="button"
+                    onClick={handlePruneMissingQuestions}
+                    className="min-h-[44px] px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold shadow-sm shadow-rose-600/20 inline-flex items-center justify-center gap-2 shrink-0 transition-all active:scale-95"
+                >
+                    <Trash2 className="w-4 h-4" aria-hidden="true" />
+                    <span>Prune Missing Questions</span>
+                </button>
+            </div>
+        );
+    };
 
     return (
         <div className="flex flex-col min-h-[calc(100dvh-5rem)] pb-6">
@@ -1404,6 +1574,12 @@ export const AdminTestBuilderPage: React.FC = () => {
                                 </h2>
                             </div>
                             <div className="flex flex-wrap items-center gap-2 text-xs font-semibold">
+                                {checkingMissingQuestions && (
+                                    <span className="px-3 py-1.5 rounded-full bg-slate-100 dark:bg-slate-900 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 inline-flex items-center gap-1.5">
+                                        <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden="true" />
+                                        <span>Verifying bank...</span>
+                                    </span>
+                                )}
                                 <span className="px-3 py-1.5 rounded-full bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
                                     {formData.question_ids.length} Selected
                                 </span>
@@ -1412,6 +1588,8 @@ export const AdminTestBuilderPage: React.FC = () => {
                                 </span>
                             </div>
                         </div>
+
+                        {renderMissingQuestionsBanner()}
 
                         <div className="min-h-[620px]">
                             <QuestionBuilder
@@ -1436,6 +1614,8 @@ export const AdminTestBuilderPage: React.FC = () => {
                                 4. Review &amp; Publish
                             </h2>
                         </div>
+
+                        {renderMissingQuestionsBanner()}
 
                         {((submitAttempted &&
                             (validation.hasFieldErrors || (formData.is_published && !validation.canPublish))) ||

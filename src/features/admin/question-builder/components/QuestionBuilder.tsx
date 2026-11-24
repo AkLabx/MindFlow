@@ -6,6 +6,7 @@ import { SelectedQuestionsPanel } from './SelectedQuestionsPanel';
 import { QuestionPreviewDrawer } from './QuestionPreviewDrawer';
 import { validateQuestionIds } from '../../test-series/api/adminTestSeriesApi';
 import { useNotification } from '@/stores/useNotificationStore';
+import { QuestionRecord } from '../../questions/services/adminQuestionsService';
 
 const EMPTY_FILTER_OPTIONS: FilterOptions = {
     subjects: [],
@@ -34,6 +35,7 @@ export const QuestionBuilder: React.FC<Props> = ({ initialQuestionIds, onChange 
     const [previewId, setPreviewId] = useState<string | null>(null);
     const [isImporting, setIsImporting] = useState(false);
     const [mobileTab, setMobileTab] = useState<'search' | 'selected'>('search');
+    const [searchRefreshKey, setSearchRefreshKey] = useState(0);
 
     // Undo history for single-level undo
     const [undoHistory, setUndoHistory] = useState<QuestionLightweight[] | null>(null);
@@ -329,6 +331,46 @@ export const QuestionBuilder: React.FC<Props> = ({ initialQuestionIds, onChange 
 
     const selectedIds = useMemo(() => selectedQuestions.map(q => q.id), [selectedQuestions]);
 
+    const handlePreviewQuestionUpdated = useCallback(
+        (updated?: QuestionRecord) => {
+            setSearchRefreshKey((k) => k + 1);
+            if (!previewId) return;
+
+            if (!updated) {
+                // Question was soft-deleted inside QuestionInspectorDrawer: remove from selected list
+                const current = selectedQuestionsRef.current;
+                if (current.some((q) => q.id === previewId)) {
+                    commitSelection(
+                        current.filter((q) => q.id !== previewId),
+                        { saveHistory: true }
+                    );
+                }
+                return;
+            }
+
+            const current = selectedQuestionsRef.current;
+            let changed = false;
+            const patched = current.map((q) => {
+                if (q.id !== updated.id) return q;
+                changed = true;
+                return {
+                    ...q,
+                    question: updated.question ?? q.question,
+                    subject: updated.subject ?? q.subject,
+                    difficulty: updated.difficulty ?? q.difficulty,
+                    options: updated.options ?? q.options,
+                    correct: updated.correct ?? q.correct,
+                    explanation: updated.explanation ?? q.explanation,
+                };
+            });
+            if (changed) {
+                selectedQuestionsRef.current = patched;
+                setSelectedQuestions(patched);
+            }
+        },
+        [previewId, commitSelection]
+    );
+
     if (loadingInitial && selectedQuestionsRef.current.length === 0) {
         return <div className="h-64 flex items-center justify-center text-slate-500">Loading initial configuration...</div>;
     }
@@ -381,6 +423,7 @@ export const QuestionBuilder: React.FC<Props> = ({ initialQuestionIds, onChange 
                     onPreview={setPreviewId}
                     onSelectObj={handleToggleSelectObj}
                     onAddMultiple={handleAddMultiple}
+                    refreshKey={searchRefreshKey}
                 />
             </div>
 
@@ -401,6 +444,7 @@ export const QuestionBuilder: React.FC<Props> = ({ initialQuestionIds, onChange 
                     isImporting={isImporting}
                     onUndo={handleUndo}
                     canUndo={!!undoHistory}
+                    onPreview={setPreviewId}
                 />
             </div>
 
@@ -408,6 +452,7 @@ export const QuestionBuilder: React.FC<Props> = ({ initialQuestionIds, onChange 
                 isOpen={!!previewId}
                 onClose={() => setPreviewId(null)}
                 questionId={previewId}
+                onQuestionUpdated={handlePreviewQuestionUpdated}
             />
         </div>
     );

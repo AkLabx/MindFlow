@@ -1078,6 +1078,35 @@ export const db = {
         });
     },
 
+    /**
+     * Deletes cached entries from `sync_metadata` whose key matches any supplied prefix.
+     */
+    deleteCacheEntriesByPrefix: async (prefixes: string[]): Promise<void> => {
+        if (typeof indexedDB === 'undefined') return;
+        const cleanPrefixes = prefixes.map((p) => String(p ?? '').trim()).filter(Boolean);
+        if (cleanPrefixes.length === 0) return;
+
+        const dbInstance = await openDB();
+        return new Promise((resolve, reject) => {
+            const transaction = dbInstance.transaction(SYNC_METADATA_STORE, 'readwrite');
+            const store = transaction.objectStore(SYNC_METADATA_STORE);
+            const request = store.openKeyCursor();
+
+            request.onsuccess = (event) => {
+                const cursor = (event.target as IDBRequest<IDBCursor | null>).result;
+                if (!cursor) return;
+                const key = String(cursor.key ?? '');
+                if (cleanPrefixes.some((prefix) => key.startsWith(prefix))) {
+                    store.delete(cursor.primaryKey);
+                }
+                cursor.continue();
+            };
+
+            transaction.oncomplete = () => resolve();
+            transaction.onerror = (event) => reject((event.target as IDBRequest).error);
+        });
+    },
+
     saveIdiomMetadataCache: async (metadata: any[]): Promise<void> => {
         const dbInstance = await openDB();
         return new Promise((resolve, reject) => {

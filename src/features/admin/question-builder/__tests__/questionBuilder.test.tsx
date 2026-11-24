@@ -212,21 +212,27 @@ describe('QuestionBuilder performance, canonical BPSC filtering, and React stabi
     expect(chain.eq).toHaveBeenCalledWith('examDateShift', '12 Dec 2024 Shift 1');
   });
 
-  it('fetchQuestionsByUUIDs chunks 150 UUIDs into 2 queries (100 + 50)', async () => {
+  it('fetchQuestionsByUUIDs chunks 150 UUIDs into 2 queries (100 + 50) with deleted_at IS NULL on DB_TABLES.BANK.QUESTIONS', async () => {
     const ids = Array.from(
       { length: 150 },
       (_, idx) => `11111111-1111-4111-8111-${String(idx + 1).padStart(12, '0')}`
     );
 
     const chunkLengths: number[] = [];
+    const deletedAtCalls: Array<[string, null]> = [];
     fromMock.mockImplementation(() => ({
       select: vi.fn().mockReturnValue({
-        in: vi.fn((_col: string, chunk: string[]) => {
-          chunkLengths.push(chunk.length);
-          return Promise.resolve({
-            data: chunk.map(id => ({ id, v1_id: id, question: 'Q', tags: [] })),
-            error: null,
-          });
+        is: vi.fn((col: string, val: null) => {
+          deletedAtCalls.push([col, val]);
+          return {
+            in: vi.fn((_col: string, chunk: string[]) => {
+              chunkLengths.push(chunk.length);
+              return Promise.resolve({
+                data: chunk.map(id => ({ id, v1_id: id, question: 'Q', tags: [] })),
+                error: null,
+              });
+            }),
+          };
         }),
       }),
     }));
@@ -234,6 +240,10 @@ describe('QuestionBuilder performance, canonical BPSC filtering, and React stabi
     const result = await fetchQuestionsByUUIDs(ids);
 
     expect(chunkLengths).toEqual([100, 50]);
+    expect(deletedAtCalls).toEqual([
+      ['deleted_at', null],
+      ['deleted_at', null],
+    ]);
     expect(result).toHaveLength(150);
   });
 

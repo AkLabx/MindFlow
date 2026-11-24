@@ -1,8 +1,8 @@
 import React from 'react';
 import { QuestionLightweight } from '../types/questionBuilder.types';
 import { Eye, Check } from 'lucide-react';
-import DOMPurify from "dompurify";
-const renderMathText = (text: string) => DOMPurify.sanitize(text);
+import 'katex/dist/katex.min.css';
+import { MarkdownRenderer } from '@/components/ui/MarkdownRenderer';
 
 interface Props {
     question: QuestionLightweight;
@@ -96,10 +96,9 @@ export const QuestionResultCard: React.FC<Props> = ({
                     )}
                 </div>
 
-                <div
-                    className="text-sm text-slate-900 dark:text-white line-clamp-3 prose prose-sm dark:prose-invert max-w-none"
-                    dangerouslySetInnerHTML={{ __html: renderMathText(question.question) }}
-                />
+                <div className="text-sm text-slate-900 dark:text-white line-clamp-3">
+                    <MarkdownRenderer content={question.question} className="prose-sm" />
+                </div>
 
                 {warnings.length > 0 && (
                     <div className="flex gap-2 flex-wrap mt-2">
