@@ -8,24 +8,21 @@
 ## 1. Current Verified Baseline Snapshot
 
 - **Repository:** `MindFlow` (Full-Stack React 19 + TypeScript + Vite + TailwindCSS + Capacitor Android + Supabase + IndexedDB)
-- **Current Baseline Version:** `v1.0.375` (`package.json` SemVer: `1.0.375`, PR `#1119`, on `main`)
+- **Current Baseline Version:** `v1.0.376` (`package.json` SemVer: `1.0.376`, PR `#1120`, on `main`)
 - **Android App Version:** `versionCode 6`, `versionName "1.6"` (`android/app/build.gradle`)
 - **Current Git Branch:** `main` (Slot 1 Anchor / Host)
 - **Static Typecheck:** Passed (`0` errors via `node --max-old-space-size=4096 ./node_modules/typescript/bin/tsc --noEmit`)
-- **Unit & Component Tests:** Passed (`39/39` test files, `249/249` tests passed via `npx.cmd vitest --run --pool=forks --maxWorkers=1`, including `10/10` in `src/features/mock-tests/__tests__/mockTestsProgressLeaderboard.test.tsx`, `6/6` in `src/features/mock-tests/__tests__/preparedMockScoringReview.test.tsx`, `6/6` in `src/features/mock-tests/__tests__/preparedMockExamRunner.test.tsx`, `6/6` in `src/features/mock-tests/__tests__/testDetailPage.test.tsx`, `15/15` in `src/features/admin/test-series/__tests__/adminTestSeriesCms.test.tsx`, `13/13` in `src/hooks/useHardwareBackButton.test.ts`, `7/7` in `src/features/mock-tests/__tests__/examPreparedMockTests.test.tsx`, and `7/7` in `src/features/admin/question-builder/__tests__/questionBuilder.test.tsx`)
-- **Production Build:** Verified cleanly via `npx.cmd vite build` (`5486` modules transformed, PWA precache `207` entries / `6824.50 KiB`)
+- **Unit & Component Tests:** Passed (`40/40` test files, `256/256` tests passed via `npx.cmd vitest --run --pool=forks --maxWorkers=1`, including `7/7` in `src/features/admin/test-series/__tests__/adminTestAnalytics.test.tsx`, `15/15` in `src/features/admin/test-series/__tests__/adminTestSeriesCms.test.tsx`, `10/10` in `src/features/mock-tests/__tests__/mockTestsProgressLeaderboard.test.tsx`, `6/6` in `src/features/mock-tests/__tests__/preparedMockScoringReview.test.tsx`, `6/6` in `src/features/mock-tests/__tests__/preparedMockExamRunner.test.tsx`, `6/6` in `src/features/mock-tests/__tests__/testDetailPage.test.tsx`, `13/13` in `src/hooks/useHardwareBackButton.test.ts`, `7/7` in `src/features/mock-tests/__tests__/examPreparedMockTests.test.tsx`, and `7/7` in `src/features/admin/question-builder/__tests__/questionBuilder.test.tsx`)
+- **Production Build:** Verified cleanly via `npx.cmd vite build` (`5487` modules transformed, PWA precache `207` entries / `6859.40 KiB`)
 - **Live Browser Verification (Chrome DevTools MCP against `http://localhost:3000/`):**
   - **Desktop (`1280x800`):**
-    - `#/mcqs/test-series`: Verified `<ContinueLearningSection variant="grid">` rendering live test card with progress bar, time left, and 1-tap "Resume Test" button.
-    - `#/mcqs/test-series/series/bpsc-prelims-test-series`: Verified `<ArrowLeft />` back navigation, live "Your Progress" counters (Completed: 1/1, Best Score: 102.34, Average Score: 102.34, Accuracy: 80.6%, Time Spent: 4m 32s), and `<TestLeaderboardCard />` highlighting the logged-in student row ("YOU" badge) with rank 1, zero `answers` JSONB leakage, and test selector dropdown.
-    - `#/mcqs/test-series/test/bpsc-69th-prelims-mock-01`: Verified `<TestLeaderboardCard />` locked to the active test on `TestDetailPage`.
+    - `#/admin/test-series?tab=tests`: Verified `TestCard` `Insights` button and live hydration on `69th BPSC Prelims PYQs` (`Total Attempts: 2`, `1 unique students`, `Completion Rate: 50%`, `1 completed · 0 active`, `Avg Score: 1.13 / 150`, `Median 1.13 · Best 1.13`, `Avg Time: 1m 35s`, `Pass (≥95): 0 (0%)`, `Below Cutoff: 1`, Hardest Questions `Q103`/`Q1`, Most Skipped `Q2`–`Q6`).
+    - Verified `QuestionPreviewDrawer` LIFO Top-Layer stacking (`openDialogs: 2` $\rightarrow$ `Escape` $\rightarrow$ `1` $\rightarrow$ `Escape` $\rightarrow$ `0`), `HISTORY [ Easy ]` empty state (`No Student Attempts Yet`), zero `profiles` joins, and `hasPii: false` in `localStorage`.
   - **Mobile (`390x844`):**
-    - `#/mcqs/test-series`: Verified 0px horizontal overflow (`390/390`), compact touch card layout, `>=44x44px` buttons, `active:scale-95` tactile feedback, and 0 console errors.
-    - `#/mcqs/test-series/series/bpsc-prelims-test-series`: Verified responsive leaderboard container rendering stacked cards with rank badges, score, accuracy, and time taken.
-    - Restored `is_published = false` in Supabase (`DEC-0017`).
+    - `#/admin/test-series?tab=tests`: Verified `0px` horizontal overflow on dashboard (`390/390`, `10/10` card footer buttons `>=44x44px`, `type="button"`) and inside open analytics drawer (`389/389`, `7/7` drawer buttons `>=44x44px`, `type="button"`), and `0` console errors.
 - **Master Blueprint Index:** [`docs/blueprint/main_blueprint.md`](../blueprint/main_blueprint.md)
 - **Active Generation Blueprint:** [`docs/blueprint/v1.0_blueprint.md`](../blueprint/v1.0_blueprint.md) — **Gen 1B (`v1.0.367` $\rightarrow$ `v1.0.380`): Admin Panel & Dedicated BPSC Prepared Mock Tests Hardening**
-- **Next Active Step:** **Step 10 (`v1.0.376`) — Admin Mock Test Analytics & Student Attempt Quality Inspector**
+- **Next Active Step:** **Step 11 (`v1.0.377`) — Admin Panel Global Shell, RBAC Route Guards, Command Palette & UX**
 
 ---
 
@@ -46,54 +43,45 @@
 
 ---
 
-## 3. Pre-Planned Execution Brief for Next Version (`v1.0.376`)
+## 3. Pre-Planned Execution Brief for Next Version (`v1.0.377`)
 
-- **Target Milestone:** `v1.0.376` (`package.json` SemVer: `1.0.376`)
-- **Target Branch:** `feat/v1.0.376-admin-mock-analytics-quality`
-- **Blueprint Reference:** Gen 1B, **Step 10** in [`docs/blueprint/v1.0_blueprint.md`](../blueprint/v1.0_blueprint.md)
-- **Objective:** Close the administrative feedback loop in the Mock Tests CMS so exam creators and admins can inspect BPSC mock test performance, student completion rates, score distributions, and question-level difficulty diagnostics directly inside `/admin/test-series` without leaving the dashboard or exposing student PII.
+- **Target Milestone:** `v1.0.377` (`package.json` SemVer: `1.0.377`)
+- **Target Branch:** `feat/v1.0.377-admin-shell-command-palette`
+- **Blueprint Reference:** Gen 1B, **Step 11** in [`docs/blueprint/v1.0_blueprint.md`](../blueprint/v1.0_blueprint.md)
+- **Objective:** Harden the overall Admin Panel shell (`AdminLayout.tsx`, `AdminSidebar.tsx`, `AdminHeader.tsx`, `AdminCommandPalette.tsx`) and audit admin RBAC route guards (`NavigationManager` / `AuthPolicy`) so managing BPSC mock tests and navigating CMS workflows feels fast, safe, and mobile-ergonomic.
 - **Exact Scope & Targets:**
-  1. **Admin Mock Test Analytics Aggregator (`src/features/admin/test-series/api/adminTestSeriesApi.ts`):**
-     - Function `fetchMockTestAnalytics(testId: string)` querying `DB_TABLES.MOCK.TESTS` (`mock_tests`) and `DB_TABLES.MOCK.ATTEMPTS` (`mock_test_attempts`).
-     - Aggregates: Total attempts, unique students count, completion rate %, average score, median score, highest score, pass rate against `passing_marks`, and average time spent.
-  2. **Question-Level Difficulty & Hardest Questions Diagnostics:**
-     - Computes accuracy per question from submitted attempt `answers` JSONB: identifies top 5 hardest questions (lowest accuracy / highest incorrect rate) and most skipped questions to help admins calibrate test quality.
-     - Strictly preserves student privacy: aggregates stats anonymously with zero student identity exposure.
-  3. **Admin Test Insights Drawer / Panel (`AdminTestSeriesDashboard.tsx`, `TestCard.tsx`, new `AdminTestAnalyticsDrawer.tsx`):**
-     - Add an accessible "Insights" action button on `TestCard.tsx` (`>=44x44px`, `type="button"`, `active:scale-95`).
-     - Opens a native `<NativeDialog variant="drawer-right">` slide-over sheet or modal showing:
-       - Summary Stat Cards: Total Attempts, Completion Rate, Avg Score vs Pass Cutoff, Avg Time.
-       - Score Distribution & Pass/Fail breakdown pills.
-       - Hardest Questions table / cards with 1-tap link to inspect question details in `QuestionPreviewDrawer`.
-  4. **Accessibility, Performance & SWR Caching:**
-     - 0ms cached hydration via `MindFlowDB.sync_metadata` / React Query with background refresh.
-     - Android-first ergonomics: swipe-to-dismiss drawer, full touch targets, 0px horizontal overflow.
-     - Automated Vitest suite verifying analytics calculation math, empty attempt states, and admin authorization.
-  - *Out of scope:* Global Admin layout/command palette refactor (Step 11 `v1.0.377`) and question bank preview sync (Step 12 `v1.0.378`).
+  1. **Admin Command Palette Quick Actions (`src/features/admin/layouts/AdminCommandPalette.tsx`):**
+     - Add quick actions (`Ctrl+K` / `Cmd+K`) to jump directly to `/admin/test-series?tab=tests`, `/admin/test-series/tests/new`, and student preview `/mcqs/test-series/bpsc`, ensuring `>=44x44px` touch items (`type="button"`, `active:scale-95`) and accessible keyboard navigation.
+  2. **Admin Shell, Mobile Drawer & Error Boundary Hardening (`AdminLayout.tsx`, `AdminSidebar.tsx`, `AdminHeader.tsx`):**
+     - Audit `AdminLayout.tsx` & `AdminSidebar.tsx` mobile `NativeDialog` drawer behavior (auto-close on route switch, `>=44x44px` touch targets, `0px` horizontal overflow), resilient error boundary / recovery around `<Outlet />`, safe-area padding (`env(safe-area-inset-bottom)`, `scroll-mb-28`), and zero broken sidebar routes across all `navGroups`.
+  3. **Admin RBAC Route Guard Audit (`NavigationManager` / `AuthPolicy`):**
+     - Audit `RouteAccessType.ADMIN` and `AuthPolicy.isAdmin` enforcement across all admin routes and add targeted Vitest checks verifying non-admin redirect to `/dashboard` without introducing unrequested auth flow rewrites.
+  - *Out of scope:* Question bank edit cache invalidation (Step 12 `v1.0.378`) and global Mock Tests SWR test-suite expansion (Step 13 `v1.0.379`).
 - **Circuit Breakers & Constraints:**
-  - *Estimated files:* `<= 7` files (`AdminTestSeriesDashboard.tsx`, `TestCard.tsx`, `adminTestSeriesApi.ts`, `AdminTestAnalyticsDrawer.tsx`, tests).
+  - *Estimated files:* `<= 5` files inside `src/features/admin/` (`AdminLayout.tsx`, `AdminSidebar.tsx`, `AdminHeader.tsx`, `AdminCommandPalette.tsx`) and Vitest tests.
   - *New npm dependencies:* **None**.
-  - *DB schema changes:* **None** (client-side aggregation over existing tables with admin RLS permissions).
-  - *Invariants to protect:* `DEC-0002` (zero `navigate(-1)`), `DEC-0004` (0ms IndexedDB hydration & offline resilience), `DEC-0007` (native `<dialog>` / Popovers), `DEC-0008` (`>=44x44px` `active:scale-95`), `DEC-0014` (`useNotification()`), `DEC-0017` (schedule check & own-attempt privacy), `DEC-0018` (`DB_TABLES.MOCK.*`), `DEC-0019` (`scroll-mb-28`), `DEC-0020` (`negative_marks`), `DEC-0021` (`answers` JSONB clean isolation), `DEC-0022` (`PreparedMockResultPage` Dual-View), `DEC-0023` (monotonic completed attempt guard & container queries).
+  - *DB schema changes:* **None**.
+  - *Auth / RBAC Circuit Breaker:* Audit-only by default — **STOP and ask** the user before modifying `AuthPolicy.ts`, OAuth interception, or route permission rules.
+  - *Invariants to protect:* `DEC-0002` (zero `navigate(-1)`), `DEC-0004` (0ms IndexedDB hydration & offline resilience), `DEC-0007` (native `<dialog>` / Popovers), `DEC-0008` (`>=44x44px` `type="button"` `active:scale-95`), `DEC-0014` (`useNotification()`), `DEC-0018` (`DB_TABLES.MOCK.*`), `DEC-0019` (`scroll-mb-28`), `DEC-0024` (zero-PII admin analytics & LIFO drawer stacking).
 - **Real-World Verification Goal:**
   - *Static:* `node --max-old-space-size=4096 ./node_modules/typescript/bin/tsc --noEmit` (`0` errors) + `npx.cmd vitest --run --pool=forks --maxWorkers=1` + `npx.cmd vite build`.
-  - *Live Browser (Desktop `1280x800` & Mobile `390x844`):* Open Mock Tests CMS at `#/admin/test-series?tab=tests`, click "Insights" on a test with completed attempts, verify total attempts count, average score, pass rate, hardest questions list, 0px mobile overflow, and 0 console errors.
+  - *Live Browser (Desktop `1280x800` & Mobile `390x844`):* Open Admin Panel at `#/admin/test-series?tab=tests`, test `Ctrl+K` / `Cmd+K` jump to Mock Tests CMS / New Test Builder / BPSC student listing, verify mobile slide-over drawer close on route switch, verify non-admin redirect to `/dashboard`, `0px` mobile overflow, `>=44x44px` controls, and `0` console errors.
 
 ---
 
 ## 4. Mandatory Closeout Checklist (Every Chat MUST Complete All 7)
 
-- [ ] **Step 1:** Create release dossier `docs/versions/v1.0.376.md` using `docs/versions/00-template.md`.
-- [ ] **Step 2:** Register newly made decisions in `docs/DECISIONS_MASTER.md` (`DEC-0024`, and `OLD-015` if applicable).
+- [ ] **Step 1:** Create release dossier `docs/versions/v1.0.377.md` using `docs/versions/00-template.md`.
+- [ ] **Step 2:** Register newly made decisions in `docs/DECISIONS_MASTER.md` (`DEC-0025`, and `OLD-015` if applicable).
 - [ ] **Step 3:** Prepend release entry to `docs/APP_JOURNEY_LOG.md` with exact IST timestamp.
-- [ ] **Step 4:** Mark Step 10 (`v1.0.376`) as `[x] DONE` with PR `#` in `docs/blueprint/v1.0_blueprint.md`, promote Step 11 (`v1.0.377`) to High-Definition Spec (`[ ] NEXT`), and refine Step 15 (`v1.0.381`) / Step 16 into `Medium` detail.
-- [ ] **Step 5:** Completely overwrite `docs/handovers/CURRENT_HANDOVER.md` with the `v1.0.376` verified baseline and Step 11 (`v1.0.377`) brief.
+- [ ] **Step 4:** Mark Step 11 (`v1.0.377`) as `[x] DONE` with PR `#` in `docs/blueprint/v1.0_blueprint.md`, promote Step 12 (`v1.0.378`) to High-Definition Spec (`[ ] NEXT`), and keep the rolling 4-step medium horizon updated.
+- [ ] **Step 5:** Completely overwrite `docs/handovers/CURRENT_HANDOVER.md` with the `v1.0.377` verified baseline and Step 12 (`v1.0.378`) brief.
 - [ ] **Step 6:** Run secret/privacy scan on staged git changes (zero API keys, tokens, personal emails, or local OS paths).
 - [ ] **Step 7:** Commit, push, open PR via GitHub CLI `gh pr create`, record PR #, wait for CI check, squash merge, and verify clean `main`.
 
 ---
 
-## 5. Copy-Paste Starter Prompt for Fresh Chat (`v1.0.376`)
+## 5. Copy-Paste Starter Prompt for Fresh Chat (`v1.0.377`)
 
 ```text
 I am continuing development on MindFlow using the autonomous "1 Chat = 1 Version" workflow system governed by AGENTS.md, GEMINI.md, and the version-ritual skill.
@@ -102,11 +90,11 @@ Please follow this exact cold-start protocol:
 1. Read ONLY the Hot Context (<20 KB):
    - docs/handovers/CURRENT_HANDOVER.md
    - docs/DECISIONS_MASTER.md
-   - Active Step 10 (v1.0.376) in docs/blueprint/v1.0_blueprint.md
+   - Active Step 11 (v1.0.377) in docs/blueprint/v1.0_blueprint.md
    (Do NOT read historical dossiers or full changelogs on startup.)
-2. Verify git status on main and perform the 30-second Circuit Breaker sanity check (confirm <= 10 files, zero new npm packages, zero DB DDL changes).
-3. Run System-2 Cognitive Pre-Flight: simulate the Admin Mock Test Analytics & Student Attempt Quality Inspector lifecycle (fetching completed attempts for a test, computing aggregated stats: total attempts, completion rate, avg score vs passing_marks, hardest questions accuracy breakdown from answers JSONB with zero student PII leakage, 0ms SWR caching, slide-over drawer UI, and deterministic <ArrowLeft /> / Android hardware back), identify 3 runtime failure modes, and enforce zero-shortcut real implementations.
-4. Execute the brief in Section 3 of CURRENT_HANDOVER.md (Target: v1.0.376 — Admin Mock Test Analytics & Student Attempt Quality Inspector).
-5. Verify statically (node --max-old-space-size=4096 ./node_modules/typescript/bin/tsc --noEmit && npx.cmd vitest --run --pool=forks --maxWorkers=1 && npx.cmd vite build) and visually in Chrome across Desktop (1280x800) + Mobile (390x844) at http://localhost:3000/ (confirming TestCard Insights button, slide-over analytics drawer, stats accuracy, hardest questions list, >=44x44px controls, 0px mobile overflow, and 0 console errors).
-6. Execute the mandatory 7-step Phase 4 closeout ritual, update docs/blueprint/v1.0_blueprint.md (marking Step 10 v1.0.376 DONE, promoting Step 11 v1.0.377 to High-Def NEXT), overwrite CURRENT_HANDOVER.md with Step 11 (v1.0.377), and output the starter prompt for v1.0.376.
+2. Verify git status on main and perform the 30-second Circuit Breaker sanity check (confirm <= 5 files, zero new npm packages, zero DB DDL changes, and STOP & ask before altering AuthPolicy/RBAC rules).
+3. Run System-2 Cognitive Pre-Flight: simulate AdminLayout/AdminSidebar/AdminHeader/AdminCommandPalette lifecycles (Ctrl+K quick navigation, mobile NativeDialog sidebar drawer auto-close on route switch, ErrorBoundary recovery around <Outlet />, safe-area bottom clearance, and RouteAccessType.ADMIN guard enforcement), identify 3 runtime failure modes, and enforce zero-shortcut real implementations.
+4. Execute the brief in Section 3 of CURRENT_HANDOVER.md (Target: v1.0.377 — Admin Panel Global Shell, RBAC Route Guards, Command Palette & UX).
+5. Verify statically (node --max-old-space-size=4096 ./node_modules/typescript/bin/tsc --noEmit; npx.cmd vitest --run --pool=forks --maxWorkers=1; npx.cmd vite build) and visually in Chrome across Desktop (1280x800) + Mobile (390x844) at http://localhost:3000/ (confirming Ctrl+K quick actions, mobile drawer close on navigation, >=44x44px type="button" controls, 0px mobile overflow, and 0 console errors).
+6. Execute the mandatory 7-step Phase 4 closeout ritual, update docs/blueprint/v1.0_blueprint.md (marking Step 11 v1.0.377 DONE, promoting Step 12 v1.0.378 to High-Def NEXT), overwrite CURRENT_HANDOVER.md with Step 12 (v1.0.378), and output the starter prompt for v1.0.378.
 ```

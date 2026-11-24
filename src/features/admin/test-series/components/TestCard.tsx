@@ -1,5 +1,5 @@
 import React from 'react';
-import { Edit2, Trash2, CheckSquare, Clock, Globe, EyeOff, Copy, Loader2 } from 'lucide-react';
+import { Edit2, Trash2, CheckSquare, Clock, Globe, EyeOff, Copy, Loader2, BarChart3 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { StatusBadge } from './StatusBadge';
 
@@ -9,6 +9,7 @@ interface TestCardProps {
     onDelete: (id: string) => void;
     onTogglePublish?: (test: any) => void;
     onClone?: (test: any) => void;
+    onViewInsights?: (test: any) => void;
     busyAction?: 'publish' | 'clone' | null;
     isDeleteDisabled?: boolean;
 }
@@ -19,6 +20,7 @@ export const TestCard: React.FC<TestCardProps> = ({
     onDelete,
     onTogglePublish,
     onClone,
+    onViewInsights,
     busyAction = null,
     isDeleteDisabled = false,
 }) => {
@@ -73,7 +75,7 @@ export const TestCard: React.FC<TestCardProps> = ({
                 </div>
             </div>
 
-            <footer className="flex items-center justify-between gap-2 border-t border-slate-100 dark:border-slate-700/50 pt-4 mt-auto">
+            <footer className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 dark:border-slate-700/50 pt-4 mt-auto">
                 {onTogglePublish ? (
                     <button
                         type="button"
@@ -99,7 +101,18 @@ export const TestCard: React.FC<TestCardProps> = ({
                     <div />
                 )}
 
-                <div className="flex items-center gap-1.5">
+                <div className="flex flex-wrap items-center gap-1.5">
+                    {onViewInsights && (
+                        <button
+                            type="button"
+                            aria-label={`View insights for ${test.name}`}
+                            onClick={() => onViewInsights(test)}
+                            className="min-h-[44px] min-w-[44px] px-3 py-2 rounded-lg text-xs font-semibold inline-flex items-center gap-1.5 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 dark:bg-indigo-900/30 dark:text-indigo-300 dark:hover:bg-indigo-900/50 transition-all active:scale-95"
+                        >
+                            <BarChart3 className="w-4 h-4 shrink-0" aria-hidden="true" />
+                            <span>Insights</span>
+                        </button>
+                    )}
                     {onClone && (
                         <button
                             type="button"

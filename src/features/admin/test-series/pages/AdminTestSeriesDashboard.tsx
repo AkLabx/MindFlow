@@ -7,10 +7,11 @@ import {
     KPICard, SearchBar, SkeletonList, EmptyState, ConfirmDialog,
     CategoryCard, CategoryDrawer,
     SeriesCard, SeriesDrawer,
-    TestCard
+    TestCard, AdminTestAnalyticsDrawer
 } from '../components';
 import { useCategories, useSeries, useTests } from '../hooks';
-import { validateTestForPublish } from '../api/adminTestSeriesApi';
+import { validateTestForPublish, invalidateMockTestAnalyticsCache } from '../api/adminTestSeriesApi';
+import { QuestionPreviewDrawer } from '../../question-builder/components/QuestionPreviewDrawer';
 
 type DashboardTab = 'categories' | 'series' | 'tests';
 type StatusFilter = 'all' | 'published' | 'draft';
@@ -41,6 +42,8 @@ export const AdminTestSeriesDashboard: React.FC = () => {
     const [isCatDrawerOpen, setCatDrawerOpen] = useState(false);
     const [isSeriesDrawerOpen, setSeriesDrawerOpen] = useState(false);
     const [selectedItem, setSelectedItem] = useState<any>(null);
+    const [insightsTest, setInsightsTest] = useState<any | null>(null);
+    const [previewQuestionId, setPreviewQuestionId] = useState<string | null>(null);
 
     const [confirmDialog, setConfirmDialog] = useState<{
         isOpen: boolean;
@@ -454,6 +457,7 @@ export const AdminTestSeriesDashboard: React.FC = () => {
         try {
             if (confirmDialog.type === 'categories') {
                 await removeCategory(confirmDialog.id);
+                invalidateMockTestAnalyticsCache();
                 await Promise.all([refreshSeries(), refreshTests()]);
                 setSearchParams(prev => {
                     const next = new URLSearchParams(prev);
@@ -470,6 +474,7 @@ export const AdminTestSeriesDashboard: React.FC = () => {
                 }, { replace: true });
             } else if (confirmDialog.type === 'series') {
                 await removeSeries(confirmDialog.id);
+                invalidateMockTestAnalyticsCache();
                 await refreshTests();
                 setSearchParams(prev => {
                     const next = new URLSearchParams(prev);
@@ -480,6 +485,11 @@ export const AdminTestSeriesDashboard: React.FC = () => {
                 }, { replace: true });
             } else if (confirmDialog.type === 'tests') {
                 await removeTest(confirmDialog.id);
+                invalidateMockTestAnalyticsCache(confirmDialog.id);
+                if (insightsTest?.id === confirmDialog.id) {
+                    setInsightsTest(null);
+                    setPreviewQuestionId(null);
+                }
             }
         } finally {
             if (isMountedRef.current) {
@@ -748,6 +758,7 @@ export const AdminTestSeriesDashboard: React.FC = () => {
                                     onDelete={handleDeleteClick}
                                     onTogglePublish={handleTogglePublish}
                                     onClone={handleCloneTest}
+                                    onViewInsights={setInsightsTest}
                                     busyAction={busyActionByTestId[t.id] ?? null}
                                     isDeleteDisabled={isDeleting}
                                 />
@@ -779,6 +790,22 @@ export const AdminTestSeriesDashboard: React.FC = () => {
                 series={activeTab === 'series' ? selectedItem : null}
                 categories={categories}
                 onSave={handleSaveSeries}
+            />
+
+            <AdminTestAnalyticsDrawer
+                isOpen={Boolean(insightsTest)}
+                onClose={() => {
+                    setInsightsTest(null);
+                    setPreviewQuestionId(null);
+                }}
+                test={insightsTest}
+                onPreviewQuestion={(qId) => setPreviewQuestionId(qId)}
+            />
+
+            <QuestionPreviewDrawer
+                isOpen={Boolean(previewQuestionId)}
+                onClose={() => setPreviewQuestionId(null)}
+                questionId={previewQuestionId}
             />
 
             {/* Confirmation */}
