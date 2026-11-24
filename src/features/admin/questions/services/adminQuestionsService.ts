@@ -1,8 +1,13 @@
 import { supabase } from '@/lib/supabase';
+import { DB_TABLES } from '@/config/dbTables';
+import { invalidateQuestionBankCaches } from './questionBankCache';
+
+export { invalidateQuestionBankCaches };
 
 export interface QuestionRecord {
   id: string;
-  created_at: string;
+  created_at?: string;
+  updated_at?: string;
   v1_id?: string;
   subject: string;
   topic?: string;
@@ -26,8 +31,10 @@ export interface QuestionRecord {
     analysis_incorrect?: string;
     [key: string]: any;
   } | string;
+  question_image_url?: string;
+  explanation_image_url?: string;
   status?: string;
-  deleted_at?: string;
+  deleted_at?: string | null;
 }
 
 export interface FetchQuestionsParams {
@@ -40,6 +47,17 @@ export interface FetchQuestionsParams {
   sortBy?: 'created_at' | 'id' | 'difficulty' | 'subject';
   sortOrder?: 'asc' | 'desc';
 }
+
+const DEFAULT_FALLBACK_SUBJECTS = [
+  'History',
+  'Geography',
+  'Economics',
+  'Polity',
+  'Current Affairs',
+  'General Science',
+];
+
+const CHUNK_SIZE = 100;
 
 /**
  * Fetch paginated questions with flexible filtering
@@ -54,7 +72,7 @@ export const fetchQuestions = async ({
   sortOrder = 'desc'
 }: FetchQuestionsParams) => {
   let query = supabase
-    .from('questions')
+    .from(DB_TABLES.BANK.QUESTIONS)
     .select('*', { count: 'exact' })
     .is('deleted_at', null);
 
@@ -67,8 +85,11 @@ export const fetchQuestions = async ({
   }
 
   if (search.trim()) {
-    const term = `%${search.trim()}%`;
-    query = query.or(`question.ilike.${term},question_hi.ilike.${term},v1_id.ilike.${term}`);
+    const cleanTerm = search.trim().replace(/[(),]/g, ' ').replace(/\s+/g, ' ').trim();
+    if (cleanTerm) {
+      const term = `%${cleanTerm}%`;
+      query = query.or(`question.ilike.${term},question_hi.ilike.${term},v1_id.ilike.${term}`);
+    }
   }
 
   const from = (page - 1) * pageSize;
@@ -89,23 +110,23 @@ export const fetchQuestions = async ({
 };
 
 /**
- * Fetch a single question by UUID or v1_id
+ * Fetch a single question by UUID
  */
-export const fetchQuestionById = async (id: string): Promise<QuestionRecord> => {
+export const fetchQuestionById = async (id: string): Promise<QuestionRecord | null> => {
   const { data, error } = await supabase
-    .from('questions')
+    .from(DB_TABLES.BANK.QUESTIONS)
     .select('*')
     .eq('id', id)
-    .single();
+    .maybeSingle();
 
   if (error) throw error;
-  return data as QuestionRecord;
+  return (data as QuestionRecord) ?? null;
 };
 
 /**
- * Save (Insert or Update) a Question
+ * Save (Insert or Update) a Question and invalidate cross-feature caches.
  */
-export const saveQuestion = async (payload: Partial<QuestionRecord>) => {
+export const saveQuestion = async (payload: Partial<QuestionRecord>): Promise<QuestionRecord> => {
   const isUpdate = Boolean(payload.id);
 
   // Normalize explanation if stringified
@@ -119,8 +140,10 @@ export const saveQuestion = async (payload: Partial<QuestionRecord>) => {
     }
   }
 
+  const { created_at: _omitCreatedAt, deleted_at: _omitDeletedAt, ...restPayload } = payload;
+
   const cleanPayload = {
-    ...payload,
+    ...restPayload,
     explanation: explanationObj || {},
     updated_at: new Date().toISOString()
   };
@@ -128,69 +151,94 @@ export const saveQuestion = async (payload: Partial<QuestionRecord>) => {
   if (isUpdate) {
     const { id, ...updateFields } = cleanPayload;
     const { data, error } = await supabase
-      .from('questions')
+      .from(DB_TABLES.BANK.QUESTIONS)
       .update(updateFields)
-      .eq('id', id)
+      .eq('id', id as string)
       .select()
       .single();
 
     if (error) throw error;
-    return data;
+    const savedRecord = data as QuestionRecord;
+    await invalidateQuestionBankCaches({
+      questionIds: savedRecord?.id ? [savedRecord.id] : id ? [id] : [],
+      action: 'save',
+    });
+    return savedRecord;
   } else {
     const { data, error } = await supabase
-      .from('questions')
+      .from(DB_TABLES.BANK.QUESTIONS)
       .insert(cleanPayload)
       .select()
       .single();
 
     if (error) throw error;
-    return data;
+    const savedRecord = data as QuestionRecord;
+    await invalidateQuestionBankCaches({
+      questionIds: savedRecord?.id ? [savedRecord.id] : [],
+      action: 'save',
+    });
+    return savedRecord;
   }
 };
 
 /**
- * Soft delete a single question
+ * Soft delete a single question and purge stale caches.
  */
 export const softDeleteQuestion = async (id: string) => {
+  const nowIso = new Date().toISOString();
   const { error } = await supabase
-    .from('questions')
-    .update({ deleted_at: new Date().toISOString() })
+    .from(DB_TABLES.BANK.QUESTIONS)
+    .update({ deleted_at: nowIso, updated_at: nowIso })
     .eq('id', id);
 
   if (error) throw error;
+  await invalidateQuestionBankCaches({ deletedIds: [id], action: 'soft_delete' });
   return true;
 };
 
 /**
- * Bulk soft delete multiple questions
+ * Bulk soft delete multiple questions (100-UUID chunked) and purge stale caches.
  */
 export const bulkSoftDeleteQuestions = async (ids: string[]) => {
-  if (ids.length === 0) return true;
+  const cleanIds = Array.from(new Set(ids.map((id) => String(id ?? '').trim()).filter(Boolean)));
+  if (cleanIds.length === 0) return true;
 
-  const { error } = await supabase
-    .from('questions')
-    .update({ deleted_at: new Date().toISOString() })
-    .in('id', ids);
+  const nowIso = new Date().toISOString();
+  for (let i = 0; i < cleanIds.length; i += CHUNK_SIZE) {
+    const chunk = cleanIds.slice(i, i + CHUNK_SIZE);
+    const { error } = await supabase
+      .from(DB_TABLES.BANK.QUESTIONS)
+      .update({ deleted_at: nowIso, updated_at: nowIso })
+      .in('id', chunk);
 
-  if (error) throw error;
+    if (error) throw error;
+  }
+
+  await invalidateQuestionBankCaches({ deletedIds: cleanIds, action: 'bulk_soft_delete' });
   return true;
 };
 
 /**
- * Fetch list of distinct subjects for dropdowns
+ * Fetch list of distinct subjects via RPC (`DEC-0015`, avoids unpaged table scans).
  */
 export const fetchDistinctSubjects = async (): Promise<string[]> => {
-  const { data, error } = await supabase
-    .from('questions')
-    .select('subject')
-    .is('deleted_at', null);
+  try {
+    const { data, error } = await supabase.rpc('get_distinct_values', { column_name: 'subject' });
+    if (error || !Array.isArray(data)) {
+      return DEFAULT_FALLBACK_SUBJECTS;
+    }
 
-  if (error) return ['History', 'Geography', 'Economics', 'Polity', 'Current Affairs', 'General Science'];
+    const set = new Set<string>();
+    for (const row of data) {
+      const raw = typeof row === 'string' ? row : (row as { value?: unknown })?.value;
+      if (raw === null || raw === undefined) continue;
+      const trimmed = String(raw).trim();
+      if (trimmed) set.add(trimmed);
+    }
 
-  const set = new Set<string>();
-  (data || []).forEach((row) => {
-    if (row.subject) set.add(row.subject);
-  });
-
-  return Array.from(set).sort();
+    const subjects = Array.from(set).sort((a, b) => a.localeCompare(b));
+    return subjects.length > 0 ? subjects : DEFAULT_FALLBACK_SUBJECTS;
+  } catch {
+    return DEFAULT_FALLBACK_SUBJECTS;
+  }
 };

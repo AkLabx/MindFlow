@@ -1,8 +1,9 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { QuestionLightweight } from '../types/questionBuilder.types';
-import { Trash2, AlertTriangle, ChevronDown, ChevronRight, CheckCircle2, Loader2, RefreshCw, GripVertical, CheckSquare, ListFilter, Undo2 } from 'lucide-react';
-import DOMPurify from "dompurify";
+import { Trash2, AlertTriangle, ChevronDown, ChevronRight, CheckCircle2, Loader2, RefreshCw, GripVertical, CheckSquare, ListFilter, Undo2, Eye } from 'lucide-react';
+import 'katex/dist/katex.min.css';
+import { MarkdownRenderer } from '@/components/ui/MarkdownRenderer';
 import {
   DndContext,
   closestCenter,
@@ -22,17 +23,16 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 
-const renderMathText = (text: string) => DOMPurify.sanitize(text);
-
 interface SortableQuestionItemProps {
     question: QuestionLightweight;
     index: number;
     isSelected: boolean;
     onToggleSelect: (id: string, checked: boolean) => void;
     onRemove: (id: string) => void;
+    onPreview?: (id: string) => void;
 }
 
-const SortableQuestionItem = ({ question, index, isSelected, onToggleSelect, onRemove }: SortableQuestionItemProps) => {
+const SortableQuestionItem = ({ question, index, isSelected, onToggleSelect, onRemove, onPreview }: SortableQuestionItemProps) => {
     const {
         attributes,
         listeners,
@@ -102,21 +102,33 @@ const SortableQuestionItem = ({ question, index, isSelected, onToggleSelect, onR
                         </span>
                     )}
                 </div>
-                <div
-                    className="text-sm text-slate-700 dark:text-slate-200 line-clamp-2 prose prose-sm dark:prose-invert max-w-none"
-                    dangerouslySetInnerHTML={{ __html: renderMathText(question.question) }}
-                />
+                <div className="text-sm text-slate-700 dark:text-slate-200 line-clamp-2">
+                    <MarkdownRenderer content={question.question} className="prose-sm" />
+                </div>
             </div>
 
-            <button
-                type="button"
-                aria-label="Remove question"
-                onClick={() => onRemove(question.id)}
-                className="min-w-[44px] min-h-[44px] flex items-center justify-center text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all active:scale-95 h-fit shrink-0"
-                title="Remove Question"
-            >
-                <Trash2 className="w-4 h-4" aria-hidden="true" />
-            </button>
+            <div className="flex items-center gap-1 shrink-0">
+                {onPreview && (
+                    <button
+                        type="button"
+                        aria-label="Preview selected question"
+                        onClick={() => onPreview(question.id)}
+                        className="min-w-[44px] min-h-[44px] flex items-center justify-center text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-100 dark:hover:bg-slate-700/60 rounded-xl transition-all active:scale-95 h-fit shrink-0"
+                        title="Preview Question"
+                    >
+                        <Eye className="w-4 h-4" aria-hidden="true" />
+                    </button>
+                )}
+                <button
+                    type="button"
+                    aria-label="Remove question"
+                    onClick={() => onRemove(question.id)}
+                    className="min-w-[44px] min-h-[44px] flex items-center justify-center text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all active:scale-95 h-fit shrink-0"
+                    title="Remove Question"
+                >
+                    <Trash2 className="w-4 h-4" aria-hidden="true" />
+                </button>
+            </div>
         </div>
     );
 };
@@ -132,6 +144,7 @@ interface Props {
     isImporting: boolean;
     onUndo: () => void;
     canUndo: boolean;
+    onPreview?: (id: string) => void;
 }
 
 export const SelectedQuestionsPanel: React.FC<Props> = ({
@@ -144,7 +157,8 @@ export const SelectedQuestionsPanel: React.FC<Props> = ({
     onAdvancedImport,
     isImporting,
     onUndo,
-    canUndo
+    canUndo,
+    onPreview
 }) => {
     const [importText, setImportText] = useState('');
     const [showImport, setShowImport] = useState(false);
@@ -554,6 +568,7 @@ export const SelectedQuestionsPanel: React.FC<Props> = ({
                                         isSelected={rightSelectedIds.has(q.id)}
                                         onToggleSelect={handleToggleRightSelect}
                                         onRemove={onRemove}
+                                        onPreview={onPreview}
                                     />
                                 ))}
                             </div>

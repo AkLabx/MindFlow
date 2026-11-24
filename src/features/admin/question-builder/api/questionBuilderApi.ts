@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase';
+import { DB_TABLES } from '@/config/dbTables';
 import { db } from '@/lib/db';
 import {
     QuestionLightweight,
@@ -259,7 +260,7 @@ export const searchQuestions = async (
     limit: number = 25
 ): Promise<{ data: QuestionLightweight[]; total: number }> => {
     let query = supabase
-        .from('questions')
+        .from(DB_TABLES.BANK.QUESTIONS)
         .select('id, v1_id, question, subject, topic, subTopic, difficulty, examName, examYear, examDateShift, questionType, tags, explanation, options, correct', { count: 'exact' })
         .is('deleted_at', null);
 
@@ -338,8 +339,9 @@ export const fetchQuestionsByUUIDs = async (ids: string[]): Promise<QuestionLigh
     const responses = await Promise.all(
         chunks.map(chunk =>
             supabase
-                .from('questions')
+                .from(DB_TABLES.BANK.QUESTIONS)
                 .select('id, v1_id, question, subject, topic, subTopic, difficulty, examName, examYear, examDateShift, questionType, tags, explanation, options, correct')
+                .is('deleted_at', null)
                 .in('id', chunk)
         )
     );
@@ -355,14 +357,22 @@ export const fetchQuestionsByUUIDs = async (ids: string[]): Promise<QuestionLigh
     return results;
 };
 
-export const fetchQuestionPreview = async (id: string): Promise<Question | null> => {
-    const { data, error } = await supabase
-        .from('questions')
+export type QuestionPreviewRecord = Question & {
+    deleted_at?: string | null;
+    status?: string | null;
+};
+
+export const fetchQuestionPreview = async (id: string): Promise<QuestionPreviewRecord | null> => {
+    const query = supabase
+        .from(DB_TABLES.BANK.QUESTIONS)
         .select('*')
-        .eq('id', id)
-        .single();
+        .eq('id', id);
+
+    const { data, error } = typeof (query as any).maybeSingle === 'function'
+        ? await (query as any).maybeSingle()
+        : await query.single();
 
     if (error) throw error;
 
-    return data as Question;
+    return (data as QuestionPreviewRecord) ?? null;
 };

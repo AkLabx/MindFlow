@@ -14,10 +14,11 @@ interface Props {
     onSelectObj: (question: QuestionLightweight, checked: boolean) => void;
     onPreview: (id: string) => void;
     onAddMultiple: (questions: QuestionLightweight[]) => void;
+    refreshKey?: number;
 }
 
 export const QuestionSearchPanel: React.FC<Props> = ({
-    filterOptions, selectedIds, onSelectObj, onPreview, onAddMultiple
+    filterOptions, selectedIds, onSelectObj, onPreview, onAddMultiple, refreshKey = 0
 }) => {
     const [params, setParams] = useState<QuestionFilterParams>({ search: '' });
     const [questions, setQuestions] = useState<QuestionLightweight[]>([]);
@@ -97,11 +98,11 @@ export const QuestionSearchPanel: React.FC<Props> = ({
         return () => clearTimeout(timer);
     }, [searchTerm]);
 
-    // Reload when params change
+    // Reload when params or refreshKey change
     useEffect(() => {
         setPage(0);
         loadQuestions(0, params, false);
-    }, [params, loadQuestions]);
+    }, [params, loadQuestions, refreshKey]);
 
     // Load more when scrolling
     useEffect(() => {

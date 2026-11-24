@@ -16,6 +16,15 @@ let lastDeltaCheckTime = 0;
 const DELTA_CHECK_TTL_MS = 5 * 60 * 1000;
 
 /**
+ * Resets the in-memory question metadata singleton so edits or soft-deletes
+ * force a fresh IndexedDB/delta reconciliation on next access.
+ */
+export const invalidateQuestionMetadataMemoryCache = (): void => {
+  memoryMetadataCache = null;
+  lastDeltaCheckTime = 0;
+};
+
+/**
  * Hook to retrieve the lightweight question metadata catalog.
  * It serves as the single architectural owner of cache warming:
  * - Reads instantly from memory singleton / IndexedDB cache.

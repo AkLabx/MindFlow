@@ -1759,6 +1759,48 @@ export const readPreparedMockTestsIndexedDBCache = async (
 };
 
 /**
+ * Invalidates question-payload, test-detail, series-bundle, and catalog caches across
+ * Memory, `localStorage`, and `MindFlowDB.sync_metadata` without clearing active student
+ * attempt answers or attempt history (`DEC-0004`).
+ */
+export const invalidatePreparedMockQuestionCaches = (): void => {
+    memoryCatalogCache = null;
+    memoryHomeCache = null;
+    memoryTestDetailCache.clear();
+    memoryTestQuestionsCache.clear();
+    memorySeriesBundleCache.clear();
+
+    try {
+        if (typeof window !== 'undefined' && window.localStorage) {
+            for (let i = window.localStorage.length - 1; i >= 0; i -= 1) {
+                const storageKey = window.localStorage.key(i);
+                if (
+                    storageKey &&
+                    (storageKey.startsWith(MOCK_TEST_DETAIL_STORAGE_PREFIX) ||
+                        storageKey.startsWith(MOCK_TEST_QUESTIONS_STORAGE_PREFIX) ||
+                        storageKey.startsWith(MOCK_SERIES_BUNDLE_STORAGE_PREFIX))
+                ) {
+                    window.localStorage.removeItem(storageKey);
+                }
+            }
+        }
+    } catch {
+        // Ignore localStorage enumeration errors
+    }
+
+    safeRemoveLocalStorage(MOCK_CATALOG_STORAGE_KEY);
+    safeRemoveLocalStorage(MOCK_HOME_STORAGE_KEY);
+
+    db.deleteCacheEntriesByPrefix?.([
+        MOCK_CATALOG_IDB_KEY,
+        MOCK_HOME_IDB_KEY,
+        MOCK_TEST_DETAIL_IDB_PREFIX,
+        MOCK_TEST_QUESTIONS_IDB_PREFIX,
+        MOCK_SERIES_BUNDLE_IDB_PREFIX,
+    ])?.catch(() => {});
+};
+
+/**
  * Clears all in-memory, `localStorage`, and IndexedDB prepared mock-test caches.
  */
 export const clearPreparedMockTestsCache = (userId?: string | null): void => {
@@ -1806,6 +1848,17 @@ export const clearPreparedMockTestsCache = (userId?: string | null): void => {
         } catch {
             // Ignore localStorage enumeration errors
         }
+        db.deleteCacheEntriesByPrefix?.([
+            MOCK_CATALOG_IDB_KEY,
+            MOCK_HOME_IDB_KEY,
+            `${MOCK_ATTEMPTS_IDB_PREFIX}${trimmedUserId}`,
+            `${MOCK_SAVED_TESTS_IDB_PREFIX}${trimmedUserId}`,
+            `${MOCK_CONTINUE_LEARNING_IDB_PREFIX}${trimmedUserId}`,
+            `${MOCK_TEST_ATTEMPTS_IDB_PREFIX}${trimmedUserId}_`,
+            `${MOCK_ACTIVE_ATTEMPT_IDB_PREFIX}${trimmedUserId}_`,
+            `${MOCK_SERIES_ATTEMPTS_IDB_PREFIX}${trimmedUserId}_`,
+            MOCK_LEADERBOARD_IDB_PREFIX,
+        ])?.catch(() => {});
     } else {
         memoryAttemptsCache.clear();
         memoryTestAttemptsCache.clear();
@@ -1837,6 +1890,20 @@ export const clearPreparedMockTestsCache = (userId?: string | null): void => {
         } catch {
             // Ignore localStorage enumeration errors
         }
+        db.deleteCacheEntriesByPrefix?.([
+            MOCK_CATALOG_IDB_KEY,
+            MOCK_HOME_IDB_KEY,
+            MOCK_TEST_DETAIL_IDB_PREFIX,
+            MOCK_TEST_ATTEMPTS_IDB_PREFIX,
+            MOCK_SAVED_TESTS_IDB_PREFIX,
+            MOCK_ATTEMPTS_IDB_PREFIX,
+            MOCK_TEST_QUESTIONS_IDB_PREFIX,
+            MOCK_ACTIVE_ATTEMPT_IDB_PREFIX,
+            MOCK_CONTINUE_LEARNING_IDB_PREFIX,
+            MOCK_SERIES_BUNDLE_IDB_PREFIX,
+            MOCK_SERIES_ATTEMPTS_IDB_PREFIX,
+            MOCK_LEADERBOARD_IDB_PREFIX,
+        ])?.catch(() => {});
     }
     safeRemoveLocalStorage(MOCK_CATALOG_STORAGE_KEY);
     safeRemoveLocalStorage(MOCK_HOME_STORAGE_KEY);
