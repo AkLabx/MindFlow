@@ -501,4 +501,58 @@ input, textarea, [contenteditable] {
     content-visibility: auto;
     contain-intrinsic-size: auto 260px;
   }
+
+  /* Native semantic <progress> bar styling */
+  .mf-progress {
+    appearance: none;
+    border: 0 solid;
+    overflow: clip;
+    border-radius: 9999px;
+    background: var(--mf-progress-track, rgb(226 232 240));
+  }
+
+  .dark .mf-progress {
+    background: var(--mf-progress-track-dark, rgb(51 65 85));
+  }
+
+  .mf-progress::-webkit-progress-bar {
+    background: transparent;
+  }
+
+  .mf-progress::-webkit-progress-value {
+    background: var(--mf-progress-fill, #4f46e5);
+    border-radius: 9999px;
+    transition: inline-size 0.3s ease;
+  }
+
+  .mf-progress::-moz-progress-bar {
+    background: var(--mf-progress-fill, #4f46e5);
+    border-radius: 9999px;
+    transition: inline-size 0.3s ease;
+  }
+
+  /* Native CSS Container Query for <TestLeaderboardCard /> */
+  .mf-leaderboard-container {
+    container: leaderboard / inline-size;
+  }
+
+  .mf-leaderboard-desktop {
+    display: none;
+  }
+
+  .mf-leaderboard-mobile {
+    display: flex;
+    flex-direction: column;
+    gap: 0.625rem;
+  }
+
+  @container leaderboard (inline-size >= 520px) {
+    .mf-leaderboard-desktop {
+      display: block;
+    }
+
+    .mf-leaderboard-mobile {
+      display: none;
+    }
+  }
 }

@@ -33,6 +33,7 @@ import {
     resolveCanonicalExamSlug,
 } from '../api/mockTestsApi';
 import { BrandedThumbnail } from '../components/BrandedThumbnail';
+import { ContinueLearningSection } from '../components/ContinueLearningSection';
 import { EmptyState } from '../components/EmptyState';
 import { ListSkeleton } from '../components/Skeletons';
 
@@ -401,6 +402,12 @@ export const ExamPreparedMockTestsPage: React.FC = () => {
                         </button>
                     </div>
                 )}
+
+                <ContinueLearningSection
+                    variant="compact"
+                    exam={resolvedExam}
+                    returnTo={location.pathname}
+                />
 
                 {/* Filter Chips & Search Toolbar */}
                 <section aria-label="Filter prepared mock tests" className="bg-white dark:bg-slate-800/90 rounded-2xl border border-slate-200/80 dark:border-slate-700/70 p-3.5 sm:p-4 shadow-xs space-y-3">
