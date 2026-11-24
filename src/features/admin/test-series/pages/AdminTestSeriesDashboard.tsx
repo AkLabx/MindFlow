@@ -502,11 +502,13 @@ export const AdminTestSeriesDashboard: React.FC = () => {
     const handleSaveCategory = async (payload: any) => {
         if (selectedItem) await editCategory(selectedItem.id, payload);
         else await addCategory(payload);
+        await Promise.all([refreshSeries(), refreshTests()]);
     };
 
     const handleSaveSeries = async (payload: any) => {
         if (selectedItem) await editSeries(selectedItem.id, payload);
         else await addSeries(payload);
+        await refreshTests();
     };
 
     return (

@@ -129,18 +129,130 @@ export const readTestLeaderboardIndexedDBCache = async (
     return null;
 };
 
+export const MOCK_SWR_STALE_TIMES_MS = {
+    CATALOG: 5 * 60 * 1000,
+    TEST_DETAILS: 5 * 60 * 1000,
+    SERIES_BUNDLE: 5 * 60 * 1000,
+    QUESTIONS: 15 * 60 * 1000,
+    ATTEMPTS: 2 * 60 * 1000,
+    LEADERBOARD: 60 * 1000,
+} as const;
+
+export const MOCK_CACHE_INVALIDATED_EVENT = 'mindflow:mock-cache-invalidated';
+export const MOCK_CACHE_VERSION_KEY = 'mindflow_mock_cache_epoch_v1';
+
+/**
+ * Checks whether a cached payload timestamp (`fetchedAt`) is still within its SWR stale-time window.
+ */
+export const isMockCacheFresh = (
+    fetchedAt: number | null | undefined,
+    staleTimeMs: number,
+    nowMs: number = Date.now()
+): boolean => {
+    if (
+        typeof fetchedAt !== 'number' ||
+        !Number.isFinite(fetchedAt) ||
+        fetchedAt <= 0 ||
+        fetchedAt > nowMs
+    ) {
+        return false;
+    }
+    if (!Number.isFinite(staleTimeMs) || staleTimeMs <= 0) {
+        return false;
+    }
+    return nowMs - fetchedAt < staleTimeMs;
+};
+
+const emitMockCacheInvalidatedEvent = (detail?: {
+    scope?: string;
+    testId?: string;
+    seriesId?: string;
+}): void => {
+    const epoch = String(Date.now());
+    try {
+        if (typeof window !== 'undefined' && window.localStorage) {
+            window.localStorage.setItem(MOCK_CACHE_VERSION_KEY, epoch);
+        }
+    } catch {
+        // Ignore storage quota or private-browsing errors
+    }
+
+    try {
+        if (
+            typeof window !== 'undefined' &&
+            typeof window.dispatchEvent === 'function' &&
+            typeof CustomEvent === 'function'
+        ) {
+            window.dispatchEvent(
+                new CustomEvent(MOCK_CACHE_INVALIDATED_EVENT, {
+                    detail: detail ?? {},
+                })
+            );
+        }
+    } catch {
+        // Ignore CustomEvent dispatch errors
+    }
+
+    try {
+        if (typeof BroadcastChannel !== 'undefined') {
+            const channel = new BroadcastChannel('mindflow-mock-cache');
+            channel.postMessage({
+                type: 'invalidated',
+                ...(detail ?? {}),
+                epoch,
+            });
+            channel.close();
+        }
+    } catch {
+        // Ignore BroadcastChannel unavailability
+    }
+};
+
 /**
  * Fetches anonymized, privacy-safe rankings for a published mock test via `get_test_leaderboard`.
  */
 export const fetchTestLeaderboard = async (
     testId: string,
-    limit: number = 50
+    limit: number = 50,
+    options?: { forceRefresh?: boolean }
 ): Promise<TestLeaderboardEntry[]> => {
     const trimmedTestId = String(testId ?? '').trim();
     if (!trimmedTestId) return [];
-    if (typeof (supabase as { rpc?: unknown })?.rpc !== 'function') return [];
 
     const safeLimit = Math.max(1, Math.min(Number.isFinite(limit) ? Math.trunc(limit) : 50, 100));
+
+    if (!options?.forceRefresh) {
+        const mem = memoryLeaderboardCache.get(trimmedTestId);
+        const stored = !mem
+            ? safeReadLocalStorage<{ entries: any[]; fetchedAt: number; limit?: number }>(
+                  `${MOCK_LEADERBOARD_STORAGE_PREFIX}${trimmedTestId}`
+              )
+            : null;
+        const candidate = mem ?? stored;
+        if (
+            candidate &&
+            Array.isArray(candidate.entries) &&
+            isMockCacheFresh(candidate.fetchedAt, MOCK_SWR_STALE_TIMES_MS.LEADERBOARD)
+        ) {
+            const cachedLimit = (candidate as { limit?: number }).limit;
+            if (cachedLimit === undefined || cachedLimit >= safeLimit) {
+                const sanitized = candidate.entries
+                    .map((row, idx) => sanitizeLeaderboardEntry(row, idx))
+                    .slice(0, safeLimit);
+                if (!mem) {
+                    memoryLeaderboardCache.set(trimmedTestId, {
+                        entries: sanitized,
+                        fetchedAt: candidate.fetchedAt,
+                        limit: cachedLimit,
+                    });
+                }
+                return sanitized;
+            }
+        }
+    }
+
+    if (typeof (supabase as { rpc?: unknown })?.rpc !== 'function') return [];
+
     const { data, error } = await supabase.rpc(DB_RPCS.MOCK_LEADERBOARD, {
         p_test_id: trimmedTestId,
         p_limit: safeLimit,
@@ -150,7 +262,7 @@ export const fetchTestLeaderboard = async (
     const entries = (Array.isArray(data) ? data : []).map((row, idx) =>
         sanitizeLeaderboardEntry(row, idx)
     );
-    const payload = { entries, fetchedAt: Date.now() };
+    const payload = { entries, fetchedAt: Date.now(), limit: safeLimit };
     memoryLeaderboardCache.set(trimmedTestId, payload);
     safeWriteLocalStorage(`${MOCK_LEADERBOARD_STORAGE_PREFIX}${trimmedTestId}`, payload);
     db.setCacheEntry(`${MOCK_LEADERBOARD_IDB_PREFIX}${trimmedTestId}`, payload).catch(() => {});
@@ -365,8 +477,36 @@ export const fetchSeriesDetails = async (seriesId: string) => {
     return data;
 };
 
-export const fetchTestDetails = async (testId: string, nowMs: number = Date.now()) => {
+export const fetchTestDetails = async (
+    testId: string,
+    nowMs: number = Date.now(),
+    options?: { forceRefresh?: boolean }
+) => {
     const trimmedId = String(testId ?? '').trim();
+    if (!trimmedId) {
+        throw new Error('This mock test is not currently available outside its scheduled window.');
+    }
+
+    if (!options?.forceRefresh) {
+        const mem = memoryTestDetailCache.get(trimmedId);
+        const stored = !mem
+            ? safeReadLocalStorage<{ test: any; fetchedAt: number }>(
+                  `${MOCK_TEST_DETAIL_STORAGE_PREFIX}${trimmedId}`
+              )
+            : null;
+        const candidate = mem ?? stored;
+        if (
+            candidate?.test &&
+            isMockCacheFresh(candidate.fetchedAt, MOCK_SWR_STALE_TIMES_MS.TEST_DETAILS) &&
+            isCachedTestDetailVisible(candidate.test, nowMs)
+        ) {
+            if (!mem) {
+                memoryTestDetailCache.set(trimmedId, candidate);
+            }
+            return candidate.test;
+        }
+    }
+
     const { data, error } = await supabase
         .from(DB_TABLES.MOCK.TESTS)
         .select(`*, ${DB_TABLES.MOCK.SERIES}!inner(id, name, is_premium, is_published, ${DB_TABLES.MOCK.CATEGORIES}!inner(id, name, is_active))`)
@@ -379,6 +519,7 @@ export const fetchTestDetails = async (testId: string, nowMs: number = Date.now(
     if (!data || !isTestWithinScheduleWindow(data, nowMs) || !isCachedTestDetailVisible(data, nowMs)) {
         memoryTestDetailCache.delete(trimmedId);
         safeRemoveLocalStorage(`${MOCK_TEST_DETAIL_STORAGE_PREFIX}${trimmedId}`);
+        db.deleteCacheEntriesByPrefix?.([`${MOCK_TEST_DETAIL_IDB_PREFIX}${trimmedId}`])?.catch(() => {});
         throw new Error('This mock test is not currently available outside its scheduled window.');
     }
     const payload = { test: data, fetchedAt: Date.now() };
@@ -563,7 +704,7 @@ const memorySeriesAttemptsCache = new Map<
 >();
 const memoryLeaderboardCache = new Map<
     string,
-    { entries: TestLeaderboardEntry[]; fetchedAt: number }
+    { entries: TestLeaderboardEntry[]; fetchedAt: number; limit?: number }
 >();
 
 export interface UserTestAttemptItem {
@@ -758,11 +899,37 @@ export const readUserTestAttemptsIndexedDBCache = async (
  */
 export const fetchUserTestAttempts = async (
     testId: string,
-    userId?: string | null
+    userId?: string | null,
+    options?: { forceRefresh?: boolean }
 ): Promise<UserTestAttemptItem[]> => {
     const trimmedTestId = String(testId ?? '').trim();
     const trimmedUserId = String(userId ?? '').trim();
     if (!trimmedTestId || !trimmedUserId) return [];
+
+    const cacheKey = `${trimmedUserId}_${trimmedTestId}`;
+    if (!options?.forceRefresh) {
+        const mem = memoryTestAttemptsCache.get(cacheKey);
+        const stored = !mem
+            ? safeReadLocalStorage<{ attempts: any[]; fetchedAt: number }>(
+                  `${MOCK_TEST_ATTEMPTS_STORAGE_PREFIX}${cacheKey}`
+              )
+            : null;
+        const candidate = mem ?? stored;
+        if (
+            candidate &&
+            Array.isArray(candidate.attempts) &&
+            isMockCacheFresh(candidate.fetchedAt, MOCK_SWR_STALE_TIMES_MS.ATTEMPTS)
+        ) {
+            const sanitized = candidate.attempts.map(sanitizeUserTestAttempt);
+            if (!mem) {
+                memoryTestAttemptsCache.set(cacheKey, {
+                    attempts: sanitized,
+                    fetchedAt: candidate.fetchedAt,
+                });
+            }
+            return sanitized;
+        }
+    }
 
     const { data, error } = await supabase
         .from(DB_TABLES.MOCK.ATTEMPTS)
@@ -774,7 +941,6 @@ export const fetchUserTestAttempts = async (
     if (error) throw error;
 
     const attempts = (Array.isArray(data) ? data : []).map(sanitizeUserTestAttempt);
-    const cacheKey = `${trimmedUserId}_${trimmedTestId}`;
     const payload = { attempts, fetchedAt: Date.now() };
     memoryTestAttemptsCache.set(cacheKey, payload);
     safeWriteLocalStorage(`${MOCK_TEST_ATTEMPTS_STORAGE_PREFIX}${cacheKey}`, payload);
@@ -1758,27 +1924,16 @@ export const readPreparedMockTestsIndexedDBCache = async (
     }
 };
 
-/**
- * Invalidates question-payload, test-detail, series-bundle, and catalog caches across
- * Memory, `localStorage`, and `MindFlowDB.sync_metadata` without clearing active student
- * attempt answers or attempt history (`DEC-0004`).
- */
-export const invalidatePreparedMockQuestionCaches = (): void => {
-    memoryCatalogCache = null;
-    memoryHomeCache = null;
-    memoryTestDetailCache.clear();
-    memoryTestQuestionsCache.clear();
-    memorySeriesBundleCache.clear();
-
+const removeLocalStorageKeysByPrefixes = (prefixes: string[]): void => {
+    const cleanPrefixes = prefixes.map((p) => String(p ?? '').trim()).filter(Boolean);
+    if (cleanPrefixes.length === 0) return;
     try {
         if (typeof window !== 'undefined' && window.localStorage) {
             for (let i = window.localStorage.length - 1; i >= 0; i -= 1) {
                 const storageKey = window.localStorage.key(i);
                 if (
                     storageKey &&
-                    (storageKey.startsWith(MOCK_TEST_DETAIL_STORAGE_PREFIX) ||
-                        storageKey.startsWith(MOCK_TEST_QUESTIONS_STORAGE_PREFIX) ||
-                        storageKey.startsWith(MOCK_SERIES_BUNDLE_STORAGE_PREFIX))
+                    cleanPrefixes.some((prefix) => storageKey.startsWith(prefix))
                 ) {
                     window.localStorage.removeItem(storageKey);
                 }
@@ -1787,17 +1942,160 @@ export const invalidatePreparedMockQuestionCaches = (): void => {
     } catch {
         // Ignore localStorage enumeration errors
     }
+};
 
+const purgeCatalogAndQuestionCachesInternal = (options: {
+    scope: 'catalog' | 'questions';
+    testId?: string;
+    seriesId?: string;
+    includeLeaderboards: boolean;
+}): void => {
+    const trimmedTestId = options.testId ? String(options.testId).trim() : '';
+    const trimmedSeriesId = options.seriesId ? String(options.seriesId).trim() : '';
+
+    memoryCatalogCache = null;
+    memoryHomeCache = null;
     safeRemoveLocalStorage(MOCK_CATALOG_STORAGE_KEY);
     safeRemoveLocalStorage(MOCK_HOME_STORAGE_KEY);
 
-    db.deleteCacheEntriesByPrefix?.([
-        MOCK_CATALOG_IDB_KEY,
-        MOCK_HOME_IDB_KEY,
-        MOCK_TEST_DETAIL_IDB_PREFIX,
-        MOCK_TEST_QUESTIONS_IDB_PREFIX,
-        MOCK_SERIES_BUNDLE_IDB_PREFIX,
-    ])?.catch(() => {});
+    const lsPrefixes: string[] = [];
+    const idbPrefixes: string[] = [MOCK_CATALOG_IDB_KEY, MOCK_HOME_IDB_KEY];
+
+    if (trimmedTestId) {
+        memoryTestDetailCache.delete(trimmedTestId);
+        memoryTestQuestionsCache.delete(trimmedTestId);
+        safeRemoveLocalStorage(`${MOCK_TEST_DETAIL_STORAGE_PREFIX}${trimmedTestId}`);
+        safeRemoveLocalStorage(`${MOCK_TEST_QUESTIONS_STORAGE_PREFIX}${trimmedTestId}`);
+        idbPrefixes.push(
+            `${MOCK_TEST_DETAIL_IDB_PREFIX}${trimmedTestId}`,
+            `${MOCK_TEST_QUESTIONS_IDB_PREFIX}${trimmedTestId}`
+        );
+        if (options.includeLeaderboards) {
+            memoryLeaderboardCache.delete(trimmedTestId);
+            safeRemoveLocalStorage(`${MOCK_LEADERBOARD_STORAGE_PREFIX}${trimmedTestId}`);
+            idbPrefixes.push(`${MOCK_LEADERBOARD_IDB_PREFIX}${trimmedTestId}`);
+        }
+    } else {
+        memoryTestDetailCache.clear();
+        memoryTestQuestionsCache.clear();
+        lsPrefixes.push(MOCK_TEST_DETAIL_STORAGE_PREFIX, MOCK_TEST_QUESTIONS_STORAGE_PREFIX);
+        idbPrefixes.push(MOCK_TEST_DETAIL_IDB_PREFIX, MOCK_TEST_QUESTIONS_IDB_PREFIX);
+        if (options.includeLeaderboards) {
+            memoryLeaderboardCache.clear();
+            lsPrefixes.push(MOCK_LEADERBOARD_STORAGE_PREFIX);
+            idbPrefixes.push(MOCK_LEADERBOARD_IDB_PREFIX);
+        }
+    }
+
+    if (trimmedSeriesId) {
+        memorySeriesBundleCache.delete(trimmedSeriesId);
+        safeRemoveLocalStorage(`${MOCK_SERIES_BUNDLE_STORAGE_PREFIX}${trimmedSeriesId}`);
+        idbPrefixes.push(`${MOCK_SERIES_BUNDLE_IDB_PREFIX}${trimmedSeriesId}`);
+        if (trimmedTestId) {
+            for (const [bundleSeriesId, bundle] of Array.from(memorySeriesBundleCache.entries())) {
+                if (
+                    Array.isArray(bundle?.tests) &&
+                    bundle.tests.some((t) => String(t?.id ?? '') === trimmedTestId)
+                ) {
+                    memorySeriesBundleCache.delete(bundleSeriesId);
+                    safeRemoveLocalStorage(`${MOCK_SERIES_BUNDLE_STORAGE_PREFIX}${bundleSeriesId}`);
+                    idbPrefixes.push(`${MOCK_SERIES_BUNDLE_IDB_PREFIX}${bundleSeriesId}`);
+                }
+            }
+        }
+    } else {
+        memorySeriesBundleCache.clear();
+        lsPrefixes.push(MOCK_SERIES_BUNDLE_STORAGE_PREFIX);
+        idbPrefixes.push(MOCK_SERIES_BUNDLE_IDB_PREFIX);
+    }
+
+    removeLocalStorageKeysByPrefixes(lsPrefixes);
+    db.deleteCacheEntriesByPrefix?.(idbPrefixes)?.catch(() => {});
+
+    emitMockCacheInvalidatedEvent({
+        scope: options.scope,
+        ...(trimmedTestId ? { testId: trimmedTestId } : {}),
+        ...(trimmedSeriesId ? { seriesId: trimmedSeriesId } : {}),
+    });
+};
+
+/**
+ * Invalidates admin-controlled mock-test catalog, series-bundle, test-detail, question-payload,
+ * and optional leaderboard caches across Memory, `localStorage`, and `MindFlowDB.sync_metadata`,
+ * broadcasting an epoch/event notification without disturbing active student attempts or attempt history (`DEC-0004`).
+ */
+export const invalidateMockTestsCatalogCaches = (options?: {
+    testId?: string;
+    seriesId?: string;
+    includeLeaderboards?: boolean;
+}): void => {
+    purgeCatalogAndQuestionCachesInternal({
+        scope: 'catalog',
+        testId: options?.testId,
+        seriesId: options?.seriesId,
+        includeLeaderboards: options?.includeLeaderboards !== false,
+    });
+};
+
+/**
+ * Invalidates question-payload, test-detail, series-bundle, and catalog caches across
+ * Memory, `localStorage`, and `MindFlowDB.sync_metadata` without clearing active student
+ * attempt answers or attempt history (`DEC-0004`).
+ */
+export const invalidatePreparedMockQuestionCaches = (): void => {
+    purgeCatalogAndQuestionCachesInternal({
+        scope: 'questions',
+        includeLeaderboards: false,
+    });
+};
+
+/**
+ * Invalidates user-scoped attempt history, continue-learning, and global leaderboard caches
+ * after offline submission queue replay completes, without clearing active attempt or attempt detail caches.
+ */
+export const invalidatePreparedMockPostReplayCaches = (userId: string): void => {
+    const trimmedUserId = String(userId ?? '').trim();
+
+    memoryLeaderboardCache.clear();
+    const lsPrefixes: string[] = [MOCK_LEADERBOARD_STORAGE_PREFIX];
+    const idbPrefixes: string[] = [MOCK_LEADERBOARD_IDB_PREFIX];
+
+    if (trimmedUserId) {
+        memoryAttemptsCache.delete(trimmedUserId);
+        safeRemoveLocalStorage(`${MOCK_ATTEMPTS_STORAGE_PREFIX}${trimmedUserId}`);
+
+        memoryContinueLearningCache.delete(trimmedUserId);
+        safeRemoveLocalStorage(`${MOCK_CONTINUE_LEARNING_STORAGE_PREFIX}${trimmedUserId}`);
+
+        const userPrefix = `${trimmedUserId}_`;
+        for (const key of Array.from(memoryTestAttemptsCache.keys())) {
+            if (key.startsWith(userPrefix)) {
+                memoryTestAttemptsCache.delete(key);
+                safeRemoveLocalStorage(`${MOCK_TEST_ATTEMPTS_STORAGE_PREFIX}${key}`);
+            }
+        }
+        for (const key of Array.from(memorySeriesAttemptsCache.keys())) {
+            if (key.startsWith(userPrefix)) {
+                memorySeriesAttemptsCache.delete(key);
+                safeRemoveLocalStorage(`${MOCK_SERIES_ATTEMPTS_STORAGE_PREFIX}${key}`);
+            }
+        }
+
+        lsPrefixes.push(
+            `${MOCK_TEST_ATTEMPTS_STORAGE_PREFIX}${userPrefix}`,
+            `${MOCK_SERIES_ATTEMPTS_STORAGE_PREFIX}${userPrefix}`
+        );
+        idbPrefixes.push(
+            `${MOCK_ATTEMPTS_IDB_PREFIX}${trimmedUserId}`,
+            `${MOCK_CONTINUE_LEARNING_IDB_PREFIX}${trimmedUserId}`,
+            `${MOCK_TEST_ATTEMPTS_IDB_PREFIX}${userPrefix}`,
+            `${MOCK_SERIES_ATTEMPTS_IDB_PREFIX}${userPrefix}`
+        );
+    }
+
+    removeLocalStorageKeysByPrefixes(lsPrefixes);
+    db.deleteCacheEntriesByPrefix?.(idbPrefixes)?.catch(() => {});
+    emitMockCacheInvalidatedEvent({ scope: 'attempt_replay' });
 };
 
 /**
@@ -1810,53 +2108,58 @@ export const clearPreparedMockTestsCache = (userId?: string | null): void => {
     memoryTestQuestionsCache.clear();
     memorySeriesBundleCache.clear();
     memoryLeaderboardCache.clear();
-    if (userId) {
-        const trimmedUserId = String(userId).trim();
+
+    const trimmedUserId = userId ? String(userId).trim() : '';
+    if (trimmedUserId) {
         memoryAttemptsCache.delete(trimmedUserId);
         safeRemoveLocalStorage(`${MOCK_ATTEMPTS_STORAGE_PREFIX}${trimmedUserId}`);
         memorySavedTestsCache.delete(trimmedUserId);
         safeRemoveLocalStorage(`${MOCK_SAVED_TESTS_STORAGE_PREFIX}${trimmedUserId}`);
         memoryContinueLearningCache.delete(trimmedUserId);
         safeRemoveLocalStorage(`${MOCK_CONTINUE_LEARNING_STORAGE_PREFIX}${trimmedUserId}`);
+
+        const userPrefix = `${trimmedUserId}_`;
         for (const key of Array.from(memoryTestAttemptsCache.keys())) {
-            if (key.startsWith(`${trimmedUserId}_`)) {
+            if (key.startsWith(userPrefix)) {
                 memoryTestAttemptsCache.delete(key);
                 safeRemoveLocalStorage(`${MOCK_TEST_ATTEMPTS_STORAGE_PREFIX}${key}`);
             }
         }
         for (const key of Array.from(memoryActiveAttemptCache.keys())) {
-            if (key.startsWith(`${trimmedUserId}_`)) {
+            if (key.startsWith(userPrefix)) {
                 memoryActiveAttemptCache.delete(key);
                 safeRemoveLocalStorage(`${MOCK_ACTIVE_ATTEMPT_STORAGE_PREFIX}${key}`);
             }
         }
         for (const key of Array.from(memorySeriesAttemptsCache.keys())) {
-            if (key.startsWith(`${trimmedUserId}_`)) {
+            if (key.startsWith(userPrefix)) {
                 memorySeriesAttemptsCache.delete(key);
                 safeRemoveLocalStorage(`${MOCK_SERIES_ATTEMPTS_STORAGE_PREFIX}${key}`);
             }
         }
-        try {
-            if (typeof window !== 'undefined' && window.localStorage) {
-                for (let i = window.localStorage.length - 1; i >= 0; i -= 1) {
-                    const storageKey = window.localStorage.key(i);
-                    if (storageKey && storageKey.startsWith(MOCK_LEADERBOARD_STORAGE_PREFIX)) {
-                        window.localStorage.removeItem(storageKey);
-                    }
-                }
-            }
-        } catch {
-            // Ignore localStorage enumeration errors
-        }
+
+        removeLocalStorageKeysByPrefixes([
+            MOCK_TEST_DETAIL_STORAGE_PREFIX,
+            MOCK_TEST_QUESTIONS_STORAGE_PREFIX,
+            MOCK_SERIES_BUNDLE_STORAGE_PREFIX,
+            MOCK_LEADERBOARD_STORAGE_PREFIX,
+            `${MOCK_TEST_ATTEMPTS_STORAGE_PREFIX}${userPrefix}`,
+            `${MOCK_ACTIVE_ATTEMPT_STORAGE_PREFIX}${userPrefix}`,
+            `${MOCK_SERIES_ATTEMPTS_STORAGE_PREFIX}${userPrefix}`,
+        ]);
+
         db.deleteCacheEntriesByPrefix?.([
             MOCK_CATALOG_IDB_KEY,
             MOCK_HOME_IDB_KEY,
+            MOCK_TEST_DETAIL_IDB_PREFIX,
+            MOCK_TEST_QUESTIONS_IDB_PREFIX,
+            MOCK_SERIES_BUNDLE_IDB_PREFIX,
             `${MOCK_ATTEMPTS_IDB_PREFIX}${trimmedUserId}`,
             `${MOCK_SAVED_TESTS_IDB_PREFIX}${trimmedUserId}`,
             `${MOCK_CONTINUE_LEARNING_IDB_PREFIX}${trimmedUserId}`,
-            `${MOCK_TEST_ATTEMPTS_IDB_PREFIX}${trimmedUserId}_`,
-            `${MOCK_ACTIVE_ATTEMPT_IDB_PREFIX}${trimmedUserId}_`,
-            `${MOCK_SERIES_ATTEMPTS_IDB_PREFIX}${trimmedUserId}_`,
+            `${MOCK_TEST_ATTEMPTS_IDB_PREFIX}${userPrefix}`,
+            `${MOCK_ACTIVE_ATTEMPT_IDB_PREFIX}${userPrefix}`,
+            `${MOCK_SERIES_ATTEMPTS_IDB_PREFIX}${userPrefix}`,
             MOCK_LEADERBOARD_IDB_PREFIX,
         ])?.catch(() => {});
     } else {
@@ -1866,30 +2169,22 @@ export const clearPreparedMockTestsCache = (userId?: string | null): void => {
         memoryActiveAttemptCache.clear();
         memoryContinueLearningCache.clear();
         memorySeriesAttemptsCache.clear();
-        try {
-            if (typeof window !== 'undefined' && window.localStorage) {
-                for (let i = window.localStorage.length - 1; i >= 0; i -= 1) {
-                    const storageKey = window.localStorage.key(i);
-                    if (
-                        storageKey &&
-                        (storageKey.startsWith(MOCK_TEST_DETAIL_STORAGE_PREFIX) ||
-                            storageKey.startsWith(MOCK_TEST_ATTEMPTS_STORAGE_PREFIX) ||
-                            storageKey.startsWith(MOCK_SAVED_TESTS_STORAGE_PREFIX) ||
-                            storageKey.startsWith(MOCK_ATTEMPTS_STORAGE_PREFIX) ||
-                            storageKey.startsWith(MOCK_TEST_QUESTIONS_STORAGE_PREFIX) ||
-                            storageKey.startsWith(MOCK_ACTIVE_ATTEMPT_STORAGE_PREFIX) ||
-                            storageKey.startsWith(MOCK_CONTINUE_LEARNING_STORAGE_PREFIX) ||
-                            storageKey.startsWith(MOCK_SERIES_BUNDLE_STORAGE_PREFIX) ||
-                            storageKey.startsWith(MOCK_SERIES_ATTEMPTS_STORAGE_PREFIX) ||
-                            storageKey.startsWith(MOCK_LEADERBOARD_STORAGE_PREFIX))
-                    ) {
-                        window.localStorage.removeItem(storageKey);
-                    }
-                }
-            }
-        } catch {
-            // Ignore localStorage enumeration errors
-        }
+        memoryAttemptDetailCache.clear();
+
+        removeLocalStorageKeysByPrefixes([
+            MOCK_TEST_DETAIL_STORAGE_PREFIX,
+            MOCK_TEST_ATTEMPTS_STORAGE_PREFIX,
+            MOCK_SAVED_TESTS_STORAGE_PREFIX,
+            MOCK_ATTEMPTS_STORAGE_PREFIX,
+            MOCK_TEST_QUESTIONS_STORAGE_PREFIX,
+            MOCK_ACTIVE_ATTEMPT_STORAGE_PREFIX,
+            MOCK_CONTINUE_LEARNING_STORAGE_PREFIX,
+            MOCK_SERIES_BUNDLE_STORAGE_PREFIX,
+            MOCK_SERIES_ATTEMPTS_STORAGE_PREFIX,
+            MOCK_LEADERBOARD_STORAGE_PREFIX,
+            MOCK_ATTEMPT_DETAIL_STORAGE_PREFIX,
+        ]);
+
         db.deleteCacheEntriesByPrefix?.([
             MOCK_CATALOG_IDB_KEY,
             MOCK_HOME_IDB_KEY,
@@ -1903,6 +2198,7 @@ export const clearPreparedMockTestsCache = (userId?: string | null): void => {
             MOCK_SERIES_BUNDLE_IDB_PREFIX,
             MOCK_SERIES_ATTEMPTS_IDB_PREFIX,
             MOCK_LEADERBOARD_IDB_PREFIX,
+            MOCK_ATTEMPT_DETAIL_IDB_PREFIX,
         ])?.catch(() => {});
     }
     safeRemoveLocalStorage(MOCK_CATALOG_STORAGE_KEY);
@@ -1916,7 +2212,7 @@ export const clearPreparedMockTestsCache = (userId?: string | null): void => {
  */
 export const fetchPreparedMockTestsByExam = async (
     examIdOrSlug: string,
-    options?: { userId?: string | null; nowMs?: number }
+    options?: { userId?: string | null; nowMs?: number; forceRefresh?: boolean }
 ): Promise<PreparedMockTestsResult> => {
     const exam = resolveCanonicalExamSlug(examIdOrSlug);
     if (!exam) {
@@ -1925,6 +2221,50 @@ export const fetchPreparedMockTestsByExam = async (
 
     const nowMs = options?.nowMs ?? Date.now();
     const userId = options?.userId ? String(options.userId).trim() : null;
+
+    if (!options?.forceRefresh) {
+        const cachedCatalog = readCatalogFromSyncCache();
+        if (
+            cachedCatalog &&
+            isMockCacheFresh(cachedCatalog.fetchedAt, MOCK_SWR_STALE_TIMES_MS.CATALOG)
+        ) {
+            let attemptsFresh = !userId;
+            let cachedAttemptIds: string[] = [];
+
+            if (userId) {
+                const memAttempts = memoryAttemptsCache.get(userId);
+                const syncAttempts =
+                    memAttempts ??
+                    safeReadLocalStorage<{ ids: string[]; fetchedAt: number }>(
+                        `${MOCK_ATTEMPTS_STORAGE_PREFIX}${userId}`
+                    );
+                if (
+                    syncAttempts &&
+                    Array.isArray(syncAttempts.ids) &&
+                    isMockCacheFresh(syncAttempts.fetchedAt, MOCK_SWR_STALE_TIMES_MS.ATTEMPTS)
+                ) {
+                    if (!memAttempts) {
+                        memoryAttemptsCache.set(userId, syncAttempts);
+                    }
+                    cachedAttemptIds = syncAttempts.ids;
+                    attemptsFresh = true;
+                }
+            }
+
+            if (attemptsFresh) {
+                return materializePreparedMockTests(
+                    exam,
+                    cachedCatalog.categories,
+                    cachedCatalog.series,
+                    cachedCatalog.tests,
+                    cachedAttemptIds,
+                    nowMs,
+                    'cache',
+                    cachedCatalog.fetchedAt
+                );
+            }
+        }
+    }
 
     const categoriesPromise = supabase
         .from(DB_TABLES.MOCK.CATEGORIES)
@@ -2250,11 +2590,45 @@ export const readPreparedTestQuestionsIndexedDBCache = async (
  */
 export const fetchPreparedMockTestQuestions = async (
     testId: string,
-    questionIds: string[]
+    questionIds: string[],
+    options?: { forceRefresh?: boolean }
 ): Promise<Question[]> => {
     const trimmedTestId = String(testId ?? '').trim();
     const orderedIds = normalizeQuestionIdsList(questionIds);
     if (!trimmedTestId || orderedIds.length === 0) return [];
+
+    if (!options?.forceRefresh) {
+        const expectedKey = orderedIds.join(',');
+        const mem = memoryTestQuestionsCache.get(trimmedTestId);
+        const stored = !mem
+            ? safeReadLocalStorage<{
+                  questions: any[];
+                  questionIdsKey: string;
+                  fetchedAt: number;
+              }>(`${MOCK_TEST_QUESTIONS_STORAGE_PREFIX}${trimmedTestId}`)
+            : null;
+        const candidate = mem ?? stored;
+        if (
+            candidate &&
+            Array.isArray(candidate.questions) &&
+            candidate.questions.length > 0 &&
+            candidate.questionIdsKey === expectedKey &&
+            isMockCacheFresh(candidate.fetchedAt, MOCK_SWR_STALE_TIMES_MS.QUESTIONS)
+        ) {
+            if (mem) {
+                return mem.questions;
+            }
+            const normalized = candidate.questions.map((q, idx) =>
+                normalizePreparedMockQuestion(q, idx)
+            );
+            memoryTestQuestionsCache.set(trimmedTestId, {
+                questions: normalized,
+                questionIdsKey: candidate.questionIdsKey,
+                fetchedAt: candidate.fetchedAt,
+            });
+            return normalized;
+        }
+    }
 
     const uuidIds = orderedIds.filter((id) => UUID_PATTERN.test(id));
     const legacyIds = orderedIds.filter((id) => !UUID_PATTERN.test(id));
@@ -2645,7 +3019,8 @@ const clearActivePreparedMockAttemptCache = async (
     safeRemoveLocalStorage(`${MOCK_ACTIVE_ATTEMPT_STORAGE_PREFIX}${cacheKey}`);
     await Promise.allSettled([
         db.clearActiveSession?.(`mock_exam_${cacheKey}`) ?? Promise.resolve(),
-        db.setCacheEntry(`${MOCK_ACTIVE_ATTEMPT_IDB_PREFIX}${cacheKey}`, null),
+        db.deleteCacheEntriesByPrefix?.([`${MOCK_ACTIVE_ATTEMPT_IDB_PREFIX}${cacheKey}`]) ??
+            Promise.resolve(),
     ]);
 };
 
@@ -3319,6 +3694,8 @@ export const computePreparedMockSubjectBreakdown = (
     marksPerQuestion: number,
     negativeMarks: number
 ): PreparedMockSubjectBreakdown[] => {
+    const parsedNeg = Math.abs(Number(negativeMarks ?? 0));
+    const safeNegativeMarks = Number.isFinite(parsedNeg) ? parsedNeg : 0;
     const subjectMap = new Map<string, { total: number; correct: number; wrong: number; unanswered: number }>();
 
     for (const q of questions) {
@@ -3343,7 +3720,7 @@ export const computePreparedMockSubjectBreakdown = (
     const result: PreparedMockSubjectBreakdown[] = [];
     for (const [subject, stats] of subjectMap.entries()) {
         const attempted = stats.correct + stats.wrong;
-        const rawScore = stats.correct * marksPerQuestion - stats.wrong * negativeMarks;
+        const rawScore = stats.correct * marksPerQuestion - stats.wrong * safeNegativeMarks;
         const marks = Number(rawScore.toFixed(2));
         const accuracy = attempted > 0 ? Number(((stats.correct / attempted) * 100).toFixed(1)) : 0;
 

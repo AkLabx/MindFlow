@@ -24,6 +24,8 @@ import { useAuth } from '@/features/auth';
 import { triggerHaptic } from '@/lib/haptics';
 import { telemetry } from '@/lib/telemetry';
 import {
+    MOCK_CACHE_INVALIDATED_EVENT,
+    MOCK_CACHE_VERSION_KEY,
     PreparedMockTestsResult,
     PreparedMockTestItem,
     fetchPreparedMockTestsByExam,
@@ -128,7 +130,7 @@ export const ExamPreparedMockTestsPage: React.FC = () => {
             }
 
             try {
-                const fresh = await fetchPreparedMockTestsByExam(resolvedExam.id, { userId });
+                const fresh = await fetchPreparedMockTestsByExam(resolvedExam.id, { userId, forceRefresh: isManualRetry });
                 if (!isMountedRef.current || fetchSeqRef.current !== seq) return;
                 setResult(fresh);
                 hasResultRef.current = true;
@@ -163,6 +165,43 @@ export const ExamPreparedMockTestsPage: React.FC = () => {
         setLoading(Boolean(resolvedExam && !nextSync));
         loadExamMockTests(false);
     }, [resolvedExam, userId, loadExamMockTests]);
+
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+
+        const handleCacheInvalidation = () => {
+            loadExamMockTests(true);
+        };
+
+        const handleStorage = (e: StorageEvent) => {
+            if (e.key === MOCK_CACHE_VERSION_KEY) {
+                handleCacheInvalidation();
+            }
+        };
+
+        window.addEventListener(MOCK_CACHE_INVALIDATED_EVENT, handleCacheInvalidation);
+        window.addEventListener('storage', handleStorage);
+
+        let channel: BroadcastChannel | null = null;
+        if (typeof BroadcastChannel !== 'undefined') {
+            try {
+                channel = new BroadcastChannel('mindflow-mock-cache');
+                channel.onmessage = () => {
+                    handleCacheInvalidation();
+                };
+            } catch {
+                channel = null;
+            }
+        }
+
+        return () => {
+            window.removeEventListener(MOCK_CACHE_INVALIDATED_EVENT, handleCacheInvalidation);
+            window.removeEventListener('storage', handleStorage);
+            if (channel) {
+                channel.close();
+            }
+        };
+    }, [loadExamMockTests]);
 
     const handleLogicalBack = () => {
         triggerHaptic('light');

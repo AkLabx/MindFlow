@@ -19,6 +19,7 @@ import { Question, SavedQuiz, QuizHistoryRecord } from "../features/quiz/types";
  */
 import { useSyncStore } from "../features/quiz/stores/useSyncStore";
 import { telemetry } from "./telemetry";
+import { invalidatePreparedMockPostReplayCaches } from "@/features/mock-tests/api/mockTestsApi";
 
 export function parseCreatedAtMs(raw: unknown): number {
   if (typeof raw === "number" && Number.isFinite(raw)) {
@@ -47,6 +48,7 @@ function chunkArray<T>(array: T[], size: number): T[][] {
 
 let isSyncing = false;
 let lastSyncedUserIdForFullSync: string | null = null;
+let inFlightEventQueueSync: Promise<void> | null = null;
 
 export const syncService = {
   /** Returns the current sync status */
@@ -437,97 +439,120 @@ export const syncService = {
    * Processes the offline event queue from Zustand and dispatches them to Supabase.
    */
   processEventQueue: async (userId: string) => {
-    const { queue, removeEvents } = useSyncStore.getState();
-    if (queue.length === 0) return;
-    if (typeof navigator !== "undefined" && navigator.onLine === false) return;
+    if (inFlightEventQueueSync) {
+      return inFlightEventQueueSync;
+    }
 
-    const startTime = performance.now();
-    const processedIds: string[] = [];
-    let hasQuizChanges = false;
-    const BATCH_SIZE = 15; // Bounded concurrency to avoid rate limits
+    inFlightEventQueueSync = (async () => {
+      try {
+        const { queue, removeEvents } = useSyncStore.getState();
+        if (queue.length === 0) return;
+        if (typeof navigator !== "undefined" && navigator.onLine === false) return;
 
-    for (let i = 0; i < queue.length; i += BATCH_SIZE) {
-      const batch = queue.slice(i, i + BATCH_SIZE);
+        const startTime = performance.now();
+        const processedIds: string[] = [];
+        let hasQuizChanges = false;
+        let hasMockAttemptChanges = false;
+        const BATCH_SIZE = 15; // Bounded concurrency to avoid rate limits
 
-      const promises = batch.map(async (event) => {
-        switch (event.type) {
-          case "flashcard_reviewed":
-            // The payload is assumed to be a SynonymInteraction or similar
-            await syncService.pushSynonymInteraction(userId, event.payload, true);
-            break;
+        for (let i = 0; i < queue.length; i += BATCH_SIZE) {
+          const batch = queue.slice(i, i + BATCH_SIZE);
 
-          case 'bookmark_toggled':
-            if (event.payload.isBookmarked) {
-              await syncService.pushBookmark(userId, event.payload.question, true);
-            } else {
-              await syncService.removeBookmark(
-                userId,
-                event.payload.questionId,
-                event.payload.v1Id,
-                true
-              );
+          const promises = batch.map(async (event): Promise<string | null> => {
+            switch (event.type) {
+              case "flashcard_reviewed":
+                // The payload is assumed to be a SynonymInteraction or similar
+                await syncService.pushSynonymInteraction(userId, event.payload, true);
+                break;
+
+              case 'bookmark_toggled':
+                if (event.payload.isBookmarked) {
+                  await syncService.pushBookmark(userId, event.payload.question, true);
+                } else {
+                  await syncService.removeBookmark(
+                    userId,
+                    event.payload.questionId,
+                    event.payload.v1Id,
+                    true
+                  );
+                }
+                break;
+
+              case 'quiz_deleted':
+                await syncService.deleteSavedQuiz(userId, event.payload.quizId, true);
+                hasQuizChanges = true;
+                break;
+
+              case 'quiz_renamed':
+                await syncService.renameSavedQuiz(userId, event.payload.quizId, event.payload.name, true);
+                hasQuizChanges = true;
+                break;
+
+              case 'quiz_created': {
+                const { error } = await supabase.rpc(DB_RPCS.CREATE_QUIZ_SESSION, event.payload);
+                if (error) throw error;
+                hasQuizChanges = true;
+                break;
+              }
+
+              case 'quiz_submitted': {
+                const { error } = await supabase.rpc(DB_RPCS.SUBMIT_QUIZ_SESSION, event.payload);
+                if (error) throw error;
+                hasQuizChanges = true;
+                break;
+              }
+
+              case 'mock_test_attempt_submit': {
+                if (event.payload?.user_id && event.payload.user_id !== userId) {
+                  console.warn('[SyncService] Skipping mock_test_attempt_submit for mismatched user:', event.id);
+                  return null;
+                }
+                const { error } = await supabase
+                  .from(DB_TABLES.MOCK.ATTEMPTS)
+                  .upsert(event.payload, { onConflict: 'id' });
+                if (error) throw error;
+                hasMockAttemptChanges = true;
+                break;
+              }
             }
-            break;
+            return event.id;
+          });
 
-          case 'quiz_deleted':
-            await syncService.deleteSavedQuiz(userId, event.payload.quizId, true);
-            hasQuizChanges = true;
-            break;
+          const results = await Promise.allSettled(promises);
 
-          case 'quiz_renamed':
-            await syncService.renameSavedQuiz(userId, event.payload.quizId, event.payload.name, true);
-            hasQuizChanges = true;
-            break;
+          // Collect successfully processed IDs
+          results.forEach(result => {
+            if (result.status === 'fulfilled') {
+              if (result.value !== null) {
+                processedIds.push(result.value);
+              }
+            } else {
+              console.error('Failed to sync event in batch:', result.reason);
+            }
+          });
+        }
 
-          case 'quiz_created': {
-            const { error } = await supabase.rpc(DB_RPCS.CREATE_QUIZ_SESSION, event.payload);
-            if (error) throw error;
-            hasQuizChanges = true;
-            break;
+        if (processedIds.length > 0) {
+          removeEvents(processedIds);
+          telemetry.emit('offline_sync_completed', {
+            recordsSynced: processedIds.length,
+            durationMs: Math.round(performance.now() - startTime),
+          });
+          if (hasQuizChanges) {
+            queryClient.invalidateQueries({ queryKey: ['saved-quizzes'] });
+            queryClient.invalidateQueries({ queryKey: ['attempted-quizzes'] });
+            queryClient.invalidateQueries({ queryKey: ['latest-paused-quiz'] });
           }
-
-          case 'quiz_submitted': {
-            const { error } = await supabase.rpc(DB_RPCS.SUBMIT_QUIZ_SESSION, event.payload);
-            if (error) throw error;
-            hasQuizChanges = true;
-            break;
-          }
-
-          case 'mock_test_attempt_submit': {
-            const { error } = await supabase
-              .from(DB_TABLES.MOCK.ATTEMPTS)
-              .upsert(event.payload, { onConflict: 'id' });
-            if (error) throw error;
-            break;
+          if (hasMockAttemptChanges) {
+            invalidatePreparedMockPostReplayCaches(userId);
           }
         }
-        return event.id;
-      });
-
-      const results = await Promise.allSettled(promises);
-
-      // Collect successfully processed IDs
-      results.forEach(result => {
-        if (result.status === 'fulfilled') {
-          processedIds.push(result.value);
-        } else {
-          console.error('Failed to sync event in batch:', result.reason);
-        }
-      });
-    }
-
-    if (processedIds.length > 0) {
-      removeEvents(processedIds);
-      telemetry.emit('offline_sync_completed', {
-        recordsSynced: processedIds.length,
-        durationMs: Math.round(performance.now() - startTime),
-      });
-      if (hasQuizChanges) {
-        queryClient.invalidateQueries({ queryKey: ['saved-quizzes'] });
-        queryClient.invalidateQueries({ queryKey: ['attempted-quizzes'] });
-        queryClient.invalidateQueries({ queryKey: ['latest-paused-quiz'] });
+      } finally {
+        inFlightEventQueueSync = null;
       }
-    }
+    })();
+
+    return inFlightEventQueueSync;
   },
 
   syncOnLogin: async (userId: string, isSignup: boolean = false) => {

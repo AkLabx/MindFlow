@@ -1,9 +1,301 @@
 import { supabase } from '@/lib/supabase';
 import { DB_TABLES } from '@/config/dbTables';
 import { db } from '@/lib/db';
+import {
+    MOCK_SWR_STALE_TIMES_MS,
+    isMockCacheFresh,
+    invalidateMockTestsCatalogCaches,
+} from '@/features/mock-tests/api/mockTestsApi';
 
 export const SERIES_SELECT_QUERY = `*, ${DB_TABLES.MOCK.CATEGORIES}(id, name)` as const;
 export const TEST_SELECT_QUERY = `*, ${DB_TABLES.MOCK.SERIES}(id, name, category_id, is_published, ${DB_TABLES.MOCK.CATEGORIES}(id, name))` as const;
+
+export const ADMIN_CMS_STALE_TIME_MS = MOCK_SWR_STALE_TIMES_MS.ATTEMPTS; // 2 * 60 * 1000 (non-PII CMS catalog metadata only, DEC-0024)
+export const ADMIN_CMS_CATEGORIES_STORAGE_PREFIX = 'ADMIN_CMS_CATEGORIES_';
+export const ADMIN_CMS_SERIES_STORAGE_PREFIX = 'ADMIN_CMS_SERIES_';
+export const ADMIN_CMS_TESTS_STORAGE_PREFIX = 'ADMIN_CMS_TESTS_';
+export const ADMIN_CMS_CATEGORIES_IDB_PREFIX = 'ADMIN_CMS_CATEGORIES_';
+export const ADMIN_CMS_SERIES_IDB_PREFIX = 'ADMIN_CMS_SERIES_';
+export const ADMIN_CMS_TESTS_IDB_PREFIX = 'ADMIN_CMS_TESTS_';
+
+const ADMIN_CMS_ALL_SCOPE_KEY = 'all';
+
+interface AdminCmsListCachePayload {
+    items: any[];
+    fetchedAt: number;
+}
+
+const memoryAdminCategoriesCache = new Map<string, AdminCmsListCachePayload>();
+const memoryAdminSeriesCache = new Map<string, AdminCmsListCachePayload>();
+const memoryAdminTestsCache = new Map<string, AdminCmsListCachePayload>();
+
+const normalizeCmsScopeKey = (scopeId?: string): string => {
+    const trimmed = typeof scopeId === 'string' ? scopeId.trim() : '';
+    return trimmed || ADMIN_CMS_ALL_SCOPE_KEY;
+};
+
+const safeReadCmsStorage = (key: string): unknown => {
+    try {
+        if (typeof window === 'undefined' || !window.localStorage) return null;
+        const raw = window.localStorage.getItem(key);
+        if (!raw) return null;
+        return JSON.parse(raw);
+    } catch {
+        return null;
+    }
+};
+
+const safeWriteCmsStorage = (key: string, value: AdminCmsListCachePayload): void => {
+    try {
+        if (typeof window === 'undefined' || !window.localStorage) return;
+        window.localStorage.setItem(key, JSON.stringify(value));
+    } catch {
+        // Ignore storage quota or private-browsing errors
+    }
+};
+
+const safeRemoveCmsStorage = (key: string): void => {
+    try {
+        if (typeof window === 'undefined' || !window.localStorage) return;
+        window.localStorage.removeItem(key);
+    } catch {
+        // Ignore storage removal errors
+    }
+};
+
+const sanitizeAdminCmsListPayload = (raw: unknown): AdminCmsListCachePayload | null => {
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+    const obj = raw as Record<string, unknown>;
+    if (hasForbiddenPiiKeys(obj)) return null;
+    if (!Array.isArray(obj.items)) return null;
+    if (typeof obj.fetchedAt !== 'number' || !Number.isFinite(obj.fetchedAt) || obj.fetchedAt <= 0) {
+        return null;
+    }
+    for (const item of obj.items) {
+        if (!item || typeof item !== 'object' || Array.isArray(item)) return null;
+        if (hasForbiddenPiiKeys(item as Record<string, unknown>)) return null;
+    }
+    return {
+        items: obj.items,
+        fetchedAt: obj.fetchedAt,
+    };
+};
+
+const readAdminCmsListSync = (
+    memoryCache: Map<string, AdminCmsListCachePayload>,
+    scopeKey: string,
+    storagePrefix: string
+): AdminCmsListCachePayload | null => {
+    const mem = memoryCache.get(scopeKey);
+    if (mem) {
+        const sanitized = sanitizeAdminCmsListPayload(mem);
+        if (sanitized) return sanitized;
+        memoryCache.delete(scopeKey);
+    }
+
+    const storageKey = `${storagePrefix}${scopeKey}`;
+    const stored = safeReadCmsStorage(storageKey);
+    if (stored !== null) {
+        const sanitized = sanitizeAdminCmsListPayload(stored);
+        if (sanitized) {
+            memoryCache.set(scopeKey, sanitized);
+            return sanitized;
+        }
+        safeRemoveCmsStorage(storageKey);
+    }
+
+    return null;
+};
+
+const readAdminCmsListIdb = async (
+    memoryCache: Map<string, AdminCmsListCachePayload>,
+    scopeKey: string,
+    storagePrefix: string,
+    idbPrefix: string
+): Promise<AdminCmsListCachePayload | null> => {
+    const syncEntry = readAdminCmsListSync(memoryCache, scopeKey, storagePrefix);
+    if (syncEntry) return syncEntry;
+
+    try {
+        if (typeof db?.getCacheEntry !== 'function') return null;
+        const entry = await db.getCacheEntry<unknown>(`${idbPrefix}${scopeKey}`);
+        const sanitized = sanitizeAdminCmsListPayload(entry?.data);
+        if (sanitized) {
+            memoryCache.set(scopeKey, sanitized);
+            safeWriteCmsStorage(`${storagePrefix}${scopeKey}`, sanitized);
+            return sanitized;
+        }
+    } catch {
+        // Ignore IndexedDB unavailability
+    }
+
+    return null;
+};
+
+const writeAdminCmsListCache = (
+    memoryCache: Map<string, AdminCmsListCachePayload>,
+    scopeKey: string,
+    storagePrefix: string,
+    idbPrefix: string,
+    items: any[]
+): void => {
+    const payload: AdminCmsListCachePayload = {
+        items: Array.isArray(items) ? items : [],
+        fetchedAt: Date.now(),
+    };
+    const sanitized = sanitizeAdminCmsListPayload(payload);
+    if (!sanitized) return;
+    memoryCache.set(scopeKey, sanitized);
+    safeWriteCmsStorage(`${storagePrefix}${scopeKey}`, sanitized);
+    if (typeof db?.setCacheEntry === 'function') {
+        db.setCacheEntry(`${idbPrefix}${scopeKey}`, sanitized).catch(() => {});
+    }
+};
+
+/**
+ * Synchronous 0ms cache lookup for Admin exam categories (`DEC-0004`, `DEC-0024`).
+ */
+export const getCachedAdminCategoriesSnapshot = (): any[] | null => {
+    const entry = readAdminCmsListSync(
+        memoryAdminCategoriesCache,
+        ADMIN_CMS_ALL_SCOPE_KEY,
+        ADMIN_CMS_CATEGORIES_STORAGE_PREFIX
+    );
+    return entry ? [...entry.items] : null;
+};
+
+/**
+ * Synchronous 0ms cache lookup for Admin test series (`DEC-0004`, `DEC-0024`).
+ */
+export const getCachedAdminSeriesSnapshot = (categoryId?: string): any[] | null => {
+    const scopeKey = normalizeCmsScopeKey(categoryId);
+    const exact = readAdminCmsListSync(
+        memoryAdminSeriesCache,
+        scopeKey,
+        ADMIN_CMS_SERIES_STORAGE_PREFIX
+    );
+    if (exact) return [...exact.items];
+
+    if (scopeKey !== ADMIN_CMS_ALL_SCOPE_KEY) {
+        const allSeries = readAdminCmsListSync(
+            memoryAdminSeriesCache,
+            ADMIN_CMS_ALL_SCOPE_KEY,
+            ADMIN_CMS_SERIES_STORAGE_PREFIX
+        );
+        if (allSeries) {
+            return allSeries.items.filter(
+                (item) => String(item?.category_id ?? '').trim() === scopeKey
+            );
+        }
+    }
+
+    return null;
+};
+
+/**
+ * Synchronous 0ms cache lookup for Admin mock tests (`DEC-0004`, `DEC-0024`).
+ */
+export const getCachedAdminTestsSnapshot = (seriesId?: string): any[] | null => {
+    const scopeKey = normalizeCmsScopeKey(seriesId);
+    const exact = readAdminCmsListSync(
+        memoryAdminTestsCache,
+        scopeKey,
+        ADMIN_CMS_TESTS_STORAGE_PREFIX
+    );
+    if (exact) return [...exact.items];
+
+    if (scopeKey !== ADMIN_CMS_ALL_SCOPE_KEY) {
+        const allTests = readAdminCmsListSync(
+            memoryAdminTestsCache,
+            ADMIN_CMS_ALL_SCOPE_KEY,
+            ADMIN_CMS_TESTS_STORAGE_PREFIX
+        );
+        if (allTests) {
+            return allTests.items.filter(
+                (item) => String(item?.series_id ?? '').trim() === scopeKey
+            );
+        }
+    }
+
+    return null;
+};
+
+/**
+ * Invalidates Admin CMS Memory, `localStorage`, and `MindFlowDB.sync_metadata` caches,
+ * and propagates cross-feature invalidation to test analytics and student mock test catalog caches.
+ */
+export const invalidateAdminCmsCatalogCaches = (options?: {
+    testId?: string;
+    seriesId?: string;
+    includeAnalytics?: boolean;
+}): void => {
+    const knownIdbKeys = new Set<string>([
+        `${ADMIN_CMS_CATEGORIES_IDB_PREFIX}${ADMIN_CMS_ALL_SCOPE_KEY}`,
+        `${ADMIN_CMS_SERIES_IDB_PREFIX}${ADMIN_CMS_ALL_SCOPE_KEY}`,
+        `${ADMIN_CMS_TESTS_IDB_PREFIX}${ADMIN_CMS_ALL_SCOPE_KEY}`,
+    ]);
+
+    for (const key of memoryAdminCategoriesCache.keys()) {
+        knownIdbKeys.add(`${ADMIN_CMS_CATEGORIES_IDB_PREFIX}${key}`);
+    }
+    for (const key of memoryAdminSeriesCache.keys()) {
+        knownIdbKeys.add(`${ADMIN_CMS_SERIES_IDB_PREFIX}${key}`);
+    }
+    for (const key of memoryAdminTestsCache.keys()) {
+        knownIdbKeys.add(`${ADMIN_CMS_TESTS_IDB_PREFIX}${key}`);
+    }
+
+    memoryAdminCategoriesCache.clear();
+    memoryAdminSeriesCache.clear();
+    memoryAdminTestsCache.clear();
+
+    const adminStoragePrefixes = [
+        ADMIN_CMS_CATEGORIES_STORAGE_PREFIX,
+        ADMIN_CMS_SERIES_STORAGE_PREFIX,
+        ADMIN_CMS_TESTS_STORAGE_PREFIX,
+    ];
+
+    try {
+        if (typeof window !== 'undefined' && window.localStorage) {
+            for (let i = window.localStorage.length - 1; i >= 0; i -= 1) {
+                const storageKey = window.localStorage.key(i);
+                if (
+                    storageKey &&
+                    adminStoragePrefixes.some((prefix) => storageKey.startsWith(prefix))
+                ) {
+                    knownIdbKeys.add(storageKey);
+                    window.localStorage.removeItem(storageKey);
+                }
+            }
+        }
+    } catch {
+        // Ignore storage enumeration errors
+    }
+
+    const adminIdbPrefixes = [
+        ADMIN_CMS_CATEGORIES_IDB_PREFIX,
+        ADMIN_CMS_SERIES_IDB_PREFIX,
+        ADMIN_CMS_TESTS_IDB_PREFIX,
+    ];
+
+    if (typeof db?.deleteCacheEntriesByPrefix === 'function') {
+        db.deleteCacheEntriesByPrefix(adminIdbPrefixes).catch(() => {});
+    } else if (typeof db?.setCacheEntry === 'function') {
+        for (const idbKey of knownIdbKeys) {
+            db.setCacheEntry(idbKey, null).catch(() => {});
+        }
+    }
+
+    if (options?.includeAnalytics !== false) {
+        invalidateMockTestAnalyticsCache(options?.testId);
+    }
+
+    invalidateMockTestsCatalogCaches({
+        testId: options?.testId,
+        seriesId: options?.seriesId,
+        includeLeaderboards: true,
+    });
+};
 
 export interface TestMutationPayload {
     series_id: string;
@@ -22,7 +314,28 @@ export interface TestMutationPayload {
 
 // EXAM CATEGORIES
 
-export const fetchExamCategories = async () => {
+export const fetchExamCategories = async (options?: { forceRefresh?: boolean }) => {
+    if (!options?.forceRefresh) {
+        const syncCached = readAdminCmsListSync(
+            memoryAdminCategoriesCache,
+            ADMIN_CMS_ALL_SCOPE_KEY,
+            ADMIN_CMS_CATEGORIES_STORAGE_PREFIX
+        );
+        if (syncCached && isMockCacheFresh(syncCached.fetchedAt, ADMIN_CMS_STALE_TIME_MS)) {
+            return [...syncCached.items];
+        }
+
+        const idbCached = await readAdminCmsListIdb(
+            memoryAdminCategoriesCache,
+            ADMIN_CMS_ALL_SCOPE_KEY,
+            ADMIN_CMS_CATEGORIES_STORAGE_PREFIX,
+            ADMIN_CMS_CATEGORIES_IDB_PREFIX
+        );
+        if (idbCached && isMockCacheFresh(idbCached.fetchedAt, ADMIN_CMS_STALE_TIME_MS)) {
+            return [...idbCached.items];
+        }
+    }
+
     const { data, error } = await supabase
         .from(DB_TABLES.MOCK.CATEGORIES)
         .select('*')
@@ -30,7 +343,15 @@ export const fetchExamCategories = async () => {
         .order('created_at', { ascending: false });
 
     if (error) throw error;
-    return data;
+    const rows = Array.isArray(data) ? data : [];
+    writeAdminCmsListCache(
+        memoryAdminCategoriesCache,
+        ADMIN_CMS_ALL_SCOPE_KEY,
+        ADMIN_CMS_CATEGORIES_STORAGE_PREFIX,
+        ADMIN_CMS_CATEGORIES_IDB_PREFIX,
+        rows
+    );
+    return rows;
 };
 
 export const createExamCategory = async (payload: { name: string; description?: string; image_url?: string; is_active?: boolean; display_order?: number }) => {
@@ -41,6 +362,7 @@ export const createExamCategory = async (payload: { name: string; description?: 
         .single();
 
     if (error) throw error;
+    invalidateAdminCmsCatalogCaches({ includeAnalytics: true });
     return data;
 };
 
@@ -53,6 +375,7 @@ export const updateExamCategory = async (id: string, payload: any) => {
         .single();
 
     if (error) throw error;
+    invalidateAdminCmsCatalogCaches({ includeAnalytics: true });
     return data;
 };
 
@@ -63,23 +386,59 @@ export const deleteExamCategory = async (id: string) => {
         .eq('id', id);
 
     if (error) throw error;
+    invalidateAdminCmsCatalogCaches({ includeAnalytics: true });
 };
 
 // TEST SERIES
 
-export const fetchTestSeries = async (categoryId?: string) => {
+export const fetchTestSeries = async (
+    categoryId?: string,
+    options?: { forceRefresh?: boolean }
+) => {
+    const trimmedCategoryId = typeof categoryId === 'string' ? categoryId.trim() : '';
+    const scopeKey = normalizeCmsScopeKey(trimmedCategoryId);
+
+    if (!options?.forceRefresh) {
+        const syncCached = readAdminCmsListSync(
+            memoryAdminSeriesCache,
+            scopeKey,
+            ADMIN_CMS_SERIES_STORAGE_PREFIX
+        );
+        if (syncCached && isMockCacheFresh(syncCached.fetchedAt, ADMIN_CMS_STALE_TIME_MS)) {
+            return [...syncCached.items];
+        }
+
+        const idbCached = await readAdminCmsListIdb(
+            memoryAdminSeriesCache,
+            scopeKey,
+            ADMIN_CMS_SERIES_STORAGE_PREFIX,
+            ADMIN_CMS_SERIES_IDB_PREFIX
+        );
+        if (idbCached && isMockCacheFresh(idbCached.fetchedAt, ADMIN_CMS_STALE_TIME_MS)) {
+            return [...idbCached.items];
+        }
+    }
+
     let query = supabase
         .from(DB_TABLES.MOCK.SERIES)
         .select(SERIES_SELECT_QUERY)
         .order('created_at', { ascending: false });
 
-    if (categoryId) {
-        query = query.eq('category_id', categoryId);
+    if (trimmedCategoryId) {
+        query = query.eq('category_id', trimmedCategoryId);
     }
 
     const { data, error } = await query;
     if (error) throw error;
-    return data;
+    const rows = Array.isArray(data) ? data : [];
+    writeAdminCmsListCache(
+        memoryAdminSeriesCache,
+        scopeKey,
+        ADMIN_CMS_SERIES_STORAGE_PREFIX,
+        ADMIN_CMS_SERIES_IDB_PREFIX,
+        rows
+    );
+    return rows;
 };
 
 export const createTestSeries = async (payload: { category_id: string; name: string; slug: string; description?: string; thumbnail_url?: string; is_premium?: boolean; is_published?: boolean }) => {
@@ -90,6 +449,7 @@ export const createTestSeries = async (payload: { category_id: string; name: str
         .single();
 
     if (error) throw error;
+    invalidateAdminCmsCatalogCaches({ seriesId: data?.id, includeAnalytics: true });
     return data;
 };
 
@@ -102,6 +462,7 @@ export const updateTestSeries = async (id: string, payload: any) => {
         .single();
 
     if (error) throw error;
+    invalidateAdminCmsCatalogCaches({ seriesId: id, includeAnalytics: true });
     return data;
 };
 
@@ -112,24 +473,60 @@ export const deleteTestSeries = async (id: string) => {
         .eq('id', id);
 
     if (error) throw error;
+    invalidateAdminCmsCatalogCaches({ seriesId: id, includeAnalytics: true });
 };
 
 // TESTS
 
-export const fetchTests = async (seriesId?: string) => {
+export const fetchTests = async (
+    seriesId?: string,
+    options?: { forceRefresh?: boolean }
+) => {
+    const trimmedSeriesId = typeof seriesId === 'string' ? seriesId.trim() : '';
+    const scopeKey = normalizeCmsScopeKey(trimmedSeriesId);
+
+    if (!options?.forceRefresh) {
+        const syncCached = readAdminCmsListSync(
+            memoryAdminTestsCache,
+            scopeKey,
+            ADMIN_CMS_TESTS_STORAGE_PREFIX
+        );
+        if (syncCached && isMockCacheFresh(syncCached.fetchedAt, ADMIN_CMS_STALE_TIME_MS)) {
+            return [...syncCached.items];
+        }
+
+        const idbCached = await readAdminCmsListIdb(
+            memoryAdminTestsCache,
+            scopeKey,
+            ADMIN_CMS_TESTS_STORAGE_PREFIX,
+            ADMIN_CMS_TESTS_IDB_PREFIX
+        );
+        if (idbCached && isMockCacheFresh(idbCached.fetchedAt, ADMIN_CMS_STALE_TIME_MS)) {
+            return [...idbCached.items];
+        }
+    }
+
     let query = supabase
         .from(DB_TABLES.MOCK.TESTS)
         .select(TEST_SELECT_QUERY)
         .order('display_order', { ascending: true })
         .order('created_at', { ascending: false });
 
-    if (seriesId) {
-        query = query.eq('series_id', seriesId);
+    if (trimmedSeriesId) {
+        query = query.eq('series_id', trimmedSeriesId);
     }
 
     const { data, error } = await query;
     if (error) throw error;
-    return data;
+    const rows = Array.isArray(data) ? data : [];
+    writeAdminCmsListCache(
+        memoryAdminTestsCache,
+        scopeKey,
+        ADMIN_CMS_TESTS_STORAGE_PREFIX,
+        ADMIN_CMS_TESTS_IDB_PREFIX,
+        rows
+    );
+    return rows;
 };
 
 export const fetchTestById = async (id: string) => {
@@ -158,6 +555,11 @@ export const createTest = async (payload: TestMutationPayload) => {
         .single();
 
     if (error) throw error;
+    invalidateAdminCmsCatalogCaches({
+        testId: data?.id,
+        seriesId: data?.series_id ?? payload.series_id,
+        includeAnalytics: true,
+    });
     return data;
 };
 
@@ -176,31 +578,66 @@ export const updateTest = async (id: string, payload: Partial<TestMutationPayloa
         }
     }
 
-    if (payload.release_date && payload.expiry_date) {
-        const rel = new Date(payload.release_date);
-        const exp = new Date(payload.expiry_date);
-        if (Number.isNaN(rel.getTime())) {
-            throw new Error('Release date is invalid.');
-        }
-        if (Number.isNaN(exp.getTime())) {
-            throw new Error('Expiry date is invalid.');
-        }
-        if (exp <= rel) {
-            throw new Error('Expiry date must be after Release date.');
-        }
+    const rel = payload.release_date ? new Date(payload.release_date) : null;
+    const exp = payload.expiry_date ? new Date(payload.expiry_date) : null;
+    if (rel && Number.isNaN(rel.getTime())) {
+        throw new Error('Release date is invalid.');
+    }
+    if (exp && Number.isNaN(exp.getTime())) {
+        throw new Error('Expiry date is invalid.');
+    }
+    if (rel && exp && exp <= rel) {
+        throw new Error('Expiry date must be after Release date.');
     }
 
-    if (
-        payload.is_published === true &&
-        payload.name !== undefined &&
-        payload.series_id !== undefined &&
-        payload.question_ids !== undefined &&
-        payload.duration_minutes !== undefined &&
-        payload.total_marks !== undefined
-    ) {
-        const validation = validateTestForPublish(payload);
-        if (!validation.canPublish) {
-            throw new Error(validation.reasons[0] || 'Test does not meet publish integrity requirements.');
+    if (payload.is_published === true) {
+        if (payload.name !== undefined && !String(payload.name ?? '').trim()) {
+            throw new Error('Test name is required before publishing.');
+        }
+        if (payload.series_id !== undefined && !payload.series_id) {
+            throw new Error('Assign a Test Series before publishing.');
+        }
+        if (payload.duration_minutes !== undefined) {
+            const duration = Number(payload.duration_minutes);
+            if (!Number.isFinite(duration) || !Number.isInteger(duration) || duration <= 0) {
+                throw new Error('Duration must be a whole number greater than 0 minutes.');
+            }
+        }
+        if (payload.total_marks !== undefined) {
+            const totalMarks = Number(payload.total_marks);
+            if (!Number.isFinite(totalMarks) || totalMarks <= 0) {
+                throw new Error('Total marks must be greater than 0.');
+            }
+        }
+        if (payload.passing_marks !== undefined) {
+            const passingMarks = Number(payload.passing_marks);
+            const totalMarks = payload.total_marks !== undefined ? Number(payload.total_marks) : undefined;
+            if (
+                !Number.isFinite(passingMarks) ||
+                passingMarks < 0 ||
+                (totalMarks !== undefined && Number.isFinite(totalMarks) && passingMarks > totalMarks)
+            ) {
+                throw new Error('Passing marks must be between 0 and Total Marks.');
+            }
+        }
+        if (payload.negative_marks !== undefined) {
+            const negativeMarks = Number(payload.negative_marks);
+            if (!Number.isFinite(negativeMarks) || negativeMarks < 0) {
+                throw new Error('Negative marks must be 0 or greater.');
+            }
+        }
+
+        if (
+            payload.name !== undefined &&
+            payload.series_id !== undefined &&
+            payload.question_ids !== undefined &&
+            payload.duration_minutes !== undefined &&
+            payload.total_marks !== undefined
+        ) {
+            const validation = validateTestForPublish(payload);
+            if (!validation.canPublish) {
+                throw new Error(validation.reasons[0] || 'Test does not meet publish integrity requirements.');
+            }
         }
     }
 
@@ -212,6 +649,11 @@ export const updateTest = async (id: string, payload: Partial<TestMutationPayloa
         .single();
 
     if (error) throw error;
+    invalidateAdminCmsCatalogCaches({
+        testId: id,
+        seriesId: data?.series_id ?? payload.series_id,
+        includeAnalytics: true,
+    });
     return data;
 };
 
@@ -222,6 +664,7 @@ export const deleteTest = async (id: string) => {
         .eq('id', id);
 
     if (error) throw error;
+    invalidateAdminCmsCatalogCaches({ testId: id, includeAnalytics: true });
 };
 
 /**

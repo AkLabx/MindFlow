@@ -24,6 +24,7 @@ import {
 import { ROUTES } from '@/config/routes';
 import { useAuth } from '@/features/auth';
 import { useNotification } from '@/hooks/useNotification';
+import { useLayoutStore } from '@/stores/useLayoutStore';
 import { triggerHaptic } from '@/lib/haptics';
 import { MarkdownRenderer } from '@/components/ui/MarkdownRenderer';
 import { NativeDialog } from '@/components/ui/NativeDialog';
@@ -83,7 +84,13 @@ export const PreparedMockResultPage: React.FC = () => {
     const { testId, attemptId } = useParams<{ testId: string; attemptId: string }>();
     const { user } = useAuth();
     const { showToast } = useNotification();
+    const setHideGlobalFooter = useLayoutStore((s) => s.setHideGlobalFooter);
     const userId = user?.id ?? '';
+
+    useEffect(() => {
+        setHideGlobalFooter(true);
+        return () => setHideGlobalFooter(false);
+    }, [setHideGlobalFooter]);
 
     // Synchronous 0ms local snapshot caches
     const [test, setTest] = useState<any>(() =>
