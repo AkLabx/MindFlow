@@ -8,7 +8,7 @@
 ## 1. Current Verified Baseline Snapshot
 
 - **Repository:** `MindFlow` (Full-Stack React 19 + TypeScript + Vite + TailwindCSS + Capacitor Android + Supabase + IndexedDB)
-- **Current Baseline Version:** `v1.0.376` (`package.json` SemVer: `1.0.376`, PR `TBD`, on `main`)
+- **Current Baseline Version:** `v1.0.376` (`package.json` SemVer: `1.0.376`, PR `#1120`, on `main`)
 - **Android App Version:** `versionCode 6`, `versionName "1.6"` (`android/app/build.gradle`)
 - **Current Git Branch:** `main` (Slot 1 Anchor / Host)
 - **Static Typecheck:** Passed (`0` errors via `node --max-old-space-size=4096 ./node_modules/typescript/bin/tsc --noEmit`)
