@@ -69,6 +69,67 @@ export const sanitizeLeaderboardEntry = (row: any, index: number): TestLeaderboa
 });
 
 /**
+ * Synchronous 0ms cache lookup for privacy-safe mock test leaderboard entries (`DEC-0004`, `DEC-0018`),
+ * always re-running `sanitizeLeaderboardEntry` to guarantee `answers` is never exposed.
+ */
+export const getCachedTestLeaderboardSnapshot = (testId: string): TestLeaderboardEntry[] | null => {
+    const trimmedTestId = String(testId ?? '').trim();
+    if (!trimmedTestId) return null;
+
+    const mem = memoryLeaderboardCache.get(trimmedTestId);
+    if (mem && Array.isArray(mem.entries)) {
+        return mem.entries.map((row, idx) => sanitizeLeaderboardEntry(row, idx));
+    }
+
+    const stored = safeReadLocalStorage<{ entries: any[]; fetchedAt: number }>(
+        `${MOCK_LEADERBOARD_STORAGE_PREFIX}${trimmedTestId}`
+    );
+    if (stored && Array.isArray(stored.entries)) {
+        const sanitized = stored.entries.map((row, idx) => sanitizeLeaderboardEntry(row, idx));
+        memoryLeaderboardCache.set(trimmedTestId, {
+            entries: sanitized,
+            fetchedAt: stored.fetchedAt ?? Date.now(),
+        });
+        return sanitized;
+    }
+
+    return null;
+};
+
+/**
+ * Async IndexedDB fallback hydration for privacy-safe mock test leaderboard entries (`MindFlowDB.sync_metadata`).
+ */
+export const readTestLeaderboardIndexedDBCache = async (
+    testId: string
+): Promise<TestLeaderboardEntry[] | null> => {
+    const syncSnapshot = getCachedTestLeaderboardSnapshot(testId);
+    if (syncSnapshot !== null) return syncSnapshot;
+
+    const trimmedTestId = String(testId ?? '').trim();
+    if (!trimmedTestId) return null;
+
+    try {
+        const entry = await db.getCacheEntry<{ entries: any[]; fetchedAt: number }>(
+            `${MOCK_LEADERBOARD_IDB_PREFIX}${trimmedTestId}`
+        );
+        if (entry?.data && Array.isArray(entry.data.entries)) {
+            const sanitized = entry.data.entries.map((row, idx) => sanitizeLeaderboardEntry(row, idx));
+            const payload = {
+                entries: sanitized,
+                fetchedAt: entry.data.fetchedAt ?? Date.now(),
+            };
+            memoryLeaderboardCache.set(trimmedTestId, payload);
+            safeWriteLocalStorage(`${MOCK_LEADERBOARD_STORAGE_PREFIX}${trimmedTestId}`, payload);
+            return sanitized;
+        }
+    } catch {
+        // Ignore IndexedDB unavailability
+    }
+
+    return null;
+};
+
+/**
  * Fetches anonymized, privacy-safe rankings for a published mock test via `get_test_leaderboard`.
  */
 export const fetchTestLeaderboard = async (
@@ -77,6 +138,7 @@ export const fetchTestLeaderboard = async (
 ): Promise<TestLeaderboardEntry[]> => {
     const trimmedTestId = String(testId ?? '').trim();
     if (!trimmedTestId) return [];
+    if (typeof (supabase as { rpc?: unknown })?.rpc !== 'function') return [];
 
     const safeLimit = Math.max(1, Math.min(Number.isFinite(limit) ? Math.trunc(limit) : 50, 100));
     const { data, error } = await supabase.rpc(DB_RPCS.MOCK_LEADERBOARD, {
@@ -85,7 +147,14 @@ export const fetchTestLeaderboard = async (
     });
 
     if (error) throw error;
-    return (Array.isArray(data) ? data : []).map((row, idx) => sanitizeLeaderboardEntry(row, idx));
+    const entries = (Array.isArray(data) ? data : []).map((row, idx) =>
+        sanitizeLeaderboardEntry(row, idx)
+    );
+    const payload = { entries, fetchedAt: Date.now() };
+    memoryLeaderboardCache.set(trimmedTestId, payload);
+    safeWriteLocalStorage(`${MOCK_LEADERBOARD_STORAGE_PREFIX}${trimmedTestId}`, payload);
+    db.setCacheEntry(`${MOCK_LEADERBOARD_IDB_PREFIX}${trimmedTestId}`, payload).catch(() => {});
+    return entries;
 };
 
 // EXPLICIT ENFORCEMENT OF VISIBILITY
@@ -118,6 +187,122 @@ export const fetchPublishedTestSeries = async (categoryId: string) => {
     return data;
 };
 
+const isCachedSeriesBundleVisible = (series: any): boolean => {
+    if (!series || series.is_published === false) {
+        return false;
+    }
+    const category =
+        series[DB_TABLES.MOCK.CATEGORIES] ??
+        series.mock_categories ??
+        series.exam_categories;
+    if (category && category.is_active === false) {
+        return false;
+    }
+    return true;
+};
+
+const readSeriesBundleSyncRaw = (
+    seriesId: string
+): { series: any; tests: any[]; fetchedAt: number; testsLoaded?: boolean } | null => {
+    const trimmedSeriesId = String(seriesId ?? '').trim();
+    if (!trimmedSeriesId) return null;
+
+    const mem = memorySeriesBundleCache.get(trimmedSeriesId);
+    if (mem) return mem;
+
+    const stored = safeReadLocalStorage<{
+        series: any;
+        tests: any[];
+        fetchedAt: number;
+        testsLoaded?: boolean;
+    }>(`${MOCK_SERIES_BUNDLE_STORAGE_PREFIX}${trimmedSeriesId}`);
+    if (stored && typeof stored === 'object') {
+        memorySeriesBundleCache.set(trimmedSeriesId, stored);
+        return stored;
+    }
+
+    return null;
+};
+
+const writeSeriesBundleCache = (
+    seriesId: string,
+    payload: { series: any; tests: any[]; fetchedAt: number; testsLoaded?: boolean }
+): void => {
+    const trimmedSeriesId = String(seriesId ?? '').trim();
+    if (!trimmedSeriesId) return;
+    memorySeriesBundleCache.set(trimmedSeriesId, payload);
+    safeWriteLocalStorage(`${MOCK_SERIES_BUNDLE_STORAGE_PREFIX}${trimmedSeriesId}`, payload);
+    db.setCacheEntry?.(`${MOCK_SERIES_BUNDLE_IDB_PREFIX}${trimmedSeriesId}`, payload)?.catch(() => {});
+};
+
+/**
+ * Synchronous 0ms cache lookup for a mock test series bundle (`series` + `tests`),
+ * always validating `is_published`, parent category `is_active`, and `DEC-0017` schedule window.
+ */
+export const getCachedSeriesBundleSnapshot = (
+    seriesId: string,
+    nowMs: number = Date.now()
+): { series: any; tests: any[] } | null => {
+    const raw = readSeriesBundleSyncRaw(seriesId);
+    if (
+        !raw ||
+        !raw.series ||
+        !isCachedSeriesBundleVisible(raw.series) ||
+        raw.testsLoaded === false ||
+        !Array.isArray(raw.tests)
+    ) {
+        return null;
+    }
+
+    const validTests = raw.tests.filter((test) => isCachedTestDetailVisible(test, nowMs));
+    return {
+        series: raw.series,
+        tests: validTests,
+    };
+};
+
+/**
+ * Async IndexedDB fallback hydration for a mock test series bundle (`MindFlowDB.sync_metadata`).
+ */
+export const readSeriesBundleIndexedDBCache = async (
+    seriesId: string,
+    nowMs: number = Date.now()
+): Promise<{ series: any; tests: any[] } | null> => {
+    const syncSnapshot = getCachedSeriesBundleSnapshot(seriesId, nowMs);
+    if (syncSnapshot) return syncSnapshot;
+
+    const trimmedSeriesId = String(seriesId ?? '').trim();
+    if (!trimmedSeriesId) return null;
+
+    try {
+        const entry = await db.getCacheEntry<{
+            series: any;
+            tests: any[];
+            fetchedAt: number;
+            testsLoaded?: boolean;
+        }>(`${MOCK_SERIES_BUNDLE_IDB_PREFIX}${trimmedSeriesId}`);
+        const data = entry?.data;
+        if (
+            data &&
+            data.series &&
+            isCachedSeriesBundleVisible(data.series) &&
+            data.testsLoaded !== false &&
+            Array.isArray(data.tests)
+        ) {
+            memorySeriesBundleCache.set(trimmedSeriesId, data);
+            safeWriteLocalStorage(`${MOCK_SERIES_BUNDLE_STORAGE_PREFIX}${trimmedSeriesId}`, data);
+            return {
+                series: data.series,
+                tests: data.tests.filter((test) => isCachedTestDetailVisible(test, nowMs)),
+            };
+        }
+    } catch {
+        // Ignore IndexedDB unavailability
+    }
+
+    return null;
+};
+
 export const fetchPublishedTests = async (seriesId: string, nowMs: number = Date.now()) => {
     // Check that parent category is active, parent series is published, test is published, and test is within schedule window
     const { data, error } = await supabase
@@ -131,7 +316,18 @@ export const fetchPublishedTests = async (seriesId: string, nowMs: number = Date
         .order('created_at', { ascending: false });
 
     if (error) throw error;
-    return (data || []).filter((test) => isTestWithinScheduleWindow(test, nowMs));
+    const filtered = (data || []).filter((test) => isTestWithinScheduleWindow(test, nowMs));
+    const trimmedSeriesId = String(seriesId ?? '').trim();
+    if (trimmedSeriesId) {
+        const existing = readSeriesBundleSyncRaw(trimmedSeriesId);
+        writeSeriesBundleCache(trimmedSeriesId, {
+            series: existing?.series ?? null,
+            tests: filtered,
+            fetchedAt: Date.now(),
+            testsLoaded: true,
+        });
+    }
+    return filtered;
 };
 
 
@@ -156,6 +352,16 @@ export const fetchSeriesDetails = async (seriesId: string) => {
         .eq(`${DB_TABLES.MOCK.CATEGORIES}.is_active`, true)
         .single();
     if (error) throw error;
+    const trimmedSeriesId = String(seriesId ?? '').trim();
+    if (trimmedSeriesId && data && isCachedSeriesBundleVisible(data)) {
+        const existing = readSeriesBundleSyncRaw(trimmedSeriesId);
+        writeSeriesBundleCache(trimmedSeriesId, {
+            series: data,
+            tests: Array.isArray(existing?.tests) ? existing.tests : [],
+            fetchedAt: Date.now(),
+            testsLoaded: existing?.testsLoaded ?? false,
+        });
+    }
     return data;
 };
 
@@ -321,6 +527,14 @@ const MOCK_TEST_QUESTIONS_STORAGE_PREFIX = 'mindflow_mock_test_questions_v1_';
 const MOCK_TEST_QUESTIONS_IDB_PREFIX = 'mock_test_questions_v1_';
 const MOCK_ACTIVE_ATTEMPT_STORAGE_PREFIX = 'mindflow_mock_active_attempt_v1_';
 const MOCK_ACTIVE_ATTEMPT_IDB_PREFIX = 'mock_active_attempt_v1_';
+const MOCK_CONTINUE_LEARNING_STORAGE_PREFIX = 'mindflow_mock_continue_learning_v1_';
+const MOCK_CONTINUE_LEARNING_IDB_PREFIX = 'mock_continue_learning_v1_';
+const MOCK_SERIES_BUNDLE_STORAGE_PREFIX = 'mindflow_mock_series_bundle_v1_';
+const MOCK_SERIES_BUNDLE_IDB_PREFIX = 'mock_series_bundle_v1_';
+const MOCK_SERIES_ATTEMPTS_STORAGE_PREFIX = 'mindflow_mock_series_attempts_v1_';
+const MOCK_SERIES_ATTEMPTS_IDB_PREFIX = 'mock_series_attempts_v1_';
+const MOCK_LEADERBOARD_STORAGE_PREFIX = 'mindflow_mock_leaderboard_v1_';
+const MOCK_LEADERBOARD_IDB_PREFIX = 'mock_leaderboard_v1_';
 const UUID_CHUNK_SIZE = 100;
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -335,6 +549,22 @@ const memoryTestQuestionsCache = new Map<
     { questions: Question[]; questionIdsKey: string; fetchedAt: number }
 >();
 const memoryActiveAttemptCache = new Map<string, PreparedMockActiveAttemptState>();
+const memoryContinueLearningCache = new Map<
+    string,
+    { items: ContinueLearningItem[]; fetchedAt: number }
+>();
+const memorySeriesBundleCache = new Map<
+    string,
+    { series: any; tests: any[]; fetchedAt: number; testsLoaded?: boolean }
+>();
+const memorySeriesAttemptsCache = new Map<
+    string,
+    { attempts: UserTestAttemptItem[]; fetchedAt: number }
+>();
+const memoryLeaderboardCache = new Map<
+    string,
+    { entries: TestLeaderboardEntry[]; fetchedAt: number }
+>();
 
 export interface UserTestAttemptItem {
     id: string;
@@ -551,6 +781,414 @@ export const fetchUserTestAttempts = async (
     db.setCacheEntry(`${MOCK_TEST_ATTEMPTS_IDB_PREFIX}${cacheKey}`, payload).catch(() => {});
 
     return attempts;
+};
+
+export interface SeriesProgressStats {
+    totalTests: number;
+    completedTestsCount: number;
+    inProgressTestIds: string[];
+    completionPercent: number;
+    bestScoreMarks: number | null;
+    bestScoreTotalMarks: number | null;
+    bestScorePercent: number | null;
+    averageScorePercent: number | null;
+    averageScoreMarks: number | null;
+    uniformTotalMarks: number | null;
+    overallAccuracyPercent: number | null;
+    totalTimeSpentSeconds: number;
+    latestCompletedTestId: string | null;
+    activeInProgressAttempt: { testId: string; attemptId: string } | null;
+    bestAttemptByTestId: Record<string, UserTestAttemptItem>;
+}
+
+const getAttemptSortTimestampMs = (attempt: UserTestAttemptItem): number => {
+    const raw = attempt.end_time || attempt.created_at || attempt.start_time || '';
+    const parsed = raw ? Date.parse(raw) : NaN;
+    return Number.isFinite(parsed) ? parsed : 0;
+};
+
+const isBetterCompletedAttempt = (
+    candidate: UserTestAttemptItem,
+    currentBest: UserTestAttemptItem
+): boolean => {
+    if (candidate.score !== currentBest.score) {
+        return candidate.score > currentBest.score;
+    }
+    const candTime = candidate.time_taken_seconds;
+    const currTime = currentBest.time_taken_seconds;
+    if (candTime !== currTime) {
+        if (candTime !== null && currTime === null) return true;
+        if (candTime === null && currTime !== null) return false;
+        if (candTime !== null && currTime !== null && candTime !== currTime) {
+            return candTime < currTime;
+        }
+    }
+    return getAttemptSortTimestampMs(candidate) > getAttemptSortTimestampMs(currentBest);
+};
+
+/**
+ * Pure aggregation computing completion rate, best score, average score, accuracy,
+ * time spent, and resume targets across a mock test series (`DEC-0018`).
+ */
+export const computeSeriesProgressStats = (
+    tests: any[],
+    attempts: UserTestAttemptItem[]
+): SeriesProgressStats => {
+    const validTests = Array.isArray(tests) ? tests.filter((t) => t && t.id) : [];
+    const testById = new Map<string, any>();
+    for (const test of validTests) {
+        testById.set(String(test.id), test);
+    }
+
+    const totalTests = validTests.length;
+    const seriesAttempts = (Array.isArray(attempts) ? attempts : []).filter(
+        (attempt) => attempt && attempt.test_id && testById.has(String(attempt.test_id))
+    );
+
+    const bestAttemptByTestId: Record<string, UserTestAttemptItem> = {};
+    const inProgressAttempts: UserTestAttemptItem[] = [];
+    const completedAttempts: UserTestAttemptItem[] = [];
+    let totalTimeSpentSeconds = 0;
+
+    for (const attempt of seriesAttempts) {
+        const rawTime = Number(attempt.time_taken_seconds ?? 0);
+        if (Number.isFinite(rawTime) && rawTime > 0) {
+            totalTimeSpentSeconds += rawTime;
+        }
+
+        if (attempt.status === 'completed') {
+            completedAttempts.push(attempt);
+            const testId = String(attempt.test_id);
+            const currentBest = bestAttemptByTestId[testId];
+            if (!currentBest || isBetterCompletedAttempt(attempt, currentBest)) {
+                bestAttemptByTestId[testId] = attempt;
+            }
+        } else if (attempt.status === 'in_progress') {
+            inProgressAttempts.push(attempt);
+        }
+    }
+
+    inProgressAttempts.sort(
+        (a, b) =>
+            (Date.parse(b.created_at || b.start_time || '') || 0) -
+            (Date.parse(a.created_at || a.start_time || '') || 0)
+    );
+    const inProgressTestIds = Array.from(
+        new Set(inProgressAttempts.map((attempt) => String(attempt.test_id)))
+    );
+    const activeInProgressAttempt =
+        inProgressAttempts.length > 0
+            ? {
+                  testId: String(inProgressAttempts[0].test_id),
+                  attemptId: String(inProgressAttempts[0].id),
+              }
+            : null;
+
+    completedAttempts.sort(
+        (a, b) => getAttemptSortTimestampMs(b) - getAttemptSortTimestampMs(a)
+    );
+    const latestCompletedTestId =
+        completedAttempts.length > 0 ? String(completedAttempts[0].test_id) : null;
+
+    const completedTestIds = Object.keys(bestAttemptByTestId);
+    const completedTestsCount = completedTestIds.length;
+    const completionPercent =
+        totalTests > 0 ? Math.round((completedTestsCount / totalTests) * 100) : 0;
+
+    let bestScoreMarks: number | null = null;
+    let bestScoreTotalMarks: number | null = null;
+    let bestScorePercent: number | null = null;
+    let averageScorePercent: number | null = null;
+    let averageScoreMarks: number | null = null;
+    let uniformTotalMarks: number | null = null;
+    let overallAccuracyPercent: number | null = null;
+
+    if (completedTestsCount > 0) {
+        let sumPercent = 0;
+        let sumAccuracy = 0;
+        let sumScores = 0;
+        let topPercent = -Infinity;
+        let topBestAttempt: UserTestAttemptItem | null = null;
+        let topTotalMarks = 0;
+        const completedTotalMarksSet = new Set<number>();
+
+        for (const testId of completedTestIds) {
+            const best = bestAttemptByTestId[testId];
+            const testMeta = testById.get(testId);
+            const rawTotalMarks = Number(testMeta?.total_marks ?? 0);
+            const totalMarks = Number.isFinite(rawTotalMarks) && rawTotalMarks > 0 ? rawTotalMarks : 0;
+            completedTotalMarksSet.add(totalMarks);
+
+            const normalizedPct =
+                totalMarks > 0 ? (best.score / totalMarks) * 100 : best.accuracy;
+
+            sumPercent += normalizedPct;
+            sumAccuracy += best.accuracy;
+            sumScores += best.score;
+
+            if (
+                !topBestAttempt ||
+                normalizedPct > topPercent ||
+                (normalizedPct === topPercent && isBetterCompletedAttempt(best, topBestAttempt))
+            ) {
+                topPercent = normalizedPct;
+                topBestAttempt = best;
+                topTotalMarks = totalMarks;
+            }
+        }
+
+        if (topBestAttempt) {
+            bestScoreMarks = topBestAttempt.score;
+            bestScoreTotalMarks = topTotalMarks > 0 ? topTotalMarks : null;
+            bestScorePercent = Number(topPercent.toFixed(1));
+        }
+
+        averageScorePercent = Number((sumPercent / completedTestsCount).toFixed(1));
+        overallAccuracyPercent = Number((sumAccuracy / completedTestsCount).toFixed(1));
+
+        if (completedTotalMarksSet.size === 1) {
+            const [onlyTotalMarks] = Array.from(completedTotalMarksSet);
+            if (onlyTotalMarks > 0) {
+                uniformTotalMarks = onlyTotalMarks;
+                averageScoreMarks = Number((sumScores / completedTestsCount).toFixed(2));
+            }
+        }
+    }
+
+    return {
+        totalTests,
+        completedTestsCount,
+        inProgressTestIds,
+        completionPercent,
+        bestScoreMarks,
+        bestScoreTotalMarks,
+        bestScorePercent,
+        averageScorePercent,
+        averageScoreMarks,
+        uniformTotalMarks,
+        overallAccuracyPercent,
+        totalTimeSpentSeconds,
+        latestCompletedTestId,
+        activeInProgressAttempt,
+        bestAttemptByTestId,
+    };
+};
+
+const mergeLocalTestAttemptsIntoSeriesList = (
+    baseAttempts: UserTestAttemptItem[],
+    testIds: string[],
+    userId: string
+): UserTestAttemptItem[] => {
+    const trimmedUserId = String(userId ?? '').trim();
+    const byAttemptId = new Map<string, UserTestAttemptItem>();
+
+    for (const rawAttempt of baseAttempts || []) {
+        const sanitized = sanitizeUserTestAttempt(rawAttempt);
+        if (!sanitized.id || !sanitized.test_id) continue;
+        byAttemptId.set(sanitized.id, sanitized);
+    }
+
+    const allKnownTestIds = Array.from(
+        new Set([
+            ...testIds.map((id) => String(id ?? '').trim()).filter(Boolean),
+            ...Array.from(byAttemptId.values()).map((a) => a.test_id),
+        ])
+    );
+
+    if (trimmedUserId) {
+        for (const testId of allKnownTestIds) {
+            const localAttempts = getCachedUserTestAttemptsSnapshot(testId, trimmedUserId) ?? [];
+            for (const localItem of localAttempts) {
+                if (!localItem.id) continue;
+                const existing = byAttemptId.get(localItem.id);
+                if (!existing) {
+                    if (
+                        localItem.status !== 'in_progress' ||
+                        !isTestAttemptLocallyCompleted(testId, localItem.id, trimmedUserId)
+                    ) {
+                        byAttemptId.set(localItem.id, localItem);
+                    }
+                    continue;
+                }
+                if (localItem.status === 'completed' && existing.status !== 'completed') {
+                    byAttemptId.set(localItem.id, localItem);
+                    continue;
+                }
+                if (localItem.status === 'in_progress' && existing.status === 'in_progress') {
+                    const localTime = localItem.time_taken_seconds ?? 0;
+                    const existingTime = existing.time_taken_seconds ?? 0;
+                    if (
+                        localTime > existingTime ||
+                        getAttemptSortTimestampMs(localItem) > getAttemptSortTimestampMs(existing)
+                    ) {
+                        byAttemptId.set(localItem.id, localItem);
+                    }
+                }
+            }
+
+            const localActive = getCachedActivePreparedMockAttempt(testId, trimmedUserId);
+            if (
+                localActive &&
+                localActive.status === 'in_progress' &&
+                !isTestAttemptLocallyCompleted(testId, localActive.attemptId, trimmedUserId)
+            ) {
+                const existing = byAttemptId.get(localActive.attemptId);
+                const localUpdatedMs = Date.parse(localActive.updatedAt || localActive.startedAt || '') || 0;
+                const existingMs = existing ? getAttemptSortTimestampMs(existing) : 0;
+                if (
+                    !existing ||
+                    (existing.status === 'in_progress' &&
+                        (localUpdatedMs >= existingMs ||
+                            localActive.elapsedSeconds >= (existing.time_taken_seconds ?? 0)))
+                ) {
+                    byAttemptId.set(localActive.attemptId, {
+                        id: localActive.attemptId,
+                        test_id: localActive.testId,
+                        start_time: localActive.startedAt,
+                        end_time: null,
+                        time_taken_seconds: localActive.elapsedSeconds,
+                        score: 0,
+                        accuracy: 0,
+                        status: 'in_progress',
+                        created_at: localActive.startedAt,
+                    });
+                }
+            }
+        }
+    }
+
+    return Array.from(byAttemptId.values()).sort(
+        (a, b) =>
+            (Date.parse(b.created_at || b.start_time || b.end_time || '') || 0) -
+            (Date.parse(a.created_at || a.start_time || a.end_time || '') || 0)
+    );
+};
+
+/**
+ * Synchronous 0ms cache lookup for user-scoped attempt history across an entire mock series (`DEC-0004`, `DEC-0018`).
+ */
+export const getCachedUserSeriesAttemptsSnapshot = (
+    seriesId: string,
+    userId?: string | null
+): UserTestAttemptItem[] | null => {
+    const trimmedSeriesId = String(seriesId ?? '').trim();
+    const trimmedUserId = String(userId ?? '').trim();
+    if (!trimmedSeriesId || !trimmedUserId) return null;
+
+    const cacheKey = `${trimmedUserId}_${trimmedSeriesId}`;
+    const bundleTestIds =
+        getCachedSeriesBundleSnapshot(trimmedSeriesId)?.tests.map((t) => String(t?.id ?? '')) ?? [];
+
+    const mem = memorySeriesAttemptsCache.get(cacheKey);
+    if (mem && Array.isArray(mem.attempts)) {
+        return mergeLocalTestAttemptsIntoSeriesList(
+            mem.attempts.map(sanitizeUserTestAttempt),
+            bundleTestIds,
+            trimmedUserId
+        );
+    }
+
+    const stored = safeReadLocalStorage<{ attempts: any[]; fetchedAt: number }>(
+        `${MOCK_SERIES_ATTEMPTS_STORAGE_PREFIX}${cacheKey}`
+    );
+    if (stored && Array.isArray(stored.attempts)) {
+        const sanitized = stored.attempts.map(sanitizeUserTestAttempt);
+        memorySeriesAttemptsCache.set(cacheKey, {
+            attempts: sanitized,
+            fetchedAt: stored.fetchedAt ?? Date.now(),
+        });
+        return mergeLocalTestAttemptsIntoSeriesList(sanitized, bundleTestIds, trimmedUserId);
+    }
+
+    return null;
+};
+
+/**
+ * Async IndexedDB fallback hydration for user-scoped series attempts (`MindFlowDB.sync_metadata`).
+ */
+export const readUserSeriesAttemptsIndexedDBCache = async (
+    seriesId: string,
+    userId?: string | null
+): Promise<UserTestAttemptItem[] | null> => {
+    const syncSnapshot = getCachedUserSeriesAttemptsSnapshot(seriesId, userId);
+    if (syncSnapshot !== null) return syncSnapshot;
+
+    const trimmedSeriesId = String(seriesId ?? '').trim();
+    const trimmedUserId = String(userId ?? '').trim();
+    if (!trimmedSeriesId || !trimmedUserId) return null;
+
+    const cacheKey = `${trimmedUserId}_${trimmedSeriesId}`;
+    const bundleTestIds =
+        getCachedSeriesBundleSnapshot(trimmedSeriesId)?.tests.map((t) => String(t?.id ?? '')) ?? [];
+
+    try {
+        const entry = await db.getCacheEntry<{ attempts: any[]; fetchedAt: number }>(
+            `${MOCK_SERIES_ATTEMPTS_IDB_PREFIX}${cacheKey}`
+        );
+        if (entry?.data && Array.isArray(entry.data.attempts)) {
+            const sanitized = entry.data.attempts.map(sanitizeUserTestAttempt);
+            const payload = {
+                attempts: sanitized,
+                fetchedAt: entry.data.fetchedAt ?? Date.now(),
+            };
+            memorySeriesAttemptsCache.set(cacheKey, payload);
+            safeWriteLocalStorage(`${MOCK_SERIES_ATTEMPTS_STORAGE_PREFIX}${cacheKey}`, payload);
+            return mergeLocalTestAttemptsIntoSeriesList(sanitized, bundleTestIds, trimmedUserId);
+        }
+    } catch {
+        // Ignore IndexedDB unavailability
+    }
+
+    return null;
+};
+
+/**
+ * Fetches user-scoped attempt summaries across all tests in a series (`DEC-0018`: zero `answers` JSONB),
+ * merging offline local attempts and hydrating 0ms Memory/localStorage/IDB caches (`DEC-0004`).
+ */
+export const fetchUserSeriesAttempts = async (
+    seriesId: string,
+    testIds: string[],
+    userId?: string | null
+): Promise<UserTestAttemptItem[]> => {
+    const trimmedSeriesId = String(seriesId ?? '').trim();
+    const trimmedUserId = String(userId ?? '').trim();
+    const cleanTestIds = Array.from(
+        new Set((Array.isArray(testIds) ? testIds : []).map((id) => String(id ?? '').trim()).filter(Boolean))
+    );
+    if (!trimmedSeriesId || !trimmedUserId || cleanTestIds.length === 0) return [];
+
+    let query: any = supabase
+        .from(DB_TABLES.MOCK.ATTEMPTS)
+        .select('id, test_id, start_time, end_time, time_taken_seconds, score, accuracy, status, created_at')
+        .eq('user_id', trimmedUserId);
+    if (typeof query.in === 'function') {
+        query = query.in('test_id', cleanTestIds);
+    }
+    if (typeof query.order === 'function') {
+        query = query.order('created_at', { ascending: false });
+    }
+
+    const { data, error } = await query;
+    if (error) throw error;
+
+    const testIdSet = new Set(cleanTestIds);
+    const remoteAttempts = (Array.isArray(data) ? data : [])
+        .filter((row) => row?.test_id && testIdSet.has(String(row.test_id)))
+        .map(sanitizeUserTestAttempt);
+
+    const merged = mergeLocalTestAttemptsIntoSeriesList(
+        remoteAttempts,
+        cleanTestIds,
+        trimmedUserId
+    );
+    const cacheKey = `${trimmedUserId}_${trimmedSeriesId}`;
+    const payload = { attempts: merged, fetchedAt: Date.now() };
+    memorySeriesAttemptsCache.set(cacheKey, payload);
+    safeWriteLocalStorage(`${MOCK_SERIES_ATTEMPTS_STORAGE_PREFIX}${cacheKey}`, payload);
+    db.setCacheEntry?.(`${MOCK_SERIES_ATTEMPTS_IDB_PREFIX}${cacheKey}`, payload)?.catch(() => {});
+
+    return merged;
 };
 
 const normalizeSavedTestIds = (raw: unknown): string[] => {
@@ -1128,12 +1766,16 @@ export const clearPreparedMockTestsCache = (userId?: string | null): void => {
     memoryHomeCache = null;
     memoryTestDetailCache.clear();
     memoryTestQuestionsCache.clear();
+    memorySeriesBundleCache.clear();
+    memoryLeaderboardCache.clear();
     if (userId) {
         const trimmedUserId = String(userId).trim();
         memoryAttemptsCache.delete(trimmedUserId);
         safeRemoveLocalStorage(`${MOCK_ATTEMPTS_STORAGE_PREFIX}${trimmedUserId}`);
         memorySavedTestsCache.delete(trimmedUserId);
         safeRemoveLocalStorage(`${MOCK_SAVED_TESTS_STORAGE_PREFIX}${trimmedUserId}`);
+        memoryContinueLearningCache.delete(trimmedUserId);
+        safeRemoveLocalStorage(`${MOCK_CONTINUE_LEARNING_STORAGE_PREFIX}${trimmedUserId}`);
         for (const key of Array.from(memoryTestAttemptsCache.keys())) {
             if (key.startsWith(`${trimmedUserId}_`)) {
                 memoryTestAttemptsCache.delete(key);
@@ -1146,11 +1788,31 @@ export const clearPreparedMockTestsCache = (userId?: string | null): void => {
                 safeRemoveLocalStorage(`${MOCK_ACTIVE_ATTEMPT_STORAGE_PREFIX}${key}`);
             }
         }
+        for (const key of Array.from(memorySeriesAttemptsCache.keys())) {
+            if (key.startsWith(`${trimmedUserId}_`)) {
+                memorySeriesAttemptsCache.delete(key);
+                safeRemoveLocalStorage(`${MOCK_SERIES_ATTEMPTS_STORAGE_PREFIX}${key}`);
+            }
+        }
+        try {
+            if (typeof window !== 'undefined' && window.localStorage) {
+                for (let i = window.localStorage.length - 1; i >= 0; i -= 1) {
+                    const storageKey = window.localStorage.key(i);
+                    if (storageKey && storageKey.startsWith(MOCK_LEADERBOARD_STORAGE_PREFIX)) {
+                        window.localStorage.removeItem(storageKey);
+                    }
+                }
+            }
+        } catch {
+            // Ignore localStorage enumeration errors
+        }
     } else {
         memoryAttemptsCache.clear();
         memoryTestAttemptsCache.clear();
         memorySavedTestsCache.clear();
         memoryActiveAttemptCache.clear();
+        memoryContinueLearningCache.clear();
+        memorySeriesAttemptsCache.clear();
         try {
             if (typeof window !== 'undefined' && window.localStorage) {
                 for (let i = window.localStorage.length - 1; i >= 0; i -= 1) {
@@ -1162,7 +1824,11 @@ export const clearPreparedMockTestsCache = (userId?: string | null): void => {
                             storageKey.startsWith(MOCK_SAVED_TESTS_STORAGE_PREFIX) ||
                             storageKey.startsWith(MOCK_ATTEMPTS_STORAGE_PREFIX) ||
                             storageKey.startsWith(MOCK_TEST_QUESTIONS_STORAGE_PREFIX) ||
-                            storageKey.startsWith(MOCK_ACTIVE_ATTEMPT_STORAGE_PREFIX))
+                            storageKey.startsWith(MOCK_ACTIVE_ATTEMPT_STORAGE_PREFIX) ||
+                            storageKey.startsWith(MOCK_CONTINUE_LEARNING_STORAGE_PREFIX) ||
+                            storageKey.startsWith(MOCK_SERIES_BUNDLE_STORAGE_PREFIX) ||
+                            storageKey.startsWith(MOCK_SERIES_ATTEMPTS_STORAGE_PREFIX) ||
+                            storageKey.startsWith(MOCK_LEADERBOARD_STORAGE_PREFIX))
                     ) {
                         window.localStorage.removeItem(storageKey);
                     }
@@ -1821,6 +2487,9 @@ export const getCachedActivePreparedMockAttempt = (
     const cacheKey = buildActiveAttemptCacheKey(trimmedTestId, trimmedUserId);
     const matchesResume = (candidate: PreparedMockActiveAttemptState | null): boolean => {
         if (!candidate || candidate.status !== 'in_progress') return false;
+        if (isTestAttemptLocallyCompleted(trimmedTestId, candidate.attemptId, trimmedUserId)) {
+            return false;
+        }
         if (resumeAttemptId && candidate.attemptId !== resumeAttemptId) return false;
         return true;
     };
@@ -1866,6 +2535,7 @@ export const readActivePreparedMockAttemptIndexedDB = async (
         if (
             fromActiveStore &&
             fromActiveStore.status === 'in_progress' &&
+            !isTestAttemptLocallyCompleted(trimmedTestId, fromActiveStore.attemptId, trimmedUserId) &&
             (!resumeAttemptId || fromActiveStore.attemptId === resumeAttemptId)
         ) {
             memoryActiveAttemptCache.set(cacheKey, fromActiveStore);
@@ -1885,6 +2555,7 @@ export const readActivePreparedMockAttemptIndexedDB = async (
         if (
             fromCacheStore &&
             fromCacheStore.status === 'in_progress' &&
+            !isTestAttemptLocallyCompleted(trimmedTestId, fromCacheStore.attemptId, trimmedUserId) &&
             (!resumeAttemptId || fromCacheStore.attemptId === resumeAttemptId)
         ) {
             memoryActiveAttemptCache.set(cacheKey, fromCacheStore);
@@ -1970,7 +2641,8 @@ export const savePreparedMockAttemptProgress = async (
                         answers: payloadAnswers,
                     })
                     .eq('id', nextState.attemptId)
-                    .eq('user_id', nextState.userId);
+                    .eq('user_id', nextState.userId)
+                    .eq('status', 'in_progress');
                 if (error) throw error;
             } else {
                 const { error } = await supabase.from(DB_TABLES.MOCK.ATTEMPTS).upsert(
@@ -2025,11 +2697,15 @@ export const startOrResumePreparedMockAttempt = async (params: {
     const firstQuestionId = params.questions[0]?.id;
     const requestedResumeId = params.resumeAttemptId ? String(params.resumeAttemptId).trim() : null;
 
-    const localCandidate = await readActivePreparedMockAttemptIndexedDB(
+    let localCandidate = await readActivePreparedMockAttemptIndexedDB(
         testId,
         userId,
         requestedResumeId
     );
+    if (localCandidate && isTestAttemptLocallyCompleted(testId, localCandidate.attemptId, userId)) {
+        await clearActivePreparedMockAttemptCache(testId, userId);
+        localCandidate = null;
+    }
 
     let remoteRow: any = null;
     if (typeof navigator === 'undefined' || navigator.onLine !== false) {
@@ -2046,9 +2722,22 @@ export const startOrResumePreparedMockAttempt = async (params: {
                         remoteRow = data;
                     } else if (localCandidate?.attemptId === requestedResumeId) {
                         await clearActivePreparedMockAttemptCache(testId, userId);
+                        localCandidate = null;
                     }
                 }
             } else {
+                if (localCandidate?.attemptId) {
+                    const { data: localStatusRow, error: localStatusErr } = await supabase
+                        .from(DB_TABLES.MOCK.ATTEMPTS)
+                        .select('id, status')
+                        .eq('id', localCandidate.attemptId)
+                        .eq('user_id', userId)
+                        .maybeSingle();
+                    if (!localStatusErr && localStatusRow && localStatusRow.status !== 'in_progress') {
+                        await clearActivePreparedMockAttemptCache(testId, userId);
+                        localCandidate = null;
+                    }
+                }
                 const { data, error } = await supabase
                     .from(DB_TABLES.MOCK.ATTEMPTS)
                     .select('id, test_id, start_time, end_time, time_taken_seconds, score, accuracy, status, answers, created_at')
@@ -2379,6 +3068,14 @@ export const submitPreparedMockAttempt = async (params: {
         created_at: state.startedAt,
     });
 
+    syncContinueLearningOnLocalSubmit({
+        userId: state.userId,
+        testId: state.testId,
+        test,
+        attempt: completedAttempt,
+        answeredCount: Object.keys(cleanAnswers).length,
+    });
+
     return {
         attempt: completedAttempt,
         summary,
@@ -2595,4 +3292,920 @@ export const computePreparedMockSubjectBreakdown = (
     }
 
     return result.sort((a, b) => b.totalQuestions - a.totalQuestions || a.subject.localeCompare(b.subject));
+};
+
+// ============================================================================
+// CONTINUE LEARNING HUB: 3-TIER SWR CACHE & LOCAL/REMOTE RECONCILIATION (v1.0.375)
+// ============================================================================
+
+export interface ContinueLearningItem {
+    attemptId: string;
+    testId: string;
+    seriesId: string | null;
+    categoryId: string | null;
+    testName: string;
+    seriesName: string;
+    categoryName: string;
+    status: 'in_progress' | 'completed';
+    answeredCount: number;
+    totalQuestions: number;
+    remainingSeconds: number | null;
+    durationMinutes: number;
+    score: number;
+    totalMarks: number;
+    passingMarks: number;
+    accuracy: number;
+    timeTakenSeconds: number | null;
+    activityAt: string;
+    release_date: string | null;
+    expiry_date: string | null;
+    is_published: boolean;
+    series_is_published: boolean;
+    category_is_active: boolean;
+}
+
+const parseContinueLearningTimestampMs = (raw?: string | null): number => {
+    if (!raw) return 0;
+    const ms = Date.parse(String(raw));
+    return Number.isFinite(ms) ? ms : 0;
+};
+
+const sanitizeContinueLearningItem = (raw: any): ContinueLearningItem | null => {
+    if (!raw || typeof raw !== 'object') return null;
+    const attemptId = String(raw.attemptId ?? '').trim();
+    const testId = String(raw.testId ?? '').trim();
+    if (!attemptId || !testId) return null;
+
+    const status: ContinueLearningItem['status'] =
+        raw.status === 'completed' ? 'completed' : 'in_progress';
+    const rawDuration = Number(raw.durationMinutes ?? 0);
+    const rawTotalQ = Number(raw.totalQuestions ?? 0);
+    const rawAnswered = Number(raw.answeredCount ?? 0);
+    const rawScore = Number(raw.score ?? 0);
+    const rawTotalMarks = Number(raw.totalMarks ?? 0);
+    const rawPassingMarks = Number(raw.passingMarks ?? 0);
+    const rawAccuracy = Number(raw.accuracy ?? 0);
+    const rawRemaining =
+        raw.remainingSeconds !== null && raw.remainingSeconds !== undefined
+            ? Number(raw.remainingSeconds)
+            : null;
+    const rawTimeTaken =
+        raw.timeTakenSeconds !== null && raw.timeTakenSeconds !== undefined
+            ? Number(raw.timeTakenSeconds)
+            : null;
+
+    return {
+        attemptId,
+        testId,
+        seriesId: raw.seriesId ? String(raw.seriesId) : null,
+        categoryId: raw.categoryId ? String(raw.categoryId) : null,
+        testName: String(raw.testName ?? 'Untitled Mock Test'),
+        seriesName: String(raw.seriesName ?? 'Mock Series'),
+        categoryName: String(raw.categoryName ?? 'Mock Test'),
+        status,
+        answeredCount: Number.isFinite(rawAnswered) && rawAnswered >= 0 ? Math.trunc(rawAnswered) : 0,
+        totalQuestions: Number.isFinite(rawTotalQ) && rawTotalQ >= 0 ? Math.trunc(rawTotalQ) : 0,
+        remainingSeconds:
+            status === 'in_progress' && rawRemaining !== null && Number.isFinite(rawRemaining)
+                ? Math.max(0, Math.trunc(rawRemaining))
+                : null,
+        durationMinutes: Number.isFinite(rawDuration) && rawDuration >= 0 ? rawDuration : 0,
+        score: Number.isFinite(rawScore) ? rawScore : 0,
+        totalMarks: Number.isFinite(rawTotalMarks) && rawTotalMarks >= 0 ? rawTotalMarks : 0,
+        passingMarks: Number.isFinite(rawPassingMarks) && rawPassingMarks >= 0 ? rawPassingMarks : 0,
+        accuracy: Number.isFinite(rawAccuracy) ? rawAccuracy : 0,
+        timeTakenSeconds:
+            rawTimeTaken !== null && Number.isFinite(rawTimeTaken)
+                ? Math.max(0, Math.trunc(rawTimeTaken))
+                : null,
+        activityAt: String(raw.activityAt ?? new Date(0).toISOString()),
+        release_date: raw.release_date ? String(raw.release_date) : null,
+        expiry_date: raw.expiry_date ? String(raw.expiry_date) : null,
+        is_published: raw.is_published !== false,
+        series_is_published: raw.series_is_published !== false,
+        category_is_active: raw.category_is_active !== false,
+    };
+};
+
+const isContinueLearningItemVisible = (
+    item: ContinueLearningItem,
+    nowMs: number = Date.now()
+): boolean =>
+    item.is_published !== false &&
+    item.series_is_published !== false &&
+    item.category_is_active !== false &&
+    isTestWithinScheduleWindow(
+        { release_date: item.release_date, expiry_date: item.expiry_date },
+        nowMs
+    );
+
+/**
+ * Verifies whether a specific `attemptId` has already been submitted locally (`DEC-0004`)
+ * so stale remote `in_progress` rows never revert a completed offline submission.
+ */
+export const isTestAttemptLocallyCompleted = (
+    testId: string,
+    attemptId: string,
+    userId: string
+): boolean => {
+    const trimmedTestId = String(testId ?? '').trim();
+    const trimmedAttemptId = String(attemptId ?? '').trim();
+    const trimmedUserId = String(userId ?? '').trim();
+    if (!trimmedAttemptId) return false;
+
+    const detailSnapshot = getCachedPreparedMockAttemptByIdSnapshot(trimmedAttemptId);
+    if (
+        detailSnapshot &&
+        detailSnapshot.status === 'completed' &&
+        (!trimmedUserId || !detailSnapshot.user_id || detailSnapshot.user_id === trimmedUserId) &&
+        (!trimmedTestId || !detailSnapshot.test_id || detailSnapshot.test_id === trimmedTestId)
+    ) {
+        return true;
+    }
+
+    if (trimmedTestId && trimmedUserId) {
+        const testAttempts = getCachedUserTestAttemptsSnapshot(trimmedTestId, trimmedUserId);
+        if (
+            Array.isArray(testAttempts) &&
+            testAttempts.some((a) => a.id === trimmedAttemptId && a.status === 'completed')
+        ) {
+            return true;
+        }
+    }
+
+    return false;
+};
+
+const findLocallyCompletedAttemptSnapshot = (
+    testId: string,
+    attemptId: string,
+    userId: string
+): {
+    score: number;
+    accuracy: number;
+    timeTakenSeconds: number | null;
+    answeredCount: number | null;
+    activityAt: string | null;
+} | null => {
+    const trimmedTestId = String(testId ?? '').trim();
+    const trimmedAttemptId = String(attemptId ?? '').trim();
+    const trimmedUserId = String(userId ?? '').trim();
+    if (!trimmedAttemptId) return null;
+
+    const detail = getCachedPreparedMockAttemptByIdSnapshot(trimmedAttemptId);
+    if (
+        detail &&
+        detail.status === 'completed' &&
+        (!trimmedUserId || !detail.user_id || detail.user_id === trimmedUserId) &&
+        (!trimmedTestId || !detail.test_id || detail.test_id === trimmedTestId)
+    ) {
+        const cleanAnswerCount =
+            detail.answers && typeof detail.answers === 'object'
+                ? Object.keys(detail.answers).filter((k) => k !== '__cbt_meta').length
+                : 0;
+        return {
+            score: Number.isFinite(Number(detail.score)) ? Number(detail.score) : 0,
+            accuracy: Number.isFinite(Number(detail.accuracy)) ? Number(detail.accuracy) : 0,
+            timeTakenSeconds:
+                detail.time_taken_seconds !== null && detail.time_taken_seconds !== undefined
+                    ? Number(detail.time_taken_seconds)
+                    : null,
+            answeredCount: cleanAnswerCount,
+            activityAt: detail.end_time ?? detail.created_at ?? detail.start_time ?? null,
+        };
+    }
+
+    if (trimmedTestId && trimmedUserId) {
+        const attempts = getCachedUserTestAttemptsSnapshot(trimmedTestId, trimmedUserId);
+        const match = attempts?.find(
+            (a) => a.id === trimmedAttemptId && a.status === 'completed'
+        );
+        if (match) {
+            return {
+                score: match.score,
+                accuracy: match.accuracy,
+                timeTakenSeconds: match.time_taken_seconds,
+                answeredCount: null,
+                activityAt: match.end_time ?? match.created_at ?? match.start_time ?? null,
+            };
+        }
+    }
+
+    return null;
+};
+
+/**
+ * Reads all active offline `in_progress` mock-test sessions for a user in 0ms
+ * from `memoryActiveAttemptCache` and `window.localStorage`.
+ */
+export const readLocalActiveAttemptsForUser = (
+    userId: string
+): PreparedMockActiveAttemptState[] => {
+    const trimmedUserId = String(userId ?? '').trim();
+    if (!trimmedUserId) return [];
+
+    const prefix = `${trimmedUserId}_`;
+    const storagePrefix = `${MOCK_ACTIVE_ATTEMPT_STORAGE_PREFIX}${prefix}`;
+    const byAttemptId = new Map<string, PreparedMockActiveAttemptState>();
+
+    const considerCandidate = (raw: unknown, fallbackTestId?: string) => {
+        const normalized = normalizeActiveAttemptState(raw, {
+            testId: fallbackTestId,
+            userId: trimmedUserId,
+        });
+        if (!normalized) return;
+        if (normalized.userId !== trimmedUserId || normalized.status !== 'in_progress') return;
+        if (isTestAttemptLocallyCompleted(normalized.testId, normalized.attemptId, trimmedUserId)) {
+            return;
+        }
+        const existing = byAttemptId.get(normalized.attemptId);
+        if (!existing) {
+            byAttemptId.set(normalized.attemptId, normalized);
+            return;
+        }
+        const existingMs = parseContinueLearningTimestampMs(existing.updatedAt || existing.startedAt);
+        const nextMs = parseContinueLearningTimestampMs(normalized.updatedAt || normalized.startedAt);
+        if (nextMs >= existingMs) {
+            byAttemptId.set(normalized.attemptId, normalized);
+        }
+    };
+
+    for (const [key, value] of memoryActiveAttemptCache.entries()) {
+        if (key.startsWith(prefix) || value?.userId === trimmedUserId) {
+            considerCandidate(value, value?.testId);
+        }
+    }
+
+    try {
+        if (typeof window !== 'undefined' && window.localStorage) {
+            for (let i = 0; i < window.localStorage.length; i += 1) {
+                const storageKey = window.localStorage.key(i);
+                if (storageKey && storageKey.startsWith(storagePrefix)) {
+                    const fallbackTestId = storageKey.slice(storagePrefix.length);
+                    considerCandidate(safeReadLocalStorage<unknown>(storageKey), fallbackTestId);
+                }
+            }
+        }
+    } catch {
+        // Ignore localStorage enumeration errors
+    }
+
+    return Array.from(byAttemptId.values());
+};
+
+interface ResolvedContinueLearningTestMeta {
+    seriesId: string | null;
+    categoryId: string | null;
+    testName: string;
+    seriesName: string;
+    categoryName: string;
+    totalQuestions: number;
+    durationMinutes: number;
+    totalMarks: number;
+    passingMarks: number;
+    release_date: string | null;
+    expiry_date: string | null;
+    is_published: boolean;
+    series_is_published: boolean;
+    category_is_active: boolean;
+}
+
+const resolveContinueLearningTestMeta = (
+    testId: string,
+    row: any,
+    catalogTests: any[] | undefined,
+    nowMs: number
+): ResolvedContinueLearningTestMeta | null => {
+    const joinedTest = row?.[DB_TABLES.MOCK.TESTS] ?? row?.mock_tests ?? row?.test ?? null;
+    const catalogMatch = Array.isArray(catalogTests)
+        ? catalogTests.find((t) => t?.id === testId)
+        : undefined;
+    const testObj = joinedTest ?? catalogMatch ?? getCachedTestDetailsSnapshot(testId, nowMs);
+    if (!testObj) return null;
+
+    const syncCatalog = !joinedTest ? readCatalogFromSyncCache() : null;
+    const seriesObj =
+        testObj[DB_TABLES.MOCK.SERIES] ??
+        testObj.mock_series ??
+        testObj.test_series ??
+        (testObj.series_id && syncCatalog?.series
+            ? syncCatalog.series.find((s) => s?.id === testObj.series_id)
+            : null);
+    const categoryObj =
+        seriesObj?.[DB_TABLES.MOCK.CATEGORIES] ??
+        seriesObj?.mock_categories ??
+        seriesObj?.exam_categories ??
+        (seriesObj?.category_id && syncCatalog?.categories
+            ? syncCatalog.categories.find((c) => c?.id === seriesObj.category_id)
+            : null);
+
+    const is_published = testObj.is_published !== false;
+    const series_is_published = seriesObj
+        ? seriesObj.is_published !== false
+        : testObj.series_is_published !== false;
+    const category_is_active = categoryObj
+        ? categoryObj.is_active !== false
+        : testObj.category_is_active !== false;
+    const release_date = testObj.release_date ?? null;
+    const expiry_date = testObj.expiry_date ?? null;
+
+    if (
+        !is_published ||
+        !series_is_published ||
+        !category_is_active ||
+        !isTestWithinScheduleWindow({ release_date, expiry_date }, nowMs)
+    ) {
+        return null;
+    }
+
+    const totalQuestions = Array.isArray(testObj.question_ids)
+        ? testObj.question_ids.length
+        : Math.max(0, Number(testObj.question_count ?? 0) || 0);
+    const durationMinutes = Math.max(0, Number(testObj.duration_minutes ?? 0) || 0);
+    const totalMarks = Number(testObj.total_marks ?? 0) || 0;
+    const passingMarks = Number(testObj.passing_marks ?? 0) || 0;
+
+    return {
+        seriesId: testObj.series_id ?? seriesObj?.id ?? null,
+        categoryId: categoryObj?.id ?? seriesObj?.category_id ?? testObj.category_id ?? null,
+        testName: String(testObj.name ?? 'Untitled Mock Test'),
+        seriesName: String(seriesObj?.name ?? testObj.series_name ?? 'Mock Series'),
+        categoryName: String(categoryObj?.name ?? testObj.category_name ?? 'Mock Test'),
+        totalQuestions,
+        durationMinutes,
+        totalMarks,
+        passingMarks,
+        release_date: release_date ? String(release_date) : null,
+        expiry_date: expiry_date ? String(expiry_date) : null,
+        is_published,
+        series_is_published,
+        category_is_active,
+    };
+};
+
+const dedupeAndSortContinueLearningItems = (
+    items: ContinueLearningItem[],
+    limit: number
+): ContinueLearningItem[] => {
+    const dedupedByTestId = new Map<string, ContinueLearningItem>();
+    for (const item of items) {
+        const current = dedupedByTestId.get(item.testId);
+        if (!current) {
+            dedupedByTestId.set(item.testId, item);
+            continue;
+        }
+        if (item.status === 'in_progress' && current.status !== 'in_progress') {
+            dedupedByTestId.set(item.testId, item);
+            continue;
+        }
+        if (item.status === current.status) {
+            if (
+                parseContinueLearningTimestampMs(item.activityAt) >
+                parseContinueLearningTimestampMs(current.activityAt)
+            ) {
+                dedupedByTestId.set(item.testId, item);
+            }
+        }
+    }
+
+    const sorted = Array.from(dedupedByTestId.values()).sort((a, b) => {
+        if (a.status !== b.status) {
+            return a.status === 'in_progress' ? -1 : 1;
+        }
+        return (
+            parseContinueLearningTimestampMs(b.activityAt) -
+            parseContinueLearningTimestampMs(a.activityAt)
+        );
+    });
+
+    const safeLimit = Number.isFinite(limit) ? Math.max(0, Math.trunc(limit)) : 4;
+    return sorted.slice(0, safeLimit);
+};
+
+/**
+ * Pure projection builder for Continue Learning cards (`DEC-0017`, `DEC-0018`):
+ * strips raw `answers` JSONB, reconciles offline active/completed attempts,
+ * deduplicates to 1 card per `testId` (`in_progress` preferred), pins `in_progress` first,
+ * and sorts newest `activityAt` DESC.
+ */
+export const buildContinueLearningItems = (params: {
+    rows: any[];
+    userId: string;
+    localActiveAttempts?: PreparedMockActiveAttemptState[];
+    catalogTests?: any[];
+    limit?: number;
+    nowMs?: number;
+}): ContinueLearningItem[] => {
+    const trimmedUserId = String(params.userId ?? '').trim();
+    const nowMs = params.nowMs ?? Date.now();
+    const limit = params.limit !== undefined ? params.limit : 4;
+    const itemsByAttemptId = new Map<string, ContinueLearningItem>();
+
+    for (const row of params.rows || []) {
+        const attemptId = String(row?.id ?? '').trim();
+        const testId = String(row?.test_id ?? '').trim();
+        if (!attemptId || !testId) continue;
+
+        const rawStatus = String(row?.status ?? '').trim();
+        if (rawStatus === 'abandoned') continue;
+        if (rawStatus !== 'in_progress' && rawStatus !== 'completed') continue;
+
+        const meta = resolveContinueLearningTestMeta(testId, row, params.catalogTests, nowMs);
+        if (!meta) continue;
+
+        let status: 'in_progress' | 'completed' = rawStatus;
+        const extracted = extractAttemptAnswersAndMeta(row?.answers);
+        let answeredCount = Object.keys(extracted.answers).length;
+        const totalDurationSeconds =
+            meta.durationMinutes > 0 ? Math.round(meta.durationMinutes * 60) : 3600;
+
+        const rawTimeTaken =
+            row?.time_taken_seconds !== null && row?.time_taken_seconds !== undefined
+                ? Number(row.time_taken_seconds)
+                : null;
+        let timeTakenSeconds =
+            rawTimeTaken !== null && Number.isFinite(rawTimeTaken)
+                ? Math.max(0, Math.trunc(rawTimeTaken))
+                : null;
+
+        let remainingSeconds: number | null = null;
+        if (status === 'in_progress') {
+            if (extracted.meta.remainingSeconds !== null) {
+                remainingSeconds =
+                    meta.durationMinutes > 0
+                        ? Math.max(0, Math.min(totalDurationSeconds, extracted.meta.remainingSeconds))
+                        : Math.max(0, extracted.meta.remainingSeconds);
+            } else if (timeTakenSeconds !== null && meta.durationMinutes > 0) {
+                remainingSeconds = Math.max(0, totalDurationSeconds - timeTakenSeconds);
+            } else if (meta.durationMinutes > 0) {
+                remainingSeconds = totalDurationSeconds;
+            }
+        }
+
+        let score = Number.isFinite(Number(row?.score)) ? Number(row.score) : 0;
+        let accuracy = Number.isFinite(Number(row?.accuracy)) ? Number(row.accuracy) : 0;
+        let activityAt =
+            status === 'completed'
+                ? String(
+                      row?.end_time ??
+                          row?.created_at ??
+                          row?.start_time ??
+                          new Date(nowMs).toISOString()
+                  )
+                : String(
+                      extracted.meta.updatedAt ??
+                          row?.start_time ??
+                          row?.created_at ??
+                          new Date(nowMs).toISOString()
+                  );
+
+        if (
+            status === 'in_progress' &&
+            isTestAttemptLocallyCompleted(testId, attemptId, trimmedUserId)
+        ) {
+            status = 'completed';
+            remainingSeconds = null;
+            const localCompleted = findLocallyCompletedAttemptSnapshot(
+                testId,
+                attemptId,
+                trimmedUserId
+            );
+            if (localCompleted) {
+                score = localCompleted.score;
+                accuracy = localCompleted.accuracy;
+                timeTakenSeconds = localCompleted.timeTakenSeconds ?? timeTakenSeconds;
+                if (localCompleted.answeredCount !== null) {
+                    answeredCount = localCompleted.answeredCount;
+                }
+                if (localCompleted.activityAt) {
+                    activityAt = localCompleted.activityAt;
+                }
+            }
+        }
+
+        itemsByAttemptId.set(attemptId, {
+            attemptId,
+            testId,
+            seriesId: meta.seriesId,
+            categoryId: meta.categoryId,
+            testName: meta.testName,
+            seriesName: meta.seriesName,
+            categoryName: meta.categoryName,
+            status,
+            answeredCount,
+            totalQuestions: meta.totalQuestions,
+            remainingSeconds,
+            durationMinutes: meta.durationMinutes,
+            score,
+            totalMarks: meta.totalMarks,
+            passingMarks: meta.passingMarks,
+            accuracy,
+            timeTakenSeconds,
+            activityAt,
+            release_date: meta.release_date,
+            expiry_date: meta.expiry_date,
+            is_published: meta.is_published,
+            series_is_published: meta.series_is_published,
+            category_is_active: meta.category_is_active,
+        });
+    }
+
+    for (const local of params.localActiveAttempts ?? []) {
+        if (!local || !local.attemptId || !local.testId || local.status !== 'in_progress') continue;
+        if (trimmedUserId && local.userId && local.userId !== trimmedUserId) continue;
+        if (isTestAttemptLocallyCompleted(local.testId, local.attemptId, trimmedUserId)) {
+            continue;
+        }
+
+        const localAnsweredCount =
+            local.answers && typeof local.answers === 'object'
+                ? Object.keys(local.answers).filter((k) => k !== '__cbt_meta').length
+                : 0;
+        const localActivityAt = String(
+            local.updatedAt || local.startedAt || new Date(nowMs).toISOString()
+        );
+        const existing = itemsByAttemptId.get(local.attemptId);
+
+        if (existing) {
+            if (existing.status === 'completed') continue;
+            if (
+                parseContinueLearningTimestampMs(localActivityAt) >=
+                parseContinueLearningTimestampMs(existing.activityAt)
+            ) {
+                existing.answeredCount = localAnsweredCount;
+                existing.remainingSeconds = local.remainingSeconds;
+                existing.timeTakenSeconds = local.elapsedSeconds;
+                existing.activityAt = localActivityAt;
+            }
+            continue;
+        }
+
+        const meta = resolveContinueLearningTestMeta(
+            local.testId,
+            null,
+            params.catalogTests,
+            nowMs
+        );
+        if (!meta) continue;
+
+        itemsByAttemptId.set(local.attemptId, {
+            attemptId: local.attemptId,
+            testId: local.testId,
+            seriesId: meta.seriesId,
+            categoryId: meta.categoryId,
+            testName: meta.testName,
+            seriesName: meta.seriesName,
+            categoryName: meta.categoryName,
+            status: 'in_progress',
+            answeredCount: localAnsweredCount,
+            totalQuestions: meta.totalQuestions,
+            remainingSeconds: local.remainingSeconds,
+            durationMinutes: meta.durationMinutes,
+            score: 0,
+            totalMarks: meta.totalMarks,
+            passingMarks: meta.passingMarks,
+            accuracy: 0,
+            timeTakenSeconds: local.elapsedSeconds,
+            activityAt: localActivityAt,
+            release_date: meta.release_date,
+            expiry_date: meta.expiry_date,
+            is_published: meta.is_published,
+            series_is_published: meta.series_is_published,
+            category_is_active: meta.category_is_active,
+        });
+    }
+
+    return dedupeAndSortContinueLearningItems(Array.from(itemsByAttemptId.values()), limit);
+};
+
+const reconcileCachedContinueLearningItems = (
+    rawItems: ContinueLearningItem[],
+    userId: string,
+    nowMs: number,
+    limit: number
+): ContinueLearningItem[] => {
+    const itemsByAttemptId = new Map<string, ContinueLearningItem>();
+    const metaFallbackByTestId = new Map<string, ContinueLearningItem>();
+
+    for (const rawItem of rawItems) {
+        const item = sanitizeContinueLearningItem(rawItem);
+        if (!item || !isContinueLearningItemVisible(item, nowMs)) continue;
+        metaFallbackByTestId.set(item.testId, item);
+
+        if (
+            item.status === 'in_progress' &&
+            isTestAttemptLocallyCompleted(item.testId, item.attemptId, userId)
+        ) {
+            const localCompleted = findLocallyCompletedAttemptSnapshot(
+                item.testId,
+                item.attemptId,
+                userId
+            );
+            item.status = 'completed';
+            item.remainingSeconds = null;
+            if (localCompleted) {
+                item.score = localCompleted.score;
+                item.accuracy = localCompleted.accuracy;
+                item.timeTakenSeconds = localCompleted.timeTakenSeconds ?? item.timeTakenSeconds;
+                if (localCompleted.answeredCount !== null) {
+                    item.answeredCount = localCompleted.answeredCount;
+                }
+                if (localCompleted.activityAt) {
+                    item.activityAt = localCompleted.activityAt;
+                }
+            }
+        }
+
+        itemsByAttemptId.set(item.attemptId, item);
+    }
+
+    for (const local of readLocalActiveAttemptsForUser(userId)) {
+        const localAnsweredCount =
+            local.answers && typeof local.answers === 'object'
+                ? Object.keys(local.answers).filter((k) => k !== '__cbt_meta').length
+                : 0;
+        const localActivityAt = String(
+            local.updatedAt || local.startedAt || new Date(nowMs).toISOString()
+        );
+        const existing = itemsByAttemptId.get(local.attemptId);
+
+        if (existing) {
+            if (existing.status === 'completed') continue;
+            if (
+                parseContinueLearningTimestampMs(localActivityAt) >=
+                parseContinueLearningTimestampMs(existing.activityAt)
+            ) {
+                existing.answeredCount = localAnsweredCount;
+                existing.remainingSeconds = local.remainingSeconds;
+                existing.timeTakenSeconds = local.elapsedSeconds;
+                existing.activityAt = localActivityAt;
+            }
+            continue;
+        }
+
+        const meta = resolveContinueLearningTestMeta(local.testId, null, undefined, nowMs);
+        const cachedMeta = metaFallbackByTestId.get(local.testId);
+        if (!meta && !cachedMeta) continue;
+
+        itemsByAttemptId.set(local.attemptId, {
+            attemptId: local.attemptId,
+            testId: local.testId,
+            seriesId: meta?.seriesId ?? cachedMeta?.seriesId ?? null,
+            categoryId: meta?.categoryId ?? cachedMeta?.categoryId ?? null,
+            testName: meta?.testName ?? cachedMeta?.testName ?? 'Untitled Mock Test',
+            seriesName: meta?.seriesName ?? cachedMeta?.seriesName ?? 'Mock Series',
+            categoryName: meta?.categoryName ?? cachedMeta?.categoryName ?? 'Mock Test',
+            status: 'in_progress',
+            answeredCount: localAnsweredCount,
+            totalQuestions: meta?.totalQuestions ?? cachedMeta?.totalQuestions ?? 0,
+            remainingSeconds: local.remainingSeconds,
+            durationMinutes: meta?.durationMinutes ?? cachedMeta?.durationMinutes ?? 0,
+            score: 0,
+            totalMarks: meta?.totalMarks ?? cachedMeta?.totalMarks ?? 0,
+            passingMarks: meta?.passingMarks ?? cachedMeta?.passingMarks ?? 0,
+            accuracy: 0,
+            timeTakenSeconds: local.elapsedSeconds,
+            activityAt: localActivityAt,
+            release_date: meta?.release_date ?? cachedMeta?.release_date ?? null,
+            expiry_date: meta?.expiry_date ?? cachedMeta?.expiry_date ?? null,
+            is_published: meta?.is_published ?? cachedMeta?.is_published ?? true,
+            series_is_published:
+                meta?.series_is_published ?? cachedMeta?.series_is_published ?? true,
+            category_is_active: meta?.category_is_active ?? cachedMeta?.category_is_active ?? true,
+        });
+    }
+
+    return dedupeAndSortContinueLearningItems(Array.from(itemsByAttemptId.values()), limit);
+};
+
+const syncContinueLearningOnLocalSubmit = (params: {
+    userId: string;
+    testId: string;
+    test: any;
+    attempt: UserTestAttemptItem;
+    answeredCount: number;
+}): void => {
+    const trimmedUserId = String(params.userId ?? '').trim();
+    const trimmedTestId = String(params.testId ?? '').trim();
+    if (!trimmedUserId || !trimmedTestId) return;
+
+    const existingSync =
+        memoryContinueLearningCache.get(trimmedUserId) ??
+        safeReadLocalStorage<{ items: ContinueLearningItem[]; fetchedAt: number }>(
+            `${MOCK_CONTINUE_LEARNING_STORAGE_PREFIX}${trimmedUserId}`
+        );
+
+    const existingItems = Array.isArray(existingSync?.items)
+        ? existingSync.items
+              .map(sanitizeContinueLearningItem)
+              .filter((x): x is ContinueLearningItem => Boolean(x))
+        : [];
+
+    const existingForTest = existingItems.find((item) => item.testId === trimmedTestId);
+    const resolvedMeta = params.test
+        ? resolveContinueLearningTestMeta(
+              trimmedTestId,
+              { [DB_TABLES.MOCK.TESTS]: params.test },
+              undefined,
+              Date.now()
+          )
+        : null;
+
+    if (!resolvedMeta && !existingForTest) return;
+
+    const completedEntry: ContinueLearningItem = {
+        attemptId: params.attempt.id,
+        testId: trimmedTestId,
+        seriesId: resolvedMeta?.seriesId ?? existingForTest?.seriesId ?? null,
+        categoryId: resolvedMeta?.categoryId ?? existingForTest?.categoryId ?? null,
+        testName: resolvedMeta?.testName ?? existingForTest?.testName ?? 'Untitled Mock Test',
+        seriesName: resolvedMeta?.seriesName ?? existingForTest?.seriesName ?? 'Mock Series',
+        categoryName: resolvedMeta?.categoryName ?? existingForTest?.categoryName ?? 'Mock Test',
+        status: 'completed',
+        answeredCount: params.answeredCount,
+        totalQuestions: resolvedMeta?.totalQuestions ?? existingForTest?.totalQuestions ?? 0,
+        remainingSeconds: null,
+        durationMinutes: resolvedMeta?.durationMinutes ?? existingForTest?.durationMinutes ?? 0,
+        score: params.attempt.score,
+        totalMarks: resolvedMeta?.totalMarks ?? existingForTest?.totalMarks ?? 0,
+        passingMarks: resolvedMeta?.passingMarks ?? existingForTest?.passingMarks ?? 0,
+        accuracy: params.attempt.accuracy,
+        timeTakenSeconds: params.attempt.time_taken_seconds,
+        activityAt:
+            params.attempt.end_time ??
+            params.attempt.created_at ??
+            params.attempt.start_time ??
+            new Date().toISOString(),
+        release_date: resolvedMeta?.release_date ?? existingForTest?.release_date ?? null,
+        expiry_date: resolvedMeta?.expiry_date ?? existingForTest?.expiry_date ?? null,
+        is_published: resolvedMeta?.is_published ?? existingForTest?.is_published ?? true,
+        series_is_published:
+            resolvedMeta?.series_is_published ?? existingForTest?.series_is_published ?? true,
+        category_is_active:
+            resolvedMeta?.category_is_active ?? existingForTest?.category_is_active ?? true,
+    };
+
+    const nextItems = dedupeAndSortContinueLearningItems(
+        [completedEntry, ...existingItems.filter((item) => item.testId !== trimmedTestId)],
+        12
+    );
+    const payload = { items: nextItems, fetchedAt: Date.now() };
+    memoryContinueLearningCache.set(trimmedUserId, payload);
+    safeWriteLocalStorage(`${MOCK_CONTINUE_LEARNING_STORAGE_PREFIX}${trimmedUserId}`, payload);
+    db.setCacheEntry?.(`${MOCK_CONTINUE_LEARNING_IDB_PREFIX}${trimmedUserId}`, payload)?.catch(
+        () => {}
+    );
+};
+
+/**
+ * Synchronous 0ms cache lookup for Continue Learning items (`DEC-0004`, `DEC-0017`, `DEC-0018`),
+ * re-validating visibility & schedule window and overlaying active offline attempts in 0ms.
+ */
+export const getCachedContinueLearningSnapshot = (
+    userId?: string | null,
+    nowMs: number = Date.now(),
+    limit: number = 4
+): ContinueLearningItem[] | null => {
+    const trimmedUserId = String(userId ?? '').trim();
+    if (!trimmedUserId) return null;
+
+    const mem = memoryContinueLearningCache.get(trimmedUserId);
+    if (mem && Array.isArray(mem.items)) {
+        return reconcileCachedContinueLearningItems(mem.items, trimmedUserId, nowMs, limit);
+    }
+
+    const stored = safeReadLocalStorage<{ items: ContinueLearningItem[]; fetchedAt: number }>(
+        `${MOCK_CONTINUE_LEARNING_STORAGE_PREFIX}${trimmedUserId}`
+    );
+    if (stored && Array.isArray(stored.items)) {
+        const sanitized = stored.items
+            .map(sanitizeContinueLearningItem)
+            .filter((item): item is ContinueLearningItem => Boolean(item));
+        memoryContinueLearningCache.set(trimmedUserId, {
+            items: sanitized,
+            fetchedAt: stored.fetchedAt ?? Date.now(),
+        });
+        return reconcileCachedContinueLearningItems(sanitized, trimmedUserId, nowMs, limit);
+    }
+
+    const localActive = readLocalActiveAttemptsForUser(trimmedUserId);
+    if (localActive.length > 0) {
+        const projected = buildContinueLearningItems({
+            rows: [],
+            userId: trimmedUserId,
+            localActiveAttempts: localActive,
+            catalogTests: readCatalogFromSyncCache()?.tests,
+            limit,
+            nowMs,
+        });
+        if (projected.length > 0) {
+            return projected;
+        }
+    }
+
+    return null;
+};
+
+/**
+ * Async IndexedDB fallback hydration for Continue Learning items (`MindFlowDB.sync_metadata`).
+ */
+export const readContinueLearningIndexedDBCache = async (
+    userId?: string | null,
+    nowMs: number = Date.now(),
+    limit: number = 4
+): Promise<ContinueLearningItem[] | null> => {
+    const trimmedUserId = String(userId ?? '').trim();
+    if (!trimmedUserId) return null;
+
+    const hasSyncCache =
+        memoryContinueLearningCache.has(trimmedUserId) ||
+        safeReadLocalStorage<unknown>(`${MOCK_CONTINUE_LEARNING_STORAGE_PREFIX}${trimmedUserId}`) !==
+            null;
+
+    if (hasSyncCache) {
+        return getCachedContinueLearningSnapshot(trimmedUserId, nowMs, limit);
+    }
+
+    try {
+        const entry = await db.getCacheEntry<{
+            items: ContinueLearningItem[];
+            fetchedAt: number;
+        }>(`${MOCK_CONTINUE_LEARNING_IDB_PREFIX}${trimmedUserId}`);
+        if (entry?.data && Array.isArray(entry.data.items)) {
+            const sanitized = entry.data.items
+                .map(sanitizeContinueLearningItem)
+                .filter((item): item is ContinueLearningItem => Boolean(item));
+            const payload = {
+                items: sanitized,
+                fetchedAt: entry.data.fetchedAt ?? Date.now(),
+            };
+            memoryContinueLearningCache.set(trimmedUserId, payload);
+            safeWriteLocalStorage(
+                `${MOCK_CONTINUE_LEARNING_STORAGE_PREFIX}${trimmedUserId}`,
+                payload
+            );
+            return reconcileCachedContinueLearningItems(sanitized, trimmedUserId, nowMs, limit);
+        }
+    } catch {
+        // Ignore IndexedDB unavailability
+    }
+
+    return getCachedContinueLearningSnapshot(trimmedUserId, nowMs, limit);
+};
+
+/**
+ * Fetches recent `in_progress` and `completed` prepared mock-test attempts for the authenticated student,
+ * reconciles offline local sessions, persists a 12-item privacy-safe cache (`DEC-0018`),
+ * and returns up to `options?.limit ?? 4` sorted items (`DEC-0004`, `DEC-0017`).
+ */
+export const fetchContinueLearningItems = async (
+    userId?: string | null,
+    options?: { limit?: number; nowMs?: number }
+): Promise<ContinueLearningItem[]> => {
+    const trimmedUserId = String(userId ?? '').trim();
+    if (!trimmedUserId) return [];
+
+    const nowMs = options?.nowMs ?? Date.now();
+    const requestedLimit =
+        options?.limit !== undefined && Number.isFinite(options.limit)
+            ? Math.max(0, Math.trunc(options.limit))
+            : 4;
+    const cacheLimit = Math.max(12, requestedLimit);
+
+    let query: any = supabase
+        .from(DB_TABLES.MOCK.ATTEMPTS)
+        .select(
+            `id, test_id, user_id, start_time, end_time, time_taken_seconds, score, accuracy, status, answers, created_at, ${DB_TABLES.MOCK.TESTS}!inner(id, series_id, name, duration_minutes, total_marks, passing_marks, negative_marks, question_ids, is_published, release_date, expiry_date, ${DB_TABLES.MOCK.SERIES}!inner(id, category_id, name, is_published, ${DB_TABLES.MOCK.CATEGORIES}!inner(id, name, is_active)))`
+        )
+        .eq('user_id', trimmedUserId);
+    if (typeof query.in === 'function') {
+        query = query.in('status', ['in_progress', 'completed']);
+    }
+    if (typeof query.order === 'function') {
+        query = query.order('created_at', { ascending: false });
+    }
+    if (typeof query.limit === 'function') {
+        query = query.limit(25);
+    }
+
+    const { data, error } = await query;
+    if (error) throw error;
+
+    const fullItems = buildContinueLearningItems({
+        rows: Array.isArray(data) ? data : [],
+        userId: trimmedUserId,
+        localActiveAttempts: readLocalActiveAttemptsForUser(trimmedUserId),
+        catalogTests: readCatalogFromSyncCache()?.tests,
+        limit: cacheLimit,
+        nowMs,
+    });
+
+    const payload = { items: fullItems, fetchedAt: Date.now() };
+    memoryContinueLearningCache.set(trimmedUserId, payload);
+    safeWriteLocalStorage(`${MOCK_CONTINUE_LEARNING_STORAGE_PREFIX}${trimmedUserId}`, payload);
+    db.setCacheEntry?.(`${MOCK_CONTINUE_LEARNING_IDB_PREFIX}${trimmedUserId}`, payload)?.catch(
+        () => {}
+    );
+
+    return fullItems.slice(0, requestedLimit);
 };

@@ -42,6 +42,7 @@ import {
 import { Breadcrumbs } from '../components/Breadcrumbs';
 import { EmptyState } from '../components/EmptyState';
 import { HeroSkeleton } from '../components/Skeletons';
+import { TestLeaderboardCard } from '../components/TestLeaderboardCard';
 
 const PRODUCTION_TEST_BASE_URL = 'https://aklabx.github.io/MindFlow/#/mcqs/test-series/test';
 
@@ -876,6 +877,16 @@ export const TestDetailPage: React.FC = () => {
                                     )}
                                 </div>
                             )}
+                        </section>
+
+                        {/* Leaderboard */}
+                        <section className="mb-8 border-t border-slate-100 dark:border-slate-700/50 pt-7">
+                            <TestLeaderboardCard
+                                tests={[test]}
+                                fixedTestId={test.id}
+                                limit={20}
+                                refreshKey={attempts.length}
+                            />
                         </section>
 
                         {/* Action Buttons */}

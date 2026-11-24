@@ -37,6 +37,7 @@ const {
 vi.mock('@/lib/supabase', () => ({
     supabase: {
         from: fromMock,
+        rpc: vi.fn().mockResolvedValue({ data: [], error: null }),
     },
 }));
 
@@ -560,7 +561,7 @@ describe('v1.0.372 Student TestDetailPage Bug Fixes, Attempt History & Save/Shar
         const h2s = container.querySelectorAll('h2');
         const h3s = container.querySelectorAll('h3');
         expect(h1s.length).toBe(1);
-        expect(h2s.length).toBe(2);
+        expect(h2s.length).toBe(3);
         expect(h3s.length).toBe(0);
 
         const thumb = render(<BrandedThumbnail title="BPSC Prelims" type="series" />);
