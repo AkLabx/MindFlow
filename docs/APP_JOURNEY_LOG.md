@@ -26,6 +26,19 @@ This document is the single source of truth for the evolution of the MindFlow ap
 
 ## 🚀 App Journey Changelog
 
+## [v1.0.380] - 25 November 2026, 09:15 AM IST
+
+Completed Gen 1B Step 14 & Graduated Gen 1B (`v1.0.367` $\rightarrow$ `v1.0.380`): completed zero-DDL Supabase Security & Performance Advisor sign-off on Mock Tests & Admin RBAC, hardened Android WebView tactile/accessibility ergonomics across result review, test series discovery, and admin hardware back navigation, bumped Android manifests (`versionCode 7`, `versionName "1.7"`), and scaffolded Gen 2 (`v1.0.381` $\rightarrow$ `v1.0.390`) for Community Chatrooms & Study Rooms hardening.
+
+### 🔒 Security & Architecture
+- **Supabase Security & Performance Advisor Sign-Off (`mock_*`, `get_mock_test_leaderboard`, `get_test_leaderboard`, `is_admin`)**: Verified `0` advisor ERRORs, `5/5` `mock_*` tables (`rowsecurity = true`), `"Public read for leaderboard if completed"` locked `USING (false)`, `search_path = public, pg_temp` + `anon_exec = false` + `auth_exec = true` on RBAC/leaderboard RPCs, and 6 covering indexes; documented non-blocking `WARN`/`INFO` backlog (`multiple_permissive_policies`, `anon` `EXECUTE` on 5 non-mock AI/telemetry worker RPCs, and `chat_room_messages`/`chat_message_reactions` `auth_rls_initplan` + 2 unindexed FKs) into Gen 2 Step 1 (`v1.0.381`).
+- **Gen 1B Graduation & Gen 2 Blueprint (`docs/blueprint/main_blueprint.md`, `docs/blueprint/v1.0_blueprint.md`, `docs/blueprint/v2.0_blueprint.md`)**: Marked Gen 1B `COMPLETED` at `v1.0.380` and activated Gen 2 (`v1.0.381` $\rightarrow$ `v1.0.390`) focused on `src/features/community/`.
+
+### 🐛 Bug Fixes
+- **Solution Review Accessibility, Keyboard Avoidance & Back Parity (`src/features/mock-tests/pages/PreparedMockResultPage.tsx`)**: Added `<KeyboardAwareBottomBar fullWidth>`, `scroll-mb-28`, `min-h-[44px]`/`min-w-[44px]` `active:scale-95` `touch-manipulation` `aria-pressed` controls, `lang="hi"` on Hindi blocks, `<h2 id="quick-jump-palette-title">` + explicit `44x44px` `Close question palette` `<button type="button">` inside `<NativeDialog>`, and validated `location.state?.returnTo`/`from` handling.
+- **Test Series Semantic Navigation & Safe Layout (`src/features/mock-tests/pages/TestSeriesPage.tsx`)**: Replaced `-m-4 sm:-m-6 lg:-m-8` with `min-h-[100dvh] w-full pb-28 scroll-mb-28`, added visible `<ArrowLeft />` logical back (`44x44px`, `type="button"`, `active:scale-95`), upgraded filter pills, and converted series cards to `<button type="button">` passing `{ state: { returnTo: location.pathname } }`.
+- **Admin Hardware Back Hierarchy & Clock-Pinned Tests (`src/hooks/useHardwareBackButton.ts`, `src/hooks/useHardwareBackButton.test.ts`, `src/features/mock-tests/__tests__/examPreparedMockTests.test.tsx`, `src/features/mock-tests/__tests__/preparedMockScoringReview.test.tsx`)**: Routed `/admin/*` hardware back to `ROUTES.ADMIN.ROOT` after `/admin/test-series/`, pinned `Date` in `examPreparedMockTests.test.tsx` to eliminate wall-clock drift, and added regression coverage across `275/275` Vitest tests.
+
 ## [v1.0.379] - 24 November 2026, 09:55 PM IST
 
 Implemented Gen 1B Step 13: standardized 3-tier SWR & IndexedDB caching contracts across Student Mock Tests and Admin CMS, cross-feature Admin $\rightarrow$ Student cache invalidation cascades, scoring/offline replay hardening, and full Vitest + Playwright E2E regression suites.

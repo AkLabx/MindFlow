@@ -331,6 +331,8 @@ const buildFixtureData = (): MockTablesData => ({
 
 describe('v1.0.371 Dedicated BPSC Prepared Mock Tests & Canonical Routing', () => {
     beforeEach(() => {
+        vi.useFakeTimers({ toFake: ['Date'] });
+        vi.setSystemTime(NOW_MS);
         vi.clearAllMocks();
         window.localStorage.clear();
         clearPreparedMockTestsCache();
@@ -341,6 +343,7 @@ describe('v1.0.371 Dedicated BPSC Prepared Mock Tests & Canonical Routing', () =
 
     afterEach(() => {
         cleanup();
+        vi.useRealTimers();
     });
 
     it('resolves canonical exam slugs, aliases, and route helpers without false-matching BPSSC', () => {

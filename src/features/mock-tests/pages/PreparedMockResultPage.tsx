@@ -28,6 +28,7 @@ import { useLayoutStore } from '@/stores/useLayoutStore';
 import { triggerHaptic } from '@/lib/haptics';
 import { MarkdownRenderer } from '@/components/ui/MarkdownRenderer';
 import { NativeDialog } from '@/components/ui/NativeDialog';
+import { KeyboardAwareBottomBar } from '@/components/ui/KeyboardAwareBottomBar';
 import { SynapticLoader } from '@/components/ui/SynapticLoader';
 import { EmptyState } from '../components/EmptyState';
 import {
@@ -217,15 +218,21 @@ export const PreparedMockResultPage: React.FC = () => {
         loadResultData();
     }, [loadResultData]);
 
-    // Back navigation adhering to DEC-0002
+    // Back navigation adhering to DEC-0002 / DEC-0020
     const handleBack = useCallback(() => {
         triggerHaptic();
+        const state = location.state as { returnTo?: unknown; from?: unknown } | null;
+        const candidate = state?.returnTo ?? state?.from;
+        if (typeof candidate === 'string' && candidate.startsWith('/') && !candidate.startsWith('//')) {
+            navigate(candidate);
+            return;
+        }
         if (testId) {
             navigate(ROUTES.TEST_SERIES.TEST(testId));
         } else {
             navigate(ROUTES.TEST_SERIES.ROOT);
         }
-    }, [navigate, testId]);
+    }, [location.state, navigate, testId]);
 
     const handleReattempt = useCallback(() => {
         triggerHaptic();
@@ -336,7 +343,7 @@ export const PreparedMockResultPage: React.FC = () => {
                         <button
                             type="button"
                             onClick={handleBack}
-                            className="p-2.5 -ml-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 transition-colors active:scale-95 shrink-0"
+                            className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center p-2.5 -ml-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 transition-colors active:scale-95 touch-manipulation shrink-0"
                             aria-label="Back to test details"
                         >
                             <ArrowLeft className="w-5 h-5" aria-hidden="true" />
@@ -356,11 +363,12 @@ export const PreparedMockResultPage: React.FC = () => {
                         <div className="inline-flex items-center p-1 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
                             <button
                                 type="button"
+                                aria-pressed={viewMode === 'scorecard'}
                                 onClick={() => {
                                     triggerHaptic();
                                     setViewMode('scorecard');
                                 }}
-                                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all active:scale-95 ${
+                                className={`min-h-[44px] px-3 py-1.5 rounded-lg text-xs font-bold transition-all active:scale-95 touch-manipulation ${
                                     viewMode === 'scorecard'
                                         ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm'
                                         : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
@@ -370,11 +378,12 @@ export const PreparedMockResultPage: React.FC = () => {
                             </button>
                             <button
                                 type="button"
+                                aria-pressed={viewMode === 'solutions'}
                                 onClick={() => {
                                     triggerHaptic();
                                     setViewMode('solutions');
                                 }}
-                                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all active:scale-95 ${
+                                className={`min-h-[44px] px-3 py-1.5 rounded-lg text-xs font-bold transition-all active:scale-95 touch-manipulation ${
                                     viewMode === 'solutions'
                                         ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm'
                                         : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
@@ -387,7 +396,7 @@ export const PreparedMockResultPage: React.FC = () => {
                         <button
                             type="button"
                             onClick={handleReattempt}
-                            className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:hover:bg-indigo-900/50 dark:text-indigo-300 transition-colors active:scale-95"
+                            className="hidden sm:inline-flex min-h-[44px] items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:hover:bg-indigo-900/50 dark:text-indigo-300 transition-colors active:scale-95 touch-manipulation"
                         >
                             <RotateCcw className="w-3.5 h-3.5" aria-hidden="true" />
                             <span>Retake</span>
@@ -397,7 +406,7 @@ export const PreparedMockResultPage: React.FC = () => {
             </header>
 
             {/* Main Content Area */}
-            <main className="flex-1 max-w-4xl mx-auto w-full p-4 sm:p-6 pb-28">
+            <main className="flex-1 max-w-4xl mx-auto w-full p-4 sm:p-6 pb-28 scroll-mb-28">
                 {viewMode === 'scorecard' ? (
                     <div className="space-y-6">
                         {/* Hero Scorecard Banner */}
@@ -581,7 +590,7 @@ export const PreparedMockResultPage: React.FC = () => {
                                     triggerHaptic();
                                     setViewMode('solutions');
                                 }}
-                                className="w-full sm:w-auto px-5 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm shadow-md transition-all active:scale-95 shrink-0 flex items-center justify-center gap-2"
+                                className="min-h-[44px] w-full sm:w-auto px-5 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm shadow-md transition-all active:scale-95 touch-manipulation shrink-0 flex items-center justify-center gap-2"
                             >
                                 <BookOpen className="w-4 h-4" aria-hidden="true" />
                                 <span>Review Solutions (1-by-1)</span>
@@ -606,12 +615,13 @@ export const PreparedMockResultPage: React.FC = () => {
                                     <button
                                         key={fc.id}
                                         type="button"
+                                        aria-pressed={filterMode === fc.id}
                                         onClick={() => {
                                             triggerHaptic();
                                             setFilterMode(fc.id);
                                             setCurrentQuestionIndex(0);
                                         }}
-                                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all active:scale-95 ${
+                                        className={`min-h-[44px] px-3 py-1.5 rounded-lg text-xs font-bold transition-all active:scale-95 touch-manipulation ${
                                             filterMode === fc.id
                                                 ? 'bg-indigo-600 text-white shadow-sm'
                                                 : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
@@ -629,11 +639,12 @@ export const PreparedMockResultPage: React.FC = () => {
                                         <button
                                             key={lang}
                                             type="button"
+                                            aria-pressed={languageMode === lang}
                                             onClick={() => {
                                                 triggerHaptic();
                                                 setLanguageMode(lang);
                                             }}
-                                            className={`px-2.5 py-1 rounded-lg font-bold capitalize transition-all active:scale-95 ${
+                                            className={`min-h-[44px] px-2.5 py-1 rounded-lg font-bold capitalize transition-all active:scale-95 touch-manipulation ${
                                                 languageMode === lang
                                                     ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm'
                                                     : 'text-slate-600 dark:text-slate-400'
@@ -650,7 +661,7 @@ export const PreparedMockResultPage: React.FC = () => {
                                         triggerHaptic();
                                         setIsPaletteOpen(true);
                                     }}
-                                    className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors active:scale-95"
+                                    className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors active:scale-95 touch-manipulation"
                                     aria-label="Open Question Palette Grid"
                                     title="Open Question Palette"
                                 >
@@ -719,7 +730,9 @@ export const PreparedMockResultPage: React.FC = () => {
                                                 <div className="text-[10px] font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400 mb-1">
                                                     Hindi Translation
                                                 </div>
-                                                <MarkdownRenderer content={activeQuestion.question_hi} />
+                                                <div lang="hi">
+                                                    <MarkdownRenderer content={activeQuestion.question_hi} />
+                                                </div>
                                             </div>
                                         )}
 
@@ -788,7 +801,7 @@ export const PreparedMockResultPage: React.FC = () => {
                                                     <div className="space-y-1 min-w-0 flex-1 text-sm font-medium leading-snug">
                                                         <div>{opt}</div>
                                                         {languageMode === 'bilingual' && hindiOpt && (
-                                                            <div className="text-xs text-slate-600 dark:text-slate-400 font-normal">
+                                                            <div lang="hi" className="text-xs text-slate-600 dark:text-slate-400 font-normal">
                                                                 {hindiOpt}
                                                             </div>
                                                         )}
@@ -855,7 +868,9 @@ export const PreparedMockResultPage: React.FC = () => {
                                                     <strong className="block text-xs uppercase tracking-wider text-amber-700 dark:text-amber-400 mb-1">
                                                         Hindi Explanation
                                                     </strong>
-                                                    <MarkdownRenderer content={(activeQuestion as any).explanation_hi} />
+                                                    <div lang="hi">
+                                                        <MarkdownRenderer content={(activeQuestion as any).explanation_hi} />
+                                                    </div>
                                                 </div>
                                             )}
 
@@ -886,7 +901,10 @@ export const PreparedMockResultPage: React.FC = () => {
 
             {/* Sticky Bottom Navigation for 1-by-1 Solution Review */}
             {viewMode === 'solutions' && filteredQuestions.length > 0 && (
-                <div className="fixed bottom-0 inset-x-0 z-30 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 py-2.5 px-4">
+                <KeyboardAwareBottomBar
+                    fullWidth
+                    className="z-30 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md"
+                >
                     <div className="max-w-4xl mx-auto flex items-center justify-between gap-3">
                         <button
                             type="button"
@@ -895,7 +913,7 @@ export const PreparedMockResultPage: React.FC = () => {
                                 triggerHaptic();
                                 setCurrentQuestionIndex((prev) => Math.max(0, prev - 1));
                             }}
-                            className="px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold text-xs flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed active:scale-95 transition-all"
+                            className="min-h-[44px] px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold text-xs flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed active:scale-95 touch-manipulation transition-all"
                         >
                             <ChevronLeft className="w-4 h-4" aria-hidden="true" />
                             <span>Previous</span>
@@ -907,7 +925,8 @@ export const PreparedMockResultPage: React.FC = () => {
                                 triggerHaptic();
                                 setIsPaletteOpen(true);
                             }}
-                            className="text-xs font-black text-slate-700 dark:text-slate-300 px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                            aria-label="Open question palette"
+                            className="min-h-[44px] text-xs font-black text-slate-700 dark:text-slate-300 px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 active:scale-95 touch-manipulation transition-all"
                         >
                             Q {currentQuestionIndex + 1} / {filteredQuestions.length}
                         </button>
@@ -919,13 +938,13 @@ export const PreparedMockResultPage: React.FC = () => {
                                 triggerHaptic();
                                 setCurrentQuestionIndex((prev) => Math.min(filteredQuestions.length - 1, prev + 1));
                             }}
-                            className="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed active:scale-95 transition-all shadow-sm"
+                            className="min-h-[44px] px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed active:scale-95 touch-manipulation transition-all shadow-sm"
                         >
                             <span>Next</span>
                             <ChevronRight className="w-4 h-4" aria-hidden="true" />
                         </button>
                     </div>
-                </div>
+                </KeyboardAwareBottomBar>
             )}
 
             {/* Quick-Jump Question Palette Dialog */}
@@ -937,11 +956,27 @@ export const PreparedMockResultPage: React.FC = () => {
                 panelClassName="h-full w-full bg-white dark:bg-slate-900 p-5 flex flex-col"
             >
                 <div className="p-4 space-y-4">
-                    <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
-                        <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                            Jump to Question
-                        </span>
-                        <div className="flex items-center gap-2 text-[11px] font-bold">
+                    <div className="space-y-2 pb-3 border-b border-slate-100 dark:border-slate-800">
+                        <div className="flex items-center justify-between gap-2">
+                            <h2
+                                id="quick-jump-palette-title"
+                                className="text-sm font-black tracking-tight text-slate-900 dark:text-white"
+                            >
+                                Jump to Question
+                            </h2>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    triggerHaptic();
+                                    setIsPaletteOpen(false);
+                                }}
+                                aria-label="Close question palette"
+                                className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-xl text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors active:scale-95 touch-manipulation"
+                            >
+                                <X className="w-4 h-4" aria-hidden="true" />
+                            </button>
+                        </div>
+                        <div className="flex items-center gap-3 text-[11px] font-bold">
                             <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
                                 <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block" />
                                 Correct
@@ -980,7 +1015,7 @@ export const PreparedMockResultPage: React.FC = () => {
                                         setCurrentQuestionIndex(idx);
                                         setIsPaletteOpen(false);
                                     }}
-                                    className={`h-11 rounded-xl text-xs font-bold transition-all active:scale-95 flex items-center justify-center ${btnStyle}`}
+                                    className={`h-11 min-h-[44px] min-w-[44px] rounded-xl text-xs font-bold transition-all active:scale-95 touch-manipulation flex items-center justify-center ${btnStyle}`}
                                 >
                                     {idx + 1}
                                 </button>

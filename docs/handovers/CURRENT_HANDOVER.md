@@ -8,19 +8,23 @@
 ## 1. Current Verified Baseline Snapshot
 
 - **Repository:** `MindFlow` (Full-Stack React 19 + TypeScript + Vite + TailwindCSS + Capacitor Android + Supabase + IndexedDB)
-- **Current Baseline Version:** `v1.0.379` (`package.json` SemVer: `1.0.379`, on `main`)
-- **Android App Version:** `versionCode 6`, `versionName "1.6"` (`android/app/build.gradle`)
+- **Current Baseline Version:** `v1.0.380` (`package.json` SemVer: `1.0.380`, on `main`)
+- **Android App Version:** `versionCode 7`, `versionName "1.7"` (`android/app/build.gradle`)
 - **Current Git Branch:** `main` (Slot 1 Anchor / Host)
 - **Static Typecheck:** Passed (`0` errors via `node --max-old-space-size=4096 ./node_modules/typescript/bin/tsc --noEmit`)
-- **Unit & Integration Tests:** Passed (`43/43` test files, `273/273` tests passed via `npx.cmd vitest --run --pool=forks --maxWorkers=1`, including `6/6` in `src/features/mock-tests/__tests__/mockTestsSwrRegression.test.tsx`, `7/7` in `src/features/mock-tests/__tests__/examPreparedMockTests.test.tsx`, `6/6` in `src/features/mock-tests/__tests__/testDetailPage.test.tsx`, `15/15` in `src/features/admin/test-series/__tests__/adminTestSeriesCms.test.tsx`, and `7/7` in `src/features/admin/test-series/__tests__/adminTestAnalytics.test.tsx`)
-- **Playwright E2E Suite:** Passed (`1/1` passed via `npx.cmd playwright test --reporter=list` in `48.8s`, running `e2e/mock-tests-smoke.spec.ts` across `#/mcqs/test-series/bpsc` $\rightarrow$ `TestDetailPage` $\rightarrow$ CBT Runner $\rightarrow$ Scorecard $\rightarrow$ 1-by-1 Solution Review $\rightarrow$ 0ms SWR revisit with `0` console/page errors)
-- **Production Build:** Verified cleanly via `npx.cmd vite build` (`5489` modules transformed, PWA precache `208` entries / `6911.93 KiB`)
-- **Live Browser Verification (Chrome DevTools MCP against `http://localhost:3000/`):**
-  - `#/mcqs/test-series/bpsc`: Verified 0ms SWR reload reuse (`mock_tests` skipped within 5m stale window), `Refresh` (`forceRefresh: true`) revalidation, `9.3ms` (`<16ms`) filter chip click latency, `>=44x44px` touch targets (`0` sub-44px controls), `0px` horizontal overflow (Desktop `1280x800` & Mobile `500x637`), and `0` console errors/warnings.
-  - `#/admin/test-series?tab=tests`: Verified `"Mock Tests & Exam CMS"` rendered with `0px` horizontal overflow and `0` console errors/warnings.
-- **Master Blueprint Index:** [`docs/blueprint/main_blueprint.md`](../blueprint/main_blueprint.md)
-- **Active Generation Blueprint:** [`docs/blueprint/v1.0_blueprint.md`](../blueprint/v1.0_blueprint.md) — **Gen 1B (`v1.0.367` $\rightarrow$ `v1.0.380`): Admin Panel & Dedicated BPSC Prepared Mock Tests Hardening**
-- **Next Active Step:** **Step 14 (`v1.0.380`) — End-to-End Security Advisor Audit, Android WebView Polish & Gen 1B Sign-Off**
+- **Unit & Integration Tests:** Passed (`43/43` test files, `275/275` tests passed in `286.17s` via `npx.cmd vitest --run --pool=forks --maxWorkers=1`)
+- **Playwright E2E Suite:** Passed (`1/1` passed in `58.0s` via `npx.cmd playwright test --reporter=list`, running `e2e/mock-tests-smoke.spec.ts` in `41.3s`)
+- **Production Build:** Verified cleanly via `npx.cmd vite build` (`5489` modules transformed, `2m 14s`, PWA v1.3.0 `generateSW`, precache `208` entries / `6914.44 KiB`)
+- **Supabase Security & Performance Advisor Sign-Off (`v1.0.380` Zero-DDL):**
+  - `get_advisors(type="security")`: `0` ERRORs; `4` non-blocking WARN categories (`extension_in_public` for `pg_trgm`/`pg_net`, `auth_leaked_password_protection`, `anon_security_definer_function_executable` on 5 non-mock AI/telemetry worker RPCs, `authenticated_security_definer_function_executable` including expected `get_mock_test_leaderboard`, `get_test_leaderboard`, `is_admin`, `create_quiz_session`, `submit_quiz_session`).
+  - `get_advisors(type="performance")`: `0` ERRORs; `5/5` `mock_*` tables `rowsecurity = true`, `"Public read for leaderboard if completed"` locked `USING (false)`, `get_mock_test_leaderboard` / `get_test_leaderboard` / `is_admin` all verified with `search_path = public, pg_temp`, `anon_exec = false`, `auth_exec = true`, and 6 covering indexes (`idx_test_series_category`, `test_series_slug_key`, `idx_tests_series`, `idx_leaderboard`, `idx_user_attempts_user`, `idx_user_attempts_test`).
+  - Documented non-blocking `WARN`/`INFO` backlog queued into Gen 2 Step 1 (`v1.0.381`): (a) `multiple_permissive_policies` on `mock_*`, (b) `anon` `EXECUTE` on 5 non-mock AI/telemetry worker RPCs, and (c) `chat_room_messages` / `chat_message_reactions` `auth_rls_initplan` + 2 unindexed FK `INFO` lints.
+- **Live Browser Verification (External Chrome DevTools MCP against `http://localhost:3000/`):**
+  - **Mobile (`390x844`):** `0px` horizontal overflow across `#/mcqs/test-series`, `#/mcqs/test-series/bpsc`, `#/mcqs/test-series/category/...` (`TestSeriesPage`: `0` sub-44px buttons), `#/mcqs/test-series/series/...`, `#/mcqs/test-series/test/.../result/...` (error state: `0` sub-44px buttons), `#/admin/test-series?tab=tests` + Analytics Drawer (`dialogOpen: true`, `hasPiiStrings: false`, `overflowPx: 0`; non-blocking `All` pill `39x44px` noted on dashboard), `#/admin/test-series/tests/new?step=3`, and `#/admin/questions` (`0` sub-44px buttons).
+  - **Desktop (`1280x637` in `1280x800` window):** `0px` horizontal overflow (`scrollWidth: 1272`, `innerWidth: 1280`) across `#/admin/questions`, `#/admin/test-series?tab=tests`, `#/admin/test-series/tests/new?step=3`, `#/mcqs/test-series`, and `#/mcqs/test-series/bpsc`; `0` console errors; network queries scoped strictly to authenticated `user_id` with `0` cross-user `answers` leaks.
+- **Master Blueprint Index:** [`docs/blueprint/main_blueprint.md`](../blueprint/main_blueprint.md) — **Gen 1B (`v1.0.367` $\rightarrow$ `v1.0.380`) `COMPLETED`**
+- **Active Generation Blueprint:** [`docs/blueprint/v2.0_blueprint.md`](../blueprint/v2.0_blueprint.md) — **Gen 2 (`v1.0.381` $\rightarrow$ `v1.0.390`): Community Chatrooms & Study Rooms Hardening (`src/features/community/`)**
+- **Next Active Step:** **Step 1 (`v1.0.381`) — Community Chatroom DB RLS/Index Hardening & Realtime v2 Channel Resilience**
 
 ---
 
@@ -41,46 +45,46 @@
 
 ---
 
-## 3. Pre-Planned Execution Brief for Next Version (`v1.0.380`)
+## 3. Pre-Planned Execution Brief for Next Version (`v1.0.381`)
 
-- **Target Milestone:** `v1.0.380` (`package.json` SemVer: `1.0.380`, plus `android/app/build.gradle` check if mobile shell adjusted)
-- **Target Branch:** `feat/v1.0.380-gen1b-security-android-signoff`
-- **Blueprint Reference:** Gen 1B, **Step 14** in [`docs/blueprint/v1.0_blueprint.md`](../blueprint/v1.0_blueprint.md)
-- **Objective:** Final production hardening pass across Supabase Security/Performance advisors, Android WebView tactile ergonomics, WCAG accessibility, and complete multi-persona live End-to-End verification to graduate Gen 1B cleanly at `v1.0.380` and scaffold Gen 2 (`v1.0.381`).
+- **Target Milestone:** `v1.0.381` (`package.json` SemVer: `1.0.381`)
+- **Target Branch:** `feat/v1.0.381-community-rls-realtime-resilience`
+- **Blueprint Reference:** Gen 2, **Step 1** in [`docs/blueprint/v2.0_blueprint.md`](../blueprint/v2.0_blueprint.md)
+- **Objective:** Kick off Gen 2 (`src/features/community/`) by resolving the documented `chat_room_messages` and `chat_message_reactions` Supabase Advisor RLS/FK lints via a non-destructive additive migration and hardening Supabase Realtime v2 channel lifecycle, reconnect recovery, and query safety in active community study rooms.
 - **Exact Scope & Targets:**
-  1. **Supabase Security & Performance Advisor Audit (`supabase_mcp`):**
-     - Execute `get_advisors` (`type: "security"` and `type: "performance"`) on project `sjcfagpjstbfxuiwhlps`.
-     - Verify RLS policies, `SECURITY DEFINER` `search_path` hardening, and index coverage across `public.mock_categories`, `public.mock_series`, `public.mock_tests`, `public.mock_test_attempts`, and `public.get_test_leaderboard` (`DEC-0017`, `DEC-0018`).
-  2. **Android WebView Tactile & Layout Audit:**
-     - Audit all student and admin mock-test routes (`ExamCategoriesPage`, `ExamPreparedMockTestsPage`, `TestsListPage`, `TestDetailPage`, `PreparedMockExamPage`, `PreparedMockResultPage`, `AdminTestSeriesDashboard`, `AdminTestBuilderPage`, `AdminQuestionsPage`) across Desktop (`1280x800`) and Mobile (`390x844` / `500x844`): verify `active:scale-95`, `>=44x44px` `type="button"` targets, `0px` horizontal overflow, `scroll-mb-28` clearance, `<KeyboardAwareBottomBar>`, and Android hardware back priority (`DEC-0002`, `DEC-0008`).
-  3. **End-to-End Multi-Persona Verification & Gen 1B Graduation:**
-     - Verify Admin CMS $\rightarrow$ Student Discovery $\rightarrow$ CBT Runner $\rightarrow$ Scorecard & Bilingual Solution Review $\rightarrow$ Continue Learning / Series Progress / Leaderboard $\rightarrow$ Admin Analytics end-to-end.
-     - Formally mark Gen 1B `COMPLETED` in `docs/blueprint/main_blueprint.md` and scaffold the Gen 2 blueprint (`docs/blueprint/v2.0_blueprint.md` or Gen 2 section) for Step 15 (`v1.0.381`).
-  - *Out of scope:* Net-new feature development; this milestone is strictly dedicated to security/performance verification, tactile polish, and Gen 1B graduation.
+  1. **Community Chatroom Database RLS & Index Migration (Circuit Breaker #3 Applies):**
+     - Inspect live `pg_policies` and `pg_indexes` on `public.chat_room_messages` and `public.chat_message_reactions` via `supabase_mcp`.
+     - Draft a non-destructive SQL migration wrapping `auth.uid()` in `(SELECT auth.uid())` to fix `auth_rls_initplan`, consolidating duplicate permissive policies cleanly without altering access semantics, and adding covering indexes for `chat_message_reactions_user_id_fkey` and `chat_room_messages_reply_to_id_fkey`.
+     - **STOP and ask the user for explicit confirmation** on the exact SQL DDL migration before executing via `supabase_mcp` (`Circuit Breaker #3`).
+  2. **Chat API Query Hygiene (`src/features/community/api/chatApi.ts`):**
+     - Audit message/reaction/room fetchers, pagination bounds, error translation, and mutation returns for type-safety, zero PII leakage, and clean optimistic/server reconciliation.
+  3. **Realtime v2 Channel Resilience (`src/features/community/hooks/useSocialRealtime.ts`, `src/features/community/pages/ActiveChatRoom.tsx`):**
+     - Harden Realtime channel subscription deduplication, reconnect/resync on `visibilitychange` and `online` events, clean `supabase.removeChannel()` teardown on room switch/unmount, and targeted Vitest unit/integration tests.
+  - *Out of scope:* Offline voice/text outbox queueing (`v1.0.382`), WebM audio duration/waveform player (`v1.0.383`), unread badges/keyboard bar (`v1.0.384`), and unrelated Gen 1B `mock-tests`/`admin` modules.
 - **Circuit Breakers & Constraints:**
-  - *Estimated files:* `<= 7` consolidation/doc files (stop & ask if any DB DDL migration is needed to resolve a Supabase Advisor warning).
+  - *Estimated files:* `5–7` files (`<= 10` threshold).
   - *New npm dependencies:* **None**.
-  - *DB schema changes:* **None** without explicit user confirmation.
-  - *Invariants to protect:* `DEC-0001` through `DEC-0027` (`<HashRouter>`, OAuth hash extraction, no guest mode, 0ms IndexedDB SWR, `DB_TABLES.*` / `DB_RPCS.*`, native `<dialog>`/Popover UI, `>=44x44px` `type="button"` `active:scale-95`, zero-PII analytics/caches, `**/e2e/**` excluded in `vitest.config.ts`).
+  - *DB schema/RLS changes:* **Triggers Circuit Breaker #3** — present exact additive SQL DDL migration for `chat_room_messages` & `chat_message_reactions` and await explicit user confirmation before applying.
+  - *Invariants to protect:* `DEC-0001` through `DEC-0028` (`<HashRouter>`, OAuth hash extraction, no guest mode, 0ms IndexedDB hydration, `DB_TABLES.*` / `DB_RPCS.*`, native `<dialog>`/Popover UI, `>=44x44px` `type="button"` `active:scale-95`, MindFlow Indigo/Violet chat theme `DEC-0011`, `DEC-0012` viewport/audio/swipe invariants, `**/e2e/**` excluded in `vitest.config.ts`).
 - **Real-World Verification Goal:**
-  - *Static & Automated:* `node --max-old-space-size=4096 ./node_modules/typescript/bin/tsc --noEmit` (`0` errors) + `npx.cmd vitest --run --pool=forks --maxWorkers=1` (`43/43` files, `273/273` tests) + `npx.cmd vite build` + `npx.cmd playwright test --reporter=list`.
-  - *Database & Live Browser:* Zero critical Supabase Advisor warnings, zero WCAG/touch-target failures on mobile, and verified end-to-end flows in Chrome DevTools MCP (`0` console errors).
+  - *Static & Automated:* `node --max-old-space-size=4096 ./node_modules/typescript/bin/tsc --noEmit` (`0` errors) + `npx.cmd vitest --run --pool=forks --maxWorkers=1` + `npx.cmd vite build`.
+  - *Database & Live Browser:* `supabase_mcp.get_advisors(type="performance")` confirms `0` `auth_rls_initplan` or unindexed FK warnings on `chat_room_messages` / `chat_message_reactions`; Chrome DevTools MCP on `http://localhost:3000/` verifies live room hydration, message/reaction updates, reconnect resync, `0px` horizontal overflow (`390x844` + `1280x800`), and `0` console errors.
 
 ---
 
 ## 4. Mandatory Closeout Checklist (Every Chat MUST Complete All 7)
 
-- [ ] **Step 1:** Create release dossier `docs/versions/v1.0.380.md` using `docs/versions/00-template.md`.
-- [ ] **Step 2:** Register newly made decisions in `docs/DECISIONS_MASTER.md` (`DEC-0028`, and `OLD-017` if applicable).
+- [ ] **Step 1:** Create release dossier `docs/versions/v1.0.381.md` using `docs/versions/00-template.md`.
+- [ ] **Step 2:** Register newly made decisions in `docs/DECISIONS_MASTER.md` (`DEC-0029`, and `OLD-018` if applicable).
 - [ ] **Step 3:** Prepend release entry to `docs/APP_JOURNEY_LOG.md` with exact IST timestamp.
-- [ ] **Step 4:** Mark Step 14 (`v1.0.380`) as `[x] DONE` with PR `#` in `docs/blueprint/v1.0_blueprint.md`, graduate Gen 1B to `COMPLETED` in `docs/blueprint/main_blueprint.md`, and scaffold Gen 2 (`v1.0.381`).
-- [ ] **Step 5:** Completely overwrite `docs/handovers/CURRENT_HANDOVER.md` with the `v1.0.380` verified baseline and Step 15 (`v1.0.381`) brief.
+- [ ] **Step 4:** Mark Step 1 (`v1.0.381`) as `[x] DONE` with PR `#` in `docs/blueprint/v2.0_blueprint.md`, promote Step 2 (`v1.0.382`) to High-Def Spec, and refine Step 6 (`v1.0.386`) from Vision into Medium Detail.
+- [ ] **Step 5:** Completely overwrite `docs/handovers/CURRENT_HANDOVER.md` with the `v1.0.381` verified baseline and Step 2 (`v1.0.382`) brief.
 - [ ] **Step 6:** Run secret/privacy scan on staged git changes (zero API keys, tokens, personal emails, or local OS paths).
 - [ ] **Step 7:** Commit, push, open PR via GitHub CLI `gh pr create`, record PR #, wait for CI check, squash merge, and verify clean `main`.
 
 ---
 
-## 5. Copy-Paste Starter Prompt for Fresh Chat (`v1.0.380`)
+## 5. Copy-Paste Starter Prompt for Fresh Chat (`v1.0.381`)
 
 ```text
 I am continuing development on MindFlow using the autonomous "1 Chat = 1 Version" workflow system governed by AGENTS.md, GEMINI.md, and the version-ritual skill.
@@ -89,11 +93,11 @@ Please follow this exact cold-start protocol:
 1. Read ONLY the Hot Context (<20 KB):
    - docs/handovers/CURRENT_HANDOVER.md
    - docs/DECISIONS_MASTER.md
-   - Active Step 14 (v1.0.380) in docs/blueprint/v1.0_blueprint.md
+   - Active Step 1 (v1.0.381) in docs/blueprint/v2.0_blueprint.md
    (Do NOT read historical dossiers or full changelogs on startup.)
-2. Verify git status on main and perform the 30-second Circuit Breaker sanity check (confirm <= 7 files, zero new npm packages, and zero unapproved DB DDL changes).
-3. Run System-2 Cognitive Pre-Flight: trace end-to-end Admin-to-Student lifecycle, Android WebView tactile/back-button/viewport edge cases, and Supabase RLS/performance invariants; identify 3 runtime failure modes and enforce zero-shortcut real verification.
-4. Execute the brief in Section 3 of CURRENT_HANDOVER.md (Target: v1.0.380 — End-to-End Security Advisor Audit, Android WebView Polish & Gen 1B Sign-Off).
-5. Verify statically (node --max-old-space-size=4096 ./node_modules/typescript/bin/tsc --noEmit; npx.cmd vitest --run --pool=forks --maxWorkers=1; npx.cmd vite build), run Playwright E2E (npx.cmd playwright test --reporter=list), run Supabase Security & Performance Advisors via MCP, and verify Desktop + Mobile UX in Chrome DevTools MCP with 0 console errors.
-6. Execute the mandatory 7-step Phase 4 closeout ritual (including graduating Gen 1B in docs/blueprint/main_blueprint.md and scaffolding Gen 2 v1.0.381), overwrite CURRENT_HANDOVER.md with Step 15 (v1.0.381), and output the starter prompt for v1.0.381.
+2. Verify git status on main and perform the 30-second Circuit Breaker sanity check (confirm <= 10 files, zero new npm packages, and note that Circuit Breaker #3 WILL trigger for the additive RLS/index SQL migration on chat_room_messages and chat_message_reactions — inspect live pg_policies/pg_indexes and ask for explicit approval before applying DDL).
+3. Run System-2 Cognitive Pre-Flight: trace Realtime v2 mount, room switch, background/visibility reconnect, network drop, and unmount cleanup lifecycles; identify 3 runtime failure modes and enforce zero-shortcut real verification.
+4. Execute the brief in Section 3 of CURRENT_HANDOVER.md (Target: v1.0.381 — Community Chatroom DB RLS/Index Hardening & Realtime v2 Channel Resilience).
+5. Verify statically (node --max-old-space-size=4096 ./node_modules/typescript/bin/tsc --noEmit; npx.cmd vitest --run --pool=forks --maxWorkers=1; npx.cmd vite build), verify Supabase Advisors via MCP, and verify Desktop + Mobile UX in Chrome DevTools MCP with 0 console errors.
+6. Execute the mandatory 7-step Phase 4 closeout ritual in docs/blueprint/v2.0_blueprint.md, overwrite CURRENT_HANDOVER.md with Step 2 (v1.0.382), and output the starter prompt for v1.0.382.
 ```

@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { BookOpen, Filter } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { ArrowLeft, BookOpen } from 'lucide-react';
+import { ROUTES } from '@/config/routes';
+import { triggerHaptic } from '@/lib/haptics';
 import { fetchCategoryDetails, fetchPublishedTestSeries } from '../api/mockTestsApi';
 import { Breadcrumbs } from '../components/Breadcrumbs';
 import { BrandedThumbnail } from '../components/BrandedThumbnail';
@@ -10,11 +11,23 @@ import { HeroSkeleton, GridSkeleton } from '../components/Skeletons';
 
 export const TestSeriesPage: React.FC = () => {
     const navigate = useNavigate();
+    const location = useLocation();
     const { categoryId } = useParams<{ categoryId: string }>();
     const [category, setCategory] = useState<any>(null);
     const [series, setSeries] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState<'all' | 'free' | 'premium'>('all');
+
+    const handleBack = useCallback(() => {
+        triggerHaptic();
+        const state = location.state as { returnTo?: unknown; from?: unknown } | null;
+        const candidate = state?.returnTo ?? state?.from;
+        if (typeof candidate === 'string' && candidate.startsWith('/') && !candidate.startsWith('//')) {
+            navigate(candidate);
+            return;
+        }
+        navigate(ROUTES.TEST_SERIES.ROOT);
+    }, [location.state, navigate]);
 
     useEffect(() => {
         if (categoryId) loadCategoryData(categoryId);
@@ -42,8 +55,19 @@ export const TestSeriesPage: React.FC = () => {
     });
 
     return (
-        <div className="flex flex-col min-h-screen -m-4 sm:-m-6 lg:-m-8 p-4 sm:p-6 lg:p-8 bg-slate-50 dark:bg-slate-900 transition-colors duration-700">
+        <div className="flex flex-col min-h-[100dvh] w-full pb-28 scroll-mb-28 p-4 sm:p-6 lg:p-8 bg-slate-50 dark:bg-slate-900 transition-colors duration-700">
             <div className="flex-1 w-full max-w-7xl mx-auto pb-20">
+                <div className="mb-3">
+                    <button
+                        type="button"
+                        onClick={handleBack}
+                        aria-label="Back to test series"
+                        className="min-h-[44px] min-w-[44px] px-4 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 font-bold text-sm inline-flex items-center gap-2 hover:border-indigo-400 transition-all active:scale-95 touch-manipulation cursor-pointer"
+                    >
+                        <ArrowLeft className="w-4 h-4 shrink-0" aria-hidden="true" />
+                        <span>Back</span>
+                    </button>
+                </div>
 
                 <Breadcrumbs items={[
                     { label: 'Mock Tests', path: '/mcqs/test-series' },
@@ -96,8 +120,13 @@ export const TestSeriesPage: React.FC = () => {
                                     {(['all', 'free', 'premium'] as const).map(f => (
                                         <button
                                             key={f}
-                                            onClick={() => setFilter(f)}
-                                            className={`px-4 py-2 rounded-lg text-sm font-bold capitalize transition-colors ${
+                                            type="button"
+                                            aria-pressed={filter === f}
+                                            onClick={() => {
+                                                triggerHaptic();
+                                                setFilter(f);
+                                            }}
+                                            className={`min-h-[44px] px-4 py-2 rounded-lg text-sm font-bold capitalize transition-all active:scale-95 touch-manipulation ${
                                                 filter === f
                                                     ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400'
                                                     : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/50'
@@ -118,11 +147,16 @@ export const TestSeriesPage: React.FC = () => {
                         ) : (
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
                                 {filteredSeries.map((s) => (
-                                    <motion.div
+                                    <button
                                         key={s.id}
-                                        whileHover={{ y: -4, transition: { duration: 0.2 } }}
-                                        onClick={() => navigate(`/mcqs/test-series/series/${s.id}`)}
-                                        className="group cursor-pointer bg-white dark:bg-slate-800 rounded-3xl overflow-hidden shadow-sm hover:shadow-xl border border-slate-200/60 dark:border-slate-700/60 transition-all duration-200 flex flex-col"
+                                        type="button"
+                                        onClick={() => {
+                                            triggerHaptic();
+                                            navigate(`/mcqs/test-series/series/${s.id}`, {
+                                                state: { returnTo: location.pathname },
+                                            });
+                                        }}
+                                        className="group text-left w-full cursor-pointer bg-white dark:bg-slate-800 rounded-3xl overflow-hidden shadow-sm hover:shadow-xl border border-slate-200/60 dark:border-slate-700/60 transition-all duration-200 flex flex-col active:scale-[0.99] touch-manipulation focus-visible:outline-2 focus-visible:outline-indigo-500 scroll-mb-28"
                                     >
                                         <div className="aspect-video w-full relative overflow-hidden bg-slate-100 dark:bg-slate-900">
                                             <BrandedThumbnail title={s.name} type="series" imageUrl={s.thumbnail_url} className="w-full h-full" />
@@ -145,7 +179,7 @@ export const TestSeriesPage: React.FC = () => {
                                                 <span className="text-xs font-bold text-slate-400 bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded-md">View Tests</span>
                                             </div>
                                         </div>
-                                    </motion.div>
+                                    </button>
                                 ))}
                             </div>
                         )}
