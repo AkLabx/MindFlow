@@ -10,7 +10,7 @@
 - **Repository:** `MindFlow` (Full-Stack React 19 + TypeScript + Vite + TailwindCSS + Capacitor Android + Supabase + IndexedDB)
 - **Current Baseline Version:** `v1.0.381` (`package.json` SemVer: `1.0.381`)
 - **Android App Version:** `versionCode 8`, `versionName "1.8"` (`android/app/build.gradle`)
-- **Current Git Branch / PR:** `feat/v1.0.381-student-home-mock-hub` / `PR #PENDING` (Slot 1 Anchor / Host)
+- **Current Git Branch / PR:** `feat/v1.0.381-student-home-mock-hub` / `PR #1125` (Slot 1 Anchor / Host)
 - **Static Typecheck:** Passed (`0` errors via `node --max-old-space-size=4096 ./node_modules/typescript/bin/tsc --noEmit`)
 - **Unit & Integration Tests:** Passed (`44` files passed, `282` tests passed via `npx.cmd vitest --run --pool=forks --maxWorkers=1`)
 - **Playwright E2E Suite:** Passed (`1` passed in `31.6s` via `npx.cmd playwright test --reporter=list`)
@@ -87,7 +87,7 @@ Please follow this exact cold-start protocol:
    - docs/DECISIONS_MASTER.md
    - Active Step 2 (v1.0.382) in docs/blueprint/v2.0_blueprint.md
    (Do NOT read historical dossiers or full changelogs on startup.)
-2. Verify git status on main (ensure PR #PENDING for v1.0.381 is merged and main is clean) and do NOT write any code yet.
+2. Verify git status on main (ensure PR #1125 for v1.0.381 is merged and main is clean) and do NOT write any code yet.
 3. Run collaborative /plan + /grill-me alignment with me FIRST using ask_question to lock down Paid Mock Test Courses architecture (packaging unit, INR pricing & validity, free demo test policy, checkout/payment verification mechanism, and DB/RLS requirements) and confirm any Circuit Breakers (#1-#5) before implementing Section 3 of CURRENT_HANDOVER.md (Target: v1.0.382).
 4. Once aligned, run System-2 Cognitive Pre-Flight (trace entitlement hydration, offline cache safety, direct URL guards, purchase/unlock recovery, and unmount cleanup; identify 3 runtime failure modes) and implement cleanly.
 5. Verify statically (node --max-old-space-size=4096 ./node_modules/typescript/bin/tsc --noEmit; npx.cmd vitest --run --pool=forks --maxWorkers=1; npx.cmd vite build; npx.cmd playwright test --reporter=list), check Supabase Advisors via MCP if DDL ran, and verify Desktop + Mobile UX in Chrome DevTools MCP with 0 console errors.
