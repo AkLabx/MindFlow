@@ -156,42 +156,48 @@ export const SavedQuizCard: React.FC<SavedQuizCardProps> = ({ quiz, index, onRes
                                         className="flex items-center gap-1 bg-white/90 dark:bg-slate-800/90 backdrop-blur-md rounded-full shadow-lg border border-slate-200 dark:border-slate-700 p-1"
                                     >
                                         <button
+                                            type="button"
                                             onClick={(e) => {
                                                 e.stopPropagation();
                                                 onDelete(quiz.id, e);
                                                 setIsDeleteConfirming(false);
                                             }}
-                                            className="p-1.5 hover:bg-emerald-100 dark:hover:bg-emerald-900/30 text-emerald-600 rounded-full transition-colors"
+                                            className="min-w-[44px] min-h-[44px] inline-flex items-center justify-center hover:bg-emerald-100 dark:hover:bg-emerald-900/30 text-emerald-600 rounded-full transition-all active:scale-95 touch-manipulation scroll-mb-28 cursor-pointer"
                                             title="Confirm Delete"
+                                            aria-label="Confirm Delete"
                                         >
-                                            <Check className="w-4 h-4" />
+                                            <Check className="w-4 h-4" aria-hidden="true" />
                                         </button>
                                         <div className="w-[1px] h-4 bg-slate-300 dark:bg-slate-600" />
                                         <button
+                                            type="button"
                                             onClick={(e) => {
                                                 e.stopPropagation();
                                                 setIsDeleteConfirming(false);
                                             }}
-                                            className="p-1.5 hover:bg-rose-100 dark:hover:bg-rose-900/30 text-rose-600 rounded-full transition-colors"
+                                            className="min-w-[44px] min-h-[44px] inline-flex items-center justify-center hover:bg-rose-100 dark:hover:bg-rose-900/30 text-rose-600 rounded-full transition-all active:scale-95 touch-manipulation scroll-mb-28 cursor-pointer"
                                             title="Cancel"
+                                            aria-label="Cancel delete"
                                         >
-                                            <X className="w-4 h-4" />
+                                            <X className="w-4 h-4" aria-hidden="true" />
                                         </button>
                                     </motion.div>
                                 ) : (
                                     <motion.button
                                         key="trash"
+                                        type="button"
                                         initial={{ opacity: 0, scale: 0.8 }}
-                                        animate={{ opacity: 0, scale: 0.8, pointerEvents: 'none' }}
-                                        whileHover={{ scale: 1.1 }}
-                                        className="group-hover:opacity-100 group-hover:scale-100 group-hover:pointer-events-auto p-2 text-slate-400 hover:text-rose-600 hover:drop-shadow-[0_0_8px_rgba(225,29,72,0.5)] transition-all duration-300"
+                                        animate={{ opacity: 1, scale: 0.9 }}
+                                        whileHover={{ scale: 1.05 }}
+                                        className="min-w-[44px] min-h-[44px] inline-flex items-center justify-center opacity-80 sm:opacity-0 sm:group-hover:opacity-100 focus-visible:opacity-100 text-slate-400 hover:text-rose-600 hover:drop-shadow-[0_0_8px_rgba(225,29,72,0.5)] transition-all duration-300 active:scale-95 touch-manipulation scroll-mb-28 cursor-pointer rounded-full"
                                         onClick={(e) => {
                                             e.stopPropagation();
                                             setIsDeleteConfirming(true);
                                         }}
                                         title="Delete Quiz"
+                                        aria-label="Delete Quiz"
                                     >
-                                        <Trash2 className="w-5 h-5 stroke-[1.5]" />
+                                        <Trash2 className="w-5 h-5 stroke-[1.5]" aria-hidden="true" />
                                     </motion.button>
                                 )}
                             </AnimatePresence>
@@ -230,11 +236,13 @@ export const SavedQuizCard: React.FC<SavedQuizCardProps> = ({ quiz, index, onRes
                                             {quiz.name || 'Untitled Quiz'}
                                         </h3>
                                         <button
+                                            type="button"
                                             onClick={startEditing}
-                                            className="p-1.5 text-slate-400 dark:text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 opacity-60 hover:opacity-100 transition-all duration-300 rounded-md hover:bg-indigo-50 dark:hover:bg-indigo-900/30 shrink-0"
+                                            className="min-w-[44px] min-h-[44px] inline-flex items-center justify-center text-slate-400 dark:text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 opacity-80 sm:opacity-0 sm:group-hover:opacity-100 focus-visible:opacity-100 transition-all duration-300 rounded-md hover:bg-indigo-50 dark:hover:bg-indigo-900/30 shrink-0 active:scale-95 touch-manipulation scroll-mb-28 cursor-pointer"
                                             title="Edit Name"
-                                         aria-label="Edit item">
-                                            <Edit2 className="w-3.5 h-3.5" />
+                                            aria-label="Edit item"
+                                        >
+                                            <Edit2 className="w-3.5 h-3.5" aria-hidden="true" />
                                         </button>
                                     </div>
                                     <motion.div
@@ -258,11 +266,11 @@ export const SavedQuizCard: React.FC<SavedQuizCardProps> = ({ quiz, index, onRes
                                     transition={{ type: "spring", stiffness: 300, damping: 30 }}
                                     className="flex gap-2 overflow-hidden"
                                 >
-                                    <button onClick={saveEdit} className="flex-1 py-1.5 flex justify-center items-center gap-1.5 text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 hover:bg-emerald-100 dark:hover:bg-emerald-800/50 rounded-lg transition-colors shadow-sm">
-                                        <Check className="w-4 h-4" /> Save
+                                    <button type="button" onClick={saveEdit} className="min-h-[44px] min-w-[44px] flex-1 py-2 flex justify-center items-center gap-1.5 text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 hover:bg-emerald-100 dark:hover:bg-emerald-800/50 rounded-lg transition-all active:scale-95 touch-manipulation scroll-mb-28 shadow-sm cursor-pointer">
+                                        <Check className="w-4 h-4" aria-hidden="true" /> Save
                                     </button>
-                                    <button onClick={cancelEdit} className="flex-1 py-1.5 flex justify-center items-center gap-1.5 text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-900/30 hover:bg-rose-100 dark:hover:bg-rose-800/50 rounded-lg transition-colors shadow-sm">
-                                        <X className="w-4 h-4" /> Cancel
+                                    <button type="button" onClick={cancelEdit} className="min-h-[44px] min-w-[44px] flex-1 py-2 flex justify-center items-center gap-1.5 text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-900/30 hover:bg-rose-100 dark:hover:bg-rose-800/50 rounded-lg transition-all active:scale-95 touch-manipulation scroll-mb-28 shadow-sm cursor-pointer">
+                                        <X className="w-4 h-4" aria-hidden="true" /> Cancel
                                     </button>
                                 </motion.div>
                             )}
@@ -274,29 +282,34 @@ export const SavedQuizCard: React.FC<SavedQuizCardProps> = ({ quiz, index, onRes
 
                             {/* Share Button */}
                             <button
+                                type="button"
                                 onClick={handleShare}
-                                className="p-2.5 bg-indigo-50/50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 border border-indigo-200/50 dark:border-indigo-700/50 rounded-full transition-colors shadow-sm backdrop-blur-sm"
+                                className="min-w-[44px] min-h-[44px] inline-flex items-center justify-center bg-indigo-50/50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 border border-indigo-200/50 dark:border-indigo-700/50 rounded-full transition-all active:scale-95 touch-manipulation scroll-mb-28 shadow-sm backdrop-blur-sm cursor-pointer"
                                 title="Share Quiz Link"
+                                aria-label="Share Quiz Link"
                             >
-                                <motion.div whileHover={{ scale: 1.1, y: -2 }} transition={{ type: "spring", stiffness: 300 }}><Link className="w-4 h-4" /></motion.div>
+                                <motion.div whileHover={{ scale: 1.1, y: -2 }} transition={{ type: "spring", stiffness: 300 }}><Link className="w-4 h-4" aria-hidden="true" /></motion.div>
                             </button>
 
                             {/* Talk Button (Visible by default) */}
                             {!isQuizFinished && (
                                 <button
+                                    type="button"
                                     onClick={(e) => { e.stopPropagation(); navigate('/quiz/live/' + quiz.id); }}
-                                    className="p-2.5 bg-amber-500/10 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400 hover:bg-amber-500/20 dark:hover:bg-amber-500/30 border border-amber-200/50 dark:border-amber-700/50 rounded-full transition-colors shadow-sm backdrop-blur-sm"
+                                    className="min-w-[44px] min-h-[44px] inline-flex items-center justify-center bg-amber-500/10 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400 hover:bg-amber-500/20 dark:hover:bg-amber-500/30 border border-amber-200/50 dark:border-amber-700/50 rounded-full transition-all active:scale-95 touch-manipulation scroll-mb-28 shadow-sm backdrop-blur-sm cursor-pointer"
                                     title="Talk to Quiz Master"
+                                    aria-label="Talk to Quiz Master"
                                 >
-                                    <motion.div whileHover={{ scale: 1.1, y: -2 }} transition={{ type: "spring", stiffness: 300 }}><Mic className="w-4 h-4" /></motion.div>
+                                    <motion.div whileHover={{ scale: 1.1, y: -2 }} transition={{ type: "spring", stiffness: 300 }}><Mic className="w-4 h-4" aria-hidden="true" /></motion.div>
                                 </button>
                             )}
 
                             {/* Rectangular Action Button with Progress Fill */}
                             <button
+                                type="button"
                                 onClick={handleActionClick}
                                 disabled={isActionLoading}
-                                className="relative flex items-center justify-center h-10 min-w-[3rem] px-3 md:px-4 rounded-xl bg-white dark:bg-slate-800 shadow-md hover:shadow-lg disabled:opacity-80 disabled:cursor-not-allowed transition-all overflow-hidden shrink-0"
+                                className="relative flex items-center justify-center min-h-[44px] h-11 min-w-[44px] px-4 rounded-xl bg-white dark:bg-slate-800 shadow-md hover:shadow-lg disabled:opacity-80 disabled:cursor-not-allowed transition-all active:scale-95 touch-manipulation scroll-mb-28 overflow-hidden shrink-0 cursor-pointer"
                                 title={isQuizFinished ? "Results" : isQuizStarted ? "Resume" : "Start"}
                             >
                                 {/* Apple App Store style progress background fill */}

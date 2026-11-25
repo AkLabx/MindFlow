@@ -26,6 +26,28 @@ This document is the single source of truth for the evolution of the MindFlow ap
 
 ## 🚀 App Journey Changelog
 
+## [v1.0.381] - 25 November 2026, 11:54 AM IST
+
+Executed Gen 2 Step 1 & Strategic Product Pivot (`v1.0.381` $\rightarrow$ `v1.0.390`): simplified Student Home to 4 distraction-free sections, centralized Custom Quiz Studio (`/mcqs`), relocated Target Exam management into Profile, converted Mock Test Series into a single-row tabbed hub, unified `Quiz History` (`In Progress` / `Completed` / `Created Custom`), raised custom/mock caps to `300`, standardized `Saved Questions`, and shipped MWG Top-Layer `!` `<InfoHintPopover />` guidance (`package.json` `1.0.381`, Android `versionCode 8` / `versionName "1.8"`).
+
+### ✨ Features Added
+- **4-Section Student Home & Unified Resume (`src/pages/DashboardPage.tsx`, `src/features/dashboard/components/DashboardGreeting.tsx`, `QuickActionsGrid.tsx`, `PreparedMockTestsShortcutCard.tsx`)**: Decluttered Home to Greeting Hero (`Today's Plan`, `Saved Questions`, unified `Resume Quiz`, `Quiz History`), Prepared Mock Tests Shortcut (`Explore Mock Test Series`), 4-card Quick Actions, and User Progress card.
+- **Centralized Custom Quiz Studio (`src/pages/McqsQuizHomePage.tsx`, `src/config/routes.ts`)**: Added `ROUTES.CUSTOM_QUIZ_STUDIO` (`/mcqs`) housing Full Custom Quiz Builder, Exam Blueprints (God-Mode), Created Custom Quizzes, Upload Your Own Questions, and `<SubjectStrip />`.
+- **Profile Target Exam Relocation (`src/features/auth/components/ProfilePage.tsx`, `src/lib/state/stateOwnershipRegistry.ts`)**: Added Target Exam badge + `Change Exam` (`<ManageTargetExamsModal />`) inside `ProfilePage` and registered `ProfilePage` in `STATE_OWNERSHIP_REGISTRY`.
+- **Tabbed Mock Test Series Hub & Unified 3-Tab `Quiz History` (`src/features/mock-tests/pages/ExamCategoriesPage.tsx`, `mockTestsApi.ts`, `src/features/quiz/components/QuizLibrary.tsx`, `src/features/auth/hooks/useProfileStats.ts`)**: Replaced multi-strip category layouts with a scrollable `role="tablist"` (`All`, category tabs, `My Attempts`), unified `/quiz/library` into `In Progress`, `Completed`, and `Created Custom`, and merged completed prepared mocks into `computeCombinedProfileStats()`.
+- **300-Question Cap, Custom Count Input & Admin Quick Pick (`src/features/quiz/services/quizCreationService.ts`, `QuizConfig.tsx`, `src/features/admin/question-builder/api/questionBuilderApi.ts`, `QuestionSearchPanel.tsx`)**: Raised `MAX_QUIZ_QUESTIONS`, `MAX_PREPARED_MOCK_QUESTIONS`, and `MAX_QUICK_PICK_QUESTIONS` to `300`, added custom numeric input (`1–300`) for students, and added Admin `Quick Pick (1–300)` (`fetchMatchingQuestionsSlice`).
+- **MWG Top-Layer `!` `<InfoHintPopover />` (`src/components/ui/InfoHintPopover.tsx`, `src/index.css`, `src/features/admin/test-series/*`)**: Built native `popover="auto"` + CSS Anchor Positioning contextual hints (`@starting-style`, `transition-behavior: allow-discrete`, viewport-clamped fallback) across Student and Admin flows.
+
+### 🐛 Bug Fixes
+- **`Saved Questions` Native Dialog Reset & Back Safety (`src/pages/BookmarksPage.tsx`)**: Renamed `"Bookmarks"` to `"Saved Questions"`, replaced blocking `window.confirm()` reset with `<ConfirmDialog>` + `useNotification()` Popover toast, and enforced `44x44px` `active:scale-95` controls.
+- **Quick Pick Deduplication & Query Filter Parity (`src/features/admin/question-builder/api/questionBuilderApi.ts`, `QuestionSearchPanel.tsx`)**: Extracted shared `applyQuestionFilters()` and excluded already-selected IDs when slicing up to `300` questions.
+
+### ⚡ Performance & Refactoring
+- **Automated Coverage & Build Verification**: Verified `tsc --noEmit` (`0` errors), `44` Vitest files / `282` tests passed (including new `InfoHintPopover.test.tsx` and `questionBuilder.test.tsx` specs), `vite build` (`209` PWA entries, `6947.76 KiB`), Playwright E2E (`1/1` passed), and Chrome DevTools MCP Desktop (`1280x800`) + Mobile (`390x844`) audits (`0` console errors, `0px` horizontal overflow, `0` `<44x44px` targets).
+
+### 🔒 Security & Architecture
+- **Gen 2 Blueprint Pivot & Governance (`docs/blueprint/main_blueprint.md`, `docs/blueprint/v2.0_blueprint.md`, `docs/DECISIONS_MASTER.md`)**: Superseded Community Chatrooms Gen 2 focus & Home multi-strip clutter (`OLD-018`), registered `DEC-0029`, and queued `v1.0.382` Paid Mock Test Courses with mandatory `/plan` + `/grill-me` user alignment prior to implementation.
+
 ## [v1.0.380] - 25 November 2026, 09:15 AM IST
 
 Completed Gen 1B Step 14 & Graduated Gen 1B (`v1.0.367` $\rightarrow$ `v1.0.380`): completed zero-DDL Supabase Security & Performance Advisor sign-off on Mock Tests & Admin RBAC, hardened Android WebView tactile/accessibility ergonomics across result review, test series discovery, and admin hardware back navigation, bumped Android manifests (`versionCode 7`, `versionName "1.7"`), and scaffolded Gen 2 (`v1.0.381` $\rightarrow$ `v1.0.390`) for Community Chatrooms & Study Rooms hardening.

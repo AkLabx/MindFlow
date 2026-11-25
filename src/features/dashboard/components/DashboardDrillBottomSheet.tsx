@@ -16,6 +16,8 @@ import {
   HelpCircle,
 } from 'lucide-react';
 import { Button } from '@/components/Button/Button';
+import { InfoHintPopover } from '@/components/ui/InfoHintPopover';
+import { MAX_QUIZ_QUESTIONS } from '@/features/quiz/services/quizCreationService';
 import { telemetry } from '@/lib/telemetry/index';
 import { triggerHaptic } from '@/lib/haptics';
 
@@ -45,7 +47,7 @@ export interface DashboardDrillBottomSheetProps {
   onCustomizeFilters: (filters: Record<string, any>, mode: 'learning' | 'mock', count: number) => void;
 }
 
-const QUESTION_COUNT_OPTIONS = [10, 15, 20, 25];
+const QUESTION_COUNT_OPTIONS = [10, 15, 20, 25, 50];
 
 export const DashboardDrillBottomSheet: React.FC<DashboardDrillBottomSheetProps> = ({
   isOpen,
@@ -56,12 +58,25 @@ export const DashboardDrillBottomSheet: React.FC<DashboardDrillBottomSheetProps>
 }) => {
   const [selectedMode, setSelectedMode] = useState<'learning' | 'mock'>('learning');
   const [selectedCount, setSelectedCount] = useState<number>(10);
+  const [customCountDraft, setCustomCountDraft] = useState<string>('10');
+
+  const applyCount = (rawCount: number) => {
+    const clamped = Math.min(MAX_QUIZ_QUESTIONS, Math.max(1, Math.trunc(rawCount)));
+    setSelectedCount(clamped);
+    setCustomCountDraft(String(clamped));
+    return clamped;
+  };
 
   // Sync state whenever drillInfo changes
   useEffect(() => {
     if (drillInfo) {
       setSelectedMode(drillInfo.defaultMode || 'learning');
-      setSelectedCount(drillInfo.defaultQuestionCount || 10);
+      const initial = Math.min(
+        MAX_QUIZ_QUESTIONS,
+        Math.max(1, Math.trunc(drillInfo.defaultQuestionCount || 10))
+      );
+      setSelectedCount(initial);
+      setCustomCountDraft(String(initial));
     }
   }, [drillInfo]);
 
@@ -111,28 +126,38 @@ export const DashboardDrillBottomSheet: React.FC<DashboardDrillBottomSheetProps>
     }
   };
 
+  const getValidatedCount = () => {
+    const parsed = Number.parseInt(customCountDraft, 10);
+    if (Number.isFinite(parsed) && parsed >= 1) {
+      return applyCount(parsed);
+    }
+    return applyCount(selectedCount);
+  };
+
   const handleStart = () => {
     if (!drillInfo) return;
+    const finalCount = getValidatedCount();
     triggerHaptic('medium');
     telemetry.emit('dashboard_drill_started', {
       drillType: drillInfo.type,
       drillTitle: drillInfo.title,
       mode: selectedMode,
-      questionCount: selectedCount,
+      questionCount: finalCount,
     });
-    onStartDrill(drillInfo.filters, selectedMode, selectedCount);
+    onStartDrill(drillInfo.filters, selectedMode, finalCount);
   };
 
   const handleCustomize = () => {
     if (!drillInfo) return;
+    const finalCount = getValidatedCount();
     triggerHaptic('light');
     telemetry.emit('dashboard_drill_customize_clicked', {
       drillType: drillInfo.type,
       drillTitle: drillInfo.title,
       mode: selectedMode,
-      questionCount: selectedCount,
+      questionCount: finalCount,
     });
-    onCustomizeFilters(drillInfo.filters, selectedMode, selectedCount);
+    onCustomizeFilters(drillInfo.filters, selectedMode, finalCount);
   };
 
   return (
@@ -213,9 +238,18 @@ export const DashboardDrillBottomSheet: React.FC<DashboardDrillBottomSheetProps>
 
             {/* Interactive Mode Selector: Learning vs Mock */}
             <div className="mt-4">
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">
-                Select Quiz Mode
-              </label>
+              <div className="flex items-center gap-1 mb-2">
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  Select Quiz Mode
+                </label>
+                <InfoHintPopover
+                  title="Select Quiz Mode (Learning vs Mock)"
+                  purpose="Learning shows the correct answer and AI explanation right after each question; Mock simulates a timed test and reveals your scorecard at the end."
+                  studentVisibility="Controls how this drill runs once you tap Start."
+                  example="Pick Learning to revise weak topics or Mock for timed practice."
+                  align="start"
+                />
+              </div>
               <div className="grid grid-cols-2 gap-2.5">
                 {/* Learning Mode */}
                 <button
@@ -224,7 +258,7 @@ export const DashboardDrillBottomSheet: React.FC<DashboardDrillBottomSheetProps>
                     triggerHaptic('light');
                     setSelectedMode('learning');
                   }}
-                  className={`group relative flex flex-col items-start p-3 rounded-xl border text-left transition-all cursor-pointer select-none touch-manipulation active:scale-[0.98] ${
+                  className={`group relative flex flex-col items-start min-h-[44px] p-3 rounded-xl border text-left transition-all cursor-pointer select-none touch-manipulation scroll-mb-28 active:scale-[0.98] ${
                     selectedMode === 'learning'
                       ? 'border-indigo-600 bg-indigo-50/80 dark:bg-indigo-950/40 ring-2 ring-indigo-500/20 dark:ring-indigo-400/20'
                       : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 bg-white dark:bg-slate-900'
@@ -259,7 +293,7 @@ export const DashboardDrillBottomSheet: React.FC<DashboardDrillBottomSheetProps>
                     triggerHaptic('light');
                     setSelectedMode('mock');
                   }}
-                  className={`group relative flex flex-col items-start p-3 rounded-xl border text-left transition-all cursor-pointer select-none touch-manipulation active:scale-[0.98] ${
+                  className={`group relative flex flex-col items-start min-h-[44px] p-3 rounded-xl border text-left transition-all cursor-pointer select-none touch-manipulation scroll-mb-28 active:scale-[0.98] ${
                     selectedMode === 'mock'
                       ? 'border-indigo-600 bg-indigo-50/80 dark:bg-indigo-950/40 ring-2 ring-indigo-500/20 dark:ring-indigo-400/20'
                       : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 bg-white dark:bg-slate-900'
@@ -293,7 +327,7 @@ export const DashboardDrillBottomSheet: React.FC<DashboardDrillBottomSheetProps>
             <div className="mt-4">
               <div className="flex items-center justify-between mb-2">
                 <label className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                  Questions to Practice
+                  Questions to Practice (1–{MAX_QUIZ_QUESTIONS})
                 </label>
                 <div className="flex items-center gap-1 text-xs font-medium text-slate-500 dark:text-slate-400">
                   <Clock className="w-3.5 h-3.5 text-slate-400" />
@@ -301,7 +335,7 @@ export const DashboardDrillBottomSheet: React.FC<DashboardDrillBottomSheetProps>
                 </div>
               </div>
 
-              <div className="grid grid-cols-4 gap-2">
+              <div className="grid grid-cols-5 gap-2">
                 {QUESTION_COUNT_OPTIONS.map((count) => {
                   const isSelected = selectedCount === count;
                   return (
@@ -310,9 +344,9 @@ export const DashboardDrillBottomSheet: React.FC<DashboardDrillBottomSheetProps>
                       type="button"
                       onClick={() => {
                         triggerHaptic('light');
-                        setSelectedCount(count);
+                        applyCount(count);
                       }}
-                      className={`min-h-[44px] py-2 px-1 rounded-xl text-xs sm:text-sm font-bold border transition-all cursor-pointer flex flex-col items-center justify-center select-none touch-manipulation active:scale-95 ${
+                      className={`min-h-[44px] py-2 px-1 rounded-xl text-xs sm:text-sm font-bold border transition-all cursor-pointer flex flex-col items-center justify-center select-none touch-manipulation scroll-mb-28 active:scale-95 tabular-nums ${
                         isSelected
                           ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm shadow-indigo-500/20'
                           : 'bg-slate-100/80 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 border-slate-200/80 dark:border-slate-700 hover:bg-slate-200/80 dark:hover:bg-slate-700/80'
@@ -322,6 +356,46 @@ export const DashboardDrillBottomSheet: React.FC<DashboardDrillBottomSheetProps>
                     </button>
                   );
                 })}
+              </div>
+
+              <div className="mt-2.5 flex items-center gap-2">
+                <label
+                  htmlFor="drill-custom-count"
+                  className="text-xs font-semibold text-slate-600 dark:text-slate-300 shrink-0"
+                >
+                  Custom Count:
+                </label>
+                <input
+                  id="drill-custom-count"
+                  type="number"
+                  min={1}
+                  max={MAX_QUIZ_QUESTIONS}
+                  inputMode="numeric"
+                  aria-label="Custom question count"
+                  placeholder={`1-${MAX_QUIZ_QUESTIONS}`}
+                  value={customCountDraft}
+                  onChange={(e) => {
+                    const raw = e.target.value;
+                    setCustomCountDraft(raw);
+                    if (raw.trim() === '') return;
+                    const parsed = Number.parseInt(raw, 10);
+                    if (Number.isFinite(parsed) && parsed >= 1) {
+                      setSelectedCount(Math.min(MAX_QUIZ_QUESTIONS, parsed));
+                    }
+                  }}
+                  onBlur={() => {
+                    const parsed = Number.parseInt(customCountDraft, 10);
+                    if (!Number.isFinite(parsed) || parsed < 1) {
+                      applyCount(selectedCount);
+                    } else {
+                      applyCount(parsed);
+                    }
+                  }}
+                  className="w-24 min-h-[44px] px-3 py-1.5 text-sm font-bold text-center rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none tabular-nums"
+                />
+                <span className="text-xs text-slate-500 dark:text-slate-400">
+                  Max {MAX_QUIZ_QUESTIONS} Qs
+                </span>
               </div>
             </div>
 

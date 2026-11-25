@@ -18,6 +18,7 @@ import {
     resolveCanonicalExamSlug,
 } from '../api/mockTestsApi';
 import { ExamPreparedMockTestsPage } from '../pages/ExamPreparedMockTestsPage';
+import { ExamCategoriesPage } from '../pages/ExamCategoriesPage';
 import { PreparedMockTestsShortcutCard } from '../components/PreparedMockTestsShortcutCard';
 
 const { fromMock, getCacheEntryMock, setCacheEntryMock, mockUser } = vi.hoisted(() => ({
@@ -573,8 +574,15 @@ describe('v1.0.371 Dedicated BPSC Prepared Mock Tests & Canonical Routing', () =
         });
     });
 
-    it('renders context-aware shortcut cards driven by useExamContextStore activeExamId', async () => {
+    it('renders crisp Mock Test Series shortcut card driven by useExamContextStore activeExamId', async () => {
+        const fixture = buildFixtureData();
+        setupSupabaseTables(fixture);
         useExamContextStore.setState({ activeExamId: 'ssc_cgl' });
+
+        await fetchPreparedMockTestsByExam('ssc_cgl', {
+            userId: mockUser.id,
+            nowMs: NOW_MS,
+        });
 
         render(
             <MemoryRouter initialEntries={[ROUTES.DASHBOARD]}>
@@ -583,19 +591,71 @@ describe('v1.0.371 Dedicated BPSC Prepared Mock Tests & Canonical Routing', () =
                         path={ROUTES.DASHBOARD}
                         element={<PreparedMockTestsShortcutCard source="dashboard" returnTo={ROUTES.DASHBOARD} />}
                     />
-                    <Route path={ROUTES.TEST_SERIES.BPSC} element={<LocationDisplay />} />
-                    <Route path="/mcqs/test-series/exam/:examSlug" element={<LocationDisplay />} />
+                    <Route path={ROUTES.TEST_SERIES.ROOT} element={<LocationDisplay />} />
                 </Routes>
             </MemoryRouter>
         );
 
-        expect(screen.getByText('SSC CGL Prepared Mock Tests')).toBeTruthy();
-        const bpscBtn = screen.getByRole('button', { name: /BPSC Mocks/i });
-        expect(bpscBtn.className).toContain('min-h-[44px]');
+        expect(screen.getByText('Mock Test Series')).toBeTruthy();
+        expect(screen.getByText('1 Live SSC CGL')).toBeTruthy();
+        const exploreBtn = screen.getByRole('button', { name: /Explore Mock Test Series/i });
+        expect(exploreBtn.getAttribute('type')).toBe('button');
+        expect(exploreBtn.className).toContain('min-h-[44px]');
 
-        fireEvent.click(bpscBtn);
+        fireEvent.click(exploreBtn);
         await waitFor(() => {
-            expect(screen.getByTestId('location-display').textContent).toContain('/mcqs/test-series/bpsc');
+            expect(screen.getByTestId('location-display').textContent).toContain('/mcqs/test-series');
+        });
+    });
+
+    it('renders ExamCategoriesPage as a tabbed Mock Test Series hub with All, dynamic category tabs, and My Attempts', async () => {
+        const fixture = buildFixtureData();
+        setupSupabaseTables(fixture);
+
+        render(
+            <MemoryRouter initialEntries={[ROUTES.TEST_SERIES.ROOT]}>
+                <Routes>
+                    <Route path={ROUTES.TEST_SERIES.ROOT} element={<ExamCategoriesPage />} />
+                    <Route path="/mcqs/test-series/series/:seriesId" element={<LocationDisplay />} />
+                </Routes>
+            </MemoryRouter>
+        );
+
+        await waitFor(() => {
+            expect(screen.getByText('70th BPSC Prelims Full Series')).toBeTruthy();
+            expect(screen.getByText('SSC CGL Tier 1')).toBeTruthy();
+        });
+
+        const tablist = screen.getByRole('tablist', { name: 'Mock test series categories' });
+        const allTab = within(tablist).getByRole('tab', { name: 'All' });
+        const bpscTab = within(tablist).getByRole('tab', { name: 'BPSC' });
+        const sscTab = within(tablist).getByRole('tab', { name: 'SSC CGL' });
+        const attemptsTab = within(tablist).getByRole('tab', { name: 'My Attempts' });
+
+        expect(allTab.getAttribute('aria-selected')).toBe('true');
+
+        fireEvent.click(sscTab);
+        expect(sscTab.getAttribute('aria-selected')).toBe('true');
+        expect(screen.getByText('SSC CGL Tier 1')).toBeTruthy();
+        expect(screen.queryByText('70th BPSC Prelims Full Series')).toBeNull();
+
+        fireEvent.click(bpscTab);
+        expect(bpscTab.getAttribute('aria-selected')).toBe('true');
+        expect(screen.getByText('70th BPSC Prelims Full Series')).toBeTruthy();
+        expect(screen.queryByText('SSC CGL Tier 1')).toBeNull();
+
+        fireEvent.click(attemptsTab);
+        expect(attemptsTab.getAttribute('aria-selected')).toBe('true');
+        await waitFor(() => {
+            expect(screen.getByText('Continue Learning')).toBeTruthy();
+        });
+
+        fireEvent.click(allTab);
+        const seriesCard = screen.getByRole('button', { name: /70th BPSC Prelims Full Series/i });
+        expect(seriesCard.className).toContain('min-h-[44px]');
+        fireEvent.click(seriesCard);
+        await waitFor(() => {
+            expect(screen.getByTestId('location-display').textContent).toContain('/mcqs/test-series/series/ser-bpsc-prelims');
         });
     });
 });

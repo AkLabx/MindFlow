@@ -9,8 +9,8 @@ import { useSyncStore } from '../stores/useSyncStore';
 import { telemetry } from '../../../lib/telemetry';
 import { performanceTracker, PERF_BUDGETS } from '../../../lib/performance';
 
-export const MAX_QUIZ_QUESTIONS = 100;
-export const MAX_PREPARED_MOCK_QUESTIONS = 250;
+export const MAX_QUIZ_QUESTIONS = 300;
+export const MAX_PREPARED_MOCK_QUESTIONS = 300;
 export const DEFAULT_DRILL_QUESTION_COUNT = 25;
 
 export interface QuizCreationResult {
@@ -60,7 +60,7 @@ export const quizCreationService = {
       const savedQuizzes = await db.getAllSavedQuizzes();
       const unfinishedQuizzes = savedQuizzes.filter(q => q.state && q.state.status !== 'result');
 
-      // 0. Hard System Ceiling Enforcement (Prevent Accidental Mega-Quizzes while allowing Prepared Mocks up to 250)
+      // 0. Hard System Ceiling Enforcement (Prevent Accidental Mega-Quizzes while allowing up to 300 questions)
       const rawMax = options?.maxQuestions;
       const effectiveCeiling =
         typeof rawMax === 'number' && Number.isFinite(rawMax) && rawMax > 0

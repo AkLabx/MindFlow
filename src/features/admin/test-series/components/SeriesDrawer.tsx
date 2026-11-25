@@ -1,6 +1,7 @@
 import { Crown } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import { RightDrawer } from './RightDrawer';
+import { InfoHintPopover } from '@/components/ui/InfoHintPopover';
 
 interface SeriesDrawerProps {
     isOpen: boolean;
@@ -81,7 +82,7 @@ export const SeriesDrawer: React.FC<SeriesDrawerProps> = ({ isOpen, onClose, ser
             <button
                 type="button"
                 onClick={requestClose}
-                className="px-4 py-2 text-slate-600 dark:text-slate-300 font-medium hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors"
+                className="min-h-[44px] px-4 py-2 text-slate-600 dark:text-slate-300 font-medium hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-all active:scale-95 touch-manipulation scroll-mb-28"
             >
                 Cancel
             </button>
@@ -89,7 +90,7 @@ export const SeriesDrawer: React.FC<SeriesDrawerProps> = ({ isOpen, onClose, ser
                 type="submit"
                 form="series-form"
                 disabled={loading || !formData.name.trim() || !formData.category_id}
-                className="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-xl transition-colors disabled:opacity-50"
+                className="min-h-[44px] px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-xl transition-all active:scale-95 touch-manipulation scroll-mb-28 disabled:opacity-50"
             >
                 {loading ? 'Saving...' : 'Save Series'}
             </button>
@@ -107,12 +108,21 @@ export const SeriesDrawer: React.FC<SeriesDrawerProps> = ({ isOpen, onClose, ser
             <form id="series-form" onSubmit={handleSubmit} className="space-y-6 flex flex-col h-full">
                 <div className="flex-1 space-y-6">
                     <div>
-                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Category *</label>
+                        <div className="flex items-center gap-1 mb-1">
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Category *</label>
+                            <InfoHintPopover
+                                title="Parent Exam Category"
+                                purpose="Assigns this Test Series under an Exam Category."
+                                studentVisibility="Students browse this series inside the chosen Category page."
+                                example="Select BPSC for '70th BPSC Prelims Full Mocks'."
+                                align="start"
+                            />
+                        </div>
                         <select
                             required
                             value={formData.category_id}
                             onChange={e => setFormData({ ...formData, category_id: e.target.value })}
-                            className="w-full rounded-xl border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white px-4 py-2.5 focus:ring-2 focus:ring-indigo-500 outline-none"
+                            className="w-full min-h-[44px] rounded-xl border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white px-4 py-2.5 focus:ring-2 focus:ring-indigo-500 outline-none"
                         >
                             <option value="" disabled>Select a category</option>
                             {categories.map(cat => (
@@ -122,25 +132,42 @@ export const SeriesDrawer: React.FC<SeriesDrawerProps> = ({ isOpen, onClose, ser
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Series Name *</label>
+                        <div className="flex items-center gap-1 mb-1">
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Series Name *</label>
+                            <InfoHintPopover
+                                title="Series Name"
+                                purpose="Title of the test collection shown on series cards and breadcrumbs."
+                                studentVisibility="Appears in the Mock Tests Hub and Test Series listing."
+                                example="BPSC 70th Prelims Mock Series"
+                                align="start"
+                            />
+                        </div>
                         <input
                             type="text"
                             required
                             value={formData.name}
                             onChange={e => handleNameChange(e.target.value)}
-                            className="w-full rounded-xl border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white px-4 py-2.5 focus:ring-2 focus:ring-indigo-500 outline-none"
+                            className="w-full min-h-[44px] rounded-xl border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white px-4 py-2.5 focus:ring-2 focus:ring-indigo-500 outline-none"
                             placeholder="e.g. SSC CGL 2026"
                         />
                     </div>
 
                     <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-200 dark:border-slate-700">
-                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">URL Slug</label>
+                        <div className="flex items-center gap-1 mb-1">
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">URL Slug</label>
+                            <InfoHintPopover
+                                title="URL Slug"
+                                purpose="Unique URL-safe identifier for this series (lowercase letters, numbers, and hyphens)."
+                                example="ssc-cgl-2026"
+                                align="start"
+                            />
+                        </div>
                         <input
                             type="text"
                             required
                             value={formData.slug}
                             onChange={e => setFormData({ ...formData, slug: e.target.value })}
-                            className="w-full rounded-lg border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                            className="w-full min-h-[44px] rounded-lg border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
                         />
                         <p className="text-xs text-slate-500 mt-1">Generated automatically.</p>
                     </div>
@@ -159,9 +186,17 @@ export const SeriesDrawer: React.FC<SeriesDrawerProps> = ({ isOpen, onClose, ser
                     <div className="space-y-3">
                         <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700">
                             <div>
-                                <p className="font-medium text-amber-700 dark:text-amber-400 flex items-center gap-1">
-                                    <Crown className="w-4 h-4" /> Premium Series
-                                </p>
+                                <div className="flex items-center gap-1">
+                                    <p className="font-medium text-amber-700 dark:text-amber-400 flex items-center gap-1">
+                                        <Crown className="w-4 h-4" /> Premium Series
+                                    </p>
+                                    <InfoHintPopover
+                                        title="Free vs PRO (is_premium)"
+                                        purpose="Marks whether this series is Free for everyone or requires a PRO/Premium tier."
+                                        studentVisibility="Displays a Free or PRO badge on the series card."
+                                        align="start"
+                                    />
+                                </div>
                                 <p className="text-sm text-slate-500">Requires subscription?</p>
                             </div>
                             <label className="relative inline-flex items-center cursor-pointer">
@@ -177,7 +212,16 @@ export const SeriesDrawer: React.FC<SeriesDrawerProps> = ({ isOpen, onClose, ser
 
                         <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700">
                             <div>
-                                <p className="font-medium text-slate-900 dark:text-white">Publish Status</p>
+                                <div className="flex items-center gap-1">
+                                    <p className="font-medium text-slate-900 dark:text-white">Publish Status</p>
+                                    <InfoHintPopover
+                                        title="Series Publish Status (is_published)"
+                                        purpose="Controls whether this Test Series and its published tests are visible to students."
+                                        studentVisibility="If OFF (Draft), even Published mock tests inside this series remain hidden from students."
+                                        example="Turn ON after adding at least one published mock test."
+                                        align="start"
+                                    />
+                                </div>
                                 <p className="text-sm text-slate-500">Visible to students?</p>
                             </div>
                             <label className="relative inline-flex items-center cursor-pointer">

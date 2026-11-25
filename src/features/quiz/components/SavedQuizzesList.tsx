@@ -40,9 +40,25 @@ interface SavedQuizzesListProps {
     setViewMode: (mode: 'list' | 'grid') => void;
     sortMethod: 'date-desc' | 'date-asc' | 'name-asc' | 'name-desc';
     setSortMethod: (method: 'date-desc' | 'date-asc' | 'name-asc' | 'name-desc') => void;
+    filterMode?: 'all' | 'paused';
+    hasExternalItems?: boolean;
 }
 
-export const SavedQuizzesList: React.FC<SavedQuizzesListProps> = ({ viewMode, setViewMode, sortMethod, setSortMethod }) => {
+const isCustomQuizInProgress = (quiz: SavedQuiz): boolean => {
+    const idx = Number(quiz.state?.currentQuestionIndex ?? 0);
+    const answerCount = quiz.state?.answers ? Object.keys(quiz.state.answers).length : 0;
+    const rawStatus = String((quiz.state as any)?.status ?? '').toLowerCase();
+    return idx > 0 || answerCount > 0 || rawStatus === 'paused' || rawStatus === 'in_progress';
+};
+
+export const SavedQuizzesList: React.FC<SavedQuizzesListProps> = ({
+    viewMode,
+    setViewMode,
+    sortMethod,
+    setSortMethod,
+    filterMode = 'all',
+    hasExternalItems = false,
+}) => {
     const navigate = useNavigate();
     const queryClient = useQueryClient();
     const { user, isAuthTransitioning } = useAuth();
@@ -269,11 +285,18 @@ export const SavedQuizzesList: React.FC<SavedQuizzesListProps> = ({ viewMode, se
     };
 
     /** Helper to determine if "Start" or "Resume" label should be shown. */
+    const scopedQuizzes = useMemo(() => {
+        if (filterMode === 'paused') {
+            return quizzes.filter(isCustomQuizInProgress);
+        }
+        return quizzes;
+    }, [quizzes, filterMode]);
+
     const examCounts = useMemo(() => {
-        const counts: Record<string, number> = { all: quizzes.length };
+        const counts: Record<string, number> = { all: scopedQuizzes.length };
         availableExams.forEach(e => { counts[e.id] = 0; });
 
-        quizzes.forEach(quiz => {
+        scopedQuizzes.forEach(quiz => {
             const examFilters = (quiz.filters as any)?.examName || (quiz.state as any)?.filters?.examName;
             if (!examFilters || examFilters.length === 0) return;
             for (const exam of availableExams) {
@@ -284,10 +307,10 @@ export const SavedQuizzesList: React.FC<SavedQuizzesListProps> = ({ viewMode, se
             }
         });
         return counts;
-    }, [quizzes, availableExams]);
+    }, [scopedQuizzes, availableExams]);
 
     const sortedQuizzes = useMemo(() => {
-        return [...quizzes].sort((a, b) => {
+        return [...scopedQuizzes].sort((a, b) => {
             switch (sortMethod) {
                 case 'date-desc':
                     return b.createdAt - a.createdAt;
@@ -301,7 +324,7 @@ export const SavedQuizzesList: React.FC<SavedQuizzesListProps> = ({ viewMode, se
                     return 0;
             }
         });
-    }, [quizzes, sortMethod]);
+    }, [scopedQuizzes, sortMethod]);
 
     const filteredQuizzes = useMemo(() => {
         if (selectedExamId === 'all') return sortedQuizzes;
@@ -337,6 +360,10 @@ export const SavedQuizzesList: React.FC<SavedQuizzesListProps> = ({ viewMode, se
         visible: { opacity: 1, y: 0 }
     };
 
+    if (filterMode === 'paused' && hasExternalItems && !loading && !isError && sortedQuizzes.length === 0) {
+        return null;
+    }
+
     return (
         <QueryStateHandler
             isLoading={loading || (isSyncing && quizzes.length === 0)}
@@ -368,14 +395,17 @@ export const SavedQuizzesList: React.FC<SavedQuizzesListProps> = ({ viewMode, se
                             </div>
 
                             <h3 className="text-xl sm:text-2xl font-black bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-700 dark:from-white dark:to-slate-300 mb-2 sm:mb-3 drop-shadow-sm">
-                                No Created Quizzes
+                                {filterMode === 'paused' ? 'No In-Progress Quizzes' : 'No Created Quizzes'}
                             </h3>
 
                             <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400 font-medium mb-6 sm:mb-8 max-w-sm mx-auto">
-                                You haven't started any quizzes yet. Create a new one to begin your learning journey!
+                                {filterMode === 'paused'
+                                    ? 'You have no paused mock tests or custom quizzes right now. Start a practice quiz or mock series!'
+                                    : "You haven't started any quizzes yet. Create a new one to begin your learning journey!"}
                             </p>
 
                             <button
+                                type="button"
                                 onClick={() => {
                                     telemetry.emit('recovery_action_clicked', {
                                         view: 'SavedQuizzesList',
@@ -383,7 +413,7 @@ export const SavedQuizzesList: React.FC<SavedQuizzesListProps> = ({ viewMode, se
                                     });
                                     navigate('/quiz/config');
                                 }}
-                                className="relative group/btn overflow-hidden px-8 py-4 rounded-2xl bg-indigo-600 hover:bg-indigo-700 border border-indigo-500 dark:border-indigo-400 shadow-lg hover:shadow-xl hover:shadow-indigo-500/30 transition-all duration-300 flex items-center gap-3 mx-auto"
+                                className="min-h-[44px] min-w-[44px] scroll-mb-28 active:scale-95 touch-manipulation cursor-pointer relative group/btn overflow-hidden px-8 py-3.5 rounded-2xl bg-indigo-600 hover:bg-indigo-700 border border-indigo-500 dark:border-indigo-400 shadow-lg hover:shadow-xl hover:shadow-indigo-500/30 transition-all duration-300 inline-flex items-center justify-center gap-3 mx-auto"
                             >
                                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-100%] group-hover/btn:translate-x-[100%] transition-transform duration-700" />
 
@@ -403,7 +433,7 @@ export const SavedQuizzesList: React.FC<SavedQuizzesListProps> = ({ viewMode, se
                     >
                         <QuizLibraryToolbar
                             count={filteredQuizzes.length}
-                            label="Created"
+                            label={filterMode === 'paused' ? 'In Progress Custom' : 'Created'}
                             viewMode={viewMode}
                             setViewMode={setViewMode}
                             sortMethod={sortMethod}
@@ -437,7 +467,7 @@ export const SavedQuizzesList: React.FC<SavedQuizzesListProps> = ({ viewMode, se
                                             });
                                             setSelectedExamId('all');
                                         }}
-                                        className="min-h-[44px] px-4 py-2 rounded-xl text-xs font-bold bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-200 transition-colors"
+                                        className="min-h-[44px] min-w-[44px] scroll-mb-28 active:scale-95 touch-manipulation cursor-pointer px-4 py-2 rounded-xl text-xs font-bold bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-200 transition-colors"
                                     >
                                         View All Quizzes
                                     </button>
@@ -450,7 +480,7 @@ export const SavedQuizzesList: React.FC<SavedQuizzesListProps> = ({ viewMode, se
                                             });
                                             navigate(`/quiz/config?exam=${selectedExamId}`);
                                         }}
-                                        className="min-h-[44px] px-4 py-2 rounded-xl text-xs font-bold bg-indigo-600 text-white hover:bg-indigo-700 transition-colors shadow-xs"
+                                        className="min-h-[44px] min-w-[44px] scroll-mb-28 active:scale-95 touch-manipulation cursor-pointer px-4 py-2 rounded-xl text-xs font-bold bg-indigo-600 text-white hover:bg-indigo-700 transition-colors shadow-xs"
                                     >
                                         Create Quiz
                                     </button>

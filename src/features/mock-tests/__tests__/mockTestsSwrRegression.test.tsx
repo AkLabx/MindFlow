@@ -18,6 +18,7 @@ import {
     clearPreparedMockTestsCache,
     computePreparedMockScore,
     computePreparedMockSubjectBreakdown,
+    fetchAllPublishedMockSeriesCatalog,
     fetchPreparedMockTestQuestions,
     fetchPreparedMockTestsByExam,
     fetchPublishedTests,
@@ -25,13 +26,16 @@ import {
     fetchTestDetails,
     fetchTestLeaderboard,
     getCachedActivePreparedMockAttempt,
+    getCachedAllPublishedMockSeriesCatalogSnapshot,
     getCachedPreparedMockAttemptByIdSnapshot,
     getCachedPreparedMockTestsSnapshot,
     getCachedSeriesBundleSnapshot,
     getCachedTestDetailsSnapshot,
     getCachedTestLeaderboardSnapshot,
+    invalidateMockTestsCatalogCaches,
     isTestWithinScheduleWindow,
     materializePreparedMockTests,
+    readAllPublishedMockSeriesCatalogIndexedDBCache,
     readPreparedMockTestsIndexedDBCache,
     readPreparedTestQuestionsIndexedDBCache,
     readTestDetailsIndexedDBCache,
@@ -778,7 +782,7 @@ describe('v1.0.379 Mock Tests SWR Cache, Admin Invalidation Cascade, Scoring Mat
                 </MemoryRouter>
             );
 
-            expect(screen.getByText('2 Live')).toBeTruthy();
+            expect(screen.getByText('2 Live BPSC')).toBeTruthy();
 
             // Admin deletes test-2 -> invalidateAdminCmsCatalogCaches purges all Admin & Student catalog caches
             await deleteTest('test-2');
@@ -801,15 +805,15 @@ describe('v1.0.379 Mock Tests SWR Cache, Admin Invalidation Cascade, Scoring Mat
 
             // Shortcut card reacts to invalidation event (badge cleared while invalidated)
             await waitFor(() => {
-                expect(screen.queryByText('2 Live')).toBeNull();
+                expect(screen.queryByText('2 Live BPSC')).toBeNull();
             });
 
-            // Student re-fetches updated catalog (now 1 live test) and shortcut card displays "1 Live"
+            // Student re-fetches updated catalog (now 1 live test) and shortcut card displays "1 Live BPSC"
             await fetchPreparedMockTestsByExam('bpsc', { userId: mockUser.id, forceRefresh: true });
             window.dispatchEvent(new CustomEvent(MOCK_CACHE_INVALIDATED_EVENT, { detail: { scope: 'catalog' } }));
 
             await waitFor(() => {
-                expect(screen.getByText('1 Live')).toBeTruthy();
+                expect(screen.getByText('1 Live BPSC')).toBeTruthy();
             });
 
             // Re-seed analytics & student detail for test-1, then verify updateTest & updateTestSeries also cascade
@@ -1198,5 +1202,42 @@ describe('v1.0.379 Mock Tests SWR Cache, Admin Invalidation Cascade, Scoring Mat
             expect(screen.queryByRole('heading', { level: 3, name: 'BPSC Full-Length Mock #3' })).toBeNull();
             expect(screen.queryByRole('heading', { level: 3, name: 'BPSC Sectional Test #2' })).toBeNull();
         });
+    });
+
+    it('fetches published mock series catalog with schedule-window counts, 3-tier SWR cache, and invalidation support', async () => {
+        const backend = createBackendState();
+        const nowMs = Date.parse('2026-11-24T12:00:00Z');
+        backend.tests.push({
+            id: 'test-expired',
+            series_id: 'ser-bpsc-1',
+            name: 'Expired Paper',
+            is_published: true,
+            release_date: '2026-11-01T00:00:00Z',
+            expiry_date: '2026-11-20T00:00:00Z',
+        });
+        setupSupabaseBackend(backend);
+
+        const res1 = await fetchAllPublishedMockSeriesCatalog({ nowMs });
+        expect(res1.source).toBe('network');
+        expect(res1.categories).toHaveLength(1);
+        expect(res1.series).toHaveLength(1);
+        expect(res1.series[0].category_name).toBe('BPSC');
+        expect(res1.series[0].published_test_count).toBe(2);
+
+        const callsAfterFirst = backend.callCounts[`select:${DB_TABLES.MOCK.SERIES}`];
+        const res2 = await fetchAllPublishedMockSeriesCatalog({ nowMs });
+        expect(res2.source).toBe('cache');
+        expect(backend.callCounts[`select:${DB_TABLES.MOCK.SERIES}`]).toBe(callsAfterFirst);
+
+        // Cold Memory + localStorage hydrates from IndexedDB
+        const idbEntry = syncMetadataMap.get('mock_series_catalog_v1');
+        expect(idbEntry).toBeDefined();
+        invalidateMockTestsCatalogCaches();
+        expect(getCachedAllPublishedMockSeriesCatalogSnapshot(nowMs)).toBeNull();
+        expect(syncMetadataMap.has('mock_series_catalog_v1')).toBe(false);
+
+        syncMetadataMap.set('mock_series_catalog_v1', idbEntry!);
+        const hydrated = await readAllPublishedMockSeriesCatalogIndexedDBCache(nowMs);
+        expect(hydrated?.series[0].published_test_count).toBe(2);
     });
 });

@@ -390,8 +390,8 @@ describe('v1.0.373 Live Timed CBT Mock Runner (PreparedMockExamPage)', () => {
     });
 
     it('hydrates 103 & 150 UUIDs in <=100-item chunks with deleted_at=null, preserves exact order from reversed rows, and keeps quizCreationService ceilings', async () => {
-        expect(MAX_QUIZ_QUESTIONS).toBe(100);
-        expect(MAX_PREPARED_MOCK_QUESTIONS).toBe(250);
+        expect(MAX_QUIZ_QUESTIONS).toBe(300);
+        expect(MAX_PREPARED_MOCK_QUESTIONS).toBe(300);
 
         // 150-question BPSC-scale hydration with reversed DB rows
         const questions150 = buildQuestionsList(150);

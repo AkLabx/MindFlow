@@ -1,7 +1,8 @@
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Plus, BookOpen, Layers, CheckSquare, RotateCcw } from 'lucide-react';
+import { Plus, BookOpen, Layers, CheckSquare, RotateCcw, Info } from 'lucide-react';
 import { ROUTES } from '@/config/routes';
+import { InfoHintPopover } from '@/components/ui/InfoHintPopover';
 import { useNotification } from '@/stores/useNotificationStore';
 import {
     KPICard, SearchBar, SkeletonList, EmptyState, ConfirmDialog,
@@ -522,49 +523,116 @@ export const AdminTestSeriesDashboard: React.FC = () => {
                         Curate exam categories, test series collections, and published mock tests.
                     </p>
                 </div>
-                <button
-                    type="button"
-                    onClick={openCreate}
-                    className="flex items-center justify-center gap-2 min-h-[44px] bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2.5 rounded-xl text-xs font-bold transition-all active:scale-95 shadow-md shadow-indigo-600/20"
-                >
-                    <Plus className="w-4 h-4" aria-hidden="true" /> Create New
-                </button>
+                <div className="flex items-center gap-1 self-start sm:self-auto">
+                    <button
+                        type="button"
+                        onClick={openCreate}
+                        className="flex items-center justify-center gap-2 min-h-[44px] bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2.5 rounded-xl text-xs font-bold transition-all active:scale-95 touch-manipulation scroll-mb-28 shadow-md shadow-indigo-600/20"
+                    >
+                        <Plus className="w-4 h-4" aria-hidden="true" /> Create New
+                    </button>
+                    <InfoHintPopover
+                        title="Create New"
+                        purpose="Creates a new item matching your active tab: a Category drawer on Categories, a Series drawer on Series, or the 4-step Test Builder on Tests."
+                        studentVisibility="New Categories and Series appear in student Mock Hub once active/published; new Tests start as Draft until published."
+                        example="Switch to Tests tab and tap Create New to build a 150-question BPSC mock test."
+                        align="end"
+                    />
+                </div>
             </header>
 
+            {/* How Mock Test Hierarchy Works Guide Strip */}
+            <div className="p-3.5 sm:p-4 rounded-2xl bg-indigo-50/70 dark:bg-indigo-950/30 border border-indigo-200/80 dark:border-indigo-800/60 flex items-start gap-3">
+                <div className="p-2 rounded-xl bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-300 shrink-0">
+                    <Info className="w-4 h-4" aria-hidden="true" />
+                </div>
+                <div className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed min-w-0">
+                    <p className="font-bold text-slate-900 dark:text-white">
+                        How Mock Test Hierarchy Works: Exam Category → Test Series → Mock Test
+                    </p>
+                    <p className="mt-0.5">
+                        Students see a Mock Test only when its <strong>Category is Active</strong>, its{' '}
+                        <strong>Parent Series is Published</strong>, the <strong>Test is Published</strong>, and the{' '}
+                        <strong>Release/Expiry schedule window</strong> is open. Drafts stay hidden in CMS.
+                    </p>
+                </div>
+            </div>
+
             {/* KPI Cards */}
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
-                <KPICard title="Categories" value={kpis.totalCategories} icon={BookOpen} color="indigo" />
-                <KPICard title="Series" value={kpis.totalSeries} icon={Layers} color="blue" />
-                <KPICard title="Tests" value={kpis.totalTests} icon={CheckSquare} color="purple" />
-                <KPICard title="Published" value={kpis.publishedTests} icon={CheckSquare} color="emerald" />
-                <KPICard title="Draft" value={kpis.draftTests} icon={CheckSquare} color="amber" />
+            <div className="space-y-2 mb-8">
+                <div className="flex items-center gap-1">
+                    <h2 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                        Catalog Summary (Published vs Draft)
+                    </h2>
+                    <InfoHintPopover
+                        title="Published vs Draft KPIs"
+                        purpose="Tracks how many Mock Tests are marked Published versus still in Draft across all series."
+                        studentVisibility="Only Published tests inside Published Series and Active Categories are visible to students."
+                        example="A Published test inside a Draft series stays hidden until you publish the parent series."
+                        align="start"
+                    />
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                    <KPICard title="Categories" value={kpis.totalCategories} icon={BookOpen} color="indigo" />
+                    <KPICard title="Series" value={kpis.totalSeries} icon={Layers} color="blue" />
+                    <KPICard title="Tests" value={kpis.totalTests} icon={CheckSquare} color="purple" />
+                    <KPICard title="Published" value={kpis.publishedTests} icon={CheckSquare} color="emerald" />
+                    <KPICard title="Draft" value={kpis.draftTests} icon={CheckSquare} color="amber" />
+                </div>
             </div>
 
             {/* Tabs & Semantic Filter Controls */}
             <div className="space-y-4 mb-6">
                 <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                    <div className="flex space-x-2 bg-white dark:bg-slate-800 p-1 rounded-xl shadow-sm w-fit border border-slate-200 dark:border-slate-700">
-                        <button
-                            type="button"
-                            onClick={() => handleTabChange('categories')}
-                            className={`min-h-[44px] px-4 py-2 rounded-lg font-medium text-sm flex items-center gap-2 transition-all active:scale-95 ${activeTab === 'categories' ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300' : 'text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-700'}`}
-                        >
-                            <BookOpen className="w-4 h-4" aria-hidden="true" /> Categories
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => handleTabChange('series')}
-                            className={`min-h-[44px] px-4 py-2 rounded-lg font-medium text-sm flex items-center gap-2 transition-all active:scale-95 ${activeTab === 'series' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300' : 'text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-700'}`}
-                        >
-                            <Layers className="w-4 h-4" aria-hidden="true" /> Series
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => handleTabChange('tests')}
-                            className={`min-h-[44px] px-4 py-2 rounded-lg font-medium text-sm flex items-center gap-2 transition-all active:scale-95 ${activeTab === 'tests' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-300' : 'text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-700'}`}
-                        >
-                            <CheckSquare className="w-4 h-4" aria-hidden="true" /> Tests
-                        </button>
+                    <div className="flex flex-wrap items-center gap-1.5 bg-white dark:bg-slate-800 p-1 rounded-xl shadow-sm w-fit border border-slate-200 dark:border-slate-700">
+                        <div className="flex items-center">
+                            <button
+                                type="button"
+                                onClick={() => handleTabChange('categories')}
+                                className={`min-h-[44px] px-4 py-2 rounded-lg font-medium text-sm flex items-center gap-2 transition-all active:scale-95 touch-manipulation scroll-mb-28 ${activeTab === 'categories' ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300' : 'text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-700'}`}
+                            >
+                                <BookOpen className="w-4 h-4" aria-hidden="true" /> Categories
+                            </button>
+                            <InfoHintPopover
+                                title="Exam Categories Tab"
+                                purpose="Top-level exam buckets (e.g., BPSC, SSC, UPSC) that group Test Series."
+                                studentVisibility="Displayed as the main category cards on the student Mock Tests Hub."
+                                example="Create 'BPSC' first, set it Active, then add series under it."
+                                align="start"
+                            />
+                        </div>
+                        <div className="flex items-center">
+                            <button
+                                type="button"
+                                onClick={() => handleTabChange('series')}
+                                className={`min-h-[44px] px-4 py-2 rounded-lg font-medium text-sm flex items-center gap-2 transition-all active:scale-95 touch-manipulation scroll-mb-28 ${activeTab === 'series' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300' : 'text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-700'}`}
+                            >
+                                <Layers className="w-4 h-4" aria-hidden="true" /> Series
+                            </button>
+                            <InfoHintPopover
+                                title="Test Series Tab"
+                                purpose="Collections of mock tests inside a category, with Free vs PRO access and Published vs Draft visibility."
+                                studentVisibility="Appears inside the selected Exam Category for students once Published."
+                                example="Create '70th BPSC Prelims Series' under BPSC and publish when tests are ready."
+                                align="center"
+                            />
+                        </div>
+                        <div className="flex items-center">
+                            <button
+                                type="button"
+                                onClick={() => handleTabChange('tests')}
+                                className={`min-h-[44px] px-4 py-2 rounded-lg font-medium text-sm flex items-center gap-2 transition-all active:scale-95 touch-manipulation scroll-mb-28 ${activeTab === 'tests' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-300' : 'text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-700'}`}
+                            >
+                                <CheckSquare className="w-4 h-4" aria-hidden="true" /> Tests
+                            </button>
+                            <InfoHintPopover
+                                title="Mock Tests Tab"
+                                purpose="Individual timed exams belonging to a Test Series, containing up to 300 curated questions, marking rules, and schedule windows."
+                                studentVisibility="Shown in the Series detail page when Test + Parent Series + Category are all live."
+                                example="Filter by Category, Series, or Draft/Published status to manage tests."
+                                align="end"
+                            />
+                        </div>
                     </div>
                 </div>
 
@@ -632,9 +700,17 @@ export const AdminTestSeriesDashboard: React.FC = () => {
 
                         {activeTab === 'tests' && (
                             <div className="flex flex-col gap-1">
-                                <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">
-                                    Status
-                                </span>
+                                <div className="flex items-center gap-1">
+                                    <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">
+                                        Status
+                                    </span>
+                                    <InfoHintPopover
+                                        title="Test Status Filter"
+                                        purpose="Filters the Tests list by All, Published, or Draft state, synced to the URL."
+                                        example="Switch to Draft to finish incomplete tests before publishing."
+                                        align="end"
+                                    />
+                                </div>
                                 <div
                                     role="group"
                                     aria-label="Filter tests by status"
@@ -652,7 +728,7 @@ export const AdminTestSeriesDashboard: React.FC = () => {
                                                 type="button"
                                                 aria-pressed={isPressed}
                                                 onClick={() => handleStatusFilterChange(opt.value)}
-                                                className={`min-h-[44px] px-3 py-1.5 rounded-lg text-xs font-semibold transition-all active:scale-95 ${
+                                                className={`min-h-[44px] min-w-[44px] px-3 py-1.5 rounded-lg text-xs font-semibold transition-all active:scale-95 touch-manipulation scroll-mb-28 ${
                                                     isPressed
                                                         ? 'bg-white dark:bg-slate-800 text-purple-700 dark:text-purple-300 shadow-sm'
                                                         : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'

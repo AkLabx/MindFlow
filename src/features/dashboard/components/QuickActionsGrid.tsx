@@ -1,32 +1,31 @@
 import React from 'react';
 import { QUICK_ACTIONS } from '../constants/sscDashboardConfig';
-import { Zap, SlidersHorizontal, RotateCcw, ChevronRight } from 'lucide-react';
+import { BookOpen, SlidersHorizontal, Languages, RotateCcw, ChevronRight } from 'lucide-react';
 
 interface QuickActionsGridProps {
   onActionClick: (action: string) => void;
 }
 
 const IconMap: Record<string, React.ElementType> = {
-  Zap,
+  BookOpen,
   SlidersHorizontal,
+  Languages,
   RotateCcw,
 };
 
 export const QuickActionsGrid: React.FC<QuickActionsGridProps> = ({ onActionClick }) => {
   return (
-    <section className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.06)] dark:shadow-none p-3.5 sm:p-4.5 flex flex-col gap-3 relative z-10">
+    <section className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.06)] dark:shadow-none p-3.5 sm:p-4.5 flex flex-col gap-3 relative z-10 scroll-mb-28">
       <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white px-0.5">Quick Actions</h2>
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 sm:gap-3.5">
-        {QUICK_ACTIONS.map((item, index) => {
-          const Icon = IconMap[item.icon] || Zap;
-          const isLastOdd = QUICK_ACTIONS.length % 2 !== 0 && index === QUICK_ACTIONS.length - 1;
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3.5">
+        {QUICK_ACTIONS.map((item) => {
+          const Icon = IconMap[item.icon] || BookOpen;
           return (
             <button
               key={item.id}
+              type="button"
               onClick={() => onActionClick(item.action)}
-              className={`group relative flex flex-col items-start justify-between p-3.5 sm:p-4.5 min-h-[105px] sm:min-h-[125px] text-left rounded-xl bg-white dark:bg-slate-900 shadow-xs hover:shadow-sm border ${item.borderClass} ${item.hoverBorder} transition-all w-full cursor-pointer active:scale-95 overflow-hidden ${
-                isLastOdd ? 'col-span-2 sm:col-span-1' : ''
-              }`}
+              className={`group relative flex flex-col items-start justify-between p-3.5 sm:p-4.5 min-h-[108px] sm:min-h-[125px] text-left rounded-xl bg-white dark:bg-slate-900 shadow-xs hover:shadow-sm border ${item.borderClass} ${item.hoverBorder} transition-all w-full cursor-pointer active:scale-95 touch-manipulation scroll-mb-28 overflow-hidden`}
             >
               <div
                 className={`absolute inset-0 rounded-xl bg-gradient-to-br ${item.gradient} pointer-events-none opacity-80`}
@@ -37,14 +36,14 @@ export const QuickActionsGrid: React.FC<QuickActionsGridProps> = ({ onActionClic
                 </div>
               </div>
               <div className="flex flex-col items-start mt-auto w-full pt-2.5 relative z-10">
-                <span className="font-bold text-xs sm:text-sm text-slate-800 dark:text-slate-200 transition-colors">
+                <span className="font-bold text-xs sm:text-sm text-slate-800 dark:text-slate-200 transition-colors leading-snug">
                   {item.title}
                 </span>
                 <div className="flex items-center justify-between w-full mt-0.5 sm:mt-1">
-                  <span className="block text-xs text-slate-500 dark:text-slate-400 font-medium pr-2">
+                  <span className="block text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 font-medium pr-2">
                     {item.subtitle}
                   </span>
-                  <ChevronRight className={`w-4 h-4 sm:w-5 sm:h-5 ${item.textClass} opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300 ease-out`} />
+                  <ChevronRight className={`w-4 h-4 sm:w-5 sm:h-5 ${item.textClass} opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300 ease-out shrink-0`} />
                 </div>
               </div>
             </button>

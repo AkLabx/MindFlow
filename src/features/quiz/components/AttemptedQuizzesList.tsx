@@ -40,9 +40,16 @@ interface AttemptedQuizzesListProps {
     setViewMode: (mode: 'list' | 'grid') => void;
     sortMethod: 'date-desc' | 'date-asc' | 'name-asc' | 'name-desc' | 'score-desc' | 'score-asc';
     setSortMethod: (method: 'date-desc' | 'date-asc' | 'name-asc' | 'name-desc' | 'score-desc' | 'score-asc') => void;
+    hasExternalItems?: boolean;
 }
 
-export const AttemptedQuizzesList: React.FC<AttemptedQuizzesListProps> = ({ viewMode, setViewMode, sortMethod, setSortMethod }) => {
+export const AttemptedQuizzesList: React.FC<AttemptedQuizzesListProps> = ({
+    viewMode,
+    setViewMode,
+    sortMethod,
+    setSortMethod,
+    hasExternalItems = false,
+}) => {
     const navigate = useNavigate();
     const queryClient = useQueryClient();
     const { user, isAuthTransitioning } = useAuth();
@@ -318,6 +325,10 @@ export const AttemptedQuizzesList: React.FC<AttemptedQuizzesListProps> = ({ view
         }
     };
 
+    if (hasExternalItems && !loading && !isError && sortedQuizzes.length === 0) {
+        return null;
+    }
+
     return (
         <QueryStateHandler
             isLoading={loading || (isSyncing && quizzes.length === 0)}
@@ -357,6 +368,7 @@ export const AttemptedQuizzesList: React.FC<AttemptedQuizzesListProps> = ({ view
                             </p>
 
                             <button
+                                type="button"
                                 onClick={() => {
                                     telemetry.emit('recovery_action_clicked', {
                                         view: 'AttemptedQuizzesList',
@@ -364,7 +376,7 @@ export const AttemptedQuizzesList: React.FC<AttemptedQuizzesListProps> = ({ view
                                     });
                                     navigate('/quiz/config');
                                 }}
-                                className="relative group/btn overflow-hidden px-8 py-4 rounded-2xl bg-indigo-600 hover:bg-indigo-700 border border-indigo-500 dark:border-indigo-400 shadow-lg hover:shadow-xl hover:shadow-indigo-500/30 transition-all duration-300 flex items-center gap-3 mx-auto"
+                                className="min-h-[44px] min-w-[44px] scroll-mb-28 active:scale-95 touch-manipulation cursor-pointer relative group/btn overflow-hidden px-8 py-3.5 rounded-2xl bg-indigo-600 hover:bg-indigo-700 border border-indigo-500 dark:border-indigo-400 shadow-lg hover:shadow-xl hover:shadow-indigo-500/30 transition-all duration-300 inline-flex items-center justify-center gap-3 mx-auto"
                             >
                                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-100%] group-hover/btn:translate-x-[100%] transition-transform duration-700" />
 
@@ -384,7 +396,7 @@ export const AttemptedQuizzesList: React.FC<AttemptedQuizzesListProps> = ({ view
                     >
                         <QuizLibraryToolbar
                             count={filteredQuizzes.length}
-                            label="Attempted"
+                            label="Completed Custom"
                             viewMode={viewMode}
                             setViewMode={setViewMode}
                             sortMethod={sortMethod}
@@ -418,7 +430,7 @@ export const AttemptedQuizzesList: React.FC<AttemptedQuizzesListProps> = ({ view
                                             });
                                             setSelectedExamId('all');
                                         }}
-                                        className="min-h-[44px] px-4 py-2 rounded-xl text-xs font-bold bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-200 transition-colors"
+                                        className="min-h-[44px] min-w-[44px] scroll-mb-28 active:scale-95 touch-manipulation cursor-pointer px-4 py-2 rounded-xl text-xs font-bold bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-200 transition-colors"
                                     >
                                         View All Quizzes
                                     </button>
@@ -431,7 +443,7 @@ export const AttemptedQuizzesList: React.FC<AttemptedQuizzesListProps> = ({ view
                                             });
                                             navigate(`/quiz/config?exam=${selectedExamId}`);
                                         }}
-                                        className="min-h-[44px] px-4 py-2 rounded-xl text-xs font-bold bg-indigo-600 text-white hover:bg-indigo-700 transition-colors shadow-xs"
+                                        className="min-h-[44px] min-w-[44px] scroll-mb-28 active:scale-95 touch-manipulation cursor-pointer px-4 py-2 rounded-xl text-xs font-bold bg-indigo-600 text-white hover:bg-indigo-700 transition-colors shadow-xs"
                                     >
                                         Start Quiz
                                     </button>

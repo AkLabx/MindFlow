@@ -1,10 +1,16 @@
 import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { QuestionLightweight, QuestionFilterParams, FilterOptions } from '../types/questionBuilder.types';
-import { searchQuestions } from '../api/questionBuilderApi';
+import {
+    searchQuestions,
+    fetchMatchingQuestionsSlice,
+    MAX_QUICK_PICK_QUESTIONS,
+} from '../api/questionBuilderApi';
 import { QuestionFilterBar } from './QuestionFilterBar';
 import { QuestionResultCard } from './QuestionResultCard';
-import { Search, Loader2, CheckSquare, AlertCircle, RotateCw } from 'lucide-react';
+import { Search, Loader2, CheckSquare, AlertCircle, RotateCw, Sparkles } from 'lucide-react';
 import { useInView } from 'react-intersection-observer';
+import { InfoHintPopover } from '@/components/ui/InfoHintPopover';
+import { useNotificationStore } from '@/stores/useNotificationStore';
 
 const PAGE_LIMIT = 25;
 
@@ -28,6 +34,8 @@ export const QuestionSearchPanel: React.FC<Props> = ({
     const [hasMore, setHasMore] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [error, setError] = useState<string | null>(null);
+    const [quickPickDraft, setQuickPickDraft] = useState<string>('25');
+    const [isQuickPicking, setIsQuickPicking] = useState(false);
 
     const requestSeqRef = useRef(0);
 
@@ -149,6 +157,49 @@ export const QuestionSearchPanel: React.FC<Props> = ({
         }
     }, [questions, leftSelectedIds, onAddMultiple]);
 
+    const parsedQuickPickCount = useMemo(() => {
+        const parsed = Number.parseInt(quickPickDraft, 10);
+        if (!Number.isFinite(parsed) || parsed < 1) return 25;
+        return Math.min(MAX_QUICK_PICK_QUESTIONS, parsed);
+    }, [quickPickDraft]);
+
+    const handleQuickPick = useCallback(async () => {
+        if (isQuickPicking) return;
+        const targetCount = parsedQuickPickCount;
+        setQuickPickDraft(String(targetCount));
+        setIsQuickPicking(true);
+        try {
+            const fetchLimit = Math.min(
+                MAX_QUICK_PICK_QUESTIONS,
+                targetCount + selectedIdSet.size
+            );
+            const candidates = await fetchMatchingQuestionsSlice(params, fetchLimit);
+            const picked = candidates
+                .filter(q => !selectedIdSet.has(q.id))
+                .slice(0, targetCount);
+
+            if (picked.length === 0) {
+                useNotificationStore.getState().showToast({
+                    variant: 'info',
+                    title: 'No Additional Questions',
+                    message: 'All matching questions are already selected or none matched your current filters.',
+                });
+                return;
+            }
+
+            onAddMultiple(picked);
+        } catch (err: any) {
+            console.error('Quick pick failed', err);
+            useNotificationStore.getState().showToast({
+                variant: 'error',
+                title: 'Quick Pick Failed',
+                message: err?.message || 'Could not pick matching questions. Please try again.',
+            });
+        } finally {
+            setIsQuickPicking(false);
+        }
+    }, [isQuickPicking, parsedQuickPickCount, params, selectedIdSet, onAddMultiple]);
+
     return (
         <div className="flex flex-col h-full bg-white dark:bg-slate-900">
             {/* Search Header */}
@@ -178,13 +229,53 @@ export const QuestionSearchPanel: React.FC<Props> = ({
                 isLoading={loading && page === 0}
             />
 
+            {/* Quick Pick (1-300) Row */}
+            <div className="px-4 py-2 border-b border-slate-200 dark:border-slate-700 bg-indigo-50/50 dark:bg-indigo-950/20 flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-1 text-xs font-semibold text-slate-700 dark:text-slate-200">
+                    <Sparkles className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400 shrink-0" aria-hidden="true" />
+                    <span>Quick Pick (1–{MAX_QUICK_PICK_QUESTIONS})</span>
+                    <InfoHintPopover
+                        title="Quick Pick (1–300)"
+                        purpose="Automatically selects up to N unselected questions from your current search and filter criteria and adds them to this mock test."
+                        example="Filter by Subject or Exam Name, type 67 or 150, then tap Pick 67."
+                        align="start"
+                    />
+                </div>
+                <div className="flex items-center gap-2">
+                    <input
+                        type="number"
+                        min={1}
+                        max={MAX_QUICK_PICK_QUESTIONS}
+                        inputMode="numeric"
+                        aria-label="Quick pick question count"
+                        value={quickPickDraft}
+                        onChange={(e) => setQuickPickDraft(e.target.value)}
+                        onBlur={() => setQuickPickDraft(String(parsedQuickPickCount))}
+                        className="w-20 min-h-[44px] px-2.5 py-1.5 text-xs font-bold text-center rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 tabular-nums"
+                    />
+                    <button
+                        type="button"
+                        onClick={handleQuickPick}
+                        disabled={isQuickPicking || total === 0}
+                        className="min-h-[44px] px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-xs font-bold inline-flex items-center gap-1.5 transition-all active:scale-95 touch-manipulation scroll-mb-28"
+                    >
+                        {isQuickPicking ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden="true" />
+                        ) : (
+                            <Sparkles className="w-3.5 h-3.5" aria-hidden="true" />
+                        )}
+                        <span>Pick {parsedQuickPickCount}</span>
+                    </button>
+                </div>
+            </div>
+
             <div className="flex-1 overflow-y-auto min-h-0 relative">
                 <div className="p-2 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 flex justify-between items-center px-4 sticky top-0 z-10 backdrop-blur-md bg-slate-50/90 dark:bg-slate-800/90">
                     <div className="flex items-center gap-3">
                         <button
                             type="button"
                             onClick={handleSelectAllVisible}
-                            className="min-h-[44px] px-2 text-xs font-semibold text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 uppercase tracking-wider flex items-center gap-1.5 transition-all active:scale-95 rounded-lg"
+                            className="min-h-[44px] px-2 text-xs font-semibold text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 uppercase tracking-wider flex items-center gap-1.5 transition-all active:scale-95 touch-manipulation scroll-mb-28 rounded-lg"
                         >
                             <CheckSquare className="w-3.5 h-3.5" aria-hidden="true" />
                             Select Visible
@@ -211,7 +302,7 @@ export const QuestionSearchPanel: React.FC<Props> = ({
                         <button
                             type="button"
                             onClick={() => loadQuestions(page, params, page > 0)}
-                            className="min-h-[44px] px-3 py-1.5 rounded-lg bg-white dark:bg-slate-800 border border-red-200 dark:border-red-700 text-xs font-semibold text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/40 flex items-center gap-1.5 shrink-0 transition-all active:scale-95"
+                            className="min-h-[44px] px-3 py-1.5 rounded-lg bg-white dark:bg-slate-800 border border-red-200 dark:border-red-700 text-xs font-semibold text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/40 flex items-center gap-1.5 shrink-0 transition-all active:scale-95 touch-manipulation scroll-mb-28"
                         >
                             <RotateCw className="w-3.5 h-3.5" aria-hidden="true" />
                             Retry
@@ -256,7 +347,7 @@ export const QuestionSearchPanel: React.FC<Props> = ({
                         <button
                             type="button"
                             onClick={handleClearLeftSelection}
-                            className="min-h-[44px] px-3 text-xs text-indigo-100 hover:text-white transition-all active:scale-95 rounded-lg"
+                            className="min-h-[44px] px-3 text-xs text-indigo-100 hover:text-white transition-all active:scale-95 touch-manipulation scroll-mb-28 rounded-lg"
                         >
                             Clear
                         </button>
@@ -264,7 +355,7 @@ export const QuestionSearchPanel: React.FC<Props> = ({
                     <button
                         type="button"
                         onClick={handleAddSelected}
-                        className="min-h-[44px] bg-white text-indigo-600 px-4 py-1.5 rounded-lg text-sm font-bold shadow-sm hover:bg-indigo-50 transition-all active:scale-95"
+                        className="min-h-[44px] bg-white text-indigo-600 px-4 py-1.5 rounded-lg text-sm font-bold shadow-sm hover:bg-indigo-50 transition-all active:scale-95 touch-manipulation scroll-mb-28"
                     >
                         Add Selected
                     </button>

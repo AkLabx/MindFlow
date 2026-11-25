@@ -4,6 +4,7 @@ import React from "react";
 import { Play, Calendar, Bookmark, FolderClock } from "lucide-react";
 import { User } from "@supabase/supabase-js";
 import { SavedQuiz } from "@/features/quiz/types";
+import { ContinueLearningItem } from "@/features/mock-tests/api/mockTestsApi";
 import { useNavigate } from "react-router-dom";
 import { ROUTES } from "@/config/routes";
 import { useQuery } from "@tanstack/react-query";
@@ -18,6 +19,8 @@ interface DashboardGreetingProps {
   profile?: any | null;
   latestQuiz?: SavedQuiz | null;
   onResumeQuiz: (quiz: SavedQuiz) => void;
+  latestMockAttempt?: ContinueLearningItem | null;
+  onResumeMockAttempt?: (item: ContinueLearningItem) => void;
 }
 
 export const DashboardGreeting: React.FC<DashboardGreetingProps> = ({
@@ -25,6 +28,8 @@ export const DashboardGreeting: React.FC<DashboardGreetingProps> = ({
   profile: propProfile,
   latestQuiz,
   onResumeQuiz,
+  latestMockAttempt,
+  onResumeMockAttempt,
 }) => {
   const navigate = useNavigate();
   const { user: authUser, profile: authProfile } = useAuth();
@@ -60,6 +65,25 @@ export const DashboardGreeting: React.FC<DashboardGreetingProps> = ({
     return null;
   }, [latestQuiz]);
 
+  const resumeTarget = React.useMemo(() => {
+    const activeMock = latestMockAttempt?.status === 'in_progress' ? latestMockAttempt : null;
+    if (activeMock && latestQuiz) {
+      const parsedMockMs = Date.parse(activeMock.activityAt);
+      const mockMs = Number.isFinite(parsedMockMs) ? parsedMockMs : 0;
+      const quizMs = latestQuiz.createdAt || 0;
+      return mockMs >= quizMs
+        ? { kind: 'mock' as const, item: activeMock }
+        : { kind: 'quiz' as const, quiz: latestQuiz };
+    }
+    if (activeMock) {
+      return { kind: 'mock' as const, item: activeMock };
+    }
+    if (latestQuiz) {
+      return { kind: 'quiz' as const, quiz: latestQuiz };
+    }
+    return null;
+  }, [latestMockAttempt, latestQuiz]);
+
   const { data: bookmarkCount = 0 } = useQuery({
     queryKey: ['dashboard-bookmark-count', user?.id],
     queryFn: async () => {
@@ -91,6 +115,40 @@ export const DashboardGreeting: React.FC<DashboardGreetingProps> = ({
     return "Good Evening";
   };
 
+  const handleResumeClick = () => {
+    if (!resumeTarget) return;
+    triggerHaptic('medium');
+    if (resumeTarget.kind === 'mock') {
+      if (onResumeMockAttempt) {
+        onResumeMockAttempt(resumeTarget.item);
+      } else {
+        navigate(ROUTES.TEST_SERIES.EXAM_RUNNER(resumeTarget.item.testId), {
+          state: { returnTo: ROUTES.DASHBOARD, resumeAttemptId: resumeTarget.item.attemptId },
+        });
+      }
+      return;
+    }
+    onResumeQuiz(resumeTarget.quiz);
+  };
+
+  const resumeBadgeLabel =
+    resumeTarget?.kind === 'mock'
+      ? resumeTarget.item.categoryName || 'Mock'
+      : resumeTarget?.kind === 'quiz'
+      ? latestQuizExam?.shortCode || null
+      : null;
+
+  const resumeSubtitle =
+    resumeTarget?.kind === 'mock'
+      ? resumeTarget.item.categoryName
+        ? `${resumeTarget.item.categoryName} • ${resumeTarget.item.testName}`
+        : resumeTarget.item.testName
+      : resumeTarget?.kind === 'quiz'
+      ? latestQuizExam
+        ? `${latestQuizExam.shortCode} • ${resumeTarget.quiz.name || "Paused Quiz"}`
+        : resumeTarget.quiz.name || "Paused Quiz"
+      : "no quiz in progress";
+
   return (
     <div className="relative z-10 w-full">
       {/* Hero Strip — Greeting + Action Buttons in one unified card */}
@@ -108,11 +166,12 @@ export const DashboardGreeting: React.FC<DashboardGreetingProps> = ({
         <div className="grid grid-cols-4 gap-1.5 sm:gap-2.5">
           {/* Today's Plan */}
           <button
+            type="button"
             onClick={() => {
               triggerHaptic('light');
               navigate(ROUTES.TODAYS_PLAN || "/todays-plan");
             }}
-            className="group relative flex flex-col items-center justify-center p-2 sm:p-3 text-center rounded-xl bg-white dark:bg-slate-900 border border-indigo-200/80 dark:border-indigo-800/60 hover:border-indigo-400 dark:hover:border-indigo-600 shadow-xs hover:shadow-sm transition-all w-full cursor-pointer active:scale-95 active:brightness-95 select-none touch-manipulation overflow-hidden"
+            className="group relative flex flex-col items-center justify-center min-h-[44px] p-2 sm:p-3 text-center rounded-xl bg-white dark:bg-slate-900 border border-indigo-200/80 dark:border-indigo-800/60 hover:border-indigo-400 dark:hover:border-indigo-600 shadow-xs hover:shadow-sm transition-all w-full cursor-pointer active:scale-95 active:brightness-95 select-none touch-manipulation overflow-hidden"
           >
             <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/10 via-violet-500/5 to-transparent pointer-events-none" />
             <div className="relative z-10 w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border border-indigo-200/70 dark:border-indigo-800/50 bg-white dark:bg-slate-800 shadow-xs group-hover:scale-105 transition-transform mb-1.5">
@@ -126,20 +185,21 @@ export const DashboardGreeting: React.FC<DashboardGreetingProps> = ({
             </span>
           </button>
 
-          {/* Bookmarks */}
+          {/* Saved Questions */}
           <button
+            type="button"
             onClick={() => {
               triggerHaptic('light');
               navigate(ROUTES.QUIZ.BOOKMARKS);
             }}
-            className="group relative flex flex-col items-center justify-center p-2 sm:p-3 text-center rounded-xl bg-white dark:bg-slate-900 border border-amber-200/80 dark:border-amber-800/60 hover:border-amber-400 dark:hover:border-amber-600 shadow-xs hover:shadow-sm transition-all w-full cursor-pointer active:scale-95 active:brightness-95 select-none touch-manipulation overflow-hidden"
+            className="group relative flex flex-col items-center justify-center min-h-[44px] p-2 sm:p-3 text-center rounded-xl bg-white dark:bg-slate-900 border border-amber-200/80 dark:border-amber-800/60 hover:border-amber-400 dark:hover:border-amber-600 shadow-xs hover:shadow-sm transition-all w-full cursor-pointer active:scale-95 active:brightness-95 select-none touch-manipulation overflow-hidden"
           >
             <div className="absolute inset-0 bg-gradient-to-br from-amber-500/10 via-yellow-500/5 to-transparent pointer-events-none" />
             <div className="relative z-10 w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border border-amber-200/70 dark:border-amber-800/50 bg-white dark:bg-slate-800 shadow-xs group-hover:scale-105 transition-transform mb-1.5">
               <Bookmark className="w-4 h-4 text-amber-600 dark:text-amber-400" />
             </div>
             <span className="relative z-10 font-bold text-[10px] leading-tight sm:text-xs text-slate-800 dark:text-slate-200 group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">
-              Bookmarks
+              Saved Questions
             </span>
             <span className="relative z-10 block text-[8px] leading-tight sm:text-[9px] text-slate-400 dark:text-slate-500 font-medium mt-0.5">
               {bookmarkCount > 0 ? `${bookmarkCount} saved Qs` : "saved questions"}
@@ -148,55 +208,52 @@ export const DashboardGreeting: React.FC<DashboardGreetingProps> = ({
 
           {/* Resume Quiz */}
           <button
-            onClick={() => {
-              if (latestQuiz) {
-                triggerHaptic('medium');
-                onResumeQuiz(latestQuiz);
-              }
-            }}
-            disabled={!latestQuiz}
-            className={`group relative flex flex-col items-center justify-center p-2 sm:p-3 rounded-xl transition-all text-center w-full active:scale-95 active:brightness-95 select-none touch-manipulation overflow-hidden ${
-              latestQuiz
+            type="button"
+            onClick={handleResumeClick}
+            disabled={!resumeTarget}
+            className={`group relative flex flex-col items-center justify-center min-h-[44px] p-2 sm:p-3 rounded-xl transition-all text-center w-full active:scale-95 active:brightness-95 select-none touch-manipulation overflow-hidden ${
+              resumeTarget
                 ? "bg-white dark:bg-slate-900 border border-violet-200/80 dark:border-violet-800/60 hover:border-violet-400 dark:hover:border-violet-600 cursor-pointer shadow-xs hover:shadow-sm"
                 : "bg-slate-50/80 dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-700/50 opacity-50 cursor-not-allowed"
             }`}
           >
-            {latestQuiz && (
+            {resumeTarget && (
               <div className="absolute inset-0 bg-gradient-to-br from-violet-500/12 via-indigo-500/5 to-transparent pointer-events-none" />
             )}
-            {latestQuiz && latestQuizExam && (
-              <div className="absolute top-1 right-1 z-20">
-                <span className="text-[7px] font-bold px-1.5 py-0.5 rounded-full bg-violet-100 dark:bg-violet-900/60 text-violet-700 dark:text-violet-300 border border-violet-200/50">
-                  {latestQuizExam.shortCode}
+            {resumeTarget && resumeBadgeLabel && (
+              <div className="absolute top-1 right-1 z-20 max-w-[75%]">
+                <span className="block truncate text-[7px] font-bold px-1.5 py-0.5 rounded-full bg-violet-100 dark:bg-violet-900/60 text-violet-700 dark:text-violet-300 border border-violet-200/50">
+                  {resumeBadgeLabel}
                 </span>
               </div>
             )}
             <div className={`relative z-10 w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border ${
-              latestQuiz
+              resumeTarget
                 ? "border-violet-200/70 dark:border-violet-800/50 bg-white dark:bg-slate-800 shadow-xs group-hover:scale-105 text-violet-600 dark:text-violet-400"
                 : "border-slate-200/60 dark:border-slate-700/40 bg-slate-100 dark:bg-slate-800/60 text-slate-400"
             } transition-transform mb-1.5`}>
               <Play className="w-4 h-4 fill-current ml-0.5" />
             </div>
             <span
-              className={`relative z-10 font-bold text-[10px] leading-tight sm:text-xs transition-colors ${latestQuiz ? "text-slate-800 dark:text-slate-200 group-hover:text-violet-600 dark:group-hover:text-violet-400" : "text-slate-500 dark:text-slate-400"}`}
+              className={`relative z-10 font-bold text-[10px] leading-tight sm:text-xs transition-colors ${resumeTarget ? "text-slate-800 dark:text-slate-200 group-hover:text-violet-600 dark:group-hover:text-violet-400" : "text-slate-500 dark:text-slate-400"}`}
             >
               Resume Quiz
             </span>
             <span
-              className={`relative z-10 block text-[8px] leading-tight sm:text-[9px] font-medium truncate w-full mt-0.5 ${latestQuiz ? "text-violet-600/80 dark:text-violet-400/80" : "text-slate-400 dark:text-slate-500"}`}
+              className={`relative z-10 block text-[8px] leading-tight sm:text-[9px] font-medium truncate w-full mt-0.5 ${resumeTarget ? "text-violet-600/80 dark:text-violet-400/80" : "text-slate-400 dark:text-slate-500"}`}
             >
-              {latestQuiz ? (latestQuizExam ? `${latestQuizExam.shortCode} • ${latestQuiz.name || "Paused Quiz"}` : latestQuiz.name || "Paused Quiz") : "no quiz in progress"}
+              {resumeSubtitle}
             </span>
           </button>
 
           {/* Quiz History */}
           <button
+            type="button"
             onClick={() => {
               triggerHaptic('light');
               navigate(`${ROUTES.QUIZ.LIBRARY}?tab=attempted`);
             }}
-            className="group relative flex flex-col items-center justify-center p-2 sm:p-3 text-center rounded-xl bg-white dark:bg-slate-900 border border-emerald-200/80 dark:border-emerald-800/60 hover:border-emerald-400 dark:hover:border-emerald-600 shadow-xs hover:shadow-sm transition-all w-full cursor-pointer active:scale-95 active:brightness-95 select-none touch-manipulation overflow-hidden"
+            className="group relative flex flex-col items-center justify-center min-h-[44px] p-2 sm:p-3 text-center rounded-xl bg-white dark:bg-slate-900 border border-emerald-200/80 dark:border-emerald-800/60 hover:border-emerald-400 dark:hover:border-emerald-600 shadow-xs hover:shadow-sm transition-all w-full cursor-pointer active:scale-95 active:brightness-95 select-none touch-manipulation overflow-hidden"
           >
             <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 via-teal-500/5 to-transparent pointer-events-none" />
             <div className="relative z-10 w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border border-emerald-200/70 dark:border-emerald-800/50 bg-white dark:bg-slate-800 shadow-xs group-hover:scale-105 transition-transform mb-1.5">
