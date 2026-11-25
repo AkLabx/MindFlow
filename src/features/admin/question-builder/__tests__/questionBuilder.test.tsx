@@ -11,6 +11,7 @@ import {
 import {
   fetchFilterOptions,
   searchQuestions,
+  fetchMatchingQuestionsSlice,
   fetchQuestionsByUUIDs,
   clearFilterOptionsCache,
 } from '../api/questionBuilderApi';
@@ -464,5 +465,79 @@ describe('QuestionBuilder performance, canonical BPSC filtering, and React stabi
 
     expect(screen.getByText(/• Mauryan Empire/)).toBeTruthy();
     expect(screen.getByText(/• 12 Dec 2024 Shift 1/)).toBeTruthy();
+  });
+
+  it('fetchMatchingQuestionsSlice clamps limits to 1..300, enforces deleted_at IS NULL + canonical exam + sanitized .or(), and Quick Pick adds unselected matches', async () => {
+    const chain: Record<string, any> = {};
+    const rangeCalls: Array<[number, number]> = [];
+    const sample = makeQuestions(4);
+
+    ['select', 'is', 'or', 'eq', 'in', 'order'].forEach(method => {
+      chain[method] = vi.fn(() => chain);
+    });
+    chain.range = vi.fn((from: number, to: number) => {
+      rangeCalls.push([from, to]);
+      return Promise.resolve({ data: sample, error: null, count: sample.length });
+    });
+
+    fromMock.mockReturnValue(chain);
+
+    const slicedOver = await fetchMatchingQuestionsSlice(
+      { examName: 'canonical:bpsc', search: 'Patna(1), History' },
+      500
+    );
+    expect(slicedOver).toHaveLength(4);
+    expect(rangeCalls[0]).toEqual([0, 299]);
+    expect(chain.is).toHaveBeenCalledWith('deleted_at', null);
+    expect(chain.in).toHaveBeenCalledTimes(1);
+    const orExpr = chain.or.mock.calls[0][0] as string;
+    for (const token of orExpr.split(',')) {
+      expect(token).not.toMatch(/[(),]/);
+    }
+
+    await fetchMatchingQuestionsSlice({}, 0);
+    expect(rangeCalls[1]).toEqual([0, 0]);
+
+    // Quick Pick UI integration inside QuestionBuilder
+    rpcMock.mockResolvedValue({ data: [{ value: 'History' }], error: null });
+    const initialId = sample[0].id;
+    fromMock.mockImplementation(() => {
+      const qbChain: Record<string, any> = {};
+      qbChain.select = vi.fn(() => qbChain);
+      qbChain.is = vi.fn(() => qbChain);
+      qbChain.or = vi.fn(() => qbChain);
+      qbChain.eq = vi.fn(() => qbChain);
+      qbChain.in = vi.fn((_col: string, chunk: string[]) =>
+        Promise.resolve({ data: sample.filter(q => chunk.includes(q.id)), error: null })
+      );
+      qbChain.order = vi.fn(() => qbChain);
+      qbChain.range = vi.fn(() =>
+        Promise.resolve({ data: sample, error: null, count: sample.length })
+      );
+      return qbChain;
+    });
+
+    const Wrapper = () => {
+      const [ids, setIds] = useState<string[]>([initialId]);
+      return <QuestionBuilder initialQuestionIds={ids} onChange={setIds} />;
+    };
+
+    const { container } = render(<Wrapper />);
+    await waitFor(() => {
+      expect(screen.getByText(/Results \(4\)/i)).toBeTruthy();
+    });
+
+    const quickPickInput = screen.getByLabelText('Quick pick question count') as HTMLInputElement;
+    fireEvent.change(quickPickInput, { target: { value: '45' } });
+
+    const pickBtn = screen.getByRole('button', { name: /Pick 45/i });
+    await act(async () => {
+      fireEvent.click(pickBtn);
+    });
+
+    await waitFor(() => {
+      expect(screen.getByRole('tab', { name: /Selected \(4\)/i })).toBeTruthy();
+    });
+    expect(container.querySelectorAll('button:not([type="button"])').length).toBe(0);
   });
 });

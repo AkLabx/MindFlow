@@ -676,10 +676,13 @@ const MOCK_SERIES_ATTEMPTS_STORAGE_PREFIX = 'mindflow_mock_series_attempts_v1_';
 const MOCK_SERIES_ATTEMPTS_IDB_PREFIX = 'mock_series_attempts_v1_';
 const MOCK_LEADERBOARD_STORAGE_PREFIX = 'mindflow_mock_leaderboard_v1_';
 const MOCK_LEADERBOARD_IDB_PREFIX = 'mock_leaderboard_v1_';
+const MOCK_SERIES_CATALOG_STORAGE_KEY = 'mindflow_mock_series_catalog_v1';
+const MOCK_SERIES_CATALOG_IDB_KEY = 'mock_series_catalog_v1';
 const UUID_CHUNK_SIZE = 100;
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 let memoryCatalogCache: MockCatalogCachePayload | null = null;
+let memorySeriesCatalogCache: MockCatalogCachePayload | null = null;
 let memoryHomeCache: MockHomeCachePayload | null = null;
 const memoryAttemptsCache = new Map<string, { ids: string[]; fetchedAt: number }>();
 const memoryTestDetailCache = new Map<string, { test: any; fetchedAt: number }>();
@@ -1954,12 +1957,14 @@ const purgeCatalogAndQuestionCachesInternal = (options: {
     const trimmedSeriesId = options.seriesId ? String(options.seriesId).trim() : '';
 
     memoryCatalogCache = null;
+    memorySeriesCatalogCache = null;
     memoryHomeCache = null;
     safeRemoveLocalStorage(MOCK_CATALOG_STORAGE_KEY);
+    safeRemoveLocalStorage(MOCK_SERIES_CATALOG_STORAGE_KEY);
     safeRemoveLocalStorage(MOCK_HOME_STORAGE_KEY);
 
     const lsPrefixes: string[] = [];
-    const idbPrefixes: string[] = [MOCK_CATALOG_IDB_KEY, MOCK_HOME_IDB_KEY];
+    const idbPrefixes: string[] = [MOCK_CATALOG_IDB_KEY, MOCK_SERIES_CATALOG_IDB_KEY, MOCK_HOME_IDB_KEY];
 
     if (trimmedTestId) {
         memoryTestDetailCache.delete(trimmedTestId);
@@ -2103,6 +2108,7 @@ export const invalidatePreparedMockPostReplayCaches = (userId: string): void => 
  */
 export const clearPreparedMockTestsCache = (userId?: string | null): void => {
     memoryCatalogCache = null;
+    memorySeriesCatalogCache = null;
     memoryHomeCache = null;
     memoryTestDetailCache.clear();
     memoryTestQuestionsCache.clear();
@@ -2150,6 +2156,7 @@ export const clearPreparedMockTestsCache = (userId?: string | null): void => {
 
         db.deleteCacheEntriesByPrefix?.([
             MOCK_CATALOG_IDB_KEY,
+            MOCK_SERIES_CATALOG_IDB_KEY,
             MOCK_HOME_IDB_KEY,
             MOCK_TEST_DETAIL_IDB_PREFIX,
             MOCK_TEST_QUESTIONS_IDB_PREFIX,
@@ -2187,6 +2194,7 @@ export const clearPreparedMockTestsCache = (userId?: string | null): void => {
 
         db.deleteCacheEntriesByPrefix?.([
             MOCK_CATALOG_IDB_KEY,
+            MOCK_SERIES_CATALOG_IDB_KEY,
             MOCK_HOME_IDB_KEY,
             MOCK_TEST_DETAIL_IDB_PREFIX,
             MOCK_TEST_ATTEMPTS_IDB_PREFIX,
@@ -2202,6 +2210,7 @@ export const clearPreparedMockTestsCache = (userId?: string | null): void => {
         ])?.catch(() => {});
     }
     safeRemoveLocalStorage(MOCK_CATALOG_STORAGE_KEY);
+    safeRemoveLocalStorage(MOCK_SERIES_CATALOG_STORAGE_KEY);
     safeRemoveLocalStorage(MOCK_HOME_STORAGE_KEY);
 };
 
@@ -4652,4 +4661,313 @@ export const fetchContinueLearningItems = async (
     );
 
     return fullItems.slice(0, requestedLimit);
+};
+
+// ============================================================================
+// UNIFIED PUBLISHED MOCK SERIES CATALOG: 3-TIER SWR CACHE (v1.0.381)
+// ============================================================================
+
+export interface PublishedMockSeriesCatalogItem {
+    id: string;
+    category_id: string;
+    name: string;
+    slug?: string;
+    description?: string | null;
+    thumbnail_url?: string | null;
+    is_premium: boolean;
+    is_published: boolean;
+    created_at?: string | null;
+    category_name: string;
+    published_test_count: number;
+    [DB_TABLES.MOCK.CATEGORIES]?: {
+        id: string;
+        name: string;
+        is_active: boolean;
+    } | null;
+}
+
+export interface PublishedMockSeriesCatalogResult {
+    categories: any[];
+    series: PublishedMockSeriesCatalogItem[];
+    fetchedAt: number;
+    source: 'cache' | 'network';
+}
+
+const readSeriesCatalogFromSyncCache = (): MockCatalogCachePayload | null => {
+    if (memorySeriesCatalogCache) return memorySeriesCatalogCache;
+
+    const stored = safeReadLocalStorage<MockCatalogCachePayload>(MOCK_SERIES_CATALOG_STORAGE_KEY);
+    if (
+        stored &&
+        Array.isArray(stored.categories) &&
+        Array.isArray(stored.series) &&
+        Array.isArray(stored.tests)
+    ) {
+        memorySeriesCatalogCache = stored;
+        return stored;
+    }
+
+    return null;
+};
+
+const writeSeriesCatalogToCache = (payload: MockCatalogCachePayload): void => {
+    memorySeriesCatalogCache = payload;
+    safeWriteLocalStorage(MOCK_SERIES_CATALOG_STORAGE_KEY, payload);
+    db.setCacheEntry?.(MOCK_SERIES_CATALOG_IDB_KEY, payload)?.catch(() => {});
+};
+
+/**
+ * Pure projection helper for the published Mock Test Series catalog (`DEC-0017`, `DEC-0018`),
+ * joining active categories and counting only published tests within their active schedule window.
+ */
+export const materializePublishedMockSeriesCatalog = (
+    rawCategories: any[],
+    rawSeries: any[],
+    rawTests: any[],
+    nowMs: number = Date.now(),
+    source: 'cache' | 'network' = 'network',
+    fetchedAt: number = nowMs
+): PublishedMockSeriesCatalogResult => {
+    const activeCategories = (rawCategories || [])
+        .filter((c) => c && c.is_active !== false)
+        .sort((a, b) => {
+            const orderA = Number(a.display_order ?? Number.MAX_SAFE_INTEGER);
+            const orderB = Number(b.display_order ?? Number.MAX_SAFE_INTEGER);
+            if (orderA !== orderB) return orderA - orderB;
+            const timeA = a.created_at ? Date.parse(String(a.created_at)) : 0;
+            const timeB = b.created_at ? Date.parse(String(b.created_at)) : 0;
+            return (Number.isFinite(timeB) ? timeB : 0) - (Number.isFinite(timeA) ? timeA : 0);
+        });
+
+    const activeCategoryMap = new Map<string, any>();
+    for (const cat of activeCategories) {
+        if (cat?.id) {
+            activeCategoryMap.set(String(cat.id), cat);
+        }
+    }
+
+    const activeSeriesIds = new Set<string>();
+    const visibleSeriesRaw: Array<{ raw: any; categoryName: string; categoryObj: any }> = [];
+
+    for (const s of rawSeries || []) {
+        if (!s || !s.id || s.is_published === false) continue;
+        const embeddedCat =
+            s[DB_TABLES.MOCK.CATEGORIES] ?? s.mock_categories ?? s.exam_categories ?? null;
+        if (embeddedCat && embeddedCat.is_active === false) continue;
+
+        const mappedCat = s.category_id ? activeCategoryMap.get(String(s.category_id)) : null;
+        if (activeCategoryMap.size > 0 && s.category_id && !mappedCat && !embeddedCat) {
+            continue;
+        }
+        const catObj = embeddedCat ?? mappedCat ?? null;
+        const categoryName = String(catObj?.name ?? 'Mock Series');
+        activeSeriesIds.add(String(s.id));
+        visibleSeriesRaw.push({
+            raw: s,
+            categoryName,
+            categoryObj: catObj
+                ? {
+                      id: String(catObj.id ?? s.category_id ?? ''),
+                      name: categoryName,
+                      is_active: catObj.is_active !== false,
+                  }
+                : null,
+        });
+    }
+
+    const testCountBySeries = new Map<string, number>();
+    for (const t of rawTests || []) {
+        if (!t || t.is_published === false) continue;
+        if (!isTestWithinScheduleWindow(t, nowMs)) continue;
+        const seriesId = String(t.series_id ?? '').trim();
+        if (!seriesId || !activeSeriesIds.has(seriesId)) continue;
+        testCountBySeries.set(seriesId, (testCountBySeries.get(seriesId) || 0) + 1);
+    }
+
+    const series: PublishedMockSeriesCatalogItem[] = visibleSeriesRaw.map(
+        ({ raw, categoryName, categoryObj }) => ({
+            id: String(raw.id),
+            category_id: String(raw.category_id ?? categoryObj?.id ?? ''),
+            name: String(raw.name ?? 'Untitled Series'),
+            slug: raw.slug ? String(raw.slug) : undefined,
+            description: raw.description ?? null,
+            thumbnail_url: raw.thumbnail_url ?? null,
+            is_premium: Boolean(raw.is_premium),
+            is_published: Boolean(raw.is_published),
+            created_at: raw.created_at ?? null,
+            category_name: categoryName,
+            published_test_count: testCountBySeries.get(String(raw.id)) || 0,
+            ...(categoryObj ? { [DB_TABLES.MOCK.CATEGORIES]: categoryObj } : {}),
+        })
+    );
+
+    return {
+        categories: activeCategories,
+        series,
+        fetchedAt,
+        source,
+    };
+};
+
+/**
+ * Synchronous 0ms cache lookup for the published Mock Test Series catalog (Memory -> `localStorage`),
+ * re-evaluating `DEC-0017` schedule windows on read.
+ */
+export const getCachedAllPublishedMockSeriesCatalogSnapshot = (
+    nowMs: number = Date.now()
+): PublishedMockSeriesCatalogResult | null => {
+    const cached = readSeriesCatalogFromSyncCache();
+    if (!cached) return null;
+
+    return materializePublishedMockSeriesCatalog(
+        cached.categories,
+        cached.series,
+        cached.tests,
+        nowMs,
+        'cache',
+        cached.fetchedAt
+    );
+};
+
+/**
+ * Async IndexedDB fallback hydration for the published Mock Test Series catalog (`MindFlowDB.sync_metadata`).
+ */
+export const readAllPublishedMockSeriesCatalogIndexedDBCache = async (
+    nowMs: number = Date.now()
+): Promise<PublishedMockSeriesCatalogResult | null> => {
+    const syncSnapshot = getCachedAllPublishedMockSeriesCatalogSnapshot(nowMs);
+    if (syncSnapshot) return syncSnapshot;
+
+    try {
+        const entry = await db.getCacheEntry<MockCatalogCachePayload>(MOCK_SERIES_CATALOG_IDB_KEY);
+        const data = entry?.data;
+        if (
+            data &&
+            Array.isArray(data.categories) &&
+            Array.isArray(data.series) &&
+            Array.isArray(data.tests)
+        ) {
+            memorySeriesCatalogCache = data;
+            safeWriteLocalStorage(MOCK_SERIES_CATALOG_STORAGE_KEY, data);
+            return materializePublishedMockSeriesCatalog(
+                data.categories,
+                data.series,
+                data.tests,
+                nowMs,
+                'cache',
+                data.fetchedAt
+            );
+        }
+    } catch {
+        // Ignore IndexedDB unavailability
+    }
+
+    return null;
+};
+
+/**
+ * Fetches all published `mock_series` joined with active `mock_categories` (`DEC-0017`, `DEC-0018`)
+ * plus live `published_test_count` per series, backed by 3-tier Memory/`localStorage`/IndexedDB
+ * SWR cache (`MOCK_SWR_STALE_TIMES_MS.CATALOG`) and cleared by `invalidateMockTestsCatalogCaches()`.
+ */
+export const fetchAllPublishedMockSeriesCatalog = async (options?: {
+    forceRefresh?: boolean;
+    nowMs?: number;
+}): Promise<PublishedMockSeriesCatalogResult> => {
+    const nowMs = options?.nowMs ?? Date.now();
+
+    if (!options?.forceRefresh) {
+        const syncCached = readSeriesCatalogFromSyncCache();
+        if (
+            syncCached &&
+            isMockCacheFresh(syncCached.fetchedAt, MOCK_SWR_STALE_TIMES_MS.CATALOG)
+        ) {
+            return materializePublishedMockSeriesCatalog(
+                syncCached.categories,
+                syncCached.series,
+                syncCached.tests,
+                nowMs,
+                'cache',
+                syncCached.fetchedAt
+            );
+        }
+
+        try {
+            const idbEntry = await db.getCacheEntry<MockCatalogCachePayload>(
+                MOCK_SERIES_CATALOG_IDB_KEY
+            );
+            const idbData = idbEntry?.data;
+            if (
+                idbData &&
+                Array.isArray(idbData.categories) &&
+                Array.isArray(idbData.series) &&
+                Array.isArray(idbData.tests) &&
+                isMockCacheFresh(idbData.fetchedAt, MOCK_SWR_STALE_TIMES_MS.CATALOG)
+            ) {
+                memorySeriesCatalogCache = idbData;
+                safeWriteLocalStorage(MOCK_SERIES_CATALOG_STORAGE_KEY, idbData);
+                return materializePublishedMockSeriesCatalog(
+                    idbData.categories,
+                    idbData.series,
+                    idbData.tests,
+                    nowMs,
+                    'cache',
+                    idbData.fetchedAt
+                );
+            }
+        } catch {
+            // Ignore IndexedDB unavailability and fall through to Supabase
+        }
+    }
+
+    const categoriesPromise = supabase
+        .from(DB_TABLES.MOCK.CATEGORIES)
+        .select('*')
+        .eq('is_active', true)
+        .order('display_order', { ascending: true })
+        .order('created_at', { ascending: false });
+
+    const seriesPromise = supabase
+        .from(DB_TABLES.MOCK.SERIES)
+        .select(`*, ${DB_TABLES.MOCK.CATEGORIES}!inner(id, name, description, image_url, is_active)`)
+        .eq('is_published', true)
+        .eq(`${DB_TABLES.MOCK.CATEGORIES}.is_active`, true)
+        .order('created_at', { ascending: false });
+
+    const testsPromise = supabase
+        .from(DB_TABLES.MOCK.TESTS)
+        .select('id, series_id, is_published, release_date, expiry_date')
+        .eq('is_published', true);
+
+    const [categoriesRes, seriesRes, testsRes] = await Promise.all([
+        categoriesPromise,
+        seriesPromise,
+        testsPromise,
+    ]);
+
+    if (categoriesRes.error) throw categoriesRes.error;
+    if (seriesRes.error) throw seriesRes.error;
+    if (testsRes.error) throw testsRes.error;
+
+    const categoriesData = categoriesRes.data || [];
+    const seriesData = seriesRes.data || [];
+    const testsData = (testsRes.data || []).filter((t: any) => t && t.is_published !== false);
+
+    const fetchedAt = Date.now();
+    writeSeriesCatalogToCache({
+        categories: categoriesData,
+        series: seriesData,
+        tests: testsData,
+        fetchedAt,
+    });
+    writeHomeCacheSnapshot({ categories: categoriesData });
+
+    return materializePublishedMockSeriesCatalog(
+        categoriesData,
+        seriesData,
+        testsData,
+        nowMs,
+        'network',
+        fetchedAt
+    );
 };

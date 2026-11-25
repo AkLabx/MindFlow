@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { RightDrawer } from './RightDrawer';
+import { InfoHintPopover } from '@/components/ui/InfoHintPopover';
 
 interface CategoryDrawerProps {
     isOpen: boolean;
@@ -63,7 +64,7 @@ export const CategoryDrawer: React.FC<CategoryDrawerProps> = ({ isOpen, onClose,
             <button
                 type="button"
                 onClick={requestClose}
-                className="px-4 py-2 text-slate-600 dark:text-slate-300 font-medium hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors"
+                className="min-h-[44px] px-4 py-2 text-slate-600 dark:text-slate-300 font-medium hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-all active:scale-95 touch-manipulation scroll-mb-28"
             >
                 Cancel
             </button>
@@ -71,7 +72,7 @@ export const CategoryDrawer: React.FC<CategoryDrawerProps> = ({ isOpen, onClose,
                 type="submit"
                 form="category-form"
                 disabled={loading || !formData.name.trim()}
-                className="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-xl transition-colors disabled:opacity-50"
+                className="min-h-[44px] px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-xl transition-all active:scale-95 touch-manipulation scroll-mb-28 disabled:opacity-50"
             >
                 {loading ? 'Saving...' : 'Save Category'}
             </button>
@@ -89,13 +90,22 @@ export const CategoryDrawer: React.FC<CategoryDrawerProps> = ({ isOpen, onClose,
             <form id="category-form" onSubmit={handleSubmit} className="space-y-6 flex flex-col h-full">
                 <div className="flex-1 space-y-6">
                     <div>
-                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Name *</label>
+                        <div className="flex items-center gap-1 mb-1">
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Name *</label>
+                            <InfoHintPopover
+                                title="Category Name"
+                                purpose="The primary exam umbrella name shown on category cards."
+                                studentVisibility="Displayed as the card title on the student Mock Tests Hub."
+                                example="BPSC, SSC, UPSC Prelims"
+                                align="start"
+                            />
+                        </div>
                         <input
                             type="text"
                             required
                             value={formData.name}
                             onChange={e => setFormData({ ...formData, name: e.target.value })}
-                            className="w-full rounded-xl border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white px-4 py-2.5 focus:ring-2 focus:ring-indigo-500 outline-none"
+                            className="w-full min-h-[44px] rounded-xl border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white px-4 py-2.5 focus:ring-2 focus:ring-indigo-500 outline-none"
                             placeholder="e.g. SSC"
                         />
                     </div>
@@ -112,19 +122,37 @@ export const CategoryDrawer: React.FC<CategoryDrawerProps> = ({ isOpen, onClose,
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Display Order</label>
+                        <div className="flex items-center gap-1 mb-1">
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Display Order</label>
+                            <InfoHintPopover
+                                title="Display Order"
+                                purpose="Controls the sort priority of this category in student and admin lists."
+                                studentVisibility="Lower numbers appear first on the Mock Tests Hub."
+                                example="Use 1 for your flagship exam (e.g., BPSC), 2 for SSC, etc."
+                                align="start"
+                            />
+                        </div>
                         <input
                             type="number"
                             value={formData.display_order}
                             onChange={e => setFormData({ ...formData, display_order: parseInt(e.target.value) || 0 })}
-                            className="w-full rounded-xl border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white px-4 py-2.5 focus:ring-2 focus:ring-indigo-500 outline-none"
+                            className="w-full min-h-[44px] rounded-xl border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white px-4 py-2.5 focus:ring-2 focus:ring-indigo-500 outline-none"
                         />
                         <p className="text-xs text-slate-500 mt-1">Lower numbers appear first.</p>
                     </div>
 
                     <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700">
                         <div>
-                            <p className="font-medium text-slate-900 dark:text-white">Active Status</p>
+                            <div className="flex items-center gap-1">
+                                <p className="font-medium text-slate-900 dark:text-white">Active Status</p>
+                                <InfoHintPopover
+                                    title="Active Status (is_active)"
+                                    purpose="Master visibility switch for this category and every Test Series and Mock Test under it."
+                                    studentVisibility="If OFF, students cannot see this category or any of its tests."
+                                    example="Keep OFF while preparing a new exam category; turn ON when ready."
+                                    align="start"
+                                />
+                            </div>
                             <p className="text-sm text-slate-500">Visible to students?</p>
                         </div>
                         <label className="relative inline-flex items-center cursor-pointer">

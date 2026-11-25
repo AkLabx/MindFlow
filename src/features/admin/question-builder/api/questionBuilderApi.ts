@@ -17,6 +17,7 @@ import {
 const FILTER_OPTIONS_TTL_MS = 5 * 60 * 1000;
 const FILTER_OPTIONS_STORAGE_KEY = 'mindflow_qb_filter_options_v2';
 const UUID_CHUNK_SIZE = 100;
+export const MAX_QUICK_PICK_QUESTIONS = 300;
 
 interface CachedFilterSnapshot {
     data: FilterOptions;
@@ -254,15 +255,14 @@ const sanitizePostgrestSearch = (raw: string | undefined): string => {
     return raw.trim().replace(/[(),]/g, ' ').replace(/\s+/g, ' ').trim();
 };
 
-export const searchQuestions = async (
-    params: QuestionFilterParams,
-    page: number = 0,
-    limit: number = 25
-): Promise<{ data: QuestionLightweight[]; total: number }> => {
-    let query = supabase
-        .from(DB_TABLES.BANK.QUESTIONS)
-        .select('id, v1_id, question, subject, topic, subTopic, difficulty, examName, examYear, examDateShift, questionType, tags, explanation, options, correct', { count: 'exact' })
-        .is('deleted_at', null);
+const QUESTION_LIGHTWEIGHT_SELECT =
+    'id, v1_id, question, subject, topic, subTopic, difficulty, examName, examYear, examDateShift, questionType, tags, explanation, options, correct';
+
+const applyQuestionFilters = <T extends Record<string, any>>(
+    initialQuery: T,
+    params: QuestionFilterParams
+): { query: T; empty: boolean } => {
+    let query: any = initialQuery;
 
     const sanitizedSearch = sanitizePostgrestSearch(params.search);
     if (sanitizedSearch) {
@@ -286,7 +286,7 @@ export const searchQuestions = async (
             const exam = getCanonicalExamById(canonicalId);
             const resolvedNames = resolveCanonicalExamNames(exam ?? canonicalId, knownExamNames);
             if (resolvedNames.length === 0) {
-                return { data: [], total: 0 };
+                return { query, empty: true };
             }
             query = query.in('examName', resolvedNames);
         } else {
@@ -297,7 +297,7 @@ export const searchQuestions = async (
             if (matchedCanonical) {
                 const resolvedNames = resolveCanonicalExamNames(matchedCanonical, knownExamNames);
                 if (resolvedNames.length === 0) {
-                    return { data: [], total: 0 };
+                    return { query, empty: true };
                 }
                 query = query.in('examName', resolvedNames);
             } else {
@@ -312,10 +312,28 @@ export const searchQuestions = async (
     // Ordering by creation date descending to show latest first when empty search
     query = query.order('created_at', { ascending: false });
 
+    return { query, empty: false };
+};
+
+export const searchQuestions = async (
+    params: QuestionFilterParams,
+    page: number = 0,
+    limit: number = 25
+): Promise<{ data: QuestionLightweight[]; total: number }> => {
+    const baseQuery = supabase
+        .from(DB_TABLES.BANK.QUESTIONS)
+        .select(QUESTION_LIGHTWEIGHT_SELECT, { count: 'exact' })
+        .is('deleted_at', null);
+
+    const { query: filteredQuery, empty } = applyQuestionFilters(baseQuery, params);
+    if (empty) {
+        return { data: [], total: 0 };
+    }
+
     // Pagination
     const from = page * limit;
     const to = from + limit - 1;
-    query = query.range(from, to);
+    const query = filteredQuery.range(from, to);
 
     const { data, error, count } = await query;
 
@@ -325,6 +343,30 @@ export const searchQuestions = async (
         data: (data || []) as unknown as QuestionLightweight[],
         total: count || 0
     };
+};
+
+export const fetchMatchingQuestionsSlice = async (
+    params: QuestionFilterParams,
+    limit: number
+): Promise<QuestionLightweight[]> => {
+    const numericLimit = Number.isFinite(limit) ? Math.trunc(limit) : 1;
+    const clampedLimit = Math.max(1, Math.min(MAX_QUICK_PICK_QUESTIONS, numericLimit));
+
+    const baseQuery = supabase
+        .from(DB_TABLES.BANK.QUESTIONS)
+        .select(QUESTION_LIGHTWEIGHT_SELECT)
+        .is('deleted_at', null);
+
+    const { query: filteredQuery, empty } = applyQuestionFilters(baseQuery, params);
+    if (empty) {
+        return [];
+    }
+
+    const { data, error } = await filteredQuery.range(0, clampedLimit - 1);
+
+    if (error) throw error;
+
+    return (data || []) as unknown as QuestionLightweight[];
 };
 
 export const fetchQuestionsByUUIDs = async (ids: string[]): Promise<QuestionLightweight[]> => {

@@ -43,6 +43,7 @@ import { Accordion } from './ui/Accordion';
 import { ScrollableCapsules } from './ui/ScrollableCapsules';
 import { ExamBlueprintsHubPage } from '@/pages/ExamBlueprintsHubPage';
 import { KeyboardAwareBottomBar } from '@/components/ui/KeyboardAwareBottomBar';
+import { InfoHintPopover } from '@/components/ui/InfoHintPopover';
 
 // Optimization Hooks
 import { quizCreationService, MAX_QUIZ_QUESTIONS, DEFAULT_DRILL_QUESTION_COUNT } from '../services/quizCreationService';
@@ -295,8 +296,24 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
 
   const [selectedQuestionCount, setSelectedQuestionCount] = useState<number>(() => {
     const locCount = (location.state as any)?.questionCount;
-    return typeof locCount === 'number' && locCount > 0 ? locCount : DEFAULT_DRILL_QUESTION_COUNT;
+    if (typeof locCount === 'number' && Number.isFinite(locCount) && locCount > 0) {
+      return Math.min(MAX_QUIZ_QUESTIONS, Math.max(1, Math.trunc(locCount)));
+    }
+    return DEFAULT_DRILL_QUESTION_COUNT;
   });
+  const [customCountDraft, setCustomCountDraft] = useState<string>(() => {
+    const locCount = (location.state as any)?.questionCount;
+    if (typeof locCount === 'number' && Number.isFinite(locCount) && locCount > 0) {
+      return String(Math.min(MAX_QUIZ_QUESTIONS, Math.max(1, Math.trunc(locCount))));
+    }
+    return String(DEFAULT_DRILL_QUESTION_COUNT);
+  });
+
+  const applyQuestionCount = useCallback((rawCount: number) => {
+    const clamped = Math.min(MAX_QUIZ_QUESTIONS, Math.max(1, Math.trunc(rawCount)));
+    setSelectedQuestionCount(clamped);
+    setCustomCountDraft(String(clamped));
+  }, []);
 
   const hasAutoStarted = React.useRef(false);
   useEffect(() => {
@@ -345,8 +362,12 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
       return;
     }
     const locCount = (location.state as any)?.questionCount;
-    const requestedCount = countOverride ?? locCount ?? selectedQuestionCount ?? DEFAULT_DRILL_QUESTION_COUNT;
-    const targetCount = Math.min(requestedCount, filteredMetadata.length, MAX_QUIZ_QUESTIONS);
+    const rawRequested = countOverride ?? locCount ?? selectedQuestionCount ?? DEFAULT_DRILL_QUESTION_COUNT;
+    const clampedRequested = Math.min(
+      MAX_QUIZ_QUESTIONS,
+      Math.max(1, Math.trunc(Number(rawRequested) || DEFAULT_DRILL_QUESTION_COUNT))
+    );
+    const targetCount = Math.min(clampedRequested, filteredMetadata.length, MAX_QUIZ_QUESTIONS);
 
     const questionsToUse = filteredMetadata.length <= targetCount
       ? filteredMetadata
@@ -579,57 +600,73 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
         <div className="flex flex-row items-center justify-between gap-2 sm:gap-3 mb-6 relative z-20 min-w-0 pb-4 border-b border-gray-200 dark:border-gray-700 md:border-none md:pb-0">
 
           {/* Seamless Mode Switch */}
-          <div className="flex bg-gray-200/60 dark:bg-gray-800/80 p-1 rounded-xl max-w-[320px] overflow-x-auto hide-scrollbar flex-nowrap min-w-0">
-            <button
-              type="button"
-              onClick={() => {
-                triggerHaptic('light');
-                setMode('learning');
-              }}
-              className={cn(
-                "shrink-0 min-h-[36px] flex-1 flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg text-xs sm:text-sm font-semibold transition-all duration-150 active:scale-95 cursor-pointer touch-manipulation",
-                mode === 'learning'
-                  ? "bg-white dark:bg-gray-700 text-indigo-700 dark:text-indigo-300 shadow-xs"
-                  : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
-              )}
-            >
-              <span>Learning</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                triggerHaptic('light');
-                setMode('mock');
-              }}
-              className={cn(
-                "shrink-0 min-h-[36px] flex-1 flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg text-xs sm:text-sm font-semibold transition-all duration-150 active:scale-95 cursor-pointer touch-manipulation",
-                mode === 'mock'
-                  ? "bg-white dark:bg-gray-700 text-indigo-700 dark:text-indigo-300 shadow-xs"
-                  : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
-              )}
-            >
-              <span>Mock</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                triggerHaptic('light');
-                setMode('god');
-              }}
-              className={cn(
-                "min-h-[36px] flex-1 flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg text-xs sm:text-sm font-semibold transition-all duration-150 active:scale-95 cursor-pointer touch-manipulation",
-                mode === 'god'
-                  ? "bg-white dark:bg-gray-700 text-red-600 dark:text-red-400 shadow-xs"
-                  : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
-              )}
-            >
-              <span>God Mode</span>
-            </button>
+          <div className="flex items-center gap-1 min-w-0">
+            <div className="flex bg-gray-200/60 dark:bg-gray-800/80 p-1 rounded-xl max-w-[320px] overflow-x-auto hide-scrollbar flex-nowrap min-w-0">
+              <button
+                type="button"
+                onClick={() => {
+                  triggerHaptic('light');
+                  setMode('learning');
+                }}
+                className={cn(
+                  "shrink-0 min-h-[44px] flex-1 flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg text-xs sm:text-sm font-semibold transition-all duration-150 active:scale-95 cursor-pointer touch-manipulation scroll-mb-28",
+                  mode === 'learning'
+                    ? "bg-white dark:bg-gray-700 text-indigo-700 dark:text-indigo-300 shadow-xs"
+                    : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+                )}
+              >
+                <span>Learning</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  triggerHaptic('light');
+                  setMode('mock');
+                }}
+                className={cn(
+                  "shrink-0 min-h-[44px] flex-1 flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg text-xs sm:text-sm font-semibold transition-all duration-150 active:scale-95 cursor-pointer touch-manipulation scroll-mb-28",
+                  mode === 'mock'
+                    ? "bg-white dark:bg-gray-700 text-indigo-700 dark:text-indigo-300 shadow-xs"
+                    : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+                )}
+              >
+                <span>Mock</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  triggerHaptic('light');
+                  setMode('god');
+                }}
+                className={cn(
+                  "shrink-0 min-h-[44px] flex-1 flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg text-xs sm:text-sm font-semibold transition-all duration-150 active:scale-95 cursor-pointer touch-manipulation scroll-mb-28",
+                  mode === 'god'
+                    ? "bg-white dark:bg-gray-700 text-red-600 dark:text-red-400 shadow-xs"
+                    : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+                )}
+              >
+                <span>God Mode</span>
+              </button>
+            </div>
+            <InfoHintPopover
+              title="Quiz Mode (Learning vs Mock vs God Mode)"
+              purpose="Learning reveals the answer and AI explanation after each question. Mock runs a timed full-test simulation. God Mode lets you launch or build custom Exam Blueprints."
+              studentVisibility="Controls how your session behaves as soon as you start."
+              example="Use Learning for daily revision and Mock for exam speed."
+              align="start"
+            />
           </div>
 
           {/* Quick Quiz Button */}
-          <div className="relative z-50">
+          <div className="relative z-50 flex items-center gap-1 shrink-0">
             <QuickStartButtons onQuickStart={handleQuickStart} />
+            <InfoHintPopover
+              title="Quick Quiz"
+              purpose="Instantly launches a 25-question drill filtered by difficulty (Easy, Medium, Hard, or Mix) within your active exam context."
+              studentVisibility="Starts immediately without configuring detailed topic filters."
+              example="Tap Quick Quiz -> Mix for a fast 25-question warm-up."
+              align="end"
+            />
           </div>
         </div>
 
@@ -906,13 +943,22 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
               />
             </div>
 
-            {/* Question Count Selector Chips (MindFlow Constitution Section 8) */}
-            <div className="flex items-center justify-between sm:justify-start w-full sm:w-auto gap-1 bg-gray-100 dark:bg-gray-800/90 p-1 rounded-xl border border-gray-200 dark:border-gray-700/80 shrink-0">
-              <span className="text-[11px] font-bold text-gray-500 dark:text-gray-400 px-2 shrink-0">
-                Questions:
-              </span>
-              <div className="flex items-center gap-1 flex-1 sm:flex-initial justify-end">
-                {[10, 20, 25, 50, 100].map((count) => {
+            {/* Question Count Selector Chips & Custom Input (Up to 300) */}
+            <div className="flex flex-wrap items-center justify-between sm:justify-start w-full lg:w-auto gap-1.5 bg-gray-100 dark:bg-gray-800/90 p-1.5 rounded-xl border border-gray-200 dark:border-gray-700/80 min-w-0">
+              <div className="flex items-center gap-0.5 shrink-0">
+                <span className="text-[11px] font-bold text-gray-600 dark:text-gray-300 pl-1.5">
+                  Questions:
+                </span>
+                <InfoHintPopover
+                  title="Question Count (Up to 300)"
+                  purpose="Choose a preset chip or type any custom count from 1 to 300. If fewer questions match your active filters, all matching questions are used."
+                  studentVisibility="Sets the maximum number of questions included when you tap Create Quiz."
+                  example="Type 45 or 67 for a custom drill, or tap 150 for a full BPSC Prelims set."
+                  align="center"
+                />
+              </div>
+              <div className="flex items-center gap-1 overflow-x-auto hide-scrollbar flex-1 sm:flex-initial">
+                {[10, 25, 50, 100, 150, 200, 300].map((count) => {
                   const isSelected = selectedQuestionCount === count;
                   return (
                     <button
@@ -920,10 +966,10 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
                       type="button"
                       onClick={() => {
                         triggerHaptic('light');
-                        setSelectedQuestionCount(count);
+                        applyQuestionCount(count);
                       }}
                       className={cn(
-                        "min-h-[34px] px-2.5 py-1 text-xs font-bold rounded-lg transition-all active:scale-95 cursor-pointer touch-manipulation tabular-nums",
+                        "shrink-0 min-h-[44px] min-w-[44px] px-2.5 py-1 text-xs font-bold rounded-lg transition-all active:scale-95 cursor-pointer touch-manipulation scroll-mb-28 tabular-nums",
                         isSelected
                           ? "bg-indigo-600 text-white shadow-xs"
                           : "text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
@@ -934,17 +980,47 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
                   );
                 })}
               </div>
+              <div className="flex items-center gap-1 shrink-0">
+                <input
+                  type="number"
+                  min={1}
+                  max={MAX_QUIZ_QUESTIONS}
+                  inputMode="numeric"
+                  aria-label="Custom question count"
+                  placeholder="Custom"
+                  value={customCountDraft}
+                  onChange={(e) => {
+                    const raw = e.target.value;
+                    setCustomCountDraft(raw);
+                    if (raw.trim() === '') return;
+                    const parsed = Number.parseInt(raw, 10);
+                    if (Number.isFinite(parsed) && parsed >= 1) {
+                      setSelectedQuestionCount(Math.min(MAX_QUIZ_QUESTIONS, parsed));
+                    }
+                  }}
+                  onBlur={() => {
+                    const parsed = Number.parseInt(customCountDraft, 10);
+                    if (!Number.isFinite(parsed) || parsed < 1) {
+                      applyQuestionCount(selectedQuestionCount);
+                    } else {
+                      applyQuestionCount(parsed);
+                    }
+                  }}
+                  className="w-20 min-h-[44px] px-2.5 py-1 text-xs font-bold text-center rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none tabular-nums"
+                />
+              </div>
             </div>
 
             <div className="flex items-center gap-2 w-full sm:w-auto">
               <Button
+                type="button"
                 variant="outline"
                 aria-label="Reset all filters"
                 onClick={() => {
                   triggerHaptic('light');
                   handleClearFilters();
                 }}
-                className="flex-shrink-0 min-w-[44px] h-11 px-3 rounded-xl active:scale-95 touch-manipulation"
+                className="flex-shrink-0 min-w-[44px] min-h-[44px] h-11 px-3 rounded-xl active:scale-95 touch-manipulation scroll-mb-28"
               >
                 <RotateCcw className="w-4 h-4" />
               </Button>
@@ -956,13 +1032,20 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
                   </div>
                 )}
                 <Button
+                  type="button"
                   size="lg"
                   onClick={() => {
                     triggerHaptic('medium');
-                    handleCreate(selectedQuestionCount);
+                    const parsedDraft = Number.parseInt(customCountDraft, 10);
+                    const finalCount =
+                      Number.isFinite(parsedDraft) && parsedDraft >= 1
+                        ? Math.min(MAX_QUIZ_QUESTIONS, parsedDraft)
+                        : selectedQuestionCount;
+                    applyQuestionCount(finalCount);
+                    handleCreate(finalCount);
                   }}
                   disabled={isStartingQuiz}
-                  className="w-full h-11 rounded-xl bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98] text-white border-0 shadow-lg shadow-indigo-500/20 px-6 flex items-center justify-center gap-2 font-bold touch-manipulation transition-all"
+                  className="w-full min-h-[44px] h-11 rounded-xl bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98] text-white border-0 shadow-lg shadow-indigo-500/20 px-6 flex items-center justify-center gap-2 font-bold touch-manipulation scroll-mb-28 transition-all"
                 >
                   {isStartingQuiz ? (
                     <>

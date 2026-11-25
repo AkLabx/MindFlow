@@ -34,6 +34,8 @@ import {
 import { invalidatePreparedMockQuestionCaches } from '@/features/mock-tests/api/mockTestsApi';
 import { QuestionBuilder } from '../../question-builder/components';
 import { ConfirmDialog, StatusBadge } from '../components';
+import { InfoHintPopover } from '@/components/ui/InfoHintPopover';
+import { MAX_PREPARED_MOCK_QUESTIONS } from '@/features/quiz/services/quizCreationService';
 
 type StepNumber = 1 | 2 | 3 | 4;
 
@@ -1012,12 +1014,21 @@ export const AdminTestBuilderPage: React.FC = () => {
 
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                                     <div>
-                                        <label
-                                            htmlFor="test-name"
-                                            className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5"
-                                        >
-                                            Test Name *
-                                        </label>
+                                        <div className="flex items-center gap-1 mb-1">
+                                            <label
+                                                htmlFor="test-name"
+                                                className="block text-sm font-medium text-slate-700 dark:text-slate-300"
+                                            >
+                                                Test Name *
+                                            </label>
+                                            <InfoHintPopover
+                                                title="Test Name"
+                                                purpose="Official title of this mock test."
+                                                studentVisibility="Shown on Test Series cards, CBT Exam Runner header, and Scorecards."
+                                                example="70th BPSC Full Length Mock 01"
+                                                align="start"
+                                            />
+                                        </div>
                                         <input
                                             ref={el => {
                                                 fieldRefs.current.name = el;
@@ -1052,12 +1063,21 @@ export const AdminTestBuilderPage: React.FC = () => {
                                     </div>
 
                                     <div>
-                                        <label
-                                            htmlFor="test-series"
-                                            className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5"
-                                        >
-                                            Series *
-                                        </label>
+                                        <div className="flex items-center gap-1 mb-1">
+                                            <label
+                                                htmlFor="test-series"
+                                                className="block text-sm font-medium text-slate-700 dark:text-slate-300"
+                                            >
+                                                Series *
+                                            </label>
+                                            <InfoHintPopover
+                                                title="Parent Test Series"
+                                                purpose="Places this mock test inside a specific Test Series (grouped by Exam Category)."
+                                                studentVisibility="The test appears inside this Series detail page once both Series and Test are published."
+                                                example="Choose 'BPSC -> 70th BPSC Prelims Series'."
+                                                align="start"
+                                            />
+                                        </div>
                                         <select
                                             ref={el => {
                                                 fieldRefs.current.series_id = el;
@@ -1133,12 +1153,21 @@ export const AdminTestBuilderPage: React.FC = () => {
                                 </div>
 
                                 <div className="max-w-xs">
-                                    <label
-                                        htmlFor="test-display-order"
-                                        className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5"
-                                    >
-                                        Display Order
-                                    </label>
+                                    <div className="flex items-center gap-1 mb-1">
+                                        <label
+                                            htmlFor="test-display-order"
+                                            className="block text-sm font-medium text-slate-700 dark:text-slate-300"
+                                        >
+                                            Display Order
+                                        </label>
+                                        <InfoHintPopover
+                                            title="Display Order"
+                                            purpose="Sort position of this test within its Test Series (whole number 0 or higher)."
+                                            studentVisibility="Lower numbers appear higher in the student's series test list."
+                                            example="Use 1 for Mock 01, 2 for Mock 02."
+                                            align="start"
+                                        />
+                                    </div>
                                     <input
                                         ref={el => {
                                             fieldRefs.current.display_order = el;
@@ -1208,13 +1237,19 @@ export const AdminTestBuilderPage: React.FC = () => {
                             <div className="flex flex-wrap items-center gap-2">
                                 <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1 mr-1">
                                     <Sparkles className="w-3.5 h-3.5 text-indigo-500" /> Exam Presets:
+                                    <InfoHintPopover
+                                        title="Exam Presets"
+                                        purpose="One-tap fills Duration, Total Marks, Passing Marks, and Negative Marking to match standard exam blueprints."
+                                        example="Tap BPSC Prelims for 120m · 150M · Pass 95 · -0.33."
+                                        align="start"
+                                    />
                                 </span>
                                 {EXAM_PRESETS.map(preset => (
                                     <button
                                         key={preset.id}
                                         type="button"
                                         onClick={() => applyPreset(preset)}
-                                        className="min-h-[44px] px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 hover:border-indigo-400 dark:hover:border-indigo-500 hover:bg-indigo-50/60 dark:hover:bg-indigo-900/20 text-left transition-all active:scale-95"
+                                        className="min-h-[44px] px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 hover:border-indigo-400 dark:hover:border-indigo-500 hover:bg-indigo-50/60 dark:hover:bg-indigo-900/20 text-left transition-all active:scale-95 touch-manipulation scroll-mb-28"
                                     >
                                         <span className="block text-xs font-bold text-slate-800 dark:text-slate-100">
                                             {preset.label}
@@ -1233,12 +1268,21 @@ export const AdminTestBuilderPage: React.FC = () => {
 
                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                                     <div>
-                                        <label
-                                            htmlFor="test-duration"
-                                            className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5"
-                                        >
-                                            Duration (mins) *
-                                        </label>
+                                        <div className="flex items-center gap-1 mb-1">
+                                            <label
+                                                htmlFor="test-duration"
+                                                className="block text-sm font-medium text-slate-700 dark:text-slate-300"
+                                            >
+                                                Duration (mins) *
+                                            </label>
+                                            <InfoHintPopover
+                                                title="Duration (Minutes)"
+                                                purpose="Total countdown time allowed for the CBT exam runner before auto-submission."
+                                                studentVisibility="Shown on test instructions and the live CBT countdown timer."
+                                                example="120 for a 2-hour BPSC full mock."
+                                                align="start"
+                                            />
+                                        </div>
                                         <input
                                             ref={el => {
                                                 fieldRefs.current.duration_minutes = el;
@@ -1284,12 +1328,21 @@ export const AdminTestBuilderPage: React.FC = () => {
                                     </div>
 
                                     <div>
-                                        <label
-                                            htmlFor="test-total-marks"
-                                            className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5"
-                                        >
-                                            Total Marks *
-                                        </label>
+                                        <div className="flex items-center gap-1 mb-1">
+                                            <label
+                                                htmlFor="test-total-marks"
+                                                className="block text-sm font-medium text-slate-700 dark:text-slate-300"
+                                            >
+                                                Total Marks *
+                                            </label>
+                                            <InfoHintPopover
+                                                title="Total Marks"
+                                                purpose="Maximum possible score for the test. Marks per question = Total Marks ÷ Question Count."
+                                                studentVisibility="Shown on test card, instructions, and final Scorecard."
+                                                example="150 marks for 150 questions (1 mark each)."
+                                                align="start"
+                                            />
+                                        </div>
                                         <input
                                             ref={el => {
                                                 fieldRefs.current.total_marks = el;
@@ -1333,12 +1386,21 @@ export const AdminTestBuilderPage: React.FC = () => {
                                     </div>
 
                                     <div>
-                                        <label
-                                            htmlFor="test-passing-marks"
-                                            className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5"
-                                        >
-                                            Passing Marks *
-                                        </label>
+                                        <div className="flex items-center gap-1 mb-1">
+                                            <label
+                                                htmlFor="test-passing-marks"
+                                                className="block text-sm font-medium text-slate-700 dark:text-slate-300"
+                                            >
+                                                Passing Marks *
+                                            </label>
+                                            <InfoHintPopover
+                                                title="Passing Marks"
+                                                purpose="Cutoff score (between 0 and Total Marks) used to mark Pass/Fail status on student scorecards."
+                                                studentVisibility="Displayed on the test overview and result verdict."
+                                                example="95 out of 150 for BPSC Prelims."
+                                                align="center"
+                                            />
+                                        </div>
                                         <input
                                             ref={el => {
                                                 fieldRefs.current.passing_marks = el;
@@ -1384,12 +1446,21 @@ export const AdminTestBuilderPage: React.FC = () => {
                                     </div>
 
                                     <div>
-                                        <label
-                                            htmlFor="test-negative-marks"
-                                            className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5"
-                                        >
-                                            Negative Marks *
-                                        </label>
+                                        <div className="flex items-center gap-1 mb-1">
+                                            <label
+                                                htmlFor="test-negative-marks"
+                                                className="block text-sm font-medium text-slate-700 dark:text-slate-300"
+                                            >
+                                                Negative Marks *
+                                            </label>
+                                            <InfoHintPopover
+                                                title="Negative Marking"
+                                                purpose="Marks deducted per wrong answer (set 0 for no negative marking)."
+                                                studentVisibility="Displayed on test details and deducted automatically during scoring."
+                                                example="0.33 for 1/3rd penalty or 0.25 for 1/4th penalty."
+                                                align="end"
+                                            />
+                                        </div>
                                         <input
                                             ref={el => {
                                                 fieldRefs.current.negative_marks = el;
@@ -1445,19 +1516,27 @@ export const AdminTestBuilderPage: React.FC = () => {
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div>
                                         <div className="flex items-center justify-between mb-1">
-                                            <label
-                                                htmlFor="test-release-date"
-                                                className="block text-sm font-medium text-slate-700 dark:text-slate-300"
-                                            >
-                                                Release Date
-                                            </label>
+                                            <div className="flex items-center gap-1">
+                                                <label
+                                                    htmlFor="test-release-date"
+                                                    className="block text-sm font-medium text-slate-700 dark:text-slate-300"
+                                                >
+                                                    Release Date
+                                                </label>
+                                                <InfoHintPopover
+                                                    title="Release Date (Schedule Window)"
+                                                    purpose="Optional date/time when a Published test opens to students. Leave blank for immediate access."
+                                                    studentVisibility="Before Release Date, published tests are locked/hidden outside their schedule window."
+                                                    align="start"
+                                                />
+                                            </div>
                                             {formData.release_date && (
                                                 <button
                                                     type="button"
                                                     onClick={() =>
                                                         setFormData(prev => ({ ...prev, release_date: '' }))
                                                     }
-                                                    className="min-h-[44px] px-2 text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:underline active:scale-95"
+                                                    className="min-h-[44px] px-2 text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:underline active:scale-95 touch-manipulation scroll-mb-28"
                                                 >
                                                     Clear
                                                 </button>
@@ -1494,19 +1573,27 @@ export const AdminTestBuilderPage: React.FC = () => {
 
                                     <div>
                                         <div className="flex items-center justify-between mb-1">
-                                            <label
-                                                htmlFor="test-expiry-date"
-                                                className="block text-sm font-medium text-slate-700 dark:text-slate-300"
-                                            >
-                                                Expiry Date
-                                            </label>
+                                            <div className="flex items-center gap-1">
+                                                <label
+                                                    htmlFor="test-expiry-date"
+                                                    className="block text-sm font-medium text-slate-700 dark:text-slate-300"
+                                                >
+                                                    Expiry Date
+                                                </label>
+                                                <InfoHintPopover
+                                                    title="Expiry Date"
+                                                    purpose="Optional cutoff timestamp (must be after Release Date) when new student attempts close."
+                                                    studentVisibility="After Expiry Date, students can no longer start new attempts."
+                                                    align="end"
+                                                />
+                                            </div>
                                             {formData.expiry_date && (
                                                 <button
                                                     type="button"
                                                     onClick={() =>
                                                         setFormData(prev => ({ ...prev, expiry_date: '' }))
                                                     }
-                                                    className="min-h-[44px] px-2 text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:underline active:scale-95"
+                                                    className="min-h-[44px] px-2 text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:underline active:scale-95 touch-manipulation scroll-mb-28"
                                                 >
                                                     Clear
                                                 </button>
@@ -1572,6 +1659,12 @@ export const AdminTestBuilderPage: React.FC = () => {
                                 >
                                     3. Select &amp; Order Questions
                                 </h2>
+                                <InfoHintPopover
+                                    title={`Question Selection (Up to ${MAX_PREPARED_MOCK_QUESTIONS} Qs)`}
+                                    purpose={`Pick individual questions, use Quick Pick (1–${MAX_PREPARED_MOCK_QUESTIONS}) on the left, or paste UUIDs. Student CBT runner supports up to ${MAX_PREPARED_MOCK_QUESTIONS} questions per prepared mock test.`}
+                                    example="Filter by BPSC and use Quick Pick 150 to populate a full Prelims paper in seconds."
+                                    align="start"
+                                />
                             </div>
                             <div className="flex flex-wrap items-center gap-2 text-xs font-semibold">
                                 {checkingMissingQuestions && (
@@ -1581,7 +1674,7 @@ export const AdminTestBuilderPage: React.FC = () => {
                                     </span>
                                 )}
                                 <span className="px-3 py-1.5 rounded-full bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
-                                    {formData.question_ids.length} Selected
+                                    {formData.question_ids.length} / {MAX_PREPARED_MOCK_QUESTIONS} Selected
                                 </span>
                                 <span className="px-3 py-1.5 rounded-full bg-slate-100 dark:bg-slate-900 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
                                     {formData.duration_minutes || '—'}m · {formData.total_marks || '—'} Marks
@@ -1772,9 +1865,18 @@ export const AdminTestBuilderPage: React.FC = () => {
 
                         {/* Publish Readiness Panel */}
                         <div className="bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-2xl p-5 sm:p-6 space-y-4 shadow-sm">
-                            <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                                Publish Readiness
-                            </h3>
+                            <div className="flex items-center gap-1">
+                                <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                                    Publish Readiness
+                                </h3>
+                                <InfoHintPopover
+                                    title="Publish Readiness & Save Draft vs Publish"
+                                    purpose="Save Draft stores your test safely without showing it to students. Publish makes the test live—students see it ONLY when Category is Active + Parent Series is Published + Test is Published + Schedule Window is active."
+                                    studentVisibility="Draft tests stay hidden in CMS; live tests appear inside the Series page for students."
+                                    example="Save Draft while curating questions, then toggle Publish Test when all checks pass."
+                                    align="start"
+                                />
+                            </div>
 
                             <div className="bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 p-4 rounded-xl space-y-4">
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
@@ -1928,7 +2030,7 @@ export const AdminTestBuilderPage: React.FC = () => {
                         <button
                             type="button"
                             onClick={handleRequestLeave}
-                            className="min-h-[44px] px-4 py-2 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all active:scale-95"
+                            className="min-h-[44px] px-4 py-2 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all active:scale-95 touch-manipulation scroll-mb-28"
                         >
                             Cancel
                         </button>
@@ -1936,7 +2038,7 @@ export const AdminTestBuilderPage: React.FC = () => {
                         <button
                             type="button"
                             onClick={handlePrevStep}
-                            className="min-h-[44px] px-4 py-2 rounded-xl text-sm font-semibold text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 inline-flex items-center gap-2 transition-all active:scale-95"
+                            className="min-h-[44px] px-4 py-2 rounded-xl text-sm font-semibold text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 inline-flex items-center gap-2 transition-all active:scale-95 touch-manipulation scroll-mb-28"
                         >
                             <ArrowLeft className="w-4 h-4" />
                             <span>Previous</span>
@@ -1950,7 +2052,7 @@ export const AdminTestBuilderPage: React.FC = () => {
                             type="button"
                             disabled={saving}
                             onClick={() => performSave(false)}
-                            className="min-h-[44px] px-4 py-2 rounded-xl text-sm font-semibold border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-60 inline-flex items-center gap-2 transition-all active:scale-95"
+                            className="min-h-[44px] px-4 py-2 rounded-xl text-sm font-semibold border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-60 inline-flex items-center gap-2 transition-all active:scale-95 touch-manipulation scroll-mb-28"
                         >
                             {savingAction === 'draft' ? (
                                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -1965,7 +2067,7 @@ export const AdminTestBuilderPage: React.FC = () => {
                         <button
                             type="button"
                             onClick={handleNextStep}
-                            className="min-h-[44px] px-5 py-2 rounded-xl text-sm font-semibold bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm shadow-indigo-600/20 inline-flex items-center gap-2 transition-all active:scale-95"
+                            className="min-h-[44px] px-5 py-2 rounded-xl text-sm font-semibold bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm shadow-indigo-600/20 inline-flex items-center gap-2 transition-all active:scale-95 touch-manipulation scroll-mb-28"
                         >
                             <span>Next: {activeStepMeta.nextLabel}</span>
                             <ArrowRight className="w-4 h-4" />
@@ -1975,7 +2077,7 @@ export const AdminTestBuilderPage: React.FC = () => {
                             type="button"
                             disabled={saving}
                             onClick={() => performSave(formData.is_published)}
-                            className="min-h-[44px] px-6 py-2 rounded-xl text-sm font-semibold bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm shadow-indigo-600/20 disabled:opacity-60 inline-flex items-center gap-2 transition-all active:scale-95"
+                            className="min-h-[44px] px-6 py-2 rounded-xl text-sm font-semibold bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm shadow-indigo-600/20 disabled:opacity-60 inline-flex items-center gap-2 transition-all active:scale-95 touch-manipulation scroll-mb-28"
                         >
                             {(savingAction === 'publish' || (savingAction === 'draft' && !formData.is_published)) && (
                                 <Loader2 className="w-4 h-4 animate-spin" />

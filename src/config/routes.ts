@@ -31,6 +31,7 @@ export const ROUTES = {
 
   // Main Navigation Tabs
   MCQS: '/mcqs',
+  CUSTOM_QUIZ_STUDIO: '/mcqs',
   MCQS_UPLOAD_CUSTOM: '/mcqs/uploadcustomquiz',
   ENGLISH: '/english',
   SCHOOL: '/school',

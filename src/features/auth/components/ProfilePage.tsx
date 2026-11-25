@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback, useEffect } from 'react';
+import React, { useState, useRef, useCallback, useMemo } from 'react';
 import { useDebugStore } from '../../../stores/useDebugStore';
 import { PresenceAvatar } from '../../../components/ui/PresenceAvatar';
 import { PresenceDot } from '../../../components/ui/PresenceDot';
@@ -7,16 +7,26 @@ import { useAuth } from '../context/AuthContext';
 import { AuthPolicy } from '@/lib/navigation/policies/AuthPolicy';
 import { supabase } from '../../../lib/supabase';
 import {
-    LogOut, Settings, Settings2, ChevronRight, Award, CheckCircle, BarChart, Megaphone,
+    LogOut, Settings2, ChevronRight, CheckCircle, BarChart,
     Pencil, AlertTriangle, Loader2, X, Clock, Target,
     FileText, Bookmark, Grid, CreditCard, Shield, HelpCircle
 } from 'lucide-react';
 import { useProfileStats } from '../hooks/useProfileStats';
 import { useNavigate } from 'react-router-dom';
 import { useNotificationStore } from "../../../stores/useNotificationStore";
-import { useQueryClient, useQuery } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import { getCanonicalAvatarUrl } from '../../../utils/avatar';
 import { getUserDisplayName } from '../../../utils/user';
+import { useExamContextStore } from '@/stores/useExamContextStore';
+import {
+    ManageTargetExamsModal,
+    CANONICAL_EXAMS,
+    computeExamCounts,
+    getCanonicalExamById,
+} from '@/features/dashboard';
+import { useQuestionMetadata } from '@/features/quiz/hooks/useQuestionMetadata';
+import { triggerHaptic } from '@/lib/haptics';
+import { ROUTES } from '@/config/routes';
 
 const defaultAvatar = 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix&backgroundColor=e2e8f0';
 
@@ -188,12 +198,62 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onSignOut, onNavigateToSettin
   
   const displayAvatarUrl = getCanonicalAvatarUrl(profile, user);
 
-  const targetExam = profile?.target_exam || user?.user_metadata?.target_exam || 'Not Set';
+  const { activeExamId, pinnedExamIds, togglePinExam, setActiveExam } = useExamContextStore();
+  const [isTargetExamModalOpen, setIsTargetExamModalOpen] = useState(false);
+  const { metadata } = useQuestionMetadata();
+
+  const examCounts = useMemo(() => {
+    if (metadata && metadata.length > 0) {
+      return computeExamCounts(metadata);
+    }
+    try {
+      const raw = localStorage.getItem('mindflow_exam_counts_cache_v1');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === 'object') return parsed;
+      }
+    } catch {
+      // Graceful fallback
+    }
+    return {};
+  }, [metadata]);
+
+  const activeExamObj = useMemo(() => getCanonicalExamById(activeExamId), [activeExamId]);
+  const targetExam = activeExamObj?.displayName || profile?.target_exam || user?.user_metadata?.target_exam || 'Not Set';
   const fullName = getUserDisplayName(profile, user, 'Student');
 
   const { stats: userStats, loading: statsLoading } = useProfileStats();
 
+  const handleSetActiveTargetExam = async (examId: string) => {
+    triggerHaptic('light');
+    setActiveExam(examId, 'modal');
+    const exam = CANONICAL_EXAMS.find((e) => e.id === examId);
+    if (!exam) return;
+
+    try {
+      const { error: updateErr } = await supabase.auth.updateUser({
+        data: { target_exam: exam.displayName },
+      });
+      if (updateErr) throw updateErr;
+
+      await refreshUser();
+      await refreshProfile().catch(() => {});
+      showToast({
+        variant: 'success',
+        title: 'Target Exam Updated',
+        message: `Preparing for ${exam.displayName}`,
+      });
+    } catch (err: any) {
+      showToast({
+        variant: 'error',
+        title: 'Update Failed',
+        message: err?.message || 'Could not update target exam.',
+      });
+    }
+  };
+
   const handleSignOut = async () => {
+    triggerHaptic('light');
     await signOut();
     if (onSignOut) {
       onSignOut();
@@ -236,17 +296,28 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onSignOut, onNavigateToSettin
               />
           </div>
           <div className="flex gap-4 mt-6">
-              <button onClick={() => setImageSrc(null)} disabled={uploading} className="px-6 py-2 bg-slate-600 text-white font-bold rounded-lg shadow-md hover:bg-slate-700 transition-colors flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setImageSrc(null)}
+                disabled={uploading}
+                className="min-h-[44px] px-6 py-2 bg-slate-600 text-white font-bold rounded-lg shadow-md hover:bg-slate-700 transition-all active:scale-95 touch-manipulation flex items-center gap-2 cursor-pointer"
+              >
                   <X className="w-5 h-5" /> Cancel
               </button>
-              <button onClick={handleAvatarUpload} disabled={uploading} className="px-6 py-2 bg-indigo-600 text-white font-bold rounded-lg shadow-md hover:bg-indigo-700 transition-colors flex items-center gap-2" aria-label="Upload profile picture">
+              <button
+                type="button"
+                onClick={handleAvatarUpload}
+                disabled={uploading}
+                className="min-h-[44px] px-6 py-2 bg-indigo-600 text-white font-bold rounded-lg shadow-md hover:bg-indigo-700 transition-all active:scale-95 touch-manipulation flex items-center gap-2 cursor-pointer"
+                aria-label="Upload profile picture"
+              >
                   {uploading ? <><Loader2 className="w-5 h-5 animate-spin"/> Cropping...</> : <> <CheckCircle className="w-5 h-5" /> Apply </>}
               </button>
           </div>
         </div>
       )}
 
-      <div className="min-h-full bg-slate-50 dark:bg-slate-950 pb-32 md:pb-20 transition-colors duration-300 -m-4 sm:-m-6 lg:-m-8 p-4 sm:p-6 lg:p-8">
+      <div className="min-h-[100dvh] w-full bg-slate-50 dark:bg-slate-950 pb-32 md:pb-20 scroll-mb-28 transition-colors duration-300 px-3 sm:px-6 lg:px-8 pt-4 sm:pt-6">
         <div className="max-w-2xl mx-auto space-y-6">
           
           {/* --- Top Information Card --- */}
@@ -263,8 +334,9 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onSignOut, onNavigateToSettin
                   />
                   <input type="file" ref={avatarInputRef} className="hidden text-base" onChange={handleFileSelect} accept="image/png, image/jpeg" />
                   <button
+                      type="button"
                       onClick={handleAvatarClick}
-                      className="absolute bottom-1 right-1 w-9 h-9 bg-indigo-600 rounded-full flex items-center justify-center text-white border-2 border-white hover:bg-indigo-700 transition-all duration-300 shadow-md group"
+                      className="absolute bottom-0 right-0 min-w-[44px] min-h-[44px] w-11 h-11 bg-indigo-600 rounded-full flex items-center justify-center text-white border-2 border-white hover:bg-indigo-700 transition-all duration-300 shadow-md group active:scale-95 touch-manipulation cursor-pointer"
                       aria-label="Change profile picture"
                   >
                       <Pencil className="w-4 h-4 transition-transform group-hover:scale-110" />
@@ -279,11 +351,21 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onSignOut, onNavigateToSettin
                   <p className="text-slate-500 dark:text-slate-400 font-medium text-sm mt-0.5">{user.email}</p>
               </div>
 
-              <div className="mt-3 flex items-center justify-center gap-2">
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 border border-indigo-100">
-                      <Target className="w-3.5 h-3.5" />
+              <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300 border border-indigo-100 dark:border-indigo-800/60">
+                      <Target className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
                       Preparing for: {targetExam}
                   </span>
+                  <button
+                      type="button"
+                      onClick={() => {
+                        triggerHaptic('light');
+                        setIsTargetExamModalOpen(true);
+                      }}
+                      className="min-h-[44px] inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-bold bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-700/70 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 transition-all active:scale-95 touch-manipulation cursor-pointer shadow-xs"
+                  >
+                      <span>Change Exam</span>
+                  </button>
               </div>
 
               {error && (
@@ -294,8 +376,9 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onSignOut, onNavigateToSettin
               )}
 
               <button
+                  type="button"
                   onClick={onNavigateToSettings}
-                  className="mt-5 w-full sm:w-auto px-6 py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors border border-slate-200 dark:border-slate-700"
+                  className="mt-5 w-full sm:w-auto min-h-[44px] px-6 py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 transition-all border border-slate-200 dark:border-slate-700 active:scale-95 touch-manipulation cursor-pointer"
               >
                   Edit Profile Info
               </button>
@@ -303,7 +386,11 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onSignOut, onNavigateToSettin
           </div>
 
           {/* --- Performance Stats --- */}
-          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm p-6 relative overflow-hidden group hover:shadow-md transition-all duration-300 cursor-pointer" onClick={() => navigate('/quiz/library?tab=attempted')}>
+          <button
+            type="button"
+            onClick={() => navigate(`${ROUTES.QUIZ.LIBRARY}?tab=attempted`)}
+            className="w-full text-left bg-white dark:bg-gray-800 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm p-6 relative overflow-hidden group hover:shadow-md transition-all duration-300 cursor-pointer active:scale-[0.99] touch-manipulation scroll-mb-28"
+          >
             <div className="flex items-center justify-between mb-4">
                <h2 className="text-lg font-black text-slate-800 dark:text-slate-100 flex items-center gap-2">
                    <BarChart className="w-5 h-5 text-indigo-500" />
@@ -313,12 +400,12 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onSignOut, onNavigateToSettin
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              <div className="bg-indigo-50 dark:bg-indigo-900/20/50 p-3 rounded-xl border border-indigo-100/50">
+              <div className="bg-indigo-50 dark:bg-indigo-900/20 p-3 rounded-xl border border-indigo-100/50 dark:border-indigo-800/40">
                   <p className="text-xs text-indigo-600 dark:text-indigo-400/70 font-bold uppercase tracking-wider mb-1">Accuracy</p>
                   {statsLoading ? (
                       <div className="h-7 w-16 bg-indigo-200 dark:bg-indigo-800/50 rounded-md animate-pulse mt-1"></div>
                   ) : (
-                      <p className="text-xl font-black text-indigo-700">{userStats.averageScore}%</p>
+                      <p className="text-xl font-black text-indigo-700 dark:text-indigo-300">{userStats.averageScore}%</p>
                   )}
               </div>
               <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-100 dark:border-slate-700/50">
@@ -367,27 +454,27 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onSignOut, onNavigateToSettin
                       )}
                  </p>
             </div>
-          </div>
+          </button>
 
           {/* 3. My Activity */}
           <div className="bg-white dark:bg-gray-800 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm p-4 transition-colors duration-300">
               <h2 className="text-base font-bold text-slate-800 dark:text-slate-100 mb-3 px-2">My Activity</h2>
               <div className="space-y-2">
-                  <button onClick={() => navigate('/quiz/library?tab=attempted')} className="w-full flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
+                  <button type="button" onClick={() => navigate(`${ROUTES.QUIZ.LIBRARY}?tab=attempted`)} className="w-full min-h-[44px] flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all active:scale-95 touch-manipulation cursor-pointer group">
                       <div className="flex items-center gap-3">
                           <div className="w-9 h-9 bg-purple-50 dark:bg-purple-900/20 rounded-lg flex items-center justify-center text-purple-600 dark:text-purple-400"><FileText className="w-4 h-4" /></div>
                           <span className="font-bold text-slate-700 dark:text-slate-300">Attempted Tests</span>
                       </div>
                       <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-purple-600 transition-colors" />
                   </button>
-                  <button onClick={() => navigate('/quiz/bookmarks')} className="w-full flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
+                  <button type="button" onClick={() => navigate(ROUTES.QUIZ.BOOKMARKS)} className="w-full min-h-[44px] flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all active:scale-95 touch-manipulation cursor-pointer group">
                       <div className="flex items-center gap-3">
                           <div className="w-9 h-9 bg-amber-50 dark:bg-amber-900/20 rounded-lg flex items-center justify-center text-amber-500"><Bookmark className="w-4 h-4" /></div>
                           <span className="font-bold text-slate-700 dark:text-slate-300">Saved Questions</span>
                       </div>
                       <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-amber-500 transition-colors" />
                   </button>
-                  <button onClick={() => navigate('/quiz/library?tab=created')} className="w-full flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
+                  <button type="button" onClick={() => navigate(`${ROUTES.QUIZ.LIBRARY}?tab=created`)} className="w-full min-h-[44px] flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all active:scale-95 touch-manipulation cursor-pointer group">
                       <div className="flex items-center gap-3">
                           <div className="w-9 h-9 bg-blue-50 dark:bg-blue-900/20 rounded-lg flex items-center justify-center text-blue-500 dark:text-blue-400"><Grid className="w-4 h-4" /></div>
                           <span className="font-bold text-slate-700 dark:text-slate-300">Created Quizzes</span>
@@ -400,21 +487,21 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onSignOut, onNavigateToSettin
           {/* 4. Settings & More */}
           <div className="bg-white dark:bg-gray-800 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm p-4 transition-colors duration-300">
               <div className="space-y-2">
-                  <button onClick={() => navigate('/profile/subscription')} className="w-full flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
+                  <button type="button" onClick={() => navigate(ROUTES.PROFILE.SUBSCRIPTION)} className="w-full min-h-[44px] flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all active:scale-95 touch-manipulation cursor-pointer group">
                       <div className="flex items-center gap-3">
                           <div className="w-9 h-9 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg flex items-center justify-center text-emerald-600 dark:text-emerald-400"><CreditCard className="w-4 h-4" /></div>
                           <span className="font-bold text-slate-700 dark:text-slate-300">Subscription & Rewards</span>
                       </div>
                       <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-emerald-600 dark:text-emerald-400 transition-colors" />
                   </button>
-                  <button onClick={() => navigate('/profile/preferences')} className="w-full flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
+                  <button type="button" onClick={() => navigate(ROUTES.PROFILE.PREFERENCES)} className="w-full min-h-[44px] flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all active:scale-95 touch-manipulation cursor-pointer group">
                       <div className="flex items-center gap-3">
                           <div className="w-9 h-9 bg-purple-50 dark:bg-purple-900/20 rounded-lg flex items-center justify-center text-purple-600 dark:text-purple-400"><Settings2 className="w-4 h-4" /></div>
                           <span className="font-bold text-slate-700 dark:text-slate-300">App Preferences</span>
                       </div>
                       <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-purple-600 transition-colors" />
                   </button>
-                  <button onClick={onNavigateToSettings} className="w-full flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
+                  <button type="button" onClick={onNavigateToSettings} className="w-full min-h-[44px] flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all active:scale-95 touch-manipulation cursor-pointer group">
                       <div className="flex items-center gap-3">
                           <div className="w-9 h-9 bg-slate-100 dark:bg-slate-800 rounded-lg flex items-center justify-center text-slate-600 dark:text-slate-400"><Shield className="w-4 h-4" /></div>
                           <span className="font-bold text-slate-700 dark:text-slate-300">Settings & Security</span>
@@ -423,7 +510,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onSignOut, onNavigateToSettin
                   </button>
 
                   {hasAdminPrivileges && (
-                    <button onClick={() => navigate('/admin/overview')} className="w-full flex items-center justify-between p-3.5 rounded-2xl hover:bg-indigo-50 dark:hover:bg-indigo-950/40 transition-all group mt-2 border border-indigo-200 dark:border-indigo-800 bg-gradient-to-r from-indigo-50/80 to-purple-50/50 dark:from-indigo-950/20 dark:to-purple-950/10 shadow-sm">
+                    <button type="button" onClick={() => navigate(ROUTES.ADMIN.OVERVIEW)} className="w-full min-h-[44px] flex items-center justify-between p-3.5 rounded-2xl hover:bg-indigo-50 dark:hover:bg-indigo-950/40 transition-all active:scale-95 touch-manipulation cursor-pointer group mt-2 border border-indigo-200 dark:border-indigo-800 bg-gradient-to-r from-indigo-50/80 to-purple-50/50 dark:from-indigo-950/20 dark:to-purple-950/10 shadow-sm">
                       <div className="flex items-center gap-3">
                         <div className="p-2.5 bg-gradient-to-tr from-indigo-600 to-indigo-500 rounded-xl text-white shadow-md shadow-indigo-500/20">
                           <Shield className="w-5 h-5" />
@@ -439,21 +526,21 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onSignOut, onNavigateToSettin
                       <ChevronRight className="w-5 h-5 text-indigo-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-300 transition-colors" />
                     </button>
                   )}
-                  <button onClick={() => navigate('/profile/support')} className="w-full min-h-[44px] flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
+                  <button type="button" onClick={() => navigate(ROUTES.PROFILE.SUPPORT)} className="w-full min-h-[44px] flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all active:scale-95 touch-manipulation cursor-pointer group">
                       <div className="flex items-center gap-3">
                           <div className="w-9 h-9 bg-sky-50 dark:bg-sky-900/20 rounded-lg flex items-center justify-center text-sky-500 dark:text-sky-400"><HelpCircle className="w-4 h-4" /></div>
                           <span className="font-bold text-slate-700 dark:text-slate-300">Help &amp; Support</span>
                       </div>
                       <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-sky-500 transition-colors" />
                   </button>
-                  <button onClick={() => navigate('/privacy-policy')} className="w-full min-h-[44px] flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
+                  <button type="button" onClick={() => navigate(ROUTES.ABOUT.PRIVACY_POLICY)} className="w-full min-h-[44px] flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all active:scale-95 touch-manipulation cursor-pointer group">
                       <div className="flex items-center gap-3">
                           <div className="w-9 h-9 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg flex items-center justify-center text-emerald-600 dark:text-emerald-400"><FileText className="w-4 h-4" /></div>
                           <span className="font-bold text-slate-700 dark:text-slate-300">Privacy Policy</span>
                       </div>
                       <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-emerald-600 transition-colors" />
                   </button>
-                  <button onClick={() => navigate('/about/terms-of-use')} className="w-full min-h-[44px] flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
+                  <button type="button" onClick={() => navigate(ROUTES.ABOUT.TERMS_OF_USE)} className="w-full min-h-[44px] flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all active:scale-95 touch-manipulation cursor-pointer group">
                       <div className="flex items-center gap-3">
                           <div className="w-9 h-9 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg flex items-center justify-center text-indigo-600 dark:text-indigo-400"><FileText className="w-4 h-4" /></div>
                           <span className="font-bold text-slate-700 dark:text-slate-300">Terms of Use</span>
@@ -465,8 +552,9 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onSignOut, onNavigateToSettin
 
           {/* 5. Logout */}
           <button
+            type="button"
             onClick={handleSignOut}
-            className="w-full flex items-center justify-center gap-2 p-4 bg-white dark:bg-gray-800 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm hover:bg-red-50 dark:hover:bg-red-900/20 hover:border-red-200 dark:hover:border-red-800/50 hover:text-red-600 dark:hover:text-red-400 text-slate-600 dark:text-slate-400 font-bold transition-all duration-300"
+            className="w-full min-h-[44px] flex items-center justify-center gap-2 p-4 bg-white dark:bg-gray-800 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm hover:bg-red-50 dark:hover:bg-red-900/20 hover:border-red-200 dark:hover:border-red-800/50 hover:text-red-600 dark:hover:text-red-400 text-slate-600 dark:text-slate-400 font-bold transition-all duration-300 active:scale-95 touch-manipulation cursor-pointer scroll-mb-28"
           >
               <LogOut className="w-5 h-5" />
               Sign Out
@@ -474,6 +562,16 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onSignOut, onNavigateToSettin
 
         </div>
       </div>
+
+      <ManageTargetExamsModal
+        isOpen={isTargetExamModalOpen}
+        onClose={() => setIsTargetExamModalOpen(false)}
+        pinnedExamIds={pinnedExamIds}
+        activeExamId={activeExamId}
+        examCounts={examCounts}
+        onTogglePin={togglePinExam}
+        onSetActive={handleSetActiveTargetExam}
+      />
     </>
   );
 };

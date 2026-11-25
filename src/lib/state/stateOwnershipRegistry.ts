@@ -44,6 +44,7 @@ export const STATE_OWNERSHIP_REGISTRY: Record<StateEntityKey, StateOwnershipEntr
       'MistakeNotebook',
       'Bookmarks',
       'TodaysPlan',
+      'ProfilePage',
     ],
     prohibitedBehaviors: 'Component holding shadow currentExam state; resetting exam upon clearing topic filters.',
   },
@@ -52,7 +53,7 @@ export const STATE_OWNERSHIP_REGISTRY: Record<StateEntityKey, StateOwnershipEntr
     name: 'Pinned Exam List',
     soleOwnerStore: 'useExamContextStore',
     primaryStorage: 'localStorage (mindflow_exam_context_v1)',
-    authorizedConsumers: ['ExamQuickAccessStrip', 'ManageTargetExamsModal'],
+    authorizedConsumers: ['ExamQuickAccessStrip', 'ManageTargetExamsModal', 'ProfilePage'],
     prohibitedBehaviors: 'Hardcoding pinned exam arrays inside page templates.',
   },
   active_subject_topic: {
