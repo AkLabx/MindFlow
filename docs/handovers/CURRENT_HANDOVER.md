@@ -7,7 +7,7 @@
 ## 1. Current Verified Baseline
 - **Active Generation:** Gen 2 (`docs/blueprint/v2.0_blueprint.md`)
 - **Last Completed Version:** **`v1.0.383`** (26 November 2026, 12:55 AM IST)
-- **Last Merged PR / Status:** Pending PR Creation — `package.json` `1.0.383` | Android `versionCode 10`, `versionName "1.10"`
+- **Last Merged PR / Status:** `PR #1128` — `package.json` `1.0.383` | Android `versionCode 10`, `versionName "1.10"`
 - **Live Verification Evidence (`v1.0.383`):**
   - Typecheck: `node --max-old-space-size=4096 ./node_modules/typescript/bin/tsc --noEmit` (`0` errors).
   - Unit & Integration Tests: `npx.cmd vitest --run --pool=forks --maxWorkers=1` (`47` test files, `298` tests passed).
