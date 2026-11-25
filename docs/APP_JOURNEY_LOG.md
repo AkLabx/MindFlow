@@ -26,6 +26,27 @@ This document is the single source of truth for the evolution of the MindFlow ap
 
 ## 🚀 App Journey Changelog
 
+## [v1.0.382] - 25 November 2026, 08:56 PM IST
+
+Executed Gen 2 Step 2 (`v1.0.382`): shipped dedicated native-Android sub-page headers across Mock Series, Quiz History, and Purchased views, rebalanced the primary 5-tab footer (`Dashboard | Mock Tests | AI | Purchased | Profile`) with `School Mode` & `Community & Social` in `SidePanel`, added MWG CSS scroll-snap swipeable tab viewports and horizontal series card rails, rolled out additive `PYQ` vs `MOCK`/`EXPERT` schema support with `107` published official BPSC/SSC CGL PYQ tests, and replaced `[A-I]/[J-R]/[S-Z]` exam buckets with 6 semantic competitive exam domains (`package.json` `1.0.382`, Android `versionCode 9` / `versionName "1.9"`).
+
+### ✨ Features Added
+- **Dedicated Sub-Page Headers (`src/components/ui/DedicatedPageHeader.tsx`, `src/layouts/MainLayout.tsx`)**: Added sticky Android-style [`DedicatedPageHeader`](../src/components/ui/DedicatedPageHeader.tsx) (`>=44x44px`, `active:scale-95`, `env(safe-area-inset-top)`) across `ExamCategoriesPage`, `ExamPreparedMockTestsPage`, `TestSeriesPage`, `TestsListPage`, `TestDetailPage`, `QuizLibrary`, and `PurchasedCoursesPage`, while hiding the global header on `/mcqs/test-series*`, `/quiz/library*`, and `/purchased`.
+- **Paid-App 5-Tab Footer & `/purchased` Hub (`src/layouts/MainLayout.tsx`, `src/layouts/AppLayout.tsx`, `src/layouts/SidePanel.tsx`, `src/features/mock-tests/pages/PurchasedCoursesPage.tsx`, `src/config/routes.ts`, `src/routes/AppRoutes.tsx`)**: Updated bottom navigation to `Dashboard | Mock Tests | AI | Purchased | Profile`, created `PurchasedCoursesPage` (`ROUTES.PURCHASED`), and relocated `School Mode` and `Community & Social` into `SidePanel`.
+- **MWG Scroll-Snap Swipeable Tabs & `.mf-h-rail` Card Rails (`src/components/ui/SwipeableTabViewport.tsx`, `src/index.css`, `ExamCategoriesPage.tsx`, `QuizLibrary.tsx`)**: Implemented native CSS scroll-snap tab swipe transitions and horizontal card rails across the Mock Test Series Hub and 3-tab `Quiz History`.
+- **Official `PYQ` vs `Expert Mock` Taxonomy & 107 Seeded PYQ Tests (`mockTestsApi.ts`, `adminTestSeriesApi.ts`, `adminQuestionsService.ts`, Admin CMS & Student Pages)**: Added `PYQ Paper` vs `Expert Mock` badges, source type filters, Admin CMS drawers/importers (`SeriesDrawer`, `AdminTestBuilderPage`, `AdminTestSeriesDashboard`, `TestCard`, `QuestionInspectorDrawer`, `UniversalContentImporter`), and `107` published PYQ tests (`8` BPSC `66th–71st` 150-Q papers, `53` SSC CGL 2026 Tier-1 25-Q shifts, `46` SSC CGL 2025 Tier-1 25-Q shifts).
+- **6-Domain Exam Name Taxonomy (`src/features/quiz/constants/examDomains.ts`, `QuizConfig.tsx`, `ScrollableCapsules.tsx`, `ActiveFiltersBar.tsx`)**: Replaced `[A-I]/[J-R]/[S-Z]` filters with semantic domain groups (`Civil Services & State PCS`, `SSC Exams`, `Railways (RRB) Exams`, `Teaching Exams (TRE / TET)`, `State Officer & Departmental Exams`, `Defence, Intelligence & Police`) and clean `EXAM_DISPLAY_LABELS`.
+
+### 🐛 Bug Fixes
+- **Resting DOM Isolation & Horizontal Gesture Containment (`SwipeableTabViewport.tsx`, `src/index.css`, `AttemptedQuizCard.tsx`, `SavedQuizCard.tsx`)**: Kept non-active resting slides lightweight inside `SwipeableTabViewport` and scoped `.mf-h-rail` with `overscroll-behavior-x: contain` + `touch-action: pan-x pan-y`.
+- **Cache Backward-Compatibility Normalization (`src/features/mock-tests/api/mockTestsApi.ts`)**: Added `normalizeMockSeriesType()` and `normalizeMockTestType()` so pre-migration IndexedDB/localStorage snapshots normalize cleanly to `PYQ` or `MOCK`.
+
+### ⚡ Performance & Refactoring
+- **Zero-Dependency MWG Primitives & Test Coverage (`src/components/ui/__tests__/SwipeableTabViewport.test.tsx`, `adminTestSeriesCms.test.tsx`, `examPreparedMockTests.test.tsx`, `mockTestsSwrRegression.test.tsx`)**: Delivered native CSS scroll-snap containers without third-party carousel bundles, verified across `46` Vitest suites (`292` tests), `vite build` (`5493` modules, `212` PWA entries), Playwright E2E (`1/1`), and Chrome DevTools MCP Desktop + Mobile (`0` console errors, `0px` horizontal overflow, `0` `<44x44px` targets).
+
+### 🔒 Security & Architecture
+- **Additive Supabase Migration (`add_question_source_and_mock_types`)**: Added `questions.question_source`, `mock_series.series_type`, and `mock_tests.test_type` additively with `0` new security or performance advisor findings (`get_advisors`), preserving existing RLS boundaries and `DB_TABLES.*` contracts.
+
 ## [v1.0.381] - 25 November 2026, 11:54 AM IST
 
 Executed Gen 2 Step 1 & Strategic Product Pivot (`v1.0.381` $\rightarrow$ `v1.0.390`): simplified Student Home to 4 distraction-free sections, centralized Custom Quiz Studio (`/mcqs`), relocated Target Exam management into Profile, converted Mock Test Series into a single-row tabbed hub, unified `Quiz History` (`In Progress` / `Completed` / `Created Custom`), raised custom/mock caps to `300`, standardized `Saved Questions`, and shipped MWG Top-Layer `!` `<InfoHintPopover />` guidance (`package.json` `1.0.381`, Android `versionCode 8` / `versionName "1.8"`).

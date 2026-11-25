@@ -7,6 +7,7 @@ import { SettingsModal } from '@/features/quiz/components/ui/SettingsModal';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { useQuizContext } from '@/features/quiz/context/QuizContext';
 import { SynapticLoader } from '@/components/ui/SynapticLoader';
+import { ROUTES } from '@/config/routes';
 
 export const AppLayout: React.FC = () => {
     const areBgAnimationsEnabled = useSettingsStore(state => state.areBgAnimationsEnabled);
@@ -25,6 +26,8 @@ export const AppLayout: React.FC = () => {
         if (path.includes('/community')) return 'community';
         if (path.includes('/messages')) return 'messages';
         if (path.includes('/ai')) return 'ai';
+        if (path.startsWith('/mcqs/test-series')) return 'mock-tests';
+        if (path.startsWith('/purchased') || path.startsWith('/profile/subscription')) return 'purchased';
         if (path.includes('/profile') || path.includes('/settings')) return 'profile';
         if (path.includes('/school')) return 'school';
         if (path.includes('/quiz/config')) return 'create';
@@ -36,6 +39,12 @@ export const AppLayout: React.FC = () => {
             case 'home':
                 enterHome();
                 navigate('/dashboard');
+                break;
+            case 'mock-tests':
+                navigate(ROUTES.TEST_SERIES.ROOT);
+                break;
+            case 'purchased':
+                navigate(ROUTES.PURCHASED);
                 break;
             case 'community':
                 navigate('/community');

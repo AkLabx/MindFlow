@@ -612,3 +612,33 @@ input, textarea, [contenteditable] {
     }
   }
 }
+
+/* Horizontal swipe viewports & nested series card rails */
+@layer components {
+  .mf-swipe-track {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .mf-swipe-track::-webkit-scrollbar {
+    display: none;
+  }
+
+  .mf-h-rail {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    overscroll-behavior-x: contain;
+    touch-action: pan-x pan-y;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .mf-h-rail::-webkit-scrollbar {
+    display: none;
+  }
+}

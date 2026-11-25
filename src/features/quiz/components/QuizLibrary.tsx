@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
-    ArrowLeft,
     Award,
     BookOpen,
     CheckCircle,
@@ -10,10 +9,11 @@ import {
     PlayCircle,
     Target,
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { ROUTES } from '@/config/routes';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { InfoHintPopover } from '@/components/ui/InfoHintPopover';
+import { DedicatedPageHeader } from '@/components/ui/DedicatedPageHeader';
+import { SwipeableTabViewport } from '@/components/ui/SwipeableTabViewport';
 import { triggerHaptic } from '@/lib/haptics';
 import {
     ContinueLearningItem,
@@ -143,10 +143,17 @@ export const QuizLibrary: React.FC = () => {
         }
     }, [activeTab, sortMethod]);
 
-    const handleTabChange = (tab: QuizHistoryTab) => {
-        triggerHaptic('light');
-        setSearchParams({ tab }, { replace: true });
-    };
+    const handleBack = useCallback(() => {
+        navigate(ROUTES.DASHBOARD);
+    }, [navigate]);
+
+    const handleTabChange = useCallback(
+        (tab: QuizHistoryTab) => {
+            triggerHaptic('light');
+            setSearchParams({ tab }, { replace: true });
+        },
+        [setSearchParams]
+    );
 
     const inProgressMocks = useMemo(
         () => mockAttempts.filter((item) => item.status === 'in_progress'),
@@ -182,7 +189,7 @@ export const QuizLibrary: React.FC = () => {
     ];
 
     return (
-        <div className="flex flex-col min-h-[100dvh] w-full pb-28 scroll-mb-28 p-3 sm:p-6 lg:p-8 transition-colors duration-700 relative overflow-x-hidden">
+        <div className="flex flex-col min-h-[100dvh] w-full pb-28 scroll-mb-28 transition-colors duration-700 relative overflow-x-clip">
             {/* Aurora Atmosphere Background */}
             <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
                 <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808008_1px,transparent_1px),linear-gradient(to_bottom,#80808008_1px,transparent_1px)] bg-[size:32px_32px] mix-blend-multiply" />
@@ -194,185 +201,163 @@ export const QuizLibrary: React.FC = () => {
                 </div>
             </div>
 
-            <div className="w-full max-w-7xl mx-auto relative z-10 py-2 sm:py-4 space-y-4 sm:space-y-6 flex flex-col flex-1">
-                {/* Header Title & Back Button */}
-                <div className="flex flex-col gap-3 sm:gap-5">
-                    <div className="flex items-center justify-between gap-3">
-                        <div className="flex items-center gap-3 min-w-0">
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    triggerHaptic('light');
-                                    navigate(ROUTES.DASHBOARD);
-                                }}
-                                aria-label="Back to Dashboard"
-                                className="min-h-[44px] min-w-[44px] scroll-mb-28 active:scale-95 touch-manipulation cursor-pointer z-20 flex items-center justify-center p-2.5 rounded-full bg-white/80 dark:bg-slate-800/80 hover:bg-white dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-all shadow-sm backdrop-blur-sm border border-slate-200/80 dark:border-slate-700/60"
-                                title="Back to Dashboard"
-                            >
-                                <ArrowLeft className="w-5 h-5" aria-hidden="true" />
-                            </button>
-                            <h1 className="text-2xl sm:text-4xl font-black text-gray-900 dark:text-white leading-tight truncate">
-                                Quiz History
-                            </h1>
-                            <InfoHintPopover
-                                title="Quiz History"
-                                purpose="View all your paused and completed mock tests alongside your custom practice quizzes in one unified timeline."
-                                studentVisibility="In Progress shows paused mock exams and started custom quizzes. Completed shows finished mock scorecards and custom quiz results. Created Custom lists your saved custom quizzes."
-                                example="Tap Resume Mock or Resume on any In Progress item to continue right where you left off."
-                                align="end"
-                            />
-                        </div>
-                    </div>
-
-                    {/* 3-Tab Unified Navigation */}
-                    <div
-                        role="tablist"
-                        aria-label="Quiz history sections"
-                        className="flex items-center gap-1 p-1 bg-indigo-50/70 dark:bg-slate-800/70 rounded-xl border border-indigo-100/80 dark:border-slate-700/70 backdrop-blur-sm shadow-sm w-full sm:w-fit self-start overflow-x-auto no-scrollbar"
-                    >
-                        {tabs.map((tab) => {
-                            const isSelected = activeTab === tab.id;
-                            return (
-                                <button
-                                    key={tab.id}
-                                    id={`history-tab-${tab.id}`}
-                                    type="button"
-                                    role="tab"
-                                    aria-selected={isSelected}
-                                    aria-controls={`history-panel-${tab.id}`}
-                                    onClick={() => handleTabChange(tab.id)}
-                                    className={`min-h-[44px] min-w-[44px] scroll-mb-28 active:scale-95 touch-manipulation cursor-pointer flex-1 sm:flex-none flex items-center justify-center gap-2 px-3.5 sm:px-5 py-2 rounded-lg transition-all text-xs sm:text-sm whitespace-nowrap shrink-0 ${
-                                        isSelected
-                                            ? 'bg-white dark:bg-slate-700 shadow-sm border border-indigo-100 dark:border-slate-600 font-bold text-indigo-700 dark:text-indigo-300'
-                                            : 'hover:bg-white/60 dark:hover:bg-slate-700/50 font-semibold text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400'
-                                    }`}
-                                >
-                                    {tab.icon}
-                                    <span>{tab.label}</span>
-                                    {tab.badge !== undefined && (
-                                        <span className="px-1.5 py-0.5 text-[10px] font-black rounded-full bg-amber-100 dark:bg-amber-900/60 text-amber-800 dark:text-amber-200">
-                                            {tab.badge}
-                                        </span>
-                                    )}
-                                </button>
-                            );
-                        })}
-                    </div>
-                </div>
-
-                {/* Tab Content Container */}
+            <DedicatedPageHeader
+                title="Quiz History"
+                subtitle="In-progress, completed & custom sets"
+                onBack={handleBack}
+                backLabel="Back to Dashboard"
+                infoPopover={
+                    <InfoHintPopover
+                        title="Quiz History"
+                        purpose="View all your paused and completed mock tests alongside your custom practice quizzes in one unified timeline."
+                        studentVisibility="In Progress shows paused mock exams and started custom quizzes. Completed shows finished mock scorecards and custom quiz results. Created Custom lists your saved custom quizzes."
+                        example="Tap Resume Mock or Resume on any In Progress item to continue right where you left off."
+                        align="end"
+                    />
+                }
+            >
+                {/* 3-Tab Unified Navigation */}
                 <div
-                    id={`history-panel-${activeTab}`}
-                    role="tabpanel"
-                    aria-labelledby={`history-tab-${activeTab}`}
-                    className="flex-1 relative"
+                    role="tablist"
+                    aria-label="Quiz history sections"
+                    className="flex items-center gap-1 p-1 bg-indigo-50/70 dark:bg-slate-800/70 rounded-xl border border-indigo-100/80 dark:border-slate-700/70 backdrop-blur-sm shadow-sm w-full sm:w-fit overflow-x-auto touch-pan-x overscroll-x-contain no-scrollbar"
                 >
-                    <AnimatePresence mode="wait">
-                        {activeTab === 'paused' ? (
-                            <motion.div
-                                key="paused-tab"
-                                initial={{ opacity: 0, y: 8 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, y: -8 }}
-                                transition={{ duration: 0.18, ease: 'easeOut' }}
-                                className="space-y-6"
+                    {tabs.map((tab) => {
+                        const isSelected = activeTab === tab.id;
+                        return (
+                            <button
+                                key={tab.id}
+                                id={`history-tab-${tab.id}`}
+                                type="button"
+                                role="tab"
+                                aria-selected={isSelected}
+                                aria-controls={`history-panel-${tab.id}`}
+                                onClick={() => handleTabChange(tab.id)}
+                                className={`min-h-[44px] min-w-[44px] scroll-mb-28 active:scale-95 touch-manipulation cursor-pointer flex-1 sm:flex-none flex items-center justify-center gap-2 px-3.5 sm:px-5 py-2 rounded-lg transition-all text-xs sm:text-sm whitespace-nowrap shrink-0 ${
+                                    isSelected
+                                        ? 'bg-white dark:bg-slate-700 shadow-sm border border-indigo-100 dark:border-slate-600 font-bold text-indigo-700 dark:text-indigo-300'
+                                        : 'hover:bg-white/60 dark:hover:bg-slate-700/50 font-semibold text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400'
+                                }`}
                             >
-                                {inProgressMocks.length > 0 && (
-                                    <section aria-label="In Progress Mock Tests" className="space-y-3">
-                                        <div className="flex items-center justify-between gap-2">
-                                            <h2 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white">
-                                                Paused Mock Tests
-                                            </h2>
-                                            <span className="text-xs font-bold text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/40 px-2.5 py-0.5 rounded-full">
-                                                {inProgressMocks.length} Active
-                                            </span>
-                                        </div>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            {inProgressMocks.map((item) => {
-                                                const remainingLabel = formatRemainingTime(item.remainingSeconds);
-                                                return (
-                                                    <article
-                                                        key={item.attemptId}
-                                                        className="bg-white/95 dark:bg-slate-800/95 rounded-2xl p-4 sm:p-5 border border-amber-200/80 dark:border-amber-800/50 shadow-xs flex flex-col justify-between gap-3.5"
-                                                    >
-                                                        <div className="space-y-2 min-w-0">
-                                                            <div className="flex flex-wrap items-center justify-between gap-2">
-                                                                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200/70 dark:border-amber-800/60">
-                                                                    In Progress
-                                                                </span>
-                                                                <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 truncate max-w-[200px]">
-                                                                    {item.categoryName} • {item.seriesName}
-                                                                </span>
-                                                            </div>
-                                                            <h3 className="font-bold text-base text-slate-900 dark:text-white leading-snug line-clamp-2">
-                                                                {item.testName}
-                                                            </h3>
-                                                            <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-semibold text-slate-600 dark:text-slate-300">
-                                                                <span>
-                                                                    {item.answeredCount} / {item.totalQuestions} answered
-                                                                </span>
-                                                                {remainingLabel && (
-                                                                    <span className="inline-flex items-center gap-1 text-indigo-600 dark:text-indigo-400 font-bold">
-                                                                        <Clock className="w-3.5 h-3.5" aria-hidden="true" />
-                                                                        {remainingLabel}
-                                                                    </span>
-                                                                )}
-                                                            </div>
-                                                        </div>
-                                                        <div className="flex items-center gap-2 pt-1">
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => {
-                                                                    triggerHaptic('medium');
-                                                                    navigate(ROUTES.TEST_SERIES.EXAM_RUNNER(item.testId), {
-                                                                        state: {
-                                                                            returnTo: `${ROUTES.QUIZ.LIBRARY}?tab=paused`,
-                                                                            resumeAttemptId: item.attemptId,
-                                                                        },
-                                                                    });
-                                                                }}
-                                                                className="flex-1 min-h-[44px] min-w-[44px] scroll-mb-28 active:scale-95 touch-manipulation cursor-pointer px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-bold inline-flex items-center justify-center gap-1.5 shadow-xs transition-all"
-                                                            >
-                                                                <PlayCircle className="w-4 h-4 shrink-0" aria-hidden="true" />
-                                                                <span>Resume Mock</span>
-                                                            </button>
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => {
-                                                                    triggerHaptic('light');
-                                                                    navigate(ROUTES.TEST_SERIES.TEST(item.testId), {
-                                                                        state: { returnTo: `${ROUTES.QUIZ.LIBRARY}?tab=paused` },
-                                                                    });
-                                                                }}
-                                                                className="min-h-[44px] min-w-[44px] scroll-mb-28 active:scale-95 touch-manipulation cursor-pointer px-3.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-700/80 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold inline-flex items-center justify-center transition-all shrink-0"
-                                                            >
-                                                                Details
-                                                            </button>
-                                                        </div>
-                                                    </article>
-                                                );
-                                            })}
-                                        </div>
-                                    </section>
+                                {tab.icon}
+                                <span>{tab.label}</span>
+                                {tab.badge !== undefined && (
+                                    <span className="px-1.5 py-0.5 text-[10px] font-black rounded-full bg-amber-100 dark:bg-amber-900/60 text-amber-800 dark:text-amber-200">
+                                        {tab.badge}
+                                    </span>
                                 )}
+                            </button>
+                        );
+                    })}
+                </div>
+            </DedicatedPageHeader>
 
-                                <SavedQuizzesList
-                                    viewMode={viewMode}
-                                    setViewMode={setViewMode}
-                                    sortMethod={sortMethod as any}
-                                    setSortMethod={setSortMethod as any}
-                                    filterMode="paused"
-                                    hasExternalItems={inProgressMocks.length > 0}
-                                />
-                            </motion.div>
-                        ) : activeTab === 'created' ? (
-                            <motion.div
-                                key="created-tab"
-                                initial={{ opacity: 0, y: 8 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, y: -8 }}
-                                transition={{ duration: 0.18, ease: 'easeOut' }}
-                            >
+            <main className="w-full max-w-7xl mx-auto relative z-10 px-3 sm:px-6 lg:px-8 pt-4 sm:pt-6 flex flex-col flex-1">
+                <SwipeableTabViewport
+                    tabs={tabs.map((t) => ({ id: t.id, label: t.label }))}
+                    activeTabId={activeTab}
+                    onTabChange={(tabId) => handleTabChange(tabId as QuizHistoryTab)}
+                    ariaLabel="Quiz History Views"
+                    tabIdPrefix="history-tab"
+                    panelIdPrefix="history-panel"
+                    className="flex-1"
+                    renderPanel={(tabId) => {
+                        if (tabId === 'paused') {
+                            return (
+                                <div className="space-y-6">
+                                    {inProgressMocks.length > 0 && (
+                                        <section aria-label="In Progress Mock Tests" className="space-y-3">
+                                            <div className="flex items-center justify-between gap-2">
+                                                <h2 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white">
+                                                    Paused Mock Tests
+                                                </h2>
+                                                <span className="text-xs font-bold text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/40 px-2.5 py-0.5 rounded-full">
+                                                    {inProgressMocks.length} Active
+                                                </span>
+                                            </div>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                {inProgressMocks.map((item) => {
+                                                    const remainingLabel = formatRemainingTime(item.remainingSeconds);
+                                                    return (
+                                                        <article
+                                                            key={item.attemptId}
+                                                            className="bg-white/95 dark:bg-slate-800/95 rounded-2xl p-4 sm:p-5 border border-amber-200/80 dark:border-amber-800/50 shadow-xs flex flex-col justify-between gap-3.5"
+                                                        >
+                                                            <div className="space-y-2 min-w-0">
+                                                                <div className="flex flex-wrap items-center justify-between gap-2">
+                                                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200/70 dark:border-amber-800/60">
+                                                                        In Progress
+                                                                    </span>
+                                                                    <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 truncate max-w-[200px]">
+                                                                        {item.categoryName} • {item.seriesName}
+                                                                    </span>
+                                                                </div>
+                                                                <h3 className="font-bold text-base text-slate-900 dark:text-white leading-snug line-clamp-2">
+                                                                    {item.testName}
+                                                                </h3>
+                                                                <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-semibold text-slate-600 dark:text-slate-300">
+                                                                    <span>
+                                                                        {item.answeredCount} / {item.totalQuestions} answered
+                                                                    </span>
+                                                                    {remainingLabel && (
+                                                                        <span className="inline-flex items-center gap-1 text-indigo-600 dark:text-indigo-400 font-bold">
+                                                                            <Clock className="w-3.5 h-3.5" aria-hidden="true" />
+                                                                            {remainingLabel}
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                            <div className="flex items-center gap-2 pt-1">
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        triggerHaptic('medium');
+                                                                        navigate(ROUTES.TEST_SERIES.EXAM_RUNNER(item.testId), {
+                                                                            state: {
+                                                                                returnTo: `${ROUTES.QUIZ.LIBRARY}?tab=paused`,
+                                                                                resumeAttemptId: item.attemptId,
+                                                                            },
+                                                                        });
+                                                                    }}
+                                                                    className="flex-1 min-h-[44px] min-w-[44px] scroll-mb-28 active:scale-95 touch-manipulation cursor-pointer px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-bold inline-flex items-center justify-center gap-1.5 shadow-xs transition-all"
+                                                                >
+                                                                    <PlayCircle className="w-4 h-4 shrink-0" aria-hidden="true" />
+                                                                    <span>Resume Mock</span>
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        triggerHaptic('light');
+                                                                        navigate(ROUTES.TEST_SERIES.TEST(item.testId), {
+                                                                            state: { returnTo: `${ROUTES.QUIZ.LIBRARY}?tab=paused` },
+                                                                        });
+                                                                    }}
+                                                                    className="min-h-[44px] min-w-[44px] scroll-mb-28 active:scale-95 touch-manipulation cursor-pointer px-3.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-700/80 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold inline-flex items-center justify-center transition-all shrink-0"
+                                                                >
+                                                                    Details
+                                                                </button>
+                                                            </div>
+                                                        </article>
+                                                    );
+                                                })}
+                                            </div>
+                                        </section>
+                                    )}
+
+                                    <SavedQuizzesList
+                                        viewMode={viewMode}
+                                        setViewMode={setViewMode}
+                                        sortMethod={sortMethod as any}
+                                        setSortMethod={setSortMethod as any}
+                                        filterMode="paused"
+                                        hasExternalItems={inProgressMocks.length > 0}
+                                    />
+                                </div>
+                            );
+                        }
+
+                        if (tabId === 'created') {
+                            return (
                                 <SavedQuizzesList
                                     viewMode={viewMode}
                                     setViewMode={setViewMode}
@@ -380,16 +365,11 @@ export const QuizLibrary: React.FC = () => {
                                     setSortMethod={setSortMethod as any}
                                     filterMode="all"
                                 />
-                            </motion.div>
-                        ) : (
-                            <motion.div
-                                key="attempted-tab"
-                                initial={{ opacity: 0, y: 8 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, y: -8 }}
-                                transition={{ duration: 0.18, ease: 'easeOut' }}
-                                className="space-y-6"
-                            >
+                            );
+                        }
+
+                        return (
+                            <div className="space-y-6">
                                 {completedMocks.length > 0 && (
                                     <section aria-label="Completed Mock Tests" className="space-y-3">
                                         <div className="flex items-center justify-between gap-2">
@@ -481,11 +461,11 @@ export const QuizLibrary: React.FC = () => {
                                     setSortMethod={setSortMethod}
                                     hasExternalItems={completedMocks.length > 0}
                                 />
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
-                </div>
-            </div>
+                            </div>
+                        );
+                    }}
+                />
+            </main>
 
             {/* CSS Keyframes & Accessibility */}
             <style>{`

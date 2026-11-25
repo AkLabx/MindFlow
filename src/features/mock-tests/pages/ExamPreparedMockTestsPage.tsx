@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef, useId, startTransition } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import {
-    ArrowLeft,
     Award,
     AlertTriangle,
     BookOpen,
@@ -23,6 +22,7 @@ import { CANONICAL_EXAMS } from '@/features/dashboard/constants/examRegistry';
 import { useAuth } from '@/features/auth';
 import { triggerHaptic } from '@/lib/haptics';
 import { telemetry } from '@/lib/telemetry';
+import { DedicatedPageHeader } from '@/components/ui/DedicatedPageHeader';
 import {
     MOCK_CACHE_INVALIDATED_EVENT,
     MOCK_CACHE_VERSION_KEY,
@@ -130,7 +130,10 @@ export const ExamPreparedMockTestsPage: React.FC = () => {
             }
 
             try {
-                const fresh = await fetchPreparedMockTestsByExam(resolvedExam.id, { userId, forceRefresh: isManualRetry });
+                const fresh = await fetchPreparedMockTestsByExam(resolvedExam.id, {
+                    userId,
+                    forceRefresh: isManualRetry,
+                });
                 if (!isMountedRef.current || fetchSeqRef.current !== seq) return;
                 setResult(fresh);
                 hasResultRef.current = true;
@@ -144,7 +147,9 @@ export const ExamPreparedMockTestsPage: React.FC = () => {
                 setErrorMessage(msg);
                 telemetry.emit('empty_state_seen', {
                     view: 'exam_prepared_mock_tests',
-                    triggerCondition: hasResultRef.current ? 'network_refresh_failed_with_cache' : 'network_failed_no_cache',
+                    triggerCondition: hasResultRef.current
+                        ? 'network_refresh_failed_with_cache'
+                        : 'network_failed_no_cache',
                 });
             } finally {
                 if (isMountedRef.current && fetchSeqRef.current === seq) {
@@ -159,7 +164,9 @@ export const ExamPreparedMockTestsPage: React.FC = () => {
     useEffect(() => {
         setActiveFilter('all');
         setSearchQuery('');
-        const nextSync = resolvedExam ? getCachedPreparedMockTestsSnapshot(resolvedExam.id, { userId }) : null;
+        const nextSync = resolvedExam
+            ? getCachedPreparedMockTestsSnapshot(resolvedExam.id, { userId })
+            : null;
         setResult(nextSync);
         hasResultRef.current = Boolean(nextSync);
         setLoading(Boolean(resolvedExam && !nextSync));
@@ -204,7 +211,6 @@ export const ExamPreparedMockTestsPage: React.FC = () => {
     }, [loadExamMockTests]);
 
     const handleLogicalBack = () => {
-        triggerHaptic('light');
         const target = resolveSafeReturnTarget(location.state);
         navigate(target);
     };
@@ -274,20 +280,47 @@ export const ExamPreparedMockTestsPage: React.FC = () => {
 
     const publishedSeries = result?.series || [];
 
+    const refreshBtn = (
+        <div className="flex items-center gap-2">
+            <button
+                type="button"
+                onClick={handleRetry}
+                disabled={isRefreshing}
+                aria-label="Refresh mock tests"
+                className="min-h-[44px] min-w-[44px] px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 disabled:opacity-60 transition-all active:scale-95 touch-manipulation cursor-pointer"
+            >
+                <RefreshCw
+                    className={`w-4 h-4 shrink-0 ${isRefreshing ? 'animate-spin text-indigo-500' : ''}`}
+                    aria-hidden="true"
+                />
+                <span className="hidden sm:inline">{isRefreshing ? 'Syncing...' : 'Refresh'}</span>
+            </button>
+
+            <button
+                type="button"
+                onClick={() => {
+                    triggerHaptic('light');
+                    navigate(ROUTES.TEST_SERIES.ROOT);
+                }}
+                aria-label="All Categories"
+                className="min-h-[44px] min-w-[44px] px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 transition-all active:scale-95 touch-manipulation cursor-pointer"
+            >
+                <Layers className="w-4 h-4 shrink-0" aria-hidden="true" />
+                <span className="hidden sm:inline">All Categories</span>
+            </button>
+        </div>
+    );
+
     if (!resolvedExam) {
         return (
-            <div className="flex flex-col min-h-screen -m-4 sm:-m-6 lg:-m-8 p-4 sm:p-6 lg:p-8 bg-slate-50 dark:bg-slate-900 pb-[calc(6rem+env(safe-area-inset-bottom,0px))]">
-                <div className="w-full max-w-5xl mx-auto">
-                    <div className="mb-6">
-                        <button
-                            type="button"
-                            onClick={handleLogicalBack}
-                            className="min-h-[44px] min-w-[44px] px-3.5 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 font-bold text-sm inline-flex items-center gap-2 hover:border-indigo-400 transition-all active:scale-95 touch-manipulation cursor-pointer"
-                        >
-                            <ArrowLeft className="w-4 h-4 shrink-0" aria-hidden="true" />
-                            <span>Back to Mock Tests</span>
-                        </button>
-                    </div>
+            <div className="flex flex-col min-h-[100dvh] w-full bg-slate-50 dark:bg-slate-900 pb-28 scroll-mb-28 overflow-x-clip">
+                <DedicatedPageHeader
+                    title="Prepared Mock Tests"
+                    onBack={handleLogicalBack}
+                    backLabel="Back"
+                    maxWidthClass="max-w-5xl"
+                />
+                <div className="w-full max-w-5xl mx-auto px-4 sm:px-6 pt-6">
                     <EmptyState
                         title="Exam Not Recognized"
                         description={`We could not match "${effectiveSlug}" to a canonical exam category.`}
@@ -308,119 +341,85 @@ export const ExamPreparedMockTestsPage: React.FC = () => {
         scheduleValidTests.length > 0 && filteredTests.length === 0;
 
     return (
-        <div className="flex flex-col min-h-screen -m-4 sm:-m-6 lg:-m-8 p-4 sm:p-6 lg:p-8 bg-slate-50 dark:bg-slate-900 transition-colors duration-300 pb-[calc(6.5rem+env(safe-area-inset-bottom,0px))]">
-            <div className="flex-1 w-full max-w-6xl mx-auto space-y-6 sm:space-y-8">
-                {/* Top Navigation & Logical Parent Back */}
-                <header className="space-y-4">
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                        <button
-                            type="button"
-                            onClick={handleLogicalBack}
-                            className="min-h-[44px] min-w-[44px] px-3.5 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200/90 dark:border-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs sm:text-sm inline-flex items-center gap-2 shadow-xs hover:border-indigo-400 dark:hover:border-indigo-500 transition-all active:scale-95 touch-manipulation cursor-pointer"
-                        >
-                            <ArrowLeft className="w-4 h-4 shrink-0" aria-hidden="true" />
-                            <span>Back</span>
-                        </button>
+        <div className="flex flex-col min-h-[100dvh] w-full bg-slate-50 dark:bg-slate-900 transition-colors duration-300 pb-28 scroll-mb-28 overflow-x-clip">
+            <DedicatedPageHeader
+                title={`${resolvedExam.displayName} Prepared Mock Tests`}
+                subtitle={`${publishedSeries.length} Series • ${scheduleValidTests.length} Published Tests`}
+                onBack={handleLogicalBack}
+                backLabel="Back"
+                rightActions={refreshBtn}
+                maxWidthClass="max-w-6xl"
+            />
 
-                        <div className="flex flex-wrap items-center gap-2">
-                            <button
-                                type="button"
-                                onClick={handleRetry}
-                                disabled={isRefreshing}
-                                className="min-h-[44px] min-w-[44px] px-3.5 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200/90 dark:border-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs sm:text-sm inline-flex items-center gap-2 shadow-xs hover:border-indigo-400 disabled:opacity-60 transition-all active:scale-95 touch-manipulation cursor-pointer"
-                            >
-                                <RefreshCw
-                                    className={`w-4 h-4 shrink-0 ${isRefreshing ? 'animate-spin text-indigo-500' : ''}`}
-                                    aria-hidden="true"
-                                />
-                                <span>{isRefreshing ? 'Syncing...' : 'Refresh'}</span>
-                            </button>
-
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    triggerHaptic('light');
-                                    navigate(ROUTES.TEST_SERIES.ROOT);
-                                }}
-                                className="min-h-[44px] min-w-[44px] px-3.5 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200/90 dark:border-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs sm:text-sm inline-flex items-center gap-2 shadow-xs hover:border-indigo-400 transition-all active:scale-95 touch-manipulation cursor-pointer"
-                            >
-                                <Layers className="w-4 h-4 shrink-0" aria-hidden="true" />
-                                <span>All Categories</span>
-                            </button>
-                        </div>
-                    </div>
-
-                    {/* Hero Card */}
-                    <div className="relative overflow-hidden rounded-[28px] bg-gradient-to-br from-slate-900 via-indigo-950 to-amber-950/90 p-6 sm:p-8 text-white shadow-xl border border-indigo-500/20 isolate">
-                        <div
-                            aria-hidden="true"
-                            className="absolute -top-16 -right-16 w-64 h-64 rounded-full bg-amber-500/20 blur-3xl pointer-events-none"
-                        />
-                        <div className="relative z-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
-                            <div className="space-y-2.5 max-w-2xl">
-                                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 border border-white/20 text-amber-200 text-xs font-bold uppercase tracking-wider">
-                                    <Sparkles className="w-3.5 h-3.5 text-amber-400" aria-hidden="true" />
-                                    <span>{resolvedExam.category} • Admin Prepared</span>
-                                </div>
-                                <h1 className="text-2xl sm:text-4xl font-black tracking-tight leading-tight [text-wrap:balance]">
-                                    {resolvedExam.displayName} Prepared Mock Tests
-                                </h1>
-                                <p className="text-sm sm:text-base text-indigo-100/85 font-medium leading-relaxed [text-wrap:pretty]">
-                                    {resolvedExam.id === 'bpsc'
-                                        ? 'Official BPSC Prelims, TRE 1.0–3.0, Auditor, AEDO & Bihar Special mock test series prepared and published in MindFlow Admin.'
-                                        : `${resolvedExam.subtitle} — published timed mock tests, negative marking specs, and offline-cached access.`}
-                                </p>
+            <div className="flex-1 w-full max-w-6xl mx-auto px-4 sm:px-6 pt-4 space-y-5 sm:space-y-6">
+                {/* Compact Exam Summary & Quick Switcher */}
+                <section
+                    aria-label="Exam overview and switcher"
+                    className="rounded-2xl bg-gradient-to-br from-slate-900 via-indigo-950 to-amber-950/90 p-4 sm:p-5 text-white shadow-md border border-indigo-500/20 space-y-3.5"
+                >
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div className="space-y-1 min-w-0">
+                            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/10 border border-white/20 text-amber-200 text-[11px] font-bold uppercase tracking-wider">
+                                <Sparkles className="w-3 h-3 text-amber-400" aria-hidden="true" />
+                                <span>{resolvedExam.category}</span>
                             </div>
+                            <p className="text-xs sm:text-sm text-indigo-100/90 font-medium leading-snug line-clamp-2">
+                                {resolvedExam.id === 'bpsc'
+                                    ? 'Official BPSC Prelims, TRE 1.0–3.0, Auditor & AEDO timed CBT mocks and PYQs.'
+                                    : `${resolvedExam.subtitle} — timed mock tests, negative marking specs, and offline-cached access.`}
+                            </p>
+                        </div>
 
-                            <div className="flex flex-wrap gap-3 shrink-0">
-                                <div className="bg-white/10 backdrop-blur-md border border-white/15 rounded-2xl px-4 py-3 min-w-[100px]">
-                                    <div className="text-xl sm:text-2xl font-black leading-none">
-                                        {publishedSeries.length}
-                                    </div>
-                                    <div className="text-[11px] font-bold uppercase tracking-wider text-indigo-200/80 mt-1">
-                                        Series
-                                    </div>
+                        <div className="flex items-center gap-2.5 shrink-0">
+                            <div className="bg-white/10 border border-white/15 rounded-xl px-3 py-2 text-center min-w-[76px]">
+                                <div className="text-base sm:text-lg font-black leading-none">
+                                    {publishedSeries.length}
                                 </div>
-                                <div className="bg-white/10 backdrop-blur-md border border-white/15 rounded-2xl px-4 py-3 min-w-[100px]">
-                                    <div className="text-xl sm:text-2xl font-black leading-none">
-                                        {scheduleValidTests.length}
-                                    </div>
-                                    <div className="text-[11px] font-bold uppercase tracking-wider text-indigo-200/80 mt-1">
-                                        Published Tests
-                                    </div>
+                                <div className="text-[10px] font-bold uppercase tracking-wider text-indigo-200/80 mt-0.5">
+                                    Series
+                                </div>
+                            </div>
+                            <div className="bg-white/10 border border-white/15 rounded-xl px-3 py-2 text-center min-w-[76px]">
+                                <div className="text-base sm:text-lg font-black leading-none">
+                                    {scheduleValidTests.length}
+                                </div>
+                                <div className="text-[10px] font-bold uppercase tracking-wider text-indigo-200/80 mt-0.5">
+                                    Tests
                                 </div>
                             </div>
                         </div>
-
-                        {/* Exam Quick Switcher */}
-                        <nav aria-label="Canonical exam mock tests" className="relative z-10 mt-6 pt-4 border-t border-white/10 flex flex-wrap items-center gap-2">
-                            {featuredSwitchExams.map((exam) => {
-                                const isCurrent = exam.id === resolvedExam.id;
-                                return (
-                                    <button
-                                        key={exam.id}
-                                        type="button"
-                                        aria-current={isCurrent ? 'page' : undefined}
-                                        onClick={() => {
-                                            if (isCurrent) return;
-                                            triggerHaptic('light');
-                                            navigate(getPreparedMockTestsRoute(exam.id), {
-                                                state: location.state,
-                                            });
-                                        }}
-                                        className={`min-h-[44px] min-w-[44px] px-3.5 py-2 rounded-full text-xs font-bold transition-all active:scale-95 touch-manipulation cursor-pointer ${
-                                            isCurrent
-                                                ? 'bg-amber-400 text-slate-950 shadow-sm'
-                                                : 'bg-white/10 hover:bg-white/20 text-white border border-white/15'
-                                        }`}
-                                    >
-                                        {exam.displayName}
-                                    </button>
-                                );
-                            })}
-                        </nav>
                     </div>
-                </header>
+
+                    <nav
+                        aria-label="Canonical exam mock tests"
+                        className="pt-3 border-t border-white/10 flex items-center gap-2 overflow-x-auto no-scrollbar touch-pan-x overscroll-x-contain"
+                    >
+                        {featuredSwitchExams.map((exam) => {
+                            const isCurrent = exam.id === resolvedExam.id;
+                            return (
+                                <button
+                                    key={exam.id}
+                                    type="button"
+                                    aria-current={isCurrent ? 'page' : undefined}
+                                    onClick={() => {
+                                        if (isCurrent) return;
+                                        triggerHaptic('light');
+                                        navigate(getPreparedMockTestsRoute(exam.id), {
+                                            state: location.state,
+                                        });
+                                    }}
+                                    className={`min-h-[44px] min-w-[44px] px-3.5 py-2 rounded-full text-xs font-bold whitespace-nowrap shrink-0 transition-all active:scale-95 touch-manipulation cursor-pointer ${
+                                        isCurrent
+                                            ? 'bg-amber-400 text-slate-950 shadow-sm'
+                                            : 'bg-white/10 hover:bg-white/20 text-white border border-white/15'
+                                    }`}
+                                >
+                                    {exam.displayName}
+                                </button>
+                            );
+                        })}
+                    </nav>
+                </section>
 
                 {/* Offline / Refresh Warning Banner (when stale cached data is visible) */}
                 {errorMessage && result && (
@@ -449,9 +448,16 @@ export const ExamPreparedMockTestsPage: React.FC = () => {
                 />
 
                 {/* Filter Chips & Search Toolbar */}
-                <section aria-label="Filter prepared mock tests" className="bg-white dark:bg-slate-800/90 rounded-2xl border border-slate-200/80 dark:border-slate-700/70 p-3.5 sm:p-4 shadow-xs space-y-3">
+                <section
+                    aria-label="Filter prepared mock tests"
+                    className="bg-white dark:bg-slate-800/90 rounded-2xl border border-slate-200/80 dark:border-slate-700/70 p-3.5 sm:p-4 shadow-xs space-y-3"
+                >
                     <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
-                        <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Mock test category filters">
+                        <div
+                            className="flex flex-wrap items-center gap-2"
+                            role="group"
+                            aria-label="Mock test category filters"
+                        >
                             {FILTER_CHIPS.map((chip) => {
                                 const isActive = activeFilter === chip.id;
                                 return (
@@ -527,69 +533,84 @@ export const ExamPreparedMockTestsPage: React.FC = () => {
                         {/* Published Series */}
                         {publishedSeries.length > 0 && (
                             <section className="space-y-4">
-                                <h2 className="text-lg sm:text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight [text-wrap:balance]">
+                                <h2 className="text-lg sm:text-xl font-extrabold text-slate-900 dark:text-white tracking-tight [text-wrap:balance]">
                                     Published {resolvedExam.shortCode} Test Series
                                 </h2>
                                 <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
-                                    {publishedSeries.map((seriesItem) => (
-                                        <li key={seriesItem.id} className="flex">
-                                            <article className="flex flex-col w-full bg-white dark:bg-slate-800 rounded-3xl overflow-hidden shadow-xs hover:shadow-md border border-slate-200/70 dark:border-slate-700/70 transition-shadow">
-                                                <div className="aspect-video w-full relative overflow-hidden bg-slate-100 dark:bg-slate-900">
-                                                    <BrandedThumbnail
-                                                        title={seriesItem.name}
-                                                        type="series"
-                                                        imageUrl={seriesItem.thumbnail_url}
-                                                        className="w-full h-full"
-                                                    />
-                                                    <span
-                                                        className={`absolute top-3 right-3 text-[10px] font-black px-2.5 py-1 rounded-md uppercase tracking-wide shadow-sm ${
-                                                            seriesItem.is_premium
-                                                                ? 'bg-amber-400 text-amber-950'
-                                                                : 'bg-emerald-500 text-white'
-                                                        }`}
-                                                    >
-                                                        {seriesItem.is_premium ? 'PRO' : 'FREE'}
-                                                    </span>
-                                                </div>
-
-                                                <div className="p-4 sm:p-5 flex-1 flex flex-col gap-3">
-                                                    <header>
-                                                        <p className="text-[11px] font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 mb-1">
-                                                            {seriesItem.category_name}
-                                                        </p>
-                                                        <h3 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white leading-snug">
-                                                            {seriesItem.name}
-                                                        </h3>
-                                                    </header>
-
-                                                    {seriesItem.description && (
-                                                        <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 line-clamp-2 [text-wrap:pretty]">
-                                                            {seriesItem.description}
-                                                        </p>
-                                                    )}
-
-                                                    <footer className="mt-auto pt-3 border-t border-slate-100 dark:border-slate-700/60 flex items-center justify-between gap-3">
-                                                        <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
-                                                            {seriesItem.test_count} {seriesItem.test_count === 1 ? 'Test' : 'Tests'}
-                                                        </span>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => {
-                                                                triggerHaptic('light');
-                                                                navigate(ROUTES.TEST_SERIES.SERIES(seriesItem.id), {
-                                                                    state: { returnTo: location.pathname },
-                                                                });
-                                                            }}
-                                                            className="min-h-[44px] min-w-[44px] scroll-mb-28 px-4 py-2 rounded-xl bg-slate-900 hover:bg-indigo-600 dark:bg-indigo-600 dark:hover:bg-indigo-500 text-white text-xs font-bold transition-all active:scale-95 touch-manipulation cursor-pointer"
+                                    {publishedSeries.map((seriesItem) => {
+                                        const isPyqSeries = seriesItem.series_type === 'PYQ';
+                                        return (
+                                            <li key={seriesItem.id} className="flex">
+                                                <article className="flex flex-col w-full bg-white dark:bg-slate-800 rounded-2xl overflow-hidden shadow-xs hover:shadow-md border border-slate-200/70 dark:border-slate-700/70 transition-shadow">
+                                                    <div className="aspect-video w-full relative overflow-hidden bg-slate-100 dark:bg-slate-900">
+                                                        <BrandedThumbnail
+                                                            title={seriesItem.name}
+                                                            type="series"
+                                                            imageUrl={seriesItem.thumbnail_url}
+                                                            className="w-full h-full"
+                                                        />
+                                                        <span
+                                                            className={`absolute top-3 right-3 text-[10px] font-black px-2.5 py-1 rounded-md uppercase tracking-wide shadow-sm ${
+                                                                seriesItem.is_premium
+                                                                    ? 'bg-amber-400 text-amber-950'
+                                                                    : 'bg-emerald-500 text-white'
+                                                            }`}
                                                         >
-                                                            View Series
-                                                            <span className="sr-only"> {seriesItem.name}</span>
-                                                        </button>
-                                                    </footer>
-                                                </div>
-                                            </article>
-                                        </li>
-                                    ))}
+                                                            {seriesItem.is_premium ? 'PRO' : 'FREE'}
+                                                        </span>
+                                                    </div>
+
+                                                    <div className="p-4 sm:p-5 flex-1 flex flex-col gap-3">
+                                                        <header>
+                                                            <div className="flex flex-wrap items-center gap-1.5 mb-1">
+                                                                <span
+                                                                    className={`text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-md ${
+                                                                        isPyqSeries
+                                                                            ? 'bg-teal-50 dark:bg-teal-950/60 text-teal-700 dark:text-teal-300 border border-teal-200/80 dark:border-teal-800/60'
+                                                                            : 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200/80 dark:border-indigo-800/60'
+                                                                    }`}
+                                                                >
+                                                                    {isPyqSeries ? 'PYQ Paper' : 'Expert Mock'}
+                                                                </span>
+                                                                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                                                                    {seriesItem.category_name}
+                                                                </span>
+                                                            </div>
+                                                            <h3 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white leading-snug">
+                                                                {seriesItem.name}
+                                                            </h3>
+                                                        </header>
+
+                                                        {seriesItem.description && (
+                                                            <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 line-clamp-2 [text-wrap:pretty]">
+                                                                {seriesItem.description}
+                                                            </p>
+                                                        )}
+
+                                                        <footer className="mt-auto pt-3 border-t border-slate-100 dark:border-slate-700/60 flex items-center justify-between gap-3">
+                                                            <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
+                                                                {seriesItem.test_count}{' '}
+                                                                {seriesItem.test_count === 1 ? 'Test' : 'Tests'}
+                                                            </span>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    triggerHaptic('light');
+                                                                    navigate(ROUTES.TEST_SERIES.SERIES(seriesItem.id), {
+                                                                        state: { returnTo: location.pathname },
+                                                                    });
+                                                                }}
+                                                                className="min-h-[44px] min-w-[44px] scroll-mb-28 px-4 py-2 rounded-xl bg-slate-900 hover:bg-indigo-600 dark:bg-indigo-600 dark:hover:bg-indigo-500 text-white text-xs font-bold transition-all active:scale-95 touch-manipulation cursor-pointer"
+                                                            >
+                                                                View Series
+                                                                <span className="sr-only"> {seriesItem.name}</span>
+                                                            </button>
+                                                        </footer>
+                                                    </div>
+                                                </article>
+                                            </li>
+                                        );
+                                    })}
                                 </ul>
                             </section>
                         )}
@@ -597,10 +618,13 @@ export const ExamPreparedMockTestsPage: React.FC = () => {
                         {/* Prepared Mock Tests */}
                         <section className="space-y-4">
                             <div className="flex flex-wrap items-center justify-between gap-2">
-                                <h2 className="text-lg sm:text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight [text-wrap:balance]">
+                                <h2 className="text-lg sm:text-xl font-extrabold text-slate-900 dark:text-white tracking-tight [text-wrap:balance]">
                                     Prepared {resolvedExam.shortCode} Mock Tests
                                 </h2>
-                                <span role="status" className="text-xs sm:text-sm font-bold text-slate-500 dark:text-slate-400">
+                                <span
+                                    role="status"
+                                    className="text-xs sm:text-sm font-bold text-slate-500 dark:text-slate-400"
+                                >
                                     Showing {filteredTests.length} of {scheduleValidTests.length}
                                 </span>
                             </div>
@@ -609,7 +633,7 @@ export const ExamPreparedMockTestsPage: React.FC = () => {
                                 <div className="space-y-4">
                                     <EmptyState
                                         title={`No ${resolvedExam.displayName} Mock Tests Published Yet`}
-                                        description={`Admin-prepared ${resolvedExam.displayName} mock tests will appear here automatically as soon as they are published and within their schedule window.`}
+                                        description={`Published ${resolvedExam.displayName} mock tests will appear here automatically within their schedule window.`}
                                         icon={<BookOpen className="w-8 h-8" aria-hidden="true" />}
                                         actionLabel={`Practice ${resolvedExam.shortCode} PYQs Now`}
                                         onAction={() => {
@@ -644,9 +668,10 @@ export const ExamPreparedMockTestsPage: React.FC = () => {
                                     onAction={handleResetFilters}
                                 />
                             ) : (
-                                <ul className="flex flex-col gap-4">
+                                <ul className="flex flex-col gap-3.5">
                                     {filteredTests.map((test, index) => {
                                         const isOffscreenOptimized = index >= 6;
+                                        const isPyqTest = test.test_type === 'PYQ';
                                         return (
                                             <li
                                                 key={test.id}
@@ -656,11 +681,20 @@ export const ExamPreparedMockTestsPage: React.FC = () => {
                                                         : undefined
                                                 }
                                             >
-                                                <article className="bg-white dark:bg-slate-800 rounded-[24px] p-4 sm:p-6 shadow-xs hover:shadow-md border border-slate-200/80 dark:border-slate-700/70 transition-all flex flex-col md:flex-row md:items-center justify-between gap-4 sm:gap-6">
-                                                    <div className="space-y-3 flex-1 min-w-0">
+                                                <article className="bg-white dark:bg-slate-800 rounded-2xl p-4 sm:p-5 shadow-xs hover:shadow-md border border-slate-200/80 dark:border-slate-700/70 transition-all flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                                    <div className="space-y-2.5 flex-1 min-w-0">
                                                         <header className="space-y-1.5">
                                                             <div className="flex flex-wrap items-center gap-2">
-                                                                <span className="px-2.5 py-0.5 rounded-md text-[11px] font-bold bg-indigo-50 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300">
+                                                                <span
+                                                                    className={`px-2.5 py-0.5 rounded-md text-[11px] font-bold ${
+                                                                        isPyqTest
+                                                                            ? 'bg-teal-50 dark:bg-teal-950/60 text-teal-700 dark:text-teal-300 border border-teal-200/80 dark:border-teal-800/60'
+                                                                            : 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200/80 dark:border-indigo-800/60'
+                                                                    }`}
+                                                                >
+                                                                    {isPyqTest ? 'PYQ Paper' : 'Expert Mock'}
+                                                                </span>
+                                                                <span className="px-2.5 py-0.5 rounded-md text-[11px] font-bold bg-slate-100 dark:bg-slate-700/80 text-slate-700 dark:text-slate-200">
                                                                     {test.series_name}
                                                                 </span>
                                                                 <span
@@ -685,7 +719,7 @@ export const ExamPreparedMockTestsPage: React.FC = () => {
                                                                 )}
                                                             </div>
 
-                                                            <h3 className="text-base sm:text-xl font-extrabold text-slate-900 dark:text-white leading-snug">
+                                                            <h3 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white leading-snug">
                                                                 {test.name}
                                                             </h3>
                                                         </header>
@@ -696,23 +730,23 @@ export const ExamPreparedMockTestsPage: React.FC = () => {
                                                             </p>
                                                         )}
 
-                                                        <dl className="flex flex-wrap items-center gap-2.5 sm:gap-3 text-xs font-bold text-slate-600 dark:text-slate-300">
-                                                            <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-700/60 px-2.5 py-1.5 rounded-lg">
+                                                        <dl className="flex flex-wrap items-center gap-2 text-xs font-bold text-slate-600 dark:text-slate-300">
+                                                            <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-700/60 px-2.5 py-1 rounded-lg">
                                                                 <Clock className="w-3.5 h-3.5 text-slate-400" aria-hidden="true" />
                                                                 <dt className="sr-only">Duration</dt>
                                                                 <dd>{test.duration_minutes} mins</dd>
                                                             </div>
-                                                            <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-700/60 px-2.5 py-1.5 rounded-lg">
+                                                            <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-700/60 px-2.5 py-1 rounded-lg">
                                                                 <CheckSquare className="w-3.5 h-3.5 text-slate-400" aria-hidden="true" />
                                                                 <dt className="sr-only">Questions</dt>
                                                                 <dd>{test.question_count} Qs</dd>
                                                             </div>
-                                                            <div className="flex items-center gap-1.5 bg-amber-50 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300 px-2.5 py-1.5 rounded-lg">
+                                                            <div className="flex items-center gap-1.5 bg-amber-50 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300 px-2.5 py-1 rounded-lg">
                                                                 <Award className="w-3.5 h-3.5" aria-hidden="true" />
                                                                 <dt className="sr-only">Total Marks</dt>
                                                                 <dd>{test.total_marks} Marks</dd>
                                                             </div>
-                                                            <div className="flex items-center gap-1.5 bg-rose-50 dark:bg-rose-900/30 text-rose-700 dark:text-rose-300 px-2.5 py-1.5 rounded-lg">
+                                                            <div className="flex items-center gap-1.5 bg-rose-50 dark:bg-rose-900/30 text-rose-700 dark:text-rose-300 px-2.5 py-1 rounded-lg">
                                                                 <AlertTriangle className="w-3.5 h-3.5" aria-hidden="true" />
                                                                 <dt className="sr-only">Negative Marking</dt>
                                                                 <dd>
@@ -733,11 +767,13 @@ export const ExamPreparedMockTestsPage: React.FC = () => {
                                                                     state: { returnTo: location.pathname },
                                                                 });
                                                             }}
-                                                            className="w-full md:w-auto min-h-[44px] min-w-[44px] scroll-mb-28 px-5 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm inline-flex items-center justify-center gap-2 shadow-sm hover:shadow transition-all active:scale-95 touch-manipulation cursor-pointer"
+                                                            className="w-full md:w-auto min-h-[44px] min-w-[44px] scroll-mb-28 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm inline-flex items-center justify-center gap-2 shadow-sm hover:shadow transition-all active:scale-95 touch-manipulation cursor-pointer"
                                                         >
                                                             <PlayCircle className="w-4 h-4 shrink-0" aria-hidden="true" />
                                                             <span>
-                                                                {test.is_attempted ? 'View & Re-attempt' : 'View & Start Test'}
+                                                                {test.is_attempted
+                                                                    ? 'View & Re-attempt'
+                                                                    : 'View & Start Test'}
                                                                 <span className="sr-only"> {test.name}</span>
                                                             </span>
                                                         </button>

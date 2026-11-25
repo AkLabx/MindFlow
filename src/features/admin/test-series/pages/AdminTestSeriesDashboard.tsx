@@ -16,6 +16,7 @@ import { QuestionPreviewDrawer } from '../../question-builder/components/Questio
 
 type DashboardTab = 'categories' | 'series' | 'tests';
 type StatusFilter = 'all' | 'published' | 'draft';
+type SeriesTypeFilter = 'all' | 'MOCK' | 'PYQ';
 
 const parseTabParam = (value: string | null): DashboardTab => {
     if (value === 'series' || value === 'tests') return value;
@@ -24,6 +25,11 @@ const parseTabParam = (value: string | null): DashboardTab => {
 
 const parseStatusParam = (value: string | null): StatusFilter => {
     if (value === 'published' || value === 'draft') return value;
+    return 'all';
+};
+
+const parseSeriesTypeParam = (value: string | null): SeriesTypeFilter => {
+    if (value === 'MOCK' || value === 'PYQ') return value;
     return 'all';
 };
 
@@ -36,6 +42,7 @@ export const AdminTestSeriesDashboard: React.FC = () => {
     const selectedCategoryId = searchParams.get('category') || '';
     const selectedSeriesId = searchParams.get('series') || '';
     const statusFilter = parseStatusParam(searchParams.get('status'));
+    const seriesTypeFilter = parseSeriesTypeParam(searchParams.get('type'));
 
     const [searchQuery, setSearchQuery] = useState('');
 
@@ -166,6 +173,9 @@ export const AdminTestSeriesDashboard: React.FC = () => {
             if (tab === 'categories') {
                 next.delete('category');
             }
+            if (tab !== 'series') {
+                next.delete('type');
+            }
             if (tab !== 'tests') {
                 next.delete('series');
                 next.delete('status');
@@ -209,6 +219,15 @@ export const AdminTestSeriesDashboard: React.FC = () => {
         }, { replace: true });
     }, [setSearchParams]);
 
+    const handleSeriesTypeFilterChange = useCallback((nextType: SeriesTypeFilter) => {
+        setSearchParams(prev => {
+            const next = new URLSearchParams(prev);
+            if (nextType === 'all') next.delete('type');
+            else next.set('type', nextType);
+            return next;
+        }, { replace: true });
+    }, [setSearchParams]);
+
     const handleResetFilters = useCallback(() => {
         setSearchQuery('');
         setSearchParams(prev => {
@@ -216,6 +235,7 @@ export const AdminTestSeriesDashboard: React.FC = () => {
             next.delete('category');
             next.delete('series');
             next.delete('status');
+            next.delete('type');
             return next;
         }, { replace: true });
     }, [setSearchParams]);
@@ -233,10 +253,12 @@ export const AdminTestSeriesDashboard: React.FC = () => {
     const filteredSeries = useMemo(() => {
         return (series || []).filter(s => {
             if (selectedCategoryId && s?.category_id !== selectedCategoryId) return false;
+            if (seriesTypeFilter === 'PYQ' && s?.series_type !== 'PYQ') return false;
+            if (seriesTypeFilter === 'MOCK' && s?.series_type === 'PYQ') return false;
             if (normalizedSearch && !(s?.name || '').toLowerCase().includes(normalizedSearch)) return false;
             return true;
         });
-    }, [series, selectedCategoryId, normalizedSearch]);
+    }, [series, selectedCategoryId, seriesTypeFilter, normalizedSearch]);
 
     const filteredTests = useMemo(() => {
         return (tests || []).filter(t => {
@@ -254,12 +276,12 @@ export const AdminTestSeriesDashboard: React.FC = () => {
 
     const hasActiveFilters = useMemo(() => {
         if (normalizedSearch) return true;
-        if (activeTab === 'series') return Boolean(selectedCategoryId);
+        if (activeTab === 'series') return Boolean(selectedCategoryId || seriesTypeFilter !== 'all');
         if (activeTab === 'tests') {
             return Boolean(selectedCategoryId || selectedSeriesId || statusFilter !== 'all');
         }
         return false;
-    }, [activeTab, normalizedSearch, selectedCategoryId, selectedSeriesId, statusFilter]);
+    }, [activeTab, normalizedSearch, selectedCategoryId, selectedSeriesId, statusFilter, seriesTypeFilter]);
 
     const resultSummary = useMemo(() => {
         if (activeTab === 'categories') {
@@ -674,6 +696,44 @@ export const AdminTestSeriesDashboard: React.FC = () => {
                             </div>
                         )}
 
+                        {activeTab === 'series' && (
+                            <div className="flex flex-col gap-1">
+                                <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">
+                                    Series Type
+                                </span>
+                                <div
+                                    role="group"
+                                    aria-label="Filter series by type"
+                                    className="inline-flex items-center gap-1 bg-slate-100 dark:bg-slate-900/70 p-1 rounded-xl border border-slate-200 dark:border-slate-700"
+                                >
+                                    {([
+                                        { value: 'all', label: 'All Types' },
+                                        { value: 'MOCK', label: 'Expert Mock' },
+                                        { value: 'PYQ', label: 'PYQ' },
+                                    ] as const).map(opt => {
+                                        const isPressed = seriesTypeFilter === opt.value;
+                                        return (
+                                            <button
+                                                key={opt.value}
+                                                type="button"
+                                                aria-pressed={isPressed}
+                                                onClick={() => handleSeriesTypeFilterChange(opt.value)}
+                                                className={`min-h-[44px] min-w-[44px] px-3 py-1.5 rounded-lg text-xs font-semibold transition-all active:scale-95 touch-manipulation scroll-mb-28 ${
+                                                    isPressed
+                                                        ? opt.value === 'PYQ'
+                                                            ? 'bg-white dark:bg-slate-800 text-teal-700 dark:text-teal-300 shadow-sm'
+                                                            : 'bg-white dark:bg-slate-800 text-indigo-700 dark:text-indigo-300 shadow-sm'
+                                                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                                                }`}
+                                            >
+                                                {opt.label}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
+
                         {activeTab === 'tests' && (
                             <div className="flex flex-col gap-1 min-w-[180px]">
                                 <label
@@ -803,13 +863,23 @@ export const AdminTestSeriesDashboard: React.FC = () => {
                     filteredSeries.length > 0 ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                             {filteredSeries.map(s => (
-                                <SeriesCard
-                                    key={s.id}
-                                    series={s}
-                                    onEdit={handleEdit}
-                                    onDelete={handleDeleteClick}
-                                    testsCount={seriesTestCounts.get(s.id) ?? 0}
-                                />
+                                <div key={s.id} className="relative flex flex-col">
+                                    <SeriesCard
+                                        series={s}
+                                        onEdit={handleEdit}
+                                        onDelete={handleDeleteClick}
+                                        testsCount={seriesTestCounts.get(s.id) ?? 0}
+                                    />
+                                    <span
+                                        className={`pointer-events-none absolute bottom-8 left-6 inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold tracking-wide border ${
+                                            s?.series_type === 'PYQ'
+                                                ? 'bg-teal-50 text-teal-700 border-teal-200 dark:bg-teal-900/30 dark:text-teal-300 dark:border-teal-800'
+                                                : 'bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-300 dark:border-indigo-800'
+                                        }`}
+                                    >
+                                        {s?.series_type === 'PYQ' ? 'PYQ Paper' : 'Expert Mock'}
+                                    </span>
+                                </div>
                             ))}
                         </div>
                     ) : (

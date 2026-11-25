@@ -44,6 +44,11 @@ import { ScrollableCapsules } from './ui/ScrollableCapsules';
 import { ExamBlueprintsHubPage } from '@/pages/ExamBlueprintsHubPage';
 import { KeyboardAwareBottomBar } from '@/components/ui/KeyboardAwareBottomBar';
 import { InfoHintPopover } from '@/components/ui/InfoHintPopover';
+import {
+  EXAM_DISPLAY_LABELS,
+  getExamDisplayLabel,
+  groupExamNamesByDomain,
+} from '../constants/examDomains';
 
 // Optimization Hooks
 import { quizCreationService, MAX_QUIZ_QUESTIONS, DEFAULT_DRILL_QUESTION_COUNT } from '../services/quizCreationService';
@@ -155,7 +160,7 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
       if (match) return match;
       return {
         id: 'custom_exam',
-        displayName: filters.examName.join(', '),
+        displayName: filters.examName.map(getExamDisplayLabel).join(', '),
         shortCode: 'Exam',
         subtitle: 'Filtered by Selected Exam',
       } as any;
@@ -234,10 +239,7 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
   // 4. Derived Lists for Dropdown Options
   const allSubjects = useMemo(() => Array.from(classificationMap.keys()).filter(Boolean).sort(), [classificationMap]);
   const allExamNames = useMemo(() => Array.from(new Set(metadata.map(q => q.examName ?? q.sourceInfo?.examName))).filter(Boolean).sort(), [metadata]);
-  const examNamesAI = useMemo(() => allExamNames.filter(name => /^[a-iA-I]/.test(name)), [allExamNames]);
-  const examNamesJR = useMemo(() => allExamNames.filter(name => /^[j-rJ-R]/.test(name)), [allExamNames]);
-  const examNamesSZ = useMemo(() => allExamNames.filter(name => /^[s-zS-Z]/.test(name)), [allExamNames]);
-  const examNamesOther = useMemo(() => allExamNames.filter(name => !/^[a-zA-Z]/.test(name)), [allExamNames]);
+  const examDomainGroups = useMemo(() => groupExamNamesByDomain(allExamNames), [allExamNames]);
   const scopedMetadataForSource = useMemo(() => {
     let result = metadata;
     if (filters.examName && filters.examName.length > 0) {
@@ -555,7 +557,7 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
                     triggerHaptic('light');
                     handleClearExamContext();
                   }}
-                  className="min-h-[36px] text-xs font-semibold px-3 py-1.5 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 active:scale-95 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition-all cursor-pointer touch-manipulation"
+                  className="min-h-[44px] min-w-[44px] text-xs font-semibold px-3.5 py-2 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 active:scale-95 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition-all cursor-pointer touch-manipulation"
                 >
                   Clear Exam
                 </button>
@@ -580,7 +582,7 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
                         triggerHaptic('light');
                         handleToggleCombinedExam(pinnedExam);
                       }}
-                      className={`inline-flex items-center gap-1 min-h-[32px] px-2.5 py-1 rounded-lg text-xs font-bold transition-all active:scale-95 cursor-pointer touch-manipulation ${
+                      className={`inline-flex items-center justify-center gap-1 min-h-[44px] min-w-[44px] px-3 py-2 rounded-lg text-xs font-bold transition-all active:scale-95 cursor-pointer touch-manipulation ${
                         isIncluded
                           ? 'bg-indigo-600 text-white shadow-xs'
                           : 'bg-white/80 dark:bg-slate-800 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 hover:bg-indigo-50 dark:hover:bg-indigo-950/50'
@@ -765,74 +767,25 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
                   {/* Deduplicate controls: Hide raw exam selector capsules when active exam context is set */}
                   {!activeExamInfo && (
                     <>
-                  {examNamesAI.length > 0 && (
-                    <ScrollableCapsules
-                      label="Exam Name [A-I]"
-                      tooltip="Filter questions by Exam Name starting with A to I"
-                      options={examNamesAI}
-                      selectedOptions={filters.examName}
-                      onOptionToggle={(opt) => {
-                        const newSelection = filters.examName.includes(opt)
-                          ? filters.examName.filter(item => item !== opt)
-                          : [...filters.examName, opt];
-                        handleFilterChange('examName', newSelection);
-                      }}
-                      counts={filterCounts.examName || {}}
-                      hideZeroCount
-                      maxRows={3}
-                    />
-                  )}
-                  {examNamesJR.length > 0 && (
-                    <ScrollableCapsules
-                      label="Exam Name [J-R]"
-                      tooltip="Filter questions by Exam Name starting with J to R"
-                      options={examNamesJR}
-                      selectedOptions={filters.examName}
-                      onOptionToggle={(opt) => {
-                        const newSelection = filters.examName.includes(opt)
-                          ? filters.examName.filter(item => item !== opt)
-                          : [...filters.examName, opt];
-                        handleFilterChange('examName', newSelection);
-                      }}
-                      counts={filterCounts.examName || {}}
-                      hideZeroCount
-                      maxRows={3}
-                    />
-                  )}
-                  {examNamesSZ.length > 0 && (
-                    <ScrollableCapsules
-                      label="Exam Name [S-Z]"
-                      tooltip="Filter questions by Exam Name starting with S to Z"
-                      options={examNamesSZ}
-                      selectedOptions={filters.examName}
-                      onOptionToggle={(opt) => {
-                        const newSelection = filters.examName.includes(opt)
-                          ? filters.examName.filter(item => item !== opt)
-                          : [...filters.examName, opt];
-                        handleFilterChange('examName', newSelection);
-                      }}
-                      counts={filterCounts.examName || {}}
-                      hideZeroCount
-                      maxRows={3}
-                    />
-                  )}
-                  {examNamesOther.length > 0 && (
-                    <ScrollableCapsules
-                      label="Exam Name [Other]"
-                      tooltip="Filter questions by Exam Name"
-                      options={examNamesOther}
-                      selectedOptions={filters.examName}
-                      onOptionToggle={(opt) => {
-                        const newSelection = filters.examName.includes(opt)
-                          ? filters.examName.filter(item => item !== opt)
-                          : [...filters.examName, opt];
-                        handleFilterChange('examName', newSelection);
-                      }}
-                      counts={filterCounts.examName || {}}
-                      hideZeroCount
-                      maxRows={3}
-                    />
-                  )}
+                      {examDomainGroups.map((group) => (
+                        <ScrollableCapsules
+                          key={group.id}
+                          label={group.label}
+                          tooltip={group.tooltip}
+                          options={group.exams}
+                          optionLabels={EXAM_DISPLAY_LABELS}
+                          selectedOptions={filters.examName}
+                          onOptionToggle={(opt) => {
+                            const newSelection = filters.examName.includes(opt)
+                              ? filters.examName.filter((item) => item !== opt)
+                              : [...filters.examName, opt];
+                            handleFilterChange('examName', newSelection);
+                          }}
+                          counts={filterCounts.examName || {}}
+                          hideZeroCount
+                          maxRows={2}
+                        />
+                      ))}
                     </>
                   )}
 
@@ -939,7 +892,7 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
                 value={quizName}
                 onChange={(e) => setQuizName(e.target.value)}
                 placeholder="Quiz Name (Optional)"
-                className="w-full min-h-[42px] px-3.5 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                className="w-full min-h-[44px] px-3.5 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
               />
             </div>
 

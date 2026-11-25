@@ -33,6 +33,7 @@ export interface QuestionRecord {
   } | string;
   question_image_url?: string;
   explanation_image_url?: string;
+  question_source?: 'PYQ' | 'EXPERT';
   status?: string;
   deleted_at?: string | null;
 }
@@ -41,6 +42,7 @@ export interface FetchQuestionsParams {
   search?: string;
   subject?: string;
   difficulty?: string;
+  sourceFilter?: 'all' | 'PYQ' | 'EXPERT';
   examYear?: number;
   page?: number;
   pageSize?: number;
@@ -59,6 +61,9 @@ const DEFAULT_FALLBACK_SUBJECTS = [
 
 const CHUNK_SIZE = 100;
 
+const QUESTION_SELECT_COLUMNS =
+  'id, created_at, updated_at, v1_id, subject, topic, subTopic, examName, examYear, examDateShift, difficulty, questionType, question, question_hi, options, options_hi, correct, tags, explanation, question_image_url, explanation_image_url, question_source, status, deleted_at';
+
 /**
  * Fetch paginated questions with flexible filtering
  */
@@ -66,6 +71,7 @@ export const fetchQuestions = async ({
   search = '',
   subject = 'all',
   difficulty = 'all',
+  sourceFilter = 'all',
   page = 1,
   pageSize = 25,
   sortBy = 'created_at',
@@ -73,7 +79,7 @@ export const fetchQuestions = async ({
 }: FetchQuestionsParams) => {
   let query = supabase
     .from(DB_TABLES.BANK.QUESTIONS)
-    .select('*', { count: 'exact' })
+    .select(QUESTION_SELECT_COLUMNS, { count: 'exact' })
     .is('deleted_at', null);
 
   if (subject !== 'all') {
@@ -82,6 +88,10 @@ export const fetchQuestions = async ({
 
   if (difficulty !== 'all') {
     query = query.eq('difficulty', difficulty);
+  }
+
+  if (sourceFilter === 'PYQ' || sourceFilter === 'EXPERT') {
+    query = query.eq('question_source', sourceFilter);
   }
 
   if (search.trim()) {
@@ -115,7 +125,7 @@ export const fetchQuestions = async ({
 export const fetchQuestionById = async (id: string): Promise<QuestionRecord | null> => {
   const { data, error } = await supabase
     .from(DB_TABLES.BANK.QUESTIONS)
-    .select('*')
+    .select(QUESTION_SELECT_COLUMNS)
     .eq('id', id)
     .maybeSingle();
 

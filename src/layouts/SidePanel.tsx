@@ -5,7 +5,7 @@ import { getCanonicalAvatarUrl } from '../utils/avatar';
 import { getUserDisplayName } from '../utils/user';
 import {
     X, User, LogIn, Home, LayoutDashboard, Languages,
-    Wrench, Download, Info, GraduationCap, FileText, Shield, LogOut
+    Wrench, Download, Info, GraduationCap, Users, LogOut
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../features/auth/context/AuthContext';
@@ -45,7 +45,8 @@ export const SidePanel: React.FC<SidePanelProps> = ({ isOpen, onClose, onTabChan
         { icon: Wrench, label: 'Tools', path: '/tools', tab: 'home', colorClasses: 'text-amber-600 dark:text-amber-400', bgClasses: 'bg-amber-50 dark:bg-amber-900/20 group-hover:bg-amber-100 dark:group-hover:bg-amber-900/40' },
         { icon: Download, label: 'Download', path: 'DOWNLOAD_LINK', colorClasses: 'text-cyan-600 dark:text-cyan-400', bgClasses: 'bg-cyan-50 dark:bg-cyan-900/20 group-hover:bg-cyan-100 dark:group-hover:bg-cyan-900/40' },
         { icon: Info, label: 'About Us', path: '/about', tab: 'home', colorClasses: 'text-slate-600 dark:text-slate-400', bgClasses: 'bg-slate-50 dark:bg-slate-900/20 group-hover:bg-slate-100 dark:group-hover:bg-slate-900/40' },
-        { icon: GraduationCap, label: 'School Mode', path: '/school', tab: 'school', colorClasses: 'text-teal-600 dark:text-teal-400', bgClasses: 'bg-teal-50 dark:bg-teal-900/20 group-hover:bg-teal-100 dark:group-hover:bg-teal-900/40' }
+        { icon: GraduationCap, label: 'School Mode', path: '/school', tab: 'school', colorClasses: 'text-teal-600 dark:text-teal-400', bgClasses: 'bg-teal-50 dark:bg-teal-900/20 group-hover:bg-teal-100 dark:group-hover:bg-teal-900/40' },
+        { icon: Users, label: 'Community & Social', path: '/community', tab: 'community', colorClasses: 'text-violet-600 dark:text-violet-400', bgClasses: 'bg-violet-50 dark:bg-violet-900/20 group-hover:bg-violet-100 dark:group-hover:bg-violet-900/40' }
     ];
 
     return (
@@ -91,8 +92,9 @@ export const SidePanel: React.FC<SidePanelProps> = ({ isOpen, onClose, onTabChan
                                                     {user.email}
                                                 </p>
                                                 <button
+                                                    type="button"
                                                     onClick={() => handleNavigation('/profile', 'profile')}
-                                                    className="mt-1 text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors"
+                                                    className="mt-1 min-h-[44px] inline-flex items-center text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors"
                                                 >
                                                     View Profile
                                                 </button>
@@ -107,8 +109,9 @@ export const SidePanel: React.FC<SidePanelProps> = ({ isOpen, onClose, onTabChan
                                                 <h3 className="text-lg font-bold text-gray-900 dark:text-white">Guest User</h3>
                                                 <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">Sign in to sync your progress</p>
                                                 <button
+                                                    type="button"
                                                     onClick={() => handleNavigation('/', 'home')}
-                                                    className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-700 hover:to-indigo-600 text-white rounded-xl font-bold shadow-md shadow-indigo-500/20 transition-all active:scale-95"
+                                                    className="min-h-[44px] flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-700 hover:to-indigo-600 text-white rounded-xl font-bold shadow-md shadow-indigo-500/20 transition-all active:scale-95"
                                                 >
                                                     <LogIn className="w-4 h-4" />
                                                     Sign In / Up
@@ -130,9 +133,10 @@ export const SidePanel: React.FC<SidePanelProps> = ({ isOpen, onClose, onTabChan
                             <div className="flex-1 overflow-y-auto py-4 px-3 space-y-3 custom-scrollbar">
                                 {menuItems.map((item, idx) => (
                                     <button
+                                        type="button"
                                         key={idx}
                                         onClick={() => handleNavigation(item.path, item.tab)}
-                                        className="w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors text-left group border border-gray-900 dark:border-white shadow-sm"
+                                        className="w-full min-h-[44px] flex items-center gap-4 px-4 py-3.5 rounded-2xl hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors text-left group border border-gray-900 dark:border-white shadow-sm"
                                     >
                                         <div className={`p-2 rounded-xl transition-all ${item.bgClasses}`}>
                                             <item.icon className={`w-5 h-5 transition-colors ${item.colorClasses}`} />
@@ -148,11 +152,12 @@ export const SidePanel: React.FC<SidePanelProps> = ({ isOpen, onClose, onTabChan
                             {user && (
                                 <div className="px-6 py-2 border-t border-gray-100 dark:border-gray-800 mt-auto">
                                     <button
+                                        type="button"
                                         onClick={async () => {
                                             await signOut();
                                             onClose();
                                         }}
-                                        className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors font-semibold group"
+                                        className="w-full min-h-[44px] flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors font-semibold group"
                                     >
                                         <LogOut className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
                                         <span>Sign Out</span>
@@ -187,15 +192,17 @@ export const SidePanel: React.FC<SidePanelProps> = ({ isOpen, onClose, onTabChan
                                 </div>
                                 <div className="flex items-center gap-4 text-xs font-semibold">
                                     <button
+                                        type="button"
                                         onClick={() => handleNavigation('/privacy-policy')}
-                                        className="text-gray-500 hover:text-indigo-600 dark:text-gray-400 dark:hover:text-indigo-400 transition-colors"
+                                        className="min-h-[44px] inline-flex items-center text-gray-500 hover:text-indigo-600 dark:text-gray-400 dark:hover:text-indigo-400 transition-colors"
                                     >
                                         Privacy Policy
                                     </button>
                                     <span className="text-gray-300 dark:text-gray-600">•</span>
                                     <button
+                                        type="button"
                                         onClick={() => handleNavigation('/about/terms-of-use')}
-                                        className="text-gray-500 hover:text-indigo-600 dark:text-gray-400 dark:hover:text-indigo-400 transition-colors"
+                                        className="min-h-[44px] inline-flex items-center text-gray-500 hover:text-indigo-600 dark:text-gray-400 dark:hover:text-indigo-400 transition-colors"
                                     >
                                         Terms of Use
                                     </button>

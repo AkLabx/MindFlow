@@ -5,7 +5,7 @@ import { PresenceAvatar } from '../components/ui/PresenceAvatar';
 import { getCanonicalAvatarUrl } from '../utils/avatar';
 import { useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { BrainCircuit, Home, LayoutDashboard, GraduationCap, PlusCircle, User, Settings, LogIn, Sun, Moon, Brain, Menu, Search, Play, MessageSquare, ArrowLeft, Users } from 'lucide-react';
+import { BrainCircuit, LayoutDashboard, ClipboardCheck, ShoppingBag, User, Settings, Brain, Menu, Search, Play, MessageSquare, ArrowLeft } from 'lucide-react';
 import { cn } from '../utils/cn';
 import { useAuth } from '../features/auth/context/AuthContext';
 import { useQuizContext } from '../features/quiz/context/QuizContext';
@@ -21,7 +21,7 @@ import { triggerHaptic } from '@/lib/haptics';
 /**
  * Unique identifiers for the main navigation tabs.
  */
-export type TabID = 'home' | 'school' | 'create' | 'profile' | 'ai' | 'community' | 'messages' | 'search' | 'reels';
+export type TabID = 'home' | 'mock-tests' | 'purchased' | 'school' | 'create' | 'profile' | 'ai' | 'community' | 'messages' | 'search' | 'reels';
 
 /**
  * Props for the MainLayout component.
@@ -79,7 +79,14 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
     '/vocab/ows/config',
     '/mistake-notebook',
     '/quiz/mistakes'
-  ].includes(location.pathname) || location.pathname.startsWith('/about') || location.pathname.startsWith('/result') || location.pathname.includes('/result/') || location.pathname.startsWith('/tools/answer-key-calculator');
+  ].includes(location.pathname) ||
+    location.pathname.startsWith('/about') ||
+    location.pathname.startsWith('/result') ||
+    location.pathname.includes('/result/') ||
+    location.pathname.startsWith('/tools/answer-key-calculator') ||
+    location.pathname.startsWith('/mcqs/test-series') ||
+    location.pathname.startsWith('/quiz/library') ||
+    location.pathname.startsWith('/purchased');
 
   // Auto toggle based on pathname if user lands directly on a social route
   useEffect(() => {
@@ -96,7 +103,8 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
   const [indicatorStyle, setIndicatorStyle] = useState({ left: 0, width: 0, height: 48, top: 8, borderRadius: 16, opacity: 0 });
   const navRef = useRef<HTMLDivElement>(null);
   const homeRef = useRef<HTMLButtonElement>(null);
-  const schoolRef = useRef<HTMLButtonElement>(null);
+  const mockTestsRef = useRef<HTMLButtonElement>(null);
+  const purchasedRef = useRef<HTMLButtonElement>(null);
   const profileRef = useRef<HTMLButtonElement>(null);
   const aiRef = useRef<HTMLButtonElement>(null);
   const communityRef = useRef<HTMLButtonElement>(null);
@@ -109,7 +117,8 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
       let activeRef = null;
       let isAi = false;
       if (activeTab === 'home') activeRef = homeRef;
-      else if (activeTab === 'school') activeRef = schoolRef;
+      else if (activeTab === 'mock-tests') activeRef = mockTestsRef;
+      else if (activeTab === 'purchased') activeRef = purchasedRef;
       else if (activeTab === 'profile') activeRef = profileRef;
       else if (activeTab === 'community') activeRef = communityRef;
       else if (activeTab === 'search') activeRef = searchRef;
@@ -402,21 +411,22 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
               />
               
               <NavTab 
-                id="school"
-                label="School"
-                icon={<GraduationCap className="w-6 h-6" />}
-                isActive={activeTab === 'school'}
-                onClick={() => onTabChange('school')}
-                buttonRef={schoolRef}
+                id="mock-tests"
+                label="Mock Tests"
+                icon={<ClipboardCheck className="w-6 h-6" />}
+                isActive={activeTab === 'mock-tests'}
+                onClick={() => onTabChange('mock-tests')}
+                buttonRef={mockTestsRef}
               />
               
               <button 
+                type="button"
                 ref={aiRef}
                 onClick={() => {
                   triggerHaptic('light');
                   onTabChange('ai');
                 }}
-                role="tab" aria-label="AI Assistant" className="relative -top-5 group z-30 select-none active:scale-95 transition-transform"
+                role="tab" aria-selected={activeTab === 'ai'} aria-label="AI Assistant" className="relative -top-5 min-w-[44px] min-h-[44px] group z-30 select-none active:scale-95 touch-manipulation transition-transform"
               >
                 <div className={cn(
                   "relative w-14 h-14 rounded-full flex items-center justify-center shadow-lg transition-all duration-300 border-4 border-white dark:border-slate-900",
@@ -439,12 +449,12 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
               </button>
 
               <NavTab
-                id="community"
-                label="Social"
-                icon={<Users className="w-6 h-6" />}
-                isActive={(activeTab as any) === 'community'}
-                onClick={() => onTabChange('community')}
-                buttonRef={communityRef}
+                id="purchased"
+                label="Purchased"
+                icon={<ShoppingBag className="w-6 h-6" />}
+                isActive={activeTab === 'purchased'}
+                onClick={() => onTabChange('purchased')}
+                buttonRef={purchasedRef}
               />
 
               {user && (
@@ -474,6 +484,7 @@ const NavTab = ({ id, label, icon, isActive, onClick, buttonRef, hideTextOnMobil
 
   return (
     <motion.button
+      type="button"
       ref={buttonRef}
       onClick={handleClick}
       whileTap={{ scale: 0.95 }}
@@ -481,7 +492,7 @@ const NavTab = ({ id, label, icon, isActive, onClick, buttonRef, hideTextOnMobil
       role="tab"
       aria-selected={isActive}
       className={cn(
-        "relative flex flex-col items-center justify-center min-w-[4.5rem] px-2 py-1 w-auto transition-all group outline-none select-none",
+        "relative flex flex-col items-center justify-center min-w-[4.5rem] min-h-[44px] px-2 py-1 w-auto transition-all group outline-none select-none touch-manipulation",
         isActive ? "" : "text-gray-400 hover:text-gray-600 dark:text-gray-300 dark:hover:text-slate-300"
       )}
     >

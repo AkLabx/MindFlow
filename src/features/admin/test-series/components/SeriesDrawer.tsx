@@ -12,20 +12,38 @@ interface SeriesDrawerProps {
 }
 
 export const SeriesDrawer: React.FC<SeriesDrawerProps> = ({ isOpen, onClose, series, categories, onSave }) => {
-    const [initialData, setInitialData] = useState({
+    const [initialData, setInitialData] = useState<{
+        category_id: string;
+        name: string;
+        slug: string;
+        description: string;
+        series_type: 'MOCK' | 'PYQ';
+        is_premium: boolean;
+        is_published: boolean;
+    }>({
         category_id: '',
         name: '',
         slug: '',
         description: '',
+        series_type: 'MOCK',
         is_premium: false,
         is_published: false
     });
 
-    const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState<{
+        category_id: string;
+        name: string;
+        slug: string;
+        description: string;
+        series_type: 'MOCK' | 'PYQ';
+        is_premium: boolean;
+        is_published: boolean;
+    }>({
         category_id: '',
         name: '',
         slug: '',
         description: '',
+        series_type: 'MOCK',
         is_premium: false,
         is_published: false
     });
@@ -34,11 +52,20 @@ export const SeriesDrawer: React.FC<SeriesDrawerProps> = ({ isOpen, onClose, ser
     const isDirty = JSON.stringify(formData) !== JSON.stringify(initialData);
 
     useEffect(() => {
-        const data = series ? {
+        const data: {
+            category_id: string;
+            name: string;
+            slug: string;
+            description: string;
+            series_type: 'MOCK' | 'PYQ';
+            is_premium: boolean;
+            is_published: boolean;
+        } = series ? {
             category_id: series.category_id || '',
             name: series.name || '',
             slug: series.slug || '',
             description: series.description || '',
+            series_type: series?.series_type === 'PYQ' ? 'PYQ' : 'MOCK',
             is_premium: series.is_premium ?? false,
             is_published: series.is_published ?? false
         } : {
@@ -46,6 +73,7 @@ export const SeriesDrawer: React.FC<SeriesDrawerProps> = ({ isOpen, onClose, ser
             name: '',
             slug: '',
             description: '',
+            series_type: 'MOCK',
             is_premium: false,
             is_published: false
         };
@@ -181,6 +209,50 @@ export const SeriesDrawer: React.FC<SeriesDrawerProps> = ({ isOpen, onClose, ser
                             className="w-full rounded-xl border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white px-4 py-2.5 focus:ring-2 focus:ring-indigo-500 outline-none"
                             placeholder="Optional description"
                         />
+                    </div>
+
+                    <div>
+                        <div className="flex items-center gap-1 mb-1.5">
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Series Type *</label>
+                            <InfoHintPopover
+                                title="Series Type (MOCK vs PYQ)"
+                                purpose="Classifies whether this series holds newly authored Expert Curated Mocks or Previous Year Papers (PYQ)."
+                                studentVisibility="Determines whether the series appears under Expert Mock Series or Previous Year Papers in the student Mock Hub."
+                                example="Choose Previous Year Paper (PYQ) for official past-year BPSC or SSC papers."
+                                align="start"
+                            />
+                        </div>
+                        <div
+                            role="group"
+                            aria-label="Series Type"
+                            className="grid grid-cols-1 sm:grid-cols-2 gap-2"
+                        >
+                            {(
+                                [
+                                    { value: 'MOCK', label: 'Expert Curated Mock' },
+                                    { value: 'PYQ', label: 'Previous Year Paper (PYQ)' },
+                                ] as const
+                            ).map(opt => {
+                                const isSelected = formData.series_type === opt.value;
+                                return (
+                                    <button
+                                        key={opt.value}
+                                        type="button"
+                                        aria-pressed={isSelected}
+                                        onClick={() => setFormData({ ...formData, series_type: opt.value })}
+                                        className={`min-h-[44px] px-3.5 py-2.5 rounded-xl border text-xs font-bold transition-all active:scale-95 touch-manipulation scroll-mb-28 text-center ${
+                                            isSelected
+                                                ? opt.value === 'PYQ'
+                                                    ? 'bg-teal-600 text-white border-teal-600 shadow-sm shadow-teal-600/20'
+                                                    : 'bg-indigo-600 text-white border-indigo-600 shadow-sm shadow-indigo-600/20'
+                                                : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'
+                                        }`}
+                                    >
+                                        {opt.label}
+                                    </button>
+                                );
+                            })}
+                        </div>
                     </div>
 
                     <div className="space-y-3">
