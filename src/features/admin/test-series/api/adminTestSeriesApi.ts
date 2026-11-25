@@ -308,6 +308,10 @@ export interface TestMutationPayload {
     negative_marks: number;
     question_ids: string[];
     is_published?: boolean;
+    is_free_demo?: boolean;
+    is_live?: boolean;
+    live_start_at?: string | null;
+    live_end_at?: string | null;
     display_order?: number;
     release_date?: string | null;
     expiry_date?: string | null;
@@ -442,7 +446,21 @@ export const fetchTestSeries = async (
     return rows;
 };
 
-export const createTestSeries = async (payload: { category_id: string; name: string; slug: string; description?: string; thumbnail_url?: string; is_premium?: boolean; is_published?: boolean }) => {
+export const createTestSeries = async (payload: {
+    category_id: string;
+    name: string;
+    slug: string;
+    description?: string;
+    thumbnail_url?: string;
+    series_type?: 'MOCK' | 'PYQ';
+    is_premium?: boolean;
+    is_published?: boolean;
+    price_inr?: number;
+    mrp_inr?: number | null;
+    validity_days?: number;
+    free_demo_count?: number;
+    course_type?: 'mock_series' | 'bundle' | 'video' | 'pdf';
+}) => {
     const { data, error } = await supabase
         .from(DB_TABLES.MOCK.SERIES)
         .insert([payload])

@@ -615,7 +615,7 @@ describe('v1.0.371 Dedicated BPSC Prepared Mock Tests & Canonical Routing', () =
         });
     });
 
-    it('renders ExamCategoriesPage with DedicatedPageHeader, SwipeableTabViewport, horizontal category rails, and PYQ vs Expert badges & filter', async () => {
+    it('renders ExamCategoriesPage with DedicatedPageHeader, SwipeableTabViewport, horizontal category rails, bottom action strip, and clean root series-only UX', async () => {
         const fixture = buildFixtureData();
         setupSupabaseTables(fixture);
 
@@ -641,39 +641,22 @@ describe('v1.0.371 Dedicated BPSC Prepared Mock Tests & Canonical Routing', () =
         expect(swipeViewport).not.toBeNull();
         expect(swipeViewport?.className).toContain('mf-swipe-track');
 
-        // Horizontal category rails with unique series cards (no duplicate DOM titles) and See All
-        const rails = document.querySelectorAll('.mf-h-rail');
-        expect(rails.length).toBe(2);
+        // Horizontal category rails with unique series cards + bottom action strip (.mf-h-rail)
+        const categoryRails = document.querySelectorAll('section[aria-label] .mf-h-rail');
+        expect(categoryRails.length).toBe(2);
+        expect(document.querySelectorAll('.mf-h-rail').length).toBe(3);
         expect(screen.getAllByText('70th BPSC Prelims Full Series')).toHaveLength(1);
         expect(screen.getAllByText('PYQ Paper').length).toBeGreaterThan(0);
         expect(screen.getAllByText('Expert Mock').length).toBeGreaterThan(0);
 
-        // Source-type filter bar: PYQ Papers -> Expert Mocks -> All Types
-        const typeFilterGroup = screen.getByRole('group', { name: 'Series source type filter' });
-        const pyqBtn = within(typeFilterGroup).getByRole('button', { name: 'PYQ Papers' });
-        const expertBtn = within(typeFilterGroup).getByRole('button', { name: 'Expert Mocks' });
-        const allTypesBtn = within(typeFilterGroup).getByRole('button', { name: 'All Types' });
-
-        fireEvent.click(pyqBtn);
-        expect(pyqBtn.getAttribute('aria-pressed')).toBe('true');
-        expect(screen.getByText('BPSC TRE 3.0 Pro Pack')).toBeTruthy();
-        expect(screen.queryByText('70th BPSC Prelims Full Series')).toBeNull();
-        expect(screen.queryByText('SSC CGL Tier 1')).toBeNull();
-
-        fireEvent.click(expertBtn);
-        expect(expertBtn.getAttribute('aria-pressed')).toBe('true');
-        expect(screen.getByText('70th BPSC Prelims Full Series')).toBeTruthy();
-        expect(screen.getByText('SSC CGL Tier 1')).toBeTruthy();
-        expect(screen.queryByText('BPSC TRE 3.0 Pro Pack')).toBeNull();
-
-        fireEvent.click(allTypesBtn);
-        expect(screen.getByText('BPSC TRE 3.0 Pro Pack')).toBeTruthy();
+        // Source-type filter bar moved off /mcqs/test-series root into TestsListPage
+        expect(screen.queryByRole('group', { name: 'Series source type filter' })).toBeNull();
 
         const tablist = screen.getByRole('tablist', { name: 'Mock test series categories' });
         const allTab = within(tablist).getByRole('tab', { name: 'All' });
         const bpscTab = within(tablist).getByRole('tab', { name: 'BPSC' });
         const sscTab = within(tablist).getByRole('tab', { name: 'SSC CGL' });
-        const attemptsTab = within(tablist).getByRole('tab', { name: 'My Attempts' });
+        expect(within(tablist).queryByRole('tab', { name: 'My Attempts' })).toBeNull();
 
         expect(allTab.getAttribute('aria-selected')).toBe('true');
 
@@ -689,11 +672,17 @@ describe('v1.0.371 Dedicated BPSC Prepared Mock Tests & Canonical Routing', () =
         expect(screen.getByText('SSC CGL Tier 1')).toBeTruthy();
         expect(screen.queryByText('70th BPSC Prelims Full Series')).toBeNull();
 
-        fireEvent.click(attemptsTab);
-        expect(attemptsTab.getAttribute('aria-selected')).toBe('true');
+        // Bottom docked strip pairs My Attempts & Live Test and opens NativeDialog bottom sheet
+        const bottomStrip = screen.getByTestId('test-series-bottom-action-strip');
+        expect(within(bottomStrip).getByTestId('bottom-strip-my-attempts-btn')).toBeTruthy();
+        expect(within(bottomStrip).getByTestId('bottom-strip-live-test-btn')).toBeTruthy();
+
+        fireEvent.click(within(bottomStrip).getByTestId('bottom-strip-my-attempts-btn'));
         await waitFor(() => {
+            expect(screen.getByTestId('my-attempts-sheet')).toBeTruthy();
             expect(screen.getByText('Continue Learning')).toBeTruthy();
         });
+        fireEvent.click(within(screen.getByTestId('my-attempts-sheet')).getByRole('button', { name: /Close/i }));
 
         fireEvent.click(allTab);
         const seriesCard = screen.getByRole('button', { name: /70th BPSC Prelims Full Series/i });

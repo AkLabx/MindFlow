@@ -11,80 +11,62 @@ interface SeriesDrawerProps {
     onSave: (payload: any) => Promise<void>;
 }
 
-export const SeriesDrawer: React.FC<SeriesDrawerProps> = ({ isOpen, onClose, series, categories, onSave }) => {
-    const [initialData, setInitialData] = useState<{
-        category_id: string;
-        name: string;
-        slug: string;
-        description: string;
-        series_type: 'MOCK' | 'PYQ';
-        is_premium: boolean;
-        is_published: boolean;
-    }>({
-        category_id: '',
-        name: '',
-        slug: '',
-        description: '',
-        series_type: 'MOCK',
-        is_premium: false,
-        is_published: false
-    });
+interface SeriesFormState {
+    category_id: string;
+    name: string;
+    slug: string;
+    description: string;
+    series_type: 'MOCK' | 'PYQ';
+    course_type: 'mock_series' | 'bundle' | 'video' | 'pdf';
+    is_premium: boolean;
+    is_published: boolean;
+    price_inr: string;
+    mrp_inr: string;
+    validity_days: string;
+    free_demo_count: string;
+}
 
-    const [formData, setFormData] = useState<{
-        category_id: string;
-        name: string;
-        slug: string;
-        description: string;
-        series_type: 'MOCK' | 'PYQ';
-        is_premium: boolean;
-        is_published: boolean;
-    }>({
-        category_id: '',
-        name: '',
-        slug: '',
-        description: '',
-        series_type: 'MOCK',
-        is_premium: false,
-        is_published: false
-    });
+const buildInitialSeriesForm = (series: any, categories: any[]): SeriesFormState => ({
+    category_id: series?.category_id || categories[0]?.id || '',
+    name: series?.name || '',
+    slug: series?.slug || '',
+    description: series?.description || '',
+    series_type: series?.series_type === 'PYQ' ? 'PYQ' : 'MOCK',
+    course_type:
+        series?.course_type === 'bundle' ||
+        series?.course_type === 'video' ||
+        series?.course_type === 'pdf'
+            ? series.course_type
+            : 'mock_series',
+    is_premium: Boolean(series?.is_premium) || Number(series?.price_inr ?? 0) > 0,
+    is_published: series?.is_published ?? false,
+    price_inr: String(series?.price_inr ?? 0),
+    mrp_inr: series?.mrp_inr != null ? String(series.mrp_inr) : '',
+    validity_days: String(series?.validity_days ?? 365),
+    free_demo_count: String(series?.free_demo_count ?? 1),
+});
+
+export const SeriesDrawer: React.FC<SeriesDrawerProps> = ({ isOpen, onClose, series, categories, onSave }) => {
+    const [initialData, setInitialData] = useState<SeriesFormState>(() =>
+        buildInitialSeriesForm(series, categories)
+    );
+    const [formData, setFormData] = useState<SeriesFormState>(() =>
+        buildInitialSeriesForm(series, categories)
+    );
     const [loading, setLoading] = useState(false);
+    const [formError, setFormError] = useState<string | null>(null);
 
     const isDirty = JSON.stringify(formData) !== JSON.stringify(initialData);
 
     useEffect(() => {
-        const data: {
-            category_id: string;
-            name: string;
-            slug: string;
-            description: string;
-            series_type: 'MOCK' | 'PYQ';
-            is_premium: boolean;
-            is_published: boolean;
-        } = series ? {
-            category_id: series.category_id || '',
-            name: series.name || '',
-            slug: series.slug || '',
-            description: series.description || '',
-            series_type: series?.series_type === 'PYQ' ? 'PYQ' : 'MOCK',
-            is_premium: series.is_premium ?? false,
-            is_published: series.is_published ?? false
-        } : {
-            category_id: categories[0]?.id || '',
-            name: '',
-            slug: '',
-            description: '',
-            series_type: 'MOCK',
-            is_premium: false,
-            is_published: false
-        };
-
+        const data = buildInitialSeriesForm(series, categories);
         setInitialData(data);
         setFormData(data);
+        setFormError(null);
     }, [series, isOpen, categories]);
 
-    // Auto-generate slug
     const handleNameChange = (name: string) => {
-        if (!series) { // Only auto-gen on create
+        if (!series) {
             const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
             setFormData({ ...formData, name, slug });
         } else {
@@ -94,99 +76,116 @@ export const SeriesDrawer: React.FC<SeriesDrawerProps> = ({ isOpen, onClose, ser
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        setFormError(null);
+
+        const parsedPrice = formData.is_premium
+            ? Math.max(0, Math.round(Number(formData.price_inr || 0)))
+            : 0;
+        const parsedMrpRaw = formData.mrp_inr.trim();
+        const parsedMrp =
+            formData.is_premium && parsedMrpRaw !== ''
+                ? Math.round(Number(parsedMrpRaw))
+                : null;
+        const parsedValidity = Math.min(3650, Math.max(1, Math.round(Number(formData.validity_days || 365))));
+        const parsedDemo = Math.min(50, Math.max(0, Math.round(Number(formData.free_demo_count || 1))));
+
+        if (Number.isNaN(parsedPrice) || parsedPrice < 0) {
+            setFormError('Enter a valid INR price.');
+            return;
+        }
+        if (parsedMrp !== null && (Number.isNaN(parsedMrp) || parsedMrp < parsedPrice)) {
+            setFormError('MRP must be greater than or equal to the Selling Price.');
+            return;
+        }
+
         setLoading(true);
         try {
-            await onSave(formData);
+            await onSave({
+                category_id: formData.category_id,
+                name: formData.name,
+                slug: formData.slug,
+                description: formData.description,
+                series_type: formData.series_type,
+                course_type: formData.course_type,
+                is_premium: formData.is_premium || parsedPrice > 0,
+                is_published: formData.is_published,
+                price_inr: parsedPrice,
+                mrp_inr: parsedMrp,
+                validity_days: parsedValidity,
+                free_demo_count: parsedDemo,
+            });
             onClose();
-        } catch (error) {
-            // Handled by hook toast
+        } catch (err: any) {
+            console.error(err);
+            setFormError(err?.message || 'Could not save series.');
         } finally {
             setLoading(false);
         }
     };
 
-    const drawerFooter = (requestClose: () => void) => (
-        <div className="flex justify-end gap-3">
-            <button
-                type="button"
-                onClick={requestClose}
-                className="min-h-[44px] px-4 py-2 text-slate-600 dark:text-slate-300 font-medium hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-all active:scale-95 touch-manipulation scroll-mb-28"
-            >
-                Cancel
-            </button>
-            <button
-                type="submit"
-                form="series-form"
-                disabled={loading || !formData.name.trim() || !formData.category_id}
-                className="min-h-[44px] px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-xl transition-all active:scale-95 touch-manipulation scroll-mb-28 disabled:opacity-50"
-            >
-                {loading ? 'Saving...' : 'Save Series'}
-            </button>
-        </div>
-    );
-
     return (
         <RightDrawer
             isOpen={isOpen}
             onClose={onClose}
-            title={series ? "Edit Test Series" : "Create Test Series"}
             isDirty={isDirty}
-            footer={drawerFooter}
+            title={series ? 'Edit Test Series' : 'New Test Series'}
+            footer={
+                <div className="flex justify-end gap-3">
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        className="px-5 py-2.5 rounded-xl font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        type="submit"
+                        form="series-form"
+                        disabled={loading || !formData.name || !formData.slug || !formData.category_id}
+                        className="px-6 py-2.5 rounded-xl font-semibold text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 shadow-sm shadow-indigo-600/20 transition-all"
+                    >
+                        {loading ? 'Saving...' : 'Save Series'}
+                    </button>
+                </div>
+            }
         >
-            <form id="series-form" onSubmit={handleSubmit} className="space-y-6 flex flex-col h-full">
-                <div className="flex-1 space-y-6">
+            <form id="series-form" onSubmit={handleSubmit} className="space-y-6">
+                <div className="space-y-4">
                     <div>
-                        <div className="flex items-center gap-1 mb-1">
-                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Category *</label>
-                            <InfoHintPopover
-                                title="Parent Exam Category"
-                                purpose="Assigns this Test Series under an Exam Category."
-                                studentVisibility="Students browse this series inside the chosen Category page."
-                                example="Select BPSC for '70th BPSC Prelims Full Mocks'."
-                                align="start"
-                            />
-                        </div>
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Exam Category *</label>
                         <select
                             required
                             value={formData.category_id}
                             onChange={e => setFormData({ ...formData, category_id: e.target.value })}
-                            className="w-full min-h-[44px] rounded-xl border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white px-4 py-2.5 focus:ring-2 focus:ring-indigo-500 outline-none"
+                            className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none transition-all dark:text-white"
                         >
-                            <option value="" disabled>Select a category</option>
-                            {categories.map(cat => (
-                                <option key={cat.id} value={cat.id}>{cat.name}</option>
+                            <option value="" disabled>Select category</option>
+                            {categories.map(c => (
+                                <option key={c.id} value={c.id}>{c.name}</option>
                             ))}
                         </select>
                     </div>
 
                     <div>
-                        <div className="flex items-center gap-1 mb-1">
-                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Series Name *</label>
-                            <InfoHintPopover
-                                title="Series Name"
-                                purpose="Title of the test collection shown on series cards and breadcrumbs."
-                                studentVisibility="Appears in the Mock Tests Hub and Test Series listing."
-                                example="BPSC 70th Prelims Mock Series"
-                                align="start"
-                            />
-                        </div>
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Series Title *</label>
                         <input
                             type="text"
                             required
                             value={formData.name}
                             onChange={e => handleNameChange(e.target.value)}
-                            className="w-full min-h-[44px] rounded-xl border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white px-4 py-2.5 focus:ring-2 focus:ring-indigo-500 outline-none"
                             placeholder="e.g. SSC CGL 2026"
+                            className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none transition-all dark:text-white"
                         />
                     </div>
 
-                    <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-200 dark:border-slate-700">
-                        <div className="flex items-center gap-1 mb-1">
-                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">URL Slug</label>
+                    <div>
+                        <div className="flex items-center gap-1 mb-1.5">
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">URL Slug *</label>
                             <InfoHintPopover
                                 title="URL Slug"
-                                purpose="Unique URL-safe identifier for this series (lowercase letters, numbers, and hyphens)."
-                                example="ssc-cgl-2026"
+                                purpose="Clean web-address identifier for this test series. Auto-generated from title when creating."
+                                studentVisibility="Appears in links shared with students."
+                                example="ssc-cgl-tier-1-full-mocks"
                                 align="start"
                             />
                         </div>
@@ -195,19 +194,19 @@ export const SeriesDrawer: React.FC<SeriesDrawerProps> = ({ isOpen, onClose, ser
                             required
                             value={formData.slug}
                             onChange={e => setFormData({ ...formData, slug: e.target.value })}
-                            className="w-full min-h-[44px] rounded-lg border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                            placeholder="e.g., ssc-cgl-tier-1-full-mocks"
+                            className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 font-mono text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all dark:text-white"
                         />
-                        <p className="text-xs text-slate-500 mt-1">Generated automatically.</p>
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Description</label>
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Description</label>
                         <textarea
                             rows={3}
                             value={formData.description}
                             onChange={e => setFormData({ ...formData, description: e.target.value })}
-                            className="w-full rounded-xl border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white px-4 py-2.5 focus:ring-2 focus:ring-indigo-500 outline-none"
-                            placeholder="Optional description"
+                            placeholder="Overview of syllabus, pattern, and included tests..."
+                            className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none transition-all dark:text-white resize-none"
                         />
                     </div>
 
@@ -217,7 +216,7 @@ export const SeriesDrawer: React.FC<SeriesDrawerProps> = ({ isOpen, onClose, ser
                             <InfoHintPopover
                                 title="Series Type (MOCK vs PYQ)"
                                 purpose="Classifies whether this series holds newly authored Expert Curated Mocks or Previous Year Papers (PYQ)."
-                                studentVisibility="Determines whether the series appears under Expert Mock Series or Previous Year Papers in the student Mock Hub."
+                                studentVisibility="Students can filter PYQ Papers vs Expert Mocks inside each series."
                                 example="Choose Previous Year Paper (PYQ) for official past-year BPSC or SSC papers."
                                 align="start"
                             />
@@ -260,27 +259,97 @@ export const SeriesDrawer: React.FC<SeriesDrawerProps> = ({ isOpen, onClose, ser
                             <div>
                                 <div className="flex items-center gap-1">
                                     <p className="font-medium text-amber-700 dark:text-amber-400 flex items-center gap-1">
-                                        <Crown className="w-4 h-4" /> Premium Series
+                                        <Crown className="w-4 h-4" /> Paid Course Series
                                     </p>
                                     <InfoHintPopover
-                                        title="Free vs PRO (is_premium)"
-                                        purpose="Marks whether this series is Free for everyone or requires a PRO/Premium tier."
-                                        studentVisibility="Displays a Free or PRO badge on the series card."
+                                        title="Free vs Paid Course (is_premium + INR)"
+                                        purpose="Controls whether this course requires purchase or Student ID activation by Admin."
+                                        studentVisibility="Paid courses unlock first Free Demo tests and lock remaining tests behind UPI / Admin activation."
                                         align="start"
                                     />
                                 </div>
-                                <p className="text-sm text-slate-500">Requires subscription?</p>
+                                <p className="text-sm text-slate-500">Charge INR fee &amp; track validity?</p>
                             </div>
                             <label className="relative inline-flex items-center cursor-pointer">
                                 <input
                                     type="checkbox"
                                     checked={formData.is_premium}
-                                    onChange={e => setFormData({ ...formData, is_premium: e.target.checked })}
+                                    onChange={e =>
+                                        setFormData({
+                                            ...formData,
+                                            is_premium: e.target.checked,
+                                            price_inr: e.target.checked
+                                                ? formData.price_inr === '0' || !formData.price_inr
+                                                    ? '299'
+                                                    : formData.price_inr
+                                                : '0',
+                                        })
+                                    }
                                     className="sr-only peer"
                                 />
                                 <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-amber-300 dark:peer-focus:ring-amber-800 rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-600 peer-checked:bg-amber-500"></div>
                             </label>
                         </div>
+
+                        {formData.is_premium && (
+                            <div className="p-4 bg-amber-50/60 dark:bg-amber-950/20 rounded-xl border border-amber-200/80 dark:border-amber-800/60 space-y-3">
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                                            Selling Price (₹ INR) *
+                                        </label>
+                                        <input
+                                            type="number"
+                                            min={0}
+                                            max={1000000}
+                                            value={formData.price_inr}
+                                            onChange={e => setFormData({ ...formData, price_inr: e.target.value })}
+                                            className="w-full px-3 py-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-sm font-bold dark:text-white"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                                            MRP (₹ Optional)
+                                        </label>
+                                        <input
+                                            type="number"
+                                            min={0}
+                                            max={1000000}
+                                            placeholder="e.g. 599"
+                                            value={formData.mrp_inr}
+                                            onChange={e => setFormData({ ...formData, mrp_inr: e.target.value })}
+                                            className="w-full px-3 py-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-sm font-bold dark:text-white"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                                            Validity (Days)
+                                        </label>
+                                        <input
+                                            type="number"
+                                            min={1}
+                                            max={3650}
+                                            value={formData.validity_days}
+                                            onChange={e => setFormData({ ...formData, validity_days: e.target.value })}
+                                            className="w-full px-3 py-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-sm font-bold dark:text-white"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                                            Free Demo Tests
+                                        </label>
+                                        <input
+                                            type="number"
+                                            min={0}
+                                            max={50}
+                                            value={formData.free_demo_count}
+                                            onChange={e => setFormData({ ...formData, free_demo_count: e.target.value })}
+                                            className="w-full px-3 py-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-sm font-bold dark:text-white"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        )}
 
                         <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700">
                             <div>
@@ -307,6 +376,10 @@ export const SeriesDrawer: React.FC<SeriesDrawerProps> = ({ isOpen, onClose, ser
                             </label>
                         </div>
                     </div>
+
+                    {formError && (
+                        <p className="text-xs font-bold text-rose-600 dark:text-rose-400">{formError}</p>
+                    )}
                 </div>
             </form>
         </RightDrawer>

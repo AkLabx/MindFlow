@@ -7,6 +7,7 @@ import {
     CheckSquare,
     Clock,
     FileText,
+    Lock,
     PlayCircle,
     Sparkles,
     WifiOff,
@@ -17,23 +18,43 @@ import { triggerHaptic } from '@/lib/haptics';
 import { telemetry } from '@/lib/telemetry';
 import { DedicatedPageHeader } from '@/components/ui/DedicatedPageHeader';
 import {
+    MOCK_CACHE_INVALIDATED_EVENT,
+    MockTestType,
     SeriesProgressStats,
+    UserCourseEntitlementItem,
     UserTestAttemptItem,
     computeSeriesProgressStats,
     fetchPublishedTests,
     fetchSeriesDetails,
+    fetchUserCourseEntitlements,
     fetchUserSeriesAttempts,
     getCachedSeriesBundleSnapshot,
+    getCachedUserCourseEntitlementsSnapshot,
     getCachedUserSeriesAttemptsSnapshot,
+    isMockSeriesPaid,
     normalizeMockSeriesType,
     normalizeMockTestType,
     readSeriesBundleIndexedDBCache,
+    readUserCourseEntitlementsIndexedDBCache,
     readUserSeriesAttemptsIndexedDBCache,
+    resolveMockTestAccess,
 } from '../api/mockTestsApi';
 import { Breadcrumbs } from '../components/Breadcrumbs';
+import {
+    CourseCheckoutDialog,
+    type CourseCheckoutSeriesInfo,
+} from '../components/CourseCheckoutDialog';
 import { EmptyState } from '../components/EmptyState';
 import { ListSkeleton } from '../components/Skeletons';
 import { TestLeaderboardCard } from '../components/TestLeaderboardCard';
+
+type SeriesSourceTypeFilter = 'all' | MockTestType;
+
+const SERIES_SOURCE_TYPE_OPTIONS: Array<{ id: SeriesSourceTypeFilter; label: string }> = [
+    { id: 'all', label: 'All Types' },
+    { id: 'PYQ', label: 'PYQ Papers' },
+    { id: 'MOCK', label: 'Expert Mocks' },
+];
 
 export const resolveSeriesListBackTarget = (locationState: unknown, series: any): string => {
     const candidate =
@@ -68,7 +89,7 @@ export const TestsListPage: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const { seriesId } = useParams<{ seriesId: string }>();
-    const { user } = useAuth();
+    const { user, profile } = useAuth();
     const userId = user?.id ?? null;
 
     const initialBundle = seriesId ? getCachedSeriesBundleSnapshot(seriesId) : null;
@@ -77,6 +98,11 @@ export const TestsListPage: React.FC = () => {
     const [attempts, setAttempts] = useState<UserTestAttemptItem[]>(() =>
         seriesId && userId ? getCachedUserSeriesAttemptsSnapshot(seriesId, userId) ?? [] : []
     );
+    const [entitlements, setEntitlements] = useState<UserCourseEntitlementItem[]>(() =>
+        userId ? getCachedUserCourseEntitlementsSnapshot(userId) ?? [] : []
+    );
+    const [sourceFilter, setSourceFilter] = useState<SeriesSourceTypeFilter>('all');
+    const [isCheckoutOpen, setIsCheckoutOpen] = useState<boolean>(false);
     const [loading, setLoading] = useState<boolean>(() => Boolean(seriesId && !initialBundle));
     const [offlineNotice, setOfflineNotice] = useState<string | null>(null);
 
@@ -129,11 +155,12 @@ export const TestsListPage: React.FC = () => {
             let currentTests = syncBundle?.tests ?? [];
 
             if (!syncBundle || (userId && syncAttempts === null)) {
-                const [idbBundle, idbAttempts] = await Promise.all([
+                const [idbBundle, idbAttempts, idbEntitlements] = await Promise.all([
                     syncBundle ? Promise.resolve(syncBundle) : readSeriesBundleIndexedDBCache(seriesId),
                     userId && syncAttempts === null
                         ? readUserSeriesAttemptsIndexedDBCache(seriesId, userId)
                         : Promise.resolve(syncAttempts),
+                    userId ? readUserCourseEntitlementsIndexedDBCache(userId) : Promise.resolve(null),
                 ]);
 
                 if (!isMountedRef.current || fetchSeqRef.current !== seq) return;
@@ -148,14 +175,23 @@ export const TestsListPage: React.FC = () => {
                 if (idbAttempts !== null && syncAttempts === null) {
                     setAttempts(idbAttempts);
                 }
+                if (idbEntitlements !== null) {
+                    setEntitlements(idbEntitlements);
+                }
             }
 
-            const [seriesRes, testsRes] = await Promise.allSettled([
+            const [seriesRes, testsRes, entRes] = await Promise.allSettled([
                 fetchSeriesDetails(seriesId),
                 fetchPublishedTests(seriesId),
+                userId
+                    ? fetchUserCourseEntitlements(userId, { forceRefresh: isManualRetry })
+                    : Promise.resolve([] as UserCourseEntitlementItem[]),
             ]);
 
             if (!isMountedRef.current || fetchSeqRef.current !== seq) return;
+            if (entRes.status === 'fulfilled') {
+                setEntitlements(entRes.value);
+            }
 
             let resolvedTests = currentTests;
             let networkFailed = false;
@@ -221,6 +257,16 @@ export const TestsListPage: React.FC = () => {
         void loadSeriesData(false);
     }, [seriesId, userId, loadSeriesData]);
 
+    useEffect(() => {
+        const handleCacheInvalidated = () => {
+            void loadSeriesData(true);
+        };
+        window.addEventListener(MOCK_CACHE_INVALIDATED_EVENT, handleCacheInvalidated);
+        return () => {
+            window.removeEventListener(MOCK_CACHE_INVALIDATED_EVENT, handleCacheInvalidated);
+        };
+    }, [loadSeriesData]);
+
     const progressStats: SeriesProgressStats = useMemo(
         () => computeSeriesProgressStats(tests, attempts),
         [tests, attempts]
@@ -228,6 +274,46 @@ export const TestsListPage: React.FC = () => {
 
     const category = series?.mock_categories ?? series?.exam_categories;
     const isSeriesPyq = series ? normalizeMockSeriesType(series.series_type) === 'PYQ' : false;
+    const isPaidSeries = isMockSeriesPaid(series);
+    const seriesPriceInr = Math.max(0, Number(series?.price_inr ?? 0));
+    const seriesMrpInr = series?.mrp_inr != null ? Number(series.mrp_inr) : null;
+    const seriesValidityDays = Math.max(1, Number(series?.validity_days ?? 365));
+    const seriesFreeDemoCount = Math.max(0, Number(series?.free_demo_count ?? 1));
+
+    const activeSeriesEntitlement = useMemo(() => {
+        if (!series?.id) return null;
+        const nowMs = Date.now();
+        return (
+            entitlements.find((ent) => {
+                if (!ent || ent.status !== 'active') return false;
+                const validMs = Date.parse(String(ent.valid_until ?? ''));
+                if (!Number.isFinite(validMs) || validMs <= nowMs) return false;
+                return String(ent.series_id) === String(series.id);
+            }) ?? null
+        );
+    }, [entitlements, series?.id]);
+
+    const filteredTests = useMemo(() => {
+        if (sourceFilter === 'all') return tests;
+        return tests.filter((t) => {
+            const effectiveType: MockTestType =
+                normalizeMockTestType(t.test_type) === 'PYQ' || isSeriesPyq ? 'PYQ' : 'MOCK';
+            return effectiveType === sourceFilter;
+        });
+    }, [tests, sourceFilter, isSeriesPyq]);
+
+    const checkoutSeriesInfo: CourseCheckoutSeriesInfo | null = useMemo(() => {
+        if (!series?.id) return null;
+        return {
+            id: String(series.id),
+            name: String(series.name ?? 'Test Series'),
+            price_inr: seriesPriceInr,
+            mrp_inr: seriesMrpInr,
+            validity_days: seriesValidityDays,
+            free_demo_count: seriesFreeDemoCount,
+            category_name: category?.name ? String(category.name) : undefined,
+        };
+    }, [series, seriesPriceInr, seriesMrpInr, seriesValidityDays, seriesFreeDemoCount, category?.name]);
 
     const pyqBadge = (
         <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase tracking-wider bg-teal-50 dark:bg-teal-950/60 text-teal-700 dark:text-teal-300 border border-teal-200/80 dark:border-teal-800/60">
@@ -273,6 +359,16 @@ export const TestsListPage: React.FC = () => {
                 title={series?.name || 'Test Series'}
                 subtitle={category?.name ? `${category.name} • ${tests.length} Tests` : `${tests.length} Tests`}
                 badge={series ? (isSeriesPyq ? pyqBadge : expertBadge) : undefined}
+                rightActions={
+                    profile?.student_id ? (
+                        <span
+                            data-testid="series-detail-student-id"
+                            className="inline-flex items-center px-2.5 py-1 rounded-full bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 text-[11px] font-mono font-black text-indigo-700 dark:text-indigo-300"
+                        >
+                            {profile.student_id}
+                        </span>
+                    ) : undefined
+                }
                 onBack={handleLogicalBack}
                 backLabel="Back"
             />
@@ -334,18 +430,53 @@ export const TestsListPage: React.FC = () => {
                                         Timed CBT practice tests with instant scorecards and detailed solutions.
                                     </p>
                                 )}
+                                {isPaidSeries && (
+                                    <div className="pt-1 flex flex-wrap items-center gap-2 text-xs font-bold">
+                                        {activeSeriesEntitlement ? (
+                                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60">
+                                                <CheckCircle2 className="w-3.5 h-3.5" aria-hidden="true" />
+                                                Unlocked • {seriesValidityDays}d Access
+                                            </span>
+                                        ) : (
+                                            <span className="inline-flex items-center gap-1.5 text-slate-700 dark:text-slate-200">
+                                                <span className="font-black text-indigo-700 dark:text-indigo-300">
+                                                    ₹{seriesPriceInr}
+                                                </span>
+                                                {seriesMrpInr && seriesMrpInr > seriesPriceInr && (
+                                                    <span className="line-through text-slate-400">
+                                                        ₹{seriesMrpInr}
+                                                    </span>
+                                                )}
+                                                <span className="text-slate-500 dark:text-slate-400">
+                                                    • {seriesValidityDays} Days • {seriesFreeDemoCount} Free Demo
+                                                </span>
+                                            </span>
+                                        )}
+                                    </div>
+                                )}
                             </div>
                             <div className="flex flex-wrap items-center gap-2 shrink-0">
-                                <span
-                                    className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-black uppercase tracking-wide ${
-                                        series.is_premium
-                                            ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300'
-                                            : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300'
-                                    }`}
-                                >
-                                    {series.is_premium && <Sparkles className="w-3 h-3" aria-hidden="true" />}
-                                    {series.is_premium ? 'PRO' : 'Free'}
-                                </span>
+                                {isPaidSeries && !activeSeriesEntitlement ? (
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsCheckoutOpen(true)}
+                                        data-testid="series-unlock-btn"
+                                        className="min-h-[44px] min-w-[44px] px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-black inline-flex items-center gap-1.5 transition-all active:scale-95 touch-manipulation cursor-pointer shadow-sm"
+                                    >
+                                        <Lock className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+                                        <span>Unlock — ₹{seriesPriceInr}</span>
+                                    </button>
+                                ) : (
+                                    <span
+                                        className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-black uppercase tracking-wide ${
+                                            isPaidSeries
+                                                ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300'
+                                                : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300'
+                                        }`}
+                                    >
+                                        {isPaidSeries ? 'Unlocked' : 'Free'}
+                                    </span>
+                                )}
                                 <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-slate-100 dark:bg-slate-700/60 text-slate-700 dark:text-slate-200">
                                     <FileText className="w-3.5 h-3.5 text-indigo-500" aria-hidden="true" />
                                     {tests.length} {tests.length === 1 ? 'Test' : 'Tests'}
@@ -360,9 +491,40 @@ export const TestsListPage: React.FC = () => {
                         <div className="flex flex-col lg:flex-row gap-6">
                             {/* Left Column: Test List */}
                             <div className="flex-1 space-y-3.5">
-                                <h2 className="text-lg sm:text-xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-                                    Tests in this Series
-                                </h2>
+                                <div className="flex flex-wrap items-center justify-between gap-2.5">
+                                    <h2 className="text-lg sm:text-xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+                                        Tests in this Series
+                                    </h2>
+
+                                    <div
+                                        role="group"
+                                        aria-label="Filter series tests by source type"
+                                        data-testid="series-tests-source-filter"
+                                        className="flex items-center gap-1.5 overflow-x-auto no-scrollbar touch-pan-x overscroll-x-contain"
+                                    >
+                                        {SERIES_SOURCE_TYPE_OPTIONS.map((opt) => {
+                                            const isSelected = sourceFilter === opt.id;
+                                            return (
+                                                <button
+                                                    key={opt.id}
+                                                    type="button"
+                                                    aria-pressed={isSelected}
+                                                    onClick={() => {
+                                                        triggerHaptic('light');
+                                                        setSourceFilter(opt.id);
+                                                    }}
+                                                    className={`min-h-[44px] min-w-[44px] px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap shrink-0 transition-all active:scale-95 touch-manipulation cursor-pointer ${
+                                                        isSelected
+                                                            ? 'bg-indigo-600 text-white shadow-xs'
+                                                            : 'bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/70 text-slate-700 dark:text-slate-200 hover:border-indigo-400'
+                                                    }`}
+                                                >
+                                                    {opt.label}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
 
                                 {tests.length === 0 ? (
                                     <EmptyState
@@ -370,9 +532,17 @@ export const TestsListPage: React.FC = () => {
                                         description="Tests for this series will be available soon."
                                         icon={<FileText className="w-8 h-8" />}
                                     />
+                                ) : filteredTests.length === 0 ? (
+                                    <EmptyState
+                                        title={`No ${sourceFilter === 'PYQ' ? 'PYQ Papers' : 'Expert Mocks'} Found`}
+                                        description="Try switching back to All Types to inspect all tests in this series."
+                                        icon={<FileText className="w-8 h-8" />}
+                                        actionLabel="Show All Types"
+                                        onAction={() => setSourceFilter('all')}
+                                    />
                                 ) : (
                                     <div className="flex flex-col gap-3">
-                                        {tests.map((t, index) => {
+                                        {filteredTests.map((t, index) => {
                                             const isInProgress = progressStats.inProgressTestIds.includes(t.id);
                                             const bestAttempt = progressStats.bestAttemptByTestId[t.id];
                                             const isTestPyq =
@@ -380,6 +550,12 @@ export const TestsListPage: React.FC = () => {
                                             const qCount = Array.isArray(t.question_ids)
                                                 ? t.question_ids.length
                                                 : 0;
+                                            const access = resolveMockTestAccess({
+                                                test: t,
+                                                series,
+                                                entitlements,
+                                                orderedSeriesTests: tests,
+                                            });
 
                                             return (
                                                 <motion.div
@@ -402,6 +578,17 @@ export const TestsListPage: React.FC = () => {
                                                         <div className="min-w-0 flex-1">
                                                             <div className="flex flex-wrap items-center gap-1.5 mb-1">
                                                                 {isTestPyq ? pyqBadge : expertBadge}
+                                                                {access.reason === 'free_demo' && (
+                                                                    <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wide bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200/70 dark:border-emerald-800/50">
+                                                                        Free Demo
+                                                                    </span>
+                                                                )}
+                                                                {!access.unlocked && (
+                                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wide bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200/70 dark:border-amber-800/50">
+                                                                        <Lock className="w-3 h-3" aria-hidden="true" />
+                                                                        Locked
+                                                                    </span>
+                                                                )}
                                                                 {isInProgress ? (
                                                                     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200/70 dark:border-amber-800/50">
                                                                         In Progress
@@ -435,19 +622,34 @@ export const TestsListPage: React.FC = () => {
                                                     </div>
 
                                                     <div className="w-full sm:w-auto flex shrink-0">
-                                                        <button
-                                                            type="button"
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                triggerHaptic('light');
-                                                                navigate(ROUTES.TEST_SERIES.TEST(t.id), {
-                                                                    state: { returnTo: location.pathname },
-                                                                });
-                                                            }}
-                                                            className="w-full sm:w-auto min-h-[44px] min-w-[44px] scroll-mb-28 active:scale-95 touch-manipulation cursor-pointer bg-slate-900 hover:bg-indigo-600 dark:bg-indigo-500 dark:hover:bg-indigo-400 text-white px-5 py-2.5 rounded-xl font-bold text-sm transition-all"
-                                                        >
-                                                            View Details
-                                                        </button>
+                                                        {!access.unlocked ? (
+                                                            <button
+                                                                type="button"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    triggerHaptic('light');
+                                                                    setIsCheckoutOpen(true);
+                                                                }}
+                                                                className="w-full sm:w-auto min-h-[44px] min-w-[44px] scroll-mb-28 active:scale-95 touch-manipulation cursor-pointer bg-amber-500 hover:bg-amber-400 text-slate-950 px-5 py-2.5 rounded-xl font-black text-sm inline-flex items-center justify-center gap-1.5 transition-all"
+                                                            >
+                                                                <Lock className="w-4 h-4 shrink-0" aria-hidden="true" />
+                                                                <span>Unlock</span>
+                                                            </button>
+                                                        ) : (
+                                                            <button
+                                                                type="button"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    triggerHaptic('light');
+                                                                    navigate(ROUTES.TEST_SERIES.TEST(t.id), {
+                                                                        state: { returnTo: location.pathname },
+                                                                    });
+                                                                }}
+                                                                className="w-full sm:w-auto min-h-[44px] min-w-[44px] scroll-mb-28 active:scale-95 touch-manipulation cursor-pointer bg-slate-900 hover:bg-indigo-600 dark:bg-indigo-500 dark:hover:bg-indigo-400 text-white px-5 py-2.5 rounded-xl font-bold text-sm transition-all"
+                                                            >
+                                                                View Details
+                                                            </button>
+                                                        )}
                                                     </div>
                                                 </motion.div>
                                             );
@@ -556,6 +758,15 @@ export const TestsListPage: React.FC = () => {
                     </>
                 )}
             </div>
+
+            <CourseCheckoutDialog
+                isOpen={isCheckoutOpen}
+                onClose={() => setIsCheckoutOpen(false)}
+                series={checkoutSeriesInfo}
+                studentId={profile?.student_id ?? null}
+                userId={userId}
+                onRequestSubmitted={() => void loadSeriesData(true)}
+            />
         </div>
     );
 };

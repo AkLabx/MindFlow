@@ -5,7 +5,7 @@ import { getCanonicalAvatarUrl } from '../utils/avatar';
 import { getUserDisplayName } from '../utils/user';
 import {
     X, User, LogIn, Home, LayoutDashboard, Languages,
-    Wrench, Download, Info, GraduationCap, Users, LogOut
+    Wrench, Download, Info, GraduationCap, Users, LogOut, ShoppingBag
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../features/auth/context/AuthContext';
@@ -46,6 +46,7 @@ export const SidePanel: React.FC<SidePanelProps> = ({ isOpen, onClose, onTabChan
         { icon: Download, label: 'Download', path: 'DOWNLOAD_LINK', colorClasses: 'text-cyan-600 dark:text-cyan-400', bgClasses: 'bg-cyan-50 dark:bg-cyan-900/20 group-hover:bg-cyan-100 dark:group-hover:bg-cyan-900/40' },
         { icon: Info, label: 'About Us', path: '/about', tab: 'home', colorClasses: 'text-slate-600 dark:text-slate-400', bgClasses: 'bg-slate-50 dark:bg-slate-900/20 group-hover:bg-slate-100 dark:group-hover:bg-slate-900/40' },
         { icon: GraduationCap, label: 'School Mode', path: '/school', tab: 'school', colorClasses: 'text-teal-600 dark:text-teal-400', bgClasses: 'bg-teal-50 dark:bg-teal-900/20 group-hover:bg-teal-100 dark:group-hover:bg-teal-900/40' },
+        { icon: ShoppingBag, label: 'My Purchase', path: '/purchased', tab: 'purchased', colorClasses: 'text-emerald-600 dark:text-emerald-400', bgClasses: 'bg-emerald-50 dark:bg-emerald-900/20 group-hover:bg-emerald-100 dark:group-hover:bg-emerald-900/40' },
         { icon: Users, label: 'Community & Social', path: '/community', tab: 'community', colorClasses: 'text-violet-600 dark:text-violet-400', bgClasses: 'bg-violet-50 dark:bg-violet-900/20 group-hover:bg-violet-100 dark:group-hover:bg-violet-900/40' }
     ];
 

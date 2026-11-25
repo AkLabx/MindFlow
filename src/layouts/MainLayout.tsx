@@ -450,7 +450,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
 
               <NavTab
                 id="purchased"
-                label="Purchased"
+                label="My Purchase"
                 icon={<ShoppingBag className="w-6 h-6" />}
                 isActive={activeTab === 'purchased'}
                 onClick={() => onTabChange('purchased')}

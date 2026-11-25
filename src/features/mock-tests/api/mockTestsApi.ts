@@ -13,6 +13,7 @@ import {
 
 export type MockSeriesType = 'MOCK' | 'PYQ';
 export type MockTestType = 'MOCK' | 'PYQ';
+export type CourseType = 'mock_series' | 'bundle' | 'video' | 'pdf';
 
 export const normalizeMockSeriesType = (raw: unknown): MockSeriesType =>
     raw === 'PYQ' ? 'PYQ' : 'MOCK';
@@ -20,11 +21,37 @@ export const normalizeMockSeriesType = (raw: unknown): MockSeriesType =>
 export const normalizeMockTestType = (raw: unknown): MockTestType =>
     raw === 'PYQ' ? 'PYQ' : 'MOCK';
 
+export const normalizeCourseType = (raw: unknown): CourseType => {
+    if (raw === 'bundle' || raw === 'video' || raw === 'pdf') return raw;
+    return 'mock_series';
+};
+
+export const isMockSeriesPaid = (
+    series: { is_premium?: boolean | null; price_inr?: number | null } | null | undefined
+): boolean => {
+    if (!series) return false;
+    return Boolean(series.is_premium) || Number(series.price_inr ?? 0) > 0;
+};
+
 const normalizeSeriesRecord = <T extends Record<string, any> | null | undefined>(series: T): T => {
     if (!series || typeof series !== 'object') return series;
+    const rawPrice = series.price_inr != null ? Number(series.price_inr) : 0;
+    const priceInr = Number.isFinite(rawPrice) ? Math.max(0, Math.round(rawPrice)) : 0;
+    const rawMrp = series.mrp_inr != null ? Number(series.mrp_inr) : null;
+    const mrpInr = rawMrp !== null && Number.isFinite(rawMrp) ? Math.max(priceInr, Math.round(rawMrp)) : null;
+    const rawValidity = series.validity_days != null ? Number(series.validity_days) : 365;
+    const validityDays = Number.isFinite(rawValidity) ? Math.min(3650, Math.max(1, Math.round(rawValidity))) : 365;
+    const rawDemo = series.free_demo_count != null ? Number(series.free_demo_count) : 1;
+    const freeDemoCount = Number.isFinite(rawDemo) ? Math.min(50, Math.max(0, Math.round(rawDemo))) : 1;
     return {
         ...series,
         series_type: normalizeMockSeriesType(series.series_type),
+        course_type: normalizeCourseType(series.course_type),
+        price_inr: priceInr,
+        mrp_inr: mrpInr,
+        validity_days: validityDays,
+        free_demo_count: freeDemoCount,
+        is_premium: Boolean(series.is_premium) || priceInr > 0,
     };
 };
 
@@ -33,6 +60,10 @@ const normalizeTestRecord = <T extends Record<string, any> | null | undefined>(t
     const next: Record<string, any> = {
         ...test,
         test_type: normalizeMockTestType(test.test_type),
+        is_free_demo: Boolean(test.is_free_demo),
+        is_live: Boolean(test.is_live),
+        live_start_at: test.live_start_at ?? null,
+        live_end_at: test.live_end_at ?? null,
     };
     if (test[DB_TABLES.MOCK.SERIES]) {
         next[DB_TABLES.MOCK.SERIES] = normalizeSeriesRecord(test[DB_TABLES.MOCK.SERIES]);
@@ -171,6 +202,9 @@ export const MOCK_SWR_STALE_TIMES_MS = {
     QUESTIONS: 15 * 60 * 1000,
     ATTEMPTS: 2 * 60 * 1000,
     LEADERBOARD: 60 * 1000,
+    ENTITLEMENTS: 2 * 60 * 1000,
+    RECEIPTS: 2 * 60 * 1000,
+    LIVE_TESTS: 2 * 60 * 1000,
 } as const;
 
 export const MOCK_CACHE_INVALIDATED_EVENT = 'mindflow:mock-cache-invalidated';
@@ -461,7 +495,7 @@ export const fetchPublishedTests = async (seriesId: string, nowMs: number = Date
     // Check that parent category is active, parent series is published, test is published, and test is within schedule window
     const { data, error } = await supabase
         .from(DB_TABLES.MOCK.TESTS)
-        .select(`*, ${DB_TABLES.MOCK.SERIES}!inner(is_published, ${DB_TABLES.MOCK.CATEGORIES}!inner(is_active))`)
+        .select(`*, ${DB_TABLES.MOCK.SERIES}!inner(id, name, is_premium, is_published, series_type, price_inr, mrp_inr, validity_days, free_demo_count, course_type, ${DB_TABLES.MOCK.CATEGORIES}!inner(is_active))`)
         .eq('series_id', seriesId)
         .eq('is_published', true)
         .eq(`${DB_TABLES.MOCK.SERIES}.is_published`, true)
@@ -555,7 +589,7 @@ export const fetchTestDetails = async (
 
     const { data, error } = await supabase
         .from(DB_TABLES.MOCK.TESTS)
-        .select(`*, ${DB_TABLES.MOCK.SERIES}!inner(id, name, is_premium, is_published, ${DB_TABLES.MOCK.CATEGORIES}!inner(id, name, is_active))`)
+        .select(`*, ${DB_TABLES.MOCK.SERIES}!inner(id, name, is_premium, is_published, series_type, price_inr, mrp_inr, validity_days, free_demo_count, course_type, ${DB_TABLES.MOCK.CATEGORIES}!inner(id, name, is_active))`)
         .eq('id', trimmedId)
         .eq('is_published', true)
         .eq(`${DB_TABLES.MOCK.SERIES}.is_published`, true)
@@ -649,6 +683,11 @@ export interface PreparedMockSeriesItem {
     description?: string | null;
     thumbnail_url?: string | null;
     series_type: MockSeriesType;
+    course_type?: CourseType;
+    price_inr?: number;
+    mrp_inr?: number | null;
+    validity_days?: number;
+    free_demo_count?: number;
     is_premium: boolean;
     is_published: boolean;
     category_name: string;
@@ -669,11 +708,16 @@ export interface PreparedMockTestItem {
     question_ids: string[];
     question_count: number;
     is_published: boolean;
+    is_free_demo?: boolean;
+    is_live?: boolean;
+    live_start_at?: string | null;
+    live_end_at?: string | null;
     release_date?: string | null;
     expiry_date?: string | null;
     created_at?: string | null;
     series_name: string;
     series_is_premium: boolean;
+    series_price_inr?: number;
     category_id: string | null;
     category_name: string;
     is_full_length: boolean;
@@ -730,6 +774,12 @@ const MOCK_LEADERBOARD_STORAGE_PREFIX = 'mindflow_mock_leaderboard_v1_';
 const MOCK_LEADERBOARD_IDB_PREFIX = 'mock_leaderboard_v1_';
 const MOCK_SERIES_CATALOG_STORAGE_KEY = 'mindflow_mock_series_catalog_v1';
 const MOCK_SERIES_CATALOG_IDB_KEY = 'mock_series_catalog_v1';
+const MOCK_ENTITLEMENTS_STORAGE_PREFIX = 'mindflow_course_entitlements_v1_';
+const MOCK_ENTITLEMENTS_IDB_PREFIX = 'course_entitlements_v1_';
+const MOCK_RECEIPTS_STORAGE_PREFIX = 'mindflow_payment_receipts_v1_';
+const MOCK_RECEIPTS_IDB_PREFIX = 'payment_receipts_v1_';
+const MOCK_LIVE_TESTS_STORAGE_KEY = 'mindflow_live_mock_tests_v1';
+const MOCK_LIVE_TESTS_IDB_KEY = 'live_mock_tests_v1';
 const UUID_CHUNK_SIZE = 100;
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -761,6 +811,15 @@ const memoryLeaderboardCache = new Map<
     string,
     { entries: TestLeaderboardEntry[]; fetchedAt: number; limit?: number }
 >();
+const memoryEntitlementsCache = new Map<
+    string,
+    { entitlements: UserCourseEntitlementItem[]; fetchedAt: number }
+>();
+const memoryReceiptsCache = new Map<
+    string,
+    { receipts: UserPaymentReceiptItem[]; fetchedAt: number }
+>();
+let memoryLiveTestsCache: { tests: PreparedMockTestItem[]; fetchedAt: number } | null = null;
 
 export interface UserTestAttemptItem {
     id: string;
@@ -1837,7 +1896,8 @@ export const materializePreparedMockTests = (
         }
 
         const questionIds = Array.isArray(t.question_ids) ? t.question_ids : [];
-        const isPremiumSeries = Boolean(seriesObj.is_premium);
+        const seriesPriceInr = Math.max(0, Number(seriesObj.price_inr ?? 0));
+        const isPremiumSeries = Boolean(seriesObj.is_premium) || seriesPriceInr > 0;
         const isAttempted = attemptedSet.has(t.id);
 
         const projected: PreparedMockTestItem = {
@@ -1854,15 +1914,20 @@ export const materializePreparedMockTests = (
             question_ids: questionIds,
             question_count: questionIds.length,
             is_published: Boolean(t.is_published),
+            is_free_demo: Boolean(t.is_free_demo),
+            is_live: Boolean(t.is_live),
+            live_start_at: t.live_start_at ?? null,
+            live_end_at: t.live_end_at ?? null,
             release_date: t.release_date ?? null,
             expiry_date: t.expiry_date ?? null,
             created_at: t.created_at ?? null,
             series_name: String(seriesObj.name ?? 'Prepared Series'),
             series_is_premium: isPremiumSeries,
+            series_price_inr: seriesPriceInr,
             category_id: embeddedCat?.id ?? seriesObj.category_id ?? null,
             category_name: String(categoryName || exam.displayName),
             is_full_length: isFullLengthMockTest(t),
-            is_free: !isPremiumSeries,
+            is_free: !isPremiumSeries || Boolean(t.is_free_demo),
             is_attempted: isAttempted,
         };
 
@@ -1878,19 +1943,27 @@ export const materializePreparedMockTests = (
         return (Number.isFinite(bTime) ? bTime : 0) - (Number.isFinite(aTime) ? aTime : 0);
     });
 
-    const matchedSeries: PreparedMockSeriesItem[] = Array.from(matchedSeriesMap.values()).map((s) => ({
-        id: s.id,
-        category_id: s.category_id,
-        name: String(s.name ?? 'Prepared Series'),
-        slug: s.slug,
-        description: s.description ?? null,
-        thumbnail_url: s.thumbnail_url ?? null,
-        series_type: normalizeMockSeriesType(s.series_type),
-        is_premium: Boolean(s.is_premium),
-        is_published: Boolean(s.is_published),
-        category_name: String(s._categoryName || exam.displayName),
-        test_count: testCountBySeries.get(s.id) || 0,
-    }));
+    const matchedSeries: PreparedMockSeriesItem[] = Array.from(matchedSeriesMap.values()).map((s) => {
+        const priceInr = Math.max(0, Number(s.price_inr ?? 0));
+        return {
+            id: s.id,
+            category_id: s.category_id,
+            name: String(s.name ?? 'Prepared Series'),
+            slug: s.slug,
+            description: s.description ?? null,
+            thumbnail_url: s.thumbnail_url ?? null,
+            series_type: normalizeMockSeriesType(s.series_type),
+            course_type: normalizeCourseType(s.course_type),
+            price_inr: priceInr,
+            mrp_inr: s.mrp_inr != null ? Number(s.mrp_inr) : null,
+            validity_days: Number(s.validity_days ?? 365),
+            free_demo_count: Number(s.free_demo_count ?? 1),
+            is_premium: Boolean(s.is_premium) || priceInr > 0,
+            is_published: Boolean(s.is_published),
+            category_name: String(s._categoryName || exam.displayName),
+            test_count: testCountBySeries.get(s.id) || 0,
+        };
+    });
 
     const matchedCategories = activeCategories.filter((c) => matchedCategoryIds.has(c.id));
 
@@ -2015,12 +2088,14 @@ const purgeCatalogAndQuestionCachesInternal = (options: {
     memoryCatalogCache = null;
     memorySeriesCatalogCache = null;
     memoryHomeCache = null;
+    memoryLiveTestsCache = null;
     safeRemoveLocalStorage(MOCK_CATALOG_STORAGE_KEY);
     safeRemoveLocalStorage(MOCK_SERIES_CATALOG_STORAGE_KEY);
     safeRemoveLocalStorage(MOCK_HOME_STORAGE_KEY);
+    safeRemoveLocalStorage(MOCK_LIVE_TESTS_STORAGE_KEY);
 
     const lsPrefixes: string[] = [];
-    const idbPrefixes: string[] = [MOCK_CATALOG_IDB_KEY, MOCK_SERIES_CATALOG_IDB_KEY, MOCK_HOME_IDB_KEY];
+    const idbPrefixes: string[] = [MOCK_CATALOG_IDB_KEY, MOCK_SERIES_CATALOG_IDB_KEY, MOCK_HOME_IDB_KEY, MOCK_LIVE_TESTS_IDB_KEY];
 
     if (trimmedTestId) {
         memoryTestDetailCache.delete(trimmedTestId);
@@ -2159,6 +2234,32 @@ export const invalidatePreparedMockPostReplayCaches = (userId: string): void => 
     emitMockCacheInvalidatedEvent({ scope: 'attempt_replay' });
 };
 
+export const invalidateCoursePurchaseCaches = (userId?: string | null): void => {
+    const trimmedUserId = userId ? String(userId).trim() : '';
+    if (trimmedUserId) {
+        memoryEntitlementsCache.delete(trimmedUserId);
+        memoryReceiptsCache.delete(trimmedUserId);
+        safeRemoveLocalStorage(`${MOCK_ENTITLEMENTS_STORAGE_PREFIX}${trimmedUserId}`);
+        safeRemoveLocalStorage(`${MOCK_RECEIPTS_STORAGE_PREFIX}${trimmedUserId}`);
+        db.deleteCacheEntriesByPrefix?.([
+            `${MOCK_ENTITLEMENTS_IDB_PREFIX}${trimmedUserId}`,
+            `${MOCK_RECEIPTS_IDB_PREFIX}${trimmedUserId}`,
+        ])?.catch(() => {});
+    } else {
+        memoryEntitlementsCache.clear();
+        memoryReceiptsCache.clear();
+        removeLocalStorageKeysByPrefixes([
+            MOCK_ENTITLEMENTS_STORAGE_PREFIX,
+            MOCK_RECEIPTS_STORAGE_PREFIX,
+        ]);
+        db.deleteCacheEntriesByPrefix?.([
+            MOCK_ENTITLEMENTS_IDB_PREFIX,
+            MOCK_RECEIPTS_IDB_PREFIX,
+        ])?.catch(() => {});
+    }
+    emitMockCacheInvalidatedEvent({ scope: 'catalog' });
+};
+
 /**
  * Clears all in-memory, `localStorage`, and IndexedDB prepared mock-test caches.
  */
@@ -2166,6 +2267,7 @@ export const clearPreparedMockTestsCache = (userId?: string | null): void => {
     memoryCatalogCache = null;
     memorySeriesCatalogCache = null;
     memoryHomeCache = null;
+    memoryLiveTestsCache = null;
     memoryTestDetailCache.clear();
     memoryTestQuestionsCache.clear();
     memorySeriesBundleCache.clear();
@@ -2179,6 +2281,10 @@ export const clearPreparedMockTestsCache = (userId?: string | null): void => {
         safeRemoveLocalStorage(`${MOCK_SAVED_TESTS_STORAGE_PREFIX}${trimmedUserId}`);
         memoryContinueLearningCache.delete(trimmedUserId);
         safeRemoveLocalStorage(`${MOCK_CONTINUE_LEARNING_STORAGE_PREFIX}${trimmedUserId}`);
+        memoryEntitlementsCache.delete(trimmedUserId);
+        safeRemoveLocalStorage(`${MOCK_ENTITLEMENTS_STORAGE_PREFIX}${trimmedUserId}`);
+        memoryReceiptsCache.delete(trimmedUserId);
+        safeRemoveLocalStorage(`${MOCK_RECEIPTS_STORAGE_PREFIX}${trimmedUserId}`);
 
         const userPrefix = `${trimmedUserId}_`;
         for (const key of Array.from(memoryTestAttemptsCache.keys())) {
@@ -2214,12 +2320,15 @@ export const clearPreparedMockTestsCache = (userId?: string | null): void => {
             MOCK_CATALOG_IDB_KEY,
             MOCK_SERIES_CATALOG_IDB_KEY,
             MOCK_HOME_IDB_KEY,
+            MOCK_LIVE_TESTS_IDB_KEY,
             MOCK_TEST_DETAIL_IDB_PREFIX,
             MOCK_TEST_QUESTIONS_IDB_PREFIX,
             MOCK_SERIES_BUNDLE_IDB_PREFIX,
             `${MOCK_ATTEMPTS_IDB_PREFIX}${trimmedUserId}`,
             `${MOCK_SAVED_TESTS_IDB_PREFIX}${trimmedUserId}`,
             `${MOCK_CONTINUE_LEARNING_IDB_PREFIX}${trimmedUserId}`,
+            `${MOCK_ENTITLEMENTS_IDB_PREFIX}${trimmedUserId}`,
+            `${MOCK_RECEIPTS_IDB_PREFIX}${trimmedUserId}`,
             `${MOCK_TEST_ATTEMPTS_IDB_PREFIX}${userPrefix}`,
             `${MOCK_ACTIVE_ATTEMPT_IDB_PREFIX}${userPrefix}`,
             `${MOCK_SERIES_ATTEMPTS_IDB_PREFIX}${userPrefix}`,
@@ -2233,6 +2342,8 @@ export const clearPreparedMockTestsCache = (userId?: string | null): void => {
         memoryContinueLearningCache.clear();
         memorySeriesAttemptsCache.clear();
         memoryAttemptDetailCache.clear();
+        memoryEntitlementsCache.clear();
+        memoryReceiptsCache.clear();
 
         removeLocalStorageKeysByPrefixes([
             MOCK_TEST_DETAIL_STORAGE_PREFIX,
@@ -2242,6 +2353,8 @@ export const clearPreparedMockTestsCache = (userId?: string | null): void => {
             MOCK_TEST_QUESTIONS_STORAGE_PREFIX,
             MOCK_ACTIVE_ATTEMPT_STORAGE_PREFIX,
             MOCK_CONTINUE_LEARNING_STORAGE_PREFIX,
+            MOCK_ENTITLEMENTS_STORAGE_PREFIX,
+            MOCK_RECEIPTS_STORAGE_PREFIX,
             MOCK_SERIES_BUNDLE_STORAGE_PREFIX,
             MOCK_SERIES_ATTEMPTS_STORAGE_PREFIX,
             MOCK_LEADERBOARD_STORAGE_PREFIX,
@@ -2252,6 +2365,7 @@ export const clearPreparedMockTestsCache = (userId?: string | null): void => {
             MOCK_CATALOG_IDB_KEY,
             MOCK_SERIES_CATALOG_IDB_KEY,
             MOCK_HOME_IDB_KEY,
+            MOCK_LIVE_TESTS_IDB_KEY,
             MOCK_TEST_DETAIL_IDB_PREFIX,
             MOCK_TEST_ATTEMPTS_IDB_PREFIX,
             MOCK_SAVED_TESTS_IDB_PREFIX,
@@ -2259,6 +2373,8 @@ export const clearPreparedMockTestsCache = (userId?: string | null): void => {
             MOCK_TEST_QUESTIONS_IDB_PREFIX,
             MOCK_ACTIVE_ATTEMPT_IDB_PREFIX,
             MOCK_CONTINUE_LEARNING_IDB_PREFIX,
+            MOCK_ENTITLEMENTS_IDB_PREFIX,
+            MOCK_RECEIPTS_IDB_PREFIX,
             MOCK_SERIES_BUNDLE_IDB_PREFIX,
             MOCK_SERIES_ATTEMPTS_IDB_PREFIX,
             MOCK_LEADERBOARD_IDB_PREFIX,
@@ -2268,6 +2384,7 @@ export const clearPreparedMockTestsCache = (userId?: string | null): void => {
     safeRemoveLocalStorage(MOCK_CATALOG_STORAGE_KEY);
     safeRemoveLocalStorage(MOCK_SERIES_CATALOG_STORAGE_KEY);
     safeRemoveLocalStorage(MOCK_HOME_STORAGE_KEY);
+    safeRemoveLocalStorage(MOCK_LIVE_TESTS_STORAGE_KEY);
 };
 
 /**
@@ -4731,6 +4848,11 @@ export interface PublishedMockSeriesCatalogItem {
     description?: string | null;
     thumbnail_url?: string | null;
     series_type: MockSeriesType;
+    course_type: CourseType;
+    price_inr: number;
+    mrp_inr: number | null;
+    validity_days: number;
+    free_demo_count: number;
     is_premium: boolean;
     is_published: boolean;
     created_at?: string | null;
@@ -4842,21 +4964,36 @@ export const materializePublishedMockSeriesCatalog = (
     }
 
     const series: PublishedMockSeriesCatalogItem[] = visibleSeriesRaw.map(
-        ({ raw, categoryName, categoryObj }) => ({
-            id: String(raw.id),
-            category_id: String(raw.category_id ?? categoryObj?.id ?? ''),
-            name: String(raw.name ?? 'Untitled Series'),
-            slug: raw.slug ? String(raw.slug) : undefined,
-            description: raw.description ?? null,
-            thumbnail_url: raw.thumbnail_url ?? null,
-            series_type: normalizeMockSeriesType(raw?.series_type),
-            is_premium: Boolean(raw.is_premium),
-            is_published: Boolean(raw.is_published),
-            created_at: raw.created_at ?? null,
-            category_name: categoryName,
-            published_test_count: testCountBySeries.get(String(raw.id)) || 0,
-            ...(categoryObj ? { [DB_TABLES.MOCK.CATEGORIES]: categoryObj } : {}),
-        })
+        ({ raw, categoryName, categoryObj }) => {
+            const rawPrice = raw.price_inr != null ? Number(raw.price_inr) : 0;
+            const priceInr = Number.isFinite(rawPrice) ? Math.max(0, Math.round(rawPrice)) : 0;
+            const rawMrp = raw.mrp_inr != null ? Number(raw.mrp_inr) : null;
+            const mrpInr = rawMrp !== null && Number.isFinite(rawMrp) ? Math.max(priceInr, Math.round(rawMrp)) : null;
+            const rawValidity = raw.validity_days != null ? Number(raw.validity_days) : 365;
+            const validityDays = Number.isFinite(rawValidity) ? Math.min(3650, Math.max(1, Math.round(rawValidity))) : 365;
+            const rawDemo = raw.free_demo_count != null ? Number(raw.free_demo_count) : 1;
+            const freeDemoCount = Number.isFinite(rawDemo) ? Math.min(50, Math.max(0, Math.round(rawDemo))) : 1;
+            return {
+                id: String(raw.id),
+                category_id: String(raw.category_id ?? categoryObj?.id ?? ''),
+                name: String(raw.name ?? 'Untitled Series'),
+                slug: raw.slug ? String(raw.slug) : undefined,
+                description: raw.description ?? null,
+                thumbnail_url: raw.thumbnail_url ?? null,
+                series_type: normalizeMockSeriesType(raw?.series_type),
+                course_type: normalizeCourseType(raw?.course_type),
+                price_inr: priceInr,
+                mrp_inr: mrpInr,
+                validity_days: validityDays,
+                free_demo_count: freeDemoCount,
+                is_premium: Boolean(raw.is_premium) || priceInr > 0,
+                is_published: Boolean(raw.is_published),
+                created_at: raw.created_at ?? null,
+                category_name: categoryName,
+                published_test_count: testCountBySeries.get(String(raw.id)) || 0,
+                ...(categoryObj ? { [DB_TABLES.MOCK.CATEGORIES]: categoryObj } : {}),
+            };
+        }
     );
 
     return {
@@ -5028,4 +5165,662 @@ export const fetchAllPublishedMockSeriesCatalog = async (options?: {
         'network',
         fetchedAt
     );
+};
+
+
+// ============================================================================
+// COURSE ENTITLEMENTS, PURCHASE RECEIPTS, LIVE TESTS & ACCESS RESOLUTION (v1.0.383)
+// ============================================================================
+
+export interface UserCourseEntitlementItem {
+    id: string;
+    user_id: string;
+    student_id_snapshot: string;
+    series_id: string;
+    series_name?: string | null;
+    course_type: CourseType;
+    target_route: string | null;
+    payment_id: string | null;
+    status: 'pending' | 'active' | 'expired' | 'revoked';
+    starts_at: string;
+    valid_until: string;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface UserPaymentReceiptItem {
+    id: string;
+    user_id: string;
+    order_code: string;
+    razorpay_order_id: string | null;
+    razorpay_payment_id: string | null;
+    amount_inr: number;
+    currency: string;
+    status: string;
+    plan_purchased: string;
+    series_id: string | null;
+    series_name: string;
+    course_type: CourseType;
+    target_route: string | null;
+    validity_days: number | null;
+    valid_until: string | null;
+    payment_method: 'upi_manual' | 'admin_grant' | 'razorpay';
+    upi_reference: string | null;
+    student_id_snapshot: string | null;
+    admin_note: string | null;
+    created_at: string;
+}
+
+export interface CoursePaymentRequestResult {
+    ok: boolean;
+    payment_id: string;
+    order_code: string;
+    status: 'pending_verification';
+    student_id: string;
+    amount_inr: number;
+    series_id: string;
+    series_name: string;
+    target_route: string;
+    validity_days: number;
+    upi_reference: string;
+    created_at: string;
+}
+
+export interface MockTestAccessResolution {
+    unlocked: boolean;
+    reason: 'free_series' | 'entitled' | 'free_demo' | 'locked_paid';
+    isPaidSeries: boolean;
+    isFreeDemo: boolean;
+    hasActiveEntitlement: boolean;
+    priceInr: number;
+    mrpInr: number | null;
+    validityDays: number;
+    validUntil: string | null;
+    freeDemoCount: number;
+}
+
+export const resolveMockTestAccess = (params: {
+    test: any;
+    series?: any;
+    entitlements?: UserCourseEntitlementItem[] | null;
+    orderedSeriesTests?: any[] | null;
+    nowMs?: number;
+}): MockTestAccessResolution => {
+    const nowMs = params.nowMs ?? Date.now();
+    const test = params.test;
+    const seriesObj =
+        params.series ??
+        test?.[DB_TABLES.MOCK.SERIES] ??
+        test?.mock_series ??
+        test?.test_series ??
+        null;
+
+    const rawPrice = seriesObj?.price_inr ?? test?.series_price_inr ?? 0;
+    const priceInr = Number.isFinite(Number(rawPrice)) ? Math.max(0, Math.round(Number(rawPrice))) : 0;
+    const rawMrp = seriesObj?.mrp_inr ?? null;
+    const mrpInr =
+        rawMrp !== null && rawMrp !== undefined && Number.isFinite(Number(rawMrp))
+            ? Math.max(priceInr, Math.round(Number(rawMrp)))
+            : null;
+    const rawValidity = seriesObj?.validity_days ?? 365;
+    const validityDays = Number.isFinite(Number(rawValidity))
+        ? Math.min(3650, Math.max(1, Math.round(Number(rawValidity))))
+        : 365;
+    const rawDemoCount = seriesObj?.free_demo_count ?? 1;
+    const freeDemoCount = Number.isFinite(Number(rawDemoCount))
+        ? Math.min(50, Math.max(0, Math.round(Number(rawDemoCount))))
+        : 1;
+
+    const isPaidSeries = seriesObj
+        ? isMockSeriesPaid(seriesObj)
+        : test?.series_is_premium !== undefined || test?.series_price_inr !== undefined
+          ? Boolean(test?.series_is_premium) || Number(test?.series_price_inr ?? 0) > 0
+          : test?.is_free !== undefined
+            ? !Boolean(test?.is_free)
+            : true;
+
+    const targetSeriesId = String(seriesObj?.id ?? test?.series_id ?? '').trim();
+
+    const activeEntitlement =
+        (params.entitlements || []).find((ent) => {
+            if (!ent || ent.status !== 'active') return false;
+            const validMs = Date.parse(String(ent.valid_until ?? ''));
+            if (!Number.isFinite(validMs) || validMs <= nowMs) return false;
+            if (ent.course_type === 'bundle' && !ent.series_id) return true;
+            return targetSeriesId !== '' && String(ent.series_id ?? '') === targetSeriesId;
+        }) ?? null;
+
+    let isDemoByOrder = false;
+    if (Array.isArray(params.orderedSeriesTests) && freeDemoCount > 0 && test?.id) {
+        const sorted = [...params.orderedSeriesTests]
+            .filter((item) => item && item.is_published !== false)
+            .sort((a, b) => {
+                const orderDiff = Number(a.display_order ?? 0) - Number(b.display_order ?? 0);
+                if (orderDiff !== 0) return orderDiff;
+                const aTime = a.created_at ? Date.parse(String(a.created_at)) : 0;
+                const bTime = b.created_at ? Date.parse(String(b.created_at)) : 0;
+                return (Number.isFinite(bTime) ? bTime : 0) - (Number.isFinite(aTime) ? aTime : 0);
+            });
+        const idx = sorted.findIndex((item) => String(item.id) === String(test.id));
+        isDemoByOrder = idx >= 0 && idx < freeDemoCount;
+    }
+
+    const isFreeDemo = Boolean(test?.is_free_demo) || isDemoByOrder;
+
+    if (!isPaidSeries) {
+        return {
+            unlocked: true,
+            reason: 'free_series',
+            isPaidSeries: false,
+            isFreeDemo: false,
+            hasActiveEntitlement: Boolean(activeEntitlement),
+            priceInr: 0,
+            mrpInr: null,
+            validityDays,
+            validUntil: activeEntitlement?.valid_until ?? null,
+            freeDemoCount,
+        };
+    }
+
+    if (activeEntitlement) {
+        return {
+            unlocked: true,
+            reason: 'entitled',
+            isPaidSeries: true,
+            isFreeDemo,
+            hasActiveEntitlement: true,
+            priceInr,
+            mrpInr,
+            validityDays,
+            validUntil: activeEntitlement.valid_until,
+            freeDemoCount,
+        };
+    }
+
+    if (isFreeDemo) {
+        return {
+            unlocked: true,
+            reason: 'free_demo',
+            isPaidSeries: true,
+            isFreeDemo: true,
+            hasActiveEntitlement: false,
+            priceInr,
+            mrpInr,
+            validityDays,
+            validUntil: null,
+            freeDemoCount,
+        };
+    }
+
+    return {
+        unlocked: false,
+        reason: 'locked_paid',
+        isPaidSeries: true,
+        isFreeDemo: false,
+        hasActiveEntitlement: false,
+        priceInr,
+        mrpInr,
+        validityDays,
+        validUntil: null,
+        freeDemoCount,
+    };
+};
+
+const sanitizeEntitlementRow = (row: any): UserCourseEntitlementItem | null => {
+    if (!row || !row.id) return null;
+    const embeddedSeries = row[DB_TABLES.MOCK.SERIES] ?? row.mock_series ?? null;
+    const resolvedSeriesName =
+        String(embeddedSeries?.name ?? row.series_name ?? '').trim() || null;
+    const statusRaw = String(row.status ?? 'active');
+    const status: UserCourseEntitlementItem['status'] =
+        statusRaw === 'pending' || statusRaw === 'expired' || statusRaw === 'revoked'
+            ? statusRaw
+            : 'active';
+    return {
+        id: String(row.id),
+        user_id: String(row.user_id ?? ''),
+        student_id_snapshot: String(row.student_id_snapshot ?? ''),
+        series_id: String(row.series_id ?? ''),
+        series_name: resolvedSeriesName,
+        course_type: normalizeCourseType(row.course_type),
+        target_route: row.target_route ? String(row.target_route) : null,
+        payment_id: row.payment_id ? String(row.payment_id) : null,
+        status,
+        starts_at: String(row.starts_at ?? row.created_at ?? ''),
+        valid_until: String(row.valid_until ?? ''),
+        created_at: String(row.created_at ?? ''),
+        updated_at: String(row.updated_at ?? row.created_at ?? ''),
+    };
+};
+
+const sanitizeReceiptRow = (row: any): UserPaymentReceiptItem | null => {
+    if (!row || !row.id) return null;
+    const embeddedSeries = row[DB_TABLES.MOCK.SERIES] ?? row.mock_series ?? null;
+    const seriesName =
+        String(embeddedSeries?.name ?? '').trim() ||
+        String(row.plan_purchased ?? '').trim() ||
+        'MindFlow Course';
+    const orderCode =
+        String(row.order_code ?? '').trim() ||
+        String(row.razorpay_order_id ?? '').trim() ||
+        String(row.razorpay_payment_id ?? '').trim() ||
+        `MF-${String(row.id).slice(0, 8).toUpperCase()}`;
+    const methodRaw = String(row.payment_method ?? 'upi_manual');
+    const paymentMethod: UserPaymentReceiptItem['payment_method'] =
+        methodRaw === 'admin_grant' || methodRaw === 'razorpay' ? methodRaw : 'upi_manual';
+    const rawAmount = row.amount != null ? Number(row.amount) : 0;
+
+    return {
+        id: String(row.id),
+        user_id: String(row.user_id ?? ''),
+        order_code: orderCode,
+        razorpay_order_id: row.razorpay_order_id ? String(row.razorpay_order_id) : null,
+        razorpay_payment_id: row.razorpay_payment_id ? String(row.razorpay_payment_id) : null,
+        amount_inr: Number.isFinite(rawAmount) ? Math.max(0, Math.round(rawAmount)) : 0,
+        currency: String(row.currency ?? 'INR'),
+        status: String(row.status ?? 'pending_verification'),
+        plan_purchased: String(row.plan_purchased ?? seriesName),
+        series_id: row.series_id ? String(row.series_id) : null,
+        series_name: seriesName,
+        course_type: normalizeCourseType(row.course_type),
+        target_route: row.target_route
+            ? String(row.target_route)
+            : row.series_id
+              ? `/mcqs/test-series/series/${String(row.series_id)}`
+              : null,
+        validity_days:
+            row.validity_days != null && Number.isFinite(Number(row.validity_days))
+                ? Number(row.validity_days)
+                : null,
+        valid_until: row.valid_until ? String(row.valid_until) : null,
+        payment_method: paymentMethod,
+        upi_reference: row.upi_reference ? String(row.upi_reference) : null,
+        student_id_snapshot: row.student_id_snapshot ? String(row.student_id_snapshot) : null,
+        admin_note: row.admin_note ? String(row.admin_note) : null,
+        created_at: String(row.created_at ?? ''),
+    };
+};
+
+export const getCachedUserCourseEntitlementsSnapshot = (
+    userId?: string | null
+): UserCourseEntitlementItem[] | null => {
+    const trimmed = userId ? String(userId).trim() : '';
+    if (!trimmed) return null;
+
+    const mem = memoryEntitlementsCache.get(trimmed);
+    if (mem) return mem.entitlements;
+
+    const stored = safeReadLocalStorage<{
+        entitlements: UserCourseEntitlementItem[];
+        fetchedAt: number;
+    }>(`${MOCK_ENTITLEMENTS_STORAGE_PREFIX}${trimmed}`);
+    if (stored && Array.isArray(stored.entitlements)) {
+        memoryEntitlementsCache.set(trimmed, stored);
+        return stored.entitlements;
+    }
+
+    return null;
+};
+
+export const readUserCourseEntitlementsIndexedDBCache = async (
+    userId?: string | null
+): Promise<UserCourseEntitlementItem[] | null> => {
+    const trimmed = userId ? String(userId).trim() : '';
+    if (!trimmed) return null;
+
+    const syncSnapshot = getCachedUserCourseEntitlementsSnapshot(trimmed);
+    if (syncSnapshot) return syncSnapshot;
+
+    try {
+        const entry = await db.getCacheEntry<{
+            entitlements: UserCourseEntitlementItem[];
+            fetchedAt: number;
+        }>(`${MOCK_ENTITLEMENTS_IDB_PREFIX}${trimmed}`);
+        if (entry?.data && Array.isArray(entry.data.entitlements)) {
+            memoryEntitlementsCache.set(trimmed, entry.data);
+            safeWriteLocalStorage(`${MOCK_ENTITLEMENTS_STORAGE_PREFIX}${trimmed}`, entry.data);
+            return entry.data.entitlements;
+        }
+    } catch {
+        // Ignore IDB errors
+    }
+
+    return null;
+};
+
+export const fetchUserCourseEntitlements = async (
+    userId: string,
+    options?: { forceRefresh?: boolean }
+): Promise<UserCourseEntitlementItem[]> => {
+    const trimmed = String(userId ?? '').trim();
+    if (!trimmed) return [];
+
+    if (!options?.forceRefresh) {
+        const mem = memoryEntitlementsCache.get(trimmed);
+        if (mem && isMockCacheFresh(mem.fetchedAt, MOCK_SWR_STALE_TIMES_MS.ENTITLEMENTS)) {
+            return mem.entitlements;
+        }
+        const stored = safeReadLocalStorage<{
+            entitlements: UserCourseEntitlementItem[];
+            fetchedAt: number;
+        }>(`${MOCK_ENTITLEMENTS_STORAGE_PREFIX}${trimmed}`);
+        if (
+            stored &&
+            Array.isArray(stored.entitlements) &&
+            isMockCacheFresh(stored.fetchedAt, MOCK_SWR_STALE_TIMES_MS.ENTITLEMENTS)
+        ) {
+            memoryEntitlementsCache.set(trimmed, stored);
+            return stored.entitlements;
+        }
+    }
+
+    if (typeof (supabase as any)?.from !== 'function') {
+        return getCachedUserCourseEntitlementsSnapshot(trimmed) ?? [];
+    }
+
+    const { data, error } = await supabase
+        .from(DB_TABLES.BILLING.ENTITLEMENTS)
+        .select(`*, ${DB_TABLES.MOCK.SERIES}(id, name)`)
+        .eq('user_id', trimmed)
+        .order('valid_until', { ascending: false });
+
+    if (error) throw error;
+
+    const entitlements = (data || [])
+        .map(sanitizeEntitlementRow)
+        .filter((item): item is UserCourseEntitlementItem => item !== null);
+
+    const payload = { entitlements, fetchedAt: Date.now() };
+    memoryEntitlementsCache.set(trimmed, payload);
+    safeWriteLocalStorage(`${MOCK_ENTITLEMENTS_STORAGE_PREFIX}${trimmed}`, payload);
+    db.setCacheEntry(`${MOCK_ENTITLEMENTS_IDB_PREFIX}${trimmed}`, payload).catch(() => {});
+
+    return entitlements;
+};
+
+export const getCachedUserPurchaseReceiptsSnapshot = (
+    userId?: string | null
+): UserPaymentReceiptItem[] | null => {
+    const trimmed = userId ? String(userId).trim() : '';
+    if (!trimmed) return null;
+
+    const mem = memoryReceiptsCache.get(trimmed);
+    if (mem) return mem.receipts;
+
+    const stored = safeReadLocalStorage<{
+        receipts: UserPaymentReceiptItem[];
+        fetchedAt: number;
+    }>(`${MOCK_RECEIPTS_STORAGE_PREFIX}${trimmed}`);
+    if (stored && Array.isArray(stored.receipts)) {
+        memoryReceiptsCache.set(trimmed, stored);
+        return stored.receipts;
+    }
+
+    return null;
+};
+
+export const readUserPurchaseReceiptsIndexedDBCache = async (
+    userId?: string | null
+): Promise<UserPaymentReceiptItem[] | null> => {
+    const trimmed = userId ? String(userId).trim() : '';
+    if (!trimmed) return null;
+
+    const syncSnapshot = getCachedUserPurchaseReceiptsSnapshot(trimmed);
+    if (syncSnapshot) return syncSnapshot;
+
+    try {
+        const entry = await db.getCacheEntry<{
+            receipts: UserPaymentReceiptItem[];
+            fetchedAt: number;
+        }>(`${MOCK_RECEIPTS_IDB_PREFIX}${trimmed}`);
+        if (entry?.data && Array.isArray(entry.data.receipts)) {
+            memoryReceiptsCache.set(trimmed, entry.data);
+            safeWriteLocalStorage(`${MOCK_RECEIPTS_STORAGE_PREFIX}${trimmed}`, entry.data);
+            return entry.data.receipts;
+        }
+    } catch {
+        // Ignore IDB errors
+    }
+
+    return null;
+};
+
+export const fetchUserPurchaseReceipts = async (
+    userId: string,
+    options?: { forceRefresh?: boolean }
+): Promise<UserPaymentReceiptItem[]> => {
+    const trimmed = String(userId ?? '').trim();
+    if (!trimmed) return [];
+
+    if (!options?.forceRefresh) {
+        const mem = memoryReceiptsCache.get(trimmed);
+        if (mem && isMockCacheFresh(mem.fetchedAt, MOCK_SWR_STALE_TIMES_MS.RECEIPTS)) {
+            return mem.receipts;
+        }
+        const stored = safeReadLocalStorage<{
+            receipts: UserPaymentReceiptItem[];
+            fetchedAt: number;
+        }>(`${MOCK_RECEIPTS_STORAGE_PREFIX}${trimmed}`);
+        if (
+            stored &&
+            Array.isArray(stored.receipts) &&
+            isMockCacheFresh(stored.fetchedAt, MOCK_SWR_STALE_TIMES_MS.RECEIPTS)
+        ) {
+            memoryReceiptsCache.set(trimmed, stored);
+            return stored.receipts;
+        }
+    }
+
+    if (typeof (supabase as any)?.from !== 'function') {
+        return getCachedUserPurchaseReceiptsSnapshot(trimmed) ?? [];
+    }
+
+    const { data, error } = await supabase
+        .from(DB_TABLES.BILLING.PAYMENTS)
+        .select(
+            `id, user_id, created_at, order_code, razorpay_order_id, razorpay_payment_id, amount, currency, status, plan_purchased, series_id, course_type, target_route, validity_days, valid_until, payment_method, upi_reference, student_id_snapshot, admin_note, ${DB_TABLES.MOCK.SERIES}(id, name, slug)`
+        )
+        .eq('user_id', trimmed)
+        .order('created_at', { ascending: false });
+
+    if (error) throw error;
+
+    const receipts = (data || [])
+        .map(sanitizeReceiptRow)
+        .filter((item): item is UserPaymentReceiptItem => item !== null)
+        .sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at));
+
+    const payload = { receipts, fetchedAt: Date.now() };
+    memoryReceiptsCache.set(trimmed, payload);
+    safeWriteLocalStorage(`${MOCK_RECEIPTS_STORAGE_PREFIX}${trimmed}`, payload);
+    db.setCacheEntry(`${MOCK_RECEIPTS_IDB_PREFIX}${trimmed}`, payload).catch(() => {});
+
+    return receipts;
+};
+
+export const submitCoursePaymentRequest = async (params: {
+    seriesId: string;
+    upiReference: string;
+    userId?: string | null;
+}): Promise<CoursePaymentRequestResult> => {
+    const cleanRef = String(params.upiReference ?? '')
+        .trim()
+        .replace(/\s+/g, '')
+        .toUpperCase();
+    if (cleanRef.length < 6 || cleanRef.length > 64) {
+        throw new Error('Enter a valid UPI Transaction Reference / UTR (6–64 characters).');
+    }
+
+    const { data, error } = await (supabase as any).rpc(DB_RPCS.SUBMIT_COURSE_PAYMENT_REQUEST, {
+        p_series_id: params.seriesId,
+        p_upi_reference: cleanRef,
+    });
+
+    if (error) {
+        throw new Error(error.message || 'Unable to submit payment request.');
+    }
+
+    invalidateCoursePurchaseCaches(params.userId ?? null);
+    return data as CoursePaymentRequestResult;
+};
+
+export const isTestCurrentlyLive = (
+    test: {
+        is_published?: boolean | null;
+        is_live?: boolean | null;
+        release_date?: string | null;
+        expiry_date?: string | null;
+        live_start_at?: string | null;
+        live_end_at?: string | null;
+    } | null | undefined,
+    nowMs: number = Date.now()
+): boolean => {
+    if (!test || test.is_published === false || !test.is_live) return false;
+    if (!isTestWithinScheduleWindow(test, nowMs)) return false;
+
+    if (test.live_end_at) {
+        const endMs = Date.parse(String(test.live_end_at));
+        if (!Number.isFinite(endMs) || endMs <= nowMs) return false;
+    }
+
+    return true;
+};
+
+export const getCachedLiveMockTestsSnapshot = (
+    nowMs: number = Date.now()
+): PreparedMockTestItem[] | null => {
+    const candidate =
+        memoryLiveTestsCache ??
+        safeReadLocalStorage<{ tests: PreparedMockTestItem[]; fetchedAt: number }>(
+            MOCK_LIVE_TESTS_STORAGE_KEY
+        );
+    if (!candidate || !Array.isArray(candidate.tests)) return null;
+    memoryLiveTestsCache = candidate;
+    return candidate.tests.filter((t) => isTestCurrentlyLive(t, nowMs));
+};
+
+export const readLiveMockTestsIndexedDBCache = async (
+    nowMs: number = Date.now()
+): Promise<PreparedMockTestItem[] | null> => {
+    const sync = getCachedLiveMockTestsSnapshot(nowMs);
+    if (sync) return sync;
+
+    try {
+        const entry = await db.getCacheEntry<{
+            tests: PreparedMockTestItem[];
+            fetchedAt: number;
+        }>(MOCK_LIVE_TESTS_IDB_KEY);
+        if (entry?.data && Array.isArray(entry.data.tests)) {
+            memoryLiveTestsCache = entry.data;
+            safeWriteLocalStorage(MOCK_LIVE_TESTS_STORAGE_KEY, entry.data);
+            return entry.data.tests.filter((t) => isTestCurrentlyLive(t, nowMs));
+        }
+    } catch {
+        // Ignore IDB errors
+    }
+    return null;
+};
+
+export const fetchLiveMockTests = async (options?: {
+    userId?: string | null;
+    forceRefresh?: boolean;
+    nowMs?: number;
+}): Promise<PreparedMockTestItem[]> => {
+    const nowMs = options?.nowMs ?? Date.now();
+    const userId = options?.userId ? String(options.userId).trim() : null;
+
+    if (!options?.forceRefresh) {
+        const cached =
+            memoryLiveTestsCache ??
+            safeReadLocalStorage<{ tests: PreparedMockTestItem[]; fetchedAt: number }>(
+                MOCK_LIVE_TESTS_STORAGE_KEY
+            );
+        if (
+            cached &&
+            Array.isArray(cached.tests) &&
+            isMockCacheFresh(cached.fetchedAt, MOCK_SWR_STALE_TIMES_MS.LIVE_TESTS, nowMs)
+        ) {
+            memoryLiveTestsCache = cached;
+            return cached.tests.filter((t) => isTestCurrentlyLive(t, nowMs));
+        }
+    }
+
+    if (typeof (supabase as any)?.from !== 'function') {
+        return getCachedLiveMockTestsSnapshot(nowMs) ?? [];
+    }
+
+    const { data, error } = await supabase
+        .from(DB_TABLES.MOCK.TESTS)
+        .select(
+            `*, ${DB_TABLES.MOCK.SERIES}!inner(id, name, category_id, is_premium, is_published, series_type, price_inr, mrp_inr, validity_days, free_demo_count, course_type, ${DB_TABLES.MOCK.CATEGORIES}!inner(id, name, is_active))`
+        )
+        .eq('is_published', true)
+        .eq('is_live', true)
+        .eq(`${DB_TABLES.MOCK.SERIES}.is_published`, true)
+        .eq(`${DB_TABLES.MOCK.SERIES}.${DB_TABLES.MOCK.CATEGORIES}.is_active`, true)
+        .order('live_start_at', { ascending: true, nullsFirst: false })
+        .order('display_order', { ascending: true });
+
+    if (error) throw error;
+
+    let attemptedIds = new Set<string>();
+    if (userId) {
+        const memAttempted = memoryAttemptsCache.get(userId)?.ids;
+        const storedAttempted = !memAttempted
+            ? safeReadLocalStorage<{ ids?: string[] }>(`${MOCK_ATTEMPTS_STORAGE_PREFIX}${userId}`)?.ids
+            : undefined;
+        const cachedAttempts = memAttempted ?? storedAttempted;
+        if (Array.isArray(cachedAttempts)) {
+            attemptedIds = new Set(cachedAttempts);
+        }
+    }
+
+    const projected: PreparedMockTestItem[] = (data || [])
+        .map((row: any) => normalizeTestRecord(row))
+        .filter((t: any) => isTestCurrentlyLive(t, nowMs))
+        .map((t: any) => {
+            const seriesObj = t[DB_TABLES.MOCK.SERIES] ?? t.mock_series ?? {};
+            const catObj =
+                seriesObj[DB_TABLES.MOCK.CATEGORIES] ?? seriesObj.mock_categories ?? {};
+            const questionIds = Array.isArray(t.question_ids) ? t.question_ids : [];
+            const seriesPriceInr = Math.max(0, Number(seriesObj?.price_inr ?? 0));
+            const seriesIsPremium = Boolean(seriesObj?.is_premium) || seriesPriceInr > 0;
+            return {
+                id: String(t.id),
+                series_id: String(t.series_id ?? seriesObj?.id ?? ''),
+                name: String(t.name ?? 'Live Mock Test'),
+                description: t.description ?? null,
+                test_type: normalizeMockTestType(t.test_type),
+                display_order: Number(t.display_order ?? 0),
+                duration_minutes: Number(t.duration_minutes ?? 0),
+                total_marks: Number(t.total_marks ?? 0),
+                passing_marks: Number(t.passing_marks ?? 0),
+                negative_marks: Number(t.negative_marks ?? 0),
+                question_ids: questionIds,
+                question_count: questionIds.length,
+                is_published: Boolean(t.is_published),
+                is_free_demo: Boolean(t.is_free_demo),
+                is_live: true,
+                live_start_at: t.live_start_at ?? null,
+                live_end_at: t.live_end_at ?? null,
+                release_date: t.release_date ?? null,
+                expiry_date: t.expiry_date ?? null,
+                created_at: t.created_at ?? null,
+                series_name: String(seriesObj?.name ?? 'Mock Series'),
+                series_is_premium: seriesIsPremium,
+                series_price_inr: seriesPriceInr,
+                category_id: catObj?.id ?? seriesObj?.category_id ?? null,
+                category_name: String(catObj?.name ?? 'Live Assessment'),
+                is_full_length: isFullLengthMockTest(t),
+                is_free: !seriesIsPremium || Boolean(t.is_free_demo),
+                is_attempted: attemptedIds.has(String(t.id)),
+            };
+        });
+
+    const payload = { tests: projected, fetchedAt: Date.now() };
+    memoryLiveTestsCache = payload;
+    safeWriteLocalStorage(MOCK_LIVE_TESTS_STORAGE_KEY, payload);
+    db.setCacheEntry(MOCK_LIVE_TESTS_IDB_KEY, payload).catch(() => {});
+
+    return projected;
 };

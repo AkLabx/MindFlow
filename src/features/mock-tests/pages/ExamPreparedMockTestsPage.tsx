@@ -63,7 +63,7 @@ export const ExamPreparedMockTestsPage: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const { examSlug } = useParams<{ examSlug?: string }>();
-    const { user } = useAuth();
+    const { user, profile } = useAuth();
     const searchInputId = useId();
 
     const effectiveSlug = examSlug || 'bpsc';
@@ -347,6 +347,16 @@ export const ExamPreparedMockTestsPage: React.FC = () => {
                 subtitle={`${publishedSeries.length} Series • ${scheduleValidTests.length} Published Tests`}
                 onBack={handleLogicalBack}
                 backLabel="Back"
+                badge={
+                    profile?.student_id ? (
+                        <span
+                            data-testid="exam-header-student-id"
+                            className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 text-[11px] font-mono font-black text-indigo-700 dark:text-indigo-300"
+                        >
+                            {profile.student_id}
+                        </span>
+                    ) : undefined
+                }
                 rightActions={refreshBtn}
                 maxWidthClass="max-w-6xl"
             />

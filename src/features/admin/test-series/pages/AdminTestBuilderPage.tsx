@@ -53,6 +53,10 @@ interface TestFormState {
     expiry_date: string;
     question_ids: string[];
     is_published: boolean;
+    is_free_demo: boolean;
+    is_live: boolean;
+    live_start_at: string;
+    live_end_at: string;
 }
 
 type FieldKey =
@@ -165,6 +169,10 @@ const buildFormState = (test: any | undefined, defaultSeriesId: string): TestFor
     expiry_date: toLocalDateTimeInput(test?.expiry_date),
     question_ids: Array.isArray(test?.question_ids) ? [...test.question_ids] : [],
     is_published: Boolean(test?.is_published),
+    is_free_demo: Boolean(test?.is_free_demo),
+    is_live: Boolean(test?.is_live),
+    live_start_at: toLocalDateTimeInput(test?.live_start_at),
+    live_end_at: toLocalDateTimeInput(test?.live_end_at),
 });
 
 export const AdminTestBuilderPage: React.FC = () => {
@@ -724,6 +732,10 @@ export const AdminTestBuilderPage: React.FC = () => {
                 display_order: Math.round(validation.parsed.displayOrder),
                 question_ids: formData.question_ids,
                 is_published: publishFlag,
+                is_free_demo: formData.is_free_demo,
+                is_live: formData.is_live,
+                live_start_at: formData.is_live ? fromLocalDateTimeInput(formData.live_start_at) : null,
+                live_end_at: formData.is_live ? fromLocalDateTimeInput(formData.live_end_at) : null,
                 release_date: fromLocalDateTimeInput(formData.release_date),
                 expiry_date: fromLocalDateTimeInput(formData.expiry_date),
             };
@@ -1701,6 +1713,116 @@ export const AdminTestBuilderPage: React.FC = () => {
                                             </p>
                                         )}
                                     </div>
+                                </div>
+
+                                {/* Demo Access & Live Test Strip Controls */}
+                                <div className="pt-4 border-t border-slate-100 dark:border-slate-700/60 space-y-3">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                        <div className="flex items-center justify-between p-4 rounded-xl bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-200/70 dark:border-emerald-800/50">
+                                            <div>
+                                                <label
+                                                    htmlFor="test-free-demo-toggle"
+                                                    className="font-bold text-sm text-slate-900 dark:text-white cursor-pointer"
+                                                >
+                                                    Free Demo Test
+                                                </label>
+                                                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                                                    Always unlocked in paid series for previewing.
+                                                </p>
+                                            </div>
+                                            <label className="relative inline-flex items-center min-h-[44px] min-w-[44px] justify-center cursor-pointer">
+                                                <input
+                                                    id="test-free-demo-toggle"
+                                                    name="is_free_demo"
+                                                    type="checkbox"
+                                                    checked={formData.is_free_demo}
+                                                    onChange={e =>
+                                                        setFormData(prev => ({
+                                                            ...prev,
+                                                            is_free_demo: e.target.checked,
+                                                        }))
+                                                    }
+                                                    className="sr-only peer"
+                                                />
+                                                <div className="relative w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-emerald-300 dark:peer-focus:ring-emerald-800 rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-600 peer-checked:bg-emerald-600" />
+                                            </label>
+                                        </div>
+
+                                        <div className="flex items-center justify-between p-4 rounded-xl bg-rose-50/50 dark:bg-rose-950/20 border border-rose-200/70 dark:border-rose-800/50">
+                                            <div>
+                                                <label
+                                                    htmlFor="test-live-toggle"
+                                                    className="font-bold text-sm text-slate-900 dark:text-white cursor-pointer"
+                                                >
+                                                    Feature in Live Test Strip
+                                                </label>
+                                                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                                                    Highlights test inside the bottom Live Test drawer.
+                                                </p>
+                                            </div>
+                                            <label className="relative inline-flex items-center min-h-[44px] min-w-[44px] justify-center cursor-pointer">
+                                                <input
+                                                    id="test-live-toggle"
+                                                    name="is_live"
+                                                    type="checkbox"
+                                                    checked={formData.is_live}
+                                                    onChange={e =>
+                                                        setFormData(prev => ({
+                                                            ...prev,
+                                                            is_live: e.target.checked,
+                                                        }))
+                                                    }
+                                                    className="sr-only peer"
+                                                />
+                                                <div className="relative w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-rose-300 dark:peer-focus:ring-rose-800 rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-600 peer-checked:bg-rose-600" />
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    {formData.is_live && (
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 rounded-xl bg-rose-50/40 dark:bg-rose-950/15 border border-rose-200/60 dark:border-rose-800/40">
+                                            <div>
+                                                <label
+                                                    htmlFor="test-live-start-at"
+                                                    className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1"
+                                                >
+                                                    Live Window Start (Optional)
+                                                </label>
+                                                <input
+                                                    id="test-live-start-at"
+                                                    type="datetime-local"
+                                                    value={formData.live_start_at}
+                                                    onChange={e =>
+                                                        setFormData(prev => ({
+                                                            ...prev,
+                                                            live_start_at: e.target.value,
+                                                        }))
+                                                    }
+                                                    className={`${inputBaseClass} ${validBorderClass}`}
+                                                />
+                                            </div>
+                                            <div>
+                                                <label
+                                                    htmlFor="test-live-end-at"
+                                                    className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1"
+                                                >
+                                                    Live Window End (Optional)
+                                                </label>
+                                                <input
+                                                    id="test-live-end-at"
+                                                    type="datetime-local"
+                                                    value={formData.live_end_at}
+                                                    onChange={e =>
+                                                        setFormData(prev => ({
+                                                            ...prev,
+                                                            live_end_at: e.target.value,
+                                                        }))
+                                                    }
+                                                    className={`${inputBaseClass} ${validBorderClass}`}
+                                                />
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             </fieldset>
                         </form>

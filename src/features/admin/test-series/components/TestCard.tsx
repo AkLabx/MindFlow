@@ -41,6 +41,16 @@ export const TestCard: React.FC<TestCardProps> = ({
                     <CheckSquare className="w-6 h-6" aria-hidden="true" />
                 </div>
                 <div className="flex flex-wrap items-center justify-end gap-2">
+                    {test.is_live && (
+                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-black tracking-wide bg-rose-100 text-rose-700 border border-rose-200 dark:bg-rose-950/50 dark:text-rose-300 dark:border-rose-800">
+                            LIVE
+                        </span>
+                    )}
+                    {test.is_free_demo && (
+                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold tracking-wide bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800">
+                            Free Demo
+                        </span>
+                    )}
                     <span
                         className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold tracking-wide border ${
                             test.test_type === 'PYQ'
