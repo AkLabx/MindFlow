@@ -22,6 +22,8 @@ import {
     searchTestsApi,
 } from '@/features/mock-tests/api/mockTestsApi';
 import { AdminTestSeriesDashboard } from '../pages/AdminTestSeriesDashboard';
+import { SeriesDrawer } from '../components/SeriesDrawer';
+import { TestCard } from '../components/TestCard';
 import { useNotificationStore } from '@/stores/useNotificationStore';
 import { DB_TABLES, DB_RPCS } from '@/config/dbTables';
 
@@ -903,6 +905,154 @@ describe('Admin Mock Tests CMS Controls (v1.0.369)', () => {
                 OFFICIAL_KEYS: 'official_answer_keys',
             });
             expect(DB_RPCS.MOCK_LEADERBOARD).toBe('get_test_leaderboard');
+        });
+    });
+
+    describe('Series & Test PYQ vs Expert Controls (Wave 1 Component 4)', () => {
+        it('SeriesDrawer defaults series_type to MOCK, toggles to PYQ, and hydrates existing PYQ series', async () => {
+            const categories = [{ id: 'cat-1', name: 'BPSC' }];
+            const onSave = vi.fn().mockResolvedValue(undefined);
+            const onClose = vi.fn();
+
+            const { rerender, container } = render(
+                <SeriesDrawer
+                    isOpen={true}
+                    onClose={onClose}
+                    categories={categories}
+                    onSave={onSave}
+                />
+            );
+
+            const expertBtn = screen.getByRole('button', { name: 'Expert Curated Mock' });
+            const pyqBtn = screen.getByRole('button', { name: 'Previous Year Paper (PYQ)' });
+
+            expect(expertBtn.getAttribute('aria-pressed')).toBe('true');
+            expect(pyqBtn.getAttribute('aria-pressed')).toBe('false');
+            expect(expertBtn.className).toContain('min-h-[44px]');
+            expect(pyqBtn.className).toContain('min-h-[44px]');
+
+            fireEvent.change(screen.getByPlaceholderText('e.g. SSC CGL 2026'), {
+                target: { value: '70th BPSC PYQ' },
+            });
+            fireEvent.click(pyqBtn);
+            expect(pyqBtn.getAttribute('aria-pressed')).toBe('true');
+
+            const form = container.querySelector('form#series-form') as HTMLFormElement;
+            await act(async () => {
+                fireEvent.submit(form);
+            });
+
+            expect(onSave).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    name: '70th BPSC PYQ',
+                    series_type: 'PYQ',
+                })
+            );
+
+            onSave.mockClear();
+            rerender(
+                <SeriesDrawer
+                    isOpen={true}
+                    onClose={onClose}
+                    categories={categories}
+                    series={{
+                        id: 'ser-pyq',
+                        category_id: 'cat-1',
+                        name: 'Existing PYQ Series',
+                        slug: 'existing-pyq-series',
+                        description: '',
+                        series_type: 'PYQ',
+                        is_premium: false,
+                        is_published: true,
+                    }}
+                    onSave={onSave}
+                />
+            );
+
+            expect(screen.getByRole('button', { name: 'Previous Year Paper (PYQ)' }).getAttribute('aria-pressed')).toBe('true');
+            fireEvent.click(screen.getByRole('button', { name: 'Expert Curated Mock' }));
+
+            await act(async () => {
+                fireEvent.submit(container.querySelector('form#series-form') as HTMLFormElement);
+            });
+
+            expect(onSave).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    name: 'Existing PYQ Series',
+                    series_type: 'MOCK',
+                })
+            );
+        });
+
+        it('TestCard renders PYQ Paper vs Expert Mock badge based on test.test_type', () => {
+            const baseTest = {
+                id: 't-pyq',
+                name: '69th BPSC Prelims Paper',
+                duration_minutes: 120,
+                total_marks: 150,
+                passing_marks: 95,
+                negative_marks: 0.33,
+                question_ids: ['q1'],
+                is_published: true,
+                test_type: 'PYQ',
+                mock_series: { name: 'BPSC PYQs', mock_categories: { name: 'BPSC' } },
+            };
+
+            const { rerender } = render(
+                <TestCard test={baseTest} onEdit={vi.fn()} onDelete={vi.fn()} />
+            );
+            expect(screen.getByText('PYQ Paper')).toBeTruthy();
+
+            rerender(
+                <TestCard
+                    test={{ ...baseTest, id: 't-mock', test_type: 'MOCK' }}
+                    onEdit={vi.fn()}
+                    onDelete={vi.fn()}
+                />
+            );
+            expect(screen.getByText('Expert Mock')).toBeTruthy();
+        });
+
+        it('AdminTestSeriesDashboard displays PYQ Paper badges on Series cards and filters by Series Type', async () => {
+            const state = makeFixtureState();
+            state.series[0] = { ...state.series[0], series_type: 'PYQ' };
+            state.series[1] = { ...state.series[1], series_type: 'MOCK' };
+            state.series[2] = { ...state.series[2], series_type: 'MOCK' };
+            createSupabaseMock(state);
+
+            render(
+                <MemoryRouter initialEntries={['/admin/test-series?tab=series']}>
+                    <AdminTestSeriesDashboard />
+                </MemoryRouter>
+            );
+
+            await waitFor(() => {
+                expect(screen.getByText('BPSC Prelims 2026')).toBeTruthy();
+                expect(screen.getByText('BPSC Draft Series')).toBeTruthy();
+            });
+
+            expect(screen.getByText('PYQ Paper')).toBeTruthy();
+            expect(screen.getAllByText('Expert Mock').length).toBeGreaterThanOrEqual(2);
+
+            fireEvent.click(screen.getByRole('button', { name: 'PYQ' }));
+            await waitFor(() => {
+                expect(screen.getByText('BPSC Prelims 2026')).toBeTruthy();
+                expect(screen.queryByText('BPSC Draft Series')).toBeNull();
+                expect(screen.queryByText('SSC CGL Tier 1')).toBeNull();
+            });
+
+            fireEvent.click(screen.getByRole('button', { name: 'Expert Mock' }));
+            await waitFor(() => {
+                expect(screen.queryByText('BPSC Prelims 2026')).toBeNull();
+                expect(screen.getByText('BPSC Draft Series')).toBeTruthy();
+                expect(screen.getByText('SSC CGL Tier 1')).toBeTruthy();
+            });
+
+            fireEvent.click(screen.getByRole('button', { name: 'All Types' }));
+            await waitFor(() => {
+                expect(screen.getByText('BPSC Prelims 2026')).toBeTruthy();
+                expect(screen.getByText('BPSC Draft Series')).toBeTruthy();
+            });
         });
     });
 });

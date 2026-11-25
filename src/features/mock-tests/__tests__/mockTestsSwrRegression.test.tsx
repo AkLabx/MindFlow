@@ -1204,9 +1204,19 @@ describe('v1.0.379 Mock Tests SWR Cache, Admin Invalidation Cascade, Scoring Mat
         });
     });
 
-    it('fetches published mock series catalog with schedule-window counts, 3-tier SWR cache, and invalidation support', async () => {
+    it('fetches published mock series catalog with schedule-window counts, series_type across 3-tier SWR cache, and invalidation support', async () => {
         const backend = createBackendState();
         const nowMs = Date.parse('2026-11-24T12:00:00Z');
+        backend.series.push({
+            id: 'ser-bpsc-pyq',
+            category_id: 'cat-bpsc',
+            name: 'BPSC Official PYQ Archive',
+            slug: 'bpsc-pyq-archive',
+            series_type: 'PYQ',
+            is_premium: false,
+            is_published: true,
+            mock_categories: { id: 'cat-bpsc', name: 'BPSC', is_active: true },
+        });
         backend.tests.push({
             id: 'test-expired',
             series_id: 'ser-bpsc-1',
@@ -1220,16 +1230,22 @@ describe('v1.0.379 Mock Tests SWR Cache, Admin Invalidation Cascade, Scoring Mat
         const res1 = await fetchAllPublishedMockSeriesCatalog({ nowMs });
         expect(res1.source).toBe('network');
         expect(res1.categories).toHaveLength(1);
-        expect(res1.series).toHaveLength(1);
-        expect(res1.series[0].category_name).toBe('BPSC');
-        expect(res1.series[0].published_test_count).toBe(2);
+        expect(res1.series).toHaveLength(2);
+        const mockSeries1 = res1.series.find((s) => s.id === 'ser-bpsc-1');
+        const pyqSeries1 = res1.series.find((s) => s.id === 'ser-bpsc-pyq');
+        expect(mockSeries1?.category_name).toBe('BPSC');
+        expect(mockSeries1?.published_test_count).toBe(2);
+        expect(mockSeries1?.series_type).toBe('MOCK');
+        expect(pyqSeries1?.series_type).toBe('PYQ');
 
         const callsAfterFirst = backend.callCounts[`select:${DB_TABLES.MOCK.SERIES}`];
         const res2 = await fetchAllPublishedMockSeriesCatalog({ nowMs });
         expect(res2.source).toBe('cache');
         expect(backend.callCounts[`select:${DB_TABLES.MOCK.SERIES}`]).toBe(callsAfterFirst);
+        expect(res2.series.find((s) => s.id === 'ser-bpsc-1')?.series_type).toBe('MOCK');
+        expect(res2.series.find((s) => s.id === 'ser-bpsc-pyq')?.series_type).toBe('PYQ');
 
-        // Cold Memory + localStorage hydrates from IndexedDB
+        // Cold Memory + localStorage hydrates from IndexedDB preserving series_type
         const idbEntry = syncMetadataMap.get('mock_series_catalog_v1');
         expect(idbEntry).toBeDefined();
         invalidateMockTestsCatalogCaches();
@@ -1238,6 +1254,8 @@ describe('v1.0.379 Mock Tests SWR Cache, Admin Invalidation Cascade, Scoring Mat
 
         syncMetadataMap.set('mock_series_catalog_v1', idbEntry!);
         const hydrated = await readAllPublishedMockSeriesCatalogIndexedDBCache(nowMs);
-        expect(hydrated?.series[0].published_test_count).toBe(2);
+        expect(hydrated?.series.find((s) => s.id === 'ser-bpsc-1')?.published_test_count).toBe(2);
+        expect(hydrated?.series.find((s) => s.id === 'ser-bpsc-1')?.series_type).toBe('MOCK');
+        expect(hydrated?.series.find((s) => s.id === 'ser-bpsc-pyq')?.series_type).toBe('PYQ');
     });
 });

@@ -11,6 +11,41 @@ import {
     resolveCanonicalExamNames,
 } from '@/features/dashboard/constants/examRegistry';
 
+export type MockSeriesType = 'MOCK' | 'PYQ';
+export type MockTestType = 'MOCK' | 'PYQ';
+
+export const normalizeMockSeriesType = (raw: unknown): MockSeriesType =>
+    raw === 'PYQ' ? 'PYQ' : 'MOCK';
+
+export const normalizeMockTestType = (raw: unknown): MockTestType =>
+    raw === 'PYQ' ? 'PYQ' : 'MOCK';
+
+const normalizeSeriesRecord = <T extends Record<string, any> | null | undefined>(series: T): T => {
+    if (!series || typeof series !== 'object') return series;
+    return {
+        ...series,
+        series_type: normalizeMockSeriesType(series.series_type),
+    };
+};
+
+const normalizeTestRecord = <T extends Record<string, any> | null | undefined>(test: T): T => {
+    if (!test || typeof test !== 'object') return test;
+    const next: Record<string, any> = {
+        ...test,
+        test_type: normalizeMockTestType(test.test_type),
+    };
+    if (test[DB_TABLES.MOCK.SERIES]) {
+        next[DB_TABLES.MOCK.SERIES] = normalizeSeriesRecord(test[DB_TABLES.MOCK.SERIES]);
+    }
+    if (test.mock_series) {
+        next.mock_series = normalizeSeriesRecord(test.mock_series);
+    }
+    if (test.test_series) {
+        next.test_series = normalizeSeriesRecord(test.test_series);
+    }
+    return next as T;
+};
+
 export interface TestLeaderboardEntry {
     rank: number;
     user_id: string;
@@ -296,7 +331,7 @@ export const fetchPublishedTestSeries = async (categoryId: string) => {
         .order('created_at', { ascending: false });
 
     if (error) throw error;
-    return data;
+    return (data || []).map((row) => normalizeSeriesRecord(row));
 };
 
 const isCachedSeriesBundleVisible = (series: any): boolean => {
@@ -366,9 +401,11 @@ export const getCachedSeriesBundleSnapshot = (
         return null;
     }
 
-    const validTests = raw.tests.filter((test) => isCachedTestDetailVisible(test, nowMs));
+    const validTests = raw.tests
+        .filter((test) => isCachedTestDetailVisible(test, nowMs))
+        .map((test) => normalizeTestRecord(test));
     return {
-        series: raw.series,
+        series: normalizeSeriesRecord(raw.series),
         tests: validTests,
     };
 };
@@ -401,11 +438,16 @@ export const readSeriesBundleIndexedDBCache = async (
             data.testsLoaded !== false &&
             Array.isArray(data.tests)
         ) {
-            memorySeriesBundleCache.set(trimmedSeriesId, data);
-            safeWriteLocalStorage(`${MOCK_SERIES_BUNDLE_STORAGE_PREFIX}${trimmedSeriesId}`, data);
+            const normalizedData = {
+                ...data,
+                series: normalizeSeriesRecord(data.series),
+                tests: data.tests.map((test) => normalizeTestRecord(test)),
+            };
+            memorySeriesBundleCache.set(trimmedSeriesId, normalizedData);
+            safeWriteLocalStorage(`${MOCK_SERIES_BUNDLE_STORAGE_PREFIX}${trimmedSeriesId}`, normalizedData);
             return {
-                series: data.series,
-                tests: data.tests.filter((test) => isCachedTestDetailVisible(test, nowMs)),
+                series: normalizedData.series,
+                tests: normalizedData.tests.filter((test) => isCachedTestDetailVisible(test, nowMs)),
             };
         }
     } catch {
@@ -428,12 +470,14 @@ export const fetchPublishedTests = async (seriesId: string, nowMs: number = Date
         .order('created_at', { ascending: false });
 
     if (error) throw error;
-    const filtered = (data || []).filter((test) => isTestWithinScheduleWindow(test, nowMs));
+    const filtered = (data || [])
+        .filter((test) => isTestWithinScheduleWindow(test, nowMs))
+        .map((test) => normalizeTestRecord(test));
     const trimmedSeriesId = String(seriesId ?? '').trim();
     if (trimmedSeriesId) {
         const existing = readSeriesBundleSyncRaw(trimmedSeriesId);
         writeSeriesBundleCache(trimmedSeriesId, {
-            series: existing?.series ?? null,
+            series: existing?.series ? normalizeSeriesRecord(existing.series) : null,
             tests: filtered,
             fetchedAt: Date.now(),
             testsLoaded: true,
@@ -464,17 +508,18 @@ export const fetchSeriesDetails = async (seriesId: string) => {
         .eq(`${DB_TABLES.MOCK.CATEGORIES}.is_active`, true)
         .single();
     if (error) throw error;
+    const normalized = data ? normalizeSeriesRecord(data) : data;
     const trimmedSeriesId = String(seriesId ?? '').trim();
-    if (trimmedSeriesId && data && isCachedSeriesBundleVisible(data)) {
+    if (trimmedSeriesId && normalized && isCachedSeriesBundleVisible(normalized)) {
         const existing = readSeriesBundleSyncRaw(trimmedSeriesId);
         writeSeriesBundleCache(trimmedSeriesId, {
-            series: data,
-            tests: Array.isArray(existing?.tests) ? existing.tests : [],
+            series: normalized,
+            tests: Array.isArray(existing?.tests) ? existing.tests.map((t) => normalizeTestRecord(t)) : [],
             fetchedAt: Date.now(),
             testsLoaded: existing?.testsLoaded ?? false,
         });
     }
-    return data;
+    return normalized;
 };
 
 export const fetchTestDetails = async (
@@ -500,10 +545,11 @@ export const fetchTestDetails = async (
             isMockCacheFresh(candidate.fetchedAt, MOCK_SWR_STALE_TIMES_MS.TEST_DETAILS) &&
             isCachedTestDetailVisible(candidate.test, nowMs)
         ) {
+            const normalizedTest = normalizeTestRecord(candidate.test);
             if (!mem) {
-                memoryTestDetailCache.set(trimmedId, candidate);
+                memoryTestDetailCache.set(trimmedId, { test: normalizedTest, fetchedAt: candidate.fetchedAt });
             }
-            return candidate.test;
+            return normalizedTest;
         }
     }
 
@@ -522,11 +568,12 @@ export const fetchTestDetails = async (
         db.deleteCacheEntriesByPrefix?.([`${MOCK_TEST_DETAIL_IDB_PREFIX}${trimmedId}`])?.catch(() => {});
         throw new Error('This mock test is not currently available outside its scheduled window.');
     }
-    const payload = { test: data, fetchedAt: Date.now() };
+    const normalized = normalizeTestRecord(data);
+    const payload = { test: normalized, fetchedAt: Date.now() };
     memoryTestDetailCache.set(trimmedId, payload);
     safeWriteLocalStorage(`${MOCK_TEST_DETAIL_STORAGE_PREFIX}${trimmedId}`, payload);
     db.setCacheEntry(`${MOCK_TEST_DETAIL_IDB_PREFIX}${trimmedId}`, payload).catch(() => {});
-    return data;
+    return normalized;
 };
 
 // CONTEXTUAL SEARCH APIs
@@ -554,7 +601,7 @@ export const searchSeriesApi = async (query: string) => {
         .order('created_at', { ascending: false })
         .limit(5);
     if (error) throw error;
-    return data;
+    return (data || []).map((row) => normalizeSeriesRecord(row));
 };
 
 export const searchTestsApi = async (query: string, nowMs: number = Date.now()) => {
@@ -569,7 +616,9 @@ export const searchTestsApi = async (query: string, nowMs: number = Date.now()) 
         .order('created_at', { ascending: false })
         .limit(5);
     if (error) throw error;
-    return (data || []).filter((test) => isTestWithinScheduleWindow(test, nowMs));
+    return (data || [])
+        .filter((test) => isTestWithinScheduleWindow(test, nowMs))
+        .map((test) => normalizeTestRecord(test));
 };
 
 // FETCH RECOMMENDATIONS / RECENT
@@ -583,8 +632,9 @@ export const fetchRecommendedSeries = async () => {
         .order('created_at', { ascending: false })
         .limit(4);
     if (error) throw error;
-    writeHomeCacheSnapshot({ recommendedSeries: data || [] });
-    return data;
+    const normalized = (data || []).map((row) => normalizeSeriesRecord(row));
+    writeHomeCacheSnapshot({ recommendedSeries: normalized });
+    return normalized;
 };
 
 // ============================================================================
@@ -598,6 +648,7 @@ export interface PreparedMockSeriesItem {
     slug?: string;
     description?: string | null;
     thumbnail_url?: string | null;
+    series_type: MockSeriesType;
     is_premium: boolean;
     is_published: boolean;
     category_name: string;
@@ -609,6 +660,7 @@ export interface PreparedMockTestItem {
     series_id: string;
     name: string;
     description?: string | null;
+    test_type: MockTestType;
     display_order: number;
     duration_minutes: number;
     total_marks: number;
@@ -779,20 +831,21 @@ export const getCachedTestDetailsSnapshot = (
 
     const mem = memoryTestDetailCache.get(trimmedId);
     if (mem?.test && isCachedTestDetailVisible(mem.test, nowMs)) {
-        return mem.test;
+        return normalizeTestRecord(mem.test);
     }
 
     const stored = safeReadLocalStorage<{ test: any; fetchedAt: number }>(
         `${MOCK_TEST_DETAIL_STORAGE_PREFIX}${trimmedId}`
     );
     if (stored?.test && isCachedTestDetailVisible(stored.test, nowMs)) {
-        memoryTestDetailCache.set(trimmedId, stored);
-        return stored.test;
+        const normalized = { ...stored, test: normalizeTestRecord(stored.test) };
+        memoryTestDetailCache.set(trimmedId, normalized);
+        return normalized.test;
     }
 
     const catalogTest = readCatalogFromSyncCache()?.tests.find((t) => t?.id === trimmedId);
     if (catalogTest && isCachedTestDetailVisible(catalogTest, nowMs)) {
-        return catalogTest;
+        return normalizeTestRecord(catalogTest);
     }
 
     return null;
@@ -816,15 +869,16 @@ export const readTestDetailsIndexedDBCache = async (
             `${MOCK_TEST_DETAIL_IDB_PREFIX}${trimmedId}`
         );
         if (entry?.data?.test && isCachedTestDetailVisible(entry.data.test, nowMs)) {
-            memoryTestDetailCache.set(trimmedId, entry.data);
-            safeWriteLocalStorage(`${MOCK_TEST_DETAIL_STORAGE_PREFIX}${trimmedId}`, entry.data);
-            return entry.data.test;
+            const normalized = { ...entry.data, test: normalizeTestRecord(entry.data.test) };
+            memoryTestDetailCache.set(trimmedId, normalized);
+            safeWriteLocalStorage(`${MOCK_TEST_DETAIL_STORAGE_PREFIX}${trimmedId}`, normalized);
+            return normalized.test;
         }
 
         const catalogEntry = await db.getCacheEntry<MockCatalogCachePayload>(MOCK_CATALOG_IDB_KEY);
         const catalogTest = catalogEntry?.data?.tests?.find((t) => t?.id === trimmedId);
         if (catalogTest && isCachedTestDetailVisible(catalogTest, nowMs)) {
-            return catalogTest;
+            return normalizeTestRecord(catalogTest);
         }
     } catch {
         // Ignore IndexedDB unavailability
@@ -1791,6 +1845,7 @@ export const materializePreparedMockTests = (
             series_id: t.series_id,
             name: String(t.name ?? 'Untitled Mock Test'),
             description: t.description ?? null,
+            test_type: normalizeMockTestType(t.test_type),
             display_order: Number(t.display_order ?? 0),
             duration_minutes: Number(t.duration_minutes ?? 0),
             total_marks: Number(t.total_marks ?? 0),
@@ -1830,6 +1885,7 @@ export const materializePreparedMockTests = (
         slug: s.slug,
         description: s.description ?? null,
         thumbnail_url: s.thumbnail_url ?? null,
+        series_type: normalizeMockSeriesType(s.series_type),
         is_premium: Boolean(s.is_premium),
         is_published: Boolean(s.is_published),
         category_name: String(s._categoryName || exam.displayName),
@@ -4674,6 +4730,7 @@ export interface PublishedMockSeriesCatalogItem {
     slug?: string;
     description?: string | null;
     thumbnail_url?: string | null;
+    series_type: MockSeriesType;
     is_premium: boolean;
     is_published: boolean;
     created_at?: string | null;
@@ -4792,6 +4849,7 @@ export const materializePublishedMockSeriesCatalog = (
             slug: raw.slug ? String(raw.slug) : undefined,
             description: raw.description ?? null,
             thumbnail_url: raw.thumbnail_url ?? null,
+            series_type: normalizeMockSeriesType(raw?.series_type),
             is_premium: Boolean(raw.is_premium),
             is_published: Boolean(raw.is_published),
             created_at: raw.created_at ?? null,

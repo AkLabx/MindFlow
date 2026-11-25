@@ -158,7 +158,7 @@ export const AttemptedQuizCard: React.FC<AttemptedQuizCardProps> = ({ quiz, inde
                                 <button
                                     type="button"
                                     onClick={(e) => onDelete(quiz.id, e)}
-                                    className="absolute -top-1 -right-1 min-w-[44px] min-h-[44px] inline-flex items-center justify-center bg-rose-50 dark:bg-rose-900/30 text-rose-500 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-900/50 hover:text-rose-600 rounded-full opacity-80 sm:opacity-0 sm:group-hover/card:opacity-100 focus-visible:opacity-100 transition-all duration-300 shrink-0 scale-90 group-hover/card:scale-100 shadow-sm active:scale-95 touch-manipulation scroll-mb-28 cursor-pointer"
+                                    className="absolute -top-1 -right-1 min-w-[44px] min-h-[44px] inline-flex items-center justify-center bg-rose-50 dark:bg-rose-900/30 text-rose-500 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-900/50 hover:text-rose-600 rounded-full opacity-80 sm:opacity-0 sm:group-hover/card:opacity-100 focus-visible:opacity-100 transition-all duration-300 shrink-0 scale-100 shadow-sm active:scale-95 touch-manipulation scroll-mb-28 cursor-pointer"
                                     title="Delete Quiz"
                                     aria-label="Delete Quiz"
                                 >

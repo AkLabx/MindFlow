@@ -40,7 +40,16 @@ export const TestCard: React.FC<TestCardProps> = ({
                 <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-xl flex items-center justify-center">
                     <CheckSquare className="w-6 h-6" aria-hidden="true" />
                 </div>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap items-center justify-end gap-2">
+                    <span
+                        className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold tracking-wide border ${
+                            test.test_type === 'PYQ'
+                                ? 'bg-teal-50 text-teal-700 border-teal-200 dark:bg-teal-900/30 dark:text-teal-300 dark:border-teal-800'
+                                : 'bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-300 dark:border-indigo-800'
+                        }`}
+                    >
+                        {test.test_type === 'PYQ' ? 'PYQ Paper' : 'Expert Mock'}
+                    </span>
                     <StatusBadge status={isPublished ? 'published' : 'draft'} />
                 </div>
             </div>

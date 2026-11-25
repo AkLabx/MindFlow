@@ -33,7 +33,7 @@ interface UniversalContentImporterProps {
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const V1_ID_REGEX = /^[A-Z]{2,4}[0-9]+$/;
 
-function normalizeQuestionPayload(row: any) {
+function normalizeQuestionPayload(row: any, selectedQuestionSource: 'PYQ' | 'EXPERT' = 'PYQ') {
   const subject = row.classification?.subject || row.subject || 'General';
   const topic = row.classification?.topic || row.topic || null;
   const subTopic = row.classification?.subTopic || row.subTopic || null;
@@ -52,6 +52,7 @@ function normalizeQuestionPayload(row: any) {
     examDateShift,
     difficulty,
     questionType,
+    question_source: selectedQuestionSource,
     question: row.question,
     question_hi: row.question_hi || null,
     options: row.options,
@@ -90,6 +91,7 @@ export const UniversalContentImporter: React.FC<UniversalContentImporterProps> =
 
   const [contentType, setContentType] = useState<ContentTargetType>(initialType);
   const [mode, setMode] = useState<ImportMode>('bulk');
+  const [selectedQuestionSource, setSelectedQuestionSource] = useState<'PYQ' | 'EXPERT'>('PYQ');
 
   // Bulk State
   const [rawText, setRawText] = useState('');
@@ -245,7 +247,10 @@ export const UniversalContentImporter: React.FC<UniversalContentImporterProps> =
     try {
       for (let i = 0; i < total; i += BATCH_SIZE) {
         const rawChunk = parsedRows.slice(i, i + BATCH_SIZE);
-        const chunk = contentType === 'questions' ? rawChunk.map(normalizeQuestionPayload) : rawChunk;
+        const chunk =
+          contentType === 'questions'
+            ? rawChunk.map((row) => normalizeQuestionPayload(row, selectedQuestionSource))
+            : rawChunk;
         const { error } = await supabase.from(contentType).insert(chunk);
         if (error) throw error;
         committed += chunk.length;
@@ -281,6 +286,7 @@ export const UniversalContentImporter: React.FC<UniversalContentImporterProps> =
           options: singleForm.options,
           correct: singleForm.correct,
           difficulty: singleForm.difficulty || 'Medium',
+          question_source: selectedQuestionSource,
           explanation: { summary: 'Added via Admin Studio' },
           tags: [singleForm.subject || 'General']
         };
@@ -437,6 +443,45 @@ export const UniversalContentImporter: React.FC<UniversalContentImporterProps> =
 
             {/* Content Body */}
             <div className="flex-1 overflow-y-auto p-6 space-y-6">
+              {contentType === 'questions' && (
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+                  <span className="text-xs font-bold text-slate-600 dark:text-slate-300">
+                    Question Source
+                  </span>
+                  <div
+                    role="group"
+                    aria-label="Question Source"
+                    className="inline-flex flex-wrap items-center gap-1.5"
+                  >
+                    {(
+                      [
+                        { value: 'PYQ', label: 'Previous Year Question (PYQ)' },
+                        { value: 'EXPERT', label: 'Expert Curated (EXPERT)' },
+                      ] as const
+                    ).map((opt) => {
+                      const active = selectedQuestionSource === opt.value;
+                      return (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          aria-pressed={active}
+                          onClick={() => setSelectedQuestionSource(opt.value)}
+                          className={`min-h-[44px] px-3 py-1.5 rounded-xl text-xs font-bold border transition-all active:scale-95 touch-manipulation ${
+                            active
+                              ? opt.value === 'PYQ'
+                                ? 'bg-teal-600 text-white border-teal-600 shadow-xs'
+                                : 'bg-indigo-600 text-white border-indigo-600 shadow-xs'
+                              : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'
+                          }`}
+                        >
+                          {opt.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
               {/* BULK MODE */}
               {mode === 'bulk' && (
                 <div className="space-y-4">

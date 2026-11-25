@@ -1,6 +1,7 @@
 import React from 'react';
 import { X, Filter } from 'lucide-react';
 import { InitialFilters } from '../../types';
+import { getExamDisplayLabel } from '../../constants/examDomains';
 
 /**
  * Props for the ActiveFiltersBar component.
@@ -39,8 +40,9 @@ export const ActiveFiltersBar: React.FC<ActiveFiltersBarProps> = ({ filters, onR
           </h4>
           {hasRemovableFilters && (
               <button 
+                type="button"
                 onClick={onClearAll}
-                className="text-xs font-semibold text-gray-500 hover:text-red-500 transition-colors"
+                className="min-h-[44px] min-w-[44px] px-3 py-1.5 inline-flex items-center justify-center rounded-xl text-xs font-semibold text-gray-500 dark:text-gray-400 hover:text-red-500 dark:hover:text-red-400 active:scale-95 touch-manipulation transition-colors cursor-pointer"
               >
                   Clear All
               </button>
@@ -54,27 +56,34 @@ export const ActiveFiltersBar: React.FC<ActiveFiltersBarProps> = ({ filters, onR
         
         {Object.keys(filters).map(key => {
           const isLocked = lockedFilterKeys.includes(key as keyof InitialFilters);
-          return (filters[key as keyof InitialFilters] || []).map(val => (
-            <div 
-              key={`${key}-${val}`} 
-              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold shadow-sm group ${
-                isLocked
-                  ? 'bg-gray-100 text-gray-700 border border-gray-200'
-                  : 'bg-indigo-100 text-indigo-700 border border-indigo-200'
-              }`}
-            >
-               <span className="capitalize opacity-70 font-medium mr-0.5">{key}:</span>
-               {val} 
-               {!isLocked && (
-                 <button
-                    onClick={() => onRemoveFilter(key as keyof InitialFilters, val)}
-                    className="bg-indigo-200 rounded-full p-0.5 hover:bg-indigo-300 transition-colors"
-                 >
-                    <X className="w-3 h-3" />
-                 </button>
-               )}
-            </div>
-          ));
+          return (filters[key as keyof InitialFilters] || []).map(val => {
+            const displayVal = key === 'examName' ? getExamDisplayLabel(val) : val;
+            return (
+              <div 
+                key={`${key}-${val}`} 
+                className={`inline-flex items-center gap-1 min-h-[44px] pl-3 ${isLocked ? 'pr-3 py-2' : 'pr-1 py-0.5'} rounded-full text-xs font-bold shadow-sm group ${
+                  isLocked
+                    ? 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-600'
+                    : 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-200 border border-indigo-200 dark:border-indigo-700'
+                }`}
+              >
+                 <span className="capitalize opacity-70 font-medium mr-0.5">{key}:</span>
+                 <span>{displayVal}</span>
+                 {!isLocked && (
+                   <button
+                      type="button"
+                      onClick={() => onRemoveFilter(key as keyof InitialFilters, val)}
+                      aria-label={`Remove ${key} filter ${displayVal}`}
+                      className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-full hover:bg-indigo-200/70 dark:hover:bg-indigo-800/60 active:scale-95 touch-manipulation transition-colors cursor-pointer"
+                   >
+                      <span className="bg-indigo-200 dark:bg-indigo-800 rounded-full p-1 inline-flex items-center justify-center">
+                        <X className="w-3 h-3" aria-hidden="true" />
+                      </span>
+                   </button>
+                 )}
+              </div>
+            );
+          });
         })}
       </div>
     </div>

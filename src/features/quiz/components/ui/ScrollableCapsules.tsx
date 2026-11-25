@@ -6,6 +6,7 @@ import { InfoTooltip } from '@/components/ui/InfoTooltip';
 export interface ScrollableCapsulesProps {
   label?: string;
   options: string[];
+  optionLabels?: Record<string, string>;
   selectedOptions: string[];
   onOptionToggle: (option: string) => void;
   counts?: { [key: string]: number };
@@ -20,6 +21,7 @@ export interface ScrollableCapsulesProps {
 export const ScrollableCapsules = React.memo(function ScrollableCapsules({
   label,
   options,
+  optionLabels,
   selectedOptions,
   onOptionToggle,
   counts,
@@ -51,7 +53,7 @@ export const ScrollableCapsules = React.memo(function ScrollableCapsules({
       {/* Scrollable Container */}
       <div
         className={cn(
-          "overflow-x-auto py-2 -mx-2 px-2 scrollbar-hide gap-2 w-full min-w-0",
+          "overflow-x-auto overscroll-x-contain py-2 -mx-2 px-2 scrollbar-hide gap-2 w-full min-w-0",
           maxRows > 1 ? "grid" : "flex space-x-2 snap-x snap-mandatory"
         )}
         style={{
@@ -86,6 +88,7 @@ export const ScrollableCapsules = React.memo(function ScrollableCapsules({
               const count = counts?.[option] || 0;
               const isSelected = selectedOptions.includes(option);
               const isDisabled = !isSelected && count === 0;
+              const displayLabel = optionLabels?.[option] ?? option;
 
               return (
                 <button
@@ -100,7 +103,7 @@ export const ScrollableCapsules = React.memo(function ScrollableCapsules({
                     disabled={isDisabled}
                     aria-pressed={isSelected}
                     className={cn(
-                        "flex-shrink-0 whitespace-nowrap min-h-[40px] py-2 px-4 rounded-full text-sm font-semibold transition-all duration-150 border flex items-center gap-2 outline-none select-none touch-manipulation focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900",
+                        "flex-shrink-0 whitespace-nowrap min-h-[44px] py-2 px-4 rounded-full text-sm font-semibold transition-all duration-150 border flex items-center gap-2 outline-none select-none touch-manipulation focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900",
                         maxRows === 1 && "snap-center",
                         isSelected
                             ? "bg-indigo-600 text-white border-indigo-600 shadow-sm shadow-indigo-500/20 active:scale-95"
@@ -108,7 +111,7 @@ export const ScrollableCapsules = React.memo(function ScrollableCapsules({
                         isDisabled && "opacity-40 cursor-not-allowed active:scale-100 hover:bg-white dark:hover:bg-gray-800 hover:border-gray-200 dark:hover:border-gray-700"
                     )}
                 >
-                    {option}
+                    {displayLabel}
                     <span className={cn(
                         "text-[10px] px-1.5 py-0.5 rounded-full transition-colors font-bold tabular-nums",
                         isSelected

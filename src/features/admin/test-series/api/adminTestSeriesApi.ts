@@ -301,6 +301,7 @@ export interface TestMutationPayload {
     series_id: string;
     name: string;
     description?: string;
+    test_type?: 'MOCK' | 'PYQ';
     duration_minutes: number;
     total_marks: number;
     passing_marks: number;

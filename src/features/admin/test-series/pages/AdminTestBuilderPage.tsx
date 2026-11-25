@@ -43,6 +43,7 @@ interface TestFormState {
     series_id: string;
     name: string;
     description: string;
+    test_type: 'MOCK' | 'PYQ';
     duration_minutes: string;
     total_marks: string;
     passing_marks: string;
@@ -154,6 +155,7 @@ const buildFormState = (test: any | undefined, defaultSeriesId: string): TestFor
     series_id: test?.series_id ?? defaultSeriesId,
     name: test?.name ?? '',
     description: test?.description ?? '',
+    test_type: test?.test_type === 'PYQ' ? 'PYQ' : 'MOCK',
     duration_minutes: String(test?.duration_minutes ?? 60),
     total_marks: String(test?.total_marks ?? 100),
     passing_marks: String(test?.passing_marks ?? 33),
@@ -322,9 +324,11 @@ export const AdminTestBuilderPage: React.FC = () => {
     // Backfill default series_id in Create mode without marking form dirty
     useEffect(() => {
         if (!isEditMode && series.length > 0 && formData.series_id === '' && !touched.series_id) {
-            const defaultId = series[0].id;
-            setFormData(prev => (prev.series_id === '' ? { ...prev, series_id: defaultId } : prev));
-            setInitialData(prev => (prev.series_id === '' ? { ...prev, series_id: defaultId } : prev));
+            const firstSeries = series[0];
+            const defaultId = firstSeries.id;
+            const defaultType: 'MOCK' | 'PYQ' = firstSeries?.series_type === 'PYQ' ? 'PYQ' : 'MOCK';
+            setFormData(prev => (prev.series_id === '' ? { ...prev, series_id: defaultId, test_type: defaultType } : prev));
+            setInitialData(prev => (prev.series_id === '' ? { ...prev, series_id: defaultId, test_type: defaultType } : prev));
         }
     }, [isEditMode, series, formData.series_id, touched.series_id]);
 
@@ -712,6 +716,7 @@ export const AdminTestBuilderPage: React.FC = () => {
                 series_id: formData.series_id,
                 name: formData.name.trim(),
                 description: formData.description.trim(),
+                test_type: formData.test_type,
                 duration_minutes: Math.round(validation.parsed.durationMinutes),
                 total_marks: validation.parsed.totalMarks,
                 passing_marks: validation.parsed.passingMarks,
@@ -1087,9 +1092,17 @@ export const AdminTestBuilderPage: React.FC = () => {
                                             required
                                             disabled={seriesLoading}
                                             value={formData.series_id}
-                                            onChange={e =>
-                                                setFormData(prev => ({ ...prev, series_id: e.target.value }))
-                                            }
+                                            onChange={e => {
+                                                const nextSeriesId = e.target.value;
+                                                const matchedSeries = series.find(s => s.id === nextSeriesId);
+                                                setFormData(prev => ({
+                                                    ...prev,
+                                                    series_id: nextSeriesId,
+                                                    ...(!isEditMode && matchedSeries
+                                                        ? { test_type: matchedSeries.series_type === 'PYQ' ? 'PYQ' : 'MOCK' }
+                                                        : {}),
+                                                }));
+                                            }}
                                             onBlur={() => markTouched('series_id')}
                                             aria-invalid={showFieldError('series_id', 1) ? 'true' : 'false'}
                                             aria-describedby={
@@ -1152,59 +1165,107 @@ export const AdminTestBuilderPage: React.FC = () => {
                                     />
                                 </div>
 
-                                <div className="max-w-xs">
-                                    <div className="flex items-center gap-1 mb-1">
-                                        <label
-                                            htmlFor="test-display-order"
-                                            className="block text-sm font-medium text-slate-700 dark:text-slate-300"
-                                        >
-                                            Display Order
-                                        </label>
-                                        <InfoHintPopover
-                                            title="Display Order"
-                                            purpose="Sort position of this test within its Test Series (whole number 0 or higher)."
-                                            studentVisibility="Lower numbers appear higher in the student's series test list."
-                                            example="Use 1 for Mock 01, 2 for Mock 02."
-                                            align="start"
+                                    <div className="max-w-xs">
+                                        <div className="flex items-center gap-1 mb-1">
+                                            <label
+                                                htmlFor="test-display-order"
+                                                className="block text-sm font-medium text-slate-700 dark:text-slate-300"
+                                            >
+                                                Display Order
+                                            </label>
+                                            <InfoHintPopover
+                                                title="Display Order"
+                                                purpose="Sort position of this test within its Test Series (whole number 0 or higher)."
+                                                studentVisibility="Lower numbers appear higher in the student's series test list."
+                                                example="Use 1 for Mock 01, 2 for Mock 02."
+                                                align="start"
+                                            />
+                                        </div>
+                                        <input
+                                            ref={el => {
+                                                fieldRefs.current.display_order = el;
+                                            }}
+                                            id="test-display-order"
+                                            name="display_order"
+                                            type="number"
+                                            inputMode="numeric"
+                                            min="0"
+                                            step="1"
+                                            value={formData.display_order}
+                                            onChange={e =>
+                                                setFormData(prev => ({ ...prev, display_order: e.target.value }))
+                                            }
+                                            onBlur={() => markTouched('display_order')}
+                                            aria-invalid={showFieldError('display_order', 1) ? 'true' : 'false'}
+                                            aria-describedby={
+                                                showFieldError('display_order', 1)
+                                                    ? 'test-display-order-error'
+                                                    : undefined
+                                            }
+                                            className={`${inputBaseClass} ${
+                                                showFieldError('display_order', 1)
+                                                    ? errorBorderClass
+                                                    : validBorderClass
+                                            }`}
                                         />
+                                        {showFieldError('display_order', 1) && (
+                                            <p
+                                                id="test-display-order-error"
+                                                className="mt-1.5 text-xs text-red-600 dark:text-red-400 flex items-center gap-1"
+                                            >
+                                                <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                                                <span>{validation.fieldErrors.display_order}</span>
+                                            </p>
+                                        )}
                                     </div>
-                                    <input
-                                        ref={el => {
-                                            fieldRefs.current.display_order = el;
-                                        }}
-                                        id="test-display-order"
-                                        name="display_order"
-                                        type="number"
-                                        inputMode="numeric"
-                                        min="0"
-                                        step="1"
-                                        value={formData.display_order}
-                                        onChange={e =>
-                                            setFormData(prev => ({ ...prev, display_order: e.target.value }))
-                                        }
-                                        onBlur={() => markTouched('display_order')}
-                                        aria-invalid={showFieldError('display_order', 1) ? 'true' : 'false'}
-                                        aria-describedby={
-                                            showFieldError('display_order', 1)
-                                                ? 'test-display-order-error'
-                                                : undefined
-                                        }
-                                        className={`${inputBaseClass} ${
-                                            showFieldError('display_order', 1)
-                                                ? errorBorderClass
-                                                : validBorderClass
-                                        }`}
-                                    />
-                                    {showFieldError('display_order', 1) && (
-                                        <p
-                                            id="test-display-order-error"
-                                            className="mt-1.5 text-xs text-red-600 dark:text-red-400 flex items-center gap-1"
+
+                                    <div>
+                                        <div className="flex items-center gap-1 mb-1">
+                                            <span className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                                                Test Source Type
+                                            </span>
+                                            <InfoHintPopover
+                                                title="Test Source Type (Expert Mock vs PYQ)"
+                                                purpose="Identifies whether this paper is an Expert Curated Mock or a Previous Year Paper (PYQ). Automatically defaults from the parent Test Series when creating a new test."
+                                                studentVisibility="Displays a PYQ Paper or Expert Mock badge on test cards and routes the test into the matching hub section."
+                                                example="Select Previous Year Paper (PYQ) for an authentic 69th BPSC Prelims paper."
+                                                align="start"
+                                            />
+                                        </div>
+                                        <div
+                                            role="group"
+                                            aria-label="Test Source Type"
+                                            className="grid grid-cols-1 sm:grid-cols-2 gap-2"
                                         >
-                                            <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                                            <span>{validation.fieldErrors.display_order}</span>
-                                        </p>
-                                    )}
-                                </div>
+                                            {(
+                                                [
+                                                    { value: 'MOCK', label: 'Expert Mock' },
+                                                    { value: 'PYQ', label: 'Previous Year Paper (PYQ)' },
+                                                ] as const
+                                            ).map(opt => {
+                                                const isSelected = formData.test_type === opt.value;
+                                                return (
+                                                    <button
+                                                        key={opt.value}
+                                                        type="button"
+                                                        aria-pressed={isSelected}
+                                                        onClick={() =>
+                                                            setFormData(prev => ({ ...prev, test_type: opt.value }))
+                                                        }
+                                                        className={`min-h-[44px] px-3.5 py-2.5 rounded-xl border text-xs font-bold transition-all active:scale-95 touch-manipulation scroll-mb-28 text-center ${
+                                                            isSelected
+                                                                ? opt.value === 'PYQ'
+                                                                    ? 'bg-teal-600 text-white border-teal-600 shadow-sm shadow-teal-600/20'
+                                                                    : 'bg-indigo-600 text-white border-indigo-600 shadow-sm shadow-indigo-600/20'
+                                                                : 'bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'
+                                                        }`}
+                                                    >
+                                                        {opt.label}
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
                             </fieldset>
                         </form>
                     </section>
@@ -1767,6 +1828,12 @@ export const AdminTestBuilderPage: React.FC = () => {
                                         <dt className="text-slate-400">Description</dt>
                                         <dd className="line-clamp-2">
                                             {formData.description.trim() || 'No description'}
+                                        </dd>
+                                    </div>
+                                    <div>
+                                        <dt className="text-slate-400">Source Type</dt>
+                                        <dd className="font-semibold">
+                                            {formData.test_type === 'PYQ' ? 'Previous Year Paper (PYQ)' : 'Expert Mock'}
                                         </dd>
                                     </div>
                                     <div>

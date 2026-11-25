@@ -187,7 +187,7 @@ export const SavedQuizCard: React.FC<SavedQuizCardProps> = ({ quiz, index, onRes
                                         key="trash"
                                         type="button"
                                         initial={{ opacity: 0, scale: 0.8 }}
-                                        animate={{ opacity: 1, scale: 0.9 }}
+                                        animate={{ opacity: 1, scale: 1 }}
                                         whileHover={{ scale: 1.05 }}
                                         className="min-w-[44px] min-h-[44px] inline-flex items-center justify-center opacity-80 sm:opacity-0 sm:group-hover:opacity-100 focus-visible:opacity-100 text-slate-400 hover:text-rose-600 hover:drop-shadow-[0_0_8px_rgba(225,29,72,0.5)] transition-all duration-300 active:scale-95 touch-manipulation scroll-mb-28 cursor-pointer rounded-full"
                                         onClick={(e) => {

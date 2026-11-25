@@ -209,6 +209,7 @@ const buildFixtureData = (): MockTablesData => ({
             name: 'BPSC TRE 3.0 Pro Pack',
             slug: 'bpsc-tre3-pro',
             description: 'Subject-wise teacher recruitment mocks.',
+            series_type: 'PYQ',
             is_premium: true,
             is_published: true,
             mock_categories: { id: 'cat-bpsc', name: 'BPSC', is_active: true },
@@ -250,6 +251,7 @@ const buildFixtureData = (): MockTablesData => ({
             id: 'test-bpsc-tre-sec',
             series_id: 'ser-bpsc-tre',
             name: 'BPSC TRE3 Bihar History Sectional',
+            test_type: 'PYQ',
             duration_minutes: 45,
             total_marks: 50,
             passing_marks: 30,
@@ -473,6 +475,11 @@ describe('v1.0.371 Dedicated BPSC Prepared Mock Tests & Canonical Routing', () =
             ).toBeTruthy();
         });
 
+        // DedicatedPageHeader renders exact <h1> for Playwright e2e compatibility and PYQ/Expert badges
+        expect(screen.getByRole('heading', { level: 1, name: 'BPSC Prepared Mock Tests' })).toBeTruthy();
+        expect(screen.getAllByText('Expert Mock').length).toBeGreaterThan(0);
+        expect(screen.getAllByText('PYQ Paper').length).toBeGreaterThan(0);
+
         // Verify specs
         expect(screen.getByText('120 mins')).toBeTruthy();
         expect(screen.getByText('150 Qs')).toBeTruthy();
@@ -608,7 +615,7 @@ describe('v1.0.371 Dedicated BPSC Prepared Mock Tests & Canonical Routing', () =
         });
     });
 
-    it('renders ExamCategoriesPage as a tabbed Mock Test Series hub with All, dynamic category tabs, and My Attempts', async () => {
+    it('renders ExamCategoriesPage with DedicatedPageHeader, SwipeableTabViewport, horizontal category rails, and PYQ vs Expert badges & filter', async () => {
         const fixture = buildFixtureData();
         setupSupabaseTables(fixture);
 
@@ -623,8 +630,44 @@ describe('v1.0.371 Dedicated BPSC Prepared Mock Tests & Canonical Routing', () =
 
         await waitFor(() => {
             expect(screen.getByText('70th BPSC Prelims Full Series')).toBeTruthy();
+            expect(screen.getByText('BPSC TRE 3.0 Pro Pack')).toBeTruthy();
             expect(screen.getByText('SSC CGL Tier 1')).toBeTruthy();
         });
+
+        // DedicatedPageHeader and SwipeableTabViewport are mounted
+        expect(screen.getByRole('heading', { level: 1, name: 'Mock Test Series' })).toBeTruthy();
+        expect(screen.getByRole('button', { name: /^Back$/i })).toBeTruthy();
+        const swipeViewport = document.querySelector('[aria-label="Mock Test Series Views"]');
+        expect(swipeViewport).not.toBeNull();
+        expect(swipeViewport?.className).toContain('mf-swipe-track');
+
+        // Horizontal category rails with unique series cards (no duplicate DOM titles) and See All
+        const rails = document.querySelectorAll('.mf-h-rail');
+        expect(rails.length).toBe(2);
+        expect(screen.getAllByText('70th BPSC Prelims Full Series')).toHaveLength(1);
+        expect(screen.getAllByText('PYQ Paper').length).toBeGreaterThan(0);
+        expect(screen.getAllByText('Expert Mock').length).toBeGreaterThan(0);
+
+        // Source-type filter bar: PYQ Papers -> Expert Mocks -> All Types
+        const typeFilterGroup = screen.getByRole('group', { name: 'Series source type filter' });
+        const pyqBtn = within(typeFilterGroup).getByRole('button', { name: 'PYQ Papers' });
+        const expertBtn = within(typeFilterGroup).getByRole('button', { name: 'Expert Mocks' });
+        const allTypesBtn = within(typeFilterGroup).getByRole('button', { name: 'All Types' });
+
+        fireEvent.click(pyqBtn);
+        expect(pyqBtn.getAttribute('aria-pressed')).toBe('true');
+        expect(screen.getByText('BPSC TRE 3.0 Pro Pack')).toBeTruthy();
+        expect(screen.queryByText('70th BPSC Prelims Full Series')).toBeNull();
+        expect(screen.queryByText('SSC CGL Tier 1')).toBeNull();
+
+        fireEvent.click(expertBtn);
+        expect(expertBtn.getAttribute('aria-pressed')).toBe('true');
+        expect(screen.getByText('70th BPSC Prelims Full Series')).toBeTruthy();
+        expect(screen.getByText('SSC CGL Tier 1')).toBeTruthy();
+        expect(screen.queryByText('BPSC TRE 3.0 Pro Pack')).toBeNull();
+
+        fireEvent.click(allTypesBtn);
+        expect(screen.getByText('BPSC TRE 3.0 Pro Pack')).toBeTruthy();
 
         const tablist = screen.getByRole('tablist', { name: 'Mock test series categories' });
         const allTab = within(tablist).getByRole('tab', { name: 'All' });
@@ -634,15 +677,17 @@ describe('v1.0.371 Dedicated BPSC Prepared Mock Tests & Canonical Routing', () =
 
         expect(allTab.getAttribute('aria-selected')).toBe('true');
 
+        // Clicking "See All" on BPSC rail switches active tab to BPSC
+        const bpscSection = screen.getByRole('region', { name: 'BPSC' });
+        fireEvent.click(within(bpscSection).getByRole('button', { name: 'See All' }));
+        expect(bpscTab.getAttribute('aria-selected')).toBe('true');
+        expect(screen.getByText('70th BPSC Prelims Full Series')).toBeTruthy();
+        expect(screen.queryByText('SSC CGL Tier 1')).toBeNull();
+
         fireEvent.click(sscTab);
         expect(sscTab.getAttribute('aria-selected')).toBe('true');
         expect(screen.getByText('SSC CGL Tier 1')).toBeTruthy();
         expect(screen.queryByText('70th BPSC Prelims Full Series')).toBeNull();
-
-        fireEvent.click(bpscTab);
-        expect(bpscTab.getAttribute('aria-selected')).toBe('true');
-        expect(screen.getByText('70th BPSC Prelims Full Series')).toBeTruthy();
-        expect(screen.queryByText('SSC CGL Tier 1')).toBeNull();
 
         fireEvent.click(attemptsTab);
         expect(attemptsTab.getAttribute('aria-selected')).toBe('true');
