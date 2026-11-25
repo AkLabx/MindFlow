@@ -18,11 +18,34 @@ import { AuthPolicy } from '../../../lib/navigation/policies/AuthPolicy';
 /**
  * Interface for the Auth Context value.
  */
+export interface AuthProfile {
+  id: string;
+  student_id?: string | null;
+  full_name?: string | null;
+  avatar_url?: string | null;
+  email?: string | null;
+  bio?: string | null;
+  target_exam?: string | null;
+  target_audience?: string | null;
+  phone?: string | null;
+  dob?: string | null;
+  username?: string | null;
+  subscription_status?: string | null;
+  plan_expiry_date?: string | null;
+  status?: string | null;
+  delete_requested_at?: string | null;
+  terms_accepted_version?: string | null;
+  terms_accepted_at?: string | null;
+  age_confirmed?: string | null;
+  created_at?: string | null;
+  [key: string]: unknown;
+}
+
 interface AuthContextType {
   profileStatus: string | null;
   deleteRequestedAt: string | null;
   /** The current canonical public.profiles row. */
-  profile: any | null;
+  profile: AuthProfile | null;
   /** The current Supabase session, or null if not authenticated. */
   session: Session | null;
   /** The current authenticated user object, or null. */
@@ -71,7 +94,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
-  const [profile, setProfile] = useState<any | null>(null);
+  const [profile, setProfile] = useState<AuthProfile | null>(null);
   const [profileStatus, setProfileStatus] = useState<string | null>(null);
   const [deleteRequestedAt, setDeleteRequestedAt] = useState<string | null>(null);
   const [roles, setRoles] = useState<AppRole[]>(() => {

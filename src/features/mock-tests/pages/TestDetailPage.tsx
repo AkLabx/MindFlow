@@ -13,6 +13,7 @@ import {
     CheckSquare,
     Clock,
     History,
+    Lock,
     PlayCircle,
     RefreshCw,
     Share2,
@@ -27,24 +28,40 @@ import { triggerHaptic } from '@/lib/haptics';
 import { telemetry } from '@/lib/telemetry';
 import { DedicatedPageHeader } from '@/components/ui/DedicatedPageHeader';
 import {
+    MOCK_CACHE_INVALIDATED_EVENT,
+    UserCourseEntitlementItem,
     UserTestAttemptItem,
     doesTextMatchCanonicalExam,
+    fetchPublishedTests,
     fetchTestDetails,
+    fetchUserCourseEntitlements,
     fetchUserTestAttempts,
+    getCachedSeriesBundleSnapshot,
     getCachedTestDetailsSnapshot,
+    getCachedUserCourseEntitlementsSnapshot,
     getCachedUserTestAttemptsSnapshot,
+    isMockSeriesPaid,
     isMockTestSaved,
     normalizeMockSeriesType,
     normalizeMockTestType,
     readSavedMockTestsIndexedDB,
     readTestDetailsIndexedDBCache,
+    readUserCourseEntitlementsIndexedDBCache,
     readUserTestAttemptsIndexedDBCache,
+    resolveMockTestAccess,
     toggleSavedMockTest,
 } from '../api/mockTestsApi';
 import { Breadcrumbs } from '../components/Breadcrumbs';
+import { CourseCheckoutDialog } from '../components/CourseCheckoutDialog';
 import { EmptyState } from '../components/EmptyState';
 import { HeroSkeleton } from '../components/Skeletons';
 import { TestLeaderboardCard } from '../components/TestLeaderboardCard';
+import {
+    getPreferredSscCglSkin,
+    isSscCglContext,
+    setPreferredSscCglSkin,
+    type SscCglCbtSkin,
+} from '../components/cbt/types';
 
 const PRODUCTION_TEST_BASE_URL = 'https://aklabx.github.io/MindFlow/#/mcqs/test-series/test';
 
@@ -112,7 +129,7 @@ export const TestDetailPage: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const { testId } = useParams<{ testId: string }>();
-    const { user } = useAuth();
+    const { user, profile } = useAuth();
     const { showToast } = useNotification();
     const userId = user?.id ?? null;
 
@@ -128,6 +145,14 @@ export const TestDetailPage: React.FC = () => {
     const [attempts, setAttempts] = useState<UserTestAttemptItem[]>(() =>
         testId ? getCachedUserTestAttemptsSnapshot(testId, userId) ?? [] : []
     );
+    const [entitlements, setEntitlements] = useState<UserCourseEntitlementItem[]>(() =>
+        userId ? getCachedUserCourseEntitlementsSnapshot(userId) ?? [] : []
+    );
+    const [orderedSeriesTests, setOrderedSeriesTests] = useState<any[] | null>(null);
+    const [selectedCbtSkin, setSelectedCbtSkin] = useState<SscCglCbtSkin>(() =>
+        getPreferredSscCglSkin()
+    );
+    const [isCheckoutOpen, setIsCheckoutOpen] = useState<boolean>(false);
     const [attemptsLoading, setAttemptsLoading] = useState<boolean>(() =>
         Boolean(testId && userId && getCachedUserTestAttemptsSnapshot(testId, userId) === null)
     );
@@ -191,16 +216,20 @@ export const TestDetailPage: React.FC = () => {
 
             // Async IndexedDB hydration when sync caches are cold
             if (!syncTest || (userId && syncAttempts === null)) {
-                const [idbTest, idbAttempts, idbSavedIds] = await Promise.all([
+                const [idbTest, idbAttempts, idbSavedIds, idbEnt] = await Promise.all([
                     syncTest ? Promise.resolve(syncTest) : readTestDetailsIndexedDBCache(testId),
                     userId && syncAttempts === null
                         ? readUserTestAttemptsIndexedDBCache(testId, userId)
                         : Promise.resolve(syncAttempts),
                     userId ? readSavedMockTestsIndexedDB(userId) : Promise.resolve([]),
+                    userId ? readUserCourseEntitlementsIndexedDBCache(userId) : Promise.resolve(null),
                 ]);
 
                 if (!isMountedRef.current || fetchSeqRef.current !== seq) return;
 
+                if (idbEnt !== null) {
+                    setEntitlements(idbEnt);
+                }
                 if (idbTest && !syncTest) {
                     setTest(idbTest);
                     hasTestRef.current = true;
@@ -215,17 +244,42 @@ export const TestDetailPage: React.FC = () => {
                 }
             }
 
-            const [detailResult, attemptsResult] = await Promise.allSettled([
+            const [detailResult, attemptsResult, entResult] = await Promise.allSettled([
                 fetchTestDetails(testId),
                 userId ? fetchUserTestAttempts(testId, userId) : Promise.resolve([] as UserTestAttemptItem[]),
+                userId
+                    ? fetchUserCourseEntitlements(userId, { forceRefresh: isManualRetry })
+                    : Promise.resolve([] as UserCourseEntitlementItem[]),
             ]);
 
             if (!isMountedRef.current || fetchSeqRef.current !== seq) return;
+
+            if (entResult.status === 'fulfilled') {
+                setEntitlements(entResult.value);
+            }
 
             if (detailResult.status === 'fulfilled') {
                 setTest(detailResult.value);
                 hasTestRef.current = true;
                 setOfflineNotice(null);
+
+                const resolvedTest = detailResult.value;
+                const resolvedSeries = resolvedTest?.mock_series ?? resolvedTest?.test_series;
+                const sid = String(resolvedTest?.series_id ?? resolvedSeries?.id ?? '').trim();
+                if (sid && isMockSeriesPaid(resolvedSeries) && !resolvedTest?.is_free_demo) {
+                    const cachedTests = getCachedSeriesBundleSnapshot(sid)?.tests ?? null;
+                    if (cachedTests) {
+                        setOrderedSeriesTests(cachedTests);
+                    } else {
+                        fetchPublishedTests(sid)
+                            .then((list) => {
+                                if (isMountedRef.current && fetchSeqRef.current === seq) {
+                                    setOrderedSeriesTests(list);
+                                }
+                            })
+                            .catch(() => {});
+                    }
+                }
             } else {
                 const err = detailResult.reason as { message?: string; code?: string } | undefined;
                 const msg = String(err?.message ?? '');
@@ -277,6 +331,16 @@ export const TestDetailPage: React.FC = () => {
         setIsSaved(testId ? isMockTestSaved(testId, userId) : false);
         loadTestData(false);
     }, [testId, userId, loadTestData]);
+
+    useEffect(() => {
+        const handleCacheInvalidated = () => {
+            void loadTestData(true);
+        };
+        window.addEventListener(MOCK_CACHE_INVALIDATED_EVENT, handleCacheInvalidated);
+        return () => {
+            window.removeEventListener(MOCK_CACHE_INVALIDATED_EVENT, handleCacheInvalidated);
+        };
+    }, [loadTestData]);
 
     const handleLogicalBack = () => {
         navigate(resolveTestDetailBackTarget(location.state, test));
@@ -433,14 +497,34 @@ export const TestDetailPage: React.FC = () => {
         [attempts, showAllAttempts]
     );
 
-    const primaryCtaLabel = attemptStats.inProgressAttempt
-        ? 'Resume Attempt'
-        : attemptStats.completedAttempts.length > 0
-          ? 'Re-attempt Test'
-          : 'Start Test';
+    const testAccess = useMemo(
+        () =>
+            resolveMockTestAccess({
+                test,
+                series,
+                entitlements,
+                orderedSeriesTests,
+            }),
+        [test, series, entitlements, orderedSeriesTests]
+    );
+
+    const showSscCglSkinChooser = useMemo(() => Boolean(test && isSscCglContext(test)), [test]);
+
+    const primaryCtaLabel = !testAccess.unlocked
+        ? `Unlock Series — ₹${testAccess.priceInr}`
+        : attemptStats.inProgressAttempt
+          ? 'Resume Attempt'
+          : attemptStats.completedAttempts.length > 0
+            ? 'Re-attempt Test'
+            : 'Start Test';
 
     const handleLaunchExam = () => {
         if (!test?.id) return;
+        if (!testAccess.unlocked) {
+            triggerHaptic('light');
+            setIsCheckoutOpen(true);
+            return;
+        }
         triggerHaptic('medium');
         navigate(`/exam/${test.id}`, {
             state: {
@@ -448,6 +532,7 @@ export const TestDetailPage: React.FC = () => {
                 ...(attemptStats.inProgressAttempt
                     ? { resumeAttemptId: attemptStats.inProgressAttempt.id }
                     : {}),
+                ...(showSscCglSkinChooser ? { cbtSkin: selectedCbtSkin } : {}),
             },
         });
     };
@@ -612,17 +697,35 @@ export const TestDetailPage: React.FC = () => {
                                 </span>
                                 <span
                                     className={`inline-flex items-center px-2.5 py-0.5 rounded-md text-[11px] font-bold uppercase tracking-wide ${
-                                        series?.is_premium
-                                            ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300'
-                                            : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300'
+                                        testAccess.reason === 'free_demo'
+                                            ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300'
+                                            : testAccess.reason === 'entitled'
+                                              ? 'bg-emerald-600 text-white'
+                                              : series?.is_premium
+                                                ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300'
+                                                : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300'
                                     }`}
                                 >
-                                    {series?.is_premium ? 'PRO' : 'Free'}
+                                    {testAccess.reason === 'free_demo'
+                                        ? 'Free Demo'
+                                        : testAccess.reason === 'entitled'
+                                          ? 'Unlocked'
+                                          : series?.is_premium
+                                            ? 'PRO'
+                                            : 'Free'}
                                 </span>
                                 <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-[11px] font-bold bg-slate-100 dark:bg-slate-700/60 text-slate-600 dark:text-slate-300">
                                     {category?.name ? `${category.name} • ` : ''}
                                     {series?.name || 'Prepared Mock Test'}
                                 </span>
+                                {profile?.student_id && (
+                                    <span
+                                        data-testid="test-detail-student-id"
+                                        className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-mono font-bold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300"
+                                    >
+                                        {profile.student_id}
+                                    </span>
+                                )}
                             </div>
 
                             {test.description && (
@@ -635,9 +738,18 @@ export const TestDetailPage: React.FC = () => {
                         <button
                             type="button"
                             onClick={handleLaunchExam}
-                            className="w-full sm:w-auto min-h-[44px] min-w-[44px] scroll-mb-28 bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-3 rounded-xl font-black text-sm sm:text-base inline-flex items-center justify-center gap-2 transition-all active:scale-95 touch-manipulation cursor-pointer shadow-md hover:shadow-indigo-500/25 shrink-0"
+                            data-testid="test-detail-primary-cta"
+                            className={`w-full sm:w-auto min-h-[44px] min-w-[44px] scroll-mb-28 px-6 py-3 rounded-xl font-black text-sm sm:text-base inline-flex items-center justify-center gap-2 transition-all active:scale-95 touch-manipulation cursor-pointer shadow-md shrink-0 ${
+                                !testAccess.unlocked
+                                    ? 'bg-amber-500 hover:bg-amber-400 text-slate-950'
+                                    : 'bg-indigo-600 hover:bg-indigo-500 text-white hover:shadow-indigo-500/25'
+                            }`}
                         >
-                            <PlayCircle className="w-5 h-5 shrink-0" aria-hidden="true" />
+                            {!testAccess.unlocked ? (
+                                <Lock className="w-5 h-5 shrink-0" aria-hidden="true" />
+                            ) : (
+                                <PlayCircle className="w-5 h-5 shrink-0" aria-hidden="true" />
+                            )}
                             <span>{primaryCtaLabel}</span>
                         </button>
                     </div>
@@ -694,6 +806,70 @@ export const TestDetailPage: React.FC = () => {
                             </dt>
                         </div>
                     </dl>
+
+                    {showSscCglSkinChooser && (
+                        <div
+                            data-testid="ssc-cgl-cbt-skin-selector"
+                            className="rounded-2xl border border-slate-200 dark:border-slate-700/80 bg-slate-50/70 dark:bg-slate-900/40 p-4 space-y-2.5"
+                        >
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                                <p className="text-xs sm:text-sm font-black text-slate-900 dark:text-white">
+                                    SSC CGL CBT Interface Pattern
+                                </p>
+                                <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+                                    Switch exam UI style anytime before start
+                                </span>
+                            </div>
+                            <div
+                                role="radiogroup"
+                                aria-label="SSC CGL CBT Interface Pattern"
+                                className="grid grid-cols-1 sm:grid-cols-2 gap-2.5"
+                            >
+                                {(
+                                    [
+                                        {
+                                            id: 'ssc_cgl_tcs_ion' as const,
+                                            title: 'TCS iON Classic',
+                                            desc: 'Navy header, collapsible right 5-symbol palette & section tabs',
+                                        },
+                                        {
+                                            id: 'ssc_cgl_eduquity' as const,
+                                            title: 'Eduquity New Pattern',
+                                            desc: 'Left-docked navigator, live session shield & A-/A+ zoom bar',
+                                        },
+                                    ]
+                                ).map((opt) => {
+                                    const active = selectedCbtSkin === opt.id;
+                                    return (
+                                        <button
+                                            key={opt.id}
+                                            type="button"
+                                            role="radio"
+                                            aria-checked={active}
+                                            data-testid={`cbt-skin-option-${opt.id}`}
+                                            onClick={() => {
+                                                triggerHaptic('light');
+                                                setSelectedCbtSkin(opt.id);
+                                                setPreferredSscCglSkin(opt.id);
+                                            }}
+                                            className={`min-h-[48px] text-left p-3 rounded-xl border-2 transition-all active:scale-[0.99] touch-manipulation cursor-pointer ${
+                                                active
+                                                    ? 'bg-white dark:bg-slate-800 border-indigo-600 ring-1 ring-indigo-600 shadow-xs'
+                                                    : 'bg-white/70 dark:bg-slate-900/60 border-slate-200 dark:border-slate-700 hover:border-indigo-400'
+                                            }`}
+                                        >
+                                            <span className="block text-xs sm:text-sm font-black text-slate-900 dark:text-white">
+                                                {opt.title}
+                                            </span>
+                                            <span className="block text-[11px] font-medium text-slate-500 dark:text-slate-400 mt-0.5 leading-snug">
+                                                {opt.desc}
+                                            </span>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    )}
 
                     {/* Concise Instructions */}
                     <section className="bg-indigo-50/80 dark:bg-indigo-900/15 rounded-2xl p-4 sm:p-5 border border-indigo-100 dark:border-indigo-900/30">
@@ -915,6 +1091,25 @@ export const TestDetailPage: React.FC = () => {
                     </section>
                 </div>
             </div>
+
+            {series?.id && (
+                <CourseCheckoutDialog
+                    isOpen={isCheckoutOpen}
+                    onClose={() => setIsCheckoutOpen(false)}
+                    series={{
+                        id: String(series.id),
+                        name: String(series.name ?? 'Test Series'),
+                        price_inr: testAccess.priceInr,
+                        mrp_inr: testAccess.mrpInr,
+                        validity_days: testAccess.validityDays,
+                        free_demo_count: testAccess.freeDemoCount,
+                        category_name: category?.name ? String(category.name) : undefined,
+                    }}
+                    studentId={profile?.student_id ?? null}
+                    userId={userId}
+                    onRequestSubmitted={() => void loadTestData(true)}
+                />
+            )}
         </div>
     );
 };

@@ -46,6 +46,7 @@ export const SwipeableTabViewport: React.FC<SwipeableTabViewportProps> = ({
 }) => {
   const trackRef = useRef<HTMLDivElement>(null);
   const isProgrammaticScrollRef = useRef<boolean>(false);
+  const isNestedRailGestureRef = useRef<boolean>(false);
   const programmaticTimerRef = useRef<number | null>(null);
   const settleTimerRef = useRef<number | null>(null);
   const rafRef = useRef<number | null>(null);
@@ -162,6 +163,7 @@ export const SwipeableTabViewport: React.FC<SwipeableTabViewportProps> = ({
   }, [activeIndex, tabs.length]);
 
   const handleScroll = useCallback(() => {
+    if (isNestedRailGestureRef.current) return;
     if (!isProgrammaticScrollRef.current) {
       if (rafRef.current !== null && typeof cancelAnimationFrame === 'function') {
         cancelAnimationFrame(rafRef.current);
@@ -194,7 +196,7 @@ export const SwipeableTabViewport: React.FC<SwipeableTabViewportProps> = ({
     };
 
     const handleScrollSnapChanging = (event: Event) => {
-      if (isProgrammaticScrollRef.current) return;
+      if (isProgrammaticScrollRef.current || isNestedRailGestureRef.current) return;
       const snapTarget = (event as Event & { snapTargetInline?: Element | null }).snapTargetInline;
       if (snapTarget) {
         const children = Array.from(track.children);
@@ -218,15 +220,31 @@ export const SwipeableTabViewport: React.FC<SwipeableTabViewportProps> = ({
       ref={trackRef}
       aria-label={ariaLabel}
       onScroll={handleScroll}
-      onTouchStart={() => {
+      onTouchStart={(e) => {
+        const target = e.target as HTMLElement | null;
+        isNestedRailGestureRef.current = Boolean(target?.closest?.('[data-h-rail="true"]'));
         if (isProgrammaticScrollRef.current) {
           isProgrammaticScrollRef.current = false;
         }
       }}
-      onPointerDown={() => {
+      onTouchEnd={() => {
+        isNestedRailGestureRef.current = false;
+      }}
+      onTouchCancel={() => {
+        isNestedRailGestureRef.current = false;
+      }}
+      onPointerDown={(e) => {
+        const target = e.target as HTMLElement | null;
+        isNestedRailGestureRef.current = Boolean(target?.closest?.('[data-h-rail="true"]'));
         if (isProgrammaticScrollRef.current) {
           isProgrammaticScrollRef.current = false;
         }
+      }}
+      onPointerUp={() => {
+        isNestedRailGestureRef.current = false;
+      }}
+      onPointerCancel={() => {
+        isNestedRailGestureRef.current = false;
       }}
       className={cn('mf-swipe-track w-full', className)}
     >

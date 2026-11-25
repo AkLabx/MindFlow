@@ -40,10 +40,22 @@ export const SeriesCard: React.FC<SeriesCardProps> = ({ series, onEdit, onDelete
             )}
             {!series.description && <div className="min-h-[40px] mb-4" />}
 
-            <div className="flex items-center gap-4 text-sm font-medium text-slate-600 dark:text-slate-300 mb-6 bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl">
+            <div className="flex flex-wrap items-center justify-between gap-3 text-sm font-medium text-slate-600 dark:text-slate-300 mb-6 bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl">
                 <div>
                     <span className="text-slate-900 dark:text-white font-bold">{testsCount}</span> Tests
                 </div>
+                {series.is_premium || Number(series.price_inr ?? 0) > 0 ? (
+                    <div className="flex items-center gap-2 text-xs font-bold">
+                        <span className="px-2 py-0.5 rounded-md bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300">
+                            ₹{Number(series.price_inr ?? 0)}
+                        </span>
+                        <span className="text-slate-500 dark:text-slate-400">
+                            {Number(series.validity_days ?? 365)}d • {Number(series.free_demo_count ?? 1)} Demo
+                        </span>
+                    </div>
+                ) : (
+                    <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">Free</span>
+                )}
             </div>
 
             <div className="mt-auto flex justify-end gap-2 border-t border-slate-100 dark:border-slate-700/50 pt-4">

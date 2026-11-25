@@ -39,6 +39,10 @@ export const DB_TABLES = {
     STATS_SNAPSHOTS: 'exam_stats_snapshots',
     OFFICIAL_KEYS: 'official_answer_keys',
   },
+  BILLING: {
+    PAYMENTS: 'payments',
+    ENTITLEMENTS: 'user_course_entitlements',
+  },
 } as const;
 
 export const DB_RPCS = {
@@ -54,4 +58,8 @@ export const DB_RPCS = {
   GET_USER_PERFORMANCE_METRICS: 'get_user_performance_metrics',
   RECORD_QUESTION_INTERACTIONS: 'record_question_interactions',
   RESET_USER_ANALYTICS: 'reset_user_analytics',
+  SUBMIT_COURSE_PAYMENT_REQUEST: 'submit_course_payment_request',
+  LOOKUP_STUDENT_FOR_ENROLLMENT: 'lookup_student_for_enrollment',
+  ADMIN_ACTIVATE_COURSE_ENTITLEMENT: 'admin_activate_course_entitlement',
+  ADMIN_REJECT_COURSE_PAYMENT_REQUEST: 'admin_reject_course_payment_request',
 } as const;

@@ -1,4 +1,6 @@
-import React, { useState, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useRef, useCallback, useMemo, useEffect } from 'react';
+import { Capacitor } from '@capacitor/core';
+import { Clipboard } from '@capacitor/clipboard';
 import { useDebugStore } from '../../../stores/useDebugStore';
 import { PresenceAvatar } from '../../../components/ui/PresenceAvatar';
 import { PresenceDot } from '../../../components/ui/PresenceDot';
@@ -9,7 +11,7 @@ import { supabase } from '../../../lib/supabase';
 import {
     LogOut, Settings2, ChevronRight, CheckCircle, BarChart,
     Pencil, AlertTriangle, Loader2, X, Clock, Target,
-    FileText, Bookmark, Grid, CreditCard, Shield, HelpCircle
+    FileText, Bookmark, Grid, CreditCard, Shield, HelpCircle, Copy, Check
 } from 'lucide-react';
 import { useProfileStats } from '../hooks/useProfileStats';
 import { useNavigate } from 'react-router-dom';
@@ -112,6 +114,45 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onSignOut, onNavigateToSettin
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null);
+  const [copiedStudentId, setCopiedStudentId] = useState(false);
+  const copyResetTimerRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (copyResetTimerRef.current !== null) {
+        window.clearTimeout(copyResetTimerRef.current);
+      }
+    };
+  }, []);
+
+  const handleCopyStudentId = useCallback(async () => {
+    const sid = profile?.student_id;
+    if (!sid) return;
+    try {
+      if (Capacitor.isNativePlatform()) {
+        await Clipboard.write({ string: sid });
+      } else {
+        await navigator.clipboard.writeText(sid);
+      }
+      triggerHaptic('light');
+      setCopiedStudentId(true);
+      if (copyResetTimerRef.current !== null) {
+        window.clearTimeout(copyResetTimerRef.current);
+      }
+      copyResetTimerRef.current = window.setTimeout(() => setCopiedStudentId(false), 1800);
+      showToast({
+        variant: 'success',
+        title: 'Student ID Copied',
+        message: `${sid} copied to clipboard.`,
+      });
+    } catch {
+      showToast({
+        variant: 'error',
+        title: 'Copy Failed',
+        message: 'Could not copy Student ID automatically.',
+      });
+    }
+  }, [profile?.student_id, showToast]);
 
   const onCropComplete = useCallback((croppedArea: any, croppedAreaPixels: any) => {
     setCroppedAreaPixels(croppedAreaPixels);
@@ -349,6 +390,32 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onSignOut, onNavigateToSettin
                       <PresenceDot userId={user?.id || ''} />
                   </div>
                   <p className="text-slate-500 dark:text-slate-400 font-medium text-sm mt-0.5">{user.email}</p>
+                  <div className="mt-2.5 inline-flex items-center gap-1.5 rounded-2xl bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200/80 dark:border-indigo-800/70 pl-3 pr-1 py-1">
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-indigo-600/80 dark:text-indigo-300/80">
+                          Student ID
+                      </span>
+                      <span
+                          data-testid="profile-student-id"
+                          className="font-mono text-xs sm:text-sm font-black text-indigo-700 dark:text-indigo-200 tracking-wide"
+                      >
+                          {profile?.student_id || 'Pending Sync'}
+                      </span>
+                      {profile?.student_id && (
+                          <button
+                              type="button"
+                              onClick={handleCopyStudentId}
+                              aria-label="Copy Unique Student ID"
+                              data-testid="copy-student-id-btn"
+                              className="min-h-[44px] min-w-[44px] -my-1 px-2.5 rounded-xl text-indigo-700 dark:text-indigo-200 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 inline-flex items-center justify-center transition-all active:scale-95 touch-manipulation cursor-pointer"
+                          >
+                              {copiedStudentId ? (
+                                  <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
+                              ) : (
+                                  <Copy className="w-4 h-4" aria-hidden="true" />
+                              )}
+                          </button>
+                      )}
+                  </div>
               </div>
 
               <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
