@@ -81,6 +81,9 @@ export function resolveHardwareBackTarget(currentPath: string, locationState?: u
     if (normalized.startsWith('/admin/test-series/')) {
         return '/admin/test-series?tab=tests';
     }
+    if (normalized.startsWith('/admin/')) {
+        return ROUTES.ADMIN.ROOT;
+    }
     if (normalized.startsWith('/mcqs/test-series/')) {
         const st = locationState as { returnTo?: unknown; from?: unknown } | null | undefined;
         const candidate = st?.returnTo ?? st?.from;

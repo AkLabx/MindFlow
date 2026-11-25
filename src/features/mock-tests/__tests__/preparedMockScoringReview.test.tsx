@@ -15,11 +15,13 @@ import {
     computePreparedMockScore,
     computePreparedMockSubjectBreakdown,
     fetchPreparedMockAttemptById,
+    fetchPreparedMockTestQuestions,
     submitPreparedMockAttempt,
     cachePreparedMockAttemptDetail,
     getCachedPreparedMockAttemptByIdSnapshot,
 } from '../api/mockTestsApi';
 import { TestDetailPage } from '../pages/TestDetailPage';
+import { PreparedMockResultPage } from '../pages/PreparedMockResultPage';
 import type { Question } from '@/types/models';
 
 const {
@@ -64,6 +66,14 @@ vi.mock('@/features/auth', () => ({
 vi.mock('@/lib/haptics', () => ({
     triggerHaptic: vi.fn(),
 }));
+
+vi.mock('../api/mockTestsApi', async (importOriginal) => {
+    const actual = await importOriginal<typeof import('../api/mockTestsApi')>();
+    return {
+        ...actual,
+        fetchPreparedMockTestQuestions: vi.fn(actual.fetchPreparedMockTestQuestions),
+    };
+});
 
 const LocationDisplay: React.FC = () => {
     const loc = useLocation();
@@ -396,6 +406,200 @@ describe('Prepared Mock Scoring, Negative Marking & Solution Review Pipeline (v1
         await waitFor(() => {
             expect(screen.getByTestId('location-display').textContent).toBe(
                 ROUTES.TEST_SERIES.RESULT(testId, 'att-completed-99')
+            );
+        });
+    });
+
+    it('renders PreparedMockResultPage with accessible 44px controls, lang="hi" blocks, accessible quick-jump dialog, and returnTo back navigation', async () => {
+        const testId = 'test-result-a11y-1';
+        const attemptId = 'att-result-a11y-1';
+        const mockTestRecord = {
+            id: testId,
+            name: 'BPSC Accessibility Mock',
+            total_marks: 100,
+            passing_marks: 40,
+            negative_marks: 0.25,
+            duration_minutes: 60,
+            is_published: true,
+            question_ids: ['q-hi-1', 'q-hi-2'],
+            mock_series: {
+                id: 'series-bpsc-1',
+                name: 'BPSC Series',
+                is_published: true,
+                mock_categories: { id: 'cat-bpsc', name: 'BPSC', is_active: true },
+            },
+        };
+
+        const mockAttemptRecord = {
+            id: attemptId,
+            test_id: testId,
+            user_id: mockUser.id,
+            score: 50,
+            accuracy: 50,
+            time_taken_seconds: 1200,
+            status: 'completed',
+            answers: { 'q-hi-1': 'Patna' },
+            start_time: '2026-11-24T08:00:00Z',
+            end_time: '2026-11-24T08:20:00Z',
+            created_at: '2026-11-24T08:00:00Z',
+        };
+
+        const mockQuestionsRows = [
+            {
+                id: 'q-hi-1',
+                v1_id: 'q-hi-1',
+                subject: 'Bihar Special',
+                question: 'Capital of Bihar?',
+                question_hi: 'बिहार की राजधानी क्या है?',
+                options: ['Patna', 'Gaya', 'Bhagalpur', 'Muzaffarpur'],
+                options_hi: ['पटना', 'गया', 'भागलपुर', 'मुजफ्फरपुर'],
+                correct: 'Patna',
+                explanation: { summary: 'Patna is the capital of Bihar.' },
+                explanation_hi: 'पटना बिहार की राजधानी है।',
+                sourceInfo: { examName: 'BPSC', examYear: 2024 },
+                classification: { subject: 'Bihar Special', topic: 'General' },
+                tags: [],
+                properties: { difficulty: 'Medium', questionType: 'MCQ' },
+            },
+            {
+                id: 'q-hi-2',
+                v1_id: 'q-hi-2',
+                subject: 'History',
+                question: 'First President of India?',
+                question_hi: 'भारत के प्रथम राष्ट्रपति कौन थे?',
+                options: ['Dr. Rajendra Prasad', 'Jawaharlal Nehru', 'Sardar Patel', 'B.R. Ambedkar'],
+                options_hi: ['डॉ. राजेंद्र प्रसाद', 'जवाहरलाल नेहरू', 'सरदार पटेल', 'बी.आर. अंबेडकर'],
+                correct: 'Dr. Rajendra Prasad',
+                explanation: { summary: 'Dr. Rajendra Prasad served as the first President.' },
+                explanation_hi: 'डॉ. राजेंद्र प्रसाद प्रथम राष्ट्रपति थे।',
+                sourceInfo: { examName: 'BPSC', examYear: 2024 },
+                classification: { subject: 'History', topic: 'General' },
+                tags: [],
+                properties: { difficulty: 'Medium', questionType: 'MCQ' },
+            },
+        ];
+
+        vi.mocked(fetchPreparedMockTestQuestions).mockResolvedValueOnce(mockQuestionsRows as any);
+
+        fromMock.mockImplementation((table: string) => {
+            if (table === DB_TABLES.MOCK.ATTEMPTS) {
+                return {
+                    select: vi.fn().mockReturnValue({
+                        eq: vi.fn().mockReturnThis(),
+                        maybeSingle: vi.fn().mockResolvedValue({ data: mockAttemptRecord, error: null }),
+                    }),
+                };
+            }
+            if (table === DB_TABLES.MOCK.TESTS) {
+                return {
+                    select: vi.fn().mockReturnValue({
+                        eq: vi.fn().mockReturnThis(),
+                        maybeSingle: vi.fn().mockResolvedValue({ data: mockTestRecord, error: null }),
+                    }),
+                };
+            }
+            if (table === DB_TABLES.BANK.QUESTIONS) {
+                return {
+                    select: vi.fn().mockReturnValue({
+                        in: vi.fn().mockReturnValue({
+                            is: vi.fn().mockResolvedValue({ data: mockQuestionsRows, error: null }),
+                        }),
+                    }),
+                };
+            }
+            return {
+                select: vi.fn().mockReturnThis(),
+                eq: vi.fn().mockReturnThis(),
+                maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+            };
+        });
+
+        const { container } = render(
+            <MemoryRouter
+                initialEntries={[
+                    {
+                        pathname: `/mcqs/test-series/test/${testId}/result/${attemptId}`,
+                        state: { returnTo: '/mcqs/test-series/series/series-bpsc-1' },
+                    },
+                ]}
+            >
+                <Routes>
+                    <Route
+                        path="/mcqs/test-series/test/:testId/result/:attemptId"
+                        element={<PreparedMockResultPage />}
+                    />
+                    <Route
+                        path="/mcqs/test-series/series/:seriesId"
+                        element={<LocationDisplay />}
+                    />
+                </Routes>
+            </MemoryRouter>
+        );
+
+        await waitFor(() => {
+            expect(screen.getByText('BPSC Accessibility Mock')).toBeTruthy();
+        });
+
+        const scorecardBtn = screen.getByRole('button', { name: 'Scorecard' });
+        const solutionsBtn = screen.getByRole('button', { name: 'Solutions' });
+        expect(scorecardBtn.getAttribute('aria-pressed')).toBe('true');
+        expect(solutionsBtn.getAttribute('aria-pressed')).toBe('false');
+        expect(scorecardBtn.className).toContain('min-h-[44px]');
+        expect(solutionsBtn.className).toContain('min-h-[44px]');
+
+        // Switch to Solutions view
+        fireEvent.click(solutionsBtn);
+
+        await waitFor(() => {
+            expect(solutionsBtn.getAttribute('aria-pressed')).toBe('true');
+        });
+
+        // Verify filter chips & language switcher have aria-pressed + min-h-[44px]
+        const allFilterBtn = screen.getByRole('button', { name: /All \(2\)/i });
+        const correctFilterBtn = screen.getByRole('button', { name: /Correct \(1\)/i });
+        expect(allFilterBtn.getAttribute('aria-pressed')).toBe('true');
+        expect(correctFilterBtn.getAttribute('aria-pressed')).toBe('false');
+        expect(allFilterBtn.className).toContain('min-h-[44px]');
+        expect(correctFilterBtn.className).toContain('min-h-[44px]');
+
+        const bilingualBtn = screen.getByRole('button', { name: 'bilingual' });
+        const hindiBtn = screen.getByRole('button', { name: 'hindi' });
+        expect(bilingualBtn.getAttribute('aria-pressed')).toBe('true');
+        expect(hindiBtn.getAttribute('aria-pressed')).toBe('false');
+        expect(bilingualBtn.className).toContain('min-h-[44px]');
+        expect(hindiBtn.className).toContain('min-h-[44px]');
+
+        // Verify lang="hi" on Hindi stem, Hindi option line, and Hindi explanation
+        const hindiBlocks = container.querySelectorAll('[lang="hi"]');
+        expect(hindiBlocks.length).toBeGreaterThanOrEqual(3);
+        const hindiStem = screen.getByText('बिहार की राजधानी क्या है?');
+        expect(hindiStem.closest('[lang="hi"]')).toBeTruthy();
+        const hindiExplanation = screen.getByText('पटना बिहार की राजधानी है।');
+        expect(hindiExplanation.closest('[lang="hi"]')).toBeTruthy();
+
+        // Open Quick-Jump Palette Dialog via bottom bar trigger
+        const paletteTrigger = screen.getByRole('button', { name: 'Open question palette' });
+        expect(paletteTrigger.className).toContain('min-h-[44px]');
+        fireEvent.click(paletteTrigger);
+
+        const paletteTitle = await screen.findByText('Jump to Question');
+        expect(paletteTitle.tagName).toBe('H2');
+        expect(paletteTitle.id).toBe('quick-jump-palette-title');
+
+        const closePaletteBtn = screen.getByRole('button', { name: 'Close question palette' });
+        expect(closePaletteBtn.className).toContain('min-h-[44px]');
+        expect(closePaletteBtn.className).toContain('min-w-[44px]');
+        fireEvent.click(closePaletteBtn);
+
+        // Verify Back button honors validated location.state.returnTo
+        const backBtn = screen.getByRole('button', { name: 'Back to test details' });
+        expect(backBtn.className).toContain('min-h-[44px]');
+        expect(backBtn.className).toContain('min-w-[44px]');
+        fireEvent.click(backBtn);
+
+        await waitFor(() => {
+            expect(screen.getByTestId('location-display').textContent).toBe(
+                '/mcqs/test-series/series/series-bpsc-1'
             );
         });
     });

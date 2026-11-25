@@ -38,8 +38,8 @@ flowchart LR
 | Generation | Version Span | Focus Area & Core Theme | Blueprint File | Status |
 | :---: | :---: | :--- | :--- | :---: |
 | **Gen 1A** | `v1.0.310` $\rightarrow$ `v1.0.366` | **Platform Foundation & Workflow Engine:** Canonical Exam Registry (`DEC-0001`), Offline-First Dexie (`DEC-0004`), Option B Launch (`DEC-0005`), MWG Top-Layer (`DEC-0007`), Android Uplift (`DEC-0008`), Social Chatroom Reskin (`DEC-0011`–`0012`), and Autonomous 1-Chat = 1-Version Engine (`DEC-0013`). | Archived in [`DECISIONS_MASTER.md`](../DECISIONS_MASTER.md) | `[x] COMPLETED` |
-| **Gen 1B** | `v1.0.367` $\rightarrow$ `v1.0.380` | **Admin Panel & Dedicated BPSC Prepared Mock Tests Hardening:** Make the existing Admin Mock Tests CMS (`categories`, `series`, `tests`, `question-builder`, admin shell/RBAC) and the Student Dedicated BPSC Prepared Mock Tests experience 100% bug-free, fast, native UI/UX, and secure end-to-end. | [`v1.0_blueprint.md`](./v1.0_blueprint.md) | `[ ] ACTIVE` |
-| **Gen 2** | `v1.0.381` $\rightarrow$ `v1.0.390` | **Next Existing Feature Hardening (Parked):** Dedicated hardening pass on the next selected existing feature (e.g., Community Chatroom offline queue/waveform or Gemini Live Voice Coach stabilization). Scoped via interactive planning after `v1.0.380`. | *Created upon Gen 1B completion* | `[ ] PARKED` |
+| **Gen 1B** | `v1.0.367` $\rightarrow$ `v1.0.380` | **Admin Panel & Dedicated BPSC Prepared Mock Tests Hardening:** Make the existing Admin Mock Tests CMS (`categories`, `series`, `tests`, `question-builder`, admin shell/RBAC) and the Student Dedicated BPSC Prepared Mock Tests experience 100% bug-free, fast, native UI/UX, and secure end-to-end. | [`v1.0_blueprint.md`](./v1.0_blueprint.md) | `[x] COMPLETED` |
+| **Gen 2** | `v1.0.381` $\rightarrow$ `v1.0.390` | **Community Chatrooms & Study Rooms Hardening (`src/features/community/`):** Harden database RLS/indexes (`chat_room_messages`, `chat_message_reactions`), Realtime v2 channel resilience, offline outbox queuing, WebM voice notes, Android keyboard/swipe ergonomics, native `<dialog>` moderation menus, media compression, community feeds, and E2E verification. | [`v2.0_blueprint.md`](./v2.0_blueprint.md) | `[ ] ACTIVE` |
 | **Gen 3** | `v1.1.0` $\rightarrow$ `v2.0.0` | **Future Platform Expansion (Parked):** New net capabilities (realtime peer quiz battles, study lounges, institutional educator workflows). Strictly frozen until existing core features are rock-solid. | *Created upon Gen 2 completion* | `[ ] PARKED` |
 
 ---
@@ -47,6 +47,7 @@ flowchart LR
 ## 4. Template & Governance Links
 
 - **Generation Blueprint Template:** [`docs/blueprint/00-blueprint-template.md`](./00-blueprint-template.md)
-- **Active Generation Blueprint:** [`docs/blueprint/v1.0_blueprint.md`](./v1.0_blueprint.md)
+- **Active Generation Blueprint:** [`docs/blueprint/v2.0_blueprint.md`](./v2.0_blueprint.md)
+- **Completed Gen 1B Blueprint:** [`docs/blueprint/v1.0_blueprint.md`](./v1.0_blueprint.md)
 - **Live Handover Baton:** [`docs/handovers/CURRENT_HANDOVER.md`](../handovers/CURRENT_HANDOVER.md)
 - **Master Decision Ledger:** [`docs/DECISIONS_MASTER.md`](../DECISIONS_MASTER.md)

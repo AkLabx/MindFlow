@@ -30,6 +30,17 @@ describe('resolveHardwareBackTarget (Phase 9 Hierarchical Back Navigation)', () 
     expect(resolveHardwareBackTarget('/mcqs/test-series/category/ssc')).toBe('/mcqs/test-series');
     expect(resolveHardwareBackTarget('/mcqs/test-series/series/cgl-1')).toBe('/mcqs/test-series');
     expect(resolveHardwareBackTarget('/mcqs/test-series/test/mock-1')).toBe('/mcqs/test-series');
+    expect(resolveHardwareBackTarget('/mcqs/test-series/test/mock-1/result/att-1')).toBe('/mcqs/test-series/test/mock-1');
+    expect(
+      resolveHardwareBackTarget('/mcqs/test-series/test/mock-1/result/att-1', {
+        returnTo: '/mcqs/test-series/series/cgl-1',
+      })
+    ).toBe('/mcqs/test-series/series/cgl-1');
+    expect(
+      resolveHardwareBackTarget('/mcqs/test-series/test/mock-1/result/att-1', {
+        returnTo: '//evil.com',
+      })
+    ).toBe('/mcqs/test-series/test/mock-1');
     expect(
       resolveHardwareBackTarget('/mcqs/test-series/test/mock-1', {
         returnTo: '/mcqs/test-series/bpsc',
@@ -77,6 +88,15 @@ describe('resolveHardwareBackTarget (Phase 9 Hierarchical Back Navigation)', () 
     expect(resolveHardwareBackTarget('/tools')).toBe('/dashboard');
     expect(resolveHardwareBackTarget('/ai/talk')).toBe('/ai');
     expect(resolveHardwareBackTarget('/ai')).toBe('/dashboard');
+  });
+
+  it('routes admin sub-routes cleanly to parent admin hub and /admin to /dashboard', () => {
+    expect(resolveHardwareBackTarget('/admin/test-series/tests/new')).toBe('/admin/test-series?tab=tests');
+    expect(resolveHardwareBackTarget('/admin/test-series/tests/abc/edit')).toBe('/admin/test-series?tab=tests');
+    expect(resolveHardwareBackTarget('/admin/test-series')).toBe('/admin');
+    expect(resolveHardwareBackTarget('/admin/questions')).toBe('/admin');
+    expect(resolveHardwareBackTarget('/admin/analytics')).toBe('/admin');
+    expect(resolveHardwareBackTarget('/admin')).toBe('/dashboard');
   });
 
   it('routes main section and quiz sub-routes cleanly to /dashboard', () => {
