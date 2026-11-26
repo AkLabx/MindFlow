@@ -4,20 +4,18 @@
 
 ---
 
-## 1. Current Verified Baseline
-- **Active Generation:** Gen 2 (`docs/blueprint/v2.0_blueprint.md`)
-- **Last Completed Version:** **`v1.0.383.1`** *(Backend/SSOT Point Release off `v1.0.383`, 26 Nov 2026)* — `PR #1131` | `package.json` `1.0.383-1` | Android `versionCode 10` (`1.10`) *(Step 3 baseline: `v1.0.383`, `PR #1128` + `PR #1129`)*
-- **Verified Proof (`v1.0.383.1` & `v1.0.383`):** `tsc --noEmit` (`0` err) | `vitest --run --pool=forks` (`48` files, `312` tests) | `vite build` (`214` PWA entries) | `v1.0.383.1` DB verification (`10,991` active Qs, `21` canonical `examName`s, `203` shifts, `0` cache drift, `get_advisors` `0` `ERROR`s) | `v1.0.383` Playwright `2/2` (`1.1m`) & Chrome DevTools (`1280x800` & `390x844`).
-- **DB Sync Check:** `20261126000000` DDL & hardened RPCs plus `20261126010000` (`exam_catalog` / `exam_cycles` SSOT, `questions` constraints & soft-delete RPCs) are live on `sjcfagpjstbfxuiwhlps` (`create_exam_catalog_ssot_tables` & `enforce_exam_source_constraints_and_rpcs` recorded in `schema_migrations`). Pending manual/CLI ops: deploy updated `extract-questions` Edge Function and optionally run commented `DROP INDEX` cleanup for 6 duplicate lowercase indexes on `questions`.
-- **Slots:** Slot 1 (`D:\MindFlow-main`, `main`, `:3000`) | Slot 2 (`worker-1`, `:3001`) | Slot 3 (`worker-2`, `:3002`). Keep `main` clean.
+## 1. Verified Baseline
+- **Last:** **`v1.0.383.2`** *(26 Nov 2026 | Gen 2 Bridge)* — `pkg` `1.0.383-2` | Android `1.10` (`10`) *(Prior: `v1.0.383.1` `#1131`; `v1.0.383` `#1128`/`#1129`)*
+- **Proof:** `tsc` `0` err | `vitest` (`49`/`322`) | `vite build` (`215`/`7151 KiB`) | `advisors` `0` new err | DevTools (`:3002`: `321` tuples, Admin 13-subject+25-exam UI, `<QuizExplanation />`, `0` console err/`0px` overflow).
+- **DB/Edge:** `20261126000000`/`010000`/`100000` live (`sjcfagpjstbfxuiwhlps`: `question_taxonomy` `321`, `CHECK`s, taxonomy trigger, `ai_prompts` v2/v3); `enrich-taxonomy` `v20` & `enrich-questions` `v46` deployed (`v3.0.0`).
+- **Slots:** `main` (`:3000`) | `worker-1` (`:3001`) | `worker-2` (`:3002`). Keep `main` clean.
 
----
-
-## 2. Active Critical Invariants (Do Not Break)
-- Preserve `<HashRouter>`, OAuth hash extraction (`useAppBootstrap.ts`), `0ms` IndexedDB (`db.ts`), `DB_TABLES`/`DB_RPCS`, real auth (`DEC-0001`..`DEC-0006`, `DEC-0018`).
-- Keep `DedicatedPageHeader` + `isHeaderHiddenRoute` (`/mcqs/test-series*`, `/quiz/library*`, `/purchased`) and 5-tab footer (`Dashboard | Mock Tests | AI | My Purchase | Profile`) (`DEC-0030`–`DEC-0031`).
-- Gate `#/exam/:testId` behind `resolveMockTestAccess`; preserve `overflow-x-clip` + `fixed bottom-0` CBT footers & `>=6px` gap above AI orb on `/mcqs/test-series` (`DEC-0031`–`DEC-0032`).
-- Enforce `>=44x44px` `type="button"` `active:scale-95`, MWG `<NativeDialog>`/`<InfoHintPopover />`, zero `navigate(-1)`, zero secrets/PII.
+## 2. Critical Invariants (Do Not Break)
+- Keep `<HashRouter>`, OAuth hash extraction (`useAppBootstrap.ts`), `0ms` IndexedDB, `DB_TABLES`/`DB_RPCS`, real auth (`DEC-0001`..`0006`,`0018`).
+- Keep 13-subject `question_taxonomy` + 5-key v3.0 `explanation` (`summary`, `analysis_correct`, `analysis_incorrect`, `conclusion`, `fact`) across Track A/B, Admin & `<QuizExplanation />` (`DEC-0033`, `OLD-023`).
+- Keep `DedicatedPageHeader` + `isHeaderHiddenRoute` (`/mcqs/test-series*`, `/quiz/library*`, `/purchased`) & 5-tab footer (`DEC-0030`–`0031`).
+- Gate `#/exam/:testId` (`resolveMockTestAccess`); keep `overflow-x-clip`+`fixed bottom-0` CBT footers & `>=6px` AI orb gap (`DEC-0031`–`0032`).
+- Enforce `>=44x44px` `type="button"` `active:scale-95`, `<NativeDialog>`/`<InfoHintPopover />`, zero `navigate(-1)`, zero secrets/PII.
 
 ---
 

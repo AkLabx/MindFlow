@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useAuth } from '../../../features/auth/context/AuthContext';
+import React, { useContext, useState, useEffect, useRef } from 'react';
+import { QueryClientContext } from '@tanstack/react-query';
+import { useAuth } from '@/features/auth';
 import { NativeDialog } from '../../../components/ui/NativeDialog';
 import { useNotification } from '../../../hooks/useNotification';
 import { uploadMediaToCloudinary } from '../../../services/mediaUploadService';
@@ -25,7 +26,27 @@ interface AdminQuestionImageProps {
   isVisible?: boolean;
 }
 
-export const AdminQuestionImage: React.FC<AdminQuestionImageProps> = ({
+export const AdminQuestionImage: React.FC<AdminQuestionImageProps> = (props) => {
+  const queryClient = useContext(QueryClientContext);
+  if (!queryClient) {
+    if (!props.initialImageUrl) return null;
+    return (
+      <div className="my-4 flex flex-col gap-2">
+        <div className="w-full max-w-2xl rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900/50 p-2 overflow-hidden flex items-center justify-center">
+          <img
+            src={props.initialImageUrl}
+            alt={`${props.kind} diagram`}
+            className="max-h-72 object-contain rounded-lg"
+            loading="lazy"
+          />
+        </div>
+      </div>
+    );
+  }
+  return <AdminQuestionImageWithQuery {...props} />;
+};
+
+const AdminQuestionImageWithQuery: React.FC<AdminQuestionImageProps> = ({
   questionId,
   kind,
   initialImageUrl,

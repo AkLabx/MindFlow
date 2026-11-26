@@ -17,6 +17,10 @@ import { UserQuestionMasteryRecord } from '../types';
 import { masteryService } from '../../quiz/services/masteryService';
 import { AiExplanationButton } from '../../quiz/components/AiExplanationButton';
 import { AdminQuestionImage } from '../../quiz/components/AdminQuestionImage';
+import { QuizExplanation } from '../../quiz/components/QuizExplanation';
+import { formatQuestionText } from '../../quiz/utils/questionFormatter';
+import { parseExplanationPayload } from '../../quiz/utils/explanationParser';
+import { MarkdownRenderer } from '../../../components/ui/MarkdownRenderer';
 import { useNotificationStore } from '../../../stores/useNotificationStore';
 import { cn } from '../../../utils/cn';
 import { CANONICAL_EXAMS, matchesCanonicalExam } from '@/features/dashboard';
@@ -147,14 +151,8 @@ export const MistakeQuestionCard: React.FC<MistakeQuestionCardProps> = ({
     ? question.options_hi
     : (question.options || []);
 
-  const explanationObj = question.explanation as any;
-  const explanationText = typeof question.explanation === 'string'
-    ? question.explanation
-    : (explanationObj?.summary || explanationObj?.analysis_correct || explanationObj?.text || explanationObj?.en || '');
-
-  const explanationTextHi = typeof question.explanation === 'object'
-    ? (explanationObj?.hi || '')
-    : '';
+  const parsedExplanation = parseExplanationPayload(question.explanation);
+  const hasStaticExplanation = Object.keys(parsedExplanation).length > 0;
 
   return (
     <div className={cn(
@@ -218,9 +216,9 @@ export const MistakeQuestionCard: React.FC<MistakeQuestionCardProps> = ({
       </div>
 
       {/* Question Text */}
-      <p className="text-sm sm:text-base font-semibold text-slate-900 dark:text-slate-100 mb-4 leading-relaxed text-left">
-        {questionText}
-      </p>
+      <div className="text-sm sm:text-base font-semibold text-slate-900 dark:text-slate-100 mb-4 leading-relaxed text-left">
+        <MarkdownRenderer content={formatQuestionText(questionText)} />
+      </div>
 
       {/* Question Statement Visual / Diagram */}
       {question.id && (
@@ -291,27 +289,26 @@ export const MistakeQuestionCard: React.FC<MistakeQuestionCardProps> = ({
         </button>
 
         {showExplanation && (
-          <div className="mt-2.5 p-3.5 rounded-2xl bg-indigo-50/40 dark:bg-indigo-950/20 border border-indigo-100/60 dark:border-indigo-900/30 text-xs sm:text-sm text-slate-700 dark:text-slate-300 leading-relaxed text-left space-y-2">
-            {explanationText && (
-              <p>{explanationText}</p>
-            )}
-            {explanationTextHi && (
-              <p className="text-slate-600 dark:text-slate-400 border-t border-indigo-100/40 dark:border-indigo-900/20 pt-2 font-hindi">
-                {explanationTextHi}
-              </p>
-            )}
-            {!explanationText && !explanationTextHi && (
-              <p className="text-slate-400 italic">No static explanation attached. Click "Ask AI Tutor" below for in-depth reasoning.</p>
-            )}
-            {question.id && (
-                <div className="mt-4">
-                    <AdminQuestionImage
-                        questionId={question.id}
-                        kind="explanation"
-                        initialImageUrl={question.explanation_image_url}
-                        isVisible={showExplanation}
-                    />
-                </div>
+          <div className="mt-2.5 text-left">
+            {hasStaticExplanation ? (
+              <QuizExplanation
+                explanation={parsedExplanation}
+                languageMode={showHindi ? 'hindi' : 'bilingual'}
+                questionId={question.id}
+                imageUrl={question.explanation_image_url}
+              />
+            ) : (
+              <div className="p-3.5 rounded-2xl bg-indigo-50/40 dark:bg-indigo-950/20 border border-indigo-100/60 dark:border-indigo-900/30 text-xs sm:text-sm text-slate-400 italic space-y-3">
+                <p>No static explanation attached. Click &quot;Ask AI Tutor&quot; below for in-depth reasoning.</p>
+                {question.id && (
+                  <AdminQuestionImage
+                    questionId={question.id}
+                    kind="explanation"
+                    initialImageUrl={question.explanation_image_url}
+                    isVisible={showExplanation}
+                  />
+                )}
+              </div>
             )}
           </div>
         )}

@@ -5,8 +5,8 @@ const databaseUrl = Deno.env.get('SUPABASE_DB_POOLER_URL') ?? Deno.env.get('SUPA
 const GEMINI_TIMEOUT_MS = 25000;
 
 // --- PIPELINE VERSIONING ---
-const PIPELINE_VERSION = "2.2.0";
-const WORKER_VERSION = "enrich-taxonomy-v4";
+const PIPELINE_VERSION = "3.0.0";
+const WORKER_VERSION = "enrich-taxonomy-v5";
 // ---------------------------
 
 function getPgClient() {
@@ -212,6 +212,44 @@ Deno.serve(async (req: Request) => {
 
         if (!taxonomyPrompt) throw new Error("PROMPT_FAILURE: Taxonomy prompt missing or inactive in DB.");
 
+        const taxonomyRows = await sql`SELECT subject, topic, sub_topic FROM public.question_taxonomy WHERE is_active = true ORDER BY sort_order ASC, subject ASC, topic ASC, sub_topic ASC;`;
+        if (taxonomyRows.length === 0) throw new Error("TAXONOMY_SSOT_FAILURE: public.question_taxonomy has no active rows.");
+
+        const validSubjects = new Set<string>();
+        const validTuples = new Set<string>();
+        const treeBySubject = new Map<string, Map<string, string[]>>();
+
+        for (const row of taxonomyRows) {
+            validSubjects.add(row.subject);
+            validTuples.add(`${row.subject}|||${row.topic}|||${row.sub_topic}`);
+            let topicsMap = treeBySubject.get(row.subject);
+            if (!topicsMap) {
+                topicsMap = new Map<string, string[]>();
+                treeBySubject.set(row.subject, topicsMap);
+            }
+            let subs = topicsMap.get(row.topic);
+            if (!subs) {
+                subs = [];
+                topicsMap.set(row.topic, subs);
+            }
+            subs.push(row.sub_topic);
+        }
+
+        const treeLines: string[] = ["Canonical Taxonomy Hierarchy (13 Subjects, case-sensitive exact strings only):"];
+        for (const [subj, topicsMap] of treeBySubject.entries()) {
+            treeLines.push(`subject: ${subj}`);
+            for (const [top, subs] of topicsMap.entries()) {
+                treeLines.push(` * topic: ${top}`);
+                for (const sub of subs) {
+                    treeLines.push(`   * subTopic: ${sub}`);
+                }
+            }
+        }
+        const taxonomyTreeText = treeLines.join('\n');
+        const resolvedSystemPrompt = taxonomyPrompt.system_prompt.includes('{{TAXONOMY_TREE}}')
+            ? taxonomyPrompt.system_prompt.replace('{{TAXONOMY_TREE}}', taxonomyTreeText)
+            : `${taxonomyPrompt.system_prompt}\n\n${taxonomyTreeText}`;
+
         const admissionCheck = await callSchedulerRpc(sql, 'question_taxonomy_v1');
         if (!admissionCheck.success || !admissionCheck.models || admissionCheck.models.length === 0) {
             return new Response(JSON.stringify({ success: true, processed: 0, reason: "Admission Control: No capacity" }), { headers: { 'Content-Type': 'application/json' } });
@@ -247,30 +285,37 @@ Deno.serve(async (req: Request) => {
                 const currentProgress = typeof question.enrichment_progress === 'object' ? question.enrichment_progress : {};
 
                 if (!currentProgress?.classification) {
-                    const res = await callGeminiWithScheduler(sql, 'question_taxonomy_v1', taxonomyPrompt.system_prompt, sourcePayload, taxonomyPrompt.output_schema);
+                    const res = await callGeminiWithScheduler(sql, 'question_taxonomy_v1', resolvedSystemPrompt, sourcePayload, taxonomyPrompt.output_schema);
                     finalModel = res.model;
                     
-                    const validSubjects = ['History', 'Geography', 'Economics', 'Polity', 'Physics', 'Chemistry', 'Biology', 'Computer', 'Static GK', 'Ecology & Environment', 'Current Affairs'];
                     const requiredFields = ['subject', 'topic', 'subTopic', 'difficulty', 'tags'];
                     
                     for (const field of requiredFields) {
-                        if (res.data[field] === undefined) { dlqCategory = 'CLASSIFICATION_SCHEMA_FAILURE'; throw new Error(`Schema validation failed: missing ${field}`); }
+                        if (res.data[field] === undefined || res.data[field] === null) { dlqCategory = 'CLASSIFICATION_SCHEMA_FAILURE'; throw new Error(`Schema validation failed: missing ${field}`); }
                     }
 
-                    if (res.data.subject && !validSubjects.includes(res.data.subject)) { dlqCategory = 'INVALID_SUBJECT'; throw new Error(`Invalid subject: ${res.data.subject}`); }
+                    const subj = String(res.data.subject).trim();
+                    const top = String(res.data.topic).trim();
+                    const subTop = String(res.data.subTopic).trim();
+
+                    if (!validSubjects.has(subj)) { dlqCategory = 'INVALID_SUBJECT'; throw new Error(`Invalid subject: ${subj}`); }
+                    if (!validTuples.has(`${subj}|||${top}|||${subTop}`)) {
+                        dlqCategory = 'INVALID_TAXONOMY_TUPLE';
+                        throw new Error(`Invalid taxonomy tuple: (${subj}, ${top}, ${subTop})`);
+                    }
 
                     const aiMetaAddition = {
                         pipeline_version: PIPELINE_VERSION,
                         taxonomy_worker_version: WORKER_VERSION,
-                        classification: { model: res.model, prompt_version: `question_taxonomy_v1_v${taxonomyPrompt.version}`, generated_at: new Date().toISOString(), input_tokens: res.inputTokens, output_tokens: res.outputTokens },
+                        classification: { model: res.model, prompt_version: `question_taxonomy_v1_${taxonomyPrompt.version}`, generated_at: new Date().toISOString(), input_tokens: res.inputTokens, output_tokens: res.outputTokens },
                         scheduler_version: res.scheduler_version
                     };
 
                     await sql`
                         UPDATE public.questions 
-                        SET subject=${res.data.subject ?? null}, 
-                            topic=${res.data.topic ?? null}, 
-                            "subTopic"=${res.data.subTopic ?? null}, 
+                        SET subject=${subj}, 
+                            topic=${top}, 
+                            "subTopic"=${subTop}, 
                             tags=${res.data.tags ?? []}, 
                             difficulty=${res.data.difficulty ?? null}, 
                             enrichment_progress = COALESCE(enrichment_progress, '{}'::jsonb) || '{"classification": true}'::jsonb, 
@@ -301,9 +346,10 @@ Deno.serve(async (req: Request) => {
                 }
             } finally {
                 if (success || dlqCategory) {
+                    const logPromptVersion = `question_taxonomy_v1_${taxonomyPrompt.version}`;
                     await sql`
                         INSERT INTO public.ai_request_logs (feature, model, prompt_version, input_tokens, output_tokens, latency_ms, status_code, error_message) 
-                        VALUES ('enrich-taxonomy', ${finalModel || 'cascade_fallback_chain'}, 'taxonomy_v1', ${totalInputTokens}, ${totalOutputTokens}, ${Math.round(performance.now() - startTime)}, ${success ? 200 : 500}, ${success ? null : (dlqCategory + ': ' + errorMsg)});
+                        VALUES ('enrich-taxonomy', ${finalModel || 'cascade_fallback_chain'}, ${logPromptVersion}, ${totalInputTokens}, ${totalOutputTokens}, ${Math.round(performance.now() - startTime)}, ${success ? 200 : 500}, ${success ? null : (dlqCategory + ': ' + errorMsg)});
                     `;
                 }
                 if (success) jobsProcessed++;

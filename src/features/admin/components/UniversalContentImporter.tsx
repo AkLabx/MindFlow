@@ -1,4 +1,4 @@
-import React, { useId, useState } from 'react';
+import React, { useEffect, useId, useMemo, useState } from 'react';
 import { NativeDialog } from '@/components/ui/NativeDialog';
 import {
   Upload,
@@ -19,6 +19,27 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useNotificationStore } from '@/stores/useNotificationStore';
+import {
+  ExamCatalogEntry,
+  fetchExamCatalog,
+  getCachedExamCatalog,
+  resolveCanonicalExamName,
+} from '@/features/quiz/services/examCatalogService';
+import {
+  CANONICAL_SUBJECTS,
+  FALLBACK_TAXONOMY_TREE,
+  QuestionTaxonomyEntry,
+  getSubTopicsForTopic,
+  getTopicsForSubject,
+  isValidTaxonomyTuple,
+  resolveCanonicalSubject,
+  useQuestionTaxonomy,
+} from '@/features/quiz/services/questionTaxonomyService';
+import {
+  parseExplanationPayload,
+  validateExplanation5Keys,
+} from '@/features/quiz/utils/explanationParser';
+import { invalidateQuestionBankCaches } from '@/features/admin/questions/services/questionBankCache';
 
 export type ContentTargetType = 'questions' | 'ows' | 'idiom' | 'synonym';
 export type ImportMode = 'bulk' | 'single';
@@ -33,51 +54,190 @@ interface UniversalContentImporterProps {
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const V1_ID_REGEX = /^[A-Z]{2,4}[0-9]+$/;
 
-function normalizeQuestionPayload(row: any, selectedQuestionSource: 'PYQ' | 'EXPERT' = 'PYQ') {
-  const subject = row.classification?.subject || row.subject || 'General';
-  const topic = row.classification?.topic || row.topic || null;
-  const subTopic = row.classification?.subTopic || row.subTopic || null;
-  const examName = row.sourceInfo?.examName || row.examName || null;
-  const examYear = row.sourceInfo?.examYear ? parseInt(row.sourceInfo.examYear) : (row.examYear ? parseInt(row.examYear) : null);
+export interface NormalizedQuestionValidationResult {
+  payload?: Record<string, any>;
+  track: 'TRACK_B_ENRICHED' | 'TRACK_A_PENDING';
+  errors: string[];
+}
+
+/**
+ * Normalizes and validates a question upload row against MindFlow's 13-Subject SSOT,
+ * `exam_catalog` SSOT, GFM table integrity, and Explanation v3.0 5-key rules.
+ */
+export function normalizeQuestionPayload(
+  row: any,
+  selectedQuestionSource: 'PYQ' | 'EXPERT' = 'PYQ',
+  options?: {
+    taxonomyTree?: readonly QuestionTaxonomyEntry[];
+    examCatalog?: readonly ExamCatalogEntry[];
+  }
+): Record<string, any> {
+  return evaluateQuestionImportRow(row, selectedQuestionSource, options).payload || {};
+}
+
+export function evaluateQuestionImportRow(
+  row: any,
+  selectedQuestionSource: 'PYQ' | 'EXPERT' = 'PYQ',
+  opts?: {
+    taxonomyTree?: readonly QuestionTaxonomyEntry[];
+    examCatalog?: readonly ExamCatalogEntry[];
+  }
+): NormalizedQuestionValidationResult {
+  const taxonomyTree = opts?.taxonomyTree ?? FALLBACK_TAXONOMY_TREE;
+  const catalog = opts?.examCatalog ?? getCachedExamCatalog();
+  const errors: string[] = [];
+
+  if (!row || typeof row !== 'object') {
+    return { track: 'TRACK_A_PENDING', errors: ['Row must be a JSON object.'] };
+  }
+
+  const rawSubject = row.classification?.subject || row.subject || '';
+  const resolvedSubject = resolveCanonicalSubject(rawSubject);
+  if (!resolvedSubject) {
+    errors.push(
+      `Invalid or missing subject "${rawSubject}". Must match one of the 13 canonical subjects.`
+    );
+  }
+
+  const topic = String(row.classification?.topic ?? row.topic ?? '').trim() || null;
+  const subTopic = String(row.classification?.subTopic ?? row.subTopic ?? '').trim() || null;
+  const taxonomyValid = resolvedSubject
+    ? isValidTaxonomyTuple(resolvedSubject, topic, subTopic, taxonomyTree)
+    : false;
+
+  if (resolvedSubject && (topic || subTopic) && !taxonomyValid) {
+    errors.push(
+      `Invalid taxonomy tuple (${resolvedSubject}, ${topic || 'missing'}, ${subTopic || 'missing'}). Must match public.question_taxonomy.`
+    );
+  }
+
+  const rawExamName = String(row.sourceInfo?.examName ?? row.examName ?? '').trim();
+  const resolvedExamName = rawExamName
+    ? resolveCanonicalExamName(rawExamName)
+    : selectedQuestionSource === 'EXPERT'
+      ? 'OTHER'
+      : '';
+  const examInCatalog = Boolean(
+    resolvedExamName &&
+      (catalog.some((e) => e.exam_name === resolvedExamName) || resolvedExamName === 'OTHER')
+  );
+  if (!resolvedExamName || !examInCatalog) {
+    errors.push(
+      rawExamName
+        ? `Unrecognized examName "${rawExamName}". Must map to public.exam_catalog.`
+        : 'Missing required field: examName / sourceInfo.examName.'
+    );
+  }
+
+  const rawYear = row.sourceInfo?.examYear ?? row.examYear;
+  let examYear: number | null =
+    rawYear !== undefined && rawYear !== null && String(rawYear).trim() !== ''
+      ? parseInt(String(rawYear), 10)
+      : selectedQuestionSource === 'EXPERT'
+        ? new Date().getFullYear()
+        : null;
+  if (examYear === null || Number.isNaN(examYear) || examYear < 1990 || examYear > 2100) {
+    errors.push('Missing or invalid examYear (expected 4-digit year 1990-2100).');
+    examYear = null;
+  }
+
+  if (!row.question || typeof row.question !== 'string' || !row.question.trim()) {
+    errors.push('Missing required field: question');
+  }
+  if (!Array.isArray(row.options) || row.options.length < 2) {
+    errors.push('Missing or invalid options array (minimum 2 options required)');
+  }
+  if (!row.correct || typeof row.correct !== 'string') {
+    errors.push('Missing required field: correct');
+  } else if (Array.isArray(row.options) && !row.options.includes(row.correct)) {
+    errors.push(`Correct answer "${row.correct}" must match one of the options.`);
+  }
+
+  const hasQuestionHi = typeof row.question_hi === 'string' && row.question_hi.trim().length > 0;
+  const hasOptionsHi =
+    Array.isArray(row.options_hi) &&
+    Array.isArray(row.options) &&
+    row.options_hi.length === row.options.length &&
+    row.options_hi.every((opt: unknown) => typeof opt === 'string' && opt.trim().length > 0);
+  if (
+    typeof row.question === 'string' &&
+    /\|\s*:?---/.test(row.question) &&
+    hasQuestionHi &&
+    !String(row.question_hi).includes('|')
+  ) {
+    errors.push('question_hi flattened GFM matching table pipes (`| ... |`).');
+  }
+  const hasBilingual = Boolean(hasQuestionHi && hasOptionsHi);
+
+  const rawExplObj =
+    row.explanation && typeof row.explanation === 'object' && !Array.isArray(row.explanation)
+      ? row.explanation
+      : null;
+  if (rawExplObj && 'key_takeaway' in rawExplObj) {
+    errors.push('Legacy explanation key "key_takeaway" is forbidden in v3.0; use "conclusion".');
+  }
+
+  const parsedExplanation = parseExplanationPayload(row.explanation);
+  const explValidation = validateExplanation5Keys(parsedExplanation);
+  const explicitStatus = typeof row.status === 'string' ? row.status.trim() : '';
+
+  if ((explicitStatus === 'ENRICHED' || explicitStatus === 'APPROVED') && !explValidation.valid) {
+    errors.push(
+      `Status "${explicitStatus}" requires all 5 v3.0 explanation keys (missing: ${explValidation.missingKeys.join(', ')}).`
+    );
+  }
+  if ((explicitStatus === 'ENRICHED' || explicitStatus === 'APPROVED') && !taxonomyValid) {
+    errors.push(`Status "${explicitStatus}" requires a complete canonical (subject, topic, subTopic) tuple.`);
+  }
+
+  const isTrackBReady = Boolean(taxonomyValid && hasBilingual && explValidation.valid);
+  const resolvedStatus = explicitStatus || (isTrackBReady ? 'ENRICHED' : 'PENDING_REVIEW');
+
   const examDateShift = row.sourceInfo?.examDateShift || row.examDateShift || null;
   const difficulty = row.properties?.difficulty || row.difficulty || 'Medium';
   const questionType = row.properties?.questionType || row.questionType || 'MCQ';
 
   const payload: Record<string, any> = {
-    subject,
+    subject: resolvedSubject || rawSubject,
     topic,
     subTopic,
-    examName,
+    examName: resolvedExamName || null,
     examYear,
     examDateShift,
     difficulty,
     questionType,
-    question_source: selectedQuestionSource,
+    question_source: row.question_source === 'EXPERT' || row.question_source === 'PYQ' ? row.question_source : selectedQuestionSource,
     question: row.question,
     question_hi: row.question_hi || null,
     options: row.options,
     options_hi: row.options_hi || null,
     correct: row.correct,
-    tags: row.tags || (subject ? [subject] : ['General']),
-    explanation: row.explanation || {},
-    status: row.status || 'APPROVED'
+    tags: Array.isArray(row.tags) && row.tags.length > 0 ? row.tags : resolvedSubject ? [resolvedSubject] : [],
+    explanation: resolvedStatus === 'ENRICHED' || resolvedStatus === 'APPROVED'
+      ? explValidation.normalized
+      : parsedExplanation,
+    enrichment_progress: {
+      classification: taxonomyValid,
+      translation: hasBilingual,
+      explanation: explValidation.valid,
+    },
+    status: resolvedStatus,
   };
 
-  // Only pass id if it is a genuine UUID to avoid Postgres syntax error
   if (row.id && typeof row.id === 'string' && UUID_REGEX.test(row.id)) {
     payload.id = row.id;
   }
-
-  // Handle v1_id: either explicitly supplied or coded into id
   if (row.v1_id && typeof row.v1_id === 'string' && V1_ID_REGEX.test(row.v1_id)) {
     payload.v1_id = row.v1_id;
   } else if (row.id && typeof row.id === 'string' && V1_ID_REGEX.test(row.id)) {
     payload.v1_id = row.id;
   }
-  // If v1_id is omitted, Postgres sequence trigger assign_question_v1_id()
-  // auto-assigns the exact sequence number!
 
-  return payload;
+  return {
+    payload,
+    track: resolvedStatus === 'ENRICHED' ? 'TRACK_B_ENRICHED' : 'TRACK_A_PENDING',
+    errors,
+  };
 }
 
 export const UniversalContentImporter: React.FC<UniversalContentImporterProps> = ({
@@ -88,6 +248,17 @@ export const UniversalContentImporter: React.FC<UniversalContentImporterProps> =
 }) => {
   const titleId = useId();
   const showToast = useNotificationStore((state) => state.showToast);
+  const { tree: taxonomyTree, subjects: taxonomySubjects } = useQuestionTaxonomy();
+  const [examCatalog, setExamCatalog] = useState<readonly ExamCatalogEntry[]>(() =>
+    getCachedExamCatalog()
+  );
+
+  useEffect(() => {
+    if (!isOpen) return;
+    void fetchExamCatalog(false).then((entries) => {
+      if (entries.length > 0) setExamCatalog(entries);
+    });
+  }, [isOpen]);
 
   const [contentType, setContentType] = useState<ContentTargetType>(initialType);
   const [mode, setMode] = useState<ImportMode>('bulk');
@@ -97,12 +268,26 @@ export const UniversalContentImporter: React.FC<UniversalContentImporterProps> =
   const [rawText, setRawText] = useState('');
   const [parsedRows, setParsedRows] = useState<any[]>([]);
   const [validationErrors, setValidationErrors] = useState<{ row: number; error: string }[]>([]);
+  const [trackSummary, setTrackSummary] = useState<{ trackB: number; trackA: number } | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [importProgress, setImportProgress] = useState<{ current: number; total: number } | null>(null);
 
+  const defaultTopics = useMemo(
+    () => getTopicsForSubject(CANONICAL_SUBJECTS[0], taxonomyTree),
+    [taxonomyTree]
+  );
+  const defaultSubTopics = useMemo(
+    () => getSubTopicsForTopic(CANONICAL_SUBJECTS[0], defaultTopics[0] || '', taxonomyTree),
+    [defaultTopics, taxonomyTree]
+  );
+
   // Single Item Form State
   const [singleForm, setSingleForm] = useState<Record<string, any>>({
-    subject: 'History',
+    subject: CANONICAL_SUBJECTS[0],
+    topic: defaultTopics[0] || 'Ancient History',
+    subTopic: defaultSubTopics[0] || 'Prehistoric Period',
+    examName: examCatalog[0]?.exam_name || 'SSC CGL PRE',
+    examYear: String(new Date().getFullYear()),
     question: '',
     question_hi: '',
     options: ['Option A', 'Option B', 'Option C', 'Option D'],
@@ -121,17 +306,38 @@ export const UniversalContentImporter: React.FC<UniversalContentImporterProps> =
       case 'questions':
         return [
           {
-            subject: 'History',
-            topic: 'Ancient India',
-            difficulty: 'Medium',
+            sourceInfo: {
+              examName: 'BPSC CCE PRE',
+              examYear: 2023,
+              examDateShift: '69th CCE Prelims (30-09-2023)',
+            },
+            classification: {
+              subject: 'History',
+              topic: 'Ancient History',
+              subTopic: 'Mauryan Empire',
+            },
+            properties: {
+              difficulty: 'Medium',
+              questionType: 'MCQ',
+            },
+            question_source: 'PYQ',
             question: 'Who was the founder of the Maurya Empire?',
             question_hi: 'मौर्य साम्राज्य के संस्थापक कौन थे?',
             options: ['Chandragupta Maurya', 'Ashoka', 'Bindusara', 'Harsha'],
             options_hi: ['चन्द्रगुप्त मौर्य', 'अशोक', 'बिन्दुसार', 'हर्ष'],
             correct: 'Chandragupta Maurya',
-            tags: ['History', 'Ancient', 'SSC'],
+            tags: ['Mauryan Empire', 'Chandragupta Maurya', 'Chanakya', '322 BCE'],
             explanation: {
-              summary: 'Chandragupta Maurya founded the Maurya Empire in 322 BCE with the help of Chanakya.'
+              summary:
+                'Correct Answer: Chandragupta Maurya\n\nसही उत्तर: चन्द्रगुप्त मौर्य\n\nChandragupta Maurya founded the Maurya Empire in 322 BCE with the guidance of Chanakya.\n\nचन्द्रगुप्त मौर्य ने 322 ईसा पूर्व में चाणक्य के मार्गदर्शन में मौर्य साम्राज्य की स्थापना की थी।',
+              analysis_correct:
+                '✅ **Why this is correct**\n\n- Overthrew Dhana Nanda of the Nanda Dynasty in Magadha around 322 BCE.\n\n✅ **यह सही क्यों है**\n\n- लगभग 322 ईसा पूर्व में मगध के नंद वंश के अंतिम शासक धनानंद को पराजित कर शासन स्थापित किया।',
+              analysis_incorrect:
+                '❌ **Why other options are incorrect**\n\n- **Bindusara** was Chandragupta’s son; **Ashoka** was his grandson; **Harsha** ruled North India in the 7th century CE.\n\n❌ **अन्य विकल्प गलत क्यों हैं**\n\n- **बिन्दुसार** चन्द्रगुप्त के पुत्र थे; **अशोक** उनके पौत्र थे; **हर्ष** 7वीं शताब्दी ईस्वी के शासक थे।',
+              conclusion:
+                '📝 **Concluding Note**\n\nMauryan Founder: Chandragupta Maurya (322 BCE), Guru: Chanakya / Kautilya.\n\n📝 **निष्कर्ष**\n\nमौर्य वंश के संस्थापक: चन्द्रगुप्त मौर्य (322 ईसा पूर्व), गुरु: चाणक्य / कौटिल्य।',
+              fact:
+                '💡 **Interesting Fact / रोचक तथ्य**\n\n🤯 **Surprising Fact & 📜 Anecdote:** Greek writers referred to Chandragupta Maurya as Sandrocottus.\n\nयूनानी लेखकों ने चन्द्रगुप्त मौर्य को सैंड्रोकोट्टस कहा है।\n\n---\n\n🏛 **Lesser-known Info:** He defeated Seleucus I Nicator around 305 BCE.\n\nउन्होंने 305 ईसा पूर्व में सेल्युकस प्रथम निकेटर को पराजित किया।\n\n---\n\n🔍 **Misconception Clarified:** Arthashastra was authored by Chanakya, not Chandragupta.\n\nअर्थशास्त्र की रचना चाणक्य ने की थी, चन्द्रगुप्त ने नहीं।\n\n---\n\n🎯 **Repeated PYQ Insight:** William Jones identified Sandrocottus with Chandragupta Maurya.\n\nविलियम जोन्स ने सैंड्रोकोट्टस की पहचान चन्द्रगुप्त मौर्य से की।\n\n---\n\n🌍 **Interesting Connection:** Megasthenes authored Indica while posted as Seleucus’s ambassador in Pataliputra.\n\nमेगस्थनीज ने पाटलिपुत्र में सेल्युकस के राजदूत के रूप में इंडिका की रचना की।'
             }
           }
         ];
@@ -195,17 +401,22 @@ export const UniversalContentImporter: React.FC<UniversalContentImporterProps> =
       }
 
       const errors: { row: number; error: string }[] = [];
+      let trackB = 0;
+      let trackA = 0;
+
       data.forEach((row, idx) => {
         const rowNum = idx + 1;
         if (contentType === 'questions') {
-          if (!row.question) errors.push({ row: rowNum, error: 'Missing required field: question' });
-          if (!row.options || !Array.isArray(row.options) || row.options.length < 2) {
-            errors.push({ row: rowNum, error: 'Missing or invalid options array (minimum 2 options required)' });
+          const evalRes = evaluateQuestionImportRow(row, selectedQuestionSource, {
+            taxonomyTree,
+            examCatalog,
+          });
+          for (const msg of evalRes.errors) {
+            errors.push({ row: rowNum, error: msg });
           }
-          if (!row.correct) {
-            errors.push({ row: rowNum, error: 'Missing required field: correct' });
-          } else if (Array.isArray(row.options) && !row.options.includes(row.correct)) {
-            errors.push({ row: rowNum, error: `Correct answer "${row.correct}" must match one of the options.` });
+          if (evalRes.errors.length === 0) {
+            if (evalRes.track === 'TRACK_B_ENRICHED') trackB++;
+            else trackA++;
           }
         } else if (contentType === 'ows') {
           if (!row.word) errors.push({ row: rowNum, error: 'Missing required field: word' });
@@ -221,13 +432,17 @@ export const UniversalContentImporter: React.FC<UniversalContentImporterProps> =
 
       setParsedRows(data);
       setValidationErrors(errors);
+      setTrackSummary(contentType === 'questions' ? { trackB, trackA } : null);
 
       if (errors.length === 0) {
         const autoSeqCount = contentType === 'questions'
           ? data.filter(r => !r.v1_id && (!r.id || !V1_ID_REGEX.test(r.id))).length
           : 0;
-        const note = autoSeqCount > 0 ? ` (${autoSeqCount} items will auto-receive next sequential v1_ids from database)` : '';
-        showToast({ title: 'Validation Passed', message: `All ${data.length} records are valid and ready to commit!${note}`, variant: 'success' });
+        const note = autoSeqCount > 0 ? ` (${autoSeqCount} items will auto-receive sequential v1_ids)` : '';
+        const routeNote = contentType === 'questions'
+          ? ` [Track B ENRICHED: ${trackB}, Track A PENDING_REVIEW: ${trackA}]`
+          : '';
+        showToast({ title: 'Validation Passed', message: `All ${data.length} records valid!${routeNote}${note}`, variant: 'success' });
       } else {
         showToast({ title: 'Validation Warning', message: `Found ${errors.length} validation errors in dataset.`, variant: 'error' });
       }
@@ -249,7 +464,12 @@ export const UniversalContentImporter: React.FC<UniversalContentImporterProps> =
         const rawChunk = parsedRows.slice(i, i + BATCH_SIZE);
         const chunk =
           contentType === 'questions'
-            ? rawChunk.map((row) => normalizeQuestionPayload(row, selectedQuestionSource))
+            ? rawChunk.map((row) =>
+                normalizeQuestionPayload(row, selectedQuestionSource, {
+                  taxonomyTree,
+                  examCatalog,
+                })
+              )
             : rawChunk;
         const { error } = await supabase.from(contentType).insert(chunk);
         if (error) throw error;
@@ -257,9 +477,14 @@ export const UniversalContentImporter: React.FC<UniversalContentImporterProps> =
         setImportProgress({ current: committed, total });
       }
 
+      if (contentType === 'questions') {
+        await invalidateQuestionBankCaches({ action: 'save' });
+      }
+
       showToast({ title: 'Import Complete', message: `Successfully inserted ${total} items into ${contentType}!`, variant: 'success' });
       setRawText('');
       setParsedRows([]);
+      setTrackSummary(null);
       if (onImportSuccess) onImportSuccess();
       onClose();
     } catch (err: any) {
@@ -276,20 +501,32 @@ export const UniversalContentImporter: React.FC<UniversalContentImporterProps> =
       let payload: Record<string, any> = {};
 
       if (contentType === 'questions') {
-        if (!singleForm.question || !singleForm.correct) {
+        if (!singleForm.question?.trim() || !singleForm.correct?.trim()) {
           throw new Error('Please fill in the question and correct answer.');
         }
-        payload = {
-          subject: singleForm.subject || 'General',
-          question: singleForm.question,
-          question_hi: singleForm.question_hi || null,
-          options: singleForm.options,
-          correct: singleForm.correct,
-          difficulty: singleForm.difficulty || 'Medium',
-          question_source: selectedQuestionSource,
-          explanation: { summary: 'Added via Admin Studio' },
-          tags: [singleForm.subject || 'General']
-        };
+        const evalRes = evaluateQuestionImportRow(
+          {
+            subject: singleForm.subject,
+            topic: singleForm.topic,
+            subTopic: singleForm.subTopic,
+            examName: singleForm.examName,
+            examYear: singleForm.examYear,
+            difficulty: singleForm.difficulty,
+            question: singleForm.question,
+            question_hi: singleForm.question_hi || null,
+            options: singleForm.options,
+            correct: singleForm.correct,
+            tags: [singleForm.subject, singleForm.topic].filter(Boolean),
+            explanation: {},
+            status: 'PENDING_REVIEW',
+          },
+          selectedQuestionSource,
+          { taxonomyTree, examCatalog }
+        );
+        if (evalRes.errors.length > 0 || !evalRes.payload) {
+          throw new Error(evalRes.errors[0] || 'Invalid question taxonomy or exam metadata.');
+        }
+        payload = evalRes.payload;
       } else if (contentType === 'ows') {
         if (!singleForm.word || !singleForm.meaning_english) {
           throw new Error('Please fill in the word and English meaning.');
@@ -516,9 +753,23 @@ export const UniversalContentImporter: React.FC<UniversalContentImporterProps> =
                     </button>
 
                     {parsedRows.length > 0 && validationErrors.length === 0 && (
-                      <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
-                        ✓ {parsedRows.length} valid rows ready to insert
-                      </span>
+                      <div className="flex flex-wrap items-center gap-2 text-xs font-bold">
+                        <span className="text-emerald-600 dark:text-emerald-400">
+                          ✓ {parsedRows.length} valid rows ready
+                        </span>
+                        {trackSummary && (
+                          <>
+                            <span className="px-2 py-0.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/50">
+                              Track B ENRICHED: {trackSummary.trackB}
+                            </span>
+                            {trackSummary.trackA > 0 && (
+                              <span className="px-2 py-0.5 rounded-lg bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800/50">
+                                Track A PENDING_REVIEW: {trackSummary.trackA}
+                              </span>
+                            )}
+                          </>
+                        )}
+                      </div>
                     )}
                   </div>
 
@@ -562,27 +813,112 @@ export const UniversalContentImporter: React.FC<UniversalContentImporterProps> =
                 <div className="space-y-4 text-xs">
                   {contentType === 'questions' && (
                     <>
-                      <div className="grid grid-cols-2 gap-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>
                           <label className="font-bold text-slate-500 block mb-1">Subject</label>
-                          <input
-                            type="text"
+                          <select
                             value={singleForm.subject}
-                            onChange={(e) => setSingleForm({ ...singleForm, subject: e.target.value })}
-                            className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100"
-                          />
+                            onChange={(e) => {
+                              const nextSubject = e.target.value;
+                              const nextTopics = getTopicsForSubject(nextSubject, taxonomyTree);
+                              const nextTopic = nextTopics[0] || '';
+                              const nextSubs = getSubTopicsForTopic(nextSubject, nextTopic, taxonomyTree);
+                              setSingleForm({
+                                ...singleForm,
+                                subject: nextSubject,
+                                topic: nextTopic,
+                                subTopic: nextSubs[0] || '',
+                              });
+                            }}
+                            className="w-full min-h-[44px] p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100"
+                          >
+                            {taxonomySubjects.map((subj) => (
+                              <option key={subj} value={subj}>
+                                {subj}
+                              </option>
+                            ))}
+                          </select>
                         </div>
                         <div>
                           <label className="font-bold text-slate-500 block mb-1">Difficulty</label>
                           <select
                             value={singleForm.difficulty}
                             onChange={(e) => setSingleForm({ ...singleForm, difficulty: e.target.value })}
-                            className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100"
+                            className="w-full min-h-[44px] p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100"
                           >
                             <option value="Easy">Easy</option>
                             <option value="Medium">Medium</option>
                             <option value="Hard">Hard</option>
                           </select>
+                        </div>
+                        <div>
+                          <label className="font-bold text-slate-500 block mb-1">Topic</label>
+                          <select
+                            value={singleForm.topic}
+                            onChange={(e) => {
+                              const nextTopic = e.target.value;
+                              const nextSubs = getSubTopicsForTopic(
+                                singleForm.subject,
+                                nextTopic,
+                                taxonomyTree
+                              );
+                              setSingleForm({
+                                ...singleForm,
+                                topic: nextTopic,
+                                subTopic: nextSubs[0] || '',
+                              });
+                            }}
+                            className="w-full min-h-[44px] p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100"
+                          >
+                            {getTopicsForSubject(singleForm.subject, taxonomyTree).map((top) => (
+                              <option key={top} value={top}>
+                                {top}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="font-bold text-slate-500 block mb-1">Subtopic</label>
+                          <select
+                            value={singleForm.subTopic}
+                            onChange={(e) => setSingleForm({ ...singleForm, subTopic: e.target.value })}
+                            className="w-full min-h-[44px] p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100"
+                          >
+                            {getSubTopicsForTopic(
+                              singleForm.subject,
+                              singleForm.topic,
+                              taxonomyTree
+                            ).map((st) => (
+                              <option key={st} value={st}>
+                                {st}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="font-bold text-slate-500 block mb-1">Exam Name</label>
+                          <select
+                            value={singleForm.examName}
+                            onChange={(e) => setSingleForm({ ...singleForm, examName: e.target.value })}
+                            className="w-full min-h-[44px] p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100"
+                          >
+                            {examCatalog.map((entry) => (
+                              <option key={entry.exam_name} value={entry.exam_name}>
+                                {entry.exam_name} — {entry.display_label}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="font-bold text-slate-500 block mb-1">Exam Year</label>
+                          <input
+                            type="number"
+                            min={1990}
+                            max={2100}
+                            value={singleForm.examYear}
+                            onChange={(e) => setSingleForm({ ...singleForm, examYear: e.target.value })}
+                            className="w-full min-h-[44px] p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100"
+                          />
                         </div>
                       </div>
 

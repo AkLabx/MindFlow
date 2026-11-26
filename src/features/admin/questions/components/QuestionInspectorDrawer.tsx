@@ -16,6 +16,14 @@ import {
   saveQuestion,
   softDeleteQuestion,
 } from '../services/adminQuestionsService';
+import {
+  CANONICAL_SUBJECTS,
+  getSubTopicsForTopic,
+  getTopicsForSubject,
+  isValidTaxonomyTuple,
+  resolveCanonicalSubject,
+  useQuestionTaxonomy,
+} from '@/features/quiz/services/questionTaxonomyService';
 import { useNotification } from '@/stores/useNotificationStore';
 import { NativeDialog } from '@/components/ui/NativeDialog';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
@@ -38,6 +46,8 @@ interface QuestionInspectorDrawerProps {
 
 interface EditableQuestionState {
   subject: string;
+  topic: string;
+  subTopic: string;
   difficulty: string;
   question_source: 'PYQ' | 'EXPERT';
   question: string;
@@ -63,9 +73,12 @@ const buildEditableState = (question: QuestionRecord): EditableQuestionState => 
   const hiOptions =
     normalizedOpts.length > 0 ? normalizedOpts.map((o) => o.hiText || '') : ['', '', '', ''];
   const parsedExpl = parseQuestionExplanation(question.explanation);
+  const resolvedSubject = resolveCanonicalSubject(question.subject) || CANONICAL_SUBJECTS[0];
 
   return {
-    subject: question.subject || 'General',
+    subject: resolvedSubject,
+    topic: question.topic || '',
+    subTopic: question.subTopic || '',
     difficulty: question.difficulty || 'Medium',
     question_source: question.question_source === 'EXPERT' ? 'EXPERT' : 'PYQ',
     question: question.question || '',
@@ -129,15 +142,23 @@ export const QuestionInspectorDrawer: React.FC<QuestionInspectorDrawerProps> = (
     return JSON.stringify(formState) !== initialSnapshotRef.current;
   }, [isEditing, formState]);
 
+  const { tree: taxonomyTree, subjects: canonicalSubjects } = useQuestionTaxonomy();
+
   const subjectChoices = useMemo(() => {
-    const set = new Set<string>(availableSubjects.filter(Boolean));
-    if (question?.subject) set.add(question.subject);
-    if (formState?.subject) set.add(formState.subject);
-    ['History', 'Geography', 'Polity', 'Economics', 'General Science', 'Current Affairs'].forEach(
-      (s) => set.add(s)
-    );
-    return Array.from(set).sort((a, b) => a.localeCompare(b));
-  }, [availableSubjects, question?.subject, formState?.subject]);
+    const set = new Set<string>([...canonicalSubjects, ...availableSubjects.filter(Boolean)]);
+    return Array.from(set).filter((s) => (CANONICAL_SUBJECTS as readonly string[]).includes(s));
+  }, [availableSubjects, canonicalSubjects]);
+
+  const topicChoices = useMemo(
+    () => (formState ? getTopicsForSubject(formState.subject, taxonomyTree) : []),
+    [formState?.subject, taxonomyTree]
+  );
+
+  const subTopicChoices = useMemo(
+    () =>
+      formState ? getSubTopicsForTopic(formState.subject, formState.topic, taxonomyTree) : [],
+    [formState?.subject, formState?.topic, taxonomyTree]
+  );
 
   if (!question || !formState) return null;
 
@@ -281,6 +302,23 @@ export const QuestionInspectorDrawer: React.FC<QuestionInspectorDrawerProps> = (
       nextExplanation = next;
     }
 
+    const taxonomyChanged =
+      formState.subject.trim() !== (question.subject || '').trim() ||
+      formState.topic.trim() !== (question.topic || '').trim() ||
+      formState.subTopic.trim() !== (question.subTopic || '').trim();
+
+    if (
+      taxonomyChanged &&
+      !isValidTaxonomyTuple(formState.subject, formState.topic, formState.subTopic, taxonomyTree)
+    ) {
+      showToast({
+        title: 'Taxonomy Required',
+        message: 'Select a valid Subject, Topic, and Subtopic from the canonical taxonomy.',
+        variant: 'error',
+      });
+      return;
+    }
+
     const cleanEnOptions = formState.options.map((o) => o.trim()).filter(Boolean);
     const cleanHiOptions = formState.options_hi
       .slice(0, formState.options.length)
@@ -291,7 +329,9 @@ export const QuestionInspectorDrawer: React.FC<QuestionInspectorDrawerProps> = (
     try {
       const updatedRecord = await saveQuestion({
         id: question.id,
-        subject: formState.subject.trim() || question.subject,
+        subject: formState.subject.trim(),
+        topic: formState.topic.trim(),
+        subTopic: formState.subTopic.trim(),
         difficulty: formState.difficulty,
         question_source: formState.question_source,
         question: formState.question.trim(),
@@ -527,7 +567,18 @@ export const QuestionInspectorDrawer: React.FC<QuestionInspectorDrawerProps> = (
                   <select
                     id="inspector-subject"
                     value={formState.subject}
-                    onChange={(e) => setFormState({ ...formState, subject: e.target.value })}
+                    onChange={(e) => {
+                      const nextSubj = e.target.value;
+                      const nextTopics = getTopicsForSubject(nextSubj, taxonomyTree);
+                      const nextTop = nextTopics[0] || '';
+                      const nextSubs = getSubTopicsForTopic(nextSubj, nextTop, taxonomyTree);
+                      setFormState({
+                        ...formState,
+                        subject: nextSubj,
+                        topic: nextTop,
+                        subTopic: nextSubs[0] || '',
+                      });
+                    }}
                     className="w-full min-h-[44px] px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   >
                     {subjectChoices.map((subj) => (
@@ -554,6 +605,66 @@ export const QuestionInspectorDrawer: React.FC<QuestionInspectorDrawerProps> = (
                     <option value="Easy">Easy</option>
                     <option value="Medium">Medium</option>
                     <option value="Hard">Hard</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="inspector-topic"
+                    className="text-xs font-bold text-slate-600 dark:text-slate-300 block mb-1.5"
+                  >
+                    Topic
+                  </label>
+                  <select
+                    id="inspector-topic"
+                    value={formState.topic}
+                    onChange={(e) => {
+                      const nextTop = e.target.value;
+                      const nextSubs = getSubTopicsForTopic(formState.subject, nextTop, taxonomyTree);
+                      setFormState({
+                        ...formState,
+                        topic: nextTop,
+                        subTopic: nextSubs[0] || '',
+                      });
+                    }}
+                    className="w-full min-h-[44px] px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  >
+                    {!formState.topic && <option value="">Select Topic...</option>}
+                    {formState.topic && !topicChoices.includes(formState.topic) && (
+                      <option value={formState.topic}>{formState.topic} (Legacy — please reselect)</option>
+                    )}
+                    {topicChoices.map((t) => (
+                      <option key={t} value={t}>
+                        {t}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="inspector-subtopic"
+                    className="text-xs font-bold text-slate-600 dark:text-slate-300 block mb-1.5"
+                  >
+                    Subtopic
+                  </label>
+                  <select
+                    id="inspector-subtopic"
+                    value={formState.subTopic}
+                    onChange={(e) => setFormState({ ...formState, subTopic: e.target.value })}
+                    className="w-full min-h-[44px] px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  >
+                    {!formState.subTopic && <option value="">Select Subtopic...</option>}
+                    {formState.subTopic && !subTopicChoices.includes(formState.subTopic) && (
+                      <option value={formState.subTopic}>
+                        {formState.subTopic} (Legacy — please reselect)
+                      </option>
+                    )}
+                    {subTopicChoices.map((st) => (
+                      <option key={st} value={st}>
+                        {st}
+                      </option>
+                    ))}
                   </select>
                 </div>
               </div>

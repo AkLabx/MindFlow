@@ -5,8 +5,8 @@ const databaseUrl = Deno.env.get('SUPABASE_DB_POOLER_URL') ?? Deno.env.get('SUPA
 const GEMINI_TIMEOUT_MS = 45000;
 
 // --- PIPELINE VERSIONING ---
-const PIPELINE_VERSION = "2.2.0";
-const WORKER_VERSION = "enrich-questions-v22";
+const PIPELINE_VERSION = "3.0.0";
+const WORKER_VERSION = "enrich-questions-v23";
 // ---------------------------
 
 function getPgClient() {
@@ -248,8 +248,12 @@ Deno.serve(async (req: Request) => {
                 if (!currentProgress?.translation) {
                     const res = await callGeminiWithScheduler(sql, 'question_translation_v1', translationPrompt.system_prompt, { question: question.question, options: question.options }, translationPrompt.output_schema);
                     if (!res.data.options_hi || res.data.options_hi.length !== question.options.length) { dlqCategory = 'OPTION_TRANSLATION_MISMATCH'; throw new Error("Options count mismatch"); }
+                    if (typeof question.question === 'string' && /\|\s*:?---/.test(question.question) && (!res.data.question_hi || !String(res.data.question_hi).includes('|'))) {
+                        dlqCategory = 'TABLE_TRANSLATION_FLATTENED';
+                        throw new Error("Hindi translation stripped GFM table pipes");
+                    }
 
-                    const aiMetaAddition = { pipeline_version: PIPELINE_VERSION, worker_version: WORKER_VERSION, translation: { model: res.model, prompt_version: `question_translation_v1_v${translationPrompt.version}`, generated_at: new Date().toISOString(), input_tokens: res.inputTokens, output_tokens: res.outputTokens }, scheduler_version: res.scheduler_version };
+                    const aiMetaAddition = { pipeline_version: PIPELINE_VERSION, worker_version: WORKER_VERSION, translation: { model: res.model, prompt_version: `question_translation_v1_${translationPrompt.version}`, generated_at: new Date().toISOString(), input_tokens: res.inputTokens, output_tokens: res.outputTokens }, scheduler_version: res.scheduler_version };
                     
                     await sql`UPDATE public.questions SET question_hi=${res.data.question_hi ?? null}, options_hi=${res.data.options_hi ?? []}, enrichment_progress = COALESCE(enrichment_progress, '{}'::jsonb) || '{"translation": true}'::jsonb, ai_metadata = COALESCE(ai_metadata, '{}'::jsonb) || ${sql.json(aiMetaAddition)}::jsonb WHERE id=${question.id}`;
                     totalInputTokens += res.inputTokens; totalOutputTokens += res.outputTokens;
@@ -263,12 +267,26 @@ Deno.serve(async (req: Request) => {
                     const res = await callGeminiWithScheduler(sql, 'question_teacher_v1', formatterSystemPrompt, { ...sourcePayload, researchNotes: researchRes.data }, teacherPrompt.output_schema, false);
                     finalModel = res.model;
 
-                    if (!res.data.summary || !res.data.analysis_correct || !res.data.analysis_incorrect || !res.data.conclusion || !res.data.fact) { dlqCategory = 'EXPLANATION_STRUCTURE_FAILURE'; throw new Error("Missing explanation sections."); }
+                    const canonicalKeys = ['summary', 'analysis_correct', 'analysis_incorrect', 'conclusion', 'fact'] as const;
+                    for (const key of canonicalKeys) {
+                        if (typeof res.data[key] !== 'string' || !res.data[key].trim()) {
+                            dlqCategory = 'EXPLANATION_STRUCTURE_FAILURE';
+                            throw new Error(`Missing or empty explanation section: ${key}`);
+                        }
+                    }
                     if (question.correct !== null && !res.data.summary.includes(question.correct)) { dlqCategory = 'ANSWER_CONTRADICTION'; throw new Error("Explanation contradicts correct answer."); }
 
-                    const aiMetaAddition = { teacher: { model: res.model, prompt_version: `question_teacher_v1_v${teacherPrompt.version}_two_stage`, generated_at: new Date().toISOString(), input_tokens: res.inputTokens, output_tokens: res.outputTokens, research_model: researchRes.model, research_prompt_version: `question_research_v1_v${researchPrompt.version}` }, scheduler_version: res.scheduler_version };
+                    const normalizedExplanation = {
+                        summary: res.data.summary.trim(),
+                        analysis_correct: res.data.analysis_correct.trim(),
+                        analysis_incorrect: res.data.analysis_incorrect.trim(),
+                        conclusion: res.data.conclusion.trim(),
+                        fact: res.data.fact.trim(),
+                    };
+
+                    const aiMetaAddition = { pipeline_version: PIPELINE_VERSION, worker_version: WORKER_VERSION, teacher: { model: res.model, prompt_version: `question_teacher_v1_${teacherPrompt.version}_two_stage`, generated_at: new Date().toISOString(), input_tokens: res.inputTokens, output_tokens: res.outputTokens, research_model: researchRes.model, research_prompt_version: `question_research_v1_${researchPrompt.version}` }, scheduler_version: res.scheduler_version };
                     
-                    await sql`UPDATE public.questions SET explanation=${sql.json(res.data)}, enrichment_progress = COALESCE(enrichment_progress, '{}'::jsonb) || '{"explanation": true}'::jsonb, ai_metadata = COALESCE(ai_metadata, '{}'::jsonb) || ${sql.json(aiMetaAddition)}::jsonb WHERE id=${question.id}`;
+                    await sql`UPDATE public.questions SET explanation=${sql.json(normalizedExplanation)}, enrichment_progress = COALESCE(enrichment_progress, '{}'::jsonb) || '{"explanation": true}'::jsonb, ai_metadata = COALESCE(ai_metadata, '{}'::jsonb) || ${sql.json(aiMetaAddition)}::jsonb WHERE id=${question.id}`;
                     totalInputTokens += res.inputTokens; totalOutputTokens += res.outputTokens;
                 }
 
@@ -293,7 +311,8 @@ Deno.serve(async (req: Request) => {
                 }
             } finally {
                 if (success || dlqCategory) {
-                    await sql`INSERT INTO public.ai_request_logs (feature, model, prompt_version, input_tokens, output_tokens, latency_ms, status_code, error_message) VALUES ('enrich-questions', ${finalModel || 'cascade_fallback_chain'}, 'cascade_v1', ${totalInputTokens}, ${totalOutputTokens}, ${Math.round(performance.now() - startTime)}, ${success ? 200 : 500}, ${success ? null : (dlqCategory + ': ' + errorMsg)});`;
+                    const logPromptVersion = `question_teacher_v1_${teacherPrompt.version}`;
+                    await sql`INSERT INTO public.ai_request_logs (feature, model, prompt_version, input_tokens, output_tokens, latency_ms, status_code, error_message) VALUES ('enrich-questions', ${finalModel || 'cascade_fallback_chain'}, ${logPromptVersion}, ${totalInputTokens}, ${totalOutputTokens}, ${Math.round(performance.now() - startTime)}, ${success ? 200 : 500}, ${success ? null : (dlqCategory + ': ' + errorMsg)});`;
                 }
                 if (success) jobsProcessed++;
             }
