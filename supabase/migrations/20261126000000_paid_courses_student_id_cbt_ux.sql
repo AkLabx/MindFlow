@@ -393,6 +393,19 @@ BEGIN
     RAISE EXCEPTION 'Student profile could not be verified.' USING ERRCODE = 'P0002';
   END IF;
 
+  PERFORM pg_advisory_xact_lock(hashtext('upi_ref:' || v_upi_clean));
+  PERFORM pg_advisory_xact_lock(hashtext('pay_req:' || v_uid::text || ':' || p_series_id::text));
+
+  IF EXISTS (
+    SELECT 1
+    FROM public.payments pay
+    WHERE pay.upi_reference IS NOT NULL
+      AND UPPER(REGEXP_REPLACE(BTRIM(pay.upi_reference), '\s+', '', 'g')) = v_upi_clean
+      AND pay.status IN ('pending_verification', 'paid')
+  ) THEN
+    RAISE EXCEPTION 'This UPI Reference / UTR has already been submitted.' USING ERRCODE = '23505';
+  END IF;
+
   SELECT pay.id
   INTO v_existing_pending
   FROM public.payments pay
@@ -594,20 +607,14 @@ BEGIN
   v_days := GREATEST(1, LEAST(3650, COALESCE(p_validity_days, v_series.validity_days, 365)));
   v_target_route := '/mcqs/test-series/series/' || v_series.id::text;
 
-  SELECT uce.valid_until
-  INTO v_existing_valid_until
-  FROM public.user_course_entitlements uce
-  WHERE uce.user_id = v_profile.id
-    AND uce.series_id = v_series.id
-    AND uce.status = 'active';
-
-  v_valid_until := GREATEST(COALESCE(v_existing_valid_until, v_now), v_now) + make_interval(days => v_days);
+  PERFORM pg_advisory_xact_lock(hashtext('entitlement:' || v_profile.id::text || ':' || v_series.id::text));
 
   IF p_payment_id IS NOT NULL THEN
-    SELECT pay.id, pay.user_id, pay.order_code, pay.series_id
+    SELECT pay.id, pay.user_id, pay.order_code, pay.series_id, pay.status
     INTO v_payment
     FROM public.payments pay
-    WHERE pay.id = p_payment_id;
+    WHERE pay.id = p_payment_id
+    FOR UPDATE;
 
     IF NOT FOUND THEN
       RAISE EXCEPTION 'Payment request not found.' USING ERRCODE = 'P0002';
@@ -617,6 +624,26 @@ BEGIN
       RAISE EXCEPTION 'Payment request belongs to a different student account.' USING ERRCODE = '22023';
     END IF;
 
+    IF COALESCE(v_payment.status, '') <> 'pending_verification' THEN
+      RAISE EXCEPTION 'This payment request has already been processed and cannot be re-activated.' USING ERRCODE = '23505';
+    END IF;
+
+    IF v_payment.series_id IS NOT NULL AND v_payment.series_id IS DISTINCT FROM v_series.id THEN
+      RAISE EXCEPTION 'Payment request belongs to a different course series.' USING ERRCODE = '22023';
+    END IF;
+  END IF;
+
+  SELECT uce.valid_until
+  INTO v_existing_valid_until
+  FROM public.user_course_entitlements uce
+  WHERE uce.user_id = v_profile.id
+    AND uce.series_id = v_series.id
+    AND uce.status = 'active'
+  FOR UPDATE;
+
+  v_valid_until := GREATEST(COALESCE(v_existing_valid_until, v_now), v_now) + make_interval(days => v_days);
+
+  IF p_payment_id IS NOT NULL THEN
     v_order_code := COALESCE(
       v_payment.order_code,
       'MF-' || to_char(timezone('UTC', v_now), 'YYMMDD') || '-' || upper(substr(replace(v_payment.id::text, '-', ''), 1, 6))

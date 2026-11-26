@@ -642,7 +642,9 @@ export const searchTestsApi = async (query: string, nowMs: number = Date.now()) 
     if (!query) return [];
     const { data, error } = await supabase
         .from(DB_TABLES.MOCK.TESTS)
-        .select(`*, ${DB_TABLES.MOCK.SERIES}!inner(id, name, is_published, ${DB_TABLES.MOCK.CATEGORIES}!inner(id, name, is_active))`)
+        .select(
+            `*, ${DB_TABLES.MOCK.SERIES}!inner(id, name, is_premium, is_published, series_type, price_inr, mrp_inr, validity_days, free_demo_count, course_type, ${DB_TABLES.MOCK.CATEGORIES}!inner(id, name, is_active))`
+        )
         .eq('is_published', true)
         .eq(`${DB_TABLES.MOCK.SERIES}.is_published`, true)
         .eq(`${DB_TABLES.MOCK.SERIES}.${DB_TABLES.MOCK.CATEGORIES}.is_active`, true)
@@ -1870,7 +1872,16 @@ export const materializePreparedMockTests = (
         if (!isTestWithinScheduleWindow(t, nowMs)) continue;
 
         const embeddedSeries = t[DB_TABLES.MOCK.SERIES] ?? t.mock_series ?? t.test_series;
-        const seriesObj = embeddedSeries ?? seriesById.get(t.series_id);
+        const catalogSeries = seriesById.get(t.series_id);
+        const seriesObj =
+            catalogSeries && embeddedSeries
+                ? {
+                      ...catalogSeries,
+                      ...Object.fromEntries(
+                          Object.entries(embeddedSeries).filter(([, value]) => value !== undefined)
+                      ),
+                  }
+                : (embeddedSeries ?? catalogSeries);
         if (!seriesObj || seriesObj.is_published === false) continue;
 
         const embeddedCat =
@@ -2465,7 +2476,7 @@ export const fetchPreparedMockTestsByExam = async (
     const testsPromise = supabase
         .from(DB_TABLES.MOCK.TESTS)
         .select(
-            `*, ${DB_TABLES.MOCK.SERIES}!inner(id, category_id, name, slug, description, thumbnail_url, is_premium, is_published, ${DB_TABLES.MOCK.CATEGORIES}!inner(id, name, is_active))`
+            `*, ${DB_TABLES.MOCK.SERIES}!inner(id, category_id, name, slug, description, thumbnail_url, is_premium, is_published, series_type, price_inr, mrp_inr, validity_days, free_demo_count, course_type, ${DB_TABLES.MOCK.CATEGORIES}!inner(id, name, is_active))`
         )
         .eq('is_published', true)
         .eq(`${DB_TABLES.MOCK.SERIES}.is_published`, true)

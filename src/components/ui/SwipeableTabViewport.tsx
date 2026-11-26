@@ -75,6 +75,38 @@ export const SwipeableTabViewport: React.FC<SwipeableTabViewportProps> = ({
 
   useEffect(() => clearTimers, [clearTimers]);
 
+  const releaseNestedRailLock = useCallback(() => {
+    isNestedRailGestureRef.current = false;
+    if (trackRef.current && trackRef.current.style.overflowX) {
+      trackRef.current.style.overflowX = '';
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const handleWindowPointerRelease = (e: PointerEvent) => {
+      if (e.pointerType === 'touch') return;
+      if (isNestedRailGestureRef.current) {
+        releaseNestedRailLock();
+      }
+    };
+    const handleWindowTouchRelease = (e: TouchEvent) => {
+      if ((e.touches?.length ?? 0) === 0 && isNestedRailGestureRef.current) {
+        releaseNestedRailLock();
+      }
+    };
+    window.addEventListener('pointerup', handleWindowPointerRelease);
+    window.addEventListener('pointercancel', handleWindowPointerRelease);
+    window.addEventListener('touchend', handleWindowTouchRelease);
+    window.addEventListener('touchcancel', handleWindowTouchRelease);
+    return () => {
+      window.removeEventListener('pointerup', handleWindowPointerRelease);
+      window.removeEventListener('pointercancel', handleWindowPointerRelease);
+      window.removeEventListener('touchend', handleWindowTouchRelease);
+      window.removeEventListener('touchcancel', handleWindowTouchRelease);
+    };
+  }, [releaseNestedRailLock]);
+
   // Synchronize horizontal scroll offset when activeTabId changes externally
   useEffect(() => {
     const track = trackRef.current;
@@ -220,31 +252,58 @@ export const SwipeableTabViewport: React.FC<SwipeableTabViewportProps> = ({
       ref={trackRef}
       aria-label={ariaLabel}
       onScroll={handleScroll}
-      onTouchStart={(e) => {
+      onTouchStartCapture={(e) => {
         const target = e.target as HTMLElement | null;
-        isNestedRailGestureRef.current = Boolean(target?.closest?.('[data-h-rail="true"]'));
+        const isNested = Boolean(target?.closest?.('[data-h-rail="true"]'));
+        isNestedRailGestureRef.current = isNested;
+        if (trackRef.current) {
+          trackRef.current.style.overflowX = isNested ? 'hidden' : '';
+        }
         if (isProgrammaticScrollRef.current) {
           isProgrammaticScrollRef.current = false;
         }
       }}
-      onTouchEnd={() => {
-        isNestedRailGestureRef.current = false;
+      onTouchEnd={(e) => {
+        if ((e.touches?.length ?? 0) === 0) {
+          isNestedRailGestureRef.current = false;
+          if (trackRef.current) {
+            trackRef.current.style.overflowX = '';
+          }
+        }
       }}
-      onTouchCancel={() => {
-        isNestedRailGestureRef.current = false;
+      onTouchCancel={(e) => {
+        if ((e.touches?.length ?? 0) === 0) {
+          isNestedRailGestureRef.current = false;
+          if (trackRef.current) {
+            trackRef.current.style.overflowX = '';
+          }
+        }
       }}
-      onPointerDown={(e) => {
+      onPointerDownCapture={(e) => {
+        if (e.pointerType === 'touch') return;
         const target = e.target as HTMLElement | null;
-        isNestedRailGestureRef.current = Boolean(target?.closest?.('[data-h-rail="true"]'));
+        const isNested = Boolean(target?.closest?.('[data-h-rail="true"]'));
+        isNestedRailGestureRef.current = isNested;
+        if (trackRef.current) {
+          trackRef.current.style.overflowX = isNested ? 'hidden' : '';
+        }
         if (isProgrammaticScrollRef.current) {
           isProgrammaticScrollRef.current = false;
         }
       }}
-      onPointerUp={() => {
+      onPointerUp={(e) => {
+        if (e.pointerType === 'touch') return;
         isNestedRailGestureRef.current = false;
+        if (trackRef.current) {
+          trackRef.current.style.overflowX = '';
+        }
       }}
-      onPointerCancel={() => {
+      onPointerCancel={(e) => {
+        if (e.pointerType === 'touch') return;
         isNestedRailGestureRef.current = false;
+        if (trackRef.current) {
+          trackRef.current.style.overflowX = '';
+        }
       }}
       className={cn('mf-swipe-track w-full', className)}
     >

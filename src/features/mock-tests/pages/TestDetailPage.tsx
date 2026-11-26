@@ -148,7 +148,17 @@ export const TestDetailPage: React.FC = () => {
     const [entitlements, setEntitlements] = useState<UserCourseEntitlementItem[]>(() =>
         userId ? getCachedUserCourseEntitlementsSnapshot(userId) ?? [] : []
     );
-    const [orderedSeriesTests, setOrderedSeriesTests] = useState<any[] | null>(null);
+    const [orderedSeriesTests, setOrderedSeriesTests] = useState<any[] | null>(() => {
+        if (!testId) return null;
+        const cachedTest = getCachedTestDetailsSnapshot(testId);
+        const sid = String(
+            cachedTest?.series_id ??
+                cachedTest?.mock_series?.id ??
+                cachedTest?.test_series?.id ??
+                ''
+        ).trim();
+        return sid ? (getCachedSeriesBundleSnapshot(sid)?.tests ?? null) : null;
+    });
     const [selectedCbtSkin, setSelectedCbtSkin] = useState<SscCglCbtSkin>(() =>
         getPreferredSscCglSkin()
     );
@@ -323,7 +333,11 @@ export const TestDetailPage: React.FC = () => {
         setShowAllAttempts(false);
         const nextSync = testId ? getCachedTestDetailsSnapshot(testId) : null;
         const nextAttempts = testId ? getCachedUserTestAttemptsSnapshot(testId, userId) : null;
+        const nextSid = String(
+            nextSync?.series_id ?? nextSync?.mock_series?.id ?? nextSync?.test_series?.id ?? ''
+        ).trim();
         setTest(nextSync);
+        setOrderedSeriesTests(nextSid ? (getCachedSeriesBundleSnapshot(nextSid)?.tests ?? null) : null);
         hasTestRef.current = Boolean(nextSync);
         setLoading(Boolean(testId && !nextSync));
         setAttempts(nextAttempts ?? []);
@@ -701,7 +715,7 @@ export const TestDetailPage: React.FC = () => {
                                             ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300'
                                             : testAccess.reason === 'entitled'
                                               ? 'bg-emerald-600 text-white'
-                                              : series?.is_premium
+                                              : testAccess.isPaidSeries
                                                 ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300'
                                                 : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300'
                                     }`}
@@ -710,7 +724,7 @@ export const TestDetailPage: React.FC = () => {
                                         ? 'Free Demo'
                                         : testAccess.reason === 'entitled'
                                           ? 'Unlocked'
-                                          : series?.is_premium
+                                          : testAccess.isPaidSeries
                                             ? 'PRO'
                                             : 'Free'}
                                 </span>

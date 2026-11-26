@@ -17,6 +17,7 @@ import { DB_RPCS, DB_TABLES } from '@/config/dbTables';
 import { ROUTES } from '@/config/routes';
 import {
     clearPreparedMockTestsCache,
+    fetchPreparedMockTestsByExam,
     resolveMockTestAccess,
     type UserCourseEntitlementItem,
 } from '../api/mockTestsApi';
@@ -24,8 +25,12 @@ import { PurchasedCoursesPage } from '../pages/PurchasedCoursesPage';
 import { TestsListPage } from '../pages/TestsListPage';
 import { TestDetailPage } from '../pages/TestDetailPage';
 import { PreparedMockExamPage } from '../pages/PreparedMockExamPage';
+import { CourseCheckoutDialog } from '../components/CourseCheckoutDialog';
+import { TcsIonExamShell } from '../components/cbt/TcsIonExamShell';
 import ProfilePage from '@/features/auth/components/ProfilePage';
 import { AdminFinancialsPage } from '@/features/admin/financials/pages/AdminFinancialsPage';
+import { SeriesDrawer } from '@/features/admin/test-series/components/SeriesDrawer';
+import { SwipeableTabViewport } from '@/components/ui/SwipeableTabViewport';
 
 const {
     fromMock,
@@ -970,5 +975,831 @@ describe('v1.0.383 Paid Courses, Student ID, My Purchase, Inside-Series Filter &
                 p_admin_note: null,
             });
         });
+    });
+
+    it('merges full series pricing metadata when fetchPreparedMockTestsByExam receives partial embedded series on tests', async () => {
+        setupSupabaseTables({
+            categories: [
+                { id: 'cat-ssc', name: 'SSC CGL', is_active: true },
+            ],
+            series: [
+                {
+                    id: 'ser-paid-merge',
+                    category_id: 'cat-ssc',
+                    name: 'SSC CGL Paid Tier-1',
+                    slug: 'ssc-cgl-paid-tier-1',
+                    is_premium: true,
+                    is_published: true,
+                    series_type: 'MOCK',
+                    price_inr: 499,
+                    mrp_inr: 999,
+                    validity_days: 365,
+                    free_demo_count: 1,
+                    course_type: 'mock_series',
+                    mock_categories: { id: 'cat-ssc', name: 'SSC CGL', is_active: true },
+                },
+            ],
+            tests: [
+                {
+                    id: 'test-partial-embed-1',
+                    series_id: 'ser-paid-merge',
+                    name: 'SSC CGL Full Mock 1',
+                    test_type: 'MOCK',
+                    display_order: 1,
+                    duration_minutes: 60,
+                    total_marks: 200,
+                    passing_marks: 120,
+                    negative_marks: 0.5,
+                    question_ids: ['q1'],
+                    is_published: true,
+                    is_free_demo: false,
+                    // Intentionally omit price_inr/mrp_inr/free_demo_count to verify catalog merge
+                    mock_series: {
+                        id: 'ser-paid-merge',
+                        category_id: 'cat-ssc',
+                        name: 'SSC CGL Paid Tier-1',
+                        is_premium: true,
+                        is_published: true,
+                        mock_categories: { id: 'cat-ssc', name: 'SSC CGL', is_active: true },
+                    },
+                },
+            ],
+        });
+
+        const res = await fetchPreparedMockTestsByExam('ssc-cgl', {
+            userId: 'student-v383-1',
+            forceRefresh: true,
+        });
+
+        expect(res.series).toHaveLength(1);
+        expect(res.series[0].price_inr).toBe(499);
+        expect(res.series[0].mrp_inr).toBe(999);
+        expect(res.series[0].free_demo_count).toBe(1);
+        expect(res.tests).toHaveLength(1);
+        expect(res.tests[0].series_price_inr).toBe(499);
+    });
+
+    it('isolates rejected and settled legacy receipts from other entitlements and maintains valid h1->h2 headings in My Purchase', async () => {
+        setupSupabaseTables({
+            payments: [
+                {
+                    id: 'pay-rejected-2',
+                    user_id: 'student-v383-1',
+                    series_id: 'ser-course-1',
+                    order_code: 'MF-261126-REJ002',
+                    amount: 599,
+                    currency: 'INR',
+                    status: 'rejected',
+                    plan_purchased: 'SSC CGL Rankers Pass',
+                    target_route: '/mcqs/test-series/series/ser-course-1',
+                    validity_days: 365,
+                    valid_until: null,
+                    payment_method: 'upi_manual',
+                    upi_reference: 'UTR_REJECTED_999',
+                    created_at: '2026-11-26T00:00:00Z',
+                },
+                {
+                    id: 'pay-legacy-1',
+                    user_id: 'student-v383-1',
+                    series_id: null,
+                    order_code: null,
+                    amount: null,
+                    currency: 'INR',
+                    status: 'captured_by_client',
+                    plan_purchased: 'spark',
+                    payment_method: 'razorpay',
+                    valid_until: null,
+                    created_at: '2026-01-10T00:00:00Z',
+                },
+            ],
+            entitlements: [
+                {
+                    id: 'ent-approved-1',
+                    user_id: 'student-v383-1',
+                    series_id: 'ser-course-1',
+                    course_type: 'mock_series',
+                    target_route: '/mcqs/test-series/series/ser-course-1',
+                    payment_id: 'pay-different-approved-1',
+                    status: 'active',
+                    starts_at: '2026-11-01T00:00:00Z',
+                    valid_until: '2027-11-01T00:00:00Z',
+                    mock_series: {
+                        id: 'ser-course-1',
+                        name: 'SSC CGL Rankers Pass',
+                        price_inr: 599,
+                        validity_days: 365,
+                    },
+                },
+            ],
+        });
+
+        render(
+            <MemoryRouter initialEntries={[ROUTES.PURCHASED]}>
+                <PurchasedCoursesPage />
+            </MemoryRouter>
+        );
+
+        await waitFor(() => {
+            expect(screen.getByText(/MF-261126-REJ002/i)).toBeTruthy();
+        });
+
+        // Rejected card must keep "Rejected / Inactive" and NOT display "Pending"
+        expect(screen.getAllByText(/Rejected \/ Inactive/i).length).toBeGreaterThan(0);
+        expect(screen.queryByText(/^Pending$/i)).toBeNull();
+
+        // Heading outline must use h2 (level 2) after h1, never skipping to h3
+        const headings = screen.getAllByRole('heading', { level: 2 });
+        expect(headings.some((h) => /SSC CGL Rankers Pass/i.test(h.textContent ?? ''))).toBe(true);
+    });
+
+    it('preserves typed UTR input in CourseCheckoutDialog when app_ui_config resolves asynchronously', async () => {
+        let resolveConfig!: (val: any) => void;
+        const pendingConfigPromise = new Promise((resolve) => {
+            resolveConfig = resolve;
+        });
+
+        fromMock.mockImplementation((table: string) => {
+            if (table === DB_TABLES.BILLING.PAYMENTS) {
+                return { select: vi.fn(() => createChain([])) };
+            }
+            if (table === 'app_ui_config') {
+                return {
+                    select: vi.fn(() => ({
+                        eq: vi.fn(() => ({
+                            maybeSingle: vi.fn(() => pendingConfigPromise),
+                        })),
+                    })),
+                };
+            }
+            return { select: vi.fn(() => createChain([])) };
+        });
+
+        render(
+            <MemoryRouter>
+                <CourseCheckoutDialog
+                    isOpen={true}
+                    onClose={vi.fn()}
+                    userId="student-v383-1"
+                    studentId="MF-100042"
+                    series={{
+                        id: 'ser-upi-test',
+                        name: 'BPSC Test Course',
+                        price_inr: 499,
+                        validity_days: 365,
+                    }}
+                />
+            </MemoryRouter>
+        );
+
+        const utrInput = screen.getByLabelText(/UPI Transaction Reference/i) as HTMLInputElement;
+        fireEvent.change(utrInput, { target: { value: 'UTR_IN_PROGRESS_777' } });
+        expect(utrInput.value).toBe('UTR_IN_PROGRESS_777');
+
+        // Resolve app_ui_config UPI ID while user has already typed UTR
+        resolveConfig({ data: { branding: { upi_id: 'mindflow.test@upi' } }, error: null });
+
+        await waitFor(() => {
+            expect(screen.getByText(/mindflow\.test@upi/i)).toBeTruthy();
+        });
+        expect((screen.getByLabelText(/UPI Transaction Reference/i) as HTMLInputElement).value).toBe(
+            'UTR_IN_PROGRESS_777'
+        );
+    });
+
+    it('shows active section count and treats empty-string answers as unanswered in TcsIonExamShell', () => {
+        const questions: any[] = [
+            {
+                id: 'q-sec-a',
+                question_text: 'Question A',
+                options: ['Opt 1', 'Opt 2', 'Opt 3', 'Opt 4'],
+                subject: 'Quant',
+            },
+            {
+                id: 'q-sec-b',
+                question_text: 'Question B',
+                options: ['Opt 1', 'Opt 2', 'Opt 3', 'Opt 4'],
+                subject: 'Reasoning',
+            },
+        ];
+
+        const baseProps = {
+            test: { id: 't-tcs-1', name: 'SSC CGL Test', total_marks: 4, negative_marks: 0.5 },
+            questions,
+            attemptState: {
+                attemptId: 'att-1',
+                testId: 't-tcs-1',
+                userId: 'student-v383-1',
+                status: 'in_progress' as const,
+                startedAt: '2026-11-26T00:00:00Z',
+                updatedAt: '2026-11-26T00:00:00Z',
+                totalDurationSeconds: 1800,
+                remainingSeconds: 1800,
+                elapsedSeconds: 0,
+                currentIndex: 0,
+                answers: { 'q-sec-a': 'Opt 1', 'q-sec-b': '' },
+                markedForReview: [],
+                visitedQuestionIds: ['q-sec-a', 'q-sec-b'],
+                timeSpentByQuestion: {},
+                remotePersisted: true,
+            },
+            selectedAnswer: 'Opt 1',
+            isCurrentMarked: false,
+            activePaletteStatus: 'answered' as const,
+            paletteCounts: {
+                answered: 1,
+                notAnswered: 1,
+                markedForReview: 0,
+                answeredAndMarked: 0,
+                notVisited: 0,
+            },
+            paletteFilter: 'all' as const,
+            filteredPaletteItems: [],
+            setPaletteFilter: vi.fn(),
+            sections: [
+                {
+                    id: 'sec-quant',
+                    name: 'Quantitative Aptitude',
+                    startIndex: 0,
+                    indices: [0],
+                    totalCount: 1,
+                    answeredCount: 1,
+                    markedCount: 0,
+                    answeredAndMarkedCount: 0,
+                    notAnsweredCount: 0,
+                    notVisitedCount: 0,
+                },
+                {
+                    id: 'sec-reas',
+                    name: 'Reasoning',
+                    startIndex: 1,
+                    indices: [1],
+                    totalCount: 1,
+                    answeredCount: 0,
+                    markedCount: 0,
+                    answeredAndMarkedCount: 0,
+                    notAnsweredCount: 1,
+                    notVisitedCount: 0,
+                },
+            ],
+            languageMode: 'en' as const,
+            onCycleLanguage: vi.fn(),
+            setLanguageMode: vi.fn(),
+            hasHindiContent: false,
+            zoomScale: 1,
+            setZoomScale: vi.fn(),
+            studentName: 'Aarav Kumar',
+            studentId: 'MF-100042',
+            isOfflineMode: false,
+            isSubmitting: false,
+            isPaletteDrawerOpen: true,
+            setIsPaletteDrawerOpen: vi.fn(),
+            isExitDialogOpen: false,
+            setIsExitDialogOpen: vi.fn(),
+            isSubmitDialogOpen: false,
+            setIsSubmitDialogOpen: vi.fn(),
+            formatCountdown: () => '30:00',
+            onSelectOption: vi.fn(),
+            onToggleMarkForReview: vi.fn(),
+            onClearResponse: vi.fn(),
+            onSaveAndNext: vi.fn(),
+            onPrevious: vi.fn(),
+            onJumpToIndex: vi.fn(),
+            onConfirmPauseAndExit: vi.fn(),
+            onConfirmSubmit: vi.fn(),
+        };
+
+        const { rerender } = render(
+            <TcsIonExamShell
+                {...baseProps}
+                currentIndex={0}
+                activeQuestion={questions[0]}
+            />
+        );
+
+        // Must display active section ratio "1/1", NOT global "1/2"
+        expect(screen.getAllByText('1/1').length).toBeGreaterThan(0);
+
+        // Switch active section to Reasoning (q-sec-b has empty string answer '')
+        rerender(
+            <TcsIonExamShell
+                {...baseProps}
+                currentIndex={1}
+                activeQuestion={questions[1]}
+                selectedAnswer={undefined}
+                activePaletteStatus="not_answered"
+            />
+        );
+
+        expect(screen.getAllByText('0/1').length).toBeGreaterThan(0);
+        const q2StatusBtns = screen.getAllByLabelText(/Question 2,/i);
+        expect(q2StatusBtns.length).toBeGreaterThan(0);
+        expect(q2StatusBtns.every((btn) => /Not Answered/i.test(btn.getAttribute('aria-label') ?? ''))).toBe(true);
+    });
+
+    it('guards dirty edits on Cancel in SeriesDrawer with Unsaved Changes confirmation', () => {
+        const onClose = vi.fn();
+        render(
+            <SeriesDrawer
+                isOpen={true}
+                onClose={onClose}
+                categories={[{ id: 'cat-1', name: 'SSC CGL' }]}
+                onSave={vi.fn().mockResolvedValue(undefined)}
+            />
+        );
+
+        const nameInput = screen.getByPlaceholderText(/e\.g\. SSC CGL 2026/i);
+        fireEvent.change(nameInput, { target: { value: 'Unsaved Course Edit' } });
+
+        fireEvent.click(screen.getByRole('button', { name: /^Cancel$/i }));
+        expect(onClose).not.toHaveBeenCalled();
+        expect(screen.getAllByText(/Unsaved Changes/i).length).toBeGreaterThan(0);
+        expect(screen.getByRole('button', { name: /Discard Changes/i })).toBeTruthy();
+    });
+
+    it('shows Retry error state instead of false Series Not Found on network failure and recovers on Retry', async () => {
+        const offlineSeriesId = 'ser-offline-retry-1';
+        let rejectNetwork = true;
+
+        fromMock.mockImplementation((table: string) => {
+            if (rejectNetwork) {
+                return {
+                    select: vi.fn(() => ({
+                        eq: vi.fn(() => ({
+                            maybeSingle: vi.fn().mockRejectedValue(new Error('Failed to fetch')),
+                            single: vi.fn().mockRejectedValue(new Error('Failed to fetch')),
+                            order: vi.fn().mockRejectedValue(new Error('Failed to fetch')),
+                            then: (_res: any, rej: any) =>
+                                Promise.reject(new Error('Failed to fetch')).then(_res, rej),
+                        })),
+                        then: (_res: any, rej: any) =>
+                            Promise.reject(new Error('Failed to fetch')).then(_res, rej),
+                    })),
+                };
+            }
+            if (table === DB_TABLES.MOCK.SERIES) {
+                return {
+                    select: vi.fn(() =>
+                        createChain([
+                            {
+                                id: offlineSeriesId,
+                                category_id: 'cat-ssc',
+                                name: 'SSC CGL Network Recovered Pack',
+                                series_type: 'MOCK',
+                                is_premium: false,
+                                price_inr: 0,
+                                is_published: true,
+                                mock_categories: { id: 'cat-ssc', name: 'SSC CGL', slug: 'ssc-cgl', is_active: true },
+                            },
+                        ])
+                    ),
+                };
+            }
+            if (table === DB_TABLES.MOCK.TESTS) {
+                return {
+                    select: vi.fn(() =>
+                        createChain([
+                            {
+                                id: 'test-rec-1',
+                                series_id: offlineSeriesId,
+                                name: 'Recovered Shift 1 Paper',
+                                test_type: 'PYQ',
+                                display_order: 1,
+                                duration_minutes: 60,
+                                total_marks: 200,
+                                question_ids: ['q1'],
+                                is_published: true,
+                                mock_series: {
+                                    id: offlineSeriesId,
+                                    name: 'SSC CGL Network Recovered Pack',
+                                    is_published: true,
+                                    mock_categories: {
+                                        id: 'cat-ssc',
+                                        name: 'SSC CGL',
+                                        slug: 'ssc-cgl',
+                                        is_active: true,
+                                    },
+                                },
+                            },
+                        ])
+                    ),
+                };
+            }
+            return { select: vi.fn(() => createChain([])) };
+        });
+
+        render(
+            <MemoryRouter initialEntries={[`/mcqs/test-series/series/${offlineSeriesId}`]}>
+                <Routes>
+                    <Route path="/mcqs/test-series/series/:seriesId" element={<TestsListPage />} />
+                </Routes>
+            </MemoryRouter>
+        );
+
+        await waitFor(() => {
+            expect(screen.getByText('Could Not Load Test Series')).toBeTruthy();
+        });
+        expect(screen.queryByText('Series Not Found')).toBeNull();
+
+        rejectNetwork = false;
+        fireEvent.click(screen.getByRole('button', { name: /^Retry$/i }));
+
+        await waitFor(() => {
+            expect(
+                screen.getByRole('heading', { level: 1, name: 'SSC CGL Network Recovered Pack' })
+            ).toBeTruthy();
+            expect(screen.getByRole('heading', { level: 3, name: 'Recovered Shift 1 Paper' })).toBeTruthy();
+        });
+    });
+
+    it('falls back to cached published series catalog when TestsListPage opens offline without bundle cache', async () => {
+        const fallbackSeriesId = 'ser-catalog-fallback-1';
+        localStorage.setItem(
+            'mindflow_mock_series_catalog_v1',
+            JSON.stringify({
+                fetchedAt: Date.now(),
+                categories: [{ id: 'cat-ssc', name: 'SSC CGL', slug: 'ssc-cgl', is_active: true }],
+                series: [
+                    {
+                        id: fallbackSeriesId,
+                        category_id: 'cat-ssc',
+                        name: 'SSC CGL Offline Catalog Fallback',
+                        series_type: 'PYQ',
+                        is_premium: false,
+                        price_inr: 0,
+                        is_published: true,
+                        mock_categories: { id: 'cat-ssc', name: 'SSC CGL', slug: 'ssc-cgl', is_active: true },
+                    },
+                ],
+                tests: [],
+            })
+        );
+
+        fromMock.mockImplementation(() => ({
+            select: vi.fn(() => ({
+                eq: vi.fn(() => ({
+                    maybeSingle: vi.fn().mockRejectedValue(new Error('net::ERR_INTERNET_DISCONNECTED')),
+                    single: vi.fn().mockRejectedValue(new Error('net::ERR_INTERNET_DISCONNECTED')),
+                    order: vi.fn().mockRejectedValue(new Error('net::ERR_INTERNET_DISCONNECTED')),
+                    then: (_res: any, rej: any) =>
+                        Promise.reject(new Error('net::ERR_INTERNET_DISCONNECTED')).then(_res, rej),
+                })),
+            })),
+        }));
+
+        render(
+            <MemoryRouter initialEntries={[`/mcqs/test-series/series/${fallbackSeriesId}`]}>
+                <Routes>
+                    <Route path="/mcqs/test-series/series/:seriesId" element={<TestsListPage />} />
+                </Routes>
+            </MemoryRouter>
+        );
+
+        await waitFor(() => {
+            expect(
+                screen.getByRole('heading', { level: 1, name: 'SSC CGL Offline Catalog Fallback' })
+            ).toBeTruthy();
+            expect(screen.getByText('Tests Unavailable Offline')).toBeTruthy();
+        });
+        expect(screen.queryByText('Series Not Found')).toBeNull();
+    });
+
+    it('never leaks cached questions on cold direct #/exam/:testId load when test metadata is uncached', async () => {
+        const lockedTestId = 'test-cold-locked-1';
+        const qId = '22222222-2222-4222-8222-222222222222';
+        // Seed stale local question snapshot without cached test details
+        localStorage.setItem(
+            `mindflow_mock_questions_v1_${lockedTestId}`,
+            JSON.stringify({
+                fetchedAt: Date.now(),
+                questionIds: [qId],
+                questions: [
+                    {
+                        id: qId,
+                        question: 'LEAKED SECRET PAID QUESTION',
+                        options: ['A', 'B', 'C', 'D'],
+                        correct_answer: 'A',
+                    },
+                ],
+            })
+        );
+
+        let resolveTestFetch!: (val: any) => void;
+        fromMock.mockImplementation((table: string) => {
+            if (table === DB_TABLES.MOCK.TESTS) {
+                return {
+                    select: vi.fn(() => ({
+                        eq: vi.fn(() => ({
+                            eq: vi.fn(() => ({
+                                eq: vi.fn(() => ({
+                                    eq: vi.fn(() => ({
+                                        maybeSingle: vi.fn(
+                                            () =>
+                                                new Promise((resolve) => {
+                                                    resolveTestFetch = resolve;
+                                                })
+                                        ),
+                                    })),
+                                })),
+                            })),
+                        })),
+                    })),
+                };
+            }
+            return { select: vi.fn(() => createChain([])) };
+        });
+
+        render(
+            <MemoryRouter initialEntries={[`/exam/${lockedTestId}`]}>
+                <Routes>
+                    <Route path="/exam/:testId" element={<PreparedMockExamPage />} />
+                </Routes>
+            </MemoryRouter>
+        );
+
+        // Even while metadata request is in-flight, secret question text must NEVER render
+        expect(screen.queryByText(/LEAKED SECRET PAID QUESTION/i)).toBeNull();
+
+        await waitFor(() => {
+            expect(typeof resolveTestFetch).toBe('function');
+        });
+
+        resolveTestFetch({
+            data: {
+                id: lockedTestId,
+                series_id: 'ser-cold-paid',
+                name: 'Paid Cold Test',
+                duration_minutes: 60,
+                total_marks: 100,
+                question_ids: [qId],
+                is_published: true,
+                is_free_demo: false,
+                mock_series: {
+                    id: 'ser-cold-paid',
+                    name: 'Paid Series',
+                    is_premium: true,
+                    price_inr: 499,
+                    free_demo_count: 0,
+                    is_published: true,
+                    mock_categories: { id: 'cat-ssc', name: 'SSC CGL', is_active: true },
+                },
+            },
+            error: null,
+        });
+
+        await waitFor(() => {
+            expect(screen.getByTestId('cbt-paid-lock-screen')).toBeTruthy();
+        });
+        expect(screen.queryByText(/LEAKED SECRET PAID QUESTION/i)).toBeNull();
+    });
+
+    it('preserves SeriesDrawer unsaved edits when categories prop updates with a new array reference', () => {
+        const catA = [{ id: 'cat-1', name: 'SSC CGL' }];
+        const { rerender } = render(
+            <SeriesDrawer
+                isOpen={true}
+                onClose={vi.fn()}
+                categories={catA}
+                onSave={vi.fn().mockResolvedValue(undefined)}
+            />
+        );
+
+        const nameInput = screen.getByPlaceholderText(/e\.g\. SSC CGL 2026/i) as HTMLInputElement;
+        fireEvent.change(nameInput, { target: { value: 'SSC CGL Mains Pro' } });
+        expect(nameInput.value).toBe('SSC CGL Mains Pro');
+
+        // Parent rerenders with a new categories array identity (e.g., background SWR refresh)
+        rerender(
+            <SeriesDrawer
+                isOpen={true}
+                onClose={vi.fn()}
+                categories={[...catA]}
+                onSave={vi.fn().mockResolvedValue(undefined)}
+            />
+        );
+
+        expect((screen.getByPlaceholderText(/e\.g\. SSC CGL 2026/i) as HTMLInputElement).value).toBe(
+            'SSC CGL Mains Pro'
+        );
+    });
+
+    it('enforces 44px table copy button, native clipboard fallback, and Admin Note pass-through on AdminFinancialsPage', async () => {
+        isNativePlatformMock.mockReturnValue(true);
+        setupSupabaseTables({
+            series: [
+                {
+                    id: 'ser-admin-2',
+                    name: 'BPSC Test Pack',
+                    price_inr: 299,
+                    validity_days: 365,
+                    is_premium: true,
+                    is_published: true,
+                },
+            ],
+            payments: [
+                {
+                    id: 'pay-copy-1',
+                    created_at: '2026-11-26T00:00:00Z',
+                    user_id: 'student-v383-1',
+                    order_code: 'MF-COPY-01',
+                    amount: 299,
+                    currency: 'INR',
+                    status: 'paid',
+                    plan_purchased: 'BPSC Test Pack',
+                    series_id: 'ser-admin-2',
+                    payment_method: 'upi_manual',
+                    upi_reference: 'UTR_COPY_44PX',
+                    student_id_snapshot: 'MF-100042',
+                },
+            ],
+            profiles: [
+                {
+                    id: 'student-v383-1',
+                    full_name: 'Aarav Kumar',
+                    email: 'student383@example.com',
+                    student_id: 'MF-100042',
+                },
+            ],
+        });
+
+        rpcMock.mockImplementation((fnName: string, params: Record<string, any>) => {
+            if (fnName === DB_RPCS.LOOKUP_STUDENT_FOR_ENROLLMENT) {
+                return Promise.resolve({
+                    data: {
+                        found: true,
+                        profile: {
+                            id: 'student-v383-1',
+                            student_id: params.p_student_id,
+                            full_name: 'Aarav Kumar',
+                            email: 'student383@example.com',
+                            target_exam: 'BPSC',
+                            created_at: '2026-01-01T00:00:00Z',
+                        },
+                        entitlements: [],
+                    },
+                    error: null,
+                });
+            }
+            return Promise.resolve({
+                data: { ok: true, series_name: 'BPSC Test Pack' },
+                error: null,
+            });
+        });
+
+        render(
+            <MemoryRouter initialEntries={['/admin/financials']}>
+                <AdminFinancialsPage />
+            </MemoryRouter>
+        );
+
+        await waitFor(() => {
+            expect(screen.getByRole('button', { name: /Copy reference UTR_COPY_44PX/i })).toBeTruthy();
+        });
+
+        const copyRefBtn = screen.getByRole('button', { name: /Copy reference UTR_COPY_44PX/i });
+        expect(copyRefBtn.className).toContain('min-h-[44px]');
+        expect(copyRefBtn.className).toContain('min-w-[44px]');
+
+        fireEvent.click(copyRefBtn);
+        await waitFor(() => {
+            expect(capacitorClipboardWriteMock).toHaveBeenCalledWith({ string: 'UTR_COPY_44PX' });
+        });
+
+        fireEvent.change(screen.getByPlaceholderText(/Enter Student ID/i), {
+            target: { value: 'MF-100042' },
+        });
+        fireEvent.click(screen.getByRole('button', { name: /Lookup Student/i }));
+
+        await waitFor(() => {
+            expect(screen.getByLabelText(/Admin Note \(Optional\)/i)).toBeTruthy();
+        });
+        fireEvent.change(screen.getByLabelText(/Admin Note \(Optional\)/i), {
+            target: { value: 'Scholarship Grant #9' },
+        });
+        fireEvent.click(screen.getByRole('button', { name: /Activate Course Access/i }));
+
+        await waitFor(() => {
+            expect(rpcMock).toHaveBeenCalledWith(DB_RPCS.ADMIN_ACTIVATE_COURSE_ENTITLEMENT, {
+                p_student_id: 'MF-100042',
+                p_series_id: 'ser-admin-2',
+                p_validity_days: 365,
+                p_payment_id: null,
+                p_admin_note: 'Scholarship Grant #9',
+            });
+        });
+    });
+
+    it('resets SwipeableTabViewport overflowX lock when pointerup completes outside track after pressing a nested rail', () => {
+        render(
+            <SwipeableTabViewport
+                tabs={[
+                    { id: 'all', label: 'All' },
+                    { id: 'ssc', label: 'SSC' },
+                ]}
+                activeTabId="all"
+                onTabChange={vi.fn()}
+                ariaLabel="Test Tabs"
+                renderPanel={(id) => (
+                    <div data-h-rail="true" data-testid={`rail-${id}`}>
+                        <button type="button">Card Inside Rail</button>
+                    </div>
+                )}
+            />
+        );
+
+        const track = document.querySelector('.mf-swipe-track') as HTMLDivElement;
+        const railBtn = screen.getByRole('button', { name: 'Card Inside Rail' });
+
+        fireEvent.pointerDown(railBtn, { pointerType: 'mouse' });
+        expect(track.style.overflowX).toBe('hidden');
+
+        // Simulate pointer released outside trackRef (fires on window only)
+        window.dispatchEvent(new Event('pointerup'));
+        expect(track.style.overflowX).toBe('');
+    });
+
+    it('resets sourceFilter back to All Types when navigating between two series in TestsListPage', async () => {
+        setupSupabaseTables({
+            series: [
+                {
+                    id: 'ser-reset-a',
+                    category_id: 'cat-ssc',
+                    name: 'Series A',
+                    series_type: 'MOCK',
+                    is_premium: false,
+                    is_published: true,
+                    mock_categories: { id: 'cat-ssc', name: 'SSC CGL', is_active: true },
+                },
+                {
+                    id: 'ser-reset-b',
+                    category_id: 'cat-ssc',
+                    name: 'Series B',
+                    series_type: 'MOCK',
+                    is_premium: false,
+                    is_published: true,
+                    mock_categories: { id: 'cat-ssc', name: 'SSC CGL', is_active: true },
+                },
+            ],
+            tests: [
+                {
+                    id: 't-a-pyq',
+                    series_id: 'ser-reset-a',
+                    name: 'Series A PYQ Test',
+                    test_type: 'PYQ',
+                    display_order: 1,
+                    duration_minutes: 60,
+                    total_marks: 100,
+                    question_ids: ['q1'],
+                    is_published: true,
+                    mock_series: {
+                        id: 'ser-reset-a',
+                        name: 'Series A',
+                        is_published: true,
+                        mock_categories: { id: 'cat-ssc', name: 'SSC CGL', is_active: true },
+                    },
+                },
+                {
+                    id: 't-b-mock',
+                    series_id: 'ser-reset-b',
+                    name: 'Series B Expert Mock',
+                    test_type: 'MOCK',
+                    display_order: 1,
+                    duration_minutes: 60,
+                    total_marks: 100,
+                    question_ids: ['q1'],
+                    is_published: true,
+                    mock_series: {
+                        id: 'ser-reset-b',
+                        name: 'Series B',
+                        is_published: true,
+                        mock_categories: { id: 'cat-ssc', name: 'SSC CGL', is_active: true },
+                    },
+                },
+            ],
+        });
+
+        const { Link } = await import('react-router-dom');
+        render(
+            <MemoryRouter initialEntries={['/mcqs/test-series/series/ser-reset-a']}>
+                <Link to="/mcqs/test-series/series/ser-reset-b">Go to Series B</Link>
+                <Routes>
+                    <Route path="/mcqs/test-series/series/:seriesId" element={<TestsListPage />} />
+                </Routes>
+            </MemoryRouter>
+        );
+
+        await waitFor(() => {
+            expect(screen.getByRole('heading', { level: 3, name: 'Series A PYQ Test' })).toBeTruthy();
+        });
+
+        fireEvent.click(screen.getByRole('button', { name: 'PYQ Papers' }));
+        expect(screen.getByRole('button', { name: 'PYQ Papers' }).getAttribute('aria-pressed')).toBe('true');
+
+        fireEvent.click(screen.getByRole('link', { name: 'Go to Series B' }));
+
+        await waitFor(() => {
+            expect(screen.getByRole('heading', { level: 3, name: 'Series B Expert Mock' })).toBeTruthy();
+        });
+        expect(screen.getByRole('button', { name: 'All Types' }).getAttribute('aria-pressed')).toBe('true');
+        expect(screen.queryByText('No PYQ Papers Found')).toBeNull();
     });
 });

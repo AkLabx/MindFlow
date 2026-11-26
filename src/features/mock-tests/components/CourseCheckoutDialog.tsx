@@ -81,8 +81,11 @@ export const CourseCheckoutDialog: React.FC<CourseCheckoutDialogProps> = ({
         };
     }, []);
 
+    const seriesId = series?.id ?? '';
+
     useEffect(() => {
-        if (!isOpen || !series) return;
+        if (!isOpen || !seriesId) return;
+        let cancelled = false;
         setErrorMsg(null);
         setSubmittedResult(null);
         setUpiRef('');
@@ -91,16 +94,17 @@ export const CourseCheckoutDialog: React.FC<CourseCheckoutDialogProps> = ({
             const cached = getCachedUserPurchaseReceiptsSnapshot(userId);
             const foundCachedPending =
                 cached?.find(
-                    (r) => r.series_id === series.id && r.status === 'pending_verification'
+                    (r) => r.series_id === seriesId && r.status === 'pending_verification'
                 ) ?? null;
             setExistingPending(foundCachedPending);
 
             if (typeof navigator === 'undefined' || navigator.onLine !== false) {
                 fetchUserPurchaseReceipts(userId, { forceRefresh: true })
                     .then((rows) => {
+                        if (cancelled) return;
                         const match =
                             rows.find(
-                                (r) => r.series_id === series.id && r.status === 'pending_verification'
+                                (r) => r.series_id === seriesId && r.status === 'pending_verification'
                             ) ?? null;
                         setExistingPending(match);
                     })
@@ -110,23 +114,35 @@ export const CourseCheckoutDialog: React.FC<CourseCheckoutDialogProps> = ({
             setExistingPending(null);
         }
 
-        if (!configuredUpiId && typeof (supabase as any)?.from === 'function') {
-            supabase
-                .from('app_ui_config')
-                .select('branding')
-                .eq('id', 1)
-                .maybeSingle()
-                .then(
-                    ({ data }) => {
-                        const upi = (data as any)?.branding?.upi_id;
-                        if (typeof upi === 'string' && upi.trim()) {
-                            setConfiguredUpiId(upi.trim());
-                        }
-                    },
-                    () => {}
-                );
+        return () => {
+            cancelled = true;
+        };
+    }, [isOpen, seriesId, userId]);
+
+    useEffect(() => {
+        if (!isOpen || configuredUpiId || typeof (supabase as any)?.from !== 'function') {
+            return;
         }
-    }, [isOpen, series, userId, configuredUpiId]);
+        let cancelled = false;
+        supabase
+            .from('app_ui_config')
+            .select('branding')
+            .eq('id', 1)
+            .maybeSingle()
+            .then(
+                ({ data }) => {
+                    if (cancelled) return;
+                    const upi = (data as any)?.branding?.upi_id;
+                    if (typeof upi === 'string' && upi.trim()) {
+                        setConfiguredUpiId(upi.trim());
+                    }
+                },
+                () => {}
+            );
+        return () => {
+            cancelled = true;
+        };
+    }, [isOpen, configuredUpiId]);
 
     if (!series) return null;
 

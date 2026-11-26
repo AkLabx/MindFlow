@@ -75,6 +75,47 @@ interface AuthContextType {
 
 const SESSION_ID_KEY = 'mindflow_device_session_id';
 const ROLES_CACHE_KEY = 'mindflow_cached_user_roles';
+const PROFILE_CACHE_KEY = 'mindflow_cached_user_profile_v1';
+
+interface CachedProfileEnvelope {
+  userId: string;
+  profile: AuthProfile;
+  updatedAt: number;
+}
+
+const readCachedProfile = (expectedUserId: string): AuthProfile | null => {
+  if (!expectedUserId) return null;
+  try {
+    const raw = localStorage.getItem(PROFILE_CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as CachedProfileEnvelope | null;
+    if (
+      parsed &&
+      parsed.userId === expectedUserId &&
+      parsed.profile &&
+      parsed.profile.id === expectedUserId
+    ) {
+      return parsed.profile;
+    }
+  } catch {
+    // Ignore storage read / JSON parse failures
+  }
+  return null;
+};
+
+const writeCachedProfile = (profileData: AuthProfile): void => {
+  if (!profileData?.id) return;
+  try {
+    const payload: CachedProfileEnvelope = {
+      userId: profileData.id,
+      profile: profileData,
+      updatedAt: Date.now(),
+    };
+    localStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify(payload));
+  } catch {
+    // Ignore QuotaExceededError or private-browsing storage restrictions
+  }
+};
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -139,57 +180,79 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const lastSyncedUserId = useRef<string | null>(null);
   const queryClient = useQueryClient();
 
+  const applyCanonicalProfile = (data: AuthProfile) => {
+    setProfile(data);
+    setProfileStatus(data.status ?? null);
+    setDeleteRequestedAt(data.delete_requested_at ?? null);
+    writeCachedProfile(data);
+  };
+
+  const hydrateCachedProfile = (targetUserId: string) => {
+    const cached = readCachedProfile(targetUserId);
+    if (cached) {
+      setProfile((prev) => (prev?.id === targetUserId ? prev : cached));
+      setProfileStatus((prev) => prev ?? (cached.status ?? null));
+      setDeleteRequestedAt((prev) => prev ?? (cached.delete_requested_at ?? null));
+      return;
+    }
+    setProfile((prev) => (prev && prev.id !== targetUserId ? null : prev));
+  };
+
   useEffect(() => {
     let sessionSub: any = null;
 
     if (user) {
       const initSessionTracker = async () => {
-        let localSessionId = localStorage.getItem(SESSION_ID_KEY);
+        try {
+          let localSessionId = localStorage.getItem(SESSION_ID_KEY);
 
-        if (localSessionId) {
-          // Reopening the app on an existing device
-          const { data, error } = await supabase
-            .from('user_active_sessions')
-            .select('session_token')
-            .eq('user_id', user.id)
-            .maybeSingle();
+          if (localSessionId) {
+            // Reopening the app on an existing device
+            const { data, error } = await supabase
+              .from('user_active_sessions')
+              .select('session_token')
+              .eq('user_id', user.id)
+              .maybeSingle();
 
-          if (error) {
-            console.error('Error fetching active session:', error);
-            return;
+            if (error) {
+              console.error('Error fetching active session:', error);
+              return;
+            }
+
+            if (data && data.session_token !== localSessionId) {
+              // Kicked out while offline
+              console.warn("Session hijacked while offline! Another device logged in.");
+              await forceEvict();
+
+              return;
+            } else if (!data) {
+               // Ghost token scenario, reclaim it
+               await upsertSession(localSessionId);
+            }
+            setupWatcher(); // Safe to watch
+          } else {
+            // Fresh login (No local session ID). Check if DB already has a session
+            const { data } = await supabase
+              .from('user_active_sessions')
+              .select('session_token')
+              .eq('user_id', user.id)
+              .maybeSingle();
+
+            if (data && data.session_token) {
+               // Conflict! Another device is currently active
+               setSessionConflict(true);
+               // Do NOT setup watcher or upsert yet. Wait for user decision.
+               return;
+            }
+
+            // No conflict, safe to claim
+            localSessionId = crypto.randomUUID();
+            localStorage.setItem(SESSION_ID_KEY, localSessionId);
+            await upsertSession(localSessionId);
+            setupWatcher();
           }
-
-          if (data && data.session_token !== localSessionId) {
-            // Kicked out while offline
-            console.warn("Session hijacked while offline! Another device logged in.");
-            await forceEvict();
-
-            return;
-          } else if (!data) {
-             // Ghost token scenario, reclaim it
-             await upsertSession(localSessionId);
-          }
-          setupWatcher(); // Safe to watch
-        } else {
-          // Fresh login (No local session ID). Check if DB already has a session
-          const { data } = await supabase
-            .from('user_active_sessions')
-            .select('session_token')
-            .eq('user_id', user.id)
-            .maybeSingle();
-
-          if (data && data.session_token) {
-             // Conflict! Another device is currently active
-             setSessionConflict(true);
-             // Do NOT setup watcher or upsert yet. Wait for user decision.
-             return;
-          }
-
-          // No conflict, safe to claim
-          localSessionId = crypto.randomUUID();
-          localStorage.setItem(SESSION_ID_KEY, localSessionId);
-          await upsertSession(localSessionId);
-          setupWatcher();
+        } catch (err) {
+          console.warn('[AuthContext] Session tracker skipped while offline:', err);
         }
       };
 
@@ -294,6 +357,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       'synonym_last_sync',
       'ows_filters',
       ROLES_CACHE_KEY,
+      PROFILE_CACHE_KEY,
       SESSION_ID_KEY,
     ];
     keysToRemove.forEach((key) => {
@@ -355,13 +419,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
       }
       if (session?.user) {
+        hydrateCachedProfile(session.user.id);
         try {
             const { data } = await supabase.from('profiles').select('*').eq('id', session.user.id).maybeSingle();
             if (data) {
                 useDebugStore.getState().logEvent('Canonical profile fetched (initial)', { avatar_url: data.avatar_url, updated_at: data.updated_at });
-                setProfile(data);
-                setProfileStatus(data.status);
-                setDeleteRequestedAt(data.delete_requested_at);
+                applyCanonicalProfile(data);
             }
         } catch (e) { console.error('Error fetching profile:', e); }
         await refreshRoles(session.user.id);
@@ -402,14 +465,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         } catch {}
 
         setUser(finalUser);
+        hydrateCachedProfile(finalUser.id);
         useDebugStore.getState().logEvent('Auth state change triggered', { event, metadataAvatar: finalUser?.user_metadata?.avatar_url });
         try {
             const { data } = await supabase.from('profiles').select('*').eq('id', finalUser.id).maybeSingle();
             if (data) {
                 useDebugStore.getState().logEvent('Canonical profile fetched (initial)', { avatar_url: data.avatar_url, updated_at: data.updated_at });
-                setProfile(data);
-                setProfileStatus(data.status);
-                setDeleteRequestedAt(data.delete_requested_at);
+                applyCanonicalProfile(data);
             }
         } catch (e) { console.error('Error fetching profile on auth change:', e); }
         refreshRoles(finalUser.id).catch(console.error);
@@ -434,6 +496,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setDeleteRequestedAt(null);
         setRoles([]);
         localStorage.removeItem(ROLES_CACHE_KEY);
+        localStorage.removeItem(PROFILE_CACHE_KEY);
         lastSyncedUserId.current = null;
 
         // If explicitly signed out by Supabase event (e.g. session expired, logged out elsewhere)
@@ -593,9 +656,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
 
     if (data) {
-      setProfile(data);
-      setProfileStatus(data.status);
-      setDeleteRequestedAt(data.delete_requested_at);
+      applyCanonicalProfile(data);
 
       // Globally invalidate React Query caches related to avatars/profiles
       queryClient.invalidateQueries({ queryKey: ['profile'] });

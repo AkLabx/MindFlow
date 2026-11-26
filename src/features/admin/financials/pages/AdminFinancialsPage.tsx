@@ -1,4 +1,6 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { Capacitor } from '@capacitor/core';
+import { Clipboard } from '@capacitor/clipboard';
 import { NativeDialog } from '@/components/ui/NativeDialog';
 import {
     CreditCard,
@@ -60,6 +62,15 @@ export const AdminFinancialsPage: React.FC = () => {
     // Drawer / Payload Modal
     const [selectedPayment, setSelectedPayment] = useState<PaymentTransaction | null>(null);
     const [copiedId, setCopiedId] = useState<string | null>(null);
+    const copyTimerRef = useRef<number | null>(null);
+
+    useEffect(() => {
+        return () => {
+            if (copyTimerRef.current !== null) {
+                window.clearTimeout(copyTimerRef.current);
+            }
+        };
+    }, []);
 
     const loadData = async () => {
         setIsLoading(true);
@@ -87,11 +98,25 @@ export const AdminFinancialsPage: React.FC = () => {
         void loadData();
     }, []);
 
-    const handleCopy = (text: string, id: string) => {
-        navigator.clipboard.writeText(text);
-        setCopiedId(id);
-        setTimeout(() => setCopiedId(null), 2000);
-        showToast({ title: 'Copied', message: 'ID copied to clipboard.', variant: 'info' });
+    const handleCopy = async (text: string, id: string) => {
+        if (!text) return;
+        try {
+            if (Capacitor.isNativePlatform()) {
+                await Clipboard.write({ string: text });
+            } else if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+                await navigator.clipboard.writeText(text);
+            } else {
+                await Clipboard.write({ string: text });
+            }
+            setCopiedId(id);
+            if (copyTimerRef.current !== null) {
+                window.clearTimeout(copyTimerRef.current);
+            }
+            copyTimerRef.current = window.setTimeout(() => setCopiedId(null), 2000);
+            showToast({ title: 'Copied', message: 'ID copied to clipboard.', variant: 'info' });
+        } catch {
+            showToast({ title: 'Copy Failed', message: 'Could not copy ID to clipboard.', variant: 'error' });
+        }
     };
 
     const handleLookupStudent = async (e: React.FormEvent) => {
@@ -132,7 +157,7 @@ export const AdminFinancialsPage: React.FC = () => {
                 studentId: sid,
                 seriesId: selectedSeriesId,
                 validityDays: parsedDays && !Number.isNaN(parsedDays) ? parsedDays : null,
-                adminNote: adminGrantNote || null,
+                adminNote: adminGrantNote.trim() || null,
             });
             showToast({
                 title: 'Course Activated',
@@ -214,6 +239,23 @@ export const AdminFinancialsPage: React.FC = () => {
         () => payments.filter((p) => String(p.status).toLowerCase() === 'pending_verification'),
         [payments]
     );
+
+    const planFilterOptions = useMemo(() => {
+        const seen = new Map<string, string>();
+        for (const c of courseOptions) {
+            const label = String(c.name ?? '').trim();
+            if (label && !seen.has(label.toLowerCase())) {
+                seen.set(label.toLowerCase(), label);
+            }
+        }
+        for (const p of payments) {
+            const label = String(p.plan_purchased ?? '').trim();
+            if (label && !seen.has(label.toLowerCase())) {
+                seen.set(label.toLowerCase(), label);
+            }
+        }
+        return Array.from(seen.values());
+    }, [courseOptions, payments]);
 
     const filteredPayments = payments.filter((p) => {
         const q = searchQuery.toLowerCase();
@@ -433,7 +475,7 @@ export const AdminFinancialsPage: React.FC = () => {
                                     </span>
                                 </div>
 
-                                <div className="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
+                                <div className="grid grid-cols-1 md:grid-cols-5 gap-3 items-end">
                                     <div className="md:col-span-2">
                                         <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">
                                             Course Series
@@ -467,6 +509,24 @@ export const AdminFinancialsPage: React.FC = () => {
                                             value={customValidityDays}
                                             onChange={(e) => setCustomValidityDays(e.target.value)}
                                             className="w-full min-h-[44px] px-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-900 dark:text-white"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label
+                                            htmlFor="admin-grant-note-input"
+                                            className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1"
+                                        >
+                                            Admin Note (Optional)
+                                        </label>
+                                        <input
+                                            id="admin-grant-note-input"
+                                            type="text"
+                                            value={adminGrantNote}
+                                            onChange={(e) => setAdminGrantNote(e.target.value)}
+                                            placeholder="e.g., UPI verified"
+                                            maxLength={120}
+                                            className="w-full min-h-[44px] px-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-medium text-slate-900 dark:text-white"
                                         />
                                     </div>
 
@@ -578,8 +638,11 @@ export const AdminFinancialsPage: React.FC = () => {
                         className="min-h-[44px] px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-medium text-slate-700 dark:text-slate-300 outline-none"
                     >
                         <option value="ALL">All Courses / Plans</option>
-                        <option value="spark">Spark Plan</option>
-                        <option value="pro">Pro Plan</option>
+                        {planFilterOptions.map((opt) => (
+                            <option key={opt} value={opt}>
+                                {opt}
+                            </option>
+                        ))}
                     </select>
                 </div>
             </div>
@@ -655,7 +718,8 @@ export const AdminFinancialsPage: React.FC = () => {
                                                         <button
                                                             type="button"
                                                             onClick={() => handleCopy(refCode, p.id)}
-                                                            className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-colors text-slate-400 hover:text-slate-700"
+                                                            aria-label={`Copy reference ${refCode}`}
+                                                            className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors text-slate-400 hover:text-slate-700"
                                                             title="Copy Reference ID"
                                                         >
                                                             {copiedId === p.id ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
