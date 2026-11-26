@@ -3,12 +3,15 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import {
     ArrowLeft,
     BarChart2,
+    Bookmark,
     BookOpen,
     CheckCircle2,
     ChevronLeft,
     ChevronRight,
+    Clock,
     Grid,
     HelpCircle,
+    MinusCircle,
     RotateCcw,
     Sparkles,
     Target,
@@ -19,6 +22,11 @@ import {
 import { ROUTES } from '@/config/routes';
 import { useAuth } from '@/features/auth';
 import { useLayoutStore } from '@/stores/useLayoutStore';
+import { useNotificationStore } from '@/stores/useNotificationStore';
+import { useBookmarkStore } from '@/features/quiz/stores/useBookmarkStore';
+import { db } from '@/lib/db';
+import { supabase } from '@/lib/supabase';
+import { syncService } from '@/lib/syncService';
 import { triggerHaptic } from '@/lib/haptics';
 import { MarkdownRenderer } from '@/components/ui/MarkdownRenderer';
 import { QuizExplanation } from '@/features/quiz/components/QuizExplanation';
@@ -46,7 +54,7 @@ import type { Question } from '@/types/models';
 
 type ResultTabId = 'analysis' | 'solutions' | 'leaderboard';
 type LanguageMode = 'bilingual' | 'english' | 'hindi';
-type QuestionFilterMode = 'all' | 'correct' | 'incorrect' | 'unanswered';
+type QuestionFilterMode = 'all' | 'incorrect' | 'unanswered' | 'saved' | 'correct';
 
 const RESULT_TABS: SwipeableTabItem[] = [
     { id: 'analysis', label: 'Analysis' },
@@ -88,12 +96,65 @@ export const PreparedMockResultPage: React.FC = () => {
     const { testId, attemptId } = useParams<{ testId: string; attemptId: string }>();
     const { user } = useAuth();
     const setHideGlobalFooter = useLayoutStore((s) => s.setHideGlobalFooter);
+    const showToast = useNotificationStore((s) => s.showToast);
+    const bookmarks = useBookmarkStore((s) => s.bookmarks);
+    const toggleBookmark = useBookmarkStore((s) => s.toggleBookmark);
+    const loadBookmarks = useBookmarkStore((s) => s.loadBookmarks);
     const userId = user?.id ?? '';
 
     useEffect(() => {
         setHideGlobalFooter(true);
         return () => setHideGlobalFooter(false);
     }, [setHideGlobalFooter]);
+
+    // Hydrate saved question IDs from IndexedDB and cloud bookmarks
+    useEffect(() => {
+        let cancelled = false;
+        const hydrateBookmarks = async () => {
+            const idSet = new Set<string>();
+            try {
+                const localBookmarks = (await db.getAllBookmarks?.()) ?? [];
+                for (const b of localBookmarks) {
+                    if (b?.id) idSet.add(b.id);
+                    if (b?.v1_id) idSet.add(b.v1_id);
+                }
+            } catch {
+                // Ignore IndexedDB unavailability
+            }
+
+            if (
+                userId &&
+                (typeof navigator === 'undefined' || navigator.onLine !== false) &&
+                typeof (supabase as { from?: unknown })?.from === 'function'
+            ) {
+                try {
+                    const { data: remoteRows } = await supabase
+                        .from('user_bookmarks')
+                        .select('question_id')
+                        .eq('user_id', userId);
+                    if (Array.isArray(remoteRows)) {
+                        for (const row of remoteRows) {
+                            if (row?.question_id) idSet.add(String(row.question_id));
+                        }
+                    }
+                } catch {
+                    // Offline or mocked environment
+                }
+            }
+
+            if (!cancelled && idSet.size > 0) {
+                const merged = new Set<string>([...useBookmarkStore.getState().bookmarks, ...idSet]);
+                loadBookmarks(Array.from(merged));
+            }
+        };
+
+        hydrateBookmarks();
+        window.addEventListener('mindflow-sync-complete', hydrateBookmarks);
+        return () => {
+            cancelled = true;
+            window.removeEventListener('mindflow-sync-complete', hydrateBookmarks);
+        };
+    }, [loadBookmarks, userId]);
 
     // Synchronous 0ms local snapshot caches
     const [test, setTest] = useState<any>(() =>
@@ -272,14 +333,48 @@ export const PreparedMockResultPage: React.FC = () => {
             questions,
             userAnswers,
             scoreSummary.marksPerQuestion,
-            scoreSummary.negativeMarks
+            scoreSummary.negativeMarks,
+            attempt?.time_spent_by_question ?? null
         );
-    }, [questions, scoreSummary, userAnswers]);
+    }, [attempt?.time_spent_by_question, questions, scoreSummary, userAnswers]);
+
+    const savedIdSet = useMemo(() => new Set(bookmarks), [bookmarks]);
+    const isQuestionSaved = useCallback(
+        (q: Question | undefined | null): boolean =>
+            Boolean(q && (savedIdSet.has(q.id) || (q.v1_id && savedIdSet.has(q.v1_id)))),
+        [savedIdSet]
+    );
+
+    const handleToggleSaveQuestion = useCallback(
+        (q: Question) => {
+            const wasSaved = isQuestionSaved(q);
+            triggerHaptic('light');
+            toggleBookmark(q);
+            if (
+                wasSaved &&
+                userId &&
+                (typeof navigator === 'undefined' || navigator.onLine !== false) &&
+                typeof syncService?.removeBookmark === 'function'
+            ) {
+                syncService.removeBookmark(userId, q.id, q.v1_id).catch(() => {});
+            }
+            showToast({
+                title: wasSaved ? 'Removed from Saved' : 'Question Saved',
+                message: wasSaved
+                    ? 'Removed from your Saved Questions list.'
+                    : 'Added to Saved Questions for quick revision.',
+                variant: 'success',
+                duration: 2200,
+            });
+        },
+        [isQuestionSaved, showToast, toggleBookmark, userId]
+    );
 
     // Solution Review Filtering
     const filteredQuestions = useMemo(() => {
         if (filterMode === 'all') return questions;
         return questions.filter((q) => {
+            if (filterMode === 'saved') return isQuestionSaved(q);
             const ans = userAnswers[q.id];
             const hasAnswered = ans && String(ans).trim() !== '';
             const isCorrect = hasAnswered && String(ans).trim() === String(q.correct ?? '').trim();
@@ -289,7 +384,7 @@ export const PreparedMockResultPage: React.FC = () => {
             if (filterMode === 'unanswered') return !hasAnswered;
             return true;
         });
-    }, [filterMode, questions, userAnswers]);
+    }, [filterMode, isQuestionSaved, questions, userAnswers]);
 
     // Keep active question index within filtered bounds
     useEffect(() => {
@@ -314,7 +409,9 @@ export const PreparedMockResultPage: React.FC = () => {
         let correct = 0;
         let incorrect = 0;
         let unanswered = 0;
+        let saved = 0;
         for (const q of questions) {
+            if (isQuestionSaved(q)) saved += 1;
             const ans = userAnswers[q.id];
             if (!ans || String(ans).trim() === '') {
                 unanswered += 1;
@@ -324,8 +421,8 @@ export const PreparedMockResultPage: React.FC = () => {
                 incorrect += 1;
             }
         }
-        return { all: questions.length, correct, incorrect, unanswered };
-    }, [questions, userAnswers]);
+        return { all: questions.length, correct, incorrect, unanswered, saved };
+    }, [isQuestionSaved, questions, userAnswers]);
 
     const handleSelectTab = (tabId: ResultTabId, btnEl?: HTMLButtonElement) => {
         triggerHaptic('light');
@@ -466,53 +563,234 @@ export const PreparedMockResultPage: React.FC = () => {
                 </div>
             </div>
 
-            {/* Subject-Wise Performance Breakdown */}
-            <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 sm:p-6 border border-slate-200 dark:border-slate-800 shadow-sm">
-                <div className="flex items-center justify-between mb-4">
+            {/* Negative-Marking & Pace Breakdown Card */}
+            <div
+                data-testid="analysis-negative-marking-card"
+                className="bg-white dark:bg-slate-900 rounded-3xl p-5 sm:p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4"
+            >
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                    <h2 className="text-base sm:text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
+                        <MinusCircle className="w-5 h-5 text-rose-500" aria-hidden="true" />
+                        <span>Score &amp; Negative-Marking Breakdown</span>
+                    </h2>
+                    <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
+                        {negMarks > 0
+                            ? `-${negMarks.toFixed(2)} per wrong answer`
+                            : 'Zero negative marking'}
+                    </span>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div className="rounded-2xl bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200/70 dark:border-emerald-900/50 p-3">
+                        <div className="text-[11px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
+                            Gross Positive
+                        </div>
+                        <div className="mt-1 text-lg sm:text-xl font-black text-emerald-700 dark:text-emerald-300">
+                            +{scoreSummary.positiveMarks.toFixed(2)}
+                        </div>
+                        <div className="text-[11px] text-emerald-700/80 dark:text-emerald-400/80">
+                            {scoreSummary.correctCount} × +{marksPerQ.toFixed(2)}
+                        </div>
+                    </div>
+
+                    <div className="rounded-2xl bg-rose-50/70 dark:bg-rose-950/30 border border-rose-200/70 dark:border-rose-900/50 p-3">
+                        <div className="text-[11px] font-bold uppercase tracking-wider text-rose-700 dark:text-rose-400">
+                            Negative Penalty
+                        </div>
+                        <div className="mt-1 text-lg sm:text-xl font-black text-rose-700 dark:text-rose-300">
+                            {scoreSummary.negativeDeduction > 0
+                                ? `-${scoreSummary.negativeDeduction.toFixed(2)}`
+                                : '0.00'}
+                        </div>
+                        <div className="text-[11px] text-rose-700/80 dark:text-rose-400/80">
+                            {negMarks > 0
+                                ? `${scoreSummary.wrongCount} × -${negMarks.toFixed(2)}`
+                                : `${scoreSummary.wrongCount} wrong • No penalty`}
+                        </div>
+                    </div>
+
+                    <div className="rounded-2xl bg-indigo-50/70 dark:bg-indigo-950/30 border border-indigo-200/70 dark:border-indigo-900/50 p-3">
+                        <div className="text-[11px] font-bold uppercase tracking-wider text-indigo-700 dark:text-indigo-400">
+                            Net Score
+                        </div>
+                        <div className="mt-1 text-lg sm:text-xl font-black text-indigo-700 dark:text-indigo-300">
+                            {scoreSummary.score}
+                        </div>
+                        <div className="text-[11px] text-indigo-700/80 dark:text-indigo-400/80">
+                            out of {scoreSummary.totalMarks} marks
+                        </div>
+                    </div>
+
+                    <div className="rounded-2xl bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700/80 p-3">
+                        <div className="text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 flex items-center gap-1">
+                            <Clock className="w-3.5 h-3.5" aria-hidden="true" />
+                            <span>Avg Pace / Q</span>
+                        </div>
+                        <div className="mt-1 text-lg sm:text-xl font-black text-slate-800 dark:text-slate-100">
+                            {attempt.time_taken_seconds != null && scoreSummary.attemptedCount > 0
+                                ? formatDuration(
+                                      attempt.time_taken_seconds / scoreSummary.attemptedCount
+                                  )
+                                : formatDuration(
+                                      attempt.time_taken_seconds != null && scoreSummary.totalQuestions > 0
+                                          ? attempt.time_taken_seconds / scoreSummary.totalQuestions
+                                          : null
+                                  )}
+                        </div>
+                        <div className="text-[11px] text-slate-500 dark:text-slate-400">
+                            {scoreSummary.attemptedCount}/{scoreSummary.totalQuestions} attempted
+                        </div>
+                    </div>
+                </div>
+
+                {/* Question Outcome Distribution Bar */}
+                {scoreSummary.totalQuestions > 0 && (
+                    <div className="space-y-1.5 pt-1">
+                        <div
+                            role="img"
+                            aria-label={`Question distribution: ${scoreSummary.correctCount} correct, ${scoreSummary.wrongCount} incorrect, ${scoreSummary.unansweredCount} unattempted`}
+                            className="w-full h-2.5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden flex"
+                        >
+                            <div
+                                className="h-full bg-emerald-500 transition-all duration-500"
+                                style={{
+                                    width: `${(scoreSummary.correctCount / scoreSummary.totalQuestions) * 100}%`,
+                                }}
+                            />
+                            <div
+                                className="h-full bg-rose-500 transition-all duration-500"
+                                style={{
+                                    width: `${(scoreSummary.wrongCount / scoreSummary.totalQuestions) * 100}%`,
+                                }}
+                            />
+                            <div
+                                className="h-full bg-slate-300 dark:bg-slate-600 transition-all duration-500"
+                                style={{
+                                    width: `${(scoreSummary.unansweredCount / scoreSummary.totalQuestions) * 100}%`,
+                                }}
+                            />
+                        </div>
+                        <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+                            <span>
+                                Attempt Rate:{' '}
+                                <strong className="text-slate-800 dark:text-slate-200">
+                                    {Math.round(
+                                        (scoreSummary.attemptedCount / scoreSummary.totalQuestions) * 100
+                                    )}
+                                    %
+                                </strong>
+                            </span>
+                            <span>
+                                Saved for Revision:{' '}
+                                <strong className="text-amber-600 dark:text-amber-400">
+                                    {filterCounts.saved}
+                                </strong>
+                            </span>
+                        </div>
+                    </div>
+                )}
+            </div>
+
+            {/* Subject-Wise Performance Breakdown (Time Spent vs Accuracy & Negative Marking) */}
+            <div
+                data-testid="analysis-subject-breakdown"
+                className="bg-white dark:bg-slate-900 rounded-3xl p-5 sm:p-6 border border-slate-200 dark:border-slate-800 shadow-sm"
+            >
+                <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
                     <h2 className="text-base sm:text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
                         <BarChart2 className="w-5 h-5 text-indigo-500" aria-hidden="true" />
                         <span>Subject-Wise Performance</span>
                     </h2>
                     <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
-                        {subjectBreakdown.length} Subjects
+                        {subjectBreakdown.length} Sections • Time vs Accuracy
                     </span>
                 </div>
 
                 <div className="divide-y divide-slate-100 dark:divide-slate-800">
                     {subjectBreakdown.map((sb) => (
-                        <div key={sb.subject} className="py-4 first:pt-0 last:pb-0 space-y-2">
-                            <div className="flex items-center justify-between gap-2">
+                        <div key={sb.subject} className="py-4 first:pt-0 last:pb-0 space-y-2.5">
+                            <div className="flex flex-wrap items-center justify-between gap-2">
                                 <span className="font-bold text-sm text-slate-900 dark:text-white">
                                     {sb.subject}
                                 </span>
-                                <div className="text-right">
+                                <div className="flex items-center gap-2 text-right">
                                     <span className="text-sm font-extrabold text-indigo-600 dark:text-indigo-400">
-                                        {sb.marks} Marks
+                                        {sb.marks} / {sb.maxMarks} Marks
                                     </span>
-                                    <span className="text-xs text-slate-500 dark:text-slate-400 ml-1.5">
-                                        ({sb.accuracy}%)
+                                    <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                                        {sb.accuracy}% acc
                                     </span>
                                 </div>
                             </div>
 
                             {/* Accuracy Progress Bar */}
-                            <div className="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden flex">
-                                <div
-                                    className={`h-full rounded-full transition-all duration-500 ${
-                                        sb.accuracy >= 70
-                                            ? 'bg-emerald-500'
-                                            : sb.accuracy >= 40
-                                              ? 'bg-indigo-500'
-                                              : 'bg-rose-500'
-                                    }`}
-                                    style={{ width: `${Math.max(0, Math.min(100, sb.accuracy))}%` }}
-                                />
+                            <div className="space-y-1">
+                                <div className="flex items-center justify-between text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+                                    <span>Accuracy</span>
+                                    <span>{sb.accuracy}%</span>
+                                </div>
+                                <div className="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden flex">
+                                    <div
+                                        className={`h-full rounded-full transition-all duration-500 ${
+                                            sb.accuracy >= 70
+                                                ? 'bg-emerald-500'
+                                                : sb.accuracy >= 40
+                                                  ? 'bg-indigo-500'
+                                                  : 'bg-rose-500'
+                                        }`}
+                                        style={{ width: `${Math.max(0, Math.min(100, sb.accuracy))}%` }}
+                                    />
+                                </div>
                             </div>
 
-                            <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 pt-0.5">
-                                <span>
-                                    Total: <strong>{sb.totalQuestions}</strong>
-                                </span>
+                            {/* Time Spent Bar (when per-question timing is available) */}
+                            {sb.timeSpentSeconds !== null && (
+                                <div className="space-y-1">
+                                    <div className="flex items-center justify-between text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+                                        <span className="inline-flex items-center gap-1">
+                                            <Clock className="w-3 h-3 text-sky-500" aria-hidden="true" />
+                                            <span>Time Spent: {formatDuration(sb.timeSpentSeconds)}</span>
+                                        </span>
+                                        <span>
+                                            {sb.timeSharePercent !== null ? `${sb.timeSharePercent}% share` : ''}
+                                            {sb.avgSecondsPerQuestion !== null
+                                                ? ` • Avg ${sb.avgSecondsPerQuestion}s/Q`
+                                                : ''}
+                                        </span>
+                                    </div>
+                                    <div className="w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden flex">
+                                        <div
+                                            className="h-full rounded-full bg-sky-500 transition-all duration-500"
+                                            style={{
+                                                width: `${Math.max(
+                                                    0,
+                                                    Math.min(100, sb.timeSharePercent ?? 0)
+                                                )}%`,
+                                            }}
+                                        />
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500 dark:text-slate-400 pt-0.5">
+                                <div className="flex flex-wrap items-center gap-2">
+                                    <span>
+                                        Total: <strong>{sb.totalQuestions}</strong>
+                                    </span>
+                                    <span className="text-emerald-600 dark:text-emerald-400 font-semibold">
+                                        +{sb.positiveMarks.toFixed(2)}
+                                    </span>
+                                    {negMarks > 0 && (
+                                        <span className="text-rose-600 dark:text-rose-400 font-semibold">
+                                            -{sb.negativeDeduction.toFixed(2)} neg
+                                        </span>
+                                    )}
+                                    {sb.timeSpentSeconds === null && (
+                                        <span className="text-[11px] text-slate-400 dark:text-slate-500">
+                                            • Time: —
+                                        </span>
+                                    )}
+                                </div>
                                 <div className="flex items-center gap-3">
                                     <span className="text-emerald-600 dark:text-emerald-400 font-bold">
                                         ✓ {sb.correctCount}
@@ -591,9 +869,10 @@ export const PreparedMockResultPage: React.FC = () => {
                     {(
                         [
                             { id: 'all', label: `All (${filterCounts.all})` },
-                            { id: 'correct', label: `Correct (${filterCounts.correct})` },
                             { id: 'incorrect', label: `Incorrect (${filterCounts.incorrect})` },
-                            { id: 'unanswered', label: `Skipped (${filterCounts.unanswered})` },
+                            { id: 'unanswered', label: `Unattempted (${filterCounts.unanswered})` },
+                            { id: 'saved', label: `Saved (${filterCounts.saved})` },
+                            { id: 'correct', label: `Correct (${filterCounts.correct})` },
                         ] as const
                     ).map((fc) => (
                         <button
@@ -665,10 +944,12 @@ export const PreparedMockResultPage: React.FC = () => {
                             isAnswered &&
                             String(selectedOption).trim() === String(activeQuestion.correct ?? '').trim();
                         const globalQIndex = questions.findIndex((q) => q.id === activeQuestion.id);
+                        const isSaved = isQuestionSaved(activeQuestion);
+                        const qTimeSecs = attempt.time_spent_by_question?.[activeQuestion.id];
 
                         return (
                             <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-slate-100 dark:border-slate-800">
-                                <div className="flex items-center gap-2">
+                                <div className="flex flex-wrap items-center gap-2">
                                     <span className="text-sm font-black text-slate-900 dark:text-white">
                                         Question {globalQIndex >= 0 ? globalQIndex + 1 : currentQuestionIndex + 1}{' '}
                                         <span className="text-xs font-normal text-slate-500">
@@ -678,6 +959,12 @@ export const PreparedMockResultPage: React.FC = () => {
                                     <span className="px-2.5 py-0.5 rounded-md text-[11px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
                                         {activeQuestion.subject || activeQuestion.classification?.subject || 'General'}
                                     </span>
+                                    {typeof qTimeSecs === 'number' && Number.isFinite(qTimeSecs) && (
+                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-sky-50 dark:bg-sky-950/40 text-sky-700 dark:text-sky-300 border border-sky-200/70 dark:border-sky-800/60">
+                                            <Clock className="w-3 h-3" aria-hidden="true" />
+                                            <span>{formatDuration(qTimeSecs)}</span>
+                                        </span>
+                                    )}
                                 </div>
 
                                 <div className="flex items-center gap-2">
@@ -697,6 +984,25 @@ export const PreparedMockResultPage: React.FC = () => {
                                             <span>Unattempted (0)</span>
                                         </span>
                                     )}
+
+                                    <button
+                                        type="button"
+                                        data-testid="solution-bookmark-toggle"
+                                        aria-pressed={isSaved}
+                                        aria-label={isSaved ? 'Remove from Saved Questions' : 'Save Question'}
+                                        onClick={() => handleToggleSaveQuestion(activeQuestion)}
+                                        className={`min-h-[44px] min-w-[44px] inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border transition-all active:scale-95 touch-manipulation cursor-pointer ${
+                                            isSaved
+                                                ? 'bg-amber-50 dark:bg-amber-950/40 border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-300 shadow-sm'
+                                                : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700'
+                                        }`}
+                                    >
+                                        <Bookmark
+                                            className={`w-4 h-4 shrink-0 ${isSaved ? 'fill-amber-500 text-amber-500' : ''}`}
+                                            aria-hidden="true"
+                                        />
+                                        <span>{isSaved ? 'Saved' : 'Save'}</span>
+                                    </button>
                                 </div>
                             </div>
                         );
@@ -838,10 +1144,27 @@ export const PreparedMockResultPage: React.FC = () => {
                     )}
                 </div>
             ) : (
-                <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 text-center border border-slate-200 dark:border-slate-800">
-                    <p className="text-slate-500 dark:text-slate-400 font-medium text-sm">
-                        No questions match the current filter ({filterMode}).
+                <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 text-center border border-slate-200 dark:border-slate-800 space-y-3">
+                    <p className="text-slate-600 dark:text-slate-300 font-semibold text-sm">
+                        {filterMode === 'saved'
+                            ? 'No saved questions in this mock test yet. Tap Save on any question to revise it later.'
+                            : filterMode === 'unanswered'
+                              ? 'Great! You attempted every question in this mock test.'
+                              : filterMode === 'incorrect'
+                                ? 'Awesome! Zero incorrect answers in this mock test.'
+                                : `No questions match the current filter (${filterMode}).`}
                     </p>
+                    <button
+                        type="button"
+                        onClick={() => {
+                            triggerHaptic();
+                            setFilterMode('all');
+                            setCurrentQuestionIndex(0);
+                        }}
+                        className="min-h-[44px] inline-flex items-center justify-center px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold active:scale-95 touch-manipulation transition-all cursor-pointer"
+                    >
+                        Show All Questions ({filterCounts.all})
+                    </button>
                 </div>
             )}
         </div>
@@ -1024,7 +1347,7 @@ export const PreparedMockResultPage: React.FC = () => {
                                 <X className="w-4 h-4" aria-hidden="true" />
                             </button>
                         </div>
-                        <div className="flex items-center gap-3 text-[11px] font-bold">
+                        <div className="flex flex-wrap items-center gap-3 text-[11px] font-bold">
                             <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
                                 <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block" />
                                 Correct
@@ -1035,7 +1358,11 @@ export const PreparedMockResultPage: React.FC = () => {
                             </span>
                             <span className="flex items-center gap-1 text-slate-400">
                                 <span className="w-2.5 h-2.5 rounded-full bg-slate-300 dark:bg-slate-700 inline-block" />
-                                Skipped
+                                Unattempted
+                            </span>
+                            <span className="flex items-center gap-1 text-amber-600 dark:text-amber-400">
+                                <Bookmark className="w-3 h-3 fill-amber-500 text-amber-500" aria-hidden="true" />
+                                Saved
                             </span>
                         </div>
                     </div>
@@ -1047,6 +1374,7 @@ export const PreparedMockResultPage: React.FC = () => {
                             const isCorrect =
                                 isAnswered &&
                                 String(ans).trim() === String(q.correct ?? '').trim();
+                            const qSaved = isQuestionSaved(q);
 
                             let btnStyle =
                                 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300';
@@ -1066,9 +1394,15 @@ export const PreparedMockResultPage: React.FC = () => {
                                         setCurrentQuestionIndex(idx);
                                         setIsPaletteOpen(false);
                                     }}
-                                    className={`h-11 min-h-[44px] min-w-[44px] rounded-xl text-xs font-bold transition-all active:scale-95 touch-manipulation flex items-center justify-center cursor-pointer ${btnStyle}`}
+                                    className={`relative h-11 min-h-[44px] min-w-[44px] rounded-xl text-xs font-bold transition-all active:scale-95 touch-manipulation flex items-center justify-center cursor-pointer ${btnStyle}`}
                                 >
-                                    {idx + 1}
+                                    <span>{idx + 1}</span>
+                                    {qSaved && (
+                                        <span
+                                            aria-label="Saved"
+                                            className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-amber-400 border-2 border-white dark:border-slate-900"
+                                        />
+                                    )}
                                 </button>
                             );
                         })}

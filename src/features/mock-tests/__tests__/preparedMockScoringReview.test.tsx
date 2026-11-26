@@ -52,6 +52,9 @@ vi.mock('@/lib/db', () => ({
     db: {
         getCacheEntry: getCacheEntryMock,
         setCacheEntry: setCacheEntryMock,
+        getAllBookmarks: vi.fn().mockResolvedValue([]),
+        saveBookmark: vi.fn().mockResolvedValue(undefined),
+        removeBookmark: vi.fn().mockResolvedValue(undefined),
     },
 }));
 
@@ -605,5 +608,166 @@ describe('Prepared Mock Scoring, Negative Marking & Solution Review Pipeline (v1
                 '/mcqs/test-series/series/series-bpsc-1'
             );
         });
+    });
+
+    it('computes section timing vs accuracy & negative marking breakdowns and supports Saved filter + 1-tap bookmarking in Solutions', async () => {
+        const questions: Question[] = [
+            createMockQuestion('q-t1', 'History', 'Option A'),
+            createMockQuestion('q-t2', 'History', 'Option A'),
+            createMockQuestion('q-t3', 'General Science', 'Option A'),
+        ];
+        const answers: Record<string, string> = {
+            'q-t1': 'Option A', // Correct
+            'q-t2': 'Option B', // Wrong
+            // q-t3 Unattempted
+        };
+        const timeSpentByQuestion = {
+            'q-t1': 30,
+            'q-t2': 60,
+            'q-t3': 10,
+        };
+
+        const scoreSummary = computePreparedMockScore({
+            questions,
+            answers,
+            totalMarks: 6,
+            negativeMarks: 0.33,
+            passingMarks: 2,
+        });
+        expect(scoreSummary.positiveMarks).toBe(2);
+        expect(scoreSummary.negativeDeduction).toBe(0.33);
+        expect(scoreSummary.score).toBe(1.67);
+
+        const breakdown = computePreparedMockSubjectBreakdown(
+            questions,
+            answers,
+            scoreSummary.marksPerQuestion,
+            scoreSummary.negativeMarks,
+            timeSpentByQuestion
+        );
+        const history = breakdown.find((s) => s.subject === 'History');
+        expect(history?.positiveMarks).toBe(2);
+        expect(history?.negativeDeduction).toBe(0.33);
+        expect(history?.marks).toBe(1.67);
+        expect(history?.timeSpentSeconds).toBe(90);
+        expect(history?.avgSecondsPerQuestion).toBe(45);
+        expect(history?.timeSharePercent).toBe(90);
+
+        const testId = 'test-result-mastery-385';
+        const attemptId = 'att-result-mastery-385';
+        const mockTestRecord = {
+            id: testId,
+            name: 'BPSC Analytics & Mastery Mock',
+            total_marks: 6,
+            passing_marks: 2,
+            negative_marks: 0.33,
+            duration_minutes: 30,
+            is_published: true,
+            question_ids: ['q-t1', 'q-t2', 'q-t3'],
+            mock_series: {
+                id: 'series-bpsc-385',
+                name: 'BPSC Series',
+                is_published: true,
+                mock_categories: { id: 'cat-bpsc', name: 'BPSC', is_active: true },
+            },
+        };
+
+        cachePreparedMockAttemptDetail({
+            id: attemptId,
+            test_id: testId,
+            user_id: mockUser.id,
+            start_time: '2026-11-26T08:00:00Z',
+            end_time: '2026-11-26T08:01:40Z',
+            time_taken_seconds: 100,
+            score: 1.67,
+            accuracy: 50,
+            status: 'completed',
+            answers,
+            time_spent_by_question: timeSpentByQuestion,
+            created_at: '2026-11-26T08:00:00Z',
+        });
+
+        vi.mocked(fetchPreparedMockTestQuestions).mockResolvedValueOnce(questions);
+        fromMock.mockImplementation((table: string) => {
+            if (table === DB_TABLES.MOCK.TESTS) {
+                return {
+                    select: vi.fn().mockReturnValue({
+                        eq: vi.fn().mockReturnThis(),
+                        maybeSingle: vi.fn().mockResolvedValue({ data: mockTestRecord, error: null }),
+                    }),
+                };
+            }
+            if (table === DB_TABLES.MOCK.ATTEMPTS) {
+                return {
+                    select: vi.fn().mockReturnValue({
+                        eq: vi.fn().mockReturnThis(),
+                        maybeSingle: vi.fn().mockResolvedValue({
+                            data: {
+                                id: attemptId,
+                                test_id: testId,
+                                user_id: mockUser.id,
+                                score: 1.67,
+                                accuracy: 50,
+                                time_taken_seconds: 100,
+                                status: 'completed',
+                                answers,
+                                start_time: '2026-11-26T08:00:00Z',
+                                end_time: '2026-11-26T08:01:40Z',
+                                created_at: '2026-11-26T08:00:00Z',
+                            },
+                            error: null,
+                        }),
+                    }),
+                };
+            }
+            return {
+                select: vi.fn().mockReturnValue({
+                    eq: vi.fn().mockResolvedValue({ data: [], error: null }),
+                }),
+            };
+        });
+
+        render(
+            <MemoryRouter initialEntries={[`/mcqs/test-series/test/${testId}/result/${attemptId}`]}>
+                <Routes>
+                    <Route
+                        path="/mcqs/test-series/test/:testId/result/:attemptId"
+                        element={<PreparedMockResultPage />}
+                    />
+                </Routes>
+            </MemoryRouter>
+        );
+
+        await waitFor(() => {
+            expect(screen.getByTestId('analysis-negative-marking-card')).toBeTruthy();
+        });
+        expect(screen.getByTestId('analysis-negative-marking-card').textContent).toContain('-0.33');
+        expect(screen.getByTestId('analysis-subject-breakdown').textContent).toContain('Time Spent: 1m 30s');
+        expect(screen.getByTestId('analysis-subject-breakdown').textContent).toContain('90% share');
+
+        // Switch to Solutions tab and verify mastery filter chips & 1-tap bookmark toggle
+        fireEvent.click(screen.getByRole('tab', { name: 'Solutions' }));
+
+        expect(await screen.findByRole('button', { name: /Incorrect \(1\)/i })).toBeTruthy();
+        expect(screen.getByRole('button', { name: /Unattempted \(1\)/i })).toBeTruthy();
+        expect(screen.getByRole('button', { name: /Saved \(0\)/i })).toBeTruthy();
+
+        const bookmarkBtn = screen.getByTestId('solution-bookmark-toggle');
+        expect(bookmarkBtn.className).toContain('min-h-[44px]');
+        expect(bookmarkBtn.getAttribute('aria-pressed')).toBe('false');
+        fireEvent.click(bookmarkBtn);
+
+        await waitFor(() => {
+            expect(screen.getByRole('button', { name: /Saved \(1\)/i })).toBeTruthy();
+            expect(screen.getByTestId('solution-bookmark-toggle').getAttribute('aria-pressed')).toBe('true');
+        });
+
+        // Filter strictly to Saved questions
+        fireEvent.click(screen.getByRole('button', { name: /Saved \(1\)/i }));
+        expect(screen.getByText(/\(1 of 1 filtered\)/i)).toBeTruthy();
+
+        // Untoggle inside Saved filter shows empty-state recovery button
+        fireEvent.click(screen.getByTestId('solution-bookmark-toggle'));
+        expect(await screen.findByRole('button', { name: /Show All Questions \(3\)/i })).toBeTruthy();
     });
 });

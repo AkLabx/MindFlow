@@ -4,6 +4,7 @@ import { db } from '@/lib/db';
 import { useSettingsStore } from '@/stores/useSettingsStore';
 import { App as CapacitorApp } from '@capacitor/app';
 import { telemetry } from '@/lib/telemetry/telemetryService';
+import { extractAuthHashParams } from '@/features/auth/utils/authRedirect';
 
 export type BootstrapStage =
   | 'BOOTSTRAPPING'
@@ -35,8 +36,23 @@ export const useAppBootstrap = (): BootstrapState => {
         console.log('App opened with URL:', sanitizedUrl);
         if (data.url && data.url.includes('mindflow://')) {
             const path = data.url.split('mindflow://')[1];
+            if (data.url.includes('access_token=') && data.url.includes('#')) {
+                const fragment = data.url.slice(data.url.indexOf('#'));
+                const deepParams = extractAuthHashParams(fragment);
+                const accessToken = deepParams.get('access_token');
+                const refreshToken = deepParams.get('refresh_token');
+                const isRecovery = deepParams.get('type') === 'recovery' || data.url.includes('reset-password');
+                if (accessToken && refreshToken) {
+                    supabase.auth.setSession({
+                        access_token: accessToken,
+                        refresh_token: refreshToken,
+                    }).catch((err) => console.error('[Bootstrap] Deep-link setSession error:', err));
+                }
+                window.location.hash = isRecovery ? '#/reset-password' : '#/';
+                return;
+            }
             if (path) {
-                window.location.hash = '#/' + path;
+                window.location.hash = '#/' + path.replace(/^\/+/, '');
             }
         }
     });
@@ -57,9 +73,8 @@ export const useAppBootstrap = (): BootstrapState => {
         if (currentHash && currentHash.includes('access_token=')) {
           console.log('[Bootstrap] Detected OAuth hash. Delaying router to let Supabase process it.');
 
-          // Manually parse HashRouter format (e.g. #/#access_token=... or #/access_token=...)
-          const hashString = currentHash.replace(/^#\/?#?\/?/, ''); // Removes #/, #/#, etc.
-          const params = new URLSearchParams(hashString);
+          // Manually parse HashRouter format (e.g. #/#access_token=..., #/access_token=..., or #/reset-password#access_token=...)
+          const params = extractAuthHashParams(currentHash);
           const accessToken = params.get('access_token');
           const refreshToken = params.get('refresh_token');
           const isRecovery = params.get('type') === 'recovery' || currentHash.includes('type=recovery') || currentHash.includes('reset-password');

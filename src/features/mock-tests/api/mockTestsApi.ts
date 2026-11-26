@@ -2776,6 +2776,9 @@ export interface PreparedMockScoreSummary {
     passingMarks: number;
     negativeMarks: number;
     marksPerQuestion: number;
+    positiveMarks: number;
+    negativeDeduction: number;
+    maxPossibleMarks: number;
     passed: boolean;
 }
 
@@ -3757,6 +3760,9 @@ export const computePreparedMockScore = (params: {
     }
 
     const attemptedCount = correctCount + wrongCount;
+    const positiveMarks = Number((correctCount * marksPerQuestion).toFixed(2));
+    const negativeDeduction = Number((wrongCount * negativeMarks).toFixed(2));
+    const maxPossibleMarks = Number((totalQuestions * marksPerQuestion).toFixed(2));
     const rawScore = correctCount * marksPerQuestion - wrongCount * negativeMarks;
     const score = Number(rawScore.toFixed(2));
     const accuracy =
@@ -3775,6 +3781,9 @@ export const computePreparedMockScore = (params: {
         passingMarks,
         negativeMarks,
         marksPerQuestion,
+        positiveMarks,
+        negativeDeduction,
+        maxPossibleMarks,
         passed,
     };
 };
@@ -3806,6 +3815,7 @@ export const submitPreparedMockAttempt = async (params: {
 
     const nowIso = new Date().toISOString();
     const timeTakenSeconds = Math.max(1, Math.trunc(state.elapsedSeconds));
+    const sanitizedTiming = sanitizeTimeSpentMap(state.timeSpentByQuestion);
     let remoteSynced = false;
 
     if (typeof navigator === 'undefined' || navigator.onLine !== false) {
@@ -3885,9 +3895,13 @@ export const submitPreparedMockAttempt = async (params: {
 
     upsertCachedUserAttemptSummary(state.userId, state.testId, completedAttempt);
 
-    // Cache full attempt detail (including answers JSONB and summary) for 0ms result hydration
+    // Cache full attempt detail (including answers JSONB and per-question timing) for 0ms result hydration
+    if (sanitizedTiming) {
+        cachePreparedMockAttemptTiming(state.attemptId, sanitizedTiming);
+    }
     cachePreparedMockAttemptDetail({
         ...upsertPayload,
+        time_spent_by_question: sanitizedTiming,
         created_at: state.startedAt,
     });
 
@@ -3917,17 +3931,93 @@ export interface PreparedMockCompletedAttemptDetail {
     accuracy: number;
     status: 'completed' | 'in_progress' | 'abandoned';
     answers: Record<string, string>;
+    time_spent_by_question?: Record<string, number> | null;
     created_at?: string | null;
 }
 
 const MOCK_ATTEMPT_DETAIL_STORAGE_PREFIX = 'mindflow_mock_attempt_detail_';
 const MOCK_ATTEMPT_DETAIL_IDB_PREFIX = 'mindflow_mock_attempt_detail_idb_';
+const MOCK_ATTEMPT_TIMING_STORAGE_PREFIX = 'mindflow_mock_attempt_timing_';
+const MOCK_ATTEMPT_TIMING_IDB_PREFIX = 'mindflow_mock_attempt_timing_idb_';
 const memoryAttemptDetailCache = new Map<string, { detail: PreparedMockCompletedAttemptDetail; fetchedAt: number }>();
+const memoryAttemptTimingCache = new Map<string, Record<string, number>>();
+
+export const sanitizeTimeSpentMap = (raw: unknown): Record<string, number> | null => {
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+    const cleaned: Record<string, number> = {};
+    let hasEntries = false;
+    for (const [qId, secs] of Object.entries(raw as Record<string, unknown>)) {
+        const trimmedId = String(qId ?? '').trim();
+        const num = Number(secs);
+        if (trimmedId && Number.isFinite(num) && num >= 0) {
+            cleaned[trimmedId] = Math.trunc(num);
+            hasEntries = true;
+        }
+    }
+    return hasEntries ? cleaned : null;
+};
+
+export const cachePreparedMockAttemptTiming = (
+    attemptId: string,
+    timeSpentByQuestion: Record<string, number> | null | undefined
+): void => {
+    const trimmedId = String(attemptId ?? '').trim();
+    const cleaned = sanitizeTimeSpentMap(timeSpentByQuestion);
+    if (!trimmedId || !cleaned) return;
+    memoryAttemptTimingCache.set(trimmedId, cleaned);
+    safeWriteLocalStorage(`${MOCK_ATTEMPT_TIMING_STORAGE_PREFIX}${trimmedId}`, cleaned);
+    db.setCacheEntry(`${MOCK_ATTEMPT_TIMING_IDB_PREFIX}${trimmedId}`, cleaned).catch(() => {});
+};
+
+export const getCachedPreparedMockAttemptTimingSnapshot = (
+    attemptId?: string | null
+): Record<string, number> | null => {
+    const trimmedId = String(attemptId ?? '').trim();
+    if (!trimmedId) return null;
+    const mem = memoryAttemptTimingCache.get(trimmedId);
+    if (mem) return mem;
+    const stored = sanitizeTimeSpentMap(
+        safeReadLocalStorage<unknown>(`${MOCK_ATTEMPT_TIMING_STORAGE_PREFIX}${trimmedId}`)
+    );
+    if (stored) {
+        memoryAttemptTimingCache.set(trimmedId, stored);
+        return stored;
+    }
+    return null;
+};
+
+const readPreparedMockAttemptTimingIndexedDBCache = async (
+    attemptId: string
+): Promise<Record<string, number> | null> => {
+    const syncTiming = getCachedPreparedMockAttemptTimingSnapshot(attemptId);
+    if (syncTiming) return syncTiming;
+    const trimmedId = String(attemptId ?? '').trim();
+    if (!trimmedId) return null;
+    try {
+        const entry = await db.getCacheEntry<unknown>(`${MOCK_ATTEMPT_TIMING_IDB_PREFIX}${trimmedId}`);
+        const cleaned = sanitizeTimeSpentMap(entry?.data);
+        if (cleaned) {
+            memoryAttemptTimingCache.set(trimmedId, cleaned);
+            safeWriteLocalStorage(`${MOCK_ATTEMPT_TIMING_STORAGE_PREFIX}${trimmedId}`, cleaned);
+            return cleaned;
+        }
+    } catch {
+        // Ignore IDB unavailability
+    }
+    return null;
+};
 
 export const cachePreparedMockAttemptDetail = (detail: PreparedMockCompletedAttemptDetail): void => {
     if (!detail?.id) return;
     const cacheKey = String(detail.id).trim();
-    const payload = { detail, fetchedAt: Date.now() };
+    const timing = sanitizeTimeSpentMap(detail.time_spent_by_question) ?? getCachedPreparedMockAttemptTimingSnapshot(cacheKey);
+    if (timing) {
+        cachePreparedMockAttemptTiming(cacheKey, timing);
+    }
+    const normalizedDetail: PreparedMockCompletedAttemptDetail = timing
+        ? { ...detail, time_spent_by_question: timing }
+        : detail;
+    const payload = { detail: normalizedDetail, fetchedAt: Date.now() };
     memoryAttemptDetailCache.set(cacheKey, payload);
     safeWriteLocalStorage(`${MOCK_ATTEMPT_DETAIL_STORAGE_PREFIX}${cacheKey}`, payload);
     db.setCacheEntry(`${MOCK_ATTEMPT_DETAIL_IDB_PREFIX}${cacheKey}`, payload).catch(() => {});
@@ -3940,14 +4030,19 @@ export const getCachedPreparedMockAttemptByIdSnapshot = (
     if (!trimmedId) return null;
 
     const mem = memoryAttemptDetailCache.get(trimmedId);
-    if (mem?.detail) return mem.detail;
+    if (mem?.detail) {
+        const timing = mem.detail.time_spent_by_question ?? getCachedPreparedMockAttemptTimingSnapshot(trimmedId);
+        return timing ? { ...mem.detail, time_spent_by_question: timing } : mem.detail;
+    }
 
     const stored = safeReadLocalStorage<{ detail?: PreparedMockCompletedAttemptDetail }>(
         `${MOCK_ATTEMPT_DETAIL_STORAGE_PREFIX}${trimmedId}`
     );
     if (stored?.detail) {
-        memoryAttemptDetailCache.set(trimmedId, { detail: stored.detail, fetchedAt: Date.now() });
-        return stored.detail;
+        const timing = stored.detail.time_spent_by_question ?? getCachedPreparedMockAttemptTimingSnapshot(trimmedId);
+        const normalizedDetail = timing ? { ...stored.detail, time_spent_by_question: timing } : stored.detail;
+        memoryAttemptDetailCache.set(trimmedId, { detail: normalizedDetail, fetchedAt: Date.now() });
+        return normalizedDetail;
     }
 
     return null;
@@ -3963,9 +4058,18 @@ export const readPreparedMockAttemptByIdIndexedDBCache = async (
             `${MOCK_ATTEMPT_DETAIL_IDB_PREFIX}${trimmedId}`
         );
         if (cached?.data?.detail) {
-            memoryAttemptDetailCache.set(trimmedId, { detail: cached.data.detail, fetchedAt: Date.now() });
-            safeWriteLocalStorage(`${MOCK_ATTEMPT_DETAIL_STORAGE_PREFIX}${trimmedId}`, cached.data);
-            return cached.data.detail;
+            const timing =
+                sanitizeTimeSpentMap(cached.data.detail.time_spent_by_question) ??
+                (await readPreparedMockAttemptTimingIndexedDBCache(trimmedId));
+            const normalizedDetail = timing
+                ? { ...cached.data.detail, time_spent_by_question: timing }
+                : cached.data.detail;
+            memoryAttemptDetailCache.set(trimmedId, { detail: normalizedDetail, fetchedAt: Date.now() });
+            safeWriteLocalStorage(`${MOCK_ATTEMPT_DETAIL_STORAGE_PREFIX}${trimmedId}`, {
+                ...cached.data,
+                detail: normalizedDetail,
+            });
+            return normalizedDetail;
         }
     } catch {
         // IDB fallback
@@ -4038,6 +4142,12 @@ export const fetchPreparedMockAttemptById = async (
         }
     }
 
+    const cachedTiming =
+        (await readPreparedMockAttemptTimingIndexedDBCache(String(data.id))) ??
+        syncSnapshot?.time_spent_by_question ??
+        idbSnapshot?.time_spent_by_question ??
+        null;
+
     const detail: PreparedMockCompletedAttemptDetail = {
         id: String(data.id),
         test_id: String(data.test_id),
@@ -4049,6 +4159,7 @@ export const fetchPreparedMockAttemptById = async (
         accuracy: Number(data.accuracy ?? 0),
         status: (data.status as PreparedMockCompletedAttemptDetail['status']) || 'completed',
         answers: cleanAnswers,
+        time_spent_by_question: cachedTiming,
         created_at: data.created_at ?? null,
     };
 
@@ -4059,34 +4170,57 @@ export const fetchPreparedMockAttemptById = async (
 export interface PreparedMockSubjectBreakdown {
     subject: string;
     totalQuestions: number;
+    attemptedCount: number;
     correctCount: number;
     wrongCount: number;
     unansweredCount: number;
     marks: number;
+    positiveMarks: number;
+    negativeDeduction: number;
+    maxMarks: number;
     accuracy: number;
+    timeSpentSeconds: number | null;
+    avgSecondsPerQuestion: number | null;
+    timeSharePercent: number | null;
 }
 
 /**
- * Computes subject-wise breakdown of scores, counts, and accuracy.
+ * Computes subject-wise breakdown of scores, negative-marking deductions, accuracy, and optional time-spent metrics.
  */
 export const computePreparedMockSubjectBreakdown = (
     questions: Question[],
     answers: Record<string, string>,
     marksPerQuestion: number,
-    negativeMarks: number
+    negativeMarks: number,
+    timeSpentByQuestion?: Record<string, number> | null
 ): PreparedMockSubjectBreakdown[] => {
     const parsedNeg = Math.abs(Number(negativeMarks ?? 0));
     const safeNegativeMarks = Number.isFinite(parsedNeg) ? parsedNeg : 0;
-    const subjectMap = new Map<string, { total: number; correct: number; wrong: number; unanswered: number }>();
+    const sanitizedTiming = sanitizeTimeSpentMap(timeSpentByQuestion);
+    const hasAnyTiming = Boolean(
+        sanitizedTiming &&
+            questions.some((q) => Object.prototype.hasOwnProperty.call(sanitizedTiming, q.id))
+    );
+    const subjectMap = new Map<
+        string,
+        { total: number; correct: number; wrong: number; unanswered: number; timeSeconds: number }
+    >();
+    let totalTrackedSeconds = 0;
 
     for (const q of questions) {
         const subject = (q.subject || q.classification?.subject || (q as any)?.properties?.subject || 'General').trim() || 'General';
         let stats = subjectMap.get(subject);
         if (!stats) {
-            stats = { total: 0, correct: 0, wrong: 0, unanswered: 0 };
+            stats = { total: 0, correct: 0, wrong: 0, unanswered: 0, timeSeconds: 0 };
             subjectMap.set(subject, stats);
         }
         stats.total += 1;
+
+        if (hasAnyTiming && sanitizedTiming) {
+            const qSecs = sanitizedTiming[q.id] ?? 0;
+            stats.timeSeconds += qSecs;
+            totalTrackedSeconds += qSecs;
+        }
 
         const selected = answers[q.id];
         if (!selected || String(selected).trim() === '') {
@@ -4101,18 +4235,37 @@ export const computePreparedMockSubjectBreakdown = (
     const result: PreparedMockSubjectBreakdown[] = [];
     for (const [subject, stats] of subjectMap.entries()) {
         const attempted = stats.correct + stats.wrong;
+        const positiveMarks = Number((stats.correct * marksPerQuestion).toFixed(2));
+        const negativeDeduction = Number((stats.wrong * safeNegativeMarks).toFixed(2));
+        const maxMarks = Number((stats.total * marksPerQuestion).toFixed(2));
         const rawScore = stats.correct * marksPerQuestion - stats.wrong * safeNegativeMarks;
         const marks = Number(rawScore.toFixed(2));
         const accuracy = attempted > 0 ? Number(((stats.correct / attempted) * 100).toFixed(1)) : 0;
+        const timeSpentSeconds = hasAnyTiming ? stats.timeSeconds : null;
+        const avgSecondsPerQuestion =
+            hasAnyTiming && stats.total > 0
+                ? Number((stats.timeSeconds / stats.total).toFixed(1))
+                : null;
+        const timeSharePercent =
+            hasAnyTiming && totalTrackedSeconds > 0
+                ? Number(((stats.timeSeconds / totalTrackedSeconds) * 100).toFixed(1))
+                : null;
 
         result.push({
             subject,
             totalQuestions: stats.total,
+            attemptedCount: attempted,
             correctCount: stats.correct,
             wrongCount: stats.wrong,
             unansweredCount: stats.unanswered,
             marks,
+            positiveMarks,
+            negativeDeduction,
+            maxMarks,
             accuracy,
+            timeSpentSeconds,
+            avgSecondsPerQuestion,
+            timeSharePercent,
         });
     }
 

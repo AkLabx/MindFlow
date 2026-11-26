@@ -6,6 +6,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { triggerHaptic } from '@/lib/haptics';
 import { useNotificationStore } from '@/stores/useNotificationStore';
 import { ArrowLeft, AlertCircle, CheckCircle2, Lock } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import { PasswordStrengthMeter } from './PasswordStrengthMeter';
+import { MIN_PASSWORD_LENGTH } from '../utils/authRedirect';
 
 export const ResetPasswordPage: React.FC = () => {
   const [password, setPassword] = useState('');
@@ -18,6 +21,7 @@ export const ResetPasswordPage: React.FC = () => {
 
   const navigate = useNavigate();
   const showToast = useNotificationStore((state) => state.showToast);
+  const { session, loading: authLoading, refreshUser } = useAuth();
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,8 +32,8 @@ export const ResetPasswordPage: React.FC = () => {
       return;
     }
 
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters long.');
+    if (password.length < MIN_PASSWORD_LENGTH) {
+      setError(`Password must be at least ${MIN_PASSWORD_LENGTH} characters long.`);
       return;
     }
 
@@ -49,6 +53,7 @@ export const ResetPasswordPage: React.FC = () => {
         throw updateError;
       }
 
+      await refreshUser().catch(() => {});
       setIsSuccess(true);
       triggerHaptic('success');
       showToast({
@@ -92,7 +97,7 @@ export const ResetPasswordPage: React.FC = () => {
             type="button"
             onClick={() => navigate('/')}
             aria-label="Back to Login"
-            className="absolute left-0 top-0 w-10 h-10 -ml-1 flex items-center justify-center rounded-xl text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+            className="absolute left-0 top-0 min-w-[44px] min-h-[44px] -ml-1 flex items-center justify-center rounded-xl text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5 active:scale-95 transition-all"
           >
             <ArrowLeft className="w-5 h-5" />
           </button>
@@ -110,7 +115,26 @@ export const ResetPasswordPage: React.FC = () => {
           </p>
         </header>
 
-        {isSuccess ? (
+        {!authLoading && !session && !isSuccess ? (
+          <div className="flex flex-col items-center text-center py-6 px-4 space-y-4">
+            <div className="w-12 h-12 rounded-full bg-amber-100 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+              <AlertCircle className="w-6 h-6" />
+            </div>
+            <div>
+              <h2 className="text-base font-bold text-gray-900 dark:text-white">Reset Link Expired or Missing</h2>
+              <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                Please request a fresh password reset email from the Sign In screen.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => navigate('/')}
+              className="min-h-[44px] px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold active:scale-95 transition-all"
+            >
+              Back to Sign In
+            </button>
+          </div>
+        ) : isSuccess ? (
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -142,16 +166,17 @@ export const ResetPasswordPage: React.FC = () => {
                   name="new-password"
                   type={showPassword ? 'text' : 'password'}
                   autoComplete="new-password"
+                  minLength={MIN_PASSWORD_LENGTH}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="At least 6 characters"
-                  className="select-text block w-full px-3.5 sm:px-4 pr-11 h-11 sm:h-12 bg-white dark:bg-gray-800/90 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white placeholder-gray-400 text-xs sm:text-sm focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/25 transition-all shadow-sm"
+                  placeholder={`At least ${MIN_PASSWORD_LENGTH} characters`}
+                  className="select-text block w-full px-3.5 sm:px-4 pr-12 min-h-[44px] h-12 bg-white dark:bg-gray-800/90 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white placeholder-gray-400 text-base sm:text-sm focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/25 transition-all shadow-sm"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   aria-label={showPassword ? 'Hide password' : 'Show password'}
-                  className="absolute inset-y-0 right-0 w-11 h-full flex items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
+                  className="absolute inset-y-0 right-0 min-w-[44px] w-11 h-full flex items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 active:scale-95 transition-all"
                 >
                   {showPassword ? (
                     <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -165,6 +190,7 @@ export const ResetPasswordPage: React.FC = () => {
                   )}
                 </button>
               </div>
+              <PasswordStrengthMeter password={password} />
             </div>
 
             {/* Confirm Password Input */}
@@ -184,13 +210,13 @@ export const ResetPasswordPage: React.FC = () => {
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   placeholder="Re-enter new password"
-                  className="select-text block w-full px-3.5 sm:px-4 pr-11 h-11 sm:h-12 bg-white dark:bg-gray-800/90 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white placeholder-gray-400 text-xs sm:text-sm focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/25 transition-all shadow-sm"
+                  className="select-text block w-full px-3.5 sm:px-4 pr-12 min-h-[44px] h-12 bg-white dark:bg-gray-800/90 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white placeholder-gray-400 text-base sm:text-sm focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/25 transition-all shadow-sm"
                 />
                 <button
                   type="button"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                   aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
-                  className="absolute inset-y-0 right-0 w-11 h-full flex items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
+                  className="absolute inset-y-0 right-0 min-w-[44px] w-11 h-full flex items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 active:scale-95 transition-all"
                 >
                   {showConfirmPassword ? (
                     <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -210,6 +236,8 @@ export const ResetPasswordPage: React.FC = () => {
             <AnimatePresence>
               {error && (
                 <motion.div
+                  role="alert"
+                  aria-live="assertive"
                   initial={{ opacity: 0, y: -4, height: 0 }}
                   animate={{ opacity: 1, y: 0, height: 'auto' }}
                   exit={{ opacity: 0, y: -4, height: 0 }}
@@ -225,7 +253,7 @@ export const ResetPasswordPage: React.FC = () => {
             <button
               type="submit"
               disabled={isLoading}
-              className={`w-full group relative flex justify-center items-center gap-2 bg-indigo-600 dark:bg-indigo-500 text-white font-semibold h-11 sm:h-12 px-4 rounded-xl hover:bg-indigo-700 dark:hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-600/50 text-xs sm:text-sm transition-all shadow-md shadow-indigo-500/20 active:scale-[0.99] ${
+              className={`w-full min-h-[44px] group relative flex justify-center items-center gap-2 bg-indigo-600 dark:bg-indigo-500 text-white font-semibold h-12 px-4 rounded-xl hover:bg-indigo-700 dark:hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-600/50 text-xs sm:text-sm transition-all shadow-md shadow-indigo-500/20 active:scale-95 ${
                 isLoading ? 'cursor-wait opacity-80' : ''
               }`}
             >
