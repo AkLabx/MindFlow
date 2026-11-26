@@ -26,6 +26,20 @@ This document is the single source of truth for the evolution of the MindFlow ap
 
 ## 🚀 App Journey Changelog
 
+## [v1.0.385.1] - 27 November 2026, 01:38 AM IST
+
+**Executive Summary:** Hotfix release `v1.0.385.1` automating Email + Password signup verification across tabs/devices and fixing the false `"App Experience Paused / Reload App"` + Sign-In loop triggered when opening confirmation emails from Android mail apps (`package.json` `1.0.385.1`, Android `versionCode 13` / `versionName "1.13"`).
+
+### ✨ Features Added
+- **Automated `Verify Your Email` Step (`src/features/auth/components/AuthPage.tsx`, `AuthPage.test.tsx`)**: Replaced the static post-signup banner with a dedicated `verify-email` wait screen featuring live confirmation status, `"I've Verified — Continue"`, 60s-cooldown `"Resend Link"`, `"Change Email"`, and 3-layer automatic detection (`BroadcastChannel('mindflow-auth-sync')`, `focus`/`visibilitychange` checks, and bounded 4s polling without brute-force lockout on `'Email not confirmed'`).
+- **Reload-Free Cross-Tab Hydration (`src/features/auth/context/AuthContext.tsx`, `src/hooks/useAppBootstrap.ts`)**: Replaced jarring `window.location.reload()` on cross-tab `storage` events with silent `hydrateCrossTabSession()` + `"Email Verified!"` toast, and added PKCE (`?code=`), `token_hash`, and redirect error handling in `useAppBootstrap.ts`.
+
+### 🐛 Bug Fixes & 🔒 Security & Architecture
+- **Eliminated False `"Reload App"` Warning on Gmail Links (`index.html`)**: Removed `document.referrer.includes("android-app://")` from `isStandalone` in `checkDesktopMode()` and added `+ 20px` width tolerance so email app links never show `"App Experience Paused"`.
+- **Fixed `1500ms` Auth Link Hydration Timeout (`src/lib/supabase.ts`, `src/hooks/useAppBootstrap.ts`)**: Added `mindflow_auth_hydrating` (`sessionStorage`) flag so `withAuthTimeout` allows `6000ms` while processing verification/recovery links after URL hash sanitization.
+
+---
+
 ## [v1.0.385] - 27 November 2026, 01:02 AM IST
 
 **Executive Summary:** Executed Gen 2 Step 5 (`v1.0.385`): deepened `PreparedMockResultPage` `Analysis` tab with per-section time-spent vs accuracy bars and explicit negative-marking (`-0.33` / `-0.25` / `0`) breakdowns, upgraded `Solutions` tab with `All | Incorrect | Unattempted | Saved | Correct` mastery filter chips and 1-tap bookmarking, and completed Email + Password Auth hardening under Supabase Free Tier (`emailRedirectTo`, `identities.length === 0` guard, unified `>= 8`-char password rules, `mindflow_is_signup` sync parity, double-hash recovery parsing, and OAuth password linking in `SettingsPage`) (`package.json` `1.0.385`, Android `versionCode 12` / `versionName "1.12"`).

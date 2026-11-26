@@ -212,8 +212,8 @@
   <script>
     (function() {
       function checkDesktopMode() {
-        var isStandalone = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone || document.referrer.includes("android-app://");
-        var isMobileWidthForce = window.innerWidth > window.screen.width;
+        var isStandalone = window.matchMedia("(display-mode: standalone)").matches || Boolean(window.navigator.standalone);
+        var isMobileWidthForce = window.innerWidth > window.screen.width + 20;
         var hasTouch = navigator.maxTouchPoints > 0;
 
         var warningEl = document.getElementById("desktop-mode-warning");

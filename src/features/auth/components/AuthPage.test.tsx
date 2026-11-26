@@ -17,6 +17,7 @@ const mockSignUp = vi.fn();
 const mockResend = vi.fn();
 const mockResetPasswordForEmail = vi.fn();
 const mockUpdateUser = vi.fn();
+const mockGetSession = vi.fn().mockResolvedValue({ data: { session: null }, error: null });
 const mockRefreshUser = vi.fn().mockResolvedValue(undefined);
 const mockShowToast = vi.fn();
 let mockAuthState: {
@@ -56,6 +57,7 @@ vi.mock('../../../lib/supabase', () => ({
       resend: (...args: any[]) => mockResend(...args),
       resetPasswordForEmail: (...args: any[]) => mockResetPasswordForEmail(...args),
       updateUser: (...args: any[]) => mockUpdateUser(...args),
+      getSession: (...args: any[]) => mockGetSession(...args),
       signInWithOAuth: vi.fn(),
       signInWithIdToken: vi.fn(),
     },
@@ -198,6 +200,67 @@ describe('AuthPage consent UX', () => {
       });
     });
     expect(localStorage.getItem('mindflow_is_signup')).toBe('true');
+
+    // Transitions cleanly into automated Verify Your Email step (v1.0.385.1)
+    expect(await screen.findByTestId('auth-verify-email-step')).toBeTruthy();
+    expect(screen.getByText('newuser@example.com')).toBeTruthy();
+    expect(screen.getByRole('button', { name: /I've Verified/i })).toBeTruthy();
+  });
+
+  it('auto-detects verification via window focus or manual Continue without tripping rate-limit lockout on Email not confirmed', async () => {
+    mockSignUp.mockResolvedValue({ data: { user: { id: 'u-verify-1' }, session: null }, error: null });
+    mockGetSession.mockResolvedValue({ data: { session: null }, error: null });
+    mockSignInWithPassword.mockResolvedValue({
+      data: { session: null },
+      error: { message: 'Email not confirmed' },
+    });
+
+    renderAuthPage('signup');
+    fireEvent.change(screen.getByLabelText(/Email Address/i), { target: { value: 'auto@example.com' } });
+    fireEvent.click(screen.getByRole('button', { name: /Continue$/i }));
+    fireEvent.change(screen.getByLabelText(/Full Name/i), { target: { value: 'Auto Tester' } });
+    fireEvent.change(screen.getByLabelText(/Choose Password/i), { target: { value: 'StrongPass1!' } });
+    fireEvent.change(screen.getByLabelText(/^Confirm Password$/i), { target: { value: 'StrongPass1!' } });
+    fireEvent.click(screen.getByRole('checkbox'));
+    const submitBtn = screen
+      .getAllByRole('button', { name: /^Create Account$/i })
+      .find((btn) => btn.getAttribute('type') === 'submit');
+    fireEvent.click(submitBtn!);
+
+    expect(await screen.findByTestId('auth-verify-email-step')).toBeTruthy();
+
+    // 6 focus/manual checks while unconfirmed must NOT trigger the 5-attempt lockout
+    for (let i = 0; i < 6; i++) {
+      fireEvent.click(screen.getByTestId('auth-verify-continue-btn'));
+      await waitFor(() => {
+        expect(mockSignInWithPassword).toHaveBeenCalledTimes(i + 1);
+      });
+    }
+    expect(localStorage.getItem('mindflow_auth_rate_limit')).toBeNull();
+
+    // Once confirmed, focus automatically signs the user in
+    mockSignInWithPassword.mockResolvedValueOnce({
+      data: { session: { access_token: 'verified-tok' } },
+      error: null,
+    });
+    fireEvent(window, new Event('focus'));
+
+    await waitFor(() => {
+      expect(mockShowToast).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: 'Email Verified!',
+          variant: 'success',
+        })
+      );
+    });
+  });
+
+  it('surfaces expired verification redirect errors stored by useAppBootstrap', async () => {
+    sessionStorage.setItem('mindflow_auth_redirect_error', 'Email link is invalid or has expired');
+    renderAuthPage('signin');
+    expect(await screen.findByRole('alert')).toBeTruthy();
+    expect(screen.getByRole('alert').textContent).toContain('expired');
+    expect(sessionStorage.getItem('mindflow_auth_redirect_error')).toBeNull();
   });
 
   it('builds HashRouter & Capacitor-safe auth redirect URLs and parses recovery hash tokens', () => {
