@@ -5,6 +5,8 @@ import { useQueryClient, useQuery } from '@tanstack/react-query';
 import { supabase } from '../../../lib/supabase';
 import { Button } from '../../../components/Button/Button';
 import { ArrowLeft, User, Mail, Lock, Loader2, Check, AlertTriangle, Pencil, X, Phone, Calendar, Target, FileText, Trash2, ShieldAlert, ChevronRight } from 'lucide-react';
+import { PasswordStrengthMeter } from './PasswordStrengthMeter';
+import { MIN_PASSWORD_LENGTH } from '../utils/authRedirect';
 
 interface SettingsPageProps {
   onBack: () => void;
@@ -174,14 +176,22 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onBack }) => {
     }
   };
 
+  const identities = Array.isArray(user?.identities) ? user.identities : [];
+  const hasEmailIdentity = identities.some((identity) => identity.provider === 'email');
+  const hasGoogleIdentity = identities.some((identity) => identity.provider === 'google');
+
   const handleUpdatePassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (password !== confirmPassword) {
-      showMessage('Passwords do not match.', true);
-      return;
-    }
     if (!password) {
       showMessage('Password cannot be empty.', true);
+      return;
+    }
+    if (password.length < MIN_PASSWORD_LENGTH) {
+      showMessage(`Password must be at least ${MIN_PASSWORD_LENGTH} characters long.`, true);
+      return;
+    }
+    if (password !== confirmPassword) {
+      showMessage('Passwords do not match.', true);
       return;
     }
 
@@ -191,7 +201,12 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onBack }) => {
     if (error) {
       showMessage(error.message, true);
     } else {
-      showMessage('Password updated successfully!');
+      await refreshUser().catch(() => {});
+      showMessage(
+        hasEmailIdentity
+          ? 'Password updated successfully!'
+          : 'Password linked! You can now also sign in using email and password.'
+      );
       setPassword('');
       setConfirmPassword('');
     }
@@ -291,7 +306,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onBack }) => {
         <div className="bg-white dark:bg-gray-800 rounded-2xl border border-slate-200/80 shadow-sm p-6">
            <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-5">Legal &amp; Privacy</h2>
            <div className="space-y-2">
-              <button onClick={() => navigate('/privacy-policy')} className="w-full min-h-[44px] flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-700/30 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors group">
+              <button type="button" onClick={() => navigate('/privacy-policy')} className="w-full min-h-[44px] flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-700/30 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700/50 active:scale-95 transition-all group">
                   <div className="flex items-center gap-3">
                       <div className="w-10 h-10 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg flex items-center justify-center text-emerald-600 dark:text-emerald-400">
                           <FileText className="w-5 h-5" />
@@ -304,7 +319,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onBack }) => {
                   <ChevronRight className="w-5 h-5 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-200 transition-colors" />
               </button>
 
-              <button onClick={() => navigate('/about/terms-of-use')} className="w-full min-h-[44px] flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-700/30 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors group">
+              <button type="button" onClick={() => navigate('/about/terms-of-use')} className="w-full min-h-[44px] flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-700/30 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700/50 active:scale-95 transition-all group">
                   <div className="flex items-center gap-3">
                       <div className="w-10 h-10 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg flex items-center justify-center text-indigo-600 dark:text-indigo-400">
                           <FileText className="w-5 h-5" />
@@ -321,25 +336,49 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onBack }) => {
 
         {/* --- Security Settings Card --- */}
         <div className="bg-white dark:bg-gray-800 rounded-2xl border border-slate-200/80 shadow-sm p-6">
-           <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-5">Security Settings</h2>
+           <div className="flex flex-wrap items-center justify-between gap-2 mb-5">
+              <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">Security Settings</h2>
+              <div className="flex flex-wrap items-center gap-1.5 text-[11px] font-bold">
+                {hasGoogleIdentity && (
+                  <span className="px-2.5 py-1 rounded-full bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
+                    Google Connected
+                  </span>
+                )}
+                {hasEmailIdentity && (
+                  <span className="px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                    Password Enabled
+                  </span>
+                )}
+              </div>
+           </div>
 
            <div className="mb-8">
-               <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200 mb-3">Change Password</h3>
+               <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200 mb-1">
+                 {hasEmailIdentity ? 'Change Password' : 'Set a Password (Link Email Login)'}
+               </h3>
+               {!hasEmailIdentity && (
+                 <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">
+                   You signed in with Google. Add an {MIN_PASSWORD_LENGTH}+ character password to also sign in with your email and password.
+                 </p>
+               )}
                <form onSubmit={handleUpdatePassword} className="space-y-4">
-                  <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                      <input
-                          id="settings-new-password"
-                          name="new-password"
-                          type="password"
-                          autoComplete="new-password"
-                          minLength={8}
-                          aria-label="New Password"
-                          placeholder="New Password"
-                          value={password}
-                          onChange={(e) => setPassword(e.target.value)}
-                          className="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-shadow"
-                      />
+                  <div>
+                      <div className="relative">
+                          <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                          <input
+                              id="settings-new-password"
+                              name="new-password"
+                              type="password"
+                              autoComplete="new-password"
+                              minLength={MIN_PASSWORD_LENGTH}
+                              aria-label="New Password"
+                              placeholder={`New Password (min ${MIN_PASSWORD_LENGTH} chars)`}
+                              value={password}
+                              onChange={(e) => setPassword(e.target.value)}
+                              className="w-full min-h-[44px] pl-10 pr-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-shadow"
+                          />
+                      </div>
+                      <PasswordStrengthMeter password={password} />
                   </div>
                   <div className="relative">
                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
@@ -348,16 +387,16 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onBack }) => {
                           name="confirm-password"
                           type="password"
                           autoComplete="new-password"
-                          minLength={8}
+                          minLength={MIN_PASSWORD_LENGTH}
                           aria-label="Confirm New Password"
                           placeholder="Confirm New Password"
                           value={confirmPassword}
                           onChange={(e) => setConfirmPassword(e.target.value)}
-                          className="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-shadow"
+                          className="w-full min-h-[44px] pl-10 pr-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-shadow"
                       />
                   </div>
-                <Button type="submit" disabled={loading} variant="secondary" className="w-full sm:w-auto">
-                  {loading ? <><Loader2 className="w-4 h-4 animate-spin mr-2"/> Updating...</> : 'Update Password'}
+                <Button type="submit" disabled={loading} variant="secondary" className="w-full sm:w-auto min-h-[44px] active:scale-95">
+                  {loading ? <><Loader2 className="w-4 h-4 animate-spin mr-2"/> Updating...</> : hasEmailIdentity ? 'Update Password' : 'Link Password'}
                 </Button>
               </form>
            </div>

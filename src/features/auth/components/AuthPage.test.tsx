@@ -6,11 +6,30 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { AuthPage } from './AuthPage';
+import { ResetPasswordPage } from './ResetPasswordPage';
+import SettingsPage from './SettingsPage';
+import { buildAuthRedirectUrl, extractAuthHashParams } from '../utils/authRedirect';
 import { CURRENT_AGE_ATTESTATION, CURRENT_TERMS_VERSION } from '@/constants/legal';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 const mockSignInWithPassword = vi.fn();
 const mockSignUp = vi.fn();
+const mockResend = vi.fn();
+const mockResetPasswordForEmail = vi.fn();
+const mockUpdateUser = vi.fn();
+const mockRefreshUser = vi.fn().mockResolvedValue(undefined);
 const mockShowToast = vi.fn();
+let mockAuthState: {
+  user: any;
+  session: any;
+  loading: boolean;
+  refreshUser: typeof mockRefreshUser;
+} = {
+  user: null,
+  session: null,
+  loading: false,
+  refreshUser: mockRefreshUser,
+};
 
 vi.mock('@capacitor/core', () => ({
   Capacitor: {
@@ -25,16 +44,26 @@ vi.mock('@codetrix-studio/capacitor-google-auth', () => ({
   },
 }));
 
+vi.mock('../context/AuthContext', () => ({
+  useAuth: () => mockAuthState,
+}));
+
 vi.mock('../../../lib/supabase', () => ({
   supabase: {
     auth: {
       signInWithPassword: (...args: any[]) => mockSignInWithPassword(...args),
       signUp: (...args: any[]) => mockSignUp(...args),
-      resend: vi.fn(),
-      resetPasswordForEmail: vi.fn(),
+      resend: (...args: any[]) => mockResend(...args),
+      resetPasswordForEmail: (...args: any[]) => mockResetPasswordForEmail(...args),
+      updateUser: (...args: any[]) => mockUpdateUser(...args),
       signInWithOAuth: vi.fn(),
       signInWithIdToken: vi.fn(),
     },
+    from: vi.fn(() => ({
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+    })),
   },
 }));
 
@@ -157,6 +186,7 @@ describe('AuthPage consent UX', () => {
         email: 'newuser@example.com',
         password: 'StrongPass1!',
         options: {
+          emailRedirectTo: expect.stringContaining('#/'),
           data: expect.objectContaining({
             full_name: 'Aarav Sharma',
             display_name: 'Aarav Sharma',
@@ -166,6 +196,175 @@ describe('AuthPage consent UX', () => {
           }),
         },
       });
+    });
+    expect(localStorage.getItem('mindflow_is_signup')).toBe('true');
+  });
+
+  it('builds HashRouter & Capacitor-safe auth redirect URLs and parses recovery hash tokens', () => {
+    expect(
+      buildAuthRedirectUrl('signup', {
+        isNative: false,
+        origin: 'https://aklabx.github.io',
+        pathname: '/MindFlow',
+      })
+    ).toBe('https://aklabx.github.io/MindFlow/#/');
+
+    expect(
+      buildAuthRedirectUrl('recovery', {
+        isNative: false,
+        origin: 'https://aklabx.github.io',
+        pathname: '/MindFlow/',
+      })
+    ).toBe('https://aklabx.github.io/MindFlow/#/reset-password');
+
+    expect(buildAuthRedirectUrl('signup', { isNative: true })).toBe('mindflow://');
+    expect(buildAuthRedirectUrl('recovery', { isNative: true })).toBe('mindflow://reset-password');
+
+    const recoveryParams = extractAuthHashParams(
+      '#/reset-password#access_token=tok_123&refresh_token=ref_456&type=recovery'
+    );
+    expect(recoveryParams.get('access_token')).toBe('tok_123');
+    expect(recoveryParams.get('refresh_token')).toBe('ref_456');
+    expect(recoveryParams.get('type')).toBe('recovery');
+
+    const signupParams = extractAuthHashParams('#/#access_token=tok_s&refresh_token=ref_s&type=signup');
+    expect(signupParams.get('access_token')).toBe('tok_s');
+    expect(signupParams.get('type')).toBe('signup');
+  });
+
+  it('handles Supabase existing-account obfuscation (identities: []) without false-positive signup success', async () => {
+    mockSignUp.mockResolvedValue({
+      data: { user: { id: 'existing-u', identities: [] }, session: null },
+      error: null,
+    });
+    mockResetPasswordForEmail.mockResolvedValue({ error: null });
+
+    renderAuthPage('signup');
+
+    fireEvent.change(screen.getByLabelText(/Email Address/i), { target: { value: 'existing@example.com' } });
+    fireEvent.click(screen.getByRole('button', { name: /Continue$/i }));
+
+    fireEvent.change(screen.getByLabelText(/Full Name/i), { target: { value: 'Existing User' } });
+    fireEvent.change(screen.getByLabelText(/Choose Password/i), { target: { value: 'StrongPass1!' } });
+    fireEvent.change(screen.getByLabelText(/^Confirm Password$/i), { target: { value: 'StrongPass1!' } });
+    fireEvent.click(screen.getByRole('checkbox'));
+
+    const submitBtn = screen
+      .getAllByRole('button', { name: /^Create Account$/i })
+      .find((btn) => btn.getAttribute('type') === 'submit');
+    fireEvent.click(submitBtn!);
+
+    await waitFor(() => {
+      expect(screen.getByRole('alert').textContent).toContain('already exists');
+    });
+    expect(screen.queryByText(/Account created/i)).toBeNull();
+    expect(localStorage.getItem('mindflow_is_signup')).toBeNull();
+
+    // Offers 1-tap Switch to Sign In and Reset Password recovery actions
+    expect(screen.getByRole('button', { name: 'Sign In Instead' })).toBeTruthy();
+    const resetBtn = screen.getByRole('button', { name: 'Reset Password' });
+    fireEvent.click(resetBtn);
+
+    await waitFor(() => {
+      expect(mockResetPasswordForEmail).toHaveBeenCalledWith('existing@example.com', {
+        redirectTo: expect.stringContaining('#/reset-password'),
+      });
+    });
+  });
+
+  it('passes emailRedirectTo on resend confirmation for unconfirmed accounts', async () => {
+    mockSignInWithPassword.mockResolvedValue({
+      data: { session: null },
+      error: { message: 'Email not confirmed' },
+    });
+    mockResend.mockResolvedValue({ error: null });
+
+    renderAuthPage('signin');
+    fireEvent.change(screen.getByLabelText(/Email Address/i), { target: { value: 'pending@example.com' } });
+    fireEvent.click(screen.getByRole('button', { name: /Continue$/i }));
+    fireEvent.change(screen.getByLabelText(/^Password$/i), { target: { value: 'StrongPass1!' } });
+    const signInBtn = screen
+      .getAllByRole('button', { name: /^Sign In$/i })
+      .find((btn) => btn.getAttribute('type') === 'submit');
+    fireEvent.click(signInBtn!);
+
+    const resendBtn = await screen.findByRole('button', { name: /Resend Confirmation Email/i });
+    fireEvent.click(resendBtn);
+
+    await waitFor(() => {
+      expect(mockResend).toHaveBeenCalledWith({
+        type: 'signup',
+        email: 'pending@example.com',
+        options: {
+          emailRedirectTo: expect.stringContaining('#/'),
+        },
+      });
+    });
+  });
+
+  it('enforces >= 8 char password rules on ResetPasswordPage and SettingsPage (OAuth password link)', async () => {
+    mockAuthState = {
+      user: {
+        id: 'oauth-u-1',
+        email: 'oauth@example.com',
+        identities: [{ provider: 'google', id: 'g-1' }],
+      },
+      session: { access_token: 'tok-rec' },
+      loading: false,
+      refreshUser: mockRefreshUser,
+    };
+    mockUpdateUser.mockResolvedValue({ data: { user: mockAuthState.user }, error: null });
+
+    render(
+      <MemoryRouter>
+        <ResetPasswordPage />
+      </MemoryRouter>
+    );
+
+    fireEvent.change(screen.getByLabelText(/^New Password$/i), { target: { value: 'short7!' } });
+    fireEvent.change(screen.getByLabelText(/^Confirm New Password$/i), { target: { value: 'short7!' } });
+    fireEvent.click(screen.getByRole('button', { name: /Save New Password/i }));
+
+    expect(screen.getByRole('alert').textContent).toContain('at least 8 characters');
+    expect(mockUpdateUser).not.toHaveBeenCalled();
+
+    fireEvent.change(screen.getByLabelText(/^New Password$/i), { target: { value: 'StrongPass1!' } });
+    fireEvent.change(screen.getByLabelText(/^Confirm New Password$/i), { target: { value: 'StrongPass1!' } });
+    fireEvent.click(screen.getByRole('button', { name: /Save New Password/i }));
+
+    await waitFor(() => {
+      expect(mockUpdateUser).toHaveBeenCalledWith({ password: 'StrongPass1!' });
+    });
+
+    cleanup();
+    mockUpdateUser.mockClear();
+
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={qc}>
+        <MemoryRouter>
+          <SettingsPage onBack={vi.fn()} />
+        </MemoryRouter>
+      </QueryClientProvider>
+    );
+
+    expect(screen.getByText('Google Connected')).toBeTruthy();
+    expect(screen.getByText(/Set a Password \(Link Email Login\)/i)).toBeTruthy();
+
+    fireEvent.change(screen.getByLabelText(/^New Password$/i), { target: { value: 'tiny6!' } });
+    fireEvent.change(screen.getByLabelText(/^Confirm New Password$/i), { target: { value: 'tiny6!' } });
+    fireEvent.click(screen.getByRole('button', { name: /Link Password/i }));
+
+    expect(await screen.findByText(/at least 8 characters/i)).toBeTruthy();
+    expect(mockUpdateUser).not.toHaveBeenCalled();
+
+    fireEvent.change(screen.getByLabelText(/^New Password$/i), { target: { value: 'StrongPass1!' } });
+    fireEvent.change(screen.getByLabelText(/^Confirm New Password$/i), { target: { value: 'StrongPass1!' } });
+    fireEvent.click(screen.getByRole('button', { name: /Link Password/i }));
+
+    await waitFor(() => {
+      expect(mockUpdateUser).toHaveBeenCalledWith({ password: 'StrongPass1!' });
+      expect(mockRefreshUser).toHaveBeenCalled();
     });
   });
 });

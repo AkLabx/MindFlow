@@ -437,8 +437,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
         if (lastSyncedUserId.current !== session.user.id) {
           lastSyncedUserId.current = session.user.id;
+          let isSignup = false;
+          try {
+            isSignup = localStorage.getItem('mindflow_is_signup') === 'true';
+          } catch {}
           // Run sync on load if user is logged in
-          syncService.syncOnLogin(session.user.id, false);
+          syncService.syncOnLogin(session.user.id, isSignup).then(() => {
+            if (isSignup) {
+              try {
+                localStorage.removeItem('mindflow_is_signup');
+              } catch {}
+            }
+          });
         }
       }
       if (session?.user) {

@@ -304,6 +304,30 @@ async function setupMockBackend(page: Page, options: { withPurchase?: boolean } 
       return;
     }
 
+    if (pathname.endsWith('/rest/v1/mock_test_attempts')) {
+      const idFilter = parseEq(url.searchParams.get('id'));
+      if (idFilter === 'att-e2e-385') {
+        await fulfillPostgrest(route, [
+          {
+            id: 'att-e2e-385',
+            test_id: TEST_BPSC_ID,
+            user_id: MOCK_USER_ID,
+            start_time: '2026-11-26T08:00:00Z',
+            end_time: '2026-11-26T08:10:00Z',
+            time_taken_seconds: 600,
+            score: 74.67,
+            accuracy: 50,
+            status: 'completed',
+            answers: { [Q1_ID]: '23', [Q2_ID]: 'Equality before law' },
+            created_at: '2026-11-26T08:00:00Z',
+          },
+        ]);
+        return;
+      }
+      await fulfillPostgrest(route, []);
+      return;
+    }
+
     if (pathname.endsWith('/rest/v1/questions')) {
       questionsFetchCount += 1;
       const inIds = parseIn(url.searchParams.get('id'));
@@ -516,6 +540,23 @@ test('Desktop (1280x800) & Mobile (390x844) v1.0.383 E2E UX, Paid Guard & Layout
   expect(tcsMobileMetrics.overflowPx).toBe(0);
   expect(tcsMobileMetrics.footerBottom).toBeLessThanOrEqual(845);
   expect(tcsMobileMetrics.footerHeight).toBeGreaterThanOrEqual(52);
+
+  // 8. v1.0.385 Result Hub on Mobile (390x844): Analysis negative marking + Solutions mastery chips & 1-tap bookmark
+  await mPage.goto(`http://127.0.0.1:3000/#/mcqs/test-series/test/${TEST_BPSC_ID}/result/att-e2e-385`, {
+    waitUntil: 'domcontentloaded',
+  });
+  await expect(mPage.getByTestId('analysis-negative-marking-card')).toBeVisible();
+  await expect(mPage.getByTestId('analysis-negative-marking-card')).toContainText('-0.33');
+  await expect(mPage.getByTestId('analysis-subject-breakdown')).toBeVisible();
+  await mPage.getByRole('tab', { name: 'Solutions' }).click();
+  await expect(mPage.getByRole('button', { name: /Incorrect \(1\)/i })).toBeVisible();
+  await expect(mPage.getByRole('button', { name: /Saved \(0\)/i })).toBeVisible();
+  await mPage.getByTestId('solution-bookmark-toggle').click();
+  await expect(mPage.getByRole('button', { name: /Saved \(1\)/i })).toBeVisible();
+  const resultOverflow = await mPage.evaluate(() =>
+    Math.max(0, document.documentElement.scrollWidth - document.documentElement.clientWidth)
+  );
+  expect(resultOverflow).toBe(0);
 
   await mobileCtx.close();
 

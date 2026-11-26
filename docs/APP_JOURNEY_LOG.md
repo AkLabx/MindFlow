@@ -26,6 +26,21 @@ This document is the single source of truth for the evolution of the MindFlow ap
 
 ## 🚀 App Journey Changelog
 
+## [v1.0.385] - 27 November 2026, 01:02 AM IST
+
+**Executive Summary:** Executed Gen 2 Step 5 (`v1.0.385`): deepened `PreparedMockResultPage` `Analysis` tab with per-section time-spent vs accuracy bars and explicit negative-marking (`-0.33` / `-0.25` / `0`) breakdowns, upgraded `Solutions` tab with `All | Incorrect | Unattempted | Saved | Correct` mastery filter chips and 1-tap bookmarking, and completed Email + Password Auth hardening under Supabase Free Tier (`emailRedirectTo`, `identities.length === 0` guard, unified `>= 8`-char password rules, `mindflow_is_signup` sync parity, double-hash recovery parsing, and OAuth password linking in `SettingsPage`) (`package.json` `1.0.385`, Android `versionCode 12` / `versionName "1.12"`).
+
+### ✨ Features Added
+- **Deep Section Timing & Negative-Marking Analytics (`src/features/mock-tests/api/mockTestsApi.ts`, `src/features/mock-tests/pages/PreparedMockResultPage.tsx`)**: Extended `computePreparedMockScore` and `computePreparedMockSubjectBreakdown` with `positiveMarks`, `negativeDeduction`, `maxPossibleMarks`, `timeSpentSeconds`, `avgSecondsPerQuestion`, and `timeSharePercent` backed by dedicated `mindflow_mock_attempt_timing_*` local/IndexedDB snapshots; added the **Score & Negative-Marking Breakdown** card and paired Accuracy/Time-Spent bars inside **Subject-Wise Performance** while preserving `<TestLeaderboardCard />` exclusively in `Leaderboard`.
+- **Solution Mastery Filters & 1-Tap Bookmarking (`src/features/mock-tests/pages/PreparedMockResultPage.tsx`)**: Added `All | Incorrect | Unattempted | Saved | Correct` filter chips (`min-h-[44px]`), 1-tap bookmark toggle wired to `useBookmarkStore` + IndexedDB + `syncService`, saved indicators in the `<NativeDialog>` question palette, empty-filter recovery button, `<QuizExplanation />`, `<KeyboardAwareBottomBar fullWidth>`, `scroll-mb-28`, and `lang="hi"`.
+- **Email + Password Auth Completion & OAuth Password Linking (`src/features/auth/utils/authRedirect.ts`, `AuthPage.tsx`, `ResetPasswordPage.tsx`, `SettingsPage.tsx`)**: Added HashRouter/Capacitor-safe `buildAuthRedirectUrl()` for `signUp()` and `resend()`, `identities.length === 0` existing-account handling with 1-tap Sign In / Password Reset actions, unified `MIN_PASSWORD_LENGTH = 8` + `<PasswordStrengthMeter />` across Signup, Reset Password, and Settings, and OAuth-to-password linking via `supabase.auth.updateUser({ password })`.
+
+### 🐛 Bug Fixes & 🔒 Security & Architecture
+- **Double-Hash Recovery Token & Signup Sync Fixes (`src/hooks/useAppBootstrap.ts`, `src/features/auth/context/AuthContext.tsx`)**: Added `extractAuthHashParams()` to parse `#/reset-password#access_token=...` recovery URLs cleanly without breaking OAuth hash extraction, and updated `AuthContext.getInitialSession()` to honor `mindflow_is_signup` during initial cold-start sync.
+- **Pending Remote DB Status**: Verified `sjcfagpjstbfxuiwhlps` (`bundle_items_table: null`, `18` `MF-` rows); `20261126220000_v1_0_384_bundles_shifts_mind_id.sql` remains pending remote execution via Dashboard SQL Editor or `supabase db push` (MCP client auto-cancelled DDL confirmation).
+
+---
+
 ## [v1.0.384] - 26 November 2026, 11:38 PM IST
 
 **Executive Summary:** Executed Gen 2 Step 4 (`v1.0.384`): delivered Course Bundles (`mock_series_bundle_items`, `target_route`, `<14d` `Renew Access`), shift timing badges and decluttered `<MockTestListCard />` mobile cards, 1:1 GPU-composited `SwipeableTabViewport` with `.mf-h-rail` gesture arbitration, exclusive 3-tab `PreparedMockResultPage` (`Analysis | Solutions | Leaderboard`), data-driven `examOnboardingRegistry` + Eduquity palette sync, `MIND-` / `ORD-` ID rebrand, Admin CMS packaging/shift inputs, and `QuizConfig` multi-exam + latest-first shift sorting (`package.json` `1.0.384`, Android `versionCode 11` / `versionName "1.11"`).
