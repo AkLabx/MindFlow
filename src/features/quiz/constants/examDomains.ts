@@ -1,5 +1,12 @@
+import {
+  ExamDomainId,
+  FALLBACK_EXAM_CATALOG,
+  findExamCatalogEntry,
+  getCachedExamCatalog,
+} from '../services/examCatalogService';
+
 export interface ExamDomainDefinition {
-  id: 'civil_pcs' | 'ssc' | 'railways' | 'teaching' | 'state_officer' | 'defence_police' | 'other';
+  id: ExamDomainId;
   label: string;
   tooltip: string;
 }
@@ -8,27 +15,15 @@ export interface ExamDomainGroup extends ExamDomainDefinition {
   exams: string[];
 }
 
-export const EXAM_DISPLAY_LABELS: Record<string, string> = {
-  'BPSC CSE PRE': 'BPSC Civil Services Prelims',
-  'UPSC CSE PRE': 'UPSC CSE Prelims',
-  'CGL PRE': 'SSC CGL Prelims',
-  'RRB NTPC UG': 'RRB NTPC (UG)',
-  'BPSC TRE1': 'BPSC Teacher TRE 1.0',
-  'BPSC TRE2': 'BPSC Teacher TRE 2.0',
-  'BPSC TRE3': 'BPSC Teacher TRE 3.0',
-  'BPSC AEDO': 'BPSC AEDO',
-  'BPSC AUDITOR': 'BPSC Auditor',
-  'BPSC Motor Vehicle Inspectors. QP': 'BPSC MVI',
-  'BPSC Law Officer GS Question Paper': 'BPSC Law Officer',
-  'BPSC - Mineral Development Officer Exam 2025 - GS Paper': 'BPSC Mineral Dev. Officer',
-  'BPSC Public Relation Officer GS Question Paper': 'BPSC Public Relation Officer',
-  'BPSC - DSO PT 2025': 'BPSC District Statistical Officer',
-  'IB ACIO PRE': 'IB ACIO Executive',
-};
+export const EXAM_DISPLAY_LABELS: Record<string, string> = Object.fromEntries(
+  FALLBACK_EXAM_CATALOG.map((entry) => [entry.exam_name, entry.display_label])
+);
 
 export function getExamDisplayLabel(rawName: string): string {
   const trimmed = rawName.trim();
   if (!trimmed) return '';
+  const catalogMatch = findExamCatalogEntry(trimmed);
+  if (catalogMatch) return catalogMatch.display_label;
   return EXAM_DISPLAY_LABELS[trimmed] ?? trimmed;
 }
 
@@ -56,7 +51,7 @@ const DOMAIN_DEFINITIONS: readonly ExamDomainDefinition[] = [
   {
     id: 'state_officer',
     label: 'State Officer & Departmental Exams',
-    tooltip: 'BPSC departmental & specialist officer examinations (AEDO, Auditor, MVI, Law, DSO)',
+    tooltip: 'BPSC departmental & specialist officer examinations (AEDO, Auditor, CDPO, MVI, Law, DSO)',
   },
   {
     id: 'defence_police',
@@ -70,30 +65,19 @@ const DOMAIN_DEFINITIONS: readonly ExamDomainDefinition[] = [
   },
 ] as const;
 
-const EXPLICIT_DOMAIN_MAP: Record<string, ExamDomainDefinition['id']> = {
-  'BPSC CSE PRE': 'civil_pcs',
-  'UPSC CSE PRE': 'civil_pcs',
-  'CGL PRE': 'ssc',
-  'RRB NTPC UG': 'railways',
-  'BPSC TRE1': 'teaching',
-  'BPSC TRE2': 'teaching',
-  'BPSC TRE3': 'teaching',
-  'BPSC AEDO': 'state_officer',
-  'BPSC AUDITOR': 'state_officer',
-  'BPSC Motor Vehicle Inspectors. QP': 'state_officer',
-  'BPSC Law Officer GS Question Paper': 'state_officer',
-  'BPSC - Mineral Development Officer Exam 2025 - GS Paper': 'state_officer',
-  'BPSC Public Relation Officer GS Question Paper': 'state_officer',
-  'BPSC - DSO PT 2025': 'state_officer',
-  'IB ACIO PRE': 'defence_police',
-};
+const EXPLICIT_DOMAIN_MAP: Record<string, ExamDomainDefinition['id']> = Object.fromEntries(
+  FALLBACK_EXAM_CATALOG.map((entry) => [entry.exam_name, entry.domain_id])
+) as Record<string, ExamDomainDefinition['id']>;
 
 function resolveExamDomainId(rawName: string): ExamDomainDefinition['id'] {
   const trimmed = rawName.trim();
+  const catalogMatch = findExamCatalogEntry(trimmed);
+  if (catalogMatch) return catalogMatch.domain_id;
+
   const explicit = EXPLICIT_DOMAIN_MAP[trimmed];
   if (explicit) return explicit;
 
-  if (/\b(CSE|PCS|PRELIMS|UPSC)\b/i.test(trimmed) && !/\b(TRE\d*|CGL|IB)\b/i.test(trimmed)) {
+  if (/\b(CSE|CCE|PCS|PRELIMS|UPSC)\b/i.test(trimmed) && !/\b(TRE\d*|CGL|IB)\b/i.test(trimmed)) {
     return 'civil_pcs';
   }
   if (/\b(SSC|CGL|CHSL|MTS|CPO|STENO|GD)\b/i.test(trimmed)) {
@@ -102,7 +86,7 @@ function resolveExamDomainId(rawName: string): ExamDomainDefinition['id'] {
   if (/\b(RRB|NTPC|ALP|RPF|GROUP\s*D)\b/i.test(trimmed)) {
     return 'railways';
   }
-  if (/\b(TRE\d*|TET|CTET|STET|PRT|TEACHER|HEADMASTER)\b/i.test(trimmed)) {
+  if (/\b(TRE[\s._-]*\d*|TET|CTET|STET|PRT|TEACHER|HEADMASTER)\b/i.test(trimmed)) {
     return 'teaching';
   }
   if (/^BPSC\b/i.test(trimmed)) {
@@ -120,22 +104,30 @@ export function groupExamNamesByDomain(rawExamNames: string[]): ExamDomainGroup[
     buckets.set(def.id, []);
   }
 
+  // Build sort order lookup from SSOT catalog so domain lists stay predictably ordered
+  const sortOrderMap = new Map<string, number>();
+  for (const entry of getCachedExamCatalog()) {
+    sortOrderMap.set(entry.exam_name, entry.sort_order);
+  }
+
   const seen = new Set<string>();
   for (const rawName of rawExamNames) {
     if (typeof rawName !== 'string') continue;
     const trimmed = rawName.trim();
     if (!trimmed || trimmed.toLowerCase() === 'demo') continue;
-    if (seen.has(rawName)) continue;
-    seen.add(rawName);
+    if (seen.has(trimmed)) continue;
+    seen.add(trimmed);
 
-    const domainId = resolveExamDomainId(rawName);
-    buckets.get(domainId)?.push(rawName);
+    const domainId = resolveExamDomainId(trimmed);
+    buckets.get(domainId)?.push(trimmed);
   }
 
   return DOMAIN_DEFINITIONS
     .map((def) => ({
       ...def,
-      exams: buckets.get(def.id) ?? [],
+      exams: (buckets.get(def.id) ?? []).sort(
+        (a, b) => (sortOrderMap.get(a) ?? 900) - (sortOrderMap.get(b) ?? 900) || a.localeCompare(b)
+      ),
     }))
     .filter((group) => group.exams.length > 0);
 }

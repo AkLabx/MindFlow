@@ -6,9 +6,9 @@
 
 ## 1. Current Verified Baseline
 - **Active Generation:** Gen 2 (`docs/blueprint/v2.0_blueprint.md`)
-- **Last Completed Version:** **`v1.0.383`** (26 Nov 2026) — `PR #1128` + `PR #1129` | `package.json` `1.0.383` | Android `versionCode 10` (`1.10`)
-- **Verified Proof (`v1.0.383`):** `tsc --noEmit` (`0` err) | `vitest --run --pool=forks --maxWorkers=1` (`48` files, `312` tests) | `vite build` (`214` PWA entries, `7110.66 KiB`) | Playwright `2/2` (`1.1m`) | Chrome DevTools (`1280x800` & `390x844`: `0` console err, `0px` overflow, `0` `<44px` controls) | `get_advisors` (`0` `ERROR`s).
-- **DB Sync Check:** `20261126000000` DDL & hardened RPCs live on `sjcfagpjstbfxuiwhlps`, but `supabase_migrations.schema_migrations` still ends at `20261125083240` (sync via `list_migrations`/`apply_migration` first).
+- **Last Completed Version:** **`v1.0.383.1`** *(Backend/SSOT Point Release off `v1.0.383`, 26 Nov 2026)* — `package.json` `1.0.383-1` | Android `versionCode 10` (`1.10`) *(Step 3 baseline: `v1.0.383`, `PR #1128` + `PR #1129`)*
+- **Verified Proof (`v1.0.383.1` & `v1.0.383`):** `tsc --noEmit` (`0` err) | `vitest --run --pool=forks` (`48` files, `312` tests) | `vite build` (`214` PWA entries) | `v1.0.383.1` DB verification (`10,991` active Qs, `21` canonical `examName`s, `203` shifts, `0` cache drift, `get_advisors` `0` `ERROR`s) | `v1.0.383` Playwright `2/2` (`1.1m`) & Chrome DevTools (`1280x800` & `390x844`).
+- **DB Sync Check:** `20261126000000` DDL & hardened RPCs plus `20261126010000` (`exam_catalog` / `exam_cycles` SSOT, `questions` constraints & soft-delete RPCs) are live on `sjcfagpjstbfxuiwhlps` (`create_exam_catalog_ssot_tables` & `enforce_exam_source_constraints_and_rpcs` recorded in `schema_migrations`). Pending manual/CLI ops: deploy updated `extract-questions` Edge Function and optionally run commented `DROP INDEX` cleanup for 6 duplicate lowercase indexes on `questions`.
 - **Slots:** Slot 1 (`D:\MindFlow-main`, `main`, `:3000`) | Slot 2 (`worker-1`, `:3001`) | Slot 3 (`worker-2`, `:3002`). Keep `main` clean.
 
 ---

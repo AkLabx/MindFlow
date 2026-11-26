@@ -1,5 +1,10 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import {
+    ExamCatalogEntry,
+    fetchExamCatalog,
+    getCachedExamCatalog,
+} from '@/features/quiz/services/examCatalogService';
 import { 
     UploadCloud, FileText, Settings, Play, Server, Tags,
     RefreshCw, Zap, CheckCircle2, AlertCircle, Clock, ArrowRight, RotateCcw
@@ -32,11 +37,18 @@ export const AdminIngestionJob: React.FC<AdminIngestionJobProps> = ({ onNavigate
     const [aiMode, setAiMode] = useState<AIMode>('Standard');
 
     // Metadata State
+    const [examCatalog, setExamCatalog] = useState<readonly ExamCatalogEntry[]>(() => getCachedExamCatalog());
     const [examName, setExamName] = useState('');
     const [examYear, setExamYear] = useState(new Date().getFullYear().toString());
     const [shift, setShift] = useState('');
     const [language, setLanguage] = useState('English');
     const [tags, setTags] = useState('');
+
+    useEffect(() => {
+        void fetchExamCatalog().then((entries) => {
+            if (entries.length > 0) setExamCatalog(entries);
+        });
+    }, []);
 
     // Payload State
     const [rawContent, setRawContent] = useState('');
@@ -334,17 +346,22 @@ export const AdminIngestionJob: React.FC<AdminIngestionJobProps> = ({ onNavigate
                         <div className="space-y-4">
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-xs font-medium text-slate-500 mb-1">Exam Name</label>
-                                    <input
-                                        type="text"
+                                    <label className="block text-xs font-medium text-slate-500 mb-1">Exam Name (SSOT)</label>
+                                    <select
                                         value={examName}
                                         onChange={(e) => setExamName(e.target.value)}
                                         className="w-full p-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-800 dark:text-slate-200 text-sm focus:ring-2 focus:ring-indigo-500"
-                                        placeholder="e.g. SSC CGL"
-                                    />
+                                    >
+                                        <option value="">Auto-detect from document...</option>
+                                        {examCatalog.map((entry) => (
+                                            <option key={entry.exam_name} value={entry.exam_name}>
+                                                {entry.exam_name} ({entry.display_label})
+                                            </option>
+                                        ))}
+                                    </select>
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-medium text-slate-500 mb-1">Year</label>
+                                    <label className="block text-xs font-medium text-slate-500 mb-1">Notification Year</label>
                                     <input
                                         type="number"
                                         value={examYear}
@@ -356,13 +373,16 @@ export const AdminIngestionJob: React.FC<AdminIngestionJobProps> = ({ onNavigate
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-xs font-medium text-slate-500 mb-1">Shift</label>
+                                    <label className="block text-xs font-medium text-slate-500 mb-1">Exam Date / Shift</label>
                                     <input
                                         type="text"
                                         value={shift}
                                         onChange={(e) => setShift(e.target.value)}
                                         className="w-full p-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-800 dark:text-slate-200 text-sm focus:ring-2 focus:ring-indigo-500"
-                                        placeholder="e.g. Shift 1"
+                                        placeholder={
+                                            examCatalog.find((entry) => entry.exam_name === examName)?.shift_format_example ||
+                                            'e.g. 01 Oct 2026 • Shift 2 (01:30 PM)'
+                                        }
                                     />
                                 </div>
                                 <div>

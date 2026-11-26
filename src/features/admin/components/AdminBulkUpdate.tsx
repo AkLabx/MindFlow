@@ -1,8 +1,13 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Database, Filter, Plus, Trash2, Search, AlertTriangle, CheckCircle, Loader2 } from 'lucide-react';
 import { useFetchQuestionsCountByFilter, usePerformBulkUpdate } from '../hooks/useAdminBulkUpdate';
 import { useNotification } from '../../../hooks/useNotification';
+import {
+    ExamCatalogEntry,
+    fetchExamCatalog,
+    getCachedExamCatalog,
+} from '../../quiz/services/examCatalogService';
 
 const FIELDS = [
     { value: 'subject', label: 'Subject' },
@@ -35,8 +40,15 @@ export const AdminBulkUpdate: React.FC = () => {
     const bulkUpdateMutation = usePerformBulkUpdate();
 
     // Target Update State
+    const [examCatalog, setExamCatalog] = useState<readonly ExamCatalogEntry[]>(() => getCachedExamCatalog());
     const [targetField, setTargetField] = useState('subject');
     const [targetValue, setTargetValue] = useState('');
+
+    useEffect(() => {
+        void fetchExamCatalog().then((entries) => {
+            if (entries.length > 0) setExamCatalog(entries);
+        });
+    }, []);
 
     // Filters State
     const [filters, setFilters] = useState<FilterCondition[]>([
@@ -148,13 +160,34 @@ export const AdminBulkUpdate: React.FC = () => {
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">New Value</label>
-                        <input
-                            type="text"
-                            value={targetValue}
-                            onChange={(e) => setTargetValue(e.target.value)}
-                            placeholder="Enter the new value..."
-                            className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all placeholder:text-slate-400"
-                        />
+                        {targetField === 'examName' ? (
+                            <select
+                                value={targetValue}
+                                onChange={(e) => setTargetValue(e.target.value)}
+                                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all"
+                            >
+                                <option value="">Select canonical Exam Name...</option>
+                                {examCatalog.map((entry) => (
+                                    <option key={entry.exam_name} value={entry.exam_name}>
+                                        {entry.exam_name} ({entry.display_label})
+                                    </option>
+                                ))}
+                            </select>
+                        ) : (
+                            <input
+                                type="text"
+                                value={targetValue}
+                                onChange={(e) => setTargetValue(e.target.value)}
+                                placeholder={
+                                    targetField === 'examYear'
+                                        ? 'Official Notification Year (e.g. 2025)'
+                                        : targetField === 'examDateShift'
+                                          ? 'e.g. 01 Oct 2026 • Shift 2 (01:30 PM)'
+                                          : 'Enter the new value...'
+                                }
+                                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all placeholder:text-slate-400"
+                            />
+                        )}
                     </div>
                 </div>
             </div>

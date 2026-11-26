@@ -56,9 +56,9 @@ const makeQuestions = (count: number): QuestionLightweight[] =>
     topic: 'Ancient History',
     subTopic: 'Mauryan Empire',
     difficulty: 'Medium',
-    examName: 'BPSC TRE3',
+    examName: 'BPSC TRE 3.0',
     examYear: 2024,
-    examDateShift: '12 Dec 2024 Shift 1',
+    examDateShift: 'Class 6-8 (Jul 2024)',
     questionType: 'MCQ',
     tags: [],
     explanation: { summary: 'Explanation' },
@@ -87,25 +87,25 @@ describe('QuestionBuilder performance, canonical BPSC filtering, and React stabi
     vi.restoreAllMocks();
   });
 
-  it('resolveCanonicalExamNames("bpsc", ...) includes all 19 legacy aliases, BPSC TRE3, and dynamic BPSC DB strings', () => {
+  it('resolveCanonicalExamNames("bpsc", ...) includes all canonical BPSC names, BPSC TRE 3.0, and dynamic BPSC DB strings', () => {
     const bpscExam = CANONICAL_EXAMS.find(e => e.id === 'bpsc');
     expect(bpscExam).toBeDefined();
-    expect(bpscExam!.dbExamNames).toContain('BPSC TRE3');
-    expect(bpscExam!.dbExamNames.length).toBeGreaterThanOrEqual(20);
+    expect(bpscExam!.dbExamNames).toContain('BPSC TRE 3.0');
+    expect(bpscExam!.dbExamNames.length).toBeGreaterThanOrEqual(16);
 
     const resolved = resolveCanonicalExamNames('bpsc', [
       'BPSC 10-12 HISTORY',
-      'bpsc tre3', // case-insensitive duplicate should be deduped
-      'SSC CGL',   // unrelated exam should be excluded
+      'bpsc tre 3.0', // case-insensitive duplicate should be deduped
+      'SSC CGL PRE', // unrelated exam should be excluded
     ]);
 
-    for (const legacyAlias of bpscExam!.dbExamNames) {
-      expect(resolved).toContain(legacyAlias);
+    for (const alias of bpscExam!.dbExamNames) {
+      expect(resolved).toContain(alias);
     }
-    expect(resolved).toContain('BPSC TRE3');
+    expect(resolved).toContain('BPSC TRE 3.0');
     expect(resolved).toContain('BPSC 10-12 HISTORY');
-    expect(resolved).not.toContain('SSC CGL');
-    expect(resolved.filter(n => n.toLowerCase() === 'bpsc tre3')).toHaveLength(1);
+    expect(resolved).not.toContain('SSC CGL PRE');
+    expect(resolved.filter(n => n.toLowerCase() === 'bpsc tre 3.0')).toHaveLength(1);
   });
 
   it('searchQuestions chains .is("deleted_at", null), .in("examName", resolvedNames), and sanitized .or() without syntax-breaking chars', async () => {
@@ -136,8 +136,8 @@ describe('QuestionBuilder performance, canonical BPSC filtering, and React stabi
     expect(chain.in).toHaveBeenCalledTimes(1);
     const [inColumn, inValues] = chain.in.mock.calls[0];
     expect(inColumn).toBe('examName');
-    expect(inValues).toContain('BPSC TRE3');
-    expect(inValues).toContain('BPSC CSE PRE');
+    expect(inValues).toContain('BPSC TRE 3.0');
+    expect(inValues).toContain('BPSC CCE PRE');
 
     expect(chain.or).toHaveBeenCalledTimes(1);
     const orExpr = chain.or.mock.calls[0][0] as string;
@@ -156,7 +156,7 @@ describe('QuestionBuilder performance, canonical BPSC filtering, and React stabi
         case 'difficulty':
           return { data: [{ value: '' }, { value: '  ' }, { value: 'Hard' }, { value: 'Easy' }], error: null };
         case 'examName':
-          return { data: [{ value: 'BPSC TRE3' }, { value: 'SSC CGL' }], error: null };
+          return { data: [{ value: 'BPSC TRE 3.0' }, { value: 'SSC CGL PRE' }], error: null };
         case 'examYear':
           return { data: [{ value: '2021' }, { value: '2025' }, { value: '2023' }], error: null };
         case 'topic':
@@ -355,7 +355,7 @@ describe('QuestionBuilder performance, canonical BPSC filtering, and React stabi
       topics: ['Ancient History'],
       subTopics: manySubTopics,
       difficulties: ['Medium'],
-      examNames: ['BPSC TRE3'],
+      examNames: ['BPSC TRE 3.0'],
       examYears: [2024],
       examDateShifts: ['12 Dec 2024 Shift 1', '13 Dec 2024 Shift 2'],
     };
@@ -464,7 +464,7 @@ describe('QuestionBuilder performance, canonical BPSC filtering, and React stabi
     );
 
     expect(screen.getByText(/• Mauryan Empire/)).toBeTruthy();
-    expect(screen.getByText(/• 12 Dec 2024 Shift 1/)).toBeTruthy();
+    expect(screen.getByText(/• Class 6-8 \(Jul 2024\)/)).toBeTruthy();
   });
 
   it('fetchMatchingQuestionsSlice clamps limits to 1..300, enforces deleted_at IS NULL + canonical exam + sanitized .or(), and Quick Pick adds unselected matches', async () => {
