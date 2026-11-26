@@ -6,14 +6,15 @@
 
 ## 1. Current Verified Baseline
 - **Active Generation:** Gen 2 (`docs/blueprint/v2.0_blueprint.md`)
-- **Last Completed Version:** **`v1.0.383`** (26 November 2026, 12:55 AM IST)
-- **Last Merged PR / Status:** `PR #1128` — `package.json` `1.0.383` | Android `versionCode 10`, `versionName "1.10"`
+- **Last Completed Version:** **`v1.0.383`** (26 November 2026, 12:35 PM IST)
+- **Last Merged PR / Status:** `PR #1128` + Follow-up Hardening `PR #1129` — `package.json` `1.0.383` | Android `versionCode 10`, `versionName "1.10"`
 - **Live Verification Evidence (`v1.0.383`):**
   - Typecheck: `node --max-old-space-size=4096 ./node_modules/typescript/bin/tsc --noEmit` (`0` errors).
-  - Unit & Integration Tests: `npx.cmd vitest --run --pool=forks --maxWorkers=1` (`47` test files, `298` tests passed).
-  - Production Build: `npx.cmd vite build` (`5498` modules, `214` PWA precache entries, `7104.03 KiB`).
-  - Playwright E2E: `npx.cmd playwright test --workers=1 --reporter=list` (`2/2` passed: `e2e/mock-tests-smoke.spec.ts` + `e2e/paid-courses-cbt-ux.spec.ts` across Desktop `1280x800` and Mobile `390x844`, `0` console errors, `0px` horizontal overflow, `>=44px` controls, AI orb clearance, BPSC `fixed bottom-0` footer, `TCS iON` / `Eduquity` switching, `My Purchase` receipts & empty state, `#/exam/:lockedId` 0-fetch guard).
-  - Database State: `profiles.student_id` (`MF-100001`–`MF-100018`), pricing/demo/live columns on `mock_series`/`mock_tests`, `payments` receipt columns, `user_course_entitlements`, and 4 `SECURITY DEFINER` RPCs applied on `sjcfagpjstbfxuiwhlps` (`supabase_mcp.get_advisors` `0` `ERROR`s; existing 3 official PYQ series remain free; check `list_migrations` / `apply_migration` sync for `20261126000000_paid_courses_student_id_cbt_ux.sql` at session start).
+  - Unit & Integration Tests: `npx.cmd vitest --run --pool=forks --maxWorkers=1` (`48` test files, `312` tests passed in `439.37s`).
+  - Production Build: `npx.cmd vite build` (`214` PWA precache entries, `7110.66 KiB` in `1m 9s`).
+  - Playwright E2E: `npx.cmd playwright test --workers=1 --reporter=list` (`2/2` passed in `1.1m`: `e2e/mock-tests-smoke.spec.ts` + `e2e/paid-courses-cbt-ux.spec.ts` across Desktop `1280x800` and Mobile `390x844`).
+  - Live Browser (`chrome-devtools` MCP): Verified `#/profile` (`MF-100003` + `44x44` copy + offline SWR recovery), `#/purchased` (`My Purchase`), `#/mcqs/test-series` (`.mf-h-rail` + docked `My Attempts` / `Live Test` sheets), `TestDetailPage` + `TcsIonExamShell` (`min-w-[44px]` & `aria-label="Clear response"`) + `EduquityExamShell` + `BpscDefaultExamShell` (`fixed bottom-0` visible on Q1), and `#/admin/financials` (`MF-100003` lookup) across Desktop (`1280x800`) + Mobile (`390x844`) with `0` console errors, `0px` horizontal overflow, and `0` `<44x44px` controls.
+  - Database State: `profiles.student_id` (`MF-100001`–`MF-100018`), pricing/demo/live columns on `mock_series`/`mock_tests`, `payments` receipt columns, `user_course_entitlements`, and 4 `SECURITY DEFINER` RPCs (with `pg_advisory_xact_lock`, `FOR UPDATE`, duplicate pending-request guard) live on `sjcfagpjstbfxuiwhlps` (`supabase_mcp.get_advisors` `0` `ERROR`s; existing 3 official PYQ series remain free; check `list_migrations` / `apply_migration` sync for `20261126000000_paid_courses_student_id_cbt_ux.sql` since `supabase_migrations.schema_migrations` tracking still ends at `20261125083240` after client auto-cancel).
 - **Workstation / Deterministic Port Mapping:**
   - Slot 1 (`D:\MindFlow-main`): `main` $\rightarrow$ `http://localhost:3000/` (`npm run dev`)
   - Slot 2 (`worker-1`): `feat/...` $\rightarrow$ `http://localhost:3001/` (`npm run dev -- --port 3001`)
