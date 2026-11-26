@@ -17,7 +17,17 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
 // preventing the mutex from locking the entire app runtime.
 // Furthermore, we intercept 'AbortError' from broken locks and trigger our RecoveryManager.
 
-const AUTH_TIMEOUT_MS = 2500; // 2.5 seconds max for any auth operation (fast-fail on Web Locks contention)
+const AUTH_TIMEOUT_MS = 3500; // 3.5 seconds max for normal auth operations
+const AUTH_HYDRATING_TIMEOUT_MS = 6000; // 6 seconds when hydrating confirmation / recovery links
+
+export const isAuthLinkHydrating = (): boolean => {
+  if (typeof window === 'undefined' || !window.sessionStorage) return false;
+  try {
+    return window.sessionStorage.getItem('mindflow_auth_hydrating') === 'true';
+  } catch {
+    return false;
+  }
+};
 
 export const hasStoredAuthToken = (): boolean => {
   if (typeof window === 'undefined' || !window.localStorage) return false;
@@ -46,10 +56,13 @@ const withAuthTimeout = async <T>(
     operation: () => Promise<T>,
     retryCount: number = 0
 ): Promise<T> => {
-    // Determine timeout: guest cold-start without token gets a swift 1500ms timeout
-    const effectiveTimeout = (!hasStoredAuthToken() && !hasOAuthHash() && operationName === 'getSession')
-      ? 1500
-      : AUTH_TIMEOUT_MS;
+    // Determine timeout: guest cold-start without token gets a swift 1500ms timeout,
+    // while active auth link hydration gets 6000ms for network setSession/exchangeCodeForSession.
+    const effectiveTimeout = isAuthLinkHydrating()
+      ? AUTH_HYDRATING_TIMEOUT_MS
+      : (!hasStoredAuthToken() && !hasOAuthHash() && operationName === 'getSession')
+        ? 1500
+        : AUTH_TIMEOUT_MS;
 
     try {
         const result = await new Promise<T>((resolve, reject) => {

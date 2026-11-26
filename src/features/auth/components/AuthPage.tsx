@@ -89,8 +89,8 @@ export const AuthPage: React.FC<AuthPageProps> = ({
     return initialMode;
   });
 
-  // Step Machine: 'email' -> 'password' (Sign In) or 'details' (Sign Up)
-  const [step, setStep] = useState<'email' | 'credentials'>('email');
+  // Step Machine: 'email' -> 'credentials' -> 'verify-email' (Email Signup confirmation wait)
+  const [step, setStep] = useState<'email' | 'credentials' | 'verify-email'>('email');
   const [direction, setDirection] = useState<1 | -1>(1);
 
   // Form State
@@ -109,6 +109,8 @@ export const AuthPage: React.FC<AuthPageProps> = ({
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [isResendingConfirmation, setIsResendingConfirmation] = useState(false);
   const [existingAccountNotice, setExistingAccountNotice] = useState(false);
+  const [isCheckingVerification, setIsCheckingVerification] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
   const [forgotPasswordSent, setForgotPasswordSent] = useState(false);
   const [forgotPasswordCooldown, setForgotPasswordCooldown] = useState(0);
 
@@ -118,10 +120,26 @@ export const AuthPage: React.FC<AuthPageProps> = ({
   // Legal In-App Modal State
   const [legalModalType, setLegalModalType] = useState<'terms' | 'privacy' | null>(null);
 
-  // Refs for auto-focus
+  // Refs for auto-focus & verification mutex
   const emailInputRef = useRef<HTMLInputElement>(null);
   const passwordInputRef = useRef<HTMLInputElement>(null);
   const fullNameInputRef = useRef<HTMLInputElement>(null);
+  const isCheckingVerificationRef = useRef(false);
+
+  // Surface any expired/invalid email redirect errors captured by useAppBootstrap
+  useEffect(() => {
+    try {
+      const redirectErr = sessionStorage.getItem('mindflow_auth_redirect_error');
+      if (redirectErr) {
+        sessionStorage.removeItem('mindflow_auth_redirect_error');
+        setError(
+          redirectErr.toLowerCase().includes('expired')
+            ? 'Your verification or reset link has expired. Please sign in or request a fresh link.'
+            : redirectErr
+        );
+      }
+    } catch {}
+  }, []);
 
   // Check rate limit timer
   useEffect(() => {
@@ -140,7 +158,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
     return () => clearInterval(interval);
   }, []);
 
-  // Cooldown countdown for Forgot Password
+  // Cooldown countdown for Forgot Password & Resend Verification
   useEffect(() => {
     if (forgotPasswordCooldown <= 0) return;
     const timer = setTimeout(() => {
@@ -149,14 +167,22 @@ export const AuthPage: React.FC<AuthPageProps> = ({
     return () => clearTimeout(timer);
   }, [forgotPasswordCooldown]);
 
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const timer = setTimeout(() => {
+      setResendCooldown((prev) => prev - 1);
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [resendCooldown]);
+
   // Programmatic focus transitions
   useEffect(() => {
     const timer = setTimeout(() => {
       if (step === 'email') {
         emailInputRef.current?.focus();
-      } else if (mode === 'signin') {
+      } else if (step === 'credentials' && mode === 'signin') {
         passwordInputRef.current?.focus();
-      } else {
+      } else if (step === 'credentials') {
         fullNameInputRef.current?.focus();
       }
     }, 80);
@@ -172,7 +198,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
           setLegalModalType(null);
           return;
         }
-        if (step === 'credentials') {
+        if (step === 'credentials' || step === 'verify-email') {
           e.preventDefault();
           handleBackToEmail();
         }
@@ -194,7 +220,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
           setLegalModalType(null);
           return;
         }
-        if (step === 'credentials') {
+        if (step === 'credentials' || step === 'verify-email') {
           triggerHaptic('light');
           handleBackToEmail();
           return;
@@ -217,6 +243,10 @@ export const AuthPage: React.FC<AuthPageProps> = ({
     triggerHaptic('light');
     setDirection(-1);
     setStep('email');
+    if (step === 'verify-email') {
+      setPassword('');
+      setConfirmPassword('');
+    }
     setError(null);
     setSuccessNotice(null);
     setExistingAccountNotice(false);
@@ -226,6 +256,11 @@ export const AuthPage: React.FC<AuthPageProps> = ({
   const handleSwitchMode = (newMode: 'signin' | 'signup') => {
     triggerHaptic('light');
     setMode(newMode);
+    if (step === 'verify-email') {
+      setStep('credentials');
+      setPassword('');
+      setConfirmPassword('');
+    }
     setError(null);
     setSuccessNotice(null);
     setExistingAccountNotice(false);
@@ -409,9 +444,9 @@ export const AuthPage: React.FC<AuthPageProps> = ({
           clearRateLimit();
           setSuccessNotice('Account created successfully! Signing you in...');
         } else {
-          setSuccessNotice(
-            'Account created! Please check your email (and spam folder) for the verification link.'
-          );
+          setResendCooldown(60);
+          setDirection(1);
+          setStep('verify-email');
         }
       }
     } catch (err: any) {
@@ -423,9 +458,136 @@ export const AuthPage: React.FC<AuthPageProps> = ({
   };
 
   /**
+   * Checks whether the newly registered email has been verified (via cross-tab session or signInWithPassword)
+   * without triggering brute-force rate limits while still awaiting confirmation.
+   */
+  const checkEmailVerificationStatus = async (source: 'auto' | 'manual' = 'manual') => {
+    if (isCheckingVerificationRef.current) return;
+    isCheckingVerificationRef.current = true;
+    if (source === 'manual') {
+      setIsCheckingVerification(true);
+      setError(null);
+    }
+
+    try {
+      // 1. Check if another tab already hydrated the Supabase session into storage
+      if (typeof (supabase.auth as any)?.getSession === 'function') {
+        const { data: sessData } = await supabase.auth.getSession();
+        if (sessData?.session) {
+          clearRateLimit();
+          telemetry.emit('auth_login_succeeded', { provider: 'email' });
+          triggerHaptic('success');
+          return;
+        }
+      }
+
+      // 2. Otherwise verify against Supabase using the in-memory email & password
+      const cleanEmail = email.trim().toLowerCase();
+      if (!cleanEmail || !password) {
+        if (source === 'manual') {
+          setError('Please sign in with your email and password after confirming your inbox link.');
+        }
+        return;
+      }
+
+      const { data: signInData, error: signInErr } = await supabase.auth.signInWithPassword({
+        email: cleanEmail,
+        password,
+      });
+
+      if (signInData?.session) {
+        clearRateLimit();
+        telemetry.emit('auth_login_succeeded', { provider: 'email' });
+        triggerHaptic('success');
+        showToast({
+          title: 'Email Verified!',
+          message: 'Your account is confirmed. Welcome to MindFlow!',
+          variant: 'success',
+        });
+        return;
+      }
+
+      if (signInErr) {
+        const msg = String(signInErr.message || '').toLowerCase();
+        if (msg.includes('email not confirmed')) {
+          if (source === 'manual') {
+            setError(
+              `Still waiting for verification. Please click the confirmation link sent to ${cleanEmail}, then tap Continue.`
+            );
+            triggerHaptic('warning');
+          }
+          return;
+        }
+        if (source === 'manual') {
+          setError(signInErr.message || 'Unable to verify status right now. Please try signing in.');
+          triggerHaptic('error');
+        }
+      }
+    } catch (err: any) {
+      if (source === 'manual') {
+        setError(err?.message || 'Could not check verification status. Please check your connection.');
+      }
+    } finally {
+      isCheckingVerificationRef.current = false;
+      if (source === 'manual') {
+        setIsCheckingVerification(false);
+      }
+    }
+  };
+
+  // Automated verification watcher when user is on the Verify Your Email step
+  useEffect(() => {
+    if (step !== 'verify-email') return;
+
+    let pollCount = 0;
+    const MAX_POLLS = 75; // 5 minutes at 4s interval
+
+    const handleVisibilityOrFocus = () => {
+      if (typeof document === 'undefined' || document.visibilityState === 'visible') {
+        checkEmailVerificationStatus('auto');
+      }
+    };
+
+    window.addEventListener('focus', handleVisibilityOrFocus);
+    document.addEventListener('visibilitychange', handleVisibilityOrFocus);
+
+    let channel: BroadcastChannel | null = null;
+    try {
+      if (typeof BroadcastChannel !== 'undefined') {
+        channel = new BroadcastChannel('mindflow-auth-sync');
+        channel.onmessage = (msg) => {
+          if (msg?.data?.type === 'AUTH_CONFIRMED') {
+            checkEmailVerificationStatus('auto');
+          }
+        };
+      }
+    } catch {}
+
+    const intervalId = setInterval(() => {
+      if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return;
+      pollCount += 1;
+      if (pollCount > MAX_POLLS) {
+        clearInterval(intervalId);
+        return;
+      }
+      checkEmailVerificationStatus('auto');
+    }, 4000);
+
+    return () => {
+      clearInterval(intervalId);
+      window.removeEventListener('focus', handleVisibilityOrFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityOrFocus);
+      try {
+        channel?.close();
+      } catch {}
+    };
+  }, [step, email, password]);
+
+  /**
    * Resend Email Confirmation
    */
   const handleResendConfirmation = async () => {
+    if (resendCooldown > 0 && step === 'verify-email') return;
     setIsResendingConfirmation(true);
     setError(null);
     try {
@@ -438,12 +600,13 @@ export const AuthPage: React.FC<AuthPageProps> = ({
         },
       });
       if (resendError) throw resendError;
+      setResendCooldown(60);
       showToast({
         title: 'Confirmation Resent',
         message: `A fresh verification link was sent to ${email}.`,
         variant: 'success',
       });
-      setSuccessNotice(`Verification link sent to ${email}. Please check your inbox and spam folder.`);
+      setSuccessNotice(`Fresh verification link sent to ${email}. Check your inbox and spam folder.`);
       triggerHaptic('success');
     } catch (err: any) {
       setError(err.message || 'Failed to resend confirmation email.');
@@ -582,8 +745,8 @@ export const AuthPage: React.FC<AuthPageProps> = ({
 
         {/* Right Column: Interactive Auth Console */}
         <div className="col-span-12 lg:col-span-5 flex flex-col justify-between bg-white dark:bg-slate-900 flex-1">
-          {/* Android Native Top App Bar on Mobile when on credentials step */}
-          {step === 'credentials' && (
+          {/* Android Native Top App Bar on Mobile when on credentials or verify-email step */}
+          {(step === 'credentials' || step === 'verify-email') && (
             <div className="flex items-center h-14 px-4 border-b border-slate-100 dark:border-slate-800/80 lg:hidden shrink-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md sticky top-0 z-20">
               <button
                 type="button"
@@ -594,7 +757,11 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                 <ArrowLeft className="w-5 h-5" />
               </button>
               <span className="ml-2 font-semibold text-sm text-slate-800 dark:text-slate-100">
-                {mode === 'signin' ? 'Sign In' : 'Create Account'}
+                {step === 'verify-email'
+                  ? 'Verify Email'
+                  : mode === 'signin'
+                  ? 'Sign In'
+                  : 'Create Account'}
               </span>
             </div>
           )}
@@ -603,7 +770,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
             <div>
               {/* Brand Logo & Mobile Intro Header */}
               <header className="flex flex-col items-center text-center mb-5 shrink-0 relative">
-                {step === 'credentials' && (
+                {(step === 'credentials' || step === 'verify-email') && (
                   <button
                     type="button"
                     onClick={handleBackToEmail}
@@ -619,33 +786,37 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                 </div>
 
                 {/* Dual-Tab Mode Switcher with Android Material Feel */}
-                <div className="w-full max-w-xs mt-2 p-1 bg-slate-100 dark:bg-slate-800 rounded-2xl flex items-center text-xs font-semibold">
-                  <button
-                    type="button"
-                    onClick={() => handleSwitchMode('signin')}
-                    className={`flex-1 min-h-[44px] rounded-xl transition-all active:scale-95 ${
-                      mode === 'signin'
-                        ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm'
-                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                    }`}
-                  >
-                    Sign In
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleSwitchMode('signup')}
-                    className={`flex-1 min-h-[44px] rounded-xl transition-all active:scale-95 ${
-                      mode === 'signup'
-                        ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm'
-                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                    }`}
-                  >
-                    Create Account
-                  </button>
-                </div>
+                {step !== 'verify-email' && (
+                  <div className="w-full max-w-xs mt-2 p-1 bg-slate-100 dark:bg-slate-800 rounded-2xl flex items-center text-xs font-semibold">
+                    <button
+                      type="button"
+                      onClick={() => handleSwitchMode('signin')}
+                      className={`flex-1 min-h-[44px] rounded-xl transition-all active:scale-95 ${
+                        mode === 'signin'
+                          ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm'
+                          : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                      }`}
+                    >
+                      Sign In
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleSwitchMode('signup')}
+                      className={`flex-1 min-h-[44px] rounded-xl transition-all active:scale-95 ${
+                        mode === 'signup'
+                          ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm'
+                          : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                      }`}
+                    >
+                      Create Account
+                    </button>
+                  </div>
+                )}
 
                 <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight mt-4">
-                  {mode === 'signin'
+                  {step === 'verify-email'
+                    ? 'Verify Your Email'
+                    : mode === 'signin'
                     ? step === 'email'
                       ? 'Welcome Back'
                       : 'Enter Password'
@@ -654,7 +825,9 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                     : 'Complete Profile'}
                 </h1>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                  {mode === 'signin'
+                  {step === 'verify-email'
+                    ? 'Confirm the link in your inbox — we will sign you in automatically'
+                    : mode === 'signin'
                     ? 'Access your saved mock drills and personal notebook'
                     : 'Get start-to-finish AI preparation for competitive exams'}
                 </p>
@@ -777,7 +950,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                       </button>
                     </form>
                   </motion.div>
-                ) : (
+                ) : step === 'credentials' ? (
                   /* ================= STEP 2: CREDENTIALS (SIGN IN OR SIGN UP) ================= */
                   <motion.div
                     key="step-credentials"
@@ -1157,14 +1330,121 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                       </form>
                     )}
                   </motion.div>
+                ) : (
+                  /* ================= STEP 3: AUTOMATED EMAIL VERIFICATION WAIT SCREEN ================= */
+                  <motion.div
+                    key="step-verify-email"
+                    custom={direction}
+                    variants={slideVariants}
+                    initial="enter"
+                    animate="center"
+                    exit="exit"
+                    transition={{ duration: 0.22, ease: 'easeOut' }}
+                    data-testid="auth-verify-email-step"
+                    className="w-full flex flex-col gap-4"
+                  >
+                    <div className="rounded-2xl bg-indigo-50/80 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800/70 p-4 sm:p-5 text-center space-y-3">
+                      <div className="w-12 h-12 mx-auto rounded-2xl bg-indigo-600 text-white flex items-center justify-center shadow-md shadow-indigo-500/25">
+                        <Mail className="w-6 h-6" aria-hidden="true" />
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-xs font-bold uppercase tracking-wider text-indigo-700 dark:text-indigo-300">
+                          Verification Link Sent
+                        </p>
+                        <p className="text-sm font-bold text-slate-900 dark:text-white break-all">
+                          {email}
+                        </p>
+                      </div>
+                      <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                        Open your inbox (and spam folder) and click <strong>Confirm your mail</strong>.
+                        This screen checks automatically and will launch MindFlow as soon as you verify.
+                      </p>
+                      <div className="inline-flex items-center justify-center gap-2 px-3 py-1.5 rounded-full bg-white dark:bg-slate-900 border border-indigo-200 dark:border-indigo-800 text-[11px] font-semibold text-indigo-700 dark:text-indigo-300">
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin" aria-hidden="true" />
+                        <span>Waiting for email confirmation...</span>
+                      </div>
+                    </div>
+
+                    {successNotice && (
+                      <div
+                        role="status"
+                        aria-live="polite"
+                        className="flex items-start gap-2 p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 text-xs"
+                      >
+                        <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600 mt-0.5" />
+                        <span>{successNotice}</span>
+                      </div>
+                    )}
+
+                    {error && (
+                      <div
+                        role="alert"
+                        aria-live="assertive"
+                        className="flex items-start gap-2 p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 text-rose-600 dark:text-rose-400 text-xs font-medium"
+                      >
+                        <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                        <span>{error}</span>
+                      </div>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={() => checkEmailVerificationStatus('manual')}
+                      disabled={isCheckingVerification}
+                      data-testid="auth-verify-continue-btn"
+                      className="w-full min-h-[44px] h-12 flex justify-center items-center gap-2 bg-indigo-600 text-white font-semibold px-4 rounded-xl hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-600/50 text-sm transition-all shadow-md shadow-indigo-500/20 active:scale-95 select-none disabled:opacity-60"
+                    >
+                      {isCheckingVerification ? (
+                        <>
+                          <BrandSpinner variant="inline" size="sm" />
+                          <span>Checking Confirmation...</span>
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle2 className="w-4 h-4" aria-hidden="true" />
+                          <span>I&apos;ve Verified — Continue</span>
+                        </>
+                      )}
+                    </button>
+
+                    <div className="grid grid-cols-2 gap-2.5">
+                      <button
+                        type="button"
+                        onClick={handleResendConfirmation}
+                        disabled={isResendingConfirmation || resendCooldown > 0}
+                        className="min-h-[44px] px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-semibold text-xs hover:bg-slate-50 dark:hover:bg-slate-700 active:scale-95 transition-all flex items-center justify-center gap-1.5 disabled:opacity-50"
+                      >
+                        <RefreshCw
+                          className={`w-3.5 h-3.5 ${isResendingConfirmation ? 'animate-spin' : ''}`}
+                          aria-hidden="true"
+                        />
+                        <span>
+                          {isResendingConfirmation
+                            ? 'Sending...'
+                            : resendCooldown > 0
+                            ? `Resend (${resendCooldown}s)`
+                            : 'Resend Link'}
+                        </span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={handleBackToEmail}
+                        className="min-h-[44px] px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-semibold text-xs hover:bg-slate-50 dark:hover:bg-slate-700 active:scale-95 transition-all flex items-center justify-center gap-1.5"
+                      >
+                        <ArrowLeft className="w-3.5 h-3.5" aria-hidden="true" />
+                        <span>Change Email</span>
+                      </button>
+                    </div>
+                  </motion.div>
                 )}
               </AnimatePresence>
             </div>
           </div>
         </div>
 
-          {/* Footer Legal Links (omitted on Create Account details step where the consent checkbox already sits) */}
-          {!(step === 'credentials' && mode === 'signup') && (
+          {/* Footer Legal Links (omitted on Create Account details & verify-email steps) */}
+          {!(step === 'credentials' && mode === 'signup') && step !== 'verify-email' && (
             <footer className="pt-6 mt-4 border-t border-slate-100 dark:border-slate-800/80 text-center select-none">
               <p className="text-xs text-slate-500 dark:text-slate-400 flex flex-wrap items-center justify-center gap-1.5 leading-normal">
                 <span>By continuing, you agree to our</span>

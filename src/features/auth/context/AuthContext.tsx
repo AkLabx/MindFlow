@@ -397,20 +397,77 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   useEffect(() => {
-    // --- ROBUST PWA AUTH FIX: STORAGE EVENT LISTENER ---
-    // This listener runs in the main PWA window to detect successful login in a secondary window/popup.
+    // Show one-time confirmation toast when landing from an email verification link
+    try {
+      if (sessionStorage.getItem('mindflow_email_verified_notice') === 'true') {
+        sessionStorage.removeItem('mindflow_email_verified_notice');
+        useNotificationStore.getState().showToast({
+          title: 'Email Verified!',
+          message: 'Your email is confirmed. Welcome to MindFlow!',
+          variant: 'success',
+          duration: 4000,
+        });
+      }
+    } catch {}
+
+    // --- ROBUST CROSS-TAB AUTH SYNC (NO JARRING PAGE RELOAD) ---
+    // Syncs session smoothly when another tab completes OAuth or Email Verification.
+    const hydrateCrossTabSession = async () => {
+      try {
+        const { data: { session: freshSession } } = await supabase.auth.getSession();
+        if (freshSession?.user) {
+          setSession(freshSession);
+          setUser(freshSession.user);
+          hydrateCachedProfile(freshSession.user.id);
+          try {
+            const { data: prof } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('id', freshSession.user.id)
+              .maybeSingle();
+            if (prof) applyCanonicalProfile(prof);
+          } catch {}
+          refreshRoles(freshSession.user.id).catch(() => {});
+          if (lastSyncedUserId.current !== freshSession.user.id) {
+            lastSyncedUserId.current = freshSession.user.id;
+            let isSignup = false;
+            try {
+              isSignup = localStorage.getItem('mindflow_is_signup') === 'true';
+            } catch {}
+            syncService.syncOnLogin(freshSession.user.id, isSignup).then(() => {
+              if (isSignup) {
+                try {
+                  localStorage.removeItem('mindflow_is_signup');
+                } catch {}
+              }
+            });
+          }
+        }
+      } catch {
+        // Ignore transient storage sync race; onAuthStateChange will follow up
+      }
+    };
+
     const handleStorageChange = (event: StorageEvent) => {
-      // The Supabase client library writes the session to localStorage. We listen for that.
-      // The key contains 'auth-token'.
       if (event.key?.includes('auth-token') && event.newValue) {
-        // When the auth token appears in storage, it means the auth popup was successful.
-        // We force a reload of this main PWA window to apply the new session.
-        console.log('Auth token changed in storage, reloading PWA...');
-        window.location.reload();
+        console.log('Auth token changed in storage, hydrating session...');
+        hydrateCrossTabSession();
       }
     };
     window.addEventListener('storage', handleStorageChange);
-    // --- END PWA AUTH FIX ---
+
+    let authBroadcastChannel: BroadcastChannel | null = null;
+    try {
+      if (typeof BroadcastChannel !== 'undefined') {
+        authBroadcastChannel = new BroadcastChannel('mindflow-auth-sync');
+        authBroadcastChannel.onmessage = (msg) => {
+          if (msg?.data?.type === 'AUTH_CONFIRMED') {
+            hydrateCrossTabSession();
+          }
+        };
+      }
+    } catch {}
+    // --- END CROSS-TAB AUTH SYNC ---
 
     const getInitialSession = async () => {
       useDebugStore.getState().logEvent('AuthContext mounted & getInitialSession started');
@@ -549,6 +606,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     return () => {
       subscription?.unsubscribe();
       window.removeEventListener('storage', handleStorageChange);
+      try {
+        authBroadcastChannel?.close();
+      } catch {}
     };
   }, []);
 

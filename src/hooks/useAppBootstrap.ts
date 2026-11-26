@@ -68,38 +68,94 @@ export const useAppBootstrap = (): BootstrapState => {
         console.log('[Bootstrap] Hash:', isSensitiveHash ? '#[OAUTH_TOKENS_REDACTED]' : window.location.hash);
         console.log('[Bootstrap] Search:', window.location.search);
 
-        // OAuth Hash Interception & Cleanup for HashRouter
+        // OAuth / Email Confirmation / Recovery Hash & Query Interception for HashRouter
         const currentHash = window.location.hash;
-        if (currentHash && currentHash.includes('access_token=')) {
-          console.log('[Bootstrap] Detected OAuth hash. Delaying router to let Supabase process it.');
+        const currentSearch = window.location.search;
+        const searchParams = new URLSearchParams(currentSearch);
+        const pkceCode = searchParams.get('code');
+        const tokenHash = searchParams.get('token_hash');
+        const queryType = searchParams.get('type');
+        const hashParams = extractAuthHashParams(currentHash);
+        const redirectErrorDesc =
+          searchParams.get('error_description') ||
+          hashParams.get('error_description') ||
+          searchParams.get('error') ||
+          hashParams.get('error');
 
-          // Manually parse HashRouter format (e.g. #/#access_token=..., #/access_token=..., or #/reset-password#access_token=...)
-          const params = extractAuthHashParams(currentHash);
-          const accessToken = params.get('access_token');
-          const refreshToken = params.get('refresh_token');
-          const isRecovery = params.get('type') === 'recovery' || currentHash.includes('type=recovery') || currentHash.includes('reset-password');
+        if (redirectErrorDesc) {
+          try {
+            sessionStorage.setItem('mindflow_auth_redirect_error', redirectErrorDesc);
+          } catch {}
+          window.history.replaceState(null, '', window.location.pathname + '#/');
+        } else if ((currentHash && currentHash.includes('access_token=')) || pkceCode || tokenHash) {
+          try {
+            sessionStorage.setItem('mindflow_auth_hydrating', 'true');
+          } catch {}
+          console.log('[Bootstrap] Detected auth redirect payload. Delaying router to let Supabase process it.');
+
+          const accessToken = hashParams.get('access_token');
+          const refreshToken = hashParams.get('refresh_token');
+          const linkType = hashParams.get('type') || queryType || '';
+          const isRecovery = linkType === 'recovery' || currentHash.includes('type=recovery') || currentHash.includes('reset-password');
+          const isEmailVerification = linkType === 'signup' || linkType === 'email' || linkType === 'magiclink';
 
           // Immediately sanitize address bar to protect against live streaming / shoulder-surfing leaks
-          // Remove the hash cleanly to prevent HashRouter from treating it as a route
           sessionStorage.setItem('mindflow_booted', 'true');
-          const sanitizedTargetHash = isRecovery ? '#/reset-password' : '';
-          window.history.replaceState(null, '', window.location.pathname + window.location.search + sanitizedTargetHash);
+          const sanitizedTargetHash = isRecovery ? '#/reset-password' : '#/';
+          window.history.replaceState(null, '', window.location.pathname + sanitizedTargetHash);
           console.log('[Bootstrap] Sanitized URL address bar immediately prior to session initialization.');
 
-          if (accessToken && refreshToken) {
-            console.log('[Bootstrap] Manually setting Supabase session from HashRouter URL parameters.');
-            const { error } = await supabase.auth.setSession({
-              access_token: accessToken,
-              refresh_token: refreshToken
-            });
-            if (error) console.error('[Bootstrap] Manual setSession error:', error);
-            else console.log('[Bootstrap] Manual setSession success.');
-          } else {
-            console.log('[Bootstrap] No access_token/refresh_token found after parsing hash. Calling getSession to let Supabase try.');
-            await supabase.auth.getSession();
+          let sessionEstablished = false;
+          try {
+            if (accessToken && refreshToken) {
+              console.log('[Bootstrap] Manually setting Supabase session from HashRouter URL parameters.');
+              const { data: setData, error } = await supabase.auth.setSession({
+                access_token: accessToken,
+                refresh_token: refreshToken
+              });
+              if (error) console.error('[Bootstrap] Manual setSession error:', error);
+              else {
+                sessionEstablished = Boolean(setData?.session);
+                console.log('[Bootstrap] Manual setSession success.');
+              }
+            } else if (pkceCode && typeof (supabase.auth as any).exchangeCodeForSession === 'function') {
+              console.log('[Bootstrap] Exchanging PKCE code for Supabase session.');
+              const { data: exData, error } = await (supabase.auth as any).exchangeCodeForSession(pkceCode);
+              if (error) console.error('[Bootstrap] PKCE exchangeCodeForSession error:', error);
+              else sessionEstablished = Boolean(exData?.session);
+            } else if (tokenHash && queryType && typeof (supabase.auth as any).verifyOtp === 'function') {
+              console.log('[Bootstrap] Verifying token_hash OTP for Supabase session.');
+              const { data: otpData, error } = await (supabase.auth as any).verifyOtp({
+                token_hash: tokenHash,
+                type: queryType,
+              });
+              if (error) console.error('[Bootstrap] verifyOtp error:', error);
+              else sessionEstablished = Boolean(otpData?.session);
+            } else {
+              console.log('[Bootstrap] Calling getSession to let Supabase process remaining auth state.');
+              const { data: sessData } = await supabase.auth.getSession();
+              sessionEstablished = Boolean(sessData?.session);
+            }
+          } finally {
+            try {
+              sessionStorage.removeItem('mindflow_auth_hydrating');
+            } catch {}
           }
 
-          console.log('[Bootstrap] Supabase processed hash.');
+          if (sessionEstablished && isEmailVerification) {
+            try {
+              sessionStorage.setItem('mindflow_email_verified_notice', 'true');
+            } catch {}
+            try {
+              if (typeof BroadcastChannel !== 'undefined') {
+                const channel = new BroadcastChannel('mindflow-auth-sync');
+                channel.postMessage({ type: 'AUTH_CONFIRMED' });
+                channel.close();
+              }
+            } catch {}
+          }
+
+          console.log('[Bootstrap] Supabase processed auth redirect.');
         }
         // ------------------------------------------
 
