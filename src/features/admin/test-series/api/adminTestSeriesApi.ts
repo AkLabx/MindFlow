@@ -799,6 +799,7 @@ export const cloneTest = async (sourceTest: any, existingNames?: string[]) => {
         series_id: sourceTest.series_id,
         name: buildClonedTestName(sourceTest?.name ?? '', existingNames),
         description: sourceTest?.description ?? '',
+        test_type: sourceTest?.test_type === 'PYQ' ? 'PYQ' : 'MOCK',
         duration_minutes: Number(sourceTest?.duration_minutes ?? 60),
         total_marks: Number(sourceTest?.total_marks ?? 0),
         passing_marks: Number(sourceTest?.passing_marks ?? 0),

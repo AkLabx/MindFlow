@@ -58,12 +58,31 @@ export const SeriesDrawer: React.FC<SeriesDrawerProps> = ({ isOpen, onClose, ser
 
     const isDirty = JSON.stringify(formData) !== JSON.stringify(initialData);
 
+    const prevOpenRef = React.useRef<boolean>(isOpen);
+    const prevSeriesIdRef = React.useRef<string | undefined>(series?.id);
+
     useEffect(() => {
-        const data = buildInitialSeriesForm(series, categories);
-        setInitialData(data);
-        setFormData(data);
-        setFormError(null);
-    }, [series, isOpen, categories]);
+        const currentSeriesId = series?.id;
+        const justOpened = isOpen && !prevOpenRef.current;
+        const switchedSeries = currentSeriesId !== prevSeriesIdRef.current;
+        prevOpenRef.current = isOpen;
+        prevSeriesIdRef.current = currentSeriesId;
+
+        if (!isOpen || justOpened || switchedSeries) {
+            const data = buildInitialSeriesForm(series, categories);
+            setInitialData(data);
+            setFormData(data);
+            setFormError(null);
+        }
+    }, [series, isOpen]);
+
+    useEffect(() => {
+        if (!isOpen || !categories?.length) return;
+        const defaultCatId = String(categories[0]?.id ?? '');
+        if (!defaultCatId) return;
+        setFormData((prev) => (prev.category_id ? prev : { ...prev, category_id: defaultCatId }));
+        setInitialData((prev) => (prev.category_id ? prev : { ...prev, category_id: defaultCatId }));
+    }, [isOpen, categories]);
 
     const handleNameChange = (name: string) => {
         if (!series) {
@@ -129,12 +148,12 @@ export const SeriesDrawer: React.FC<SeriesDrawerProps> = ({ isOpen, onClose, ser
             onClose={onClose}
             isDirty={isDirty}
             title={series ? 'Edit Test Series' : 'New Test Series'}
-            footer={
+            footer={(requestClose) => (
                 <div className="flex justify-end gap-3">
                     <button
                         type="button"
-                        onClick={onClose}
-                        className="px-5 py-2.5 rounded-xl font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+                        onClick={requestClose}
+                        className="min-h-[44px] px-5 py-2.5 rounded-xl font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all active:scale-95 touch-manipulation"
                     >
                         Cancel
                     </button>
@@ -142,12 +161,12 @@ export const SeriesDrawer: React.FC<SeriesDrawerProps> = ({ isOpen, onClose, ser
                         type="submit"
                         form="series-form"
                         disabled={loading || !formData.name || !formData.slug || !formData.category_id}
-                        className="px-6 py-2.5 rounded-xl font-semibold text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 shadow-sm shadow-indigo-600/20 transition-all"
+                        className="min-h-[44px] px-6 py-2.5 rounded-xl font-semibold text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 shadow-sm shadow-indigo-600/20 transition-all active:scale-95 touch-manipulation"
                     >
                         {loading ? 'Saving...' : 'Save Series'}
                     </button>
                 </div>
-            }
+            )}
         >
             <form id="series-form" onSubmit={handleSubmit} className="space-y-6">
                 <div className="space-y-4">

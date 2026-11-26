@@ -25,7 +25,10 @@ import { MarkdownRenderer } from '@/components/ui/MarkdownRenderer';
 import { NativeDialog } from '@/components/ui/NativeDialog';
 import { formatOptionText, formatQuestionText } from '@/features/quiz/utils/questionFormatter';
 import { triggerHaptic } from '@/lib/haptics';
-import type { PreparedMockPaletteStatus } from '../../api/mockTestsApi';
+import {
+    resolveQuestionPaletteStatus,
+    type PreparedMockPaletteStatus,
+} from '../../api/mockTestsApi';
 import { getPaletteStatusBadgeLabel, type ExamRunnerSkinProps } from './types';
 
 const OPTION_LETTERS = ['A', 'B', 'C', 'D', 'E', 'F'];
@@ -120,16 +123,7 @@ export const TcsIonExamShell: React.FC<ExamRunnerSkinProps> = ({
         return baseIndices.filter((idx) => {
             const q = questions[idx];
             if (!q) return false;
-            const st =
-                attemptState.answers[q.id] !== undefined
-                    ? attemptState.markedForReview.includes(q.id)
-                        ? 'answered_and_marked'
-                        : 'answered'
-                    : attemptState.markedForReview.includes(q.id)
-                      ? 'marked_for_review'
-                      : attemptState.visitedQuestionIds.includes(q.id)
-                        ? 'not_answered'
-                        : 'not_visited';
+            const st = resolveQuestionPaletteStatus(q.id, attemptState);
 
             if (paletteFilter === 'unanswered') {
                 return st === 'not_answered' || st === 'not_visited';
@@ -141,15 +135,8 @@ export const TcsIonExamShell: React.FC<ExamRunnerSkinProps> = ({
         });
     }, [activeSection, sections.length, questions, attemptState, paletteFilter]);
 
-    const getStatusForQuestionId = (qId: string): PreparedMockPaletteStatus => {
-        const hasAns = attemptState.answers[qId] !== undefined;
-        const isMarked = attemptState.markedForReview.includes(qId);
-        if (hasAns && isMarked) return 'answered_and_marked';
-        if (hasAns) return 'answered';
-        if (isMarked) return 'marked_for_review';
-        if (attemptState.visitedQuestionIds.includes(qId)) return 'not_answered';
-        return 'not_visited';
-    };
+    const getStatusForQuestionId = (qId: string): PreparedMockPaletteStatus =>
+        resolveQuestionPaletteStatus(qId, attemptState);
 
     const renderTcsPaletteContent = (headingId?: string) => (
         <div className="flex flex-col h-full bg-sky-50/50 dark:bg-slate-900">
@@ -244,7 +231,9 @@ export const TcsIonExamShell: React.FC<ExamRunnerSkinProps> = ({
                         {activeSection ? activeSection.name : 'Question Palette'}
                     </h2>
                     <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 shrink-0">
-                        {totalAnsweredCount}/{questions.length}
+                        {activeSection && sections.length > 1
+                            ? `${activeSection.answeredCount + activeSection.answeredAndMarkedCount}/${activeSection.totalCount}`
+                            : `${totalAnsweredCount}/${questions.length}`}
                     </span>
                 </div>
 
@@ -513,7 +502,7 @@ export const TcsIonExamShell: React.FC<ExamRunnerSkinProps> = ({
                                             type="button"
                                             aria-pressed={languageMode === mode}
                                             onClick={() => setLanguageMode(mode)}
-                                            className={`min-h-[44px] px-2.5 text-xs font-bold transition-colors cursor-pointer touch-manipulation ${
+                                            className={`min-h-[44px] min-w-[44px] px-2.5 text-xs font-bold inline-flex items-center justify-center transition-colors cursor-pointer touch-manipulation ${
                                                 languageMode === mode
                                                     ? 'bg-[#1e3a5f] text-white'
                                                     : 'text-slate-700 dark:text-slate-200 hover:bg-slate-200/70 dark:hover:bg-slate-700'
@@ -529,7 +518,7 @@ export const TcsIonExamShell: React.FC<ExamRunnerSkinProps> = ({
                                     type="button"
                                     onClick={onCycleLanguage}
                                     aria-label="Language toggle"
-                                    className="min-h-[44px] px-2.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 inline-flex items-center gap-1 active:scale-95 touch-manipulation cursor-pointer"
+                                    className="min-h-[44px] min-w-[44px] px-2.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 inline-flex items-center justify-center gap-1 active:scale-95 touch-manipulation cursor-pointer"
                                 >
                                     <Languages className="w-4 h-4" aria-hidden="true" />
                                     <span>EN</span>
@@ -684,6 +673,7 @@ export const TcsIonExamShell: React.FC<ExamRunnerSkinProps> = ({
 
                         <button
                             type="button"
+                            aria-label="Clear response"
                             onClick={onClearResponse}
                             disabled={!selectedAnswer}
                             data-testid="cbt-clear-response-btn"

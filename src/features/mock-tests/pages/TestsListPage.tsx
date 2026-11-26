@@ -28,12 +28,14 @@ import {
     fetchSeriesDetails,
     fetchUserCourseEntitlements,
     fetchUserSeriesAttempts,
+    getCachedAllPublishedMockSeriesCatalogSnapshot,
     getCachedSeriesBundleSnapshot,
     getCachedUserCourseEntitlementsSnapshot,
     getCachedUserSeriesAttemptsSnapshot,
     isMockSeriesPaid,
     normalizeMockSeriesType,
     normalizeMockTestType,
+    readAllPublishedMockSeriesCatalogIndexedDBCache,
     readSeriesBundleIndexedDBCache,
     readUserCourseEntitlementsIndexedDBCache,
     readUserSeriesAttemptsIndexedDBCache,
@@ -105,6 +107,7 @@ export const TestsListPage: React.FC = () => {
     const [isCheckoutOpen, setIsCheckoutOpen] = useState<boolean>(false);
     const [loading, setLoading] = useState<boolean>(() => Boolean(seriesId && !initialBundle));
     const [offlineNotice, setOfflineNotice] = useState<string | null>(null);
+    const [loadError, setLoadError] = useState<string | null>(null);
 
     const fetchSeqRef = useRef<number>(0);
     const isMountedRef = useRef<boolean>(true);
@@ -126,11 +129,16 @@ export const TestsListPage: React.FC = () => {
                 setAttempts([]);
                 setLoading(false);
                 setOfflineNotice(null);
+                setLoadError(null);
                 return;
             }
 
             const seq = ++fetchSeqRef.current;
             const syncBundle = getCachedSeriesBundleSnapshot(seriesId);
+            const syncCatalogSeries =
+                getCachedAllPublishedMockSeriesCatalogSnapshot()?.series.find(
+                    (s) => s.id === seriesId
+                ) ?? null;
             const syncAttempts = userId
                 ? getCachedUserSeriesAttemptsSnapshot(seriesId, userId)
                 : null;
@@ -151,19 +159,28 @@ export const TestsListPage: React.FC = () => {
             }
 
             setOfflineNotice(null);
+            setLoadError(null);
 
             let currentTests = syncBundle?.tests ?? [];
+            let catalogFallback = syncCatalogSeries;
 
             if (!syncBundle || (userId && syncAttempts === null)) {
-                const [idbBundle, idbAttempts, idbEntitlements] = await Promise.all([
+                const [idbBundle, idbAttempts, idbEntitlements, idbCatalog] = await Promise.all([
                     syncBundle ? Promise.resolve(syncBundle) : readSeriesBundleIndexedDBCache(seriesId),
                     userId && syncAttempts === null
                         ? readUserSeriesAttemptsIndexedDBCache(seriesId, userId)
                         : Promise.resolve(syncAttempts),
                     userId ? readUserCourseEntitlementsIndexedDBCache(userId) : Promise.resolve(null),
+                    !syncBundle && !syncCatalogSeries
+                        ? readAllPublishedMockSeriesCatalogIndexedDBCache()
+                        : Promise.resolve(null),
                 ]);
 
                 if (!isMountedRef.current || fetchSeqRef.current !== seq) return;
+
+                if (!catalogFallback && idbCatalog) {
+                    catalogFallback = idbCatalog.series.find((s) => s.id === seriesId) ?? null;
+                }
 
                 if (idbBundle && !syncBundle) {
                     setSeries(idbBundle.series);
@@ -199,6 +216,7 @@ export const TestsListPage: React.FC = () => {
             if (seriesRes.status === 'fulfilled') {
                 setSeries(seriesRes.value);
                 hasSeriesRef.current = Boolean(seriesRes.value);
+                setLoadError(null);
             } else {
                 const err = seriesRes.reason as { code?: string; message?: string } | undefined;
                 const msg = String(err?.message ?? '');
@@ -208,8 +226,13 @@ export const TestsListPage: React.FC = () => {
                     setSeries(null);
                     setTests([]);
                     hasSeriesRef.current = false;
+                    setLoadError(null);
                 } else {
                     networkFailed = true;
+                    if (!hasSeriesRef.current && catalogFallback) {
+                        setSeries(catalogFallback);
+                        hasSeriesRef.current = true;
+                    }
                 }
             }
 
@@ -235,15 +258,30 @@ export const TestsListPage: React.FC = () => {
             }
 
             if (networkFailed && hasSeriesRef.current) {
-                setOfflineNotice('Showing offline cached series data.');
+                setOfflineNotice(
+                    resolvedTests.length > 0
+                        ? 'Showing offline cached series data.'
+                        : 'Unable to load tests while offline. Reconnect and tap Retry.'
+                );
+            } else if (networkFailed && !hasSeriesRef.current) {
+                setLoadError(
+                    'Unable to reach MindFlow servers right now. Check your connection and tap Retry.'
+                );
             } else if (!networkFailed) {
                 setOfflineNotice(null);
+                if (hasSeriesRef.current) {
+                    setLoadError(null);
+                }
             }
 
             setLoading(false);
         },
         [seriesId, userId]
     );
+
+    useEffect(() => {
+        setSourceFilter('all');
+    }, [seriesId]);
 
     useEffect(() => {
         const nextBundle = seriesId ? getCachedSeriesBundleSnapshot(seriesId) : null;
@@ -253,6 +291,7 @@ export const TestsListPage: React.FC = () => {
         setTests(nextBundle?.tests ?? []);
         hasSeriesRef.current = Boolean(nextBundle?.series);
         setAttempts(nextAttempts ?? []);
+        setLoadError(null);
         setLoading(Boolean(seriesId && !nextBundle));
         void loadSeriesData(false);
     }, [seriesId, userId, loadSeriesData]);
@@ -410,12 +449,27 @@ export const TestsListPage: React.FC = () => {
                 {loading ? (
                     <ListSkeleton count={4} />
                 ) : !series ? (
-                    <EmptyState
-                        title="Series Not Found"
-                        description="This test series does not exist or is currently unavailable."
-                        actionLabel="Back to Categories"
-                        onAction={() => navigate(ROUTES.TEST_SERIES.ROOT)}
-                    />
+                    loadError ? (
+                        <EmptyState
+                            icon={<WifiOff className="w-8 h-8 text-amber-500" />}
+                            title="Could Not Load Test Series"
+                            description={loadError}
+                            actionLabel="Retry"
+                            onAction={() => {
+                                triggerHaptic('light');
+                                void loadSeriesData(true);
+                            }}
+                            secondaryActionLabel="Back to Categories"
+                            onSecondaryAction={() => navigate(ROUTES.TEST_SERIES.ROOT)}
+                        />
+                    ) : (
+                        <EmptyState
+                            title="Series Not Found"
+                            description="This test series does not exist or is currently unavailable."
+                            actionLabel="Back to Categories"
+                            onAction={() => navigate(ROUTES.TEST_SERIES.ROOT)}
+                        />
+                    )
                 ) : (
                     <>
                         {/* Compact Series Description & Stats Bar (keeps tests above the fold) */}
@@ -527,11 +581,24 @@ export const TestsListPage: React.FC = () => {
                                 </div>
 
                                 {tests.length === 0 ? (
-                                    <EmptyState
-                                        title="No Tests Uploaded"
-                                        description="Tests for this series will be available soon."
-                                        icon={<FileText className="w-8 h-8" />}
-                                    />
+                                    offlineNotice ? (
+                                        <EmptyState
+                                            icon={<WifiOff className="w-8 h-8 text-amber-500" />}
+                                            title="Tests Unavailable Offline"
+                                            description={offlineNotice}
+                                            actionLabel="Retry"
+                                            onAction={() => {
+                                                triggerHaptic('light');
+                                                void loadSeriesData(true);
+                                            }}
+                                        />
+                                    ) : (
+                                        <EmptyState
+                                            title="No Tests Uploaded"
+                                            description="Tests for this series will be available soon."
+                                            icon={<FileText className="w-8 h-8" />}
+                                        />
+                                    )
                                 ) : filteredTests.length === 0 ? (
                                     <EmptyState
                                         title={`No ${sourceFilter === 'PYQ' ? 'PYQ Papers' : 'Expert Mocks'} Found`}

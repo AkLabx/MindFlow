@@ -435,6 +435,7 @@ describe('Admin Mock Tests CMS Controls (v1.0.369)', () => {
                 series_id: 'ser-1',
                 name: 'BPSC Full Mock 1 (Copy 2)',
                 description: 'Full length mock',
+                test_type: 'MOCK',
                 duration_minutes: 120,
                 total_marks: 150,
                 passing_marks: 95,
@@ -450,6 +451,9 @@ describe('Admin Mock Tests CMS Controls (v1.0.369)', () => {
             expect(calls.selectTestsQueries[0]).toBe(
                 '*, mock_series(id, name, category_id, is_published, mock_categories(id, name))'
             );
+
+            await cloneTest({ ...source, test_type: 'PYQ' }, ['BPSC Full Mock 1']);
+            expect(calls.insertTestPayloads[1].test_type).toBe('PYQ');
         });
     });
 

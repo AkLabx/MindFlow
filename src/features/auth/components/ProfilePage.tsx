@@ -265,6 +265,30 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onSignOut, onNavigateToSettin
 
   const { stats: userStats, loading: statsLoading } = useProfileStats();
 
+  const attemptedStudentIdSyncRef = useRef<string | null>(null);
+  const refreshProfileRef = useRef(refreshProfile);
+  refreshProfileRef.current = refreshProfile;
+
+  useEffect(() => {
+    if (!user?.id || profile?.student_id) return;
+    let cancelled = false;
+    const syncMissingStudentId = () => {
+      if (cancelled || typeof refreshProfileRef.current !== 'function') return;
+      Promise.resolve(refreshProfileRef.current()).catch(() => {
+        // Preserve Pending Sync fallback gracefully when offline
+      });
+    };
+    if (attemptedStudentIdSyncRef.current !== user.id && navigator.onLine !== false) {
+      attemptedStudentIdSyncRef.current = user.id;
+      syncMissingStudentId();
+    }
+    window.addEventListener('online', syncMissingStudentId);
+    return () => {
+      cancelled = true;
+      window.removeEventListener('online', syncMissingStudentId);
+    };
+  }, [user?.id, profile?.student_id]);
+
   const handleSetActiveTargetExam = async (examId: string) => {
     triggerHaptic('light');
     setActiveExam(examId, 'modal');

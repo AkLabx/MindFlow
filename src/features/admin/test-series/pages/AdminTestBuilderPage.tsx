@@ -68,7 +68,8 @@ type FieldKey =
     | 'passing_marks'
     | 'negative_marks'
     | 'release_date'
-    | 'expiry_date';
+    | 'expiry_date'
+    | 'live_end_at';
 
 interface ExamPreset {
     id: string;
@@ -117,6 +118,7 @@ const STEP_2_FIELDS: FieldKey[] = [
     'passing_marks',
     'negative_marks',
     'expiry_date',
+    'live_end_at',
 ];
 
 const STEPS: { number: StepNumber; label: string; shortLabel: string; nextLabel?: string }[] = [
@@ -533,6 +535,13 @@ export const AdminTestBuilderPage: React.FC = () => {
             const exp = new Date(formData.expiry_date);
             if (!Number.isNaN(rel.getTime()) && !Number.isNaN(exp.getTime()) && exp <= rel) {
                 fieldErrors.expiry_date = 'Expiry date must be after Release date.';
+            }
+        }
+        if (formData.is_live && formData.live_start_at.trim() && formData.live_end_at.trim()) {
+            const start = new Date(formData.live_start_at);
+            const end = new Date(formData.live_end_at);
+            if (!Number.isNaN(start.getTime()) && !Number.isNaN(end.getTime()) && end <= start) {
+                fieldErrors.live_end_at = 'Live Window End must be after Live Window Start.';
             }
         }
 
@@ -1809,6 +1818,9 @@ export const AdminTestBuilderPage: React.FC = () => {
                                                     Live Window End (Optional)
                                                 </label>
                                                 <input
+                                                    ref={el => {
+                                                        fieldRefs.current.live_end_at = el;
+                                                    }}
                                                     id="test-live-end-at"
                                                     type="datetime-local"
                                                     value={formData.live_end_at}
@@ -1818,8 +1830,28 @@ export const AdminTestBuilderPage: React.FC = () => {
                                                             live_end_at: e.target.value,
                                                         }))
                                                     }
-                                                    className={`${inputBaseClass} ${validBorderClass}`}
+                                                    onBlur={() => markTouched('live_end_at')}
+                                                    aria-invalid={showFieldError('live_end_at', 2) ? 'true' : 'false'}
+                                                    aria-describedby={
+                                                        showFieldError('live_end_at', 2)
+                                                            ? 'test-live-end-error'
+                                                            : undefined
+                                                    }
+                                                    className={`${inputBaseClass} ${
+                                                        showFieldError('live_end_at', 2)
+                                                            ? errorBorderClass
+                                                            : validBorderClass
+                                                    }`}
                                                 />
+                                                {showFieldError('live_end_at', 2) && (
+                                                    <p
+                                                        id="test-live-end-error"
+                                                        className="mt-1.5 text-xs text-red-600 dark:text-red-400 flex items-center gap-1"
+                                                    >
+                                                        <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                                                        <span>{validation.fieldErrors.live_end_at}</span>
+                                                    </p>
+                                                )}
                                             </div>
                                         </div>
                                     )}

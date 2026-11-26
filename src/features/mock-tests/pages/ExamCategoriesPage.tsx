@@ -131,8 +131,6 @@ const CategorySeriesRail: React.FC<CategorySeriesRailProps> = ({
             <div
                 ref={railRef}
                 data-h-rail="true"
-                onTouchStart={(e) => e.stopPropagation()}
-                onPointerDown={(e) => e.stopPropagation()}
                 className="mf-h-rail gap-3.5 sm:gap-4 py-1 pr-4"
             >
                 {group.items.map((item) =>

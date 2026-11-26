@@ -38,6 +38,15 @@ const formatReceiptDate = (iso: string | null | undefined): string => {
     }
 };
 
+const SETTLED_PAYMENT_STATUSES = new Set([
+    'paid',
+    'verified',
+    'captured',
+    'captured_by_client',
+    'settled',
+    'completed',
+]);
+
 const computeDaysRemainingLabel = (
     status: string,
     validUntil: string | null | undefined,
@@ -47,7 +56,7 @@ const computeDaysRemainingLabel = (
     if (normalized === 'pending_verification' || normalized === 'pending') {
         return { label: 'Awaiting Admin Approval', tone: 'pending' };
     }
-    if (normalized === 'rejected' || normalized === 'revoked') {
+    if (normalized === 'rejected' || normalized === 'revoked' || normalized === 'failed' || normalized === 'cancelled') {
         return { label: 'Rejected / Inactive', tone: 'expired' };
     }
     if (!validUntil) {
@@ -176,9 +185,19 @@ export const PurchasedCoursesPage: React.FC = () => {
         }
 
         const merged = receipts.map((receipt) => {
+            const normalizedReceiptStatus = String(receipt.status ?? '').toLowerCase();
+            const isSettledReceipt = SETTLED_PAYMENT_STATUSES.has(normalizedReceiptStatus);
+            const seriesEntitlementCandidate =
+                isSettledReceipt && receipt.series_id
+                    ? entitlementBySeriesId.get(receipt.series_id)
+                    : undefined;
             const matchedEnt =
                 entitlementByPaymentId.get(receipt.id) ??
-                (receipt.series_id ? entitlementBySeriesId.get(receipt.series_id) : undefined);
+                (seriesEntitlementCandidate &&
+                (!seriesEntitlementCandidate.payment_id ||
+                    seriesEntitlementCandidate.payment_id === receipt.id)
+                    ? seriesEntitlementCandidate
+                    : undefined);
 
             if (matchedEnt) {
                 representedEntitlementIds.add(matchedEnt.id);
@@ -191,7 +210,7 @@ export const PurchasedCoursesPage: React.FC = () => {
             );
 
             const effectiveStatus =
-                receipt.status === 'pending_verification' && matchedEnt?.status === 'active'
+                normalizedReceiptStatus === 'pending_verification' && matchedEnt?.status === 'active'
                     ? 'paid'
                     : receipt.status;
 
@@ -335,9 +354,9 @@ export const PurchasedCoursesPage: React.FC = () => {
                                                     <span>Order ID: #{card.orderCode}</span>
                                                 </span>
                                             </div>
-                                            <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors leading-snug">
+                                            <h2 className="text-base sm:text-lg font-black text-slate-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors leading-snug">
                                                 {card.courseName}
-                                            </h3>
+                                            </h2>
                                         </div>
 
                                         <div className="flex items-center gap-2 shrink-0">
@@ -368,7 +387,12 @@ export const PurchasedCoursesPage: React.FC = () => {
                                             <span>
                                                 End Date:{' '}
                                                 <strong className="text-slate-900 dark:text-white">
-                                                    {card.endDate ? formatReceiptDate(card.endDate) : 'Pending'}
+                                                    {card.endDate
+                                                        ? formatReceiptDate(card.endDate)
+                                                        : String(card.status ?? '').toLowerCase() === 'pending_verification' ||
+                                                            String(card.status ?? '').toLowerCase() === 'pending'
+                                                          ? 'Pending'
+                                                          : '—'}
                                                 </strong>
                                             </span>
                                         </div>

@@ -9,6 +9,7 @@ import { useNotification } from '@/hooks/useNotification';
 import { triggerHaptic } from '@/lib/haptics';
 import { telemetry } from '@/lib/telemetry';
 import {
+    MOCK_CACHE_INVALIDATED_EVENT,
     PreparedMockActiveAttemptState,
     fetchPreparedMockTestQuestions,
     fetchPublishedTests,
@@ -106,7 +107,7 @@ export const PreparedMockExamPage: React.FC = () => {
                   ? getCachedSeriesBundleSnapshot(initialCachedTest.series_id)?.tests ?? null
                   : null,
           }).unlocked
-        : true;
+        : false;
     const initialCachedQuestions =
         testId && initialSyncAccessUnlocked
             ? getCachedPreparedTestQuestionsSnapshot(testId, initialCachedTest?.question_ids) ?? []
@@ -455,6 +456,17 @@ export const PreparedMockExamPage: React.FC = () => {
     useEffect(() => {
         loadExamSession();
     }, [loadExamSession]);
+
+    useEffect(() => {
+        if (!blockedCourseSeries) return;
+        const handleInvalidation = () => {
+            loadExamSession();
+        };
+        window.addEventListener(MOCK_CACHE_INVALIDATED_EVENT, handleInvalidation);
+        return () => {
+            window.removeEventListener(MOCK_CACHE_INVALIDATED_EVENT, handleInvalidation);
+        };
+    }, [blockedCourseSeries, loadExamSession]);
 
     // Helper: accumulate time spent on current question
     const withCurrentQuestionTimeFlushed = useCallback(
@@ -905,6 +917,9 @@ export const PreparedMockExamPage: React.FC = () => {
                     series={blockedCourseSeries}
                     studentId={profile?.student_id ?? null}
                     userId={userId}
+                    onRequestSubmitted={() => {
+                        loadExamSession();
+                    }}
                 />
             </div>
         );

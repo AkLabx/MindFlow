@@ -561,12 +561,16 @@ export const ExamPreparedMockTestsPage: React.FC = () => {
                                                         />
                                                         <span
                                                             className={`absolute top-3 right-3 text-[10px] font-black px-2.5 py-1 rounded-md uppercase tracking-wide shadow-sm ${
-                                                                seriesItem.is_premium
+                                                                seriesItem.is_premium || seriesItem.price_inr > 0
                                                                     ? 'bg-amber-400 text-amber-950'
                                                                     : 'bg-emerald-500 text-white'
                                                             }`}
                                                         >
-                                                            {seriesItem.is_premium ? 'PRO' : 'FREE'}
+                                                            {seriesItem.price_inr > 0
+                                                                ? `₹${seriesItem.price_inr}`
+                                                                : seriesItem.is_premium
+                                                                  ? 'PRO'
+                                                                  : 'FREE'}
                                                         </span>
                                                     </div>
 
@@ -714,7 +718,12 @@ export const ExamPreparedMockTestsPage: React.FC = () => {
                                                                             : 'bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300'
                                                                     }`}
                                                                 >
-                                                                    {test.is_free ? 'Free' : 'PRO'}
+                                                                    {test.is_free_demo &&
+                                                                    (test.series_is_premium || test.series_price_inr > 0)
+                                                                        ? 'Free Demo'
+                                                                        : test.is_free
+                                                                          ? 'Free'
+                                                                          : 'PRO'}
                                                                 </span>
                                                                 {test.is_full_length && (
                                                                     <span className="px-2.5 py-0.5 rounded-md text-[11px] font-bold bg-purple-50 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300">
