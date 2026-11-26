@@ -23,24 +23,18 @@
 - **Target Branch:** `feat/v1.0.384-bundles-onboarding-swipe-ux`
 - **Scope (`v2.0_blueprint.md` Step 4):**
   1. **Course Bundles & Renewals:** `course_type = 'bundle'` in `resolveMockTestAccess`, `SeriesDrawer`, `AdminFinancialsPage`, bundle cards on `/mcqs/test-series`, `<14d` `Renew Access` + safe polymorphic `target_route` on `My Purchase`.
-  2. **Mock Card Shift Detail & Declutter:** Show `Morning`/`Afternoon`/`Evening` + shift timing on test cards; remove boxy `1, 2, 3, 4` number column and duplicate header/card noise for clean, lag-free mobile layout.
-  3. **1:1 Finger-Tracking Swipe & Rail Arbitration:** Upgrade `SwipeableTabViewport` (Quiz History, Mock Tests, Test Series Hub) for live `1:1` synchronous drag tracking; on `/mcqs/test-series`, arbitrate inner `.mf-h-rail` series scroll vs outer exam-tab swipe seamlessly.
-  4. **`View Result` 3-Tab Hub & Leaderboard Move:** Completed tests show **`View Result`**, opening reusable 3-tab Result page (`Analysis | Solutions | Leaderboard` at top). Remove `<TestLeaderboardCard />` from `TestDetailPage`, `TestsListPage`, and everywhere else.
-  5. **`Start Test` + Modular Exam Onboarding:** Rename `"View Details"` $\rightarrow$ **`"Start Test"`**. SSC flow: pattern popup (`Eduquity` vs `TCS iON`) $\rightarrow$ Step 1 general instructions/stats/language + `Next` $\rightarrow$ Step 2 UI symbol legend + **"Select Test Language"** + mandatory integrity declaration checkbox $\rightarrow$ CBT. Scalable per-exam config (SSC, BPSC, future exams).
-  6. **Student ID Prefix Rebrand:** Replace `MF-` prefix (`profiles.student_id`, trigger, `CHECK` constraint, backfill, `order_code`, Admin/UI/tests) with a clean prefix.
-  7. **`QuizConfig` (`/quiz/config`) Fixes:** Fix `!activeExamInfo` guard so selecting one exam keeps `examDomainGroups` visible for multi-exam selection; sort `allExamShifts` **latest-to-oldest** chronologically.
-- **Pre-Flight:** Run `/plan` + `/grill-me` first to confirm **Circuit Breakers #1 (`>10 files`) & #3 (DDL)**, replacement Student ID prefix (`STU-`/`ASP-`/`MFL-`/`MIND-`), bundle scope, and onboarding wording.
+  2. **Shift Detail & Decluttered Cards:** Show `Morning`/`Afternoon`/`Evening` + timing on test cards; remove boxy `1, 2, 3, 4` number column, deduplicate repeated card/header text, maximize mobile `390x844` speed/clarity.
+  3. **1:1 Swipe & Rail Arbitration:** `60fps` `1:1` finger-tracking swipe across Quiz History, Mock Tests, Test Series, Result Hub & related tabbed pages; arbitrate inner `.mf-h-rail` scroll vs outer `/mcqs/test-series` exam-tab swipe smoothly.
+  4. **`View Result` 3-Tab Hub & Leaderboard Move:** Submitted tests switch CTA dynamically to **`View Result`**, opening reusable 3-tab Result Hub (`Analysis | Solutions | Leaderboard`). Remove leaderboards from all other screens.
+  5. **`Start Test` + Modular Exam Onboarding:** Rename `"View Details"` $\rightarrow$ **`"Start Test"`**. SSC: **`New Pattern (Eduquity)`** vs **`Old Pattern (TCS iON)`** popup $\rightarrow$ Step 1 full format overview (`TestDetailPage` info) + official rules + language + `Next` $\rightarrow$ Step 2 UI symbol legend (Green/Red/Blue-Purple/Gray, `Save & Next`/`Previous`/`Mark`/`Unmark Review`) + **"All the Best"** + bottom **"Select Test Language"** + mandatory integrity declaration checkbox $\rightarrow$ CBT. Pluggable BPSC & future exam configs.
+  6. **Student ID Rebrand:** Replace `MF-` prefix (`profiles.student_id`, trigger, `CHECK`, backfill, `order_code`, Admin/UI/tests) with clean prefix (`ASP-`/`STU-`/`MIND-`).
+  7. **`QuizConfig` Fixes:** Keep `examDomainGroups` visible on selection for multi-exam filtering; sort `allExamShifts` latest-to-oldest.
+- **Pre-Flight:** `/plan` + `/grill-me` first (`CB#1`, `CB#3`, Student ID prefix, bundles, onboarding details).
 
----
-
-## 4. Phase 4 Closeout Checklist
-1. Bump `package.json` (`1.0.384`) & `android/app/build.gradle` (`versionCode 11`, `"1.11"`).
-2. Write `docs/versions/v1.0.384.md` from template.
-3. Update `docs/DECISIONS_MASTER.md` (incl. Student ID prefix & Leaderboard move).
-4. Prepend IST entry to `docs/APP_JOURNEY_LOG.md`.
-5. Update `docs/blueprint/v2.0_blueprint.md` (Step 4 `[x] DONE` + PR `#`, promote Step 5, refine Step 9).
-6. Overwrite `CURRENT_HANDOVER.md` (`< 6 KB`) for `v1.0.385`.
-7. Secret scan, PR merge after CI green, delete branch, sync `main`, output `v1.0.385` starter prompt.
+## 4. Phase 4 Checklist (`v1.0.384`)
+1. Bump `package.json` (`1.0.384`) & `build.gradle` (`11`, `"1.11"`).
+2. Write `docs/versions/v1.0.384.md` & update `DECISIONS_MASTER.md`, `APP_JOURNEY_LOG.md`, `v2.0_blueprint.md`.
+3. Overwrite `CURRENT_HANDOVER.md` (`< 6 KB`) for `v1.0.385`, secret-scan, PR/CI merge, sync, output `v1.0.385` prompt.
 
 ---
 
@@ -53,6 +47,6 @@ Read in strict Cold-Start order ONLY:
 2. docs/DECISIONS_MASTER.md
 3. docs/blueprint/v2.0_blueprint.md
 
-Execute Gen 2 Step 4 (v1.0.384) on branch feat/v1.0.384-bundles-onboarding-swipe-ux: Course Bundles & multi-course entitlements, Shift timing badges & decluttered cards (remove wide number column), 1:1 finger-tracking SwipeableTabViewport + Test Series rail/tab arbitration, dynamic View Result 3-tab hub (Analysis | Solutions | Leaderboard ONLY here, remove leaderboard elsewhere), modular Start Test onboarding (SSC Eduquity vs TCS iON popup -> Step 1 rules -> Step 2 symbols + language + declaration; BPSC config), Student ID prefix rebrand (replacing MF-), and QuizConfig multi-exam + latest-to-oldest shift filter fixes.
+Execute Gen 2 Step 4 (v1.0.384) on branch feat/v1.0.384-bundles-onboarding-swipe-ux: Course Bundles & multi-course entitlements, Shift timing badges & decluttered zero-duplicate cards (remove wide number column, zero lag on 390x844), 1:1 finger-tracking SwipeableTabViewport across Quiz History/Mock Tests/Test Series/Result Hub/related tabbed views + Test Series rail/tab arbitration, dynamic View Result 3-tab hub (Analysis | Solutions | Leaderboard ONLY here, remove leaderboard elsewhere), modular Start Test onboarding (SSC Eduquity vs TCS iON popup -> Step 1 format overview + rules + language -> Step 2 Green/Red/Blue-Purple/Gray UI legend + All the Best + Select Test Language + mandatory declaration; BPSC config), Student ID prefix rebrand (replacing MF-), and QuizConfig multi-exam + latest-to-oldest shift filter fixes.
 First run /plan + /grill-me via ask_question to confirm Circuit Breakers (#1 >10 files, #3 DDL), replacement Student ID prefix, and scope decisions before editing code. Follow System-2 Cognitive Pre-Flight, verify with tsc --noEmit, vitest (--pool=forks --maxWorkers=1), vite build, playwright test (--workers=1), supabase_mcp advisors, and Desktop (1280x800) + Mobile (390x844) Chrome DevTools MCP checks, then complete all 7 Phase 4 closeout steps and output the starter prompt for v1.0.385.
 ```
