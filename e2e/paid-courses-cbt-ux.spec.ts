@@ -2,7 +2,7 @@ import { expect, test, type Page, type Route } from '@playwright/test';
 
 const SUPABASE_URL = 'https://sjcfagpjstbfxuiwhlps.supabase.co';
 const MOCK_USER_ID = '22222222-2222-4222-8222-222222222222';
-const STUDENT_ID = 'MF-100042';
+const STUDENT_ID = 'MIND-100042';
 
 const CAT_BPSC_ID = 'cat-bpsc-383';
 const CAT_SSC_ID = 'cat-ssc-383';
@@ -318,7 +318,7 @@ async function setupMockBackend(page: Page, options: { withPurchase?: boolean } 
           {
             id: 'pay-e2e-1',
             user_id: MOCK_USER_ID,
-            order_code: 'MF-261125-PRO01',
+            order_code: 'ORD-261125-PRO01',
             amount: 349,
             currency: 'INR',
             status: 'paid',
@@ -411,7 +411,7 @@ test('Desktop (1280x800) & Mobile (390x844) v1.0.383 E2E UX, Paid Guard & Layout
 
   const mockControls = await setupMockBackend(mPage, { withPurchase: false });
 
-  // 1. /profile -> Student ID MF-100042 + 44px copy button
+  // 1. /profile -> Student ID MIND-100042 + 44px copy button
   await mPage.goto('http://127.0.0.1:3000/#/profile', { waitUntil: 'domcontentloaded' });
   await expect(mPage.getByTestId('profile-student-id')).toHaveText(STUDENT_ID);
   const copyBtnBox = await mPage.getByTestId('copy-student-id-btn').boundingBox();
@@ -462,10 +462,10 @@ test('Desktop (1280x800) & Mobile (390x844) v1.0.383 E2E UX, Paid Guard & Layout
   await mPage.goto(`http://127.0.0.1:3000/#/mcqs/test-series/series/${SER_SSC_PAID_ID}`, { waitUntil: 'domcontentloaded' });
   const insideFilter = mPage.getByTestId('series-tests-source-filter');
   await expect(insideFilter).toBeVisible();
-  await insideFilter.getByRole('button', { name: 'PYQ Papers' }).click();
+  await insideFilter.getByRole('tab', { name: 'PYQ Papers' }).click();
   await expect(mPage.getByRole('heading', { level: 3, name: 'SSC CGL Tier 1 PYQ 2024 Shift 1' })).toBeVisible();
   await expect(mPage.getByRole('heading', { level: 3, name: 'SSC CGL Expert Challenger #2' })).toHaveCount(0);
-  await insideFilter.getByRole('button', { name: 'All Types' }).click();
+  await insideFilter.getByRole('tab', { name: 'All Types' }).click();
 
   // 5. Direct #/exam/:lockedId URL guard -> blocked with 0 question fetches
   mockControls.resetQuestionsFetchCount();
@@ -494,10 +494,14 @@ test('Desktop (1280x800) & Mobile (390x844) v1.0.383 E2E UX, Paid Guard & Layout
   expect(bpscMobileMetrics.footerBottom).toBeLessThanOrEqual(845);
   expect(bpscMobileMetrics.footerHeight).toBeGreaterThanOrEqual(52);
 
-  // 7. SSC CGL TCS iON Classic on Mobile (390x844) -> fits cleanly without overflow
+  // 7. SSC CGL TCS iON Classic on Mobile (390x844) -> Step 0 pattern popup -> Step 1 -> Step 2 -> fits cleanly without overflow
   await mPage.goto(`http://127.0.0.1:3000/#/mcqs/test-series/test/${TEST_SSC_DEMO_ID}`, { waitUntil: 'domcontentloaded' });
   await expect(mPage.getByTestId('ssc-cgl-cbt-skin-selector')).toBeVisible();
-  await mPage.getByRole('button', { name: /^Start Test$/i }).click();
+  await mPage.getByTestId('confirm-cbt-pattern-btn').click();
+  await mPage.getByTestId('onboarding-next-btn').click();
+  await mPage.getByTestId('onboarding-lang-bilingual').click();
+  await mPage.getByTestId('onboarding-declaration-checkbox').check();
+  await mPage.getByTestId('test-detail-primary-cta').click();
   await expect(mPage.getByTestId('cbt-skin-tcs-ion')).toBeVisible();
   const tcsMobileMetrics = await mPage.evaluate(() => {
     const saveBtn = document.querySelector('[data-testid="cbt-save-next-btn"]');
@@ -526,15 +530,20 @@ test('Desktop (1280x800) & Mobile (390x844) v1.0.383 E2E UX, Paid Guard & Layout
   const card = dPage.getByTestId('purchase-receipt-card').first();
   await expect(card).toBeVisible();
   await expect(card).toContainText('SSC CGL Tier 1 Pro Batch');
-  await expect(card).toContainText('MF-261125-PRO01');
+  await expect(card).toContainText('ORD-261125-PRO01');
   await expect(card).toContainText('remaining');
   await card.click();
   await expect(dPage).toHaveURL(new RegExp(`#/mcqs/test-series/series/${SER_SSC_PAID_ID}`));
 
   // Switch SSC CGL CBT Skin to Eduquity New Pattern & verify on Desktop
   await dPage.goto(`http://127.0.0.1:3000/#/mcqs/test-series/test/${TEST_SSC_DEMO_ID}`, { waitUntil: 'domcontentloaded' });
+  await expect(dPage.getByTestId('ssc-cgl-cbt-skin-selector')).toBeVisible();
   await dPage.getByTestId('cbt-skin-option-ssc_cgl_eduquity').click();
-  await dPage.getByRole('button', { name: /^Start Test$/i }).click();
+  await dPage.getByTestId('confirm-cbt-pattern-btn').click();
+  await dPage.getByTestId('onboarding-next-btn').click();
+  await dPage.getByTestId('onboarding-lang-bilingual').click();
+  await dPage.getByTestId('onboarding-declaration-checkbox').check();
+  await dPage.getByTestId('test-detail-primary-cta').click();
   await expect(dPage.getByTestId('cbt-skin-eduquity')).toBeVisible();
   await expect(dPage.getByTestId('eduquity-zoom-in-btn')).toBeVisible();
 

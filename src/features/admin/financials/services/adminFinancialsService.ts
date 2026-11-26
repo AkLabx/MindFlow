@@ -73,6 +73,7 @@ export interface EnrollableCourseSeriesOption {
     validity_days: number;
     is_premium: boolean;
     is_published: boolean;
+    course_type?: string;
 }
 
 export const resolvePaymentAmountInr = (
@@ -202,7 +203,7 @@ export const fetchFinancialData = async (): Promise<{
 export const fetchEnrollableMockSeries = async (): Promise<EnrollableCourseSeriesOption[]> => {
     const { data, error } = await supabase
         .from(DB_TABLES.MOCK.SERIES)
-        .select('id, name, price_inr, validity_days, is_premium, is_published')
+        .select('id, name, price_inr, validity_days, is_premium, is_published, course_type')
         .order('created_at', { ascending: false });
 
     if (error) throw error;
@@ -213,6 +214,7 @@ export const fetchEnrollableMockSeries = async (): Promise<EnrollableCourseSerie
         validity_days: Math.max(1, Number(row.validity_days ?? 365)),
         is_premium: Boolean(row.is_premium),
         is_published: Boolean(row.is_published),
+        course_type: typeof row.course_type === 'string' ? row.course_type : 'mock_series',
     }));
 };
 

@@ -36,6 +36,7 @@ import { QuestionBuilder } from '../../question-builder/components';
 import { ConfirmDialog, StatusBadge } from '../components';
 import { InfoHintPopover } from '@/components/ui/InfoHintPopover';
 import { MAX_PREPARED_MOCK_QUESTIONS } from '@/features/quiz/services/quizCreationService';
+import { normalizeShiftSlot, type ShiftSlot } from '@/features/mock-tests/utils/shiftMetadata';
 
 type StepNumber = 1 | 2 | 3 | 4;
 
@@ -44,6 +45,8 @@ interface TestFormState {
     name: string;
     description: string;
     test_type: 'MOCK' | 'PYQ';
+    shift_slot: ShiftSlot | '';
+    shift_timing: string;
     duration_minutes: string;
     total_marks: string;
     passing_marks: string;
@@ -162,6 +165,8 @@ const buildFormState = (test: any | undefined, defaultSeriesId: string): TestFor
     name: test?.name ?? '',
     description: test?.description ?? '',
     test_type: test?.test_type === 'PYQ' ? 'PYQ' : 'MOCK',
+    shift_slot: normalizeShiftSlot(test?.shift_slot) ?? '',
+    shift_timing: typeof test?.shift_timing === 'string' ? test.shift_timing : '',
     duration_minutes: String(test?.duration_minutes ?? 60),
     total_marks: String(test?.total_marks ?? 100),
     passing_marks: String(test?.passing_marks ?? 33),
@@ -734,6 +739,8 @@ export const AdminTestBuilderPage: React.FC = () => {
                 name: formData.name.trim(),
                 description: formData.description.trim(),
                 test_type: formData.test_type,
+                shift_slot: formData.shift_slot || null,
+                shift_timing: formData.shift_timing.trim() || null,
                 duration_minutes: Math.round(validation.parsed.durationMinutes),
                 total_marks: validation.parsed.totalMarks,
                 passing_marks: validation.parsed.passingMarks,
@@ -1287,6 +1294,72 @@ export const AdminTestBuilderPage: React.FC = () => {
                                             })}
                                         </div>
                                     </div>
+
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                                    <div>
+                                        <div className="flex items-center gap-1 mb-1">
+                                            <label
+                                                htmlFor="test-shift-slot"
+                                                className="block text-sm font-medium text-slate-700 dark:text-slate-300"
+                                            >
+                                                Shift Slot (Optional)
+                                            </label>
+                                            <InfoHintPopover
+                                                title="Exam Shift Slot"
+                                                purpose="Optional shift classification (Morning, Afternoon, or Evening) used for PYQ shift badges and sorting."
+                                                studentVisibility="Shown as a clean shift pill on PYQ paper cards."
+                                                example="Select Morning for Shift-1 (09:00 AM - 10:00 AM)."
+                                                align="start"
+                                            />
+                                        </div>
+                                        <select
+                                            id="test-shift-slot"
+                                            name="shift_slot"
+                                            value={formData.shift_slot}
+                                            onChange={e =>
+                                                setFormData(prev => ({
+                                                    ...prev,
+                                                    shift_slot: (normalizeShiftSlot(e.target.value) ?? '') as ShiftSlot | '',
+                                                }))
+                                            }
+                                            className={`${inputBaseClass} ${validBorderClass}`}
+                                        >
+                                            <option value="">None</option>
+                                            <option value="morning">Morning</option>
+                                            <option value="afternoon">Afternoon</option>
+                                            <option value="evening">Evening</option>
+                                        </select>
+                                    </div>
+
+                                    <div>
+                                        <div className="flex items-center gap-1 mb-1">
+                                            <label
+                                                htmlFor="test-shift-timing"
+                                                className="block text-sm font-medium text-slate-700 dark:text-slate-300"
+                                            >
+                                                Shift Timing (Optional)
+                                            </label>
+                                            <InfoHintPopover
+                                                title="Shift Timing"
+                                                purpose="Optional human-readable exam window label shown alongside the shift badge."
+                                                studentVisibility="Displayed next to the shift slot pill on PYQ cards."
+                                                example="09:00 AM - 10:30 AM"
+                                                align="start"
+                                            />
+                                        </div>
+                                        <input
+                                            id="test-shift-timing"
+                                            name="shift_timing"
+                                            type="text"
+                                            value={formData.shift_timing}
+                                            onChange={e =>
+                                                setFormData(prev => ({ ...prev, shift_timing: e.target.value }))
+                                            }
+                                            placeholder="e.g. 10:00 AM or 09:00 AM - 10:30 AM"
+                                            className={`${inputBaseClass} ${validBorderClass}`}
+                                        />
+                                    </div>
+                                </div>
                             </fieldset>
                         </form>
                     </section>

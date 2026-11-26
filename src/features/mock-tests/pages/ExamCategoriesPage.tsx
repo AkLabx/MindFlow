@@ -29,6 +29,7 @@ import {
     readAllPublishedMockSeriesCatalogIndexedDBCache,
     readLiveMockTestsIndexedDBCache,
     readUserCourseEntitlementsIndexedDBCache,
+    resolveEffectiveSeriesEntitlement,
 } from '../api/mockTestsApi';
 import { useAuth } from '@/features/auth';
 import { ROUTES } from '@/config/routes';
@@ -64,6 +65,7 @@ interface CategoryGroup {
 interface CategorySeriesRailProps {
     group: CategoryGroup;
     showSeeAll?: boolean;
+    hideHeader?: boolean;
     onSeeAll?: (categoryId: string) => void;
     renderCard: (series: PublishedMockSeriesCatalogItem, cardClassName?: string) => React.ReactNode;
 }
@@ -71,6 +73,7 @@ interface CategorySeriesRailProps {
 const CategorySeriesRail: React.FC<CategorySeriesRailProps> = ({
     group,
     showSeeAll = true,
+    hideHeader = false,
     onSeeAll,
     renderCard,
 }) => {
@@ -89,44 +92,46 @@ const CategorySeriesRail: React.FC<CategorySeriesRailProps> = ({
 
     return (
         <section className="space-y-2.5" aria-label={group.categoryName}>
-            <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2 min-w-0">
-                    <h2 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white tracking-tight truncate">
-                        {group.categoryName}
-                    </h2>
-                    <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-slate-200/80 dark:bg-slate-800 text-slate-600 dark:text-slate-300 shrink-0">
-                        {group.items.length}
-                    </span>
-                </div>
+            {!hideHeader && (
+                <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                        <h2 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white tracking-tight truncate">
+                            {group.categoryName}
+                        </h2>
+                        <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-slate-200/80 dark:bg-slate-800 text-slate-600 dark:text-slate-300 shrink-0">
+                            {group.items.length}
+                        </span>
+                    </div>
 
-                <div className="flex items-center gap-1.5 shrink-0">
-                    <button
-                        type="button"
-                        onClick={() => scrollRail(-1)}
-                        aria-label={`Scroll ${group.categoryName} left`}
-                        className="hidden md:inline-flex min-w-[44px] min-h-[44px] items-center justify-center rounded-xl bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/70 text-slate-600 dark:text-slate-300 hover:border-indigo-400 active:scale-95 transition-all touch-manipulation cursor-pointer"
-                    >
-                        <ChevronLeft className="w-4 h-4" aria-hidden="true" />
-                    </button>
-                    <button
-                        type="button"
-                        onClick={() => scrollRail(1)}
-                        aria-label={`Scroll ${group.categoryName} right`}
-                        className="hidden md:inline-flex min-w-[44px] min-h-[44px] items-center justify-center rounded-xl bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/70 text-slate-600 dark:text-slate-300 hover:border-indigo-400 active:scale-95 transition-all touch-manipulation cursor-pointer"
-                    >
-                        <ChevronRight className="w-4 h-4" aria-hidden="true" />
-                    </button>
-                    {showSeeAll && onSeeAll && (
+                    <div className="flex items-center gap-1.5 shrink-0">
                         <button
                             type="button"
-                            onClick={() => onSeeAll(group.categoryId)}
-                            className="min-h-[44px] min-w-[44px] px-3 py-2 rounded-xl text-xs sm:text-sm font-bold text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 active:scale-95 transition-all touch-manipulation cursor-pointer inline-flex items-center justify-center"
+                            onClick={() => scrollRail(-1)}
+                            aria-label={`Scroll ${group.categoryName} left`}
+                            className="hidden md:inline-flex min-w-[44px] min-h-[44px] items-center justify-center rounded-xl bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/70 text-slate-600 dark:text-slate-300 hover:border-indigo-400 active:scale-95 transition-all touch-manipulation cursor-pointer"
                         >
-                            See All
+                            <ChevronLeft className="w-4 h-4" aria-hidden="true" />
                         </button>
-                    )}
+                        <button
+                            type="button"
+                            onClick={() => scrollRail(1)}
+                            aria-label={`Scroll ${group.categoryName} right`}
+                            className="hidden md:inline-flex min-w-[44px] min-h-[44px] items-center justify-center rounded-xl bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/70 text-slate-600 dark:text-slate-300 hover:border-indigo-400 active:scale-95 transition-all touch-manipulation cursor-pointer"
+                        >
+                            <ChevronRight className="w-4 h-4" aria-hidden="true" />
+                        </button>
+                        {showSeeAll && onSeeAll && (
+                            <button
+                                type="button"
+                                onClick={() => onSeeAll(group.categoryId)}
+                                className="min-h-[44px] min-w-[44px] px-3 py-2 rounded-xl text-xs sm:text-sm font-bold text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 active:scale-95 transition-all touch-manipulation cursor-pointer inline-flex items-center justify-center"
+                            >
+                                See All
+                            </button>
+                        )}
+                    </div>
                 </div>
-            </div>
+            )}
 
             <div
                 ref={railRef}
@@ -274,19 +279,6 @@ export const ExamCategoriesPage: React.FC = () => {
         }
     }, [activeTab, categories]);
 
-    const activeEntitledSeriesIds = useMemo(() => {
-        const nowMs = Date.now();
-        const set = new Set<string>();
-        for (const ent of entitlements) {
-            if (ent?.status !== 'active') continue;
-            const validMs = Date.parse(String(ent.valid_until ?? ''));
-            if (Number.isFinite(validMs) && validMs > nowMs && ent.series_id) {
-                set.add(String(ent.series_id));
-            }
-        }
-        return set;
-    }, [entitlements]);
-
     const handleBack = () => {
         navigate(resolveSafeReturnTarget(location.state));
     };
@@ -350,10 +342,18 @@ export const ExamCategoriesPage: React.FC = () => {
     const renderSeriesCard = useCallback(
         (s: PublishedMockSeriesCatalogItem, extraClassName = '') => {
             const isPyq = s.series_type === 'PYQ';
+            const isBundle = s.course_type === 'bundle';
+            const includedSeriesCount = Array.isArray(s.included_series_ids)
+                ? s.included_series_ids.length
+                : 0;
             const isPaid = isMockSeriesPaid(s);
-            const isUnlocked = activeEntitledSeriesIds.has(s.id);
+            const isUnlocked = Boolean(resolveEffectiveSeriesEntitlement(s.id, entitlements));
             const priceInr = Math.max(0, Number(s.price_inr ?? 0));
             const mrpInr = s.mrp_inr != null ? Number(s.mrp_inr) : null;
+            const discountPct =
+                mrpInr && mrpInr > priceInr
+                    ? Math.round(((mrpInr - priceInr) / mrpInr) * 100)
+                    : 0;
 
             return (
                 <button
@@ -369,6 +369,11 @@ export const ExamCategoriesPage: React.FC = () => {
                             imageUrl={s.thumbnail_url}
                             className="w-full h-full"
                         />
+                        {isBundle && (
+                            <span className="absolute top-2.5 left-2.5 inline-flex items-center bg-amber-500 text-slate-950 text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow-sm">
+                                BUNDLE
+                            </span>
+                        )}
                         {!isPaid ? (
                             <span className="absolute top-2.5 right-2.5 inline-flex items-center bg-emerald-500 text-white text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wide shadow-sm">
                                 Free
@@ -379,11 +384,11 @@ export const ExamCategoriesPage: React.FC = () => {
                                 Unlocked
                             </span>
                         ) : (
-                            <span className="absolute top-2.5 right-2.5 inline-flex items-center gap-1 bg-amber-400 text-amber-950 text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wide shadow-sm">
+                            <span className="absolute top-2.5 right-2.5 inline-flex items-center gap-1 bg-slate-900/90 text-amber-300 text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wide shadow-sm">
                                 {priceInr > 0 ? (
                                     <>
                                         <Lock className="w-3 h-3" aria-hidden="true" />
-                                        <span>₹{priceInr}</span>
+                                        <span>PRO</span>
                                     </>
                                 ) : (
                                     <>
@@ -397,7 +402,7 @@ export const ExamCategoriesPage: React.FC = () => {
 
                     <span className="p-4 flex-1 flex flex-col w-full min-w-0">
                         <span className="flex items-center justify-between gap-2 mb-1.5 w-full">
-                            <span className="flex items-center gap-1.5 min-w-0">
+                            <span className="flex flex-wrap items-center gap-1.5 min-w-0">
                                 <span
                                     className={`text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-md shrink-0 ${
                                         isPyq
@@ -407,14 +412,21 @@ export const ExamCategoriesPage: React.FC = () => {
                                 >
                                     {isPyq ? 'PYQ Paper' : 'Expert Mock'}
                                 </span>
+                                {isBundle && includedSeriesCount > 0 && (
+                                    <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-md bg-amber-50 dark:bg-amber-950/60 text-amber-900 dark:text-amber-300 border border-amber-200/80 dark:border-amber-800/60 shrink-0">
+                                        Includes {includedSeriesCount} Series
+                                    </span>
+                                )}
                                 <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 truncate">
                                     {s.category_name}
                                 </span>
                             </span>
-                            <span className="text-[11px] font-bold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700/80 px-2 py-0.5 rounded-md shrink-0">
-                                {s.published_test_count}{' '}
-                                {s.published_test_count === 1 ? 'Test' : 'Tests'}
-                            </span>
+                            {(!isBundle || s.published_test_count > 0) && (
+                                <span className="text-[11px] font-bold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700/80 px-2 py-0.5 rounded-md shrink-0">
+                                    {s.published_test_count}{' '}
+                                    {s.published_test_count === 1 ? 'Test' : 'Tests'}
+                                </span>
+                            )}
                         </span>
 
                         <span className="font-bold text-base text-slate-900 dark:text-white leading-snug line-clamp-2 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors block">
@@ -428,16 +440,23 @@ export const ExamCategoriesPage: React.FC = () => {
                         )}
 
                         {isPaid && !isUnlocked && priceInr > 0 && (
-                            <span className="mt-auto pt-2.5 flex items-center justify-between text-xs font-bold text-slate-700 dark:text-slate-200">
-                                <span>
-                                    ₹{priceInr}{' '}
+                            <span className="mt-auto pt-2.5 flex items-center justify-between gap-2 text-xs font-bold text-slate-700 dark:text-slate-200">
+                                <span className="inline-flex items-center gap-1.5 flex-wrap">
+                                    <span className="text-sm font-black text-slate-900 dark:text-white">
+                                        ₹{priceInr}
+                                    </span>
                                     {mrpInr && mrpInr > priceInr && (
-                                        <span className="line-through text-slate-400 ml-1 font-normal">
+                                        <span className="line-through text-slate-400 font-normal">
                                             ₹{mrpInr}
                                         </span>
                                     )}
+                                    {discountPct > 0 && (
+                                        <span className="px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 text-[10px] font-black">
+                                            {discountPct}% OFF
+                                        </span>
+                                    )}
                                 </span>
-                                <span className="text-[11px] text-emerald-600 dark:text-emerald-400">
+                                <span className="text-[11px] text-emerald-600 dark:text-emerald-400 shrink-0">
                                     {s.free_demo_count > 0
                                         ? `${s.free_demo_count} Free Demo`
                                         : `${s.validity_days}d Access`}
@@ -448,7 +467,7 @@ export const ExamCategoriesPage: React.FC = () => {
                 </button>
             );
         },
-        [activeEntitledSeriesIds, navToSeries]
+        [entitlements, navToSeries]
     );
 
     const refreshBtn = (
@@ -555,6 +574,7 @@ export const ExamCategoriesPage: React.FC = () => {
                     items: tabSeries,
                 }}
                 showSeeAll={false}
+                hideHeader
                 renderCard={renderSeriesCard}
             />
         );

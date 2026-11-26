@@ -41,6 +41,7 @@ interface CourseCheckoutDialogProps {
     series: CourseCheckoutSeriesInfo | null;
     studentId?: string | null;
     userId?: string | null;
+    isRenewal?: boolean;
     onRequestSubmitted?: (result: CoursePaymentRequestResult) => void;
 }
 
@@ -50,6 +51,7 @@ export const CourseCheckoutDialog: React.FC<CourseCheckoutDialogProps> = ({
     series,
     studentId,
     userId,
+    isRenewal = false,
     onRequestSubmitted,
 }) => {
     const navigate = useNavigate();
@@ -250,7 +252,7 @@ export const CourseCheckoutDialog: React.FC<CourseCheckoutDialogProps> = ({
                 <div className="min-w-0">
                     <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 text-[11px] font-black uppercase tracking-wider">
                         <Lock className="w-3 h-3" aria-hidden="true" />
-                        <span>Unlock Course Access</span>
+                        <span>{isRenewal ? 'Renew Course Access' : 'Unlock Course Access'}</span>
                     </div>
                     <h2
                         id="course-checkout-title"
@@ -387,8 +389,13 @@ export const CourseCheckoutDialog: React.FC<CourseCheckoutDialogProps> = ({
                     <div className="rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700/70 p-3.5 space-y-2 text-xs text-slate-600 dark:text-slate-300">
                         <div className="flex items-center gap-1.5 font-black text-slate-800 dark:text-slate-100">
                             <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" aria-hidden="true" />
-                            <span>How UPI Enrollment Works</span>
+                            <span>{isRenewal ? 'How UPI Renewal Works' : 'How UPI Enrollment Works'}</span>
                         </div>
+                        {isRenewal && (
+                            <p className="text-slate-600 dark:text-slate-300">
+                                Renewing extends your course access validity for {validityDays} days upon Admin verification (e.g., Student ID <strong className="font-mono">MIND-100042</strong>).
+                            </p>
+                        )}
                         {configuredUpiId ? (
                             <div className="flex items-center justify-between gap-2 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 px-3 py-2">
                                 <span className="font-mono font-bold text-slate-900 dark:text-white truncate">

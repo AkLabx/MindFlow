@@ -1,15 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
-import { motion } from 'framer-motion';
 import {
-    Award,
     CheckCircle2,
-    CheckSquare,
-    Clock,
     FileText,
     Lock,
     PlayCircle,
-    Sparkles,
     WifiOff,
 } from 'lucide-react';
 import { ROUTES } from '@/config/routes';
@@ -17,6 +12,7 @@ import { useAuth } from '@/features/auth';
 import { triggerHaptic } from '@/lib/haptics';
 import { telemetry } from '@/lib/telemetry';
 import { DedicatedPageHeader } from '@/components/ui/DedicatedPageHeader';
+import { SwipeableTabViewport } from '@/components/ui/SwipeableTabViewport';
 import {
     MOCK_CACHE_INVALIDATED_EVENT,
     MockTestType,
@@ -33,12 +29,14 @@ import {
     getCachedUserCourseEntitlementsSnapshot,
     getCachedUserSeriesAttemptsSnapshot,
     isMockSeriesPaid,
+    normalizeCourseType,
     normalizeMockSeriesType,
     normalizeMockTestType,
     readAllPublishedMockSeriesCatalogIndexedDBCache,
     readSeriesBundleIndexedDBCache,
     readUserCourseEntitlementsIndexedDBCache,
     readUserSeriesAttemptsIndexedDBCache,
+    resolveEffectiveSeriesEntitlement,
     resolveMockTestAccess,
 } from '../api/mockTestsApi';
 import { Breadcrumbs } from '../components/Breadcrumbs';
@@ -47,8 +45,8 @@ import {
     type CourseCheckoutSeriesInfo,
 } from '../components/CourseCheckoutDialog';
 import { EmptyState } from '../components/EmptyState';
+import { MockTestListCard } from '../components/MockTestListCard';
 import { ListSkeleton } from '../components/Skeletons';
-import { TestLeaderboardCard } from '../components/TestLeaderboardCard';
 
 type SeriesSourceTypeFilter = 'all' | MockTestType;
 
@@ -319,27 +317,69 @@ export const TestsListPage: React.FC = () => {
     const seriesValidityDays = Math.max(1, Number(series?.validity_days ?? 365));
     const seriesFreeDemoCount = Math.max(0, Number(series?.free_demo_count ?? 1));
 
+    const isBundleSeries = normalizeCourseType(series?.course_type) === 'bundle';
+    const bundleChildCount = Array.isArray(series?.included_series_ids)
+        ? series.included_series_ids.length
+        : 0;
+
     const activeSeriesEntitlement = useMemo(() => {
         if (!series?.id) return null;
-        const nowMs = Date.now();
-        return (
-            entitlements.find((ent) => {
-                if (!ent || ent.status !== 'active') return false;
-                const validMs = Date.parse(String(ent.valid_until ?? ''));
-                if (!Number.isFinite(validMs) || validMs <= nowMs) return false;
-                return String(ent.series_id) === String(series.id);
-            }) ?? null
-        );
+        return resolveEffectiveSeriesEntitlement(String(series.id), entitlements);
     }, [entitlements, series?.id]);
 
-    const filteredTests = useMemo(() => {
-        if (sourceFilter === 'all') return tests;
-        return tests.filter((t) => {
-            const effectiveType: MockTestType =
-                normalizeMockTestType(t.test_type) === 'PYQ' || isSeriesPyq ? 'PYQ' : 'MOCK';
-            return effectiveType === sourceFilter;
-        });
-    }, [tests, sourceFilter, isSeriesPyq]);
+    const attemptLookupByTestId = useMemo(() => {
+        const map = new Map<
+            string,
+            {
+                completedAttemptId: string | null;
+                completedTimestamp: number;
+                inProgressAttemptId: string | null;
+                inProgressTimestamp: number;
+            }
+        >();
+
+        for (const attempt of attempts) {
+            if (!attempt?.test_id || !attempt?.id) continue;
+            const testId = String(attempt.test_id);
+            const current = map.get(testId) ?? {
+                completedAttemptId: null,
+                completedTimestamp: -1,
+                inProgressAttemptId: null,
+                inProgressTimestamp: -1,
+            };
+
+            const rawTs =
+                attempt.status === 'completed'
+                    ? attempt.end_time || attempt.created_at || attempt.start_time || ''
+                    : attempt.created_at || attempt.start_time || '';
+            const parsedTs = rawTs ? Date.parse(rawTs) : 0;
+            const ts = Number.isFinite(parsedTs) ? parsedTs : 0;
+
+            if (attempt.status === 'completed' && ts >= current.completedTimestamp) {
+                current.completedAttemptId = String(attempt.id);
+                current.completedTimestamp = ts;
+            } else if (attempt.status === 'in_progress' && ts >= current.inProgressTimestamp) {
+                current.inProgressAttemptId = String(attempt.id);
+                current.inProgressTimestamp = ts;
+            }
+
+            map.set(testId, current);
+        }
+
+        return map;
+    }, [attempts]);
+
+    const getFilteredTestsForTab = useCallback(
+        (tabId: SeriesSourceTypeFilter) => {
+            if (tabId === 'all') return tests;
+            return tests.filter((t) => {
+                const effectiveType: MockTestType =
+                    normalizeMockTestType(t.test_type) === 'PYQ' || isSeriesPyq ? 'PYQ' : 'MOCK';
+                return effectiveType === tabId;
+            });
+        },
+        [tests, isSeriesPyq]
+    );
 
     const checkoutSeriesInfo: CourseCheckoutSeriesInfo | null = useMemo(() => {
         if (!series?.id) return null;
@@ -474,7 +514,19 @@ export const TestsListPage: React.FC = () => {
                     <>
                         {/* Compact Series Description & Stats Bar (keeps tests above the fold) */}
                         <section className="bg-white dark:bg-slate-800 rounded-2xl px-4 py-3.5 sm:px-5 sm:py-4 shadow-xs border border-slate-200/80 dark:border-slate-700/70 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                            <div className="min-w-0 flex-1 space-y-1">
+                            <div className="min-w-0 flex-1 space-y-1.5">
+                                {isBundleSeries && (
+                                    <div className="flex flex-wrap items-center gap-1.5">
+                                        <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider bg-amber-500 text-slate-950">
+                                            BUNDLE
+                                        </span>
+                                        {bundleChildCount > 0 && (
+                                            <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200/80 dark:border-indigo-800/60">
+                                                Includes {bundleChildCount} {bundleChildCount === 1 ? 'Series' : 'Series'}
+                                            </span>
+                                        )}
+                                    </div>
+                                )}
                                 {series.description ? (
                                     <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 line-clamp-2 leading-relaxed">
                                         {series.description}
@@ -485,7 +537,7 @@ export const TestsListPage: React.FC = () => {
                                     </p>
                                 )}
                                 {isPaidSeries && (
-                                    <div className="pt-1 flex flex-wrap items-center gap-2 text-xs font-bold">
+                                    <div className="pt-0.5 flex flex-wrap items-center gap-2 text-xs font-bold">
                                         {activeSeriesEntitlement ? (
                                             <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60">
                                                 <CheckCircle2 className="w-3.5 h-3.5" aria-hidden="true" />
@@ -520,21 +572,11 @@ export const TestsListPage: React.FC = () => {
                                         <Lock className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
                                         <span>Unlock — ₹{seriesPriceInr}</span>
                                     </button>
-                                ) : (
-                                    <span
-                                        className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-black uppercase tracking-wide ${
-                                            isPaidSeries
-                                                ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300'
-                                                : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300'
-                                        }`}
-                                    >
-                                        {isPaidSeries ? 'Unlocked' : 'Free'}
+                                ) : !isPaidSeries ? (
+                                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-black uppercase tracking-wide bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">
+                                        Free
                                     </span>
-                                )}
-                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-slate-100 dark:bg-slate-700/60 text-slate-700 dark:text-slate-200">
-                                    <FileText className="w-3.5 h-3.5 text-indigo-500" aria-hidden="true" />
-                                    {tests.length} {tests.length === 1 ? 'Test' : 'Tests'}
-                                </span>
+                                ) : null}
                                 <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300">
                                     {progressStats.completedTestsCount}/{progressStats.totalTests} Done
                                 </span>
@@ -544,33 +586,36 @@ export const TestsListPage: React.FC = () => {
                         {/* Two Column Layout: Test List first on mobile & desktop */}
                         <div className="flex flex-col lg:flex-row gap-6">
                             {/* Left Column: Test List */}
-                            <div className="flex-1 space-y-3.5">
-                                <div className="flex flex-wrap items-center justify-between gap-2.5">
+                            <div className="flex-1 min-w-0 space-y-3.5">
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200 dark:border-slate-800 pb-0.5">
                                     <h2 className="text-lg sm:text-xl font-extrabold text-slate-900 dark:text-white tracking-tight">
                                         Tests in this Series
                                     </h2>
 
                                     <div
-                                        role="group"
+                                        role="tablist"
                                         aria-label="Filter series tests by source type"
                                         data-testid="series-tests-source-filter"
-                                        className="flex items-center gap-1.5 overflow-x-auto no-scrollbar touch-pan-x overscroll-x-contain"
+                                        className="flex items-center gap-1 overflow-x-auto no-scrollbar touch-pan-x overscroll-x-contain"
                                     >
                                         {SERIES_SOURCE_TYPE_OPTIONS.map((opt) => {
                                             const isSelected = sourceFilter === opt.id;
                                             return (
                                                 <button
                                                     key={opt.id}
+                                                    id={`series-tests-tab-${opt.id}`}
                                                     type="button"
-                                                    aria-pressed={isSelected}
+                                                    role="tab"
+                                                    aria-selected={isSelected}
+                                                    aria-controls={`series-tests-panel-${opt.id}`}
                                                     onClick={() => {
                                                         triggerHaptic('light');
                                                         setSourceFilter(opt.id);
                                                     }}
-                                                    className={`min-h-[44px] min-w-[44px] px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap shrink-0 transition-all active:scale-95 touch-manipulation cursor-pointer ${
+                                                    className={`min-h-[44px] min-w-[44px] px-3.5 py-2 text-xs sm:text-sm font-bold whitespace-nowrap shrink-0 border-b-2 transition-all active:scale-95 touch-manipulation cursor-pointer ${
                                                         isSelected
-                                                            ? 'bg-indigo-600 text-white shadow-xs'
-                                                            : 'bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/70 text-slate-700 dark:text-slate-200 hover:border-indigo-400'
+                                                            ? 'border-indigo-600 dark:border-indigo-400 text-indigo-600 dark:text-indigo-400'
+                                                            : 'border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                                                     }`}
                                                 >
                                                     {opt.label}
@@ -580,152 +625,90 @@ export const TestsListPage: React.FC = () => {
                                     </div>
                                 </div>
 
-                                {tests.length === 0 ? (
-                                    offlineNotice ? (
-                                        <EmptyState
-                                            icon={<WifiOff className="w-8 h-8 text-amber-500" />}
-                                            title="Tests Unavailable Offline"
-                                            description={offlineNotice}
-                                            actionLabel="Retry"
-                                            onAction={() => {
-                                                triggerHaptic('light');
-                                                void loadSeriesData(true);
-                                            }}
-                                        />
-                                    ) : (
-                                        <EmptyState
-                                            title="No Tests Uploaded"
-                                            description="Tests for this series will be available soon."
-                                            icon={<FileText className="w-8 h-8" />}
-                                        />
-                                    )
-                                ) : filteredTests.length === 0 ? (
-                                    <EmptyState
-                                        title={`No ${sourceFilter === 'PYQ' ? 'PYQ Papers' : 'Expert Mocks'} Found`}
-                                        description="Try switching back to All Types to inspect all tests in this series."
-                                        icon={<FileText className="w-8 h-8" />}
-                                        actionLabel="Show All Types"
-                                        onAction={() => setSourceFilter('all')}
-                                    />
-                                ) : (
-                                    <div className="flex flex-col gap-3">
-                                        {filteredTests.map((t, index) => {
-                                            const isInProgress = progressStats.inProgressTestIds.includes(t.id);
-                                            const bestAttempt = progressStats.bestAttemptByTestId[t.id];
-                                            const isTestPyq =
-                                                normalizeMockTestType(t.test_type) === 'PYQ' || isSeriesPyq;
-                                            const qCount = Array.isArray(t.question_ids)
-                                                ? t.question_ids.length
-                                                : 0;
-                                            const access = resolveMockTestAccess({
-                                                test: t,
-                                                series,
-                                                entitlements,
-                                                orderedSeriesTests: tests,
-                                            });
+                                <SwipeableTabViewport
+                                    tabs={SERIES_SOURCE_TYPE_OPTIONS}
+                                    activeTabId={sourceFilter}
+                                    onTabChange={(tabId) => setSourceFilter(tabId as SeriesSourceTypeFilter)}
+                                    ariaLabel="Series Tests by Type"
+                                    tabIdPrefix="series-tests-tab"
+                                    panelIdPrefix="series-tests-panel"
+                                    renderPanel={(tabId) => {
+                                        const tabFilter = tabId as SeriesSourceTypeFilter;
+                                        const tabTests = getFilteredTestsForTab(tabFilter);
 
-                                            return (
-                                                <motion.div
-                                                    key={t.id}
-                                                    whileHover={{ y: -2, transition: { duration: 0.2 } }}
-                                                    onClick={() => {
+                                        if (tests.length === 0) {
+                                            return offlineNotice ? (
+                                                <EmptyState
+                                                    icon={<WifiOff className="w-8 h-8 text-amber-500" />}
+                                                    title="Tests Unavailable Offline"
+                                                    description={offlineNotice}
+                                                    actionLabel="Retry"
+                                                    onAction={() => {
                                                         triggerHaptic('light');
-                                                        navigate(ROUTES.TEST_SERIES.TEST(t.id), {
-                                                            state: { returnTo: location.pathname },
-                                                        });
+                                                        void loadSeriesData(true);
                                                     }}
-                                                    className="group cursor-pointer bg-white dark:bg-slate-800 rounded-2xl p-4 sm:p-5 shadow-xs hover:shadow-md border border-slate-200/80 dark:border-slate-700/70 transition-all duration-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3.5"
-                                                >
-                                                    <div className="flex items-start sm:items-center gap-3.5 sm:gap-4 w-full sm:w-auto min-w-0">
-                                                        <div className="w-10 h-10 sm:w-11 sm:h-11 bg-slate-50 dark:bg-slate-900/50 rounded-xl flex items-center justify-center shrink-0 border border-slate-100 dark:border-slate-700">
-                                                            <span className="text-sm sm:text-base font-extrabold text-slate-500">
-                                                                {index + 1}
-                                                            </span>
-                                                        </div>
-                                                        <div className="min-w-0 flex-1">
-                                                            <div className="flex flex-wrap items-center gap-1.5 mb-1">
-                                                                {isTestPyq ? pyqBadge : expertBadge}
-                                                                {access.reason === 'free_demo' && (
-                                                                    <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wide bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200/70 dark:border-emerald-800/50">
-                                                                        Free Demo
-                                                                    </span>
-                                                                )}
-                                                                {!access.unlocked && (
-                                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wide bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200/70 dark:border-amber-800/50">
-                                                                        <Lock className="w-3 h-3" aria-hidden="true" />
-                                                                        Locked
-                                                                    </span>
-                                                                )}
-                                                                {isInProgress ? (
-                                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200/70 dark:border-amber-800/50">
-                                                                        In Progress
-                                                                    </span>
-                                                                ) : bestAttempt ? (
-                                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200/70 dark:border-emerald-800/50">
-                                                                        <CheckCircle2 className="w-3 h-3" aria-hidden="true" />
-                                                                        Best: {bestAttempt.score}
-                                                                        {Number(t.total_marks) > 0 ? `/${t.total_marks}` : ''}
-                                                                    </span>
-                                                                ) : null}
-                                                            </div>
-                                                            <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white mb-2 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors line-clamp-1">
-                                                                {t.name}
-                                                            </h3>
-                                                            <div className="flex flex-wrap items-center gap-2 text-xs font-bold text-slate-500 dark:text-slate-300">
-                                                                <span className="flex items-center gap-1 bg-slate-100 dark:bg-slate-700/50 px-2.5 py-1 rounded-md">
-                                                                    <Clock className="w-3.5 h-3.5 text-slate-400" aria-hidden="true" />{' '}
-                                                                    {t.duration_minutes}m
-                                                                </span>
-                                                                <span className="flex items-center gap-1 bg-slate-100 dark:bg-slate-700/50 px-2.5 py-1 rounded-md">
-                                                                    <CheckSquare className="w-3.5 h-3.5 text-slate-400" aria-hidden="true" />{' '}
-                                                                    {qCount} Qs
-                                                                </span>
-                                                                <span className="flex items-center gap-1 bg-amber-50 dark:bg-amber-900/20 px-2.5 py-1 rounded-md text-amber-700 dark:text-amber-300">
-                                                                    <Award className="w-3.5 h-3.5" aria-hidden="true" />{' '}
-                                                                    {t.total_marks} Marks
-                                                                </span>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-
-                                                    <div className="w-full sm:w-auto flex shrink-0">
-                                                        {!access.unlocked ? (
-                                                            <button
-                                                                type="button"
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    triggerHaptic('light');
-                                                                    setIsCheckoutOpen(true);
-                                                                }}
-                                                                className="w-full sm:w-auto min-h-[44px] min-w-[44px] scroll-mb-28 active:scale-95 touch-manipulation cursor-pointer bg-amber-500 hover:bg-amber-400 text-slate-950 px-5 py-2.5 rounded-xl font-black text-sm inline-flex items-center justify-center gap-1.5 transition-all"
-                                                            >
-                                                                <Lock className="w-4 h-4 shrink-0" aria-hidden="true" />
-                                                                <span>Unlock</span>
-                                                            </button>
-                                                        ) : (
-                                                            <button
-                                                                type="button"
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    triggerHaptic('light');
-                                                                    navigate(ROUTES.TEST_SERIES.TEST(t.id), {
-                                                                        state: { returnTo: location.pathname },
-                                                                    });
-                                                                }}
-                                                                className="w-full sm:w-auto min-h-[44px] min-w-[44px] scroll-mb-28 active:scale-95 touch-manipulation cursor-pointer bg-slate-900 hover:bg-indigo-600 dark:bg-indigo-500 dark:hover:bg-indigo-400 text-white px-5 py-2.5 rounded-xl font-bold text-sm transition-all"
-                                                            >
-                                                                View Details
-                                                            </button>
-                                                        )}
-                                                    </div>
-                                                </motion.div>
+                                                />
+                                            ) : (
+                                                <EmptyState
+                                                    title="No Tests Uploaded"
+                                                    description="Tests for this series will be available soon."
+                                                    icon={<FileText className="w-8 h-8" />}
+                                                />
                                             );
-                                        })}
-                                    </div>
-                                )}
+                                        }
+
+                                        if (tabTests.length === 0) {
+                                            return (
+                                                <EmptyState
+                                                    title={`No ${tabFilter === 'PYQ' ? 'PYQ Papers' : 'Expert Mocks'} Found`}
+                                                    description="Try switching back to All Types to inspect all tests in this series."
+                                                    icon={<FileText className="w-8 h-8" />}
+                                                    actionLabel="Show All Types"
+                                                    onAction={() => setSourceFilter('all')}
+                                                />
+                                            );
+                                        }
+
+                                        return (
+                                            <div className="flex flex-col gap-3">
+                                                {tabTests.map((t, index) => {
+                                                    const isInProgress = progressStats.inProgressTestIds.includes(t.id);
+                                                    const bestAttempt = progressStats.bestAttemptByTestId[t.id];
+                                                    const attemptIds = attemptLookupByTestId.get(String(t.id));
+                                                    const isTestPyq =
+                                                        normalizeMockTestType(t.test_type) === 'PYQ' || isSeriesPyq;
+                                                    const access = resolveMockTestAccess({
+                                                        test: t,
+                                                        series,
+                                                        entitlements,
+                                                        orderedSeriesTests: tests,
+                                                    });
+
+                                                    return (
+                                                        <MockTestListCard
+                                                            key={t.id}
+                                                            test={t}
+                                                            index={index}
+                                                            access={access}
+                                                            hideTypeBadge={isTestPyq === isSeriesPyq}
+                                                            isSeriesPyq={isSeriesPyq}
+                                                            isInProgress={isInProgress}
+                                                            inProgressAttemptId={attemptIds?.inProgressAttemptId ?? null}
+                                                            completedAttemptId={attemptIds?.completedAttemptId ?? null}
+                                                            bestScore={bestAttempt?.score ?? null}
+                                                            returnTo={location.pathname}
+                                                            offscreenOptimize={index >= 6}
+                                                            onUnlock={() => setIsCheckoutOpen(true)}
+                                                        />
+                                                    );
+                                                })}
+                                            </div>
+                                        );
+                                    }}
+                                />
                             </div>
 
-                            {/* Right Column: Sidebar / Progress & Leaderboard */}
+                            {/* Right Column: Sidebar / Progress */}
                             <div className="w-full lg:w-80 shrink-0 space-y-5">
                                 <div className="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-xs border border-slate-200/80 dark:border-slate-700/70 space-y-4">
                                     <div className="flex items-center justify-between gap-2">
@@ -813,13 +796,6 @@ export const TestsListPage: React.FC = () => {
                                         </p>
                                     )}
                                 </div>
-
-                                <TestLeaderboardCard
-                                    tests={tests}
-                                    defaultTestId={progressStats.latestCompletedTestId ?? tests[0]?.id}
-                                    limit={10}
-                                    refreshKey={attempts.length}
-                                />
                             </div>
                         </div>
                     </>

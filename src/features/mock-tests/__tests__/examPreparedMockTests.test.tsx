@@ -165,6 +165,7 @@ const setupSupabaseTables = (data: MockTablesData) => {
                 select: vi.fn(() => {
                     const chain: any = {
                         eq: vi.fn(() => chain),
+                        order: vi.fn(() => chain),
                         then: (resolve: any, reject: any) =>
                             Promise.resolve({ data: data.attempts, error: null }).then(
                                 resolve,
@@ -481,23 +482,24 @@ describe('v1.0.371 Dedicated BPSC Prepared Mock Tests & Canonical Routing', () =
         expect(screen.getAllByText('PYQ Paper').length).toBeGreaterThan(0);
 
         // Verify specs
-        expect(screen.getByText('120 mins')).toBeTruthy();
+        expect(screen.getByText('120m')).toBeTruthy();
         expect(screen.getByText('150 Qs')).toBeTruthy();
         expect(screen.getByText('150 Marks')).toBeTruthy();
         expect(screen.getByText('-0.33 Neg')).toBeTruthy();
         expect(screen.getByRole('heading', { level: 3, name: 'BPSC TRE3 Bihar History Sectional' })).toBeTruthy();
 
-        // Filter chip: Full-Length
-        const filterGroup = screen.getByRole('group', { name: 'Mock test category filters' });
-        const fullLengthChip = within(filterGroup).getByRole('button', { name: /Full-Length/i });
-        fireEvent.click(fullLengthChip);
-        expect(fullLengthChip.getAttribute('aria-pressed')).toBe('true');
+        // Filter tab: Full-Length
+        const filterTablist = screen.getByRole('tablist', { name: 'Mock test category filters' });
+        const fullLengthTab = within(filterTablist).getByRole('tab', { name: /Full-Length/i });
+        fireEvent.click(fullLengthTab);
+        expect(fullLengthTab.getAttribute('aria-selected')).toBe('true');
         expect(screen.getByRole('heading', { level: 3, name: 'BPSC 70th Prelims Full-Length Mock #1' })).toBeTruthy();
         expect(screen.queryByRole('heading', { level: 3, name: 'BPSC TRE3 Bihar History Sectional' })).toBeNull();
 
-        // Filter chip: Attempted
-        const attemptedChip = within(filterGroup).getByRole('button', { name: /Attempted/i });
-        fireEvent.click(attemptedChip);
+        // Filter tab: Attempted
+        const attemptedTab = within(filterTablist).getByRole('tab', { name: /Attempted/i });
+        fireEvent.click(attemptedTab);
+        expect(attemptedTab.getAttribute('aria-selected')).toBe('true');
         expect(screen.getByRole('heading', { level: 3, name: 'BPSC TRE3 Bihar History Sectional' })).toBeTruthy();
         expect(
             screen.queryByRole('heading', { level: 3, name: 'BPSC 70th Prelims Full-Length Mock #1' })

@@ -233,10 +233,10 @@ export const QuizLibrary: React.FC = () => {
                                 aria-selected={isSelected}
                                 aria-controls={`history-panel-${tab.id}`}
                                 onClick={() => handleTabChange(tab.id)}
-                                className={`min-h-[44px] min-w-[44px] scroll-mb-28 active:scale-95 touch-manipulation cursor-pointer flex-1 sm:flex-none flex items-center justify-center gap-2 px-3.5 sm:px-5 py-2 rounded-lg transition-all text-xs sm:text-sm whitespace-nowrap shrink-0 ${
+                                className={`min-h-[44px] min-w-[44px] scroll-mb-28 active:scale-95 touch-manipulation cursor-pointer flex-1 sm:flex-none flex items-center justify-center gap-2 px-3.5 sm:px-5 py-2 rounded-lg border-b-2 transition-all text-xs sm:text-sm whitespace-nowrap shrink-0 ${
                                     isSelected
-                                        ? 'bg-white dark:bg-slate-700 shadow-sm border border-indigo-100 dark:border-slate-600 font-bold text-indigo-700 dark:text-indigo-300'
-                                        : 'hover:bg-white/60 dark:hover:bg-slate-700/50 font-semibold text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400'
+                                        ? 'bg-white dark:bg-slate-700 shadow-sm border border-indigo-100 dark:border-slate-600 border-b-2 border-b-indigo-600 dark:border-b-indigo-400 font-bold text-indigo-700 dark:text-indigo-300'
+                                        : 'border-transparent hover:bg-white/60 dark:hover:bg-slate-700/50 font-semibold text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400'
                                 }`}
                             >
                                 {tab.icon}

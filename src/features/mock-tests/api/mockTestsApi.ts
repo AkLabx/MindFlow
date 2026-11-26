@@ -10,6 +10,11 @@ import {
     matchesCanonicalExam,
     resolveCanonicalExamNames,
 } from '@/features/dashboard/constants/examRegistry';
+import {
+    extractShiftBadgeInfo,
+    normalizeShiftSlot,
+    type ShiftSlot,
+} from '../utils/shiftMetadata';
 
 export type MockSeriesType = 'MOCK' | 'PYQ';
 export type MockTestType = 'MOCK' | 'PYQ';
@@ -33,6 +38,56 @@ export const isMockSeriesPaid = (
     return Boolean(series.is_premium) || Number(series.price_inr ?? 0) > 0;
 };
 
+export const sanitizeTargetRoute = (raw: unknown): string | null => {
+    if (typeof raw !== 'string') return null;
+    const trimmed = raw.trim();
+    if (!trimmed || !trimmed.startsWith('/') || trimmed.startsWith('//')) {
+        return null;
+    }
+    return trimmed;
+};
+
+export const normalizeIncludedSeriesIds = (raw: any): string[] => {
+    const seen = new Set<string>();
+    const out: string[] = [];
+    const pushId = (val: unknown) => {
+        const clean = typeof val === 'string' ? val.trim() : '';
+        if (clean && !seen.has(clean)) {
+            seen.add(clean);
+            out.push(clean);
+        }
+    };
+
+    if (Array.isArray(raw)) {
+        for (const item of raw) {
+            if (typeof item === 'string') {
+                pushId(item);
+            } else if (item && typeof item === 'object' && item.child_series_id) {
+                pushId(item.child_series_id);
+            }
+        }
+        return out;
+    }
+
+    if (raw && typeof raw === 'object') {
+        if (Array.isArray(raw.included_series_ids)) {
+            for (const id of raw.included_series_ids) pushId(id);
+        } else {
+            const embedded = raw[DB_TABLES.MOCK.BUNDLE_ITEMS] ?? raw.mock_series_bundle_items;
+            if (Array.isArray(embedded)) {
+                const sorted = [...embedded].sort(
+                    (a, b) => Number(a?.display_order ?? 0) - Number(b?.display_order ?? 0)
+                );
+                for (const item of sorted) {
+                    pushId(item?.child_series_id);
+                }
+            }
+        }
+    }
+
+    return out;
+};
+
 const normalizeSeriesRecord = <T extends Record<string, any> | null | undefined>(series: T): T => {
     if (!series || typeof series !== 'object') return series;
     const rawPrice = series.price_inr != null ? Number(series.price_inr) : 0;
@@ -52,11 +107,27 @@ const normalizeSeriesRecord = <T extends Record<string, any> | null | undefined>
         validity_days: validityDays,
         free_demo_count: freeDemoCount,
         is_premium: Boolean(series.is_premium) || priceInr > 0,
+        target_route: sanitizeTargetRoute(series.target_route),
+        included_series_ids: normalizeIncludedSeriesIds(series),
     };
 };
 
 const normalizeTestRecord = <T extends Record<string, any> | null | undefined>(test: T): T => {
     if (!test || typeof test !== 'object') return test;
+    const explicitShiftSlot = normalizeShiftSlot(test.shift_slot);
+    const explicitShiftTiming =
+        typeof test.shift_timing === 'string' && test.shift_timing.trim()
+            ? test.shift_timing.trim()
+            : null;
+    const inferredShift =
+        explicitShiftSlot && explicitShiftTiming
+            ? null
+            : extractShiftBadgeInfo({
+                  shift_slot: explicitShiftSlot,
+                  shift_timing: explicitShiftTiming,
+                  name: test.name,
+                  description: test.description,
+              });
     const next: Record<string, any> = {
         ...test,
         test_type: normalizeMockTestType(test.test_type),
@@ -64,6 +135,14 @@ const normalizeTestRecord = <T extends Record<string, any> | null | undefined>(t
         is_live: Boolean(test.is_live),
         live_start_at: test.live_start_at ?? null,
         live_end_at: test.live_end_at ?? null,
+        shift_slot: explicitShiftSlot ?? inferredShift?.slot ?? null,
+        shift_timing: explicitShiftTiming ?? inferredShift?.timing ?? null,
+        latest_completed_attempt_id: test.latest_completed_attempt_id
+            ? String(test.latest_completed_attempt_id)
+            : null,
+        active_in_progress_attempt_id: test.active_in_progress_attempt_id
+            ? String(test.active_in_progress_attempt_id)
+            : null,
     };
     if (test[DB_TABLES.MOCK.SERIES]) {
         next[DB_TABLES.MOCK.SERIES] = normalizeSeriesRecord(test[DB_TABLES.MOCK.SERIES]);
@@ -542,8 +621,17 @@ export const fetchSeriesDetails = async (seriesId: string) => {
         .eq(`${DB_TABLES.MOCK.CATEGORIES}.is_active`, true)
         .single();
     if (error) throw error;
-    const normalized = data ? normalizeSeriesRecord(data) : data;
+    let normalized = data ? normalizeSeriesRecord(data) : data;
     const trimmedSeriesId = String(seriesId ?? '').trim();
+    if (normalized && normalized.course_type === 'bundle' && trimmedSeriesId) {
+        const bundleMap = await fetchBundleItemsBySeriesMapSafe([trimmedSeriesId]);
+        if (bundleMap[trimmedSeriesId]?.length) {
+            normalized = {
+                ...normalized,
+                included_series_ids: bundleMap[trimmedSeriesId],
+            };
+        }
+    }
     if (trimmedSeriesId && normalized && isCachedSeriesBundleVisible(normalized)) {
         const existing = readSeriesBundleSyncRaw(trimmedSeriesId);
         writeSeriesBundleCache(trimmedSeriesId, {
@@ -694,6 +782,13 @@ export interface PreparedMockSeriesItem {
     is_published: boolean;
     category_name: string;
     test_count: number;
+    target_route?: string | null;
+    included_series_ids?: string[];
+}
+
+export interface AttemptStatusLookupEntry {
+    latestCompletedAttemptId?: string | null;
+    activeInProgressAttemptId?: string | null;
 }
 
 export interface PreparedMockTestItem {
@@ -717,6 +812,10 @@ export interface PreparedMockTestItem {
     release_date?: string | null;
     expiry_date?: string | null;
     created_at?: string | null;
+    shift_slot: ShiftSlot | null;
+    shift_timing: string | null;
+    latest_completed_attempt_id?: string | null;
+    active_in_progress_attempt_id?: string | null;
     series_name: string;
     series_is_premium: boolean;
     series_price_inr?: number;
@@ -741,6 +840,7 @@ interface MockCatalogCachePayload {
     categories: any[];
     series: any[];
     tests: any[];
+    bundleItemsBySeries?: Record<string, string[]>;
     fetchedAt: number;
 }
 
@@ -1742,45 +1842,102 @@ export const isFullLengthMockTest = (test: {
     return /\b(full[\s-]*length|flt|prelims?\s*(mock|full)|grand\s*test)\b/i.test(name);
 };
 
-const readAttemptsFromSyncCache = (userId?: string | null): string[] => {
-    if (!userId) return [];
-    const mem = memoryAttemptsCache.get(userId);
-    if (mem) return mem.ids;
+interface CachedUserAttemptsPayload {
+    ids: string[];
+    attemptLookup?: Record<string, AttemptStatusLookupEntry>;
+    fetchedAt: number;
+}
 
-    const stored = safeReadLocalStorage<{ ids: string[]; fetchedAt: number }>(
+const readAttemptsPayloadFromSyncCache = (
+    userId?: string | null
+): CachedUserAttemptsPayload | null => {
+    if (!userId) return null;
+    const mem = memoryAttemptsCache.get(userId) as CachedUserAttemptsPayload | undefined;
+    if (mem) return mem;
+
+    const stored = safeReadLocalStorage<CachedUserAttemptsPayload>(
         `${MOCK_ATTEMPTS_STORAGE_PREFIX}${userId}`
     );
     if (stored && Array.isArray(stored.ids)) {
         memoryAttemptsCache.set(userId, stored);
-        return stored.ids;
+        return stored;
     }
-    return [];
+    return null;
 };
 
-const writeAttemptsToCache = (userId: string, ids: string[]): void => {
-    const payload = { ids, fetchedAt: Date.now() };
+const readAttemptsFromSyncCache = (userId?: string | null): string[] => {
+    return readAttemptsPayloadFromSyncCache(userId)?.ids ?? [];
+};
+
+const writeAttemptsToCache = (
+    userId: string,
+    ids: string[],
+    attemptLookup?: Record<string, AttemptStatusLookupEntry>
+): void => {
+    const payload: CachedUserAttemptsPayload = {
+        ids,
+        ...(attemptLookup ? { attemptLookup } : {}),
+        fetchedAt: Date.now(),
+    };
     memoryAttemptsCache.set(userId, payload);
     safeWriteLocalStorage(`${MOCK_ATTEMPTS_STORAGE_PREFIX}${userId}`, payload);
     db.setCacheEntry(`${MOCK_ATTEMPTS_IDB_PREFIX}${userId}`, payload).catch(() => {});
 };
 
-const readAttemptsFromIndexedDB = async (userId?: string | null): Promise<string[]> => {
-    if (!userId) return [];
-    const syncIds = readAttemptsFromSyncCache(userId);
-    if (syncIds.length > 0) return syncIds;
+const readAttemptsPayloadFromIndexedDB = async (
+    userId?: string | null
+): Promise<CachedUserAttemptsPayload | null> => {
+    if (!userId) return null;
+    const syncPayload = readAttemptsPayloadFromSyncCache(userId);
+    if (syncPayload && syncPayload.ids.length > 0) return syncPayload;
     try {
-        const entry = await db.getCacheEntry<{ ids: string[]; fetchedAt: number }>(
+        const entry = await db.getCacheEntry<CachedUserAttemptsPayload>(
             `${MOCK_ATTEMPTS_IDB_PREFIX}${userId}`
         );
         if (entry?.data && Array.isArray(entry.data.ids)) {
             memoryAttemptsCache.set(userId, entry.data);
             safeWriteLocalStorage(`${MOCK_ATTEMPTS_STORAGE_PREFIX}${userId}`, entry.data);
-            return entry.data.ids;
+            return entry.data;
         }
     } catch {
         // Ignore IndexedDB failures
     }
-    return [];
+    return syncPayload;
+};
+
+const buildAttemptLookupFromRows = (
+    rows: any[]
+): { ids: string[]; attemptLookup: Record<string, AttemptStatusLookupEntry> } => {
+    const uniqueIds = new Set<string>();
+    const attemptLookup: Record<string, AttemptStatusLookupEntry> = {};
+
+    const sortedRows = [...rows].sort((a, b) => {
+        const aTime = Date.parse(String(a?.end_time ?? a?.created_at ?? '')) || 0;
+        const bTime = Date.parse(String(b?.end_time ?? b?.created_at ?? '')) || 0;
+        return bTime - aTime;
+    });
+
+    for (const row of sortedRows) {
+        const testId = row?.test_id ? String(row.test_id).trim() : '';
+        if (!testId) continue;
+        uniqueIds.add(testId);
+
+        const attemptId = row?.id ? String(row.id).trim() : '';
+        if (!attemptId) continue;
+
+        if (!attemptLookup[testId]) {
+            attemptLookup[testId] = {};
+        }
+
+        const status = String(row?.status ?? '').trim();
+        if (status === 'completed' && !attemptLookup[testId].latestCompletedAttemptId) {
+            attemptLookup[testId].latestCompletedAttemptId = attemptId;
+        } else if (status === 'in_progress' && !attemptLookup[testId].activeInProgressAttemptId) {
+            attemptLookup[testId].activeInProgressAttemptId = attemptId;
+        }
+    }
+
+    return { ids: Array.from(uniqueIds), attemptLookup };
 };
 
 const readCatalogFromSyncCache = (): MockCatalogCachePayload | null => {
@@ -1817,7 +1974,8 @@ export const materializePreparedMockTests = (
     attemptedTestIds: string[],
     nowMs: number = Date.now(),
     source: 'cache' | 'network' = 'network',
-    fetchedAt: number = nowMs
+    fetchedAt: number = nowMs,
+    attemptLookup?: Record<string, AttemptStatusLookupEntry>
 ): PreparedMockTestsResult => {
     const activeCategories = (rawCategories || []).filter((c) => c && c.is_active !== false);
     const activeCategoryMap = new Map<string, any>();
@@ -1909,7 +2067,31 @@ export const materializePreparedMockTests = (
         const questionIds = Array.isArray(t.question_ids) ? t.question_ids : [];
         const seriesPriceInr = Math.max(0, Number(seriesObj.price_inr ?? 0));
         const isPremiumSeries = Boolean(seriesObj.is_premium) || seriesPriceInr > 0;
-        const isAttempted = attemptedSet.has(t.id);
+        const attemptInfo = attemptLookup?.[t.id];
+        const latestCompletedAttemptId =
+            attemptInfo?.latestCompletedAttemptId ??
+            (t.latest_completed_attempt_id ? String(t.latest_completed_attempt_id) : null);
+        const activeInProgressAttemptId =
+            attemptInfo?.activeInProgressAttemptId ??
+            (t.active_in_progress_attempt_id ? String(t.active_in_progress_attempt_id) : null);
+        const isAttempted =
+            attemptedSet.has(t.id) ||
+            Boolean(latestCompletedAttemptId || activeInProgressAttemptId);
+
+        const explicitShiftSlot = normalizeShiftSlot(t.shift_slot);
+        const explicitShiftTiming =
+            typeof t.shift_timing === 'string' && t.shift_timing.trim()
+                ? t.shift_timing.trim()
+                : null;
+        const inferredShift =
+            explicitShiftSlot && explicitShiftTiming
+                ? null
+                : extractShiftBadgeInfo({
+                      shift_slot: explicitShiftSlot,
+                      shift_timing: explicitShiftTiming,
+                      name: t.name,
+                      description: t.description,
+                  });
 
         const projected: PreparedMockTestItem = {
             id: t.id,
@@ -1932,6 +2114,10 @@ export const materializePreparedMockTests = (
             release_date: t.release_date ?? null,
             expiry_date: t.expiry_date ?? null,
             created_at: t.created_at ?? null,
+            shift_slot: explicitShiftSlot ?? inferredShift?.slot ?? null,
+            shift_timing: explicitShiftTiming ?? inferredShift?.timing ?? null,
+            latest_completed_attempt_id: latestCompletedAttemptId,
+            active_in_progress_attempt_id: activeInProgressAttemptId,
             series_name: String(seriesObj.name ?? 'Prepared Series'),
             series_is_premium: isPremiumSeries,
             series_price_inr: seriesPriceInr,
@@ -1973,6 +2159,8 @@ export const materializePreparedMockTests = (
             is_published: Boolean(s.is_published),
             category_name: String(s._categoryName || exam.displayName),
             test_count: testCountBySeries.get(s.id) || 0,
+            target_route: sanitizeTargetRoute(s.target_route),
+            included_series_ids: normalizeIncludedSeriesIds(s),
         };
     });
 
@@ -2004,17 +2192,18 @@ export const getCachedPreparedMockTestsSnapshot = (
     if (!catalog) return null;
 
     const nowMs = options?.nowMs ?? Date.now();
-    const attemptedIds = readAttemptsFromSyncCache(options?.userId);
+    const attemptsPayload = readAttemptsPayloadFromSyncCache(options?.userId);
 
     return materializePreparedMockTests(
         exam,
         catalog.categories,
         catalog.series,
         catalog.tests,
-        attemptedIds,
+        attemptsPayload?.ids ?? [],
         nowMs,
         'cache',
-        catalog.fetchedAt
+        catalog.fetchedAt,
+        attemptsPayload?.attemptLookup
     );
 };
 
@@ -2034,9 +2223,9 @@ export const readPreparedMockTestsIndexedDBCache = async (
     if (syncSnapshot) return syncSnapshot;
 
     try {
-        const [catalogEntry, attemptedIds] = await Promise.all([
+        const [catalogEntry, attemptsPayload] = await Promise.all([
             db.getCacheEntry<MockCatalogCachePayload>(MOCK_CATALOG_IDB_KEY),
-            readAttemptsFromIndexedDB(options?.userId),
+            readAttemptsPayloadFromIndexedDB(options?.userId),
         ]);
 
         const catalog = catalogEntry?.data;
@@ -2057,10 +2246,11 @@ export const readPreparedMockTestsIndexedDBCache = async (
             catalog.categories,
             catalog.series,
             catalog.tests,
-            attemptedIds,
+            attemptsPayload?.ids ?? [],
             nowMs,
             'cache',
-            catalog.fetchedAt
+            catalog.fetchedAt,
+            attemptsPayload?.attemptLookup
         );
     } catch {
         return null;
@@ -2423,23 +2613,17 @@ export const fetchPreparedMockTestsByExam = async (
         ) {
             let attemptsFresh = !userId;
             let cachedAttemptIds: string[] = [];
+            let cachedAttemptLookup: Record<string, AttemptStatusLookupEntry> | undefined;
 
             if (userId) {
-                const memAttempts = memoryAttemptsCache.get(userId);
-                const syncAttempts =
-                    memAttempts ??
-                    safeReadLocalStorage<{ ids: string[]; fetchedAt: number }>(
-                        `${MOCK_ATTEMPTS_STORAGE_PREFIX}${userId}`
-                    );
+                const syncAttempts = readAttemptsPayloadFromSyncCache(userId);
                 if (
                     syncAttempts &&
                     Array.isArray(syncAttempts.ids) &&
                     isMockCacheFresh(syncAttempts.fetchedAt, MOCK_SWR_STALE_TIMES_MS.ATTEMPTS)
                 ) {
-                    if (!memAttempts) {
-                        memoryAttemptsCache.set(userId, syncAttempts);
-                    }
                     cachedAttemptIds = syncAttempts.ids;
+                    cachedAttemptLookup = syncAttempts.attemptLookup;
                     attemptsFresh = true;
                 }
             }
@@ -2453,7 +2637,8 @@ export const fetchPreparedMockTestsByExam = async (
                     cachedAttemptIds,
                     nowMs,
                     'cache',
-                    cachedCatalog.fetchedAt
+                    cachedCatalog.fetchedAt,
+                    cachedAttemptLookup
                 );
             }
         }
@@ -2487,8 +2672,9 @@ export const fetchPreparedMockTestsByExam = async (
     const attemptsPromise = userId
         ? supabase
               .from(DB_TABLES.MOCK.ATTEMPTS)
-              .select('test_id, status')
+              .select('id, test_id, status, created_at, end_time')
               .eq('user_id', userId)
+              .order('created_at', { ascending: false })
         : Promise.resolve({ data: [] as any[], error: null });
 
     const [categoriesRes, seriesRes, testsRes] = await Promise.all([
@@ -2502,23 +2688,24 @@ export const fetchPreparedMockTestsByExam = async (
     if (testsRes.error) throw testsRes.error;
 
     let attemptedIds: string[] = [];
+    let attemptLookup: Record<string, AttemptStatusLookupEntry> | undefined;
     if (userId) {
         try {
             const attemptsRes = await attemptsPromise;
             if (!attemptsRes.error && Array.isArray(attemptsRes.data)) {
-                const uniqueIds = new Set<string>();
-                for (const row of attemptsRes.data) {
-                    if (row?.test_id) {
-                        uniqueIds.add(String(row.test_id));
-                    }
-                }
-                attemptedIds = Array.from(uniqueIds);
-                writeAttemptsToCache(userId, attemptedIds);
+                const parsed = buildAttemptLookupFromRows(attemptsRes.data);
+                attemptedIds = parsed.ids;
+                attemptLookup = parsed.attemptLookup;
+                writeAttemptsToCache(userId, attemptedIds, attemptLookup);
             } else {
-                attemptedIds = readAttemptsFromSyncCache(userId);
+                const fallback = readAttemptsPayloadFromSyncCache(userId);
+                attemptedIds = fallback?.ids ?? [];
+                attemptLookup = fallback?.attemptLookup;
             }
         } catch {
-            attemptedIds = readAttemptsFromSyncCache(userId);
+            const fallback = readAttemptsPayloadFromSyncCache(userId);
+            attemptedIds = fallback?.ids ?? [];
+            attemptLookup = fallback?.attemptLookup;
         }
     }
 
@@ -2543,7 +2730,8 @@ export const fetchPreparedMockTestsByExam = async (
         attemptedIds,
         nowMs,
         'network',
-        fetchedAt
+        fetchedAt,
+        attemptLookup
     );
 };
 
@@ -4869,6 +5057,8 @@ export interface PublishedMockSeriesCatalogItem {
     created_at?: string | null;
     category_name: string;
     published_test_count: number;
+    target_route: string | null;
+    included_series_ids: string[];
     [DB_TABLES.MOCK.CATEGORIES]?: {
         id: string;
         name: string;
@@ -4882,6 +5072,39 @@ export interface PublishedMockSeriesCatalogResult {
     fetchedAt: number;
     source: 'cache' | 'network';
 }
+
+const fetchBundleItemsBySeriesMapSafe = async (
+    bundleSeriesIds?: string[]
+): Promise<Record<string, string[]>> => {
+    try {
+        if (typeof (supabase as any)?.from !== 'function') {
+            return {};
+        }
+        let query = supabase
+            .from(DB_TABLES.MOCK.BUNDLE_ITEMS)
+            .select('bundle_series_id, child_series_id, display_order');
+        if (Array.isArray(bundleSeriesIds) && bundleSeriesIds.length > 0) {
+            query = query.in('bundle_series_id', bundleSeriesIds);
+        }
+        const { data, error } = await query.order('display_order', { ascending: true });
+        if (error || !Array.isArray(data)) {
+            return {};
+        }
+        const grouped: Record<string, string[]> = {};
+        for (const row of data) {
+            const parentId = String((row as any)?.bundle_series_id ?? '').trim();
+            const childId = String((row as any)?.child_series_id ?? '').trim();
+            if (!parentId || !childId || parentId === childId) continue;
+            if (!grouped[parentId]) grouped[parentId] = [];
+            if (!grouped[parentId].includes(childId)) {
+                grouped[parentId].push(childId);
+            }
+        }
+        return grouped;
+    } catch {
+        return {};
+    }
+};
 
 const readSeriesCatalogFromSyncCache = (): MockCatalogCachePayload | null => {
     if (memorySeriesCatalogCache) return memorySeriesCatalogCache;
@@ -4916,7 +5139,8 @@ export const materializePublishedMockSeriesCatalog = (
     rawTests: any[],
     nowMs: number = Date.now(),
     source: 'cache' | 'network' = 'network',
-    fetchedAt: number = nowMs
+    fetchedAt: number = nowMs,
+    bundleItemsBySeries?: Record<string, string[]>
 ): PublishedMockSeriesCatalogResult => {
     const activeCategories = (rawCategories || [])
         .filter((c) => c && c.is_active !== false)
@@ -4984,8 +5208,14 @@ export const materializePublishedMockSeriesCatalog = (
             const validityDays = Number.isFinite(rawValidity) ? Math.min(3650, Math.max(1, Math.round(rawValidity))) : 365;
             const rawDemo = raw.free_demo_count != null ? Number(raw.free_demo_count) : 1;
             const freeDemoCount = Number.isFinite(rawDemo) ? Math.min(50, Math.max(0, Math.round(rawDemo))) : 1;
+            const seriesId = String(raw.id);
+            const mapIncluded = bundleItemsBySeries?.[seriesId];
+            const includedSeriesIds =
+                Array.isArray(mapIncluded) && mapIncluded.length > 0
+                    ? normalizeIncludedSeriesIds(mapIncluded)
+                    : normalizeIncludedSeriesIds(raw);
             return {
-                id: String(raw.id),
+                id: seriesId,
                 category_id: String(raw.category_id ?? categoryObj?.id ?? ''),
                 name: String(raw.name ?? 'Untitled Series'),
                 slug: raw.slug ? String(raw.slug) : undefined,
@@ -5001,7 +5231,9 @@ export const materializePublishedMockSeriesCatalog = (
                 is_published: Boolean(raw.is_published),
                 created_at: raw.created_at ?? null,
                 category_name: categoryName,
-                published_test_count: testCountBySeries.get(String(raw.id)) || 0,
+                published_test_count: testCountBySeries.get(seriesId) || 0,
+                target_route: sanitizeTargetRoute(raw.target_route),
+                included_series_ids: includedSeriesIds,
                 ...(categoryObj ? { [DB_TABLES.MOCK.CATEGORIES]: categoryObj } : {}),
             };
         }
@@ -5031,7 +5263,8 @@ export const getCachedAllPublishedMockSeriesCatalogSnapshot = (
         cached.tests,
         nowMs,
         'cache',
-        cached.fetchedAt
+        cached.fetchedAt,
+        cached.bundleItemsBySeries
     );
 };
 
@@ -5061,7 +5294,8 @@ export const readAllPublishedMockSeriesCatalogIndexedDBCache = async (
                 data.tests,
                 nowMs,
                 'cache',
-                data.fetchedAt
+                data.fetchedAt,
+                data.bundleItemsBySeries
             );
         }
     } catch {
@@ -5094,7 +5328,8 @@ export const fetchAllPublishedMockSeriesCatalog = async (options?: {
                 syncCached.tests,
                 nowMs,
                 'cache',
-                syncCached.fetchedAt
+                syncCached.fetchedAt,
+                syncCached.bundleItemsBySeries
             );
         }
 
@@ -5118,7 +5353,8 @@ export const fetchAllPublishedMockSeriesCatalog = async (options?: {
                     idbData.tests,
                     nowMs,
                     'cache',
-                    idbData.fetchedAt
+                    idbData.fetchedAt,
+                    idbData.bundleItemsBySeries
                 );
             }
         } catch {
@@ -5145,10 +5381,13 @@ export const fetchAllPublishedMockSeriesCatalog = async (options?: {
         .select('id, series_id, is_published, release_date, expiry_date')
         .eq('is_published', true);
 
-    const [categoriesRes, seriesRes, testsRes] = await Promise.all([
+    const bundleItemsPromise = fetchBundleItemsBySeriesMapSafe();
+
+    const [categoriesRes, seriesRes, testsRes, bundleItemsBySeries] = await Promise.all([
         categoriesPromise,
         seriesPromise,
         testsPromise,
+        bundleItemsPromise,
     ]);
 
     if (categoriesRes.error) throw categoriesRes.error;
@@ -5164,6 +5403,7 @@ export const fetchAllPublishedMockSeriesCatalog = async (options?: {
         categories: categoriesData,
         series: seriesData,
         tests: testsData,
+        bundleItemsBySeries,
         fetchedAt,
     });
     writeHomeCacheSnapshot({ categories: categoriesData });
@@ -5174,7 +5414,8 @@ export const fetchAllPublishedMockSeriesCatalog = async (options?: {
         testsData,
         nowMs,
         'network',
-        fetchedAt
+        fetchedAt,
+        bundleItemsBySeries
     );
 };
 
@@ -5191,6 +5432,7 @@ export interface UserCourseEntitlementItem {
     series_name?: string | null;
     course_type: CourseType;
     target_route: string | null;
+    included_series_ids?: string[];
     payment_id: string | null;
     status: 'pending' | 'active' | 'expired' | 'revoked';
     starts_at: string;
@@ -5250,6 +5492,44 @@ export interface MockTestAccessResolution {
     freeDemoCount: number;
 }
 
+export const resolveEffectiveSeriesEntitlement = (
+    seriesId: string,
+    entitlements?: UserCourseEntitlementItem[] | null,
+    nowMs: number = Date.now()
+): UserCourseEntitlementItem | null => {
+    const cleanSeriesId = String(seriesId ?? '').trim();
+    const activeMatches: Array<{ ent: UserCourseEntitlementItem; isDirect: boolean; validMs: number }> = [];
+
+    for (const ent of entitlements || []) {
+        if (!ent || ent.status !== 'active') continue;
+        const validMs = Date.parse(String(ent.valid_until ?? ''));
+        if (!Number.isFinite(validMs) || validMs <= nowMs) continue;
+
+        const entSeriesId = String(ent.series_id ?? '').trim();
+        const isDirect = cleanSeriesId !== '' && entSeriesId === cleanSeriesId;
+        const includedIds = Array.isArray(ent.included_series_ids) ? ent.included_series_ids : [];
+        const isBundleChild =
+            ent.course_type === 'bundle' &&
+            cleanSeriesId !== '' &&
+            includedIds.includes(cleanSeriesId);
+        const isLegacyWildcardBundle =
+            ent.course_type === 'bundle' &&
+            entSeriesId === '' &&
+            includedIds.length === 0;
+
+        if (isDirect || isBundleChild || isLegacyWildcardBundle) {
+            activeMatches.push({ ent, isDirect, validMs });
+        }
+    }
+
+    if (activeMatches.length === 0) return null;
+    activeMatches.sort((a, b) => {
+        if (a.isDirect !== b.isDirect) return a.isDirect ? -1 : 1;
+        return b.validMs - a.validMs;
+    });
+    return activeMatches[0].ent;
+};
+
 export const resolveMockTestAccess = (params: {
     test: any;
     series?: any;
@@ -5292,14 +5572,11 @@ export const resolveMockTestAccess = (params: {
 
     const targetSeriesId = String(seriesObj?.id ?? test?.series_id ?? '').trim();
 
-    const activeEntitlement =
-        (params.entitlements || []).find((ent) => {
-            if (!ent || ent.status !== 'active') return false;
-            const validMs = Date.parse(String(ent.valid_until ?? ''));
-            if (!Number.isFinite(validMs) || validMs <= nowMs) return false;
-            if (ent.course_type === 'bundle' && !ent.series_id) return true;
-            return targetSeriesId !== '' && String(ent.series_id ?? '') === targetSeriesId;
-        }) ?? null;
+    const activeEntitlement = resolveEffectiveSeriesEntitlement(
+        targetSeriesId,
+        params.entitlements,
+        nowMs
+    );
 
     let isDemoByOrder = false;
     if (Array.isArray(params.orderedSeriesTests) && freeDemoCount > 0 && test?.id) {
@@ -5387,6 +5664,10 @@ const sanitizeEntitlementRow = (row: any): UserCourseEntitlementItem | null => {
         statusRaw === 'pending' || statusRaw === 'expired' || statusRaw === 'revoked'
             ? statusRaw
             : 'active';
+    const includedFromEmbedded = normalizeIncludedSeriesIds(embeddedSeries);
+    const includedFromRow = normalizeIncludedSeriesIds(row);
+    const includedSeriesIds =
+        includedFromRow.length > 0 ? includedFromRow : includedFromEmbedded;
     return {
         id: String(row.id),
         user_id: String(row.user_id ?? ''),
@@ -5394,7 +5675,8 @@ const sanitizeEntitlementRow = (row: any): UserCourseEntitlementItem | null => {
         series_id: String(row.series_id ?? ''),
         series_name: resolvedSeriesName,
         course_type: normalizeCourseType(row.course_type),
-        target_route: row.target_route ? String(row.target_route) : null,
+        target_route: sanitizeTargetRoute(row.target_route ?? embeddedSeries?.target_route),
+        included_series_ids: includedSeriesIds,
         payment_id: row.payment_id ? String(row.payment_id) : null,
         status,
         starts_at: String(row.starts_at ?? row.created_at ?? ''),
@@ -5415,7 +5697,7 @@ const sanitizeReceiptRow = (row: any): UserPaymentReceiptItem | null => {
         String(row.order_code ?? '').trim() ||
         String(row.razorpay_order_id ?? '').trim() ||
         String(row.razorpay_payment_id ?? '').trim() ||
-        `MF-${String(row.id).slice(0, 8).toUpperCase()}`;
+        `ORD-${String(row.id).slice(0, 8).toUpperCase()}`;
     const methodRaw = String(row.payment_method ?? 'upi_manual');
     const paymentMethod: UserPaymentReceiptItem['payment_method'] =
         methodRaw === 'admin_grant' || methodRaw === 'razorpay' ? methodRaw : 'upi_manual';
@@ -5537,9 +5819,31 @@ export const fetchUserCourseEntitlements = async (
 
     if (error) throw error;
 
-    const entitlements = (data || [])
+    const rawEntitlements = (data || [])
         .map(sanitizeEntitlementRow)
         .filter((item): item is UserCourseEntitlementItem => item !== null);
+
+    const bundleSeriesIds = Array.from(
+        new Set(
+            rawEntitlements
+                .filter((ent) => ent.course_type === 'bundle' && Boolean(ent.series_id))
+                .map((ent) => ent.series_id)
+        )
+    );
+    const bundleItemsMap =
+        bundleSeriesIds.length > 0
+            ? await fetchBundleItemsBySeriesMapSafe(bundleSeriesIds)
+            : {};
+
+    const entitlements = rawEntitlements.map((ent) => {
+        if (ent.course_type !== 'bundle' || !ent.series_id) return ent;
+        const mappedChildren = bundleItemsMap[ent.series_id];
+        if (!Array.isArray(mappedChildren) || mappedChildren.length === 0) return ent;
+        return {
+            ...ent,
+            included_series_ids: mappedChildren,
+        };
+    });
 
     const payload = { entitlements, fetchedAt: Date.now() };
     memoryEntitlementsCache.set(trimmed, payload);
@@ -5817,6 +6121,14 @@ export const fetchLiveMockTests = async (options?: {
                 release_date: t.release_date ?? null,
                 expiry_date: t.expiry_date ?? null,
                 created_at: t.created_at ?? null,
+                shift_slot: normalizeShiftSlot(t.shift_slot),
+                shift_timing: t.shift_timing ? String(t.shift_timing) : null,
+                latest_completed_attempt_id: t.latest_completed_attempt_id
+                    ? String(t.latest_completed_attempt_id)
+                    : null,
+                active_in_progress_attempt_id: t.active_in_progress_attempt_id
+                    ? String(t.active_in_progress_attempt_id)
+                    : null,
                 series_name: String(seriesObj?.name ?? 'Mock Series'),
                 series_is_premium: seriesIsPremium,
                 series_price_inr: seriesPriceInr,

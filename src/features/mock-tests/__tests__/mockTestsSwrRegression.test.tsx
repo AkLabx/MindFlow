@@ -1174,29 +1174,29 @@ describe('v1.0.379 Mock Tests SWR Cache, Admin Invalidation Cascade, Scoring Mat
             </MemoryRouter>
         );
 
-        const filterGroup = screen.getByRole('group', { name: 'Mock test category filters' });
-        const allChip = within(filterGroup).getByRole('button', { name: /All\s+120/i });
-        const fullLengthChip = within(filterGroup).getByRole('button', { name: /Full-Length\s+60/i });
-        const freeChip = within(filterGroup).getByRole('button', { name: /Free\s+40/i });
+        const filterTablist = screen.getByRole('tablist', { name: 'Mock test category filters' });
+        const allTab = within(filterTablist).getByRole('tab', { name: /All\s+120/i });
+        const fullLengthTab = within(filterTablist).getByRole('tab', { name: /Full-Length\s+60/i });
+        const freeTab = within(filterTablist).getByRole('tab', { name: /Free\s+40/i });
 
-        expect(allChip.getAttribute('aria-pressed')).toBe('true');
+        expect(allTab.getAttribute('aria-selected')).toBe('true');
         expect(screen.getByRole('heading', { level: 3, name: 'BPSC Full-Length Mock #1' })).toBeTruthy();
         expect(screen.getByRole('heading', { level: 3, name: 'BPSC Sectional Test #2' })).toBeTruthy();
         expect(screen.getByRole('heading', { level: 3, name: 'BPSC Full-Length Mock #3' })).toBeTruthy();
         expect(screen.getByRole('heading', { level: 3, name: 'BPSC Sectional Test #4' })).toBeTruthy();
 
-        fireEvent.click(fullLengthChip);
+        fireEvent.click(fullLengthTab);
         await waitFor(() => {
-            expect(fullLengthChip.getAttribute('aria-pressed')).toBe('true');
+            expect(fullLengthTab.getAttribute('aria-selected')).toBe('true');
             expect(screen.getByRole('heading', { level: 3, name: 'BPSC Full-Length Mock #1' })).toBeTruthy();
             expect(screen.getByRole('heading', { level: 3, name: 'BPSC Full-Length Mock #3' })).toBeTruthy();
             expect(screen.queryByRole('heading', { level: 3, name: 'BPSC Sectional Test #2' })).toBeNull();
             expect(screen.queryByRole('heading', { level: 3, name: 'BPSC Sectional Test #4' })).toBeNull();
         });
 
-        fireEvent.click(freeChip);
+        fireEvent.click(freeTab);
         await waitFor(() => {
-            expect(freeChip.getAttribute('aria-pressed')).toBe('true');
+            expect(freeTab.getAttribute('aria-selected')).toBe('true');
             expect(screen.getByRole('heading', { level: 3, name: 'BPSC Full-Length Mock #1' })).toBeTruthy();
             expect(screen.getByRole('heading', { level: 3, name: 'BPSC Sectional Test #4' })).toBeTruthy();
             expect(screen.queryByRole('heading', { level: 3, name: 'BPSC Full-Length Mock #3' })).toBeNull();

@@ -178,6 +178,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [isAuthTransitioning, setIsAuthTransitioning] = useState(false);
   const [sessionConflict, setSessionConflict] = useState(false);
   const lastSyncedUserId = useRef<string | null>(null);
+  const staleStudentIdHealAttemptedRef = useRef<Set<string>>(new Set());
   const queryClient = useQueryClient();
 
   const applyCanonicalProfile = (data: AuthProfile) => {
@@ -197,6 +198,28 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
     setProfile((prev) => (prev && prev.id !== targetUserId ? null : prev));
   };
+
+  // Auto-heal stale local profile caches carrying legacy `MF-` student IDs once online.
+  useEffect(() => {
+    const userId = user?.id;
+    const studentId = typeof profile?.student_id === 'string' ? profile.student_id.trim() : '';
+    if (!userId || !/^MF-/i.test(studentId)) return;
+
+    const tryHealStaleProfile = () => {
+      if (typeof navigator !== 'undefined' && navigator.onLine === false) return;
+      if (staleStudentIdHealAttemptedRef.current.has(userId)) return;
+      staleStudentIdHealAttemptedRef.current.add(userId);
+      refreshProfile().catch(() => {
+        staleStudentIdHealAttemptedRef.current.delete(userId);
+      });
+    };
+
+    tryHealStaleProfile();
+    window.addEventListener('online', tryHealStaleProfile);
+    return () => {
+      window.removeEventListener('online', tryHealStaleProfile);
+    };
+  }, [user?.id, profile?.student_id]);
 
   useEffect(() => {
     let sessionSub: any = null;

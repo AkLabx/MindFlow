@@ -294,17 +294,34 @@ describe('v1.0.372 Student TestDetailPage Bug Fixes, Attempt History & Save/Shar
         });
     });
 
-    it('renders real DB_TABLES.MOCK.ATTEMPTS stats, Pass/Below Cutoff badges, Show all (>5), and adaptive CTA labels', async () => {
-        // Case A: 0 attempts -> Start Test
+    it('renders real DB_TABLES.MOCK.ATTEMPTS stats, Pass/Below Cutoff badges, Show all (>5), and 2-step onboarding CTAs', async () => {
+        // Case A: 0 attempts -> Step 1 "Next" -> Step 2 language + declaration gate -> "I am ready to begin"
         setupSupabaseMocks({
             test: buildMockTest(),
             attempts: [],
         });
         renderTestDetail();
         await waitFor(() => {
-            expect(screen.getByRole('button', { name: /Start Test/i })).toBeTruthy();
+            expect(screen.getByTestId('onboarding-next-btn')).toBeTruthy();
         });
         expect(screen.getByText(/haven't attempted this test yet/i)).toBeTruthy();
+
+        fireEvent.click(screen.getByTestId('onboarding-next-btn'));
+        await waitFor(() => {
+            expect(screen.getByTestId('onboarding-step-2')).toBeTruthy();
+        });
+        const beginBtn = screen.getByTestId('test-detail-primary-cta') as HTMLButtonElement;
+        expect(beginBtn.disabled).toBe(true);
+        fireEvent.click(screen.getByTestId('onboarding-lang-en'));
+        expect(beginBtn.disabled).toBe(true);
+        fireEvent.click(screen.getByTestId('onboarding-declaration-checkbox'));
+        expect(beginBtn.disabled).toBe(false);
+        fireEvent.click(beginBtn);
+        await waitFor(() => {
+            expect(screen.getByTestId('location-display').textContent).toContain('/exam/test-bpsc-69|');
+            expect(screen.getByTestId('location-display').textContent).toContain('"initialLanguage":"en"');
+        });
+
         cleanup();
         clearPreparedMockTestsCache();
         window.localStorage.clear();
@@ -407,14 +424,15 @@ describe('v1.0.372 Student TestDetailPage Bug Fixes, Attempt History & Save/Shar
         clearPreparedMockTestsCache();
         window.localStorage.clear();
 
-        // Case C: Completed attempts only -> Re-attempt Test
+        // Case C: Completed attempts only -> View Latest Result banner + Step 1 "Next" to retake
         setupSupabaseMocks({
             test: buildMockTest(),
             attempts: [attempts[1]],
         });
         renderTestDetail();
         await waitFor(() => {
-            expect(screen.getByRole('button', { name: /Re-attempt Test/i })).toBeTruthy();
+            expect(screen.getByRole('button', { name: /View Latest Result/i })).toBeTruthy();
+            expect(screen.getByTestId('onboarding-next-btn')).toBeTruthy();
         });
     });
 

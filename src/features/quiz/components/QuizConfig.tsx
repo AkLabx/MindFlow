@@ -49,6 +49,7 @@ import {
   getExamDisplayLabel,
   groupExamNamesByDomain,
 } from '../constants/examDomains';
+import { compareExamDateShiftsDesc } from '@/features/quiz/utils/shiftSorting';
 
 // Optimization Hooks
 import { quizCreationService, MAX_QUIZ_QUESTIONS, DEFAULT_DRILL_QUESTION_COUNT } from '../services/quizCreationService';
@@ -177,9 +178,9 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
       filters.examYear.length +
       filters.examDateShift.length +
       filters.questionType.length +
-      (activeExamInfo ? 0 : filters.examName.length)
+      filters.examName.length
     );
-  }, [filters.examYear, filters.examDateShift, filters.questionType, filters.examName, activeExamInfo]);
+  }, [filters.examYear, filters.examDateShift, filters.questionType, filters.examName]);
 
   const { pinnedExamIds } = useExamContextStore();
 
@@ -258,7 +259,19 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
   }, [metadata, filters.examName, filters.subject]);
 
   const allExamYears = useMemo(() => Array.from(new Set(scopedMetadataForSource.map(q => String(q.examYear ?? q.sourceInfo?.examYear)))).filter(Boolean).sort().reverse(), [scopedMetadataForSource]);
-  const allExamShifts = useMemo(() => Array.from(new Set(scopedMetadataForSource.map(q => (q.examDateShift ?? q.sourceInfo?.examDateShift) || ''))).filter(Boolean).sort(), [scopedMetadataForSource]);
+  const allExamShifts = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          scopedMetadataForSource.map(
+            (q) => (q.examDateShift ?? q.sourceInfo?.examDateShift) || ''
+          )
+        )
+      )
+        .filter(Boolean)
+        .sort(compareExamDateShiftsDesc),
+    [scopedMetadataForSource]
+  );
   const allTags = useMemo(() => Array.from(new Set(scopedMetadataForSource.flatMap(q => q.tags || []))).filter(Boolean).sort(), [scopedMetadataForSource]);
 
   // Smart Filter Pruning: Discard stale year or shift selections that have 0 questions under newly selected exam/subject
@@ -764,30 +777,25 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
             >
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-0 md:gap-6">
                 <FilterGroup title="Source" icon={<FileText className="w-5 h-5" />}>
-                  {/* Deduplicate controls: Hide raw exam selector capsules when active exam context is set */}
-                  {!activeExamInfo && (
-                    <>
-                      {examDomainGroups.map((group) => (
-                        <ScrollableCapsules
-                          key={group.id}
-                          label={group.label}
-                          tooltip={group.tooltip}
-                          options={group.exams}
-                          optionLabels={EXAM_DISPLAY_LABELS}
-                          selectedOptions={filters.examName}
-                          onOptionToggle={(opt) => {
-                            const newSelection = filters.examName.includes(opt)
-                              ? filters.examName.filter((item) => item !== opt)
-                              : [...filters.examName, opt];
-                            handleFilterChange('examName', newSelection);
-                          }}
-                          counts={filterCounts.examName || {}}
-                          hideZeroCount
-                          maxRows={2}
-                        />
-                      ))}
-                    </>
-                  )}
+                  {examDomainGroups.map((group) => (
+                    <ScrollableCapsules
+                      key={group.id}
+                      label={group.label}
+                      tooltip={group.tooltip}
+                      options={group.exams}
+                      optionLabels={EXAM_DISPLAY_LABELS}
+                      selectedOptions={filters.examName}
+                      onOptionToggle={(opt) => {
+                        const newSelection = filters.examName.includes(opt)
+                          ? filters.examName.filter((item) => item !== opt)
+                          : [...filters.examName, opt];
+                        handleFilterChange('examName', newSelection);
+                      }}
+                      counts={filterCounts.examName || {}}
+                      hideZeroCount
+                      maxRows={2}
+                    />
+                  ))}
 
                   {allExamYears.length > 0 && (
                     <ScrollableCapsules

@@ -426,7 +426,7 @@ export const AdminFinancialsPage: React.FC = () => {
                                 Direct Course Activation by Student ID
                             </h2>
                             <p className="text-xs text-slate-500 dark:text-slate-400">
-                                Look up a student&apos;s immutable ID (e.g. MF-100001) and grant timed course access.
+                                Look up a student&apos;s immutable ID (e.g. MIND-100001) and grant timed course access.
                             </p>
                         </div>
                     </div>
@@ -437,7 +437,7 @@ export const AdminFinancialsPage: React.FC = () => {
                         type="text"
                         value={studentIdInput}
                         onChange={(e) => setStudentIdInput(e.target.value)}
-                        placeholder="Enter Student ID (e.g. MF-100001)"
+                        placeholder="Enter Student ID (e.g. MIND-100001)"
                         className="flex-1 min-h-[44px] px-4 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 font-mono text-sm font-bold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500"
                     />
                     <button
@@ -490,11 +490,21 @@ export const AdminFinancialsPage: React.FC = () => {
                                             }}
                                             className="w-full min-h-[44px] px-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-900 dark:text-white"
                                         >
-                                            {courseOptions.map((c) => (
-                                                <option key={c.id} value={c.id}>
-                                                    {c.name} (₹{c.price_inr} • {c.validity_days}d)
-                                                </option>
-                                            ))}
+                                            {courseOptions.map((c) => {
+                                                const typePrefix =
+                                                    c.course_type === 'bundle'
+                                                        ? '[BUNDLE] '
+                                                        : c.course_type === 'video'
+                                                          ? '[VIDEO] '
+                                                          : c.course_type === 'pdf'
+                                                            ? '[PDF] '
+                                                            : '';
+                                                return (
+                                                    <option key={c.id} value={c.id}>
+                                                        {typePrefix}{c.name} (₹{c.price_inr} • {c.validity_days}d)
+                                                    </option>
+                                                );
+                                            })}
                                         </select>
                                     </div>
 
