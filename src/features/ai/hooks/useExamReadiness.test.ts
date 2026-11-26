@@ -80,24 +80,24 @@ describe('useExamReadiness & Revision Planner Engine', () => {
       {
         id: 'quiz-2',
         createdAt: Date.now(),
-        filters: { examName: ['SSC CGL'] },
+        filters: { examName: ['SSC CGL PRE'] },
         state: {
           answers: { q3: 'B' },
         },
         questions: [
-          { id: 'q3', examName: 'SSC CGL', subject: 'Quant', topic: 'Trigonometry', correct: 'B' }, // Correct
+          { id: 'q3', examName: 'SSC CGL PRE', subject: 'Quant', topic: 'Trigonometry', correct: 'B' }, // Correct
         ],
       },
       // Non-matching exam (BPSC) — must be excluded
       {
         id: 'quiz-3',
         createdAt: Date.now(),
-        filters: { examName: ['BPSC CSE PRE'] },
+        filters: { examName: ['BPSC CCE PRE'] },
         state: {
           answers: { q4: 'D' },
         },
         questions: [
-          { id: 'q4', examName: 'BPSC CSE PRE', subject: 'Geography', topic: 'Indian Rivers', correct: 'D' },
+          { id: 'q4', examName: 'BPSC CCE PRE', subject: 'Geography', topic: 'Indian Rivers', correct: 'D' },
         ],
       },
     ];

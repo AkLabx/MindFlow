@@ -29,6 +29,12 @@ import { AdminQuestionImage } from '../../quiz/components/AdminQuestionImage';
 import { useQuizSessionStore } from '../../quiz/stores/useQuizSessionStore';
 import { useNotification } from '../../../hooks/useNotification';
 import { supabase } from '../../../lib/supabase';
+import {
+  ExamCatalogEntry,
+  fetchExamCatalog,
+  getCachedExamCatalog,
+  resolveCanonicalExamName,
+} from '../../quiz/services/examCatalogService';
 
 interface AdminEditQuestionModalProps {
   isOpen: boolean;
@@ -105,6 +111,7 @@ export const AdminEditQuestionModal: React.FC<AdminEditQuestionModalProps> = ({
   const [examName, setExamName] = useState('');
   const [examYear, setExamYear] = useState('');
   const [examDateShift, setExamDateShift] = useState('');
+  const [examCatalog, setExamCatalog] = useState<readonly ExamCatalogEntry[]>(() => getCachedExamCatalog());
   const [difficulty, setDifficulty] = useState('Medium');
   const [questionType, setQuestionType] = useState('MCQ');
   const [tags, setTags] = useState<string[]>([]);
@@ -146,8 +153,11 @@ export const AdminEditQuestionModal: React.FC<AdminEditQuestionModalProps> = ({
       setSubject(question.subject || question.classification?.subject || '');
       setTopic(question.topic || question.classification?.topic || '');
       setSubTopic(question.subTopic || question.classification?.subTopic || '');
-      setExamName(question.examName || question.sourceInfo?.examName || '');
+      setExamName(resolveCanonicalExamName(question.examName || question.sourceInfo?.examName || ''));
       setExamYear(question.examYear ? String(question.examYear) : question.sourceInfo?.examYear ? String(question.sourceInfo.examYear) : '');
+      void fetchExamCatalog().then((entries) => {
+        if (entries.length > 0) setExamCatalog(entries);
+      });
       setExamDateShift(question.examDateShift || question.sourceInfo?.examDateShift || '');
       setDifficulty(question.properties?.difficulty || 'Medium');
       setQuestionType(question.properties?.questionType || 'MCQ');
@@ -847,20 +857,25 @@ export const AdminEditQuestionModal: React.FC<AdminEditQuestionModalProps> = ({
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-400">
-                    Exam Name
+                    Exam Name (SSOT)
                   </label>
-                  <input
-                    type="text"
+                  <select
                     value={examName}
                     onChange={(e) => setExamName(e.target.value)}
                     className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none"
-                    placeholder="e.g. SSC CGL"
-                  />
+                  >
+                    <option value="">Select canonical exam...</option>
+                    {examCatalog.map((entry) => (
+                      <option key={entry.exam_name} value={entry.exam_name}>
+                        {entry.exam_name} — {entry.display_label}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-400">
-                    Exam Year
+                    Notification Year
                   </label>
                   <input
                     type="number"
@@ -872,7 +887,7 @@ export const AdminEditQuestionModal: React.FC<AdminEditQuestionModalProps> = ({
                     className={`w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border ${
                       validationErrors.examYear ? 'border-red-500' : 'border-gray-200 dark:border-gray-700'
                     } rounded-xl text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none`}
-                    placeholder="e.g. 2024"
+                    placeholder="e.g. 2025 (Official Cycle)"
                   />
                   {validationErrors.examYear && (
                     <p className="text-red-500 text-xs">{validationErrors.examYear}</p>
@@ -888,7 +903,10 @@ export const AdminEditQuestionModal: React.FC<AdminEditQuestionModalProps> = ({
                     value={examDateShift}
                     onChange={(e) => setExamDateShift(e.target.value)}
                     className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none"
-                    placeholder="e.g. 12 Sep 2024 (Shift 1)"
+                    placeholder={
+                      examCatalog.find((entry) => entry.exam_name === examName)?.shift_format_example ||
+                      'e.g. 01 Oct 2026 • Shift 2 (01:30 PM)'
+                    }
                   />
                 </div>
               </div>

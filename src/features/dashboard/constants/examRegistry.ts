@@ -1,3 +1,8 @@
+import {
+  getExamNamesForGroup,
+  resolveCanonicalExamName,
+} from '@/features/quiz/services/examCatalogService';
+
 export interface CanonicalExam {
   id: string;               // Unique slug (e.g., 'ssc_cgl')
   displayName: string;      // User-facing title (e.g., 'SSC CGL')
@@ -9,7 +14,7 @@ export interface CanonicalExam {
   gradient: string;         // Tailwind gradient string
   borderClass: string;      // Tailwind border string
   textClass: string;        // Tailwind text accent
-  dbExamNames: string[];    // Exact strings or prefixes in questions.examName
+  dbExamNames: string[];    // Exact strings in questions.examName (SSOT: public.exam_catalog)
   matchPrefix?: string;     // Optional prefix match (e.g. 'BPSC')
   isDefaultFeatured: boolean;
 }
@@ -26,7 +31,7 @@ export const CANONICAL_EXAMS: CanonicalExam[] = [
     gradient: 'from-blue-600/10 via-indigo-600/5 to-transparent',
     borderClass: 'border-blue-200/90 dark:border-blue-800/60',
     textClass: 'text-blue-600 dark:text-blue-400',
-    dbExamNames: ['CGL PRE', 'SSC CGL'],
+    dbExamNames: ['SSC CGL PRE', 'SSC CGL MAINS'],
     matchPrefix: 'SSC CGL',
     isDefaultFeatured: true,
   },
@@ -42,26 +47,23 @@ export const CANONICAL_EXAMS: CanonicalExam[] = [
     borderClass: 'border-amber-200/90 dark:border-amber-800/60',
     textClass: 'text-amber-600 dark:text-amber-400',
     dbExamNames: [
-      'BPSC CSE PRE',
-      'BPSC TRE2',
-      'BPSC TRE3',
+      'BPSC CCE PRE',
+      'BPSC TRE 1.0',
+      'BPSC TRE 2.0',
+      'BPSC TRE 3.0',
       'BPSC AEDO',
       'BPSC AUDITOR',
-      'BPSC Motor Vehicle Inspectors. QP',
-      'BPSC 6-8 MATHS SCIENCE',
-      'BPSC 6-8 MATHS SCIENCE (1)',
-      'BPSC 9-10 SCIENCE (1)',
-      'BPSC Law Officer GS Question Paper',
-      'BPSC - Mineral Development Officer Exam 2025 - GS Paper',
-      'BPSC Public Relation Officer GS Question Paper',
-      'BPSC 9-10 MATHS TRE 1.0',
-      'BPSC TRE1',
-      'BPSC 9-10 SOCIAL SCIENCE TRE 2.0',
-      'BPSC 9-10 Social Science',
-      'BPSC 1-5',
-      'BPSC 9-10 SCIENCE TRE -1.0',
-      'BPSC - DSO PT 2025',
-      'BPSC 9-10 SCIENCE',
+      'BPSC CDPO',
+      'BPSC AAO',
+      'BPSC PROJECT MANAGER',
+      'BPSC ASSISTANT',
+      'BPSC AGRICULTURE',
+      'BPSC MVI',
+      'BPSC MDO',
+      'BPSC LAW OFFICER',
+      'BPSC PRO',
+      'BPSC DSO',
+      'BPSC OTHER',
     ],
     matchPrefix: 'BPSC',
     isDefaultFeatured: true,
@@ -77,7 +79,7 @@ export const CANONICAL_EXAMS: CanonicalExam[] = [
     gradient: 'from-emerald-600/10 via-teal-600/5 to-transparent',
     borderClass: 'border-emerald-200/90 dark:border-emerald-800/60',
     textClass: 'text-emerald-600 dark:text-emerald-400',
-    dbExamNames: ['RRB NTPC UG', 'RRB NTPC', 'RRB'],
+    dbExamNames: ['RRB NTPC UG'],
     matchPrefix: 'RRB',
     isDefaultFeatured: true,
   },
@@ -92,7 +94,7 @@ export const CANONICAL_EXAMS: CanonicalExam[] = [
     gradient: 'from-purple-600/10 via-violet-600/5 to-transparent',
     borderClass: 'border-purple-200/90 dark:border-purple-800/60',
     textClass: 'text-purple-600 dark:text-purple-400',
-    dbExamNames: ['IB ACIO PRE', 'IB ACIO'],
+    dbExamNames: ['IB ACIO PRE'],
     matchPrefix: 'IB',
     isDefaultFeatured: true,
   },
@@ -107,7 +109,7 @@ export const CANONICAL_EXAMS: CanonicalExam[] = [
     gradient: 'from-rose-600/10 via-red-600/5 to-transparent',
     borderClass: 'border-rose-200/90 dark:border-rose-800/60',
     textClass: 'text-rose-600 dark:text-rose-400',
-    dbExamNames: ['UPSC CDS', 'CDS'],
+    dbExamNames: ['UPSC CDS'],
     isDefaultFeatured: false,
   },
   {
@@ -121,7 +123,7 @@ export const CANONICAL_EXAMS: CanonicalExam[] = [
     gradient: 'from-cyan-600/10 via-blue-600/5 to-transparent',
     borderClass: 'border-cyan-200/90 dark:border-cyan-800/60',
     textClass: 'text-cyan-600 dark:text-cyan-400',
-    dbExamNames: ['Bihar Police', 'Bihar SI', 'BPSSC'],
+    dbExamNames: ['BIHAR POLICE'],
     isDefaultFeatured: false,
   },
 ];
@@ -137,7 +139,7 @@ export const getCanonicalExamById = (examId: string): CanonicalExam | undefined 
 
 /**
  * Resolves a canonical exam (or its ID / displayName) into a deduplicated list of DB examName strings,
- * preserving canonical order first and appending any dynamic matches from knownDbExamNames.
+ * merging SSOT `exam_catalog` group entries with static fallback and dynamic DB matches.
  */
 export const resolveCanonicalExamNames = (
   canonicalIdOrExam: string | CanonicalExam,
@@ -170,6 +172,7 @@ export const resolveCanonicalExamNames = (
     }
   };
 
+  getExamNamesForGroup(exam.id).forEach(appendUnique);
   exam.dbExamNames.forEach(appendUnique);
 
   if (knownDbExamNames && knownDbExamNames.length > 0) {
@@ -184,16 +187,25 @@ export const resolveCanonicalExamNames = (
 };
 
 /**
- * Checks if a question matches a canonical exam definition.
+ * Checks if a question matches a canonical exam definition (including resolved legacy aliases).
  */
 export const matchesCanonicalExam = (exam: CanonicalExam, rawExamName: string | null | undefined): boolean => {
   if (!rawExamName) return false;
   const trimmed = rawExamName.trim();
-  if (exam.dbExamNames.some(name => name.toLowerCase() === trimmed.toLowerCase())) {
-    return true;
-  }
-  if (exam.matchPrefix && trimmed.toUpperCase().startsWith(exam.matchPrefix.toUpperCase())) {
-    return true;
+  const canonicalResolved = resolveCanonicalExamName(trimmed);
+  const candidates = canonicalResolved && canonicalResolved !== trimmed ? [trimmed, canonicalResolved] : [trimmed];
+
+  const groupNames = getExamNamesForGroup(exam.id);
+  for (const candidate of candidates) {
+    if (
+      exam.dbExamNames.some(name => name.toLowerCase() === candidate.toLowerCase()) ||
+      groupNames.some(name => name.toLowerCase() === candidate.toLowerCase())
+    ) {
+      return true;
+    }
+    if (exam.matchPrefix && candidate.toUpperCase().startsWith(exam.matchPrefix.toUpperCase())) {
+      return true;
+    }
   }
   return false;
 };

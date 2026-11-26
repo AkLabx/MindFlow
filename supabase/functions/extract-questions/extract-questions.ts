@@ -296,6 +296,72 @@ class RawTextParser implements DocumentParser {
     }
 }
 
+interface ExamCatalogRow {
+    exam_name: string;
+    aliases: string[] | null;
+    shift_format_example: string;
+}
+
+const INVALID_SHIFT_PLACEHOLDERS = new Set([
+    'n/a', 'na', 'unknown', 'source unknown', 'source unknown (similar to others)',
+    'various', 'demo', 'pastedemo1', 'none', 'null', '-', '--'
+]);
+
+function buildCatalogResolver(catalogRows: ExamCatalogRow[]) {
+    const exactAndAliasMap = new Map<string, string>();
+    for (const row of catalogRows) {
+        exactAndAliasMap.set(row.exam_name.trim().toLowerCase(), row.exam_name);
+        if (Array.isArray(row.aliases)) {
+            for (const alias of row.aliases) {
+                if (alias && alias.trim()) {
+                    exactAndAliasMap.set(alias.trim().toLowerCase(), row.exam_name);
+                }
+            }
+        }
+    }
+
+    const resolveExamName = (rawName: string | null | undefined, docExamName: string | null | undefined): string => {
+        const candidates = [rawName, docExamName].filter((v): v is string => typeof v === 'string' && v.trim() !== '');
+        for (const candidate of candidates) {
+            const trimmed = candidate.trim();
+            const matched = exactAndAliasMap.get(trimmed.toLowerCase());
+            if (matched) return matched;
+
+            if (/cgl.*(mains|tier[\s-]*2)/i.test(trimmed) && exactAndAliasMap.has('ssc cgl mains')) return 'SSC CGL MAINS';
+            if (/cgl/i.test(trimmed) && exactAndAliasMap.has('ssc cgl pre')) return 'SSC CGL PRE';
+            if (/rrb.*ntpc/i.test(trimmed) && exactAndAliasMap.has('rrb ntpc ug')) return 'RRB NTPC UG';
+            if (/ib.*acio/i.test(trimmed) && exactAndAliasMap.has('ib acio pre')) return 'IB ACIO PRE';
+            if (/upsc.*cds/i.test(trimmed) && exactAndAliasMap.has('upsc cds')) return 'UPSC CDS';
+            if (/upsc/i.test(trimmed) && exactAndAliasMap.has('upsc cse pre')) return 'UPSC CSE PRE';
+            if (/bpsc.*aedo/i.test(trimmed) && exactAndAliasMap.has('bpsc aedo')) return 'BPSC AEDO';
+            if (/bpsc.*auditor/i.test(trimmed) && exactAndAliasMap.has('bpsc auditor')) return 'BPSC AUDITOR';
+            if (/bpsc.*tre[\s.-]*3/i.test(trimmed) && exactAndAliasMap.has('bpsc tre 3.0')) return 'BPSC TRE 3.0';
+            if (/bpsc.*tre[\s.-]*2/i.test(trimmed) && exactAndAliasMap.has('bpsc tre 2.0')) return 'BPSC TRE 2.0';
+            if (/bpsc.*tre/i.test(trimmed) && exactAndAliasMap.has('bpsc tre 1.0')) return 'BPSC TRE 1.0';
+            if (/bpsc/i.test(trimmed) && exactAndAliasMap.has('bpsc cce pre')) return 'BPSC CCE PRE';
+        }
+        return exactAndAliasMap.get('other') || 'OTHER';
+    };
+
+    const normalizeShift = (rawShift: string | null | undefined, docShift: string | null | undefined): string | null => {
+        const candidate = (typeof rawShift === 'string' && rawShift.trim() !== '')
+            ? rawShift
+            : (typeof docShift === 'string' ? docShift : '');
+        const cleaned = candidate.replace(/[\r\n\t]+/g, ' ').replace(/\s+/g, ' ').trim();
+        if (!cleaned || INVALID_SHIFT_PLACEHOLDERS.has(cleaned.toLowerCase())) {
+            return null;
+        }
+        return cleaned;
+    };
+
+    const catalogInstruction = catalogRows.length > 0
+        ? `\n\nCANONICAL EXAM CATALOG (SSOT):\nYou MUST set "examName" to one of these exact canonical strings:\n` +
+          catalogRows.map((r) => `- "${r.exam_name}" (examDateShift example: "${r.shift_format_example}")`).join('\n')
+        : '';
+
+    return { resolveExamName, normalizeShift, catalogInstruction };
+}
+
 // ---------------------------------------------------------------------------
 // Worker Implementation
 // ---------------------------------------------------------------------------
@@ -310,6 +376,9 @@ Deno.serve(async (req: Request) => {
         const promptResult = await sql`SELECT system_prompt, output_schema, version FROM public.ai_prompts WHERE task = 'question_extract_v1' AND active = true LIMIT 1`;
         if (promptResult.length === 0) throw new Error("question_extract_v1 prompt missing");
         const promptDef = promptResult[0];
+
+        const catalogRows = await sql<ExamCatalogRow[]>`SELECT exam_name, aliases, shift_format_example FROM public.exam_catalog WHERE is_active = true ORDER BY sort_order ASC`;
+        const { resolveExamName, normalizeShift, catalogInstruction } = buildCatalogResolver(catalogRows);
 
         // Fetch task configuration (budget) from execution plan for consistency, but we still need some base config early
         const executionPlanInitial = await callSchedulerRpc(sql, 'question_extract_v1');
@@ -417,7 +486,7 @@ Deno.serve(async (req: Request) => {
                 const executionResult = await callGeminiWithScheduler(
                     sql,
                     'question_extract_v1',
-                    { parts: [{ text: promptDef.system_prompt + "\n" + (doc.custom_tweak || "") }] },
+                    { parts: [{ text: promptDef.system_prompt + catalogInstruction + "\n" + (doc.custom_tweak || "") }] },
                     geminiContents,
                     { type: "ARRAY", items: promptDef.output_schema }
                 );
@@ -448,9 +517,12 @@ Deno.serve(async (req: Request) => {
                             confidence_score: 0.95
                         };
         
-                        const finalExamName = q.examName || doc.exam_name || null;
-                        const finalExamYear = q.examYear || doc.exam_year || null;
-                        const finalExamDateShift = q.examDateShift || doc.exam_shift || null;
+                        const finalExamName = resolveExamName(q.examName, doc.exam_name);
+                        const parsedYear = Number(q.examYear || doc.exam_year);
+                        const finalExamYear = Number.isInteger(parsedYear) && parsedYear >= 1990 && parsedYear <= 2100
+                            ? parsedYear
+                            : new Date().getUTCFullYear();
+                        const finalExamDateShift = normalizeShift(q.examDateShift, doc.exam_shift);
         
                         await tx`
                             INSERT INTO public.questions (

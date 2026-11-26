@@ -896,6 +896,8 @@ describe('Admin Mock Tests CMS Controls (v1.0.369)', () => {
                 QUESTIONS: 'questions',
                 MASTERY: 'user_question_mastery',
                 SUBJECT_METADATA_CACHE: 'subject_metadata_cache',
+                EXAM_CATALOG: 'exam_catalog',
+                EXAM_CYCLES: 'exam_cycles',
             });
             expect(DB_TABLES.BLUEPRINT).toEqual({
                 BLUEPRINTS: 'user_exam_blueprints',

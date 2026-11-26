@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { db } from '../../../lib/db';
 import { fetchQuestionMetadata } from '../services/questionService';
+import { fetchExamCatalog } from '../services/examCatalogService';
 import { Question } from '../types';
 
 interface UseQuestionMetadataReturn {
@@ -71,7 +72,8 @@ export const useQuestionMetadata = (): UseQuestionMetadataReturn => {
         }
       }
 
-      // 2. Fetch delta in the background (or foreground if no cache / forced)
+      // 2. Fetch delta & SSOT exam catalog in the background (or foreground if no cache / forced)
+      void fetchExamCatalog(forceRefresh);
       const data = await fetchQuestionMetadata((current, total) => {
         setProgress({ current, total });
       }, forceRefresh);

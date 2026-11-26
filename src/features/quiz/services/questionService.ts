@@ -85,10 +85,10 @@ export const fetchQuestionMetadata = async (
   const runSync = async (): Promise<Question[]> => {
     const allRows: Partial<QuestionDBRow>[] = [];
 
-    // 0. Force Cache Wipe for 9k questions if not already done
-    const CACHE_WIPE_FLAG = 'quiz_metadata_cache_cleared_v12';
+    // 0. Force Cache Wipe when backend SSOT schema/metadata changes
+    const CACHE_WIPE_FLAG = 'quiz_metadata_cache_cleared_v13';
     if (typeof window !== 'undefined' && !window.localStorage.getItem(CACHE_WIPE_FLAG)) {
-      console.log('Forcing global cache wipe for 9k questions...');
+      console.log('Forcing global cache wipe for standardized exam metadata...');
       await db.clearQuizMetadataCache();
       window.localStorage.setItem(CACHE_WIPE_FLAG, 'true');
     }
@@ -96,9 +96,9 @@ export const fetchQuestionMetadata = async (
     // 1. Get last sync timestamp
     let lastSync = forceRefresh ? null : await db.getSyncTimestamp('quiz_metadata_sync');
 
-    if (typeof window !== 'undefined' && window.localStorage.getItem('quiz_metadata_cache_cleared_v12_force_sync') !== 'true') {
+    if (typeof window !== 'undefined' && window.localStorage.getItem('quiz_metadata_cache_cleared_v13_force_sync') !== 'true') {
       lastSync = null;
-      window.localStorage.setItem('quiz_metadata_cache_cleared_v12_force_sync', 'true');
+      window.localStorage.setItem('quiz_metadata_cache_cleared_v13_force_sync', 'true');
     }
 
     // PRO-TIP: 30-Day Auto-Purge Logic
