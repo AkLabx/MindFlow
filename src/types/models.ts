@@ -89,6 +89,10 @@ export interface Question {
   options_hi?: string[];
   /** The text of the correct answer. */
   correct: string;
+  /** Origin source of the question ('PYQ' | 'EXPERT' | 'AI'). */
+  question_source?: string;
+  /** Editorial / enrichment workflow status (e.g., 'PENDING_REVIEW', 'APPROVED', 'ENRICHED'). */
+  status?: string;
   /** Detailed explanation object. */
   explanation: Explanation;
   /** Server-side AI explanation JSON. */

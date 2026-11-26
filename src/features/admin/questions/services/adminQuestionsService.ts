@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase';
 import { DB_TABLES } from '@/config/dbTables';
+import { CANONICAL_SUBJECTS } from '@/features/quiz/services/questionTaxonomyService';
 import { invalidateQuestionBankCaches } from './questionBankCache';
 
 export { invalidateQuestionBankCaches };
@@ -50,14 +51,7 @@ export interface FetchQuestionsParams {
   sortOrder?: 'asc' | 'desc';
 }
 
-const DEFAULT_FALLBACK_SUBJECTS = [
-  'History',
-  'Geography',
-  'Economics',
-  'Polity',
-  'Current Affairs',
-  'General Science',
-];
+const DEFAULT_FALLBACK_SUBJECTS = [...CANONICAL_SUBJECTS];
 
 const CHUNK_SIZE = 100;
 
@@ -139,7 +133,7 @@ export const fetchQuestionById = async (id: string): Promise<QuestionRecord | nu
 export const saveQuestion = async (payload: Partial<QuestionRecord>): Promise<QuestionRecord> => {
   const isUpdate = Boolean(payload.id);
 
-  // Normalize explanation if stringified
+  // Normalize explanation if stringified and strip legacy `key_takeaway` alias
   let explanationObj: any = payload.explanation;
   if (typeof explanationObj === 'string') {
     const rawStr = explanationObj;
@@ -148,6 +142,14 @@ export const saveQuestion = async (payload: Partial<QuestionRecord>): Promise<Qu
     } catch {
       explanationObj = { summary: rawStr };
     }
+  }
+  if (explanationObj && typeof explanationObj === 'object' && !Array.isArray(explanationObj)) {
+    const cleaned = { ...explanationObj };
+    if (cleaned.key_takeaway && !cleaned.conclusion) {
+      cleaned.conclusion = cleaned.key_takeaway;
+    }
+    delete cleaned.key_takeaway;
+    explanationObj = cleaned;
   }
 
   const { created_at: _omitCreatedAt, deleted_at: _omitDeletedAt, ...restPayload } = payload;

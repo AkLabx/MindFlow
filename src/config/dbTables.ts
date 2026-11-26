@@ -27,6 +27,7 @@ export const DB_TABLES = {
     SUBJECT_METADATA_CACHE: 'subject_metadata_cache',
     EXAM_CATALOG: 'exam_catalog',
     EXAM_CYCLES: 'exam_cycles',
+    TAXONOMY: 'question_taxonomy',
   },
   /** Exam Blueprints */
   BLUEPRINT: {
@@ -64,4 +65,5 @@ export const DB_RPCS = {
   LOOKUP_STUDENT_FOR_ENROLLMENT: 'lookup_student_for_enrollment',
   ADMIN_ACTIVATE_COURSE_ENTITLEMENT: 'admin_activate_course_entitlement',
   ADMIN_REJECT_COURSE_PAYMENT_REQUEST: 'admin_reject_course_payment_request',
+  GET_QUESTION_TAXONOMY_TREE: 'get_question_taxonomy_tree',
 } as const;

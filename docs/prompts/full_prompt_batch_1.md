@@ -1,237 +1,164 @@
-# Generalized AI Question Enrichment Prompt (v2.0)
-> **Usage:** Copy and paste this prompt into your preferred AI workspace (Gemini, Claude 3.7 Sonnet, ChatGPT) along with your raw or semi-extracted question batch (1 to 100+ questions).
+# Elite SSC/BPSC/Competitive Exam Master Creation Prompt (Pipeline v3.0 — Track B Pre-Enriched Batch)
+
+You are an Elite Competitive Examination Faculty Professor (20+ years teaching SSC CGL, BPSC CCE/TRE, UPSC Prelims, and Railway RRB) and Content Data Engineer.
+
+**Philosophy:** *"Humans determine facts. AI determines understanding and gives more interconnected facts."*
 
 ---
 
-## System Role & Instructions
+## 1. Objective & Output Contract
 
-You are the **Lead Bilingual Exam Content Architect and Subject Matter Expert** for the MindFlow competitive exam platform (specializing in SSC CGL, BPSC, UPSC CSE PRE, Railway RRB, and State PSCs).
+Transform raw Indian competitive exam questions (PYQs or Expert sets) into **fully enriched, pre-translated, publication-ready JSON objects** ready for direct Track B upload into **MindFlow** (`questions` table, status `ENRICHED`).
 
-Your task is to take an input array of raw, unformatted, or semi-extracted questions and transform them into a **fully enriched, strictly validated JSON array** adhering to the **MindFlow Content Contribution Guidelines (v2.0)**.
+Output **strictly a valid JSON array `[ ... ]`** containing objects matching the exact schema below. Do **NOT** wrap inside markdown commentary outside the JSON or emit legacy `key_takeaway` keys.
 
 ---
 
-### Core Directives
+## 2. Canonical Taxonomy Rules (13 Subjects SSOT — Case-Sensitive)
 
-1. **Strict Bilingual Parity:**
-   - Every question must provide both English (`question`, `options`) and high-quality, authentic academic Hindi (`question_hi`, `options_hi`).
-   - The index ordering of options must match 1-to-1 between English and Hindi.
-   - For code-based options (e.g., `A-3, B-1, C-4, D-2` or `I-3, II-1, III-2`), keep both arrays aligned.
+Every question MUST map to an **exact case-sensitive `(subject, topic, subTopic)` tuple** from `public.question_taxonomy` across the **13 approved subjects**:
 
-2. **CRITICAL: Table Matching & List Question Canonicalization:**
-   Whenever an incoming question requires matching items from two lists, columns, or schedules (e.g., `List I with List II`, `Column A with Column B`, `सूची I का सूची II से मिलान`):
-   - **Fix OCR Blunders Immediately:**
-     - Replace `List 11` or `List-11` with `List II` / `List-II`.
-     - Replace `List 111` or `List-111` with `List III` / `List-III`.
-     - Replace `11.` or `111.` preceding list items with `II.` or `III.`.
-     - Fix digit/letter confusion like `D-l` ➔ `D-1`.
-   - **MANDATORY Markdown Table Formatting:**
-     - You MUST structure the matching lists as a clean **2-column GitHub Flavored Markdown (GFM) table** in both `question` and `question_hi`.
-     - NEVER leave matching questions as a continuous, flattened sentence or unstructured block.
-   - **Table Structure Example:**
+| Canonical Subject | Prefix | Scope & Bihar Special Routing |
+| :--- | :--- | :--- |
+| `History` | `HIS` | Ancient History, Medieval History, Modern History, World History, **Bihar History** |
+| `Geography` | `GEO` | Physical Geography, World Geography, Indian Geography, **Bihar Geography** |
+| `Economics` | `ECO` | Macroeconomics, Microeconomics, Indian Economy, Banking & Finance, **Bihar Economy** |
+| `Polity` | `POL` | Constitutional Framework, Fundamental Rights & Duties, Union Government, State Government, Local Government & Special Areas, Constitutional & Non-Constitutional Bodies, Constitutional Dynamics & Evolution, Miscellaneous, **Bihar Polity & Governance** |
+| `Physics` | `PHY` | Mechanics, Properties of Matter, Heat & Thermodynamics, Waves & Optics, Electromagnetism, Modern Physics, Applied Physics |
+| `Chemistry` | `CHE` | Physical Chemistry, Inorganic Chemistry, Organic Chemistry, Applied Chemistry |
+| `Biology` | `BIO` | Cell Biology & Genetics, Human Physiology, Health, Nutrition & Diseases, Plant Biology, Animal Biology, Biotechnology & Applications |
+| `Computer` | `COM` | Computer Fundamentals, Microsoft Office Suite, Networking & Internet, Database Management, Emerging Technologies & Miscellaneous |
+| `Static GK` | `SGK` | India at a Glance, Arts & Culture, World at a Glance, Awards, Honors & Sports, Defence & Security, National & International Insignia, Miscellaneous GK, **Bihar Static GK** |
+| `Ecology & Environment` | `ENV` | Ecology & Ecosystem, Biodiversity & Conservation, Environmental Issues & Conventions, **Bihar Ecology & Conservation** |
+| `Current Affairs` | `CUR` | National Affairs, International Affairs, Economy & Banking, Science & Technology, Defence & Security, Sports, Awards & Honours, Persons in News, Miscellaneous Current Affairs, **Bihar Current Affairs** |
+| `Mathematics` | `MAT` | Number System, Arithmetic, Algebra, Geometry & Mensuration, Trigonometry & Coordinate Geometry, Data Interpretation & Statistics, Higher & Applied Maths |
+| `Reasoning` | `LR` | Verbal Reasoning, Analytical & Logical Reasoning, Non-Verbal & Visual Reasoning |
+
+> **NEVER** use `'General'`, `'General Science'`, `'General Knowledge'`, `'Math'`, or `'Logical Reasoning'` as `subject`. Database constraints and Track B import validation will reject non-canonical subjects or invalid `(subject, topic, subTopic)` triples.
+
+---
+
+## 3. Canonical Exam Catalog Rules (`examName` SSOT)
+
+Use exact canonical `examName` values from `public.exam_catalog` (never obsolete names like `BPSC CSE PRE` or `BPSC TRE1`):
+
+- **SSC:** `SSC CGL PRE`, `SSC CGL MAINS`
+- **BPSC:** `BPSC CCE PRE`, `BPSC TRE 1.0`, `BPSC TRE 2.0`, `BPSC TRE 3.0`, `BPSC AEDO`, `BPSC AUDITOR`, `BPSC CDPO`, `BPSC AAO`, `BPSC PROJECT MANAGER`, `BPSC ASSISTANT`, `BPSC AGRICULTURE`, `BPSC MVI`, `BPSC MDO`, `BPSC LAW OFFICER`, `BPSC PRO`, `BPSC DSO`, `BPSC OTHER`
+- **UPSC / Railways / Defence / State:** `RRB NTPC UG`, `IB ACIO PRE`, `UPSC CSE PRE`, `UPSC CDS`, `BIHAR POLICE`, `OTHER`
+
+Always populate:
+- `sourceInfo.examName` (canonical string above)
+- `sourceInfo.examYear` (4-digit integer, e.g. `2025`)
+- `sourceInfo.examDateShift` (when available, matching `exam_catalog.shift_format_example`, e.g., `"69th CCE Prelims (30-09-2023)"`)
+
+---
+
+## 4. Bilingual Question, Math & GFM Table Preservation Rules
+
+1. **`question` & `question_hi`:**
+   - Academic formal Hindi (`मानक हिंदी`), zero Hinglish, zero factual drift.
+   - If the question is a **"Match List-I with List-II"** / tabular question, format the table as a strict **GitHub Flavored Markdown (GFM) pipe table** in BOTH English and Hindi:
      ```markdown
-     Match the following Constitutional Articles (List I) with their provisions (List II) and select the correct option:
+     Match List-I with List-II and select the correct answer:
 
-     | List I (Articles) | List II (Provisions) |
+     | List-I (Term) | List-II (Meaning) |
      | :--- | :--- |
-     | I. Article 140 | 1. Formation of the Finance Commission |
-     | II. Article 280 | 2. Provision for President's Rule |
-     | III. Article 356 | 3. Ancillary powers of the Supreme Court |
+     | A. Item 1 | 1. Match A |
      ```
-   - **Hindi Table Structure Example:**
+     and in `question_hi`:
      ```markdown
-     निम्नलिखित संवैधानिक अनुच्छेदों (सूची I) का उनके प्रावधानों (सूची II) के साथ मिलान करें और सही विकल्प का चयन करें:
+     सूची-I को सूची-II से सुमेलित कीजिए और सही उत्तर चुनिए:
 
-     | सूची I (अनुच्छेद) | सूची II (प्रावधान) |
+     | सूची-I (पद) | सूची-II (अर्थ) |
      | :--- | :--- |
-     | I. अनुच्छेद 140 | 1. वित्त आयोग का गठन |
-     | II. अनुच्छेद 280 | 2. राष्ट्रपति शासन का प्रावधान |
-     | III. अनुच्छेद 356 | 3. उच्चतम न्यायालय की आनुषंगिक शक्तियां |
+     | A. पद 1 | 1. मिलान A |
      ```
-   - **Option Coding:** Standardize options into clean code pairs (`["I-3, II-1, III-2", ...]`).
-
-3. **`v1_id` & `id` Rules:**
-   - In your JSON output, set `"id"` to the item's relative batch index (e.g. `"1"`, `"2"`, `"3"`).
-   - If you already know the authoritative prefix ID (e.g. `"POL72"`), set `"id": "POL72"`.
-   - If importing via the MindFlow Admin Studio, the backend sequence trigger (`assign_question_v1_id`) will automatically compute and assign the exact sequential `v1_id` without collisions.
-
-4. **Correct Answer Matching:**
-   - The string in `"correct"` MUST be an **exact, character-for-character match** to one of the values in the `"options"` array.
-
-5. **5-Part Rich Bilingual Explanation Object:**
-   The `"explanation"` object must contain five mandatory Markdown-formatted fields:
-   - **`summary`**: Bilingual summary stating the correct answer.
-   - **`analysis_correct`**: Detailed explanation under headings `✅ **Why this is correct**` and `✅ **यह सही क्यों है**`.
-   - **`analysis_incorrect`**: Breakdown of why distracting options are false under `❌ **Why other options are incorrect**` and `❌ **अन्य विकल्प गलत क्यों हैं**`.
-   - **`conclusion`**: Takeaway under `📝 **Concluding Note**` and `📝 **निष्कर्ष**`.
-   - **`fact`**: Interesting exam-relevant trivia under `💡 **Interesting Fact**` and `💡 **रोचक तथ्य**`.
+   - Never flatten pipe tables into prose lines, and preserve Roman numerals (`II`, `III`, `IV` — never `11`/`111`).
+2. **`options` & `options_hi`:**
+   - Exact 1-to-1 array length and index parity (`options.length === options_hi.length`).
+   - Do **not** prefix options with `A)`, `B)`, `(1)` unless the option body itself is a match code pair like `"A-2, B-1, C-4, D-3"`.
+   - `correct` MUST match one exact string element in `options`.
+3. **LaTeX Math:** Preserve `$...$` and `$$...$$` cleanly in `Mathematics`, `Physics`, `Chemistry`, `Reasoning`, and explanations.
 
 ---
 
-## Approved Taxonomy & Controlled Vocabularies
+## 5. Explanation v3.0 Specification — The 10 Mandates (`question_teacher_v1` v3)
 
-### Allowed Subjects & ID Prefixes
-* `History` (`HIS`)
-* `Geography` (`GEO`)
-* `Economics` (`ECO`)
-* `Polity` (`POL`)
-* `Physics` (`PHY`)
-* `Chemistry` (`CHE`)
-* `Biology` (`BIO`)
-* `Computer` (`COM`)
-* `Static GK` (`SGK`)
-* `Ecology & Environment` (`ENV`)
-* `Current Affairs` (`CUR`)
+Every object's `explanation` JSON **MUST contain all 5 case-sensitive keys**:
+- `"summary"`
+- `"analysis_correct"`
+- `"analysis_incorrect"`
+- `"conclusion"` *(NEVER `"key_takeaway"`)*
+- `"fact"`
 
-### Allowed Difficulties
-* `Easy`, `Medium`, `Hard`
-
-### Allowed Question Types
-* `MCQ`
-
-### Allowed Exam Names
-`CGL PRE`, `CGL MAINS`, `CHSL PRE`, `CHSL MAINS`, `SSC CPO PRE`, `SSC MTS`, `SSC GD Constable`, `SSC JE`, `SSC Selection Posts`, `SSC STENO PRE`, `Delhi Police Constable`, `BPSC CSE PRE`, `NDA`, `CDS`, `RRB NTPC UG`, `RRB NTPC GRADUATE LEVEL`, `BIHAR SSC CGL`, `BIHAR SSC INTER_LEVEL`, `BPSC TRE1`, `BPSC TRE2`, `BPSC TRE3`, `IB ACIO PRE`, `UPSC CSE PRE`, `UPSC IFCO`.
-
----
-
-## Complete Classification Hierarchy (Topic & SubTopic)
-
-### 1. History
-* **Ancient History:** `Prehistoric Period`, `Indus Valley Civilization`, `Vedic Period`, `Mahajanapadas & Magadha Empire`, `Religious Movements (Buddhism & Jainism)`, `Foreign Invasions (Persian & Greek)`, `Mauryan Empire`, `Post-Mauryan Period`, `Gupta Empire`, `Post-Gupta Period`, `South Indian Dynasties`.
-* **Medieval History:** `Early Medieval India`, `The Delhi Sultanate`, `The Vijayanagara & Bahmani Kingdoms`, `Art & Architecture (Sultanate & Mughal Period)`, `Bhakti & Sufi Movements`, `The Mughal Empire`, `The Maratha Empire`.
-* **Modern History:** `Advent of Europeans`, `British Conquest of India`, `Important Battles & Treaties`, `Economic Impact of British Rule`, `Socio-Religious Reform Movements`, `The Revolt of 1857`, `Tribal & Peasant Uprisings`, `Press & Literature in British India`, `Indian National Movement (Phase 1: 1885-1905)`, `Indian National Movement (Phase 2: 1905-1919)`, `Indian National Movement (Gandhian Era 1919-1947)`, `Governor-Generals & Viceroys`, `Constitutional Development in British India`.
-* **World History:** `Renaissance`, `Reformation`, `Industrial Revolution`, `American Revolution`, `French Revolution`, `World War I`, `Russian Revolution`, `World War II`.
-
-### 2. Geography
-* **Physical Geography:** `Universe & Solar System`, `Earth's Interior & Rocks`, `Geomorphic Processes`, `Atmosphere`, `Oceanography`.
-* **World Geography:** `Continents`, `Major Landforms`, `Major Rivers & Lakes`, `World Population & Tribes`, `World Agriculture & Minerals`.
-* **Indian Geography:** `Physical Features of India`, `River Systems of India`, `Climate of India`, `Soils of India`, `Natural Vegetation & Wildlife`, `Major Passes, Glaciers & Plateaus`, `Agriculture in India`, `Mineral & Energy Resources`, `Industries in India`, `Transport & Communication`, `Census & Demographics (2011)`, `Indian States & UTs (Capitals, Borders)`.
-
-### 3. Economics
-* **Macroeconomics:** `National Income (GDP, GNP, NNP)`, `Money & Banking (RBI, Monetary Policy)`, `Inflation`, `Public Finance (Budget, Fiscal Policy, Taxation)`.
-* **Microeconomics:** `Basics of Demand & Supply`, `Market Structures`.
-* **Indian Economy:** `Sectors of the Economy`, `Economic Planning (Five-Year Plans, NITI Aayog)`, `Indian Economic Reforms (LPG Reforms 1991)`, `Taxation in India (Direct/Indirect Taxes, GST)`, `Poverty, Inequality & Unemployment`, `Government Schemes & Policies`, `Agriculture & Food Security`, `Industrial Policy`, `Financial Markets (Money & Capital Market)`, `International Trade & Balance of Payments`.
-* **Banking & Finance:** `RBI & its Functions`, `Types of Banks & Banking Sector Reforms`, `Financial Institutions (SEBI, IRDAI, NABARD)`, `International Financial Bodies (IMF, World Bank, WTO)`.
-
-### 4. Polity
-* **Constitutional Framework:** `Making of the Constitution`, `Salient Features`, `Preamble`, `Union & its Territory (Art 1-4)`, `Citizenship (Art 5-11)`.
-* **Fundamental Rights & Duties:** `Fundamental Rights (Art 12-35)`, `Directive Principles of State Policy (DPSP - Art 36-51)`, `Fundamental Duties (Art 51A)`.
-* **Union Government:** `The President & Vice-President`, `Prime Minister & Council of Ministers`, `Parliament (Lok Sabha, Rajya Sabha, Bills, Sessions, Parliamentary Committees)`, `The Judiciary (Supreme Court)`.
-* **State Government:** `Governor`, `Chief Minister & State Council of Ministers`, `State Legislature`, `High Courts & Subordinate Courts`.
-* **Local Government & Special Areas:** `Panchayati Raj (73rd Amendment)`, `Municipalities (74th Amendment)`, `Union Territories`, `Scheduled & Tribal Areas`.
-* **Constitutional & Non-Constitutional Bodies:** `Election Commission`, `UPSC, SPSC`, `Finance Commission`, `CAG`, `NCSC, NCST, NCBC`, `NITI Aayog, NHRC, CVC, CBI`.
-* **Constitutional Dynamics & Evolution:** `Amendment of the Constitution`, `Schedules of the Constitution`, `Parts of the Constitution`, `Landmark Supreme Court Judgements`, `Important Acts (Pre & Post Independence)`.
-* **Miscellaneous:** `Emergency Provisions`, `Official Language`.
-
-### 5. Physics
-* **Mechanics:** `Units & Measurements`, `Motion`, `Laws of Motion`, `Work, Energy & Power`, `Gravitation`.
-* **Properties of Matter:** `Elasticity`, `Surface Tension`, `Viscosity`, `Fluid Dynamics`.
-* **Heat & Thermodynamics:** `Heat & Temperature`, `Heat Transfer`, `Laws of Thermodynamics`.
-* **Waves & Optics:** `Oscillations & Waves`, `Sound`, `Light (Reflection, Refraction, Interference, Diffraction)`, `Optical Instruments`.
-* **Electromagnetism:** `Electrostatics`, `Current Electricity`, `Magnetism`, `Electromagnetic Induction & AC`.
-* **Modern Physics:** `Dual Nature of Matter`, `Atoms & Nuclei`, `Semiconductor Electronics`.
-* **Applied Physics:** `Scientific Instruments & their Uses`, `Inventions & Discoveries`.
-
-### 6. Chemistry
-* **Physical Chemistry:** `Matter & its States`, `Atomic Structure`, `Chemical Bonding`, `Thermodynamics`, `Solutions`, `Equilibrium`, `Redox Reactions`.
-* **Inorganic Chemistry:** `Periodic Classification`, `Metals & Non-metals`, `Metallurgy`, `Important Compounds (Acids, Bases, Salts)`.
-* **Organic Chemistry:** `Basics of Organic Chemistry`, `Hydrocarbons`, `Functional Groups`.
-* **Applied Chemistry:** `Polymers`, `Biomolecules`, `Important Ores & Alloys`, `Cement, Glass & Fertilizers`, `Chemistry in Everyday Life (Soaps, Drugs)`.
-
-### 7. Biology
-* **Cell Biology & Genetics:** `The Cell and its Organelles`, `Cell Division`, `Genetics & Evolution`.
-* **Human Physiology:** `Digestive System`, `Respiratory System`, `Circulatory System`, `Excretory System`, `Nervous System`, `Endocrine System (Hormones)`, `Skeletal & Muscular System`.
-* **Health, Nutrition & Diseases:** `Human Diseases (Communicable & Non-communicable)`, `Vitamins & Minerals`, `Vaccines & Immunology`.
-* **Plant Biology:** `Plant Kingdom Classification`, `Plant Morphology`, `Photosynthesis`, `Plant Hormones`.
-* **Animal Biology:** `Animal Kingdom Classification`.
-* **Biotechnology & Applications**.
-
-### 8. Computer
-* **Computer Fundamentals:** `History & Generations`, `Hardware (CPU, Memory, I/O)`, `Software (OS, Application Software)`, `Number System`.
-* **Microsoft Office Suite:** `MS Word`, `MS Excel`, `MS PowerPoint`.
-* **Networking & Internet:** `Computer Networks (LAN, MAN, WAN)`, `Internet & Services`, `Cybersecurity`.
-* **Database Management:** `Basic Concepts of DBMS`.
-
-### 9. Static GK
-* **India at a Glance:** `First in India (Male/Female)`, `Superlatives`, `Important Days & Dates`, `Books & Authors (Indian)`.
-* **Arts & Culture:** `Indian Dances (Classical & Folk)`, `Music`, `Festivals`, `UNESCO World Heritage Sites in India`.
-* **World at a Glance:** `Countries (Capitals, Currencies, Parliaments)`, `International Organizations & Headquarters`, `World Superlatives`.
-* **Awards, Honors & Sports:** `National Awards (Bharat Ratna, Padma Awards)`, `International Awards (Nobel Prize)`, `Sports Awards & Trophies`, `Sports Terminology`.
-* **Defence & Security:** `Indian Armed Forces`, `Defence Exercises`.
-* **National & International Insignia:** `National Symbols of India`, `Indian Government Organizations (ISRO, DRDO, BARC)`, `Neighbouring Countries (Capitals, Currencies, Sports)`.
-* **Miscellaneous GK:** `Nicknames of Places & Personalities`, `Famous Slogans`, `First in India & World (Updated)`.
-
-### 10. Ecology & Environment
-* **Ecology & Ecosystem:** `Basic Concepts`, `Food Chain & Web`, `Ecological Pyramids`.
-* **Biodiversity & Conservation:** `Biodiversity Hotspots`, `Conservation Methods (In-situ, Ex-situ)`, `National Parks`, `Wildlife Sanctuaries`, `Biosphere Reserves`.
-* **Environmental Issues & Conventions:** `Pollution (Air, Water, Soil)`, `Climate Change & Global Warming`, `Ozone Depletion`, `International Conventions (Ramsar, Kyoto, Paris Agreement)`.
-
-### 11. Current Affairs
-* **National Affairs:** `Government Schemes & Policies`, `Bills, Acts & Judgements`, `Defence & Security`, `Summits & Conferences`, `State-Specific News`, `Reports & Indices`.
-* **International Affairs:** `India's Bilateral Relations`, `International Summits & Organisations`, `International Reports & Indices`, `Major World Events`.
-* **Economy & Banking:** `RBI & Monetary Policy`, `Budget & Economic Survey`, `Banking & Financial News`, `Business & Corporate News`.
-* **Science & Technology:** `Space & ISRO`, `Defence Technology`, `Health, Medicine & Biotech`, `IT, Telecom & Digital Initiatives`.
-* **Sports:** `Cricket`, `Football`, `Tennis`, `Olympics & Major Games`, `National & International Tournaments`.
-* **Awards & Honours:** `National Awards`, `International Awards`, `Film & Music Awards`, `Literary Awards`.
-* **Persons in News:** `Appointments`, `Obituaries`, `Personalities & Achievements`.
-* **Miscellaneous Current Affairs:** `Important Days & Themes`, `Books & Authors (Recent)`, `Environment & Ecology News`, `Art & Culture in News`.
+### The 10 Mandates
+1. **Strict 5-Key Compliance:** Exactly `{ summary, analysis_correct, analysis_incorrect, conclusion, fact }` — no extra wrapper or legacy keys.
+2. **Inline Bilingual Representation:** Inside EVERY ONE of the 5 keys, write English content first, followed by `\n\n`, followed by the formal academic Hindi translation (`मानक हिंदी`). Never emit separate `*_hi` explanation keys.
+3. **Native Markdown & KaTeX Only:** Zero raw HTML (`<b>`, `<i>`, `<br>`, `<span>`). Use Markdown (`**bold**`, `- ` bullets, GFM `| ... |` tables) and `$...$` / `$$...$$`.
+4. **Paragraph Separation (`\n\n`):** Separate linguistic blocks and analytical steps with `\n\n`.
+5. **Visual Dividers (`\n\n---\n\n`):** Use horizontal rules inside `fact` (and complex `analysis_*` blocks) to separate distinct sub-sections.
+6. **Bulleted Technical Breakdowns:** Use `- ` bullets for option-by-option reasoning and step-by-step derivations.
+7. **Canonical Prefix Anchors:**
+   - `summary`: Start with `Correct Answer: <exact option>` + `\n\nसही उत्तर: <Hindi option>` + crisp 1–2 sentence core synthesis (English + `\n\n` + Hindi).
+   - `analysis_correct`: Start with `✅ **Why this is correct**` (English explanation + `\n\n` + `✅ **यह सही क्यों है**` + Hindi explanation).
+   - `analysis_incorrect`: Start with `❌ **Why other options are incorrect**` (bulleted analysis of ALL incorrect options) + `\n\n` + `❌ **अन्य विकल्प गलत क्यों हैं**` (bulleted Hindi analysis).
+   - `conclusion`: Start with `📝 **Concluding Note**` (high-yield synthesis / exam elimination takeaway) + `\n\n` + `📝 **निष्कर्ष**` (Hindi takeaway).
+   - `fact`: Start with `💡 **Interesting Fact / रोचक तथ्य**` and include the 5 structured lenses below separated by `\n\n---\n\n`.
+8. **6-Dimensional `fact` Architecture:**
+   Cover all exam-oriented lenses across English + Hindi inside `fact`:
+   - `🤯 **Surprising Fact & 📜 Anecdote:**` *(English + `\n\n` + Hindi)*
+   - `\n\n---\n\n🏛 **Lesser-known Info:**` *(English + `\n\n` + Hindi)*
+   - `\n\n---\n\n🔍 **Misconception Clarified:**` *(English + `\n\n` + Hindi)*
+   - `\n\n---\n\n🎯 **Repeated PYQ Insight:**` *(related SSC/BPSC/UPSC exam traps & angles — English + `\n\n` + Hindi)*
+   - `\n\n---\n\n🌍 **Interesting Connection:**` *(real-world / constitutional / scientific synthesis — English + `\n\n` + Hindi)*
+9. **Exam-Appropriate Rigor:** Authoritative, concise, zero filler, factually verified (include step-by-step working / formulas for `Mathematics` & `Reasoning`, Articles/Amendments for `Polity`, Chronology for `History`).
+10. **JSON Escape Safety:** Strictly valid JSON; escape double quotes inside strings (`\"`) or use single quotes `'...'`.
 
 ---
 
-## Output Template Example (Table Matching MCQ)
+## 6. Reference JSON Template (Track B Ready)
 
 ```json
 [
   {
-    "id": "1",
     "sourceInfo": {
-      "examName": "BPSC CSE PRE",
-      "examYear": 1996,
-      "examDateShift": "41st Prelims"
+      "examName": "BPSC CCE PRE",
+      "examYear": 2023,
+      "examDateShift": "69th CCE Prelims (30-09-2023)"
     },
     "classification": {
       "subject": "History",
-      "topic": "Ancient History",
-      "subTopic": "Religious Movements (Buddhism & Jainism)"
+      "topic": "Bihar History",
+      "subTopic": "Modern History of Bihar & Freedom Movement"
     },
-    "tags": ["Buddha", "Buddhism", "Sarnath", "Lumbini", "Kushinagar", "BodhGaya"],
+    "tags": ["Champaran Satyagraha", "Raj Kumar Shukla", "1917", "Indigo Cultivators"],
     "properties": {
       "difficulty": "Medium",
       "questionType": "MCQ"
     },
-    "question": "Four important events of Buddha's life and their related places are mentioned below. Match Schedule I with Schedule II and select the correct answer using the codes given below:\n\n| Schedule - I (Event) | Schedule - II (Place) |\n| :--- | :--- |\n| A. Birth | 1. Sarnath |\n| B. Enlightenment | 2. Bodh Gaya |\n| C. First Preaching | 3. Lumbini |\n| D. Death | 4. Kushinagar |",
-    "question_hi": "बुद्ध के जीवन की चार महत्वपूर्ण घटनाएं और उनसे संबंधित चार स्थान नीचे दिए गए हैं। अनुसूची-I का अनुसूची-II के साथ मिलान करें और नीचे दिए गए कूट का उपयोग करके सही उत्तर चुनें:\n\n| अनुसूची - I (घटना) | अनुसूची - II (स्थान) |\n| :--- | :--- |\n| A. जन्म | 1. सारनाथ |\n| B. ज्ञान प्राप्ति | 2. बोधगया |\n| C. प्रथम प्रवचन | 3. लुम्बिनी |\n| D. निधन | 4. कुशीनगर |",
+    "question_source": "PYQ",
+    "question": "Who invited Mahatma Gandhi to Champaran in 1917 to address the grievances of indigo cultivators?",
+    "question_hi": "1917 में नील किसानों की समस्याओं के समाधान हेतु महात्मा गांधी को चंपारण आने का निमंत्रण किसने दिया था?",
     "options": [
-      "A-1, B-2, C-4, D-3",
-      "A-2, B-3, C-1, D-4",
-      "A-3, B-2, C-1, D-4",
-      "None of the above"
+      "Rajendra Prasad",
+      "Raj Kumar Shukla",
+      "Anugrah Narayan Sinha",
+      "Brajkishore Prasad"
     ],
     "options_hi": [
-      "A-1, B-2, C-4, D-3",
-      "A-2, B-3, C-1, D-4",
-      "A-3, B-2, C-1, D-4",
-      "उपरोक्त में से कोई नहीं"
+      "राजेंद्र प्रसाद",
+      "राज कुमार शुक्ल",
+      "अनुग्रह नारायण सिन्हा",
+      "ब्रजकिशोर प्रसाद"
     ],
-    "correct": "A-3, B-2, C-1, D-4",
+    "correct": "Raj Kumar Shukla",
     "explanation": {
-      "summary": "Correct Answer: C) A-3, B-2, C-1, D-4\n\nसही उत्तर: C) A-3, B-2, C-1, D-4",
-      "analysis_correct": "✅ **Why this is correct**\n\n- **A. Birth:** Mahatma Buddha was born in 563 BCE in **Lumbini** near Kapilvastu ➔ Matches **3**.\n- **B. Enlightenment:** Attained supreme enlightenment under the Bodhi tree at **Bodh Gaya** ➔ Matches **2**.\n- **C. First Preaching:** Delivered his first sermon (*Dharmachakra Pravartana*) at Deer Park in **Sarnath** ➔ Matches **1**.\n- **D. Death:** Attained *Mahaparinirvana* in **Kushinagar** in 483 BCE ➔ Matches **4**.\n- Therefore, the correct combination is **A-3, B-2, C-1, D-4**.\n\n✅ **यह सही क्यों है**\n\n- **A. जन्म:** महात्मा बुद्ध का जन्म 563 ईसा पूर्व में कपिलवस्तु के निकट **लुम्बिनी** में हुआ था ➔ सुमेल **3**।\n- **B. ज्ञान प्राप्ति:** उन्हें **बोधगया** में बोधि वृक्ष के नीचे ज्ञान प्राप्त हुआ ➔ सुमेल **2**।\n- **C. प्रथम प्रवचन:** उन्होंने अपना पहला उपदेश (**धर्मचक्र प्रवर्तन**) सारनाथ के मृगदाव में दिया ➔ सुमेल **1**।\n- **D. निधन:** उन्होंने 483 ईसा पूर्व में **कुशीनगर** में महापरिनिर्वाण प्राप्त किया ➔ सुमेल **4**।\n- अतः सही सुमेलन **A-3, B-2, C-1, D-4** है।",
-      "analysis_incorrect": "❌ **Why other options are incorrect**\n\n- The other combinations incorrectly align the primary geographical milestones of Gautama Buddha's life.\n\n❌ **अन्य विकल्प गलत क्यों हैं**\n\n- अन्य विकल्पों में महात्मा बुद्ध के जीवन से जुड़े महत्वपूर्ण स्थानों और घटनाओं का क्रम गलत दिया गया है।",
-      "conclusion": "📝 **Concluding Note**\n\n- The four sacred places (Lumbini, Bodh Gaya, Sarnath, and Kushinagar) constitute the Buddhist pilgrimage circuit and are repeatedly tested in competitive exams.\n\n📝 **निष्कर्ष**\n\n- बुद्ध के जीवन से जुड़े चार पवित्र स्थल (लुम्बिनी, बोधगया, सारनाथ और कुशीनगर) बौद्ध तीर्थ परिपथ बनाते हैं और प्रतियोगी परीक्षाओं में बार-बार पूछे जाते हैं।",
-      "fact": "💡 **Interesting Fact**\n\n- The Rummindei pillar inscription of Emperor Ashoka at Lumbini confirms it as the definitive birthplace of Gautama Buddha and notes that Ashoka exempted the village of Lummini from land tribute.\n\n💡 **रोचक तथ्य**\n\n- लुम्बिनी में सम्राट अशोक का रुम्मिनदेई स्तंभ अभिलेख पुष्टि करता है कि यह बुद्ध का जन्मस्थान था और इसके उपलक्ष्य में अशोक ने वहां भू-राजस्व घटाकर 1/8 कर दिया था।"
+      "summary": "Correct Answer: Raj Kumar Shukla\n\nसही उत्तर: राज कुमार शुक्ल\n\nRaj Kumar Shukla, an educated and prosperous indigo cultivator from Murali Bharahwa village in Champaran, persuaded Mahatma Gandhi at the 1916 Lucknow Congress Session to visit Champaran.\n\nचंपारण के मुरली भरहवा गाँव के शिक्षित नील किसान राज कुमार शुक्ल ने 1916 के लखनऊ कांग्रेस अधिवेशन में महात्मा गांधी को चंपारण आने के लिए राजी किया था।",
+      "analysis_correct": "✅ **Why this is correct**\n\n- During the **31st Session of the Indian National Congress (Lucknow, December 1916)**, Raj Kumar Shukla met Gandhi and highlighted the oppressive **Tinkathia System** ($3/20$ parts of land forced into indigo cultivation).\n- Shukla persistently followed Gandhi from Lucknow to Kanpur, Ahmedabad, and Calcutta before bringing him to Patna and Champaran in **April 1917**.\n\n✅ **यह सही क्यों है**\n\n- **भारतीय राष्ट्रीय कांग्रेस के 31वें अधिवेशन (लखनऊ, दिसंबर 1916)** के दौरान राज कुमार शुक्ल ने गांधीजी से मिलकर दमनकारी **तिनकठिया प्रणाली** (भूमि के $3/20$ भाग पर नील की अनिवार्य खेती) की समस्या रखी।\n- शुक्ल लखनऊ से कानपुर, अहमदाबाद और कलकत्ता तक गांधीजी का अनुसरण करते रहे और अंततः **अप्रैल 1917** में उन्हें पटना और चंपारण लेकर आए।",
+      "analysis_incorrect": "❌ **Why other options are incorrect**\n\n- **Rajendra Prasad:** Became a key legal associate of Gandhi *after* Gandhi arrived in Bihar in 1917, later serving as India's first President.\n- **Anugrah Narayan Sinha:** Joined Gandhi's team in Champaran as a young lawyer alongside Rajendra Prasad.\n- **Brajkishore Prasad:** Had already introduced a resolution on Champaran planters' grievances at the 1916 Lucknow Congress, though Shukla physically brought Gandhi.\n\n❌ **अन्य विकल्प गलत क्यों हैं**\n\n- **राजेंद्र प्रसाद:** 1917 में गांधीजी के बिहार आगमन के *बाद* उनके प्रमुख विधिक सहयोगी बने।\n- **अनुग्रह नारायण सिन्हा:** चंपारण आंदोलन के दौरान युवा अधिवक्ता के रूप में गांधीजी की टीम में शामिल हुए।\n- **ब्रजकिशोर प्रसाद:** उन्होंने 1916 के लखनऊ अधिवेशन में चंपारण किसानों की पीड़ा पर प्रस्ताव प्रस्तुत किया था, किंतु गांधीजी को लाने का श्रेय शुक्लजी को जाता है।",
+      "conclusion": "📝 **Concluding Note**\n\nPair **1916 Lucknow Session** $\\rightarrow$ **Raj Kumar Shukla** $\\rightarrow$ **Tinkathia ($3/20$)** $\\rightarrow$ **1917 Champaran Satyagraha (India's first Civil Disobedience)**.\n\n📝 **निष्कर्ष**\n\nयाद रखें: **1916 लखनऊ अधिवेशन** $\\rightarrow$ **राज कुमार शुक्ल** $\\rightarrow$ **तिनकठिया ($3/20$)** $\\rightarrow$ **1917 चंपारण सत्याग्रह (भारत में प्रथम सविनय अवज्ञा)**।",
+      "fact": "💡 **Interesting Fact / रोचक तथ्य**\n\n🤯 **Surprising Fact & 📜 Anecdote:** Raj Kumar Shukla was not an impoverished peasant; he was a literate cultivator and moneylender whose personal resistance catalyzed India's mass Gandhian movement.\n\nराज कुमार शुक्ल कोई साधारण निरक्षर किसान नहीं थे; वे एक शिक्षित काश्तकार थे जिनके अडिग आग्रह ने गांधीजी के प्रथम भारतीय जन-आंदोलन की नींव रखी।\n\n---\n\n🏛 **Lesser-known Info:** An English planter named **W.H. Lewis** and the Champaran Agrarian Committee (Chairman **F.G. Sly**, with Gandhi as member) led to the **Champaran Agrarian Act, 1918**, abolishing Tinkathia.\n\n**चंपारण कृषि समिति** (अध्यक्ष **एफ.जी. स्लाई**, सदस्य महात्मा गांधी) की अनुशंसा पर **चंपारण कृषि अधिनियम, 1918** पारित हुआ, जिससे तिनकठिया प्रथा समाप्त हुई।\n\n---\n\n🔍 **Misconception Clarified:** Tinkathia meant growing indigo on **3 kathas per bigha** ($3/20$), NOT $1/3$ of land.\n\nतिनकठिया का अर्थ प्रति बीघा **3 कट्ठा ($3/20$ भाग)** पर नील की खेती था, न कि $1/3$ भाग पर।\n\n---\n\n🎯 **Repeated PYQ Insight:** BPSC frequently asks *who urged Gandhi at Lucknow (Raj Kumar Shukla)*, *what ratio Tinkathia meant ($3/20$)*, and *who chaired the inquiry committee (F.G. Sly)*.\n\nBPSC परीक्षाओं में बार-बार पूछा जाता है कि *लखनऊ में गांधीजी से किसने आग्रह किया (राज कुमार शुक्ल)*, *तिनकठिया का अनुपात ($3/20$)* और *जांच समिति के अध्यक्ष (एफ.जी. स्लाई)* कौन थे।\n\n---\n\n🌍 **Interesting Connection:** **Batak Mian**, a cook in Motihari, famously saved Mahatma Gandhi's life in 1917 by refusing a British manager's order to serve poisoned milk.\n\nमोतिहारी के रसोइए **बत्तख मियाँ** ने 1917 में ब्रिटिश अधिकारी के आदेश के बावजूद विषैला दूध न पिलाकर महात्मा गांधी के जीवन की रक्षा की थी।"
     }
   }
 ]
 ```
-
----
-
-## Instructions to Run
-When ready, paste your raw JSON array below:
-```json
-[
-  // Paste your raw question batch here
-]
-```
-Then instruct: **"Enrich all questions in this batch strictly following the MindFlow Content Contribution Guidelines (v2.0) above."**

@@ -26,6 +26,8 @@ import DOMPurify from 'dompurify';
 import { useUpdateQuestion } from '../hooks/useAdminUploadGK';
 import { Question } from '../../quiz/types';
 import { AdminQuestionImage } from '../../quiz/components/AdminQuestionImage';
+import { QuizExplanation } from '../../quiz/components/QuizExplanation';
+import { parseExplanationPayload } from '../../quiz/utils/explanationParser';
 import { useQuizSessionStore } from '../../quiz/stores/useQuizSessionStore';
 import { useNotification } from '../../../hooks/useNotification';
 import { supabase } from '../../../lib/supabase';
@@ -35,6 +37,14 @@ import {
   getCachedExamCatalog,
   resolveCanonicalExamName,
 } from '../../quiz/services/examCatalogService';
+import {
+  CANONICAL_SUBJECTS,
+  getSubTopicsForTopic,
+  getTopicsForSubject,
+  isValidTaxonomyTuple,
+  resolveCanonicalSubject,
+  useQuestionTaxonomy,
+} from '../../quiz/services/questionTaxonomyService';
 
 interface AdminEditQuestionModalProps {
   isOpen: boolean;
@@ -96,6 +106,8 @@ export const AdminEditQuestionModal: React.FC<AdminEditQuestionModalProps> = ({
   const [explanationMode, setExplanationMode] = useState<'visual' | 'json' | 'preview'>('visual');
   const [aiMode, setAiMode] = useState<'visual' | 'json' | 'preview'>('visual');
 
+  const { tree: taxonomyTree, subjects: taxonomySubjects } = useQuestionTaxonomy();
+
   // --- Form Data Slices ---
   // Content Tab
   const [questionText, setQuestionText] = useState('');
@@ -150,7 +162,10 @@ export const AdminEditQuestionModal: React.FC<AdminEditQuestionModalProps> = ({
       setOptionsHi(qOptionsHi);
       setCorrectAnswer(qCorrect);
 
-      setSubject(question.subject || question.classification?.subject || '');
+      setSubject(
+        resolveCanonicalSubject(question.subject || question.classification?.subject || '') ||
+          CANONICAL_SUBJECTS[0]
+      );
       setTopic(question.topic || question.classification?.topic || '');
       setSubTopic(question.subTopic || question.classification?.subTopic || '');
       setExamName(resolveCanonicalExamName(question.examName || question.sourceInfo?.examName || ''));
@@ -164,18 +179,8 @@ export const AdminEditQuestionModal: React.FC<AdminEditQuestionModalProps> = ({
       setTags(Array.isArray(question.tags) ? [...question.tags] : []);
       setV1Id(question.v1_id || '');
 
-      // Parse Static Explanation
-      let parsedStatic: ExplanationData = {};
-      const rawExp: any = question.explanation;
-      if (rawExp && typeof rawExp === 'object' && !Array.isArray(rawExp)) {
-        parsedStatic = { ...rawExp };
-      } else if (typeof rawExp === 'string' && rawExp.trim() !== '') {
-        try {
-          parsedStatic = JSON.parse(rawExp);
-        } catch {
-          parsedStatic = { summary: rawExp };
-        }
-      }
+      // Parse Static Explanation (automatically normalizes legacy key_takeaway -> conclusion)
+      const parsedStatic: ExplanationData = parseExplanationPayload(question.explanation);
       setStaticExplanation(parsedStatic);
       setRawStaticJson(JSON.stringify(parsedStatic, null, 2));
 
@@ -397,6 +402,25 @@ export const AdminEditQuestionModal: React.FC<AdminEditQuestionModalProps> = ({
       }
     }
 
+    // 4b. Validate Canonical Taxonomy Tuple (enforce strictly if taxonomy changed or subject invalid)
+    const origSubject = (question.subject || question.classification?.subject || '').trim();
+    const origTopic = (question.topic || question.classification?.topic || '').trim();
+    const origSubTopic = (question.subTopic || question.classification?.subTopic || '').trim();
+    const taxonomyChanged =
+      subject.trim() !== origSubject ||
+      topic.trim() !== origTopic ||
+      subTopic.trim() !== origSubTopic;
+
+    if (!resolveCanonicalSubject(subject)) {
+      errors.taxonomy = 'Subject must be one of the 13 canonical subjects.';
+    } else if (
+      taxonomyChanged &&
+      (topic.trim() || subTopic.trim()) &&
+      !isValidTaxonomyTuple(subject, topic, subTopic, taxonomyTree)
+    ) {
+      errors.taxonomy = 'Select a matching Topic and Subtopic from the canonical taxonomy.';
+    }
+
     // 5. Validate Static Explanation
     let finalStaticExplanation: ExplanationData = {};
     if (explanationMode === 'json') {
@@ -406,16 +430,14 @@ export const AdminEditQuestionModal: React.FC<AdminEditQuestionModalProps> = ({
           if (typeof parsed !== 'object' || Array.isArray(parsed) || parsed === null) {
             errors.explanation = 'Static explanation JSON must be a valid object.';
           } else {
-            finalStaticExplanation = parsed;
+            finalStaticExplanation = parseExplanationPayload(parsed);
           }
         } catch (e: any) {
           errors.explanation = `Invalid Static JSON: ${e.message}`;
         }
       }
     } else {
-      finalStaticExplanation = {
-        ...staticExplanation
-      };
+      finalStaticExplanation = parseExplanationPayload(staticExplanation);
     }
 
     // 6. Validate & Normalize AI Explanation (CRITICAL FIX FOR CACHE POISONING)
@@ -462,7 +484,7 @@ export const AdminEditQuestionModal: React.FC<AdminEditQuestionModalProps> = ({
       // Switch to the tab containing the error
       if (errors.question || errors.options || errors.correct) {
         setActiveTab('content');
-      } else if (errors.examYear) {
+      } else if (errors.examYear || errors.taxonomy) {
         setActiveTab('classification');
       } else if (errors.explanation || errors.ask_ai_explanation) {
         setActiveTab('explanations');
@@ -811,47 +833,92 @@ export const AdminEditQuestionModal: React.FC<AdminEditQuestionModalProps> = ({
           {/* ============================================================== */}
           {activeTab === 'classification' && (
             <div className="space-y-6 animate-in fade-in-50 duration-150">
-              {/* Subject, Topic, SubTopic Grid */}
+              {/* Subject, Topic, SubTopic Cascading SSOT Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-400">
                     Subject <span className="text-red-500">*</span>
                   </label>
-                  <input
-                    type="text"
+                  <select
                     value={subject}
-                    onChange={(e) => setSubject(e.target.value)}
-                    className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none"
-                    placeholder="e.g. General Science"
-                  />
+                    onChange={(e) => {
+                      const nextSubject = e.target.value;
+                      const nextTopics = getTopicsForSubject(nextSubject, taxonomyTree);
+                      const nextTopic = nextTopics[0] || '';
+                      const nextSubTopics = getSubTopicsForTopic(nextSubject, nextTopic, taxonomyTree);
+                      setSubject(nextSubject);
+                      setTopic(nextTopic);
+                      setSubTopic(nextSubTopics[0] || '');
+                      setValidationErrors((prev) => ({ ...prev, taxonomy: '' }));
+                    }}
+                    className="w-full min-h-[44px] px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none"
+                  >
+                    {taxonomySubjects.map((subj) => (
+                      <option key={subj} value={subj}>
+                        {subj}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-400">
                     Topic
                   </label>
-                  <input
-                    type="text"
+                  <select
                     value={topic}
-                    onChange={(e) => setTopic(e.target.value)}
-                    className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none"
-                    placeholder="e.g. Biology"
-                  />
+                    onChange={(e) => {
+                      const nextTopic = e.target.value;
+                      const nextSubTopics = getSubTopicsForTopic(subject, nextTopic, taxonomyTree);
+                      setTopic(nextTopic);
+                      setSubTopic(nextSubTopics[0] || '');
+                      setValidationErrors((prev) => ({ ...prev, taxonomy: '' }));
+                    }}
+                    className="w-full min-h-[44px] px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none"
+                  >
+                    <option value="">Select Topic...</option>
+                    {topic && !getTopicsForSubject(subject, taxonomyTree).includes(topic) && (
+                      <option value={topic}>{topic} (Legacy — please reselect)</option>
+                    )}
+                    {getTopicsForSubject(subject, taxonomyTree).map((top) => (
+                      <option key={top} value={top}>
+                        {top}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-400">
                     Subtopic
                   </label>
-                  <input
-                    type="text"
+                  <select
                     value={subTopic}
-                    onChange={(e) => setSubTopic(e.target.value)}
-                    className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none"
-                    placeholder="e.g. Cell Structure"
-                  />
+                    onChange={(e) => {
+                      setSubTopic(e.target.value);
+                      setValidationErrors((prev) => ({ ...prev, taxonomy: '' }));
+                    }}
+                    className="w-full min-h-[44px] px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none"
+                  >
+                    <option value="">Select Subtopic...</option>
+                    {subTopic &&
+                      !getSubTopicsForTopic(subject, topic, taxonomyTree).includes(subTopic) && (
+                        <option value={subTopic}>{subTopic} (Legacy — please reselect)</option>
+                      )}
+                    {getSubTopicsForTopic(subject, topic, taxonomyTree).map((st) => (
+                      <option key={st} value={st}>
+                        {st}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
+              {validationErrors.taxonomy && (
+                <p className="text-xs font-semibold text-red-500 flex items-center gap-1.5">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                  <span>{validationErrors.taxonomy}</span>
+                </p>
+              )}
 
               {/* Exam Info Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
@@ -1118,14 +1185,27 @@ export const AdminEditQuestionModal: React.FC<AdminEditQuestionModalProps> = ({
 
                       <div className="space-y-1.5">
                         <label className="text-xs font-bold text-gray-600 dark:text-gray-400">
-                          Key Takeaway / Exam Fact (Optional)
+                          Concluding Note (Markdown + Bilingual)
                         </label>
-                        <input
-                          type="text"
-                          value={staticExplanation.key_takeaway || staticExplanation.fact || ''}
-                          onChange={(e) => setStaticExplanation({ ...staticExplanation, key_takeaway: e.target.value })}
+                        <textarea
+                          value={staticExplanation.conclusion || ''}
+                          onChange={(e) => setStaticExplanation({ ...staticExplanation, conclusion: e.target.value })}
+                          rows={2}
                           className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none"
-                          placeholder="One-line golden rule to remember for exams..."
+                          placeholder="📝 **Concluding Note** (English + \n\n + Hindi takeaway)..."
+                        />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-bold text-gray-600 dark:text-gray-400">
+                          Interesting Fact / 6-Dimensional Insights (Markdown)
+                        </label>
+                        <textarea
+                          value={staticExplanation.fact || ''}
+                          onChange={(e) => setStaticExplanation({ ...staticExplanation, fact: e.target.value })}
+                          rows={4}
+                          className="w-full px-3 py-2 bg-amber-50/30 dark:bg-amber-950/10 border border-amber-200/70 dark:border-amber-800/40 rounded-xl text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-amber-500 outline-none"
+                          placeholder="💡 **Interesting Fact / रोचक तथ्य** (Surprising fact, lesser-known info, misconception, PYQ insight, connection)..."
                         />
                       </div>
 
@@ -1146,31 +1226,15 @@ export const AdminEditQuestionModal: React.FC<AdminEditQuestionModalProps> = ({
                   )}
 
                   {explanationMode === 'preview' && (
-                    <div className="p-4 bg-gray-50 dark:bg-gray-800/40 border border-gray-200 dark:border-gray-700 rounded-2xl space-y-4">
-                      <h4 className="text-xs font-bold uppercase tracking-wider text-gray-400">Student Preview (Static Explanation)</h4>
-                      <AdminQuestionImage
+                    <div className="p-4 bg-gray-50 dark:bg-gray-800/40 border border-gray-200 dark:border-gray-700 rounded-2xl space-y-2">
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-gray-400">
+                        Student Preview (v3.0 Unified Renderer)
+                      </h4>
+                      <QuizExplanation
+                        explanation={staticExplanation}
                         questionId={question.id}
-                        kind="explanation"
-                        initialImageUrl={question.explanation_image_url}
+                        imageUrl={question.explanation_image_url}
                       />
-                      {staticExplanation.summary && (
-                        <div>
-                          <h5 className="text-xs font-bold text-gray-600 dark:text-gray-300 mb-1">Concept Summary</h5>
-                          <MarkdownRenderer content={staticExplanation.summary} />
-                        </div>
-                      )}
-                      {staticExplanation.analysis_correct && (
-                        <div className="p-3 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/40 rounded-xl">
-                          <h5 className="text-xs font-bold text-emerald-800 dark:text-emerald-400 mb-1">Correct Answer Analysis</h5>
-                          <MarkdownRenderer content={staticExplanation.analysis_correct} />
-                        </div>
-                      )}
-                      {staticExplanation.analysis_incorrect && (
-                        <div className="p-3 bg-gray-100 dark:bg-gray-800 rounded-xl">
-                          <h5 className="text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Incorrect Options Analysis</h5>
-                          <MarkdownRenderer content={staticExplanation.analysis_incorrect} />
-                        </div>
-                      )}
                     </div>
                   )}
 

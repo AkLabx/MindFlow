@@ -27,6 +27,7 @@ import { useNotification } from '@/hooks/useNotification';
 import { useLayoutStore } from '@/stores/useLayoutStore';
 import { triggerHaptic } from '@/lib/haptics';
 import { MarkdownRenderer } from '@/components/ui/MarkdownRenderer';
+import { QuizExplanation } from '@/features/quiz/components/QuizExplanation';
 import { NativeDialog } from '@/components/ui/NativeDialog';
 import { KeyboardAwareBottomBar } from '@/components/ui/KeyboardAwareBottomBar';
 import { SynapticLoader } from '@/components/ui/SynapticLoader';
@@ -815,53 +816,23 @@ export const PreparedMockResultPage: React.FC = () => {
                                 </div>
 
                                 {/* Comprehensive Explanation */}
-                                {activeQuestion.explanation && (
+                                {(activeQuestion.explanation || (activeQuestion as any).explanation_hi) && (
                                     <div className="mt-6 pt-5 border-t border-slate-100 dark:border-slate-800 space-y-3">
                                         <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-bold text-sm">
                                             <Sparkles className="w-4 h-4" aria-hidden="true" />
                                             <span>Detailed Solution & Explanation</span>
                                         </div>
 
-                                        {typeof activeQuestion.explanation === 'string' ? (
-                                            <div className="p-4 rounded-2xl bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/40 text-slate-800 dark:text-slate-200 text-sm leading-relaxed selectable-text">
-                                                <MarkdownRenderer content={activeQuestion.explanation} />
-                                            </div>
-                                        ) : typeof activeQuestion.explanation === 'object' ? (
-                                            <div className="space-y-3 p-4 rounded-2xl bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/40 text-slate-800 dark:text-slate-200 text-sm">
-                                                {(activeQuestion.explanation as any).summary && (
-                                                    <div>
-                                                        <strong className="block text-xs uppercase tracking-wider text-indigo-700 dark:text-indigo-300 mb-0.5">
-                                                            Summary
-                                                        </strong>
-                                                        <MarkdownRenderer
-                                                            content={(activeQuestion.explanation as any).summary}
-                                                        />
-                                                    </div>
-                                                )}
-                                                {(activeQuestion.explanation as any).analysis_correct && (
-                                                    <div>
-                                                        <strong className="block text-xs uppercase tracking-wider text-emerald-700 dark:text-emerald-300 mb-0.5">
-                                                            Why This is Correct
-                                                        </strong>
-                                                        <MarkdownRenderer
-                                                            content={(activeQuestion.explanation as any).analysis_correct}
-                                                        />
-                                                    </div>
-                                                )}
-                                                {(activeQuestion.explanation as any).analysis_incorrect && (
-                                                    <div>
-                                                        <strong className="block text-xs uppercase tracking-wider text-rose-700 dark:text-rose-300 mb-0.5">
-                                                            Analysis of Other Options
-                                                        </strong>
-                                                        <MarkdownRenderer
-                                                            content={(activeQuestion.explanation as any).analysis_incorrect}
-                                                        />
-                                                    </div>
-                                                )}
-                                            </div>
-                                        ) : null}
+                                        {activeQuestion.explanation && (
+                                            <QuizExplanation
+                                                explanation={activeQuestion.explanation}
+                                                languageMode={languageMode}
+                                                questionId={activeQuestion.id}
+                                                imageUrl={activeQuestion.explanation_image_url}
+                                            />
+                                        )}
 
-                                        {/* Hindi Explanation if present */}
+                                        {/* Legacy standalone Hindi Explanation fallback if present */}
                                         {(languageMode === 'bilingual' || languageMode === 'hindi') &&
                                             (activeQuestion as any).explanation_hi && (
                                                 <div className="p-4 rounded-2xl bg-amber-50/50 dark:bg-amber-950/20 border border-amber-200/50 dark:border-amber-900/40 text-slate-800 dark:text-slate-200 text-sm leading-relaxed">
@@ -873,18 +844,6 @@ export const PreparedMockResultPage: React.FC = () => {
                                                     </div>
                                                 </div>
                                             )}
-
-                                        {/* Explanation Diagram */}
-                                        {activeQuestion.explanation_image_url && (
-                                            <div className="rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 flex justify-center p-2">
-                                                <img
-                                                    src={activeQuestion.explanation_image_url}
-                                                    alt="Explanation Visual"
-                                                    className="max-h-72 object-contain rounded-xl"
-                                                    loading="lazy"
-                                                />
-                                            </div>
-                                        )}
                                     </div>
                                 )}
                             </div>
