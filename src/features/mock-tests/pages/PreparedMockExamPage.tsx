@@ -139,7 +139,26 @@ export const PreparedMockExamPage: React.FC = () => {
     const [isOfflineMode, setIsOfflineMode] = useState<boolean>(
         typeof navigator !== 'undefined' && navigator.onLine === false
     );
-    const [languageMode, setLanguageMode] = useState<LanguageViewMode>('bilingual');
+    const rawInitialLanguage = (location.state as { initialLanguage?: unknown } | null)
+        ?.initialLanguage;
+    const resolvedInitialLanguage: LanguageViewMode =
+        rawInitialLanguage === 'en' ||
+        rawInitialLanguage === 'hi' ||
+        rawInitialLanguage === 'bilingual'
+            ? rawInitialLanguage
+            : 'bilingual';
+
+    const [languageMode, setLanguageMode] = useState<LanguageViewMode>(resolvedInitialLanguage);
+
+    useEffect(() => {
+        if (
+            rawInitialLanguage === 'en' ||
+            rawInitialLanguage === 'hi' ||
+            rawInitialLanguage === 'bilingual'
+        ) {
+            setLanguageMode(rawInitialLanguage);
+        }
+    }, [testId, rawInitialLanguage]);
     const [paletteFilter, setPaletteFilter] = useState<PaletteFilterMode>('all');
     const [zoomScale, setZoomScale] = useState<number>(1);
     const [isPaletteDrawerOpen, setIsPaletteDrawerOpen] = useState<boolean>(false);

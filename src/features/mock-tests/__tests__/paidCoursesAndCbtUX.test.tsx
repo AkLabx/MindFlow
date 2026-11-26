@@ -69,7 +69,7 @@ const {
             full_name: 'Aarav Kumar',
             email: 'student383@example.com',
             target_exam: 'SSC CGL',
-            student_id: 'MF-100042',
+            student_id: 'MIND-100042',
             avatar_url: null,
         } as any,
     },
@@ -300,7 +300,7 @@ describe('v1.0.383 Paid Courses, Student ID, My Purchase, Inside-Series Filter &
             full_name: 'Aarav Kumar',
             email: 'student383@example.com',
             target_exam: 'SSC CGL',
-            student_id: 'MF-100042',
+            student_id: 'MIND-100042',
             avatar_url: null,
         };
         getCacheEntryMock.mockResolvedValue(null);
@@ -381,7 +381,7 @@ describe('v1.0.383 Paid Courses, Student ID, My Purchase, Inside-Series Filter &
         const expiredEnt: UserCourseEntitlementItem = {
             id: 'ent-exp',
             user_id: 'student-v383-1',
-            student_id_snapshot: 'MF-100042',
+            student_id_snapshot: 'MIND-100042',
             series_id: 'ser-paid-1',
             course_type: 'mock_series',
             target_route: '/mcqs/test-series/series/ser-paid-1',
@@ -437,7 +437,7 @@ describe('v1.0.383 Paid Courses, Student ID, My Purchase, Inside-Series Filter &
         expect(screen.getByRole('heading', { level: 1, name: 'My Purchase' })).toBeTruthy();
         expect(screen.getByText('No purchase yet')).toBeTruthy();
         expect(screen.queryByText(/Saved Mock Tests/i)).toBeNull();
-        expect(screen.getByTestId('purchase-header-student-id').textContent).toBe('MF-100042');
+        expect(screen.getByTestId('purchase-header-student-id').textContent).toBe('MIND-100042');
         unmount();
 
         clearPreparedMockTestsCache();
@@ -447,7 +447,7 @@ describe('v1.0.383 Paid Courses, Student ID, My Purchase, Inside-Series Filter &
                 {
                     id: 'pay-older',
                     user_id: 'student-v383-1',
-                    order_code: 'MF-OLD-001',
+                    order_code: 'ORD-OLD-001',
                     amount: 199,
                     currency: 'INR',
                     status: 'pending_verification',
@@ -459,13 +459,13 @@ describe('v1.0.383 Paid Courses, Student ID, My Purchase, Inside-Series Filter &
                     valid_until: null,
                     payment_method: 'upi_manual',
                     upi_reference: 'UTR999999',
-                    student_id_snapshot: 'MF-100042',
+                    student_id_snapshot: 'MIND-100042',
                     created_at: '2026-11-20T10:00:00Z',
                 },
                 {
                     id: 'pay-newer',
                     user_id: 'student-v383-1',
-                    order_code: 'MF-NEW-002',
+                    order_code: 'ORD-NEW-002',
                     amount: 399,
                     currency: 'INR',
                     status: 'paid',
@@ -477,7 +477,7 @@ describe('v1.0.383 Paid Courses, Student ID, My Purchase, Inside-Series Filter &
                     valid_until: futureDate,
                     payment_method: 'upi_manual',
                     upi_reference: 'UTR123456',
-                    student_id_snapshot: 'MF-100042',
+                    student_id_snapshot: 'MIND-100042',
                     created_at: '2026-11-25T10:00:00Z',
                 },
             ],
@@ -485,7 +485,7 @@ describe('v1.0.383 Paid Courses, Student ID, My Purchase, Inside-Series Filter &
                 {
                     id: 'ent-new',
                     user_id: 'student-v383-1',
-                    student_id_snapshot: 'MF-100042',
+                    student_id_snapshot: 'MIND-100042',
                     series_id: 'ser-ssc-pro',
                     course_type: 'mock_series',
                     target_route: '/mcqs/test-series/series/ser-ssc-pro',
@@ -514,7 +514,7 @@ describe('v1.0.383 Paid Courses, Student ID, My Purchase, Inside-Series Filter &
 
         const cards = screen.getAllByTestId('purchase-receipt-card');
         expect(cards[0].textContent).toContain('SSC CGL Tier 1 Pro Batch');
-        expect(cards[0].textContent).toContain('Order ID: #MF-NEW-002');
+        expect(cards[0].textContent).toContain('Order ID: #ORD-NEW-002');
         expect(cards[0].textContent).toContain('Purchase Date:');
         expect(cards[0].textContent).toContain('End Date:');
         expect(cards[0].textContent).toContain('remaining');
@@ -543,14 +543,14 @@ describe('v1.0.383 Paid Courses, Student ID, My Purchase, Inside-Series Filter &
             </QueryClientProvider>
         );
 
-        expect(screen.getByTestId('profile-student-id').textContent).toBe('MF-100042');
+        expect(screen.getByTestId('profile-student-id').textContent).toBe('MIND-100042');
         const copyBtn = screen.getByTestId('copy-student-id-btn');
         expect(copyBtn.className).toContain('min-h-[44px]');
         expect(copyBtn.className).toContain('min-w-[44px]');
 
         fireEvent.click(copyBtn);
         await waitFor(() => {
-            expect(clipboardWriteTextMock).toHaveBeenCalledWith('MF-100042');
+            expect(clipboardWriteTextMock).toHaveBeenCalledWith('MIND-100042');
         });
     });
 
@@ -642,8 +642,8 @@ describe('v1.0.383 Paid Courses, Student ID, My Purchase, Inside-Series Filter &
             { timeout: 4000 }
         );
 
-        const filterGroup = screen.getByRole('group', { name: 'Filter series tests by source type' });
-        fireEvent.click(within(filterGroup).getByRole('button', { name: 'PYQ Papers' }));
+        const filterTablist = screen.getByRole('tablist', { name: 'Filter series tests by source type' });
+        fireEvent.click(within(filterTablist).getByRole('tab', { name: 'PYQ Papers' }));
         expect(
             screen.getByRole('heading', { level: 3, name: 'SSC CGL 2024 Tier 1 Shift 1' })
         ).toBeTruthy();
@@ -651,7 +651,7 @@ describe('v1.0.383 Paid Courses, Student ID, My Purchase, Inside-Series Filter &
             screen.queryByRole('heading', { level: 3, name: 'SSC CGL Grand Expert Mock #2' })
         ).toBeNull();
 
-        fireEvent.click(within(filterGroup).getByRole('button', { name: 'Expert Mocks' }));
+        fireEvent.click(within(filterTablist).getByRole('tab', { name: 'Expert Mocks' }));
         expect(
             screen.getByRole('heading', { level: 3, name: 'SSC CGL Grand Expert Mock #2' })
         ).toBeTruthy();
@@ -659,13 +659,13 @@ describe('v1.0.383 Paid Courses, Student ID, My Purchase, Inside-Series Filter &
             screen.queryByRole('heading', { level: 3, name: 'SSC CGL 2024 Tier 1 Shift 1' })
         ).toBeNull();
 
-        fireEvent.click(within(filterGroup).getByRole('button', { name: 'All Types' }));
+        fireEvent.click(within(filterTablist).getByRole('tab', { name: 'All Types' }));
 
         const unlockBtn = screen.getByTestId('series-unlock-btn');
         fireEvent.click(unlockBtn);
         await waitFor(() => {
             expect(screen.getByTestId('course-checkout-dialog')).toBeTruthy();
-            expect(screen.getAllByText('MF-100042').length).toBeGreaterThan(0);
+            expect(screen.getAllByText('MIND-100042').length).toBeGreaterThan(0);
         });
     });
 
@@ -817,7 +817,7 @@ describe('v1.0.383 Paid Courses, Student ID, My Purchase, Inside-Series Filter &
             expect(screen.getByTestId('tcs-toggle-palette-btn')).toBeTruthy();
         });
         expect(document.querySelector('footer')?.className).toContain('fixed bottom-0');
-        expect(screen.getByTestId('cbt-skin-tcs-ion').textContent).toContain('MF-100042');
+        expect(screen.getByTestId('cbt-skin-tcs-ion').textContent).toContain('MIND-100042');
         unmountTcs();
 
         // 4. BPSC keeps MindFlow default shell with fixed footer & Student ID badge
@@ -871,7 +871,7 @@ describe('v1.0.383 Paid Courses, Student ID, My Purchase, Inside-Series Filter &
                     id: 'pay-pending-1',
                     created_at: '2026-11-25T12:00:00Z',
                     user_id: 'student-v383-1',
-                    order_code: 'MF-261125-ABC123',
+                    order_code: 'ORD-261125-ABC123',
                     amount: 499,
                     currency: 'INR',
                     status: 'pending_verification',
@@ -879,7 +879,7 @@ describe('v1.0.383 Paid Courses, Student ID, My Purchase, Inside-Series Filter &
                     series_id: 'ser-admin-1',
                     payment_method: 'upi_manual',
                     upi_reference: 'UTR77889900',
-                    student_id_snapshot: 'MF-100042',
+                    student_id_snapshot: 'MIND-100042',
                 },
             ],
             profiles: [
@@ -887,7 +887,7 @@ describe('v1.0.383 Paid Courses, Student ID, My Purchase, Inside-Series Filter &
                     id: 'student-v383-1',
                     full_name: 'Aarav Kumar',
                     email: 'student383@example.com',
-                    student_id: 'MF-100042',
+                    student_id: 'MIND-100042',
                 },
             ],
         });
@@ -916,7 +916,7 @@ describe('v1.0.383 Paid Courses, Student ID, My Purchase, Inside-Series Filter &
                         ok: true,
                         entitlement_id: 'ent-activated-1',
                         payment_id: params.p_payment_id ?? 'pay-adm-1',
-                        order_code: 'MF-ADM-261126-XYZ',
+                        order_code: 'ORD-ADM-261126-XYZ',
                         user_id: 'student-v383-1',
                         student_id: params.p_student_id,
                         full_name: 'Aarav Kumar',
@@ -944,9 +944,9 @@ describe('v1.0.383 Paid Courses, Student ID, My Purchase, Inside-Series Filter &
             expect(screen.getAllByText('UTR77889900').length).toBeGreaterThan(0);
         });
 
-        // 1. Lookup Student ID MF-100042 & Direct Activate
+        // 1. Lookup Student ID MIND-100042 & Direct Activate
         const studentInput = screen.getByPlaceholderText(/Enter Student ID/i);
-        fireEvent.change(studentInput, { target: { value: 'MF-100042' } });
+        fireEvent.change(studentInput, { target: { value: 'MIND-100042' } });
         fireEvent.click(screen.getByRole('button', { name: /Lookup Student/i }));
 
         await waitFor(() => {
@@ -956,7 +956,7 @@ describe('v1.0.383 Paid Courses, Student ID, My Purchase, Inside-Series Filter &
         fireEvent.click(screen.getByRole('button', { name: /Activate Course Access/i }));
         await waitFor(() => {
             expect(rpcMock).toHaveBeenCalledWith(DB_RPCS.ADMIN_ACTIVATE_COURSE_ENTITLEMENT, {
-                p_student_id: 'MF-100042',
+                p_student_id: 'MIND-100042',
                 p_series_id: 'ser-admin-1',
                 p_validity_days: 365,
                 p_payment_id: null,
@@ -968,7 +968,7 @@ describe('v1.0.383 Paid Courses, Student ID, My Purchase, Inside-Series Filter &
         fireEvent.click(screen.getByRole('button', { name: /Approve & Activate/i }));
         await waitFor(() => {
             expect(rpcMock).toHaveBeenCalledWith(DB_RPCS.ADMIN_ACTIVATE_COURSE_ENTITLEMENT, {
-                p_student_id: 'MF-100042',
+                p_student_id: 'MIND-100042',
                 p_series_id: 'ser-admin-1',
                 p_validity_days: null,
                 p_payment_id: 'pay-pending-1',
@@ -1046,7 +1046,7 @@ describe('v1.0.383 Paid Courses, Student ID, My Purchase, Inside-Series Filter &
                     id: 'pay-rejected-2',
                     user_id: 'student-v383-1',
                     series_id: 'ser-course-1',
-                    order_code: 'MF-261126-REJ002',
+                    order_code: 'ORD-261126-REJ002',
                     amount: 599,
                     currency: 'INR',
                     status: 'rejected',
@@ -1100,7 +1100,7 @@ describe('v1.0.383 Paid Courses, Student ID, My Purchase, Inside-Series Filter &
         );
 
         await waitFor(() => {
-            expect(screen.getByText(/MF-261126-REJ002/i)).toBeTruthy();
+            expect(screen.getByText(/ORD-261126-REJ002/i)).toBeTruthy();
         });
 
         // Rejected card must keep "Rejected / Inactive" and NOT display "Pending"
@@ -1140,7 +1140,7 @@ describe('v1.0.383 Paid Courses, Student ID, My Purchase, Inside-Series Filter &
                     isOpen={true}
                     onClose={vi.fn()}
                     userId="student-v383-1"
-                    studentId="MF-100042"
+                    studentId="MIND-100042"
                     series={{
                         id: 'ser-upi-test',
                         name: 'BPSC Test Course',
@@ -1248,7 +1248,7 @@ describe('v1.0.383 Paid Courses, Student ID, My Purchase, Inside-Series Filter &
             zoomScale: 1,
             setZoomScale: vi.fn(),
             studentName: 'Aarav Kumar',
-            studentId: 'MF-100042',
+            studentId: 'MIND-100042',
             isOfflineMode: false,
             isSubmitting: false,
             isPaletteDrawerOpen: true,
@@ -1600,7 +1600,7 @@ describe('v1.0.383 Paid Courses, Student ID, My Purchase, Inside-Series Filter &
                     id: 'pay-copy-1',
                     created_at: '2026-11-26T00:00:00Z',
                     user_id: 'student-v383-1',
-                    order_code: 'MF-COPY-01',
+                    order_code: 'ORD-COPY-01',
                     amount: 299,
                     currency: 'INR',
                     status: 'paid',
@@ -1608,7 +1608,7 @@ describe('v1.0.383 Paid Courses, Student ID, My Purchase, Inside-Series Filter &
                     series_id: 'ser-admin-2',
                     payment_method: 'upi_manual',
                     upi_reference: 'UTR_COPY_44PX',
-                    student_id_snapshot: 'MF-100042',
+                    student_id_snapshot: 'MIND-100042',
                 },
             ],
             profiles: [
@@ -1616,7 +1616,7 @@ describe('v1.0.383 Paid Courses, Student ID, My Purchase, Inside-Series Filter &
                     id: 'student-v383-1',
                     full_name: 'Aarav Kumar',
                     email: 'student383@example.com',
-                    student_id: 'MF-100042',
+                    student_id: 'MIND-100042',
                 },
             ],
         });
@@ -1665,7 +1665,7 @@ describe('v1.0.383 Paid Courses, Student ID, My Purchase, Inside-Series Filter &
         });
 
         fireEvent.change(screen.getByPlaceholderText(/Enter Student ID/i), {
-            target: { value: 'MF-100042' },
+            target: { value: 'MIND-100042' },
         });
         fireEvent.click(screen.getByRole('button', { name: /Lookup Student/i }));
 
@@ -1679,7 +1679,7 @@ describe('v1.0.383 Paid Courses, Student ID, My Purchase, Inside-Series Filter &
 
         await waitFor(() => {
             expect(rpcMock).toHaveBeenCalledWith(DB_RPCS.ADMIN_ACTIVATE_COURSE_ENTITLEMENT, {
-                p_student_id: 'MF-100042',
+                p_student_id: 'MIND-100042',
                 p_series_id: 'ser-admin-2',
                 p_validity_days: 365,
                 p_payment_id: null,
@@ -1791,15 +1791,15 @@ describe('v1.0.383 Paid Courses, Student ID, My Purchase, Inside-Series Filter &
             expect(screen.getByRole('heading', { level: 3, name: 'Series A PYQ Test' })).toBeTruthy();
         });
 
-        fireEvent.click(screen.getByRole('button', { name: 'PYQ Papers' }));
-        expect(screen.getByRole('button', { name: 'PYQ Papers' }).getAttribute('aria-pressed')).toBe('true');
+        fireEvent.click(screen.getByRole('tab', { name: 'PYQ Papers' }));
+        expect(screen.getByRole('tab', { name: 'PYQ Papers' }).getAttribute('aria-selected')).toBe('true');
 
         fireEvent.click(screen.getByRole('link', { name: 'Go to Series B' }));
 
         await waitFor(() => {
             expect(screen.getByRole('heading', { level: 3, name: 'Series B Expert Mock' })).toBeTruthy();
         });
-        expect(screen.getByRole('button', { name: 'All Types' }).getAttribute('aria-pressed')).toBe('true');
+        expect(screen.getByRole('tab', { name: 'All Types' }).getAttribute('aria-selected')).toBe('true');
         expect(screen.queryByText('No PYQ Papers Found')).toBeNull();
     });
 });

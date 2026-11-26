@@ -1,14 +1,23 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
-import { Layers, Sparkles } from 'lucide-react';
+import { CheckCircle2, Layers, Lock, Sparkles } from 'lucide-react';
 import { ROUTES } from '@/config/routes';
+import { useAuth } from '@/features/auth';
 import { triggerHaptic } from '@/lib/haptics';
 import { DedicatedPageHeader } from '@/components/ui/DedicatedPageHeader';
 import {
+    MOCK_CACHE_INVALIDATED_EVENT,
     MockSeriesType,
+    UserCourseEntitlementItem,
     fetchCategoryDetails,
     fetchPublishedTestSeries,
+    fetchUserCourseEntitlements,
+    getCachedUserCourseEntitlementsSnapshot,
+    isMockSeriesPaid,
+    normalizeCourseType,
     normalizeMockSeriesType,
+    readUserCourseEntitlementsIndexedDBCache,
+    resolveEffectiveSeriesEntitlement,
 } from '../api/mockTestsApi';
 import { Breadcrumbs } from '../components/Breadcrumbs';
 import { BrandedThumbnail } from '../components/BrandedThumbnail';
@@ -22,8 +31,14 @@ export const TestSeriesPage: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const { categoryId } = useParams<{ categoryId: string }>();
+    const { user } = useAuth();
+    const userId = user?.id ?? null;
+
     const [category, setCategory] = useState<any>(null);
     const [series, setSeries] = useState<any[]>([]);
+    const [entitlements, setEntitlements] = useState<UserCourseEntitlementItem[]>(() =>
+        userId ? getCachedUserCourseEntitlementsSnapshot(userId) ?? [] : []
+    );
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState<TierFilter>('all');
     const [sourceFilter, setSourceFilter] = useState<SourceFilter>('all');
@@ -38,26 +53,49 @@ export const TestSeriesPage: React.FC = () => {
         navigate(ROUTES.TEST_SERIES.ROOT);
     }, [location.state, navigate]);
 
-    const loadCategoryData = useCallback(async (id: string) => {
-        setLoading(true);
-        try {
-            const [catData, seriesData] = await Promise.all([
-                fetchCategoryDetails(id),
-                fetchPublishedTestSeries(id),
-            ]);
-            setCategory(catData);
-            setSeries(seriesData || []);
-        } catch (error) {
-            console.error('Error fetching category data:', error);
-        } finally {
-            setLoading(false);
-        }
-    }, []);
+    const loadCategoryData = useCallback(
+        async (id: string, forceRefresh = false) => {
+            setLoading(true);
+            try {
+                if (userId && !forceRefresh) {
+                    const idbEnt = await readUserCourseEntitlementsIndexedDBCache(userId);
+                    if (idbEnt) setEntitlements(idbEnt);
+                }
+                const [catData, seriesData, entData] = await Promise.all([
+                    fetchCategoryDetails(id),
+                    fetchPublishedTestSeries(id),
+                    userId
+                        ? fetchUserCourseEntitlements(userId, { forceRefresh }).catch(() => null)
+                        : Promise.resolve(null),
+                ]);
+                setCategory(catData);
+                setSeries(seriesData || []);
+                if (entData) setEntitlements(entData);
+            } catch (error) {
+                console.error('Error fetching category data:', error);
+            } finally {
+                setLoading(false);
+            }
+        },
+        [userId]
+    );
 
     useEffect(() => {
         if (categoryId) {
             void loadCategoryData(categoryId);
         }
+    }, [categoryId, loadCategoryData]);
+
+    useEffect(() => {
+        const handleInvalidate = () => {
+            if (categoryId) {
+                void loadCategoryData(categoryId, true);
+            }
+        };
+        window.addEventListener(MOCK_CACHE_INVALIDATED_EVENT, handleInvalidate);
+        return () => {
+            window.removeEventListener(MOCK_CACHE_INVALIDATED_EVENT, handleInvalidate);
+        };
     }, [categoryId, loadCategoryData]);
 
     const filteredSeries = useMemo(() => {
@@ -193,6 +231,21 @@ export const TestSeriesPage: React.FC = () => {
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5">
                                 {filteredSeries.map((s) => {
                                     const isPyq = normalizeMockSeriesType(s.series_type) === 'PYQ';
+                                    const isBundle = normalizeCourseType(s.course_type) === 'bundle';
+                                    const includedSeriesCount = Array.isArray(s.included_series_ids)
+                                        ? s.included_series_ids.length
+                                        : 0;
+                                    const isPaid = isMockSeriesPaid(s);
+                                    const isUnlocked = Boolean(
+                                        resolveEffectiveSeriesEntitlement(String(s.id), entitlements)
+                                    );
+                                    const priceInr = Math.max(0, Number(s.price_inr ?? 0));
+                                    const mrpInr = s.mrp_inr != null ? Number(s.mrp_inr) : null;
+                                    const discountPct =
+                                        mrpInr && mrpInr > priceInr
+                                            ? Math.round(((mrpInr - priceInr) / mrpInr) * 100)
+                                            : 0;
+
                                     return (
                                         <button
                                             key={s.id}
@@ -212,19 +265,38 @@ export const TestSeriesPage: React.FC = () => {
                                                     imageUrl={s.thumbnail_url}
                                                     className="w-full h-full"
                                                 />
-                                                {s.is_premium ? (
-                                                    <span className="absolute top-2.5 right-2.5 inline-flex items-center gap-1 bg-amber-400 text-amber-950 text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wide shadow-sm">
-                                                        <Sparkles className="w-3 h-3" aria-hidden="true" />
-                                                        PRO
+                                                {isBundle && (
+                                                    <span className="absolute top-2.5 left-2.5 inline-flex items-center bg-amber-500 text-slate-950 text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow-sm">
+                                                        BUNDLE
                                                     </span>
-                                                ) : (
+                                                )}
+                                                {!isPaid ? (
                                                     <span className="absolute top-2.5 right-2.5 inline-flex items-center bg-emerald-500 text-white text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wide shadow-sm">
                                                         Free
+                                                    </span>
+                                                ) : isUnlocked ? (
+                                                    <span className="absolute top-2.5 right-2.5 inline-flex items-center gap-1 bg-emerald-600 text-white text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wide shadow-sm">
+                                                        <CheckCircle2 className="w-3 h-3" aria-hidden="true" />
+                                                        Unlocked
+                                                    </span>
+                                                ) : (
+                                                    <span className="absolute top-2.5 right-2.5 inline-flex items-center gap-1 bg-slate-900/90 text-amber-300 text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wide shadow-sm">
+                                                        {priceInr > 0 ? (
+                                                            <>
+                                                                <Lock className="w-3 h-3" aria-hidden="true" />
+                                                                <span>PRO</span>
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <Sparkles className="w-3 h-3" aria-hidden="true" />
+                                                                <span>PRO</span>
+                                                            </>
+                                                        )}
                                                     </span>
                                                 )}
                                             </span>
                                             <span className="p-4 flex-1 flex flex-col w-full min-w-0">
-                                                <span className="flex items-center gap-1.5 mb-1.5">
+                                                <span className="flex flex-wrap items-center gap-1.5 mb-1.5">
                                                     <span
                                                         className={`text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-md ${
                                                             isPyq
@@ -234,6 +306,11 @@ export const TestSeriesPage: React.FC = () => {
                                                     >
                                                         {isPyq ? 'PYQ Paper' : 'Expert Mock'}
                                                     </span>
+                                                    {isBundle && includedSeriesCount > 0 && (
+                                                        <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-md bg-amber-50 dark:bg-amber-950/60 text-amber-900 dark:text-amber-300 border border-amber-200/80 dark:border-amber-800/60">
+                                                            Includes {includedSeriesCount} Series
+                                                        </span>
+                                                    )}
                                                 </span>
                                                 <span className="text-base font-bold text-slate-900 dark:text-white leading-snug mb-1.5 line-clamp-2 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors block">
                                                     {s.name}
@@ -243,9 +320,28 @@ export const TestSeriesPage: React.FC = () => {
                                                         {s.description}
                                                     </span>
                                                 )}
-                                                <span className="mt-auto inline-flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-700/60 w-full">
-                                                    <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400">
-                                                        View Tests
+                                                <span className="mt-auto inline-flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-700/60 w-full gap-2">
+                                                    {isPaid && !isUnlocked && priceInr > 0 ? (
+                                                        <span className="inline-flex items-center gap-1.5 text-xs font-black text-slate-900 dark:text-white">
+                                                            <span>₹{priceInr}</span>
+                                                            {mrpInr && mrpInr > priceInr && (
+                                                                <span className="line-through text-slate-400 font-normal">
+                                                                    ₹{mrpInr}
+                                                                </span>
+                                                            )}
+                                                            {discountPct > 0 && (
+                                                                <span className="px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 text-[10px] font-black">
+                                                                    {discountPct}% OFF
+                                                                </span>
+                                                            )}
+                                                        </span>
+                                                    ) : (
+                                                        <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400">
+                                                            View Tests
+                                                        </span>
+                                                    )}
+                                                    <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400 shrink-0">
+                                                        Open →
                                                     </span>
                                                 </span>
                                             </span>

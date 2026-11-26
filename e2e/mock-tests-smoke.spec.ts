@@ -499,20 +499,20 @@ test('BPSC Prepared Mock Test student E2E smoke flow', async ({ page }) => {
   await expect(page.getByRole('heading', { level: 1, name: 'BPSC Prepared Mock Tests' })).toBeVisible();
   await expect(page.getByRole('heading', { level: 3, name: '70th BPSC Full-Length Mock #1' })).toBeVisible();
 
-  // Verify filter chip click responsiveness (< 16ms main-thread click budget)
-  const filterGroup = page.getByRole('group', { name: 'Mock test category filters' });
-  const freeChip = filterGroup.getByRole('button', { name: /^Free\b/i });
-  const allChip = filterGroup.getByRole('button', { name: /^All\b/i });
-  await expect(freeChip).toBeVisible();
-  await expect(allChip).toBeVisible();
+  // Verify filter tab click responsiveness (< 16ms main-thread click budget)
+  const filterTablist = page.getByRole('tablist', { name: 'Mock test category filters' });
+  const freeTab = filterTablist.getByRole('tab', { name: /^Free\b/i });
+  const allTab = filterTablist.getByRole('tab', { name: /^All\b/i });
+  await expect(freeTab).toBeVisible();
+  await expect(allTab).toBeVisible();
 
   const filterClickDurationMs = await page.evaluate(() => {
-    const group = document.querySelector('[aria-label="Mock test category filters"]');
-    const btn = Array.from((group ?? document).querySelectorAll('button')).find((el) =>
+    const tablist = document.querySelector('[aria-label="Mock test category filters"]');
+    const btn = Array.from((tablist ?? document).querySelectorAll('button')).find((el) =>
       /^Free\b/i.test((el.textContent || '').trim())
     );
     if (!btn) {
-      throw new Error('Free filter chip button not found');
+      throw new Error('Free filter tab button not found');
     }
     const start = performance.now();
     btn.click();
@@ -520,18 +520,21 @@ test('BPSC Prepared Mock Test student E2E smoke flow', async ({ page }) => {
   });
   // Vite dev + React StrictMode double-render takes ~20-35ms on initial filter click; assert fast (<100ms) UI transition
   expect(filterClickDurationMs).toBeLessThan(100);
-  await expect(freeChip).toHaveAttribute('aria-pressed', 'true');
+  await expect(freeTab).toHaveAttribute('aria-selected', 'true');
   await expect(page.getByRole('heading', { level: 3, name: '70th BPSC Full-Length Mock #1' })).toBeVisible();
 
-  await allChip.click();
-  await expect(allChip).toHaveAttribute('aria-pressed', 'true');
+  await allTab.click();
+  await expect(allTab).toHaveAttribute('aria-selected', 'true');
 
-  // 2. Navigate to TestDetailPage and start the test
-  await page.getByRole('button', { name: /View & Start Test/i }).click();
+  // 2. Navigate to TestDetailPage and complete 2-step onboarding
+  await page.getByRole('button', { name: /Start Test.*70th BPSC Full-Length Mock #1/i }).click();
   await expect(page).toHaveURL(new RegExp(`#/mcqs/test-series/test/${TEST_ID}$`));
   await expect(page.getByRole('heading', { level: 1, name: '70th BPSC Full-Length Mock #1' })).toBeVisible();
 
-  await page.getByRole('button', { name: /^Start Test$/i }).click();
+  await page.getByTestId('onboarding-next-btn').click();
+  await page.getByTestId('onboarding-lang-bilingual').click();
+  await page.getByTestId('onboarding-declaration-checkbox').check();
+  await page.getByTestId('test-detail-primary-cta').click();
   await expect(page).toHaveURL(new RegExp(`#/exam/${TEST_ID}$`));
 
   // 3. CBT Runner: answer Q1 with Option A, advance to Q2, mark Q2 for review, verify palette, submit
@@ -572,8 +575,8 @@ test('BPSC Prepared Mock Test student E2E smoke flow', async ({ page }) => {
   await expect(mainRegion.getByText(/^Incorrect$/i).locator('..')).toContainText('0');
   await expect(mainRegion.getByText(/^Skipped$/i).locator('..')).toContainText('1');
 
-  // Verify the Review Solutions (1-by-1) CTA is unobstructed (global bottom nav hidden on result page) and switch to Solutions view
-  await page.getByRole('button', { name: /Review Solutions \(1-by-1\)/i }).click();
+  // Verify the Review Solutions CTA is unobstructed (global bottom nav hidden on result page) and switch to Solutions view
+  await page.getByRole('button', { name: /Review Solutions/i }).click();
   await expect(page.getByText(/Question 1\b/i)).toBeVisible();
   await expect(page.getByText('Detailed Solution & Explanation')).toBeVisible();
   await expect(page.getByText(MOCK_QUESTIONS[0].question)).toBeVisible();

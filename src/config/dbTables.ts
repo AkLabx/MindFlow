@@ -11,6 +11,7 @@ export const DB_TABLES = {
   MOCK: {
     CATEGORIES: 'mock_categories',
     SERIES: 'mock_series',
+    BUNDLE_ITEMS: 'mock_series_bundle_items',
     TESTS: 'mock_tests',
     ATTEMPTS: 'mock_test_attempts',
   },

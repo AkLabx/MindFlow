@@ -540,18 +540,21 @@ describe('Prepared Mock Scoring, Negative Marking & Solution Review Pipeline (v1
             expect(screen.getByText('BPSC Accessibility Mock')).toBeTruthy();
         });
 
-        const scorecardBtn = screen.getByRole('button', { name: 'Scorecard' });
-        const solutionsBtn = screen.getByRole('button', { name: 'Solutions' });
-        expect(scorecardBtn.getAttribute('aria-pressed')).toBe('true');
-        expect(solutionsBtn.getAttribute('aria-pressed')).toBe('false');
-        expect(scorecardBtn.className).toContain('min-h-[44px]');
-        expect(solutionsBtn.className).toContain('min-h-[44px]');
+        const analysisTab = screen.getByRole('tab', { name: 'Analysis' });
+        const solutionsTab = screen.getByRole('tab', { name: 'Solutions' });
+        const leaderboardTab = screen.getByRole('tab', { name: 'Leaderboard' });
+        expect(analysisTab.getAttribute('aria-selected')).toBe('true');
+        expect(solutionsTab.getAttribute('aria-selected')).toBe('false');
+        expect(leaderboardTab.getAttribute('aria-selected')).toBe('false');
+        expect(analysisTab.className).toContain('min-h-[44px]');
+        expect(solutionsTab.className).toContain('min-h-[44px]');
+        expect(leaderboardTab.className).toContain('min-h-[44px]');
 
         // Switch to Solutions view
-        fireEvent.click(solutionsBtn);
+        fireEvent.click(solutionsTab);
 
         await waitFor(() => {
-            expect(solutionsBtn.getAttribute('aria-pressed')).toBe('true');
+            expect(solutionsTab.getAttribute('aria-selected')).toBe('true');
         });
 
         // Verify filter chips & language switcher have aria-pressed + min-h-[44px]

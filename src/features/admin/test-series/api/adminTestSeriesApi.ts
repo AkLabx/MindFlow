@@ -5,7 +5,10 @@ import {
     MOCK_SWR_STALE_TIMES_MS,
     isMockCacheFresh,
     invalidateMockTestsCatalogCaches,
+    sanitizeTargetRoute,
+    normalizeIncludedSeriesIds,
 } from '@/features/mock-tests/api/mockTestsApi';
+import { normalizeShiftSlot, type ShiftSlot } from '@/features/mock-tests/utils/shiftMetadata';
 
 export const SERIES_SELECT_QUERY = `*, ${DB_TABLES.MOCK.CATEGORIES}(id, name)` as const;
 export const TEST_SELECT_QUERY = `*, ${DB_TABLES.MOCK.SERIES}(id, name, category_id, is_published, ${DB_TABLES.MOCK.CATEGORIES}(id, name))` as const;
@@ -302,6 +305,8 @@ export interface TestMutationPayload {
     name: string;
     description?: string;
     test_type?: 'MOCK' | 'PYQ';
+    shift_slot?: ShiftSlot | null;
+    shift_timing?: string | null;
     duration_minutes: number;
     total_marks: number;
     passing_marks: number;
@@ -396,6 +401,119 @@ export const deleteExamCategory = async (id: string) => {
 
 // TEST SERIES
 
+const fetchAdminBundleItemsMap = async (
+    bundleSeriesIds: string[]
+): Promise<Record<string, string[]>> => {
+    if (!bundleSeriesIds.length) return {};
+    try {
+        const { data, error } = await supabase
+            .from(DB_TABLES.MOCK.BUNDLE_ITEMS)
+            .select('bundle_series_id, child_series_id, display_order')
+            .in('bundle_series_id', bundleSeriesIds)
+            .order('display_order', { ascending: true });
+
+        if (error || !Array.isArray(data)) return {};
+
+        const grouped: Record<string, string[]> = {};
+        for (const row of data) {
+            const parentId = String((row as any)?.bundle_series_id ?? '').trim();
+            const childId = String((row as any)?.child_series_id ?? '').trim();
+            if (!parentId || !childId || parentId === childId) continue;
+            if (!grouped[parentId]) grouped[parentId] = [];
+            if (!grouped[parentId].includes(childId)) {
+                grouped[parentId].push(childId);
+            }
+        }
+        return grouped;
+    } catch {
+        return {};
+    }
+};
+
+const hydrateAdminSeriesRows = async (rows: any[]): Promise<any[]> => {
+    const bundleIds = rows
+        .filter((row) => row?.course_type === 'bundle' && row?.id)
+        .map((row) => String(row.id).trim())
+        .filter(Boolean);
+
+    const bundleMap = await fetchAdminBundleItemsMap(bundleIds);
+
+    return rows.map((row) => {
+        const id = String(row?.id ?? '').trim();
+        const hydratedBundleIds =
+            id && bundleMap[id] !== undefined
+                ? bundleMap[id]
+                : normalizeIncludedSeriesIds(row);
+        return {
+            ...row,
+            target_route: sanitizeTargetRoute(row?.target_route),
+            included_series_ids: hydratedBundleIds,
+        };
+    });
+};
+
+const validateAndNormalizeTargetRoute = (raw: unknown): string | null => {
+    if (raw === null || raw === undefined) return null;
+    const trimmed = String(raw).trim();
+    if (!trimmed) return null;
+    if (!trimmed.startsWith('/') || trimmed.startsWith('//')) {
+        throw new Error('Target App Route must start with "/" and cannot start with "//".');
+    }
+    return trimmed;
+};
+
+const normalizeBundleChildIds = (bundleSeriesId: string, rawIds: unknown): string[] => {
+    if (!Array.isArray(rawIds)) return [];
+    const seen = new Set<string>();
+    const out: string[] = [];
+    for (const rawId of rawIds) {
+        const clean = typeof rawId === 'string' ? rawId.trim() : '';
+        if (!clean || clean === bundleSeriesId || seen.has(clean)) continue;
+        seen.add(clean);
+        out.push(clean);
+    }
+    return out;
+};
+
+const syncBundleItems = async (
+    bundleSeriesId: string,
+    courseType: string | undefined,
+    includedSeriesIds: unknown,
+    options?: { clearIfNonBundle?: boolean }
+): Promise<string[]> => {
+    if (courseType === 'bundle') {
+        const cleanIds = normalizeBundleChildIds(bundleSeriesId, includedSeriesIds);
+        const { error: deleteError } = await supabase
+            .from(DB_TABLES.MOCK.BUNDLE_ITEMS)
+            .delete()
+            .eq('bundle_series_id', bundleSeriesId);
+        if (deleteError) throw deleteError;
+
+        if (cleanIds.length > 0) {
+            const rowsToInsert = cleanIds.map((childId, idx) => ({
+                bundle_series_id: bundleSeriesId,
+                child_series_id: childId,
+                display_order: idx,
+            }));
+            const { error: insertError } = await supabase
+                .from(DB_TABLES.MOCK.BUNDLE_ITEMS)
+                .insert(rowsToInsert);
+            if (insertError) throw insertError;
+        }
+        return cleanIds;
+    }
+
+    if (options?.clearIfNonBundle && courseType !== undefined) {
+        const { error: deleteError } = await supabase
+            .from(DB_TABLES.MOCK.BUNDLE_ITEMS)
+            .delete()
+            .eq('bundle_series_id', bundleSeriesId);
+        if (deleteError) throw deleteError;
+    }
+
+    return [];
+};
+
 export const fetchTestSeries = async (
     categoryId?: string,
     options?: { forceRefresh?: boolean }
@@ -435,7 +553,8 @@ export const fetchTestSeries = async (
 
     const { data, error } = await query;
     if (error) throw error;
-    const rows = Array.isArray(data) ? data : [];
+    const rawRows = Array.isArray(data) ? data : [];
+    const rows = await hydrateAdminSeriesRows(rawRows);
     writeAdminCmsListCache(
         memoryAdminSeriesCache,
         scopeKey,
@@ -460,29 +579,87 @@ export const createTestSeries = async (payload: {
     validity_days?: number;
     free_demo_count?: number;
     course_type?: 'mock_series' | 'bundle' | 'video' | 'pdf';
+    target_route?: string | null;
+    included_series_ids?: string[];
 }) => {
+    const { included_series_ids, target_route, ...seriesPayload } = payload;
+    const courseType = seriesPayload.course_type ?? 'mock_series';
+    const dbInsertPayload: Record<string, any> = { ...seriesPayload };
+
+    if (courseType === 'video' || courseType === 'pdf') {
+        dbInsertPayload.target_route = validateAndNormalizeTargetRoute(target_route);
+    } else if (target_route !== undefined) {
+        validateAndNormalizeTargetRoute(target_route);
+        dbInsertPayload.target_route = null;
+    }
+
     const { data, error } = await supabase
         .from(DB_TABLES.MOCK.SERIES)
-        .insert([payload])
+        .insert([dbInsertPayload])
         .select(SERIES_SELECT_QUERY)
         .single();
 
     if (error) throw error;
+
+    const syncedIds = data?.id
+        ? await syncBundleItems(String(data.id), courseType, included_series_ids)
+        : [];
+
     invalidateAdminCmsCatalogCaches({ seriesId: data?.id, includeAnalytics: true });
-    return data;
+    return {
+        ...data,
+        target_route: sanitizeTargetRoute(data?.target_route),
+        included_series_ids: syncedIds,
+    };
 };
 
 export const updateTestSeries = async (id: string, payload: any) => {
+    const { included_series_ids, target_route, ...seriesPayload } = payload ?? {};
+    const dbUpdatePayload: Record<string, any> = { ...seriesPayload };
+    const hasTargetRoute = Object.prototype.hasOwnProperty.call(payload ?? {}, 'target_route');
+
+    if (
+        seriesPayload.course_type === 'mock_series' ||
+        seriesPayload.course_type === 'bundle'
+    ) {
+        if (hasTargetRoute) {
+            validateAndNormalizeTargetRoute(target_route);
+        }
+        dbUpdatePayload.target_route = null;
+    } else if (hasTargetRoute) {
+        dbUpdatePayload.target_route = validateAndNormalizeTargetRoute(target_route);
+    }
+
     const { data, error } = await supabase
         .from(DB_TABLES.MOCK.SERIES)
-        .update(payload)
+        .update(dbUpdatePayload)
         .eq('id', id)
         .select(SERIES_SELECT_QUERY)
         .single();
 
     if (error) throw error;
+
+    const effectiveCourseType = seriesPayload.course_type ?? data?.course_type;
+    let syncedIds: string[] = [];
+    if (
+        seriesPayload.course_type === 'bundle' ||
+        (effectiveCourseType === 'bundle' && included_series_ids !== undefined)
+    ) {
+        syncedIds = await syncBundleItems(id, 'bundle', included_series_ids ?? []);
+    } else if (seriesPayload.course_type !== undefined && seriesPayload.course_type !== 'bundle') {
+        syncedIds = await syncBundleItems(id, seriesPayload.course_type, [], {
+            clearIfNonBundle: true,
+        });
+    } else {
+        syncedIds = normalizeIncludedSeriesIds(data);
+    }
+
     invalidateAdminCmsCatalogCaches({ seriesId: id, includeAnalytics: true });
-    return data;
+    return {
+        ...data,
+        target_route: sanitizeTargetRoute(data?.target_route),
+        included_series_ids: syncedIds,
+    };
 };
 
 export const deleteTestSeries = async (id: string) => {
@@ -559,9 +736,24 @@ export const fetchTestById = async (id: string) => {
     return data;
 };
 
+const normalizeTestShiftFields = <T extends Partial<TestMutationPayload>>(payload: T): T => {
+    const next: Record<string, any> = { ...payload };
+    if (Object.prototype.hasOwnProperty.call(payload, 'shift_slot')) {
+        next.shift_slot = normalizeShiftSlot(payload.shift_slot);
+    }
+    if (Object.prototype.hasOwnProperty.call(payload, 'shift_timing')) {
+        next.shift_timing =
+            typeof payload.shift_timing === 'string' && payload.shift_timing.trim()
+                ? payload.shift_timing.trim()
+                : null;
+    }
+    return next as T;
+};
+
 export const createTest = async (payload: TestMutationPayload) => {
-    if (payload.is_published === true) {
-        const validation = validateTestForPublish(payload);
+    const normalizedPayload = normalizeTestShiftFields(payload);
+    if (normalizedPayload.is_published === true) {
+        const validation = validateTestForPublish(normalizedPayload);
         if (!validation.canPublish) {
             throw new Error(validation.reasons[0] || 'Test does not meet publish integrity requirements.');
         }
@@ -569,36 +761,37 @@ export const createTest = async (payload: TestMutationPayload) => {
 
     const { data, error } = await supabase
         .from(DB_TABLES.MOCK.TESTS)
-        .insert([payload])
+        .insert([normalizedPayload])
         .select(TEST_SELECT_QUERY)
         .single();
 
     if (error) throw error;
     invalidateAdminCmsCatalogCaches({
         testId: data?.id,
-        seriesId: data?.series_id ?? payload.series_id,
+        seriesId: data?.series_id ?? normalizedPayload.series_id,
         includeAnalytics: true,
     });
     return data;
 };
 
 export const updateTest = async (id: string, payload: Partial<TestMutationPayload>) => {
-    if (payload.question_ids !== undefined) {
-        if (payload.is_published === true && (!Array.isArray(payload.question_ids) || payload.question_ids.length === 0)) {
+    const normalizedPayload = normalizeTestShiftFields(payload);
+    if (normalizedPayload.question_ids !== undefined) {
+        if (normalizedPayload.is_published === true && (!Array.isArray(normalizedPayload.question_ids) || normalizedPayload.question_ids.length === 0)) {
             throw new Error('Add at least one question before publishing.');
         }
-        if (Array.isArray(payload.question_ids) && payload.question_ids.length > 0) {
-            if (payload.question_ids.some((q) => typeof q !== 'string' || !q.trim())) {
+        if (Array.isArray(normalizedPayload.question_ids) && normalizedPayload.question_ids.length > 0) {
+            if (normalizedPayload.question_ids.some((q) => typeof q !== 'string' || !q.trim())) {
                 throw new Error('All question IDs must be valid non-empty strings.');
             }
-            if (new Set(payload.question_ids.map((q) => q.trim())).size < payload.question_ids.length) {
+            if (new Set(normalizedPayload.question_ids.map((q) => q.trim())).size < normalizedPayload.question_ids.length) {
                 throw new Error('Remove duplicate questions before publishing.');
             }
         }
     }
 
-    const rel = payload.release_date ? new Date(payload.release_date) : null;
-    const exp = payload.expiry_date ? new Date(payload.expiry_date) : null;
+    const rel = normalizedPayload.release_date ? new Date(normalizedPayload.release_date) : null;
+    const exp = normalizedPayload.expiry_date ? new Date(normalizedPayload.expiry_date) : null;
     if (rel && Number.isNaN(rel.getTime())) {
         throw new Error('Release date is invalid.');
     }
@@ -609,28 +802,28 @@ export const updateTest = async (id: string, payload: Partial<TestMutationPayloa
         throw new Error('Expiry date must be after Release date.');
     }
 
-    if (payload.is_published === true) {
-        if (payload.name !== undefined && !String(payload.name ?? '').trim()) {
+    if (normalizedPayload.is_published === true) {
+        if (normalizedPayload.name !== undefined && !String(normalizedPayload.name ?? '').trim()) {
             throw new Error('Test name is required before publishing.');
         }
-        if (payload.series_id !== undefined && !payload.series_id) {
+        if (normalizedPayload.series_id !== undefined && !normalizedPayload.series_id) {
             throw new Error('Assign a Test Series before publishing.');
         }
-        if (payload.duration_minutes !== undefined) {
-            const duration = Number(payload.duration_minutes);
+        if (normalizedPayload.duration_minutes !== undefined) {
+            const duration = Number(normalizedPayload.duration_minutes);
             if (!Number.isFinite(duration) || !Number.isInteger(duration) || duration <= 0) {
                 throw new Error('Duration must be a whole number greater than 0 minutes.');
             }
         }
-        if (payload.total_marks !== undefined) {
-            const totalMarks = Number(payload.total_marks);
+        if (normalizedPayload.total_marks !== undefined) {
+            const totalMarks = Number(normalizedPayload.total_marks);
             if (!Number.isFinite(totalMarks) || totalMarks <= 0) {
                 throw new Error('Total marks must be greater than 0.');
             }
         }
-        if (payload.passing_marks !== undefined) {
-            const passingMarks = Number(payload.passing_marks);
-            const totalMarks = payload.total_marks !== undefined ? Number(payload.total_marks) : undefined;
+        if (normalizedPayload.passing_marks !== undefined) {
+            const passingMarks = Number(normalizedPayload.passing_marks);
+            const totalMarks = normalizedPayload.total_marks !== undefined ? Number(normalizedPayload.total_marks) : undefined;
             if (
                 !Number.isFinite(passingMarks) ||
                 passingMarks < 0 ||
@@ -639,21 +832,21 @@ export const updateTest = async (id: string, payload: Partial<TestMutationPayloa
                 throw new Error('Passing marks must be between 0 and Total Marks.');
             }
         }
-        if (payload.negative_marks !== undefined) {
-            const negativeMarks = Number(payload.negative_marks);
+        if (normalizedPayload.negative_marks !== undefined) {
+            const negativeMarks = Number(normalizedPayload.negative_marks);
             if (!Number.isFinite(negativeMarks) || negativeMarks < 0) {
                 throw new Error('Negative marks must be 0 or greater.');
             }
         }
 
         if (
-            payload.name !== undefined &&
-            payload.series_id !== undefined &&
-            payload.question_ids !== undefined &&
-            payload.duration_minutes !== undefined &&
-            payload.total_marks !== undefined
+            normalizedPayload.name !== undefined &&
+            normalizedPayload.series_id !== undefined &&
+            normalizedPayload.question_ids !== undefined &&
+            normalizedPayload.duration_minutes !== undefined &&
+            normalizedPayload.total_marks !== undefined
         ) {
-            const validation = validateTestForPublish(payload);
+            const validation = validateTestForPublish(normalizedPayload);
             if (!validation.canPublish) {
                 throw new Error(validation.reasons[0] || 'Test does not meet publish integrity requirements.');
             }
@@ -662,7 +855,7 @@ export const updateTest = async (id: string, payload: Partial<TestMutationPayloa
 
     const { data, error } = await supabase
         .from(DB_TABLES.MOCK.TESTS)
-        .update(payload)
+        .update(normalizedPayload)
         .eq('id', id)
         .select(TEST_SELECT_QUERY)
         .single();
@@ -670,7 +863,7 @@ export const updateTest = async (id: string, payload: Partial<TestMutationPayloa
     if (error) throw error;
     invalidateAdminCmsCatalogCaches({
         testId: id,
-        seriesId: data?.series_id ?? payload.series_id,
+        seriesId: data?.series_id ?? normalizedPayload.series_id,
         includeAnalytics: true,
     });
     return data;
@@ -795,11 +988,19 @@ export const cloneTest = async (sourceTest: any, existingNames?: string[]) => {
         ? [...sourceTest.question_ids]
         : [];
 
+    const clonedShiftSlot = normalizeShiftSlot(sourceTest?.shift_slot);
+    const clonedShiftTiming =
+        typeof sourceTest?.shift_timing === 'string' && sourceTest.shift_timing.trim()
+            ? sourceTest.shift_timing.trim()
+            : null;
+
     const payload: TestMutationPayload = {
         series_id: sourceTest.series_id,
         name: buildClonedTestName(sourceTest?.name ?? '', existingNames),
         description: sourceTest?.description ?? '',
         test_type: sourceTest?.test_type === 'PYQ' ? 'PYQ' : 'MOCK',
+        ...(clonedShiftSlot !== null ? { shift_slot: clonedShiftSlot } : {}),
+        ...(clonedShiftTiming !== null ? { shift_timing: clonedShiftTiming } : {}),
         duration_minutes: Number(sourceTest?.duration_minutes ?? 60),
         total_marks: Number(sourceTest?.total_marks ?? 0),
         passing_marks: Number(sourceTest?.passing_marks ?? 0),

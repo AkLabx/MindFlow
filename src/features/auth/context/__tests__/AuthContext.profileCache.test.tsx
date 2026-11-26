@@ -121,7 +121,7 @@ describe('AuthContext profile SWR cache', () => {
                             maybeSingle: vi.fn().mockResolvedValue({
                                 data: {
                                     id: userA.id,
-                                    student_id: 'MF-100003',
+                                    student_id: 'MIND-100003',
                                     full_name: 'Student A',
                                     status: 'active',
                                     delete_requested_at: null,
@@ -159,9 +159,9 @@ describe('AuthContext profile SWR cache', () => {
         );
 
         await waitFor(() => {
-            expect(screen.getByTestId('probe-student-id').textContent).toBe('MF-100003');
+            expect(screen.getByTestId('probe-student-id').textContent).toBe('MIND-100003');
         });
-        expect(localStorage.getItem('mindflow_cached_user_profile_v1')).toContain('MF-100003');
+        expect(localStorage.getItem('mindflow_cached_user_profile_v1')).toContain('MIND-100003');
         unmount();
 
         // Simulate remount while offline: profiles + session tracker reject with ERR_INTERNET_DISCONNECTED
@@ -189,7 +189,7 @@ describe('AuthContext profile SWR cache', () => {
         );
 
         await waitFor(() => {
-            expect(screen.getByTestId('probe-student-id').textContent).toBe('MF-100003');
+            expect(screen.getByTestId('probe-student-id').textContent).toBe('MIND-100003');
         });
 
         await act(async () => {
@@ -207,7 +207,7 @@ describe('AuthContext profile SWR cache', () => {
             'mindflow_cached_user_profile_v1',
             JSON.stringify({
                 userId: 'user-a-100',
-                profile: { id: 'user-a-100', student_id: 'MF-100003' },
+                profile: { id: 'user-a-100', student_id: 'MIND-100003' },
                 updatedAt: Date.now(),
             })
         );
@@ -250,5 +250,82 @@ describe('AuthContext profile SWR cache', () => {
         });
         expect(screen.getByTestId('probe-student-id').textContent).toBe('Pending Sync');
         expect(localStorage.getItem('mindflow_cached_user_profile_v1')).toBeNull();
+    });
+
+    it('auto-heals stale local profile caches carrying legacy MF- student IDs once online', async () => {
+        const userLegacy = {
+            id: 'user-legacy-300',
+            email: 'legacy@mindflow.app',
+            user_metadata: { full_name: 'Legacy Student' },
+        };
+
+        localStorage.setItem(
+            'mindflow_cached_user_profile_v1',
+            JSON.stringify({
+                userId: userLegacy.id,
+                profile: {
+                    id: userLegacy.id,
+                    student_id: 'MF-100099',
+                    full_name: 'Legacy Student',
+                    status: 'active',
+                    delete_requested_at: null,
+                },
+                updatedAt: Date.now(),
+            })
+        );
+        localStorage.setItem('mindflow_last_auth_user_id', userLegacy.id);
+
+        getSessionMock.mockResolvedValue({
+            data: { session: { user: userLegacy, access_token: 'tok-legacy' } },
+            error: null,
+        });
+
+        fromMock.mockImplementation((table: string) => {
+            if (table === 'profiles') {
+                return {
+                    select: vi.fn(() => ({
+                        eq: vi.fn(() => ({
+                            maybeSingle: vi.fn().mockResolvedValue({
+                                data: {
+                                    id: userLegacy.id,
+                                    student_id: 'MIND-100099',
+                                    full_name: 'Legacy Student',
+                                    status: 'active',
+                                    delete_requested_at: null,
+                                },
+                                error: null,
+                            }),
+                        })),
+                    })),
+                };
+            }
+            return {
+                select: vi.fn(() => ({
+                    eq: vi.fn(() => ({
+                        maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+                    })),
+                })),
+                upsert: vi.fn().mockResolvedValue({ error: null }),
+                delete: vi.fn(() => ({
+                    eq: vi.fn(() => ({
+                        eq: vi.fn().mockResolvedValue({ error: null }),
+                    })),
+                })),
+            };
+        });
+
+        const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+        render(
+            <QueryClientProvider client={qc}>
+                <AuthProvider>
+                    <Probe />
+                </AuthProvider>
+            </QueryClientProvider>
+        );
+
+        await waitFor(() => {
+            expect(screen.getByTestId('probe-student-id').textContent).toBe('MIND-100099');
+        });
+        expect(localStorage.getItem('mindflow_cached_user_profile_v1')).toContain('MIND-100099');
     });
 });

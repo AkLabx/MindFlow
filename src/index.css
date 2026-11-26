@@ -616,16 +616,26 @@ input, textarea, [contenteditable] {
 /* Horizontal swipe viewports & nested series card rails */
 @layer components {
   .mf-swipe-track {
-    display: flex;
-    overflow-x: auto;
-    scroll-snap-type: x mandatory;
+    position: relative;
+    width: 100%;
+    overflow-x: clip;
+    touch-action: pan-y;
     overscroll-behavior-x: contain;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
+    user-select: none;
+    -webkit-user-select: none;
   }
 
-  .mf-swipe-track::-webkit-scrollbar {
-    display: none;
+  .mf-swipe-track-inner {
+    display: flex;
+    width: 100%;
+    will-change: transform;
+    backface-visibility: hidden;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .mf-swipe-track-inner {
+      transition: none !important;
+    }
   }
 
   .mf-h-rail {

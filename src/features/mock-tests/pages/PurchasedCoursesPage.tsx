@@ -5,6 +5,7 @@ import {
     ChevronRight,
     Clock,
     Receipt,
+    RefreshCw,
     ShoppingBag,
 } from 'lucide-react';
 import { ROUTES } from '@/config/routes';
@@ -12,16 +13,23 @@ import { useAuth } from '@/features/auth';
 import { triggerHaptic } from '@/lib/haptics';
 import { DedicatedPageHeader } from '@/components/ui/DedicatedPageHeader';
 import {
+    CourseType,
     MOCK_CACHE_INVALIDATED_EVENT,
     UserCourseEntitlementItem,
     UserPaymentReceiptItem,
+    fetchSeriesDetails,
     fetchUserCourseEntitlements,
     fetchUserPurchaseReceipts,
+    getCachedAllPublishedMockSeriesCatalogSnapshot,
     getCachedUserCourseEntitlementsSnapshot,
     getCachedUserPurchaseReceiptsSnapshot,
     readUserCourseEntitlementsIndexedDBCache,
     readUserPurchaseReceiptsIndexedDBCache,
 } from '../api/mockTestsApi';
+import {
+    CourseCheckoutDialog,
+    type CourseCheckoutSeriesInfo,
+} from '../components/CourseCheckoutDialog';
 
 const formatReceiptDate = (iso: string | null | undefined): string => {
     if (!iso) return '—';
@@ -56,7 +64,12 @@ const computeDaysRemainingLabel = (
     if (normalized === 'pending_verification' || normalized === 'pending') {
         return { label: 'Awaiting Admin Approval', tone: 'pending' };
     }
-    if (normalized === 'rejected' || normalized === 'revoked' || normalized === 'failed' || normalized === 'cancelled') {
+    if (
+        normalized === 'rejected' ||
+        normalized === 'revoked' ||
+        normalized === 'failed' ||
+        normalized === 'cancelled'
+    ) {
         return { label: 'Rejected / Inactive', tone: 'expired' };
     }
     if (!validUntil) {
@@ -91,6 +104,27 @@ const resolveSafeTargetRoute = (
     return seriesId ? ROUTES.TEST_SERIES.SERIES(seriesId) : ROUTES.TEST_SERIES.ROOT;
 };
 
+const COURSE_TYPE_BADGE: Record<
+    Exclude<CourseType, 'mock_series'>,
+    { label: string; className: string }
+> = {
+    bundle: {
+        label: 'Bundle',
+        className:
+            'bg-amber-50 dark:bg-amber-950/60 text-amber-900 dark:text-amber-300 border-amber-200 dark:border-amber-800/60',
+    },
+    video: {
+        label: 'Video',
+        className:
+            'bg-violet-50 dark:bg-violet-950/60 text-violet-800 dark:text-violet-300 border-violet-200 dark:border-violet-800/60',
+    },
+    pdf: {
+        label: 'PDF',
+        className:
+            'bg-teal-50 dark:bg-teal-950/60 text-teal-800 dark:text-teal-300 border-teal-200 dark:border-teal-800/60',
+    },
+};
+
 export const PurchasedCoursesPage: React.FC = () => {
     const navigate = useNavigate();
     const { user, profile } = useAuth();
@@ -106,12 +140,13 @@ export const PurchasedCoursesPage: React.FC = () => {
         };
     }, []);
 
-    const [receipts, setReceipts] = useState<UserPaymentReceiptItem[]>(
-        () => (userId ? getCachedUserPurchaseReceiptsSnapshot(userId) ?? [] : [])
+    const [receipts, setReceipts] = useState<UserPaymentReceiptItem[]>(() =>
+        userId ? getCachedUserPurchaseReceiptsSnapshot(userId) ?? [] : []
     );
-    const [entitlements, setEntitlements] = useState<UserCourseEntitlementItem[]>(
-        () => (userId ? getCachedUserCourseEntitlementsSnapshot(userId) ?? [] : [])
+    const [entitlements, setEntitlements] = useState<UserCourseEntitlementItem[]>(() =>
+        userId ? getCachedUserCourseEntitlementsSnapshot(userId) ?? [] : []
     );
+    const [renewalSeries, setRenewalSeries] = useState<CourseCheckoutSeriesInfo | null>(null);
     const [loading, setLoading] = useState<boolean>(() => {
         if (!userId) return false;
         return getCachedUserPurchaseReceiptsSnapshot(userId) === null;
@@ -222,7 +257,10 @@ export const PurchasedCoursesPage: React.FC = () => {
 
             return {
                 id: receipt.id,
+                seriesId: receipt.series_id,
                 courseName: receipt.series_name,
+                courseType: matchedEnt?.course_type ?? receipt.course_type,
+                validityDays: receipt.validity_days ?? 365,
                 orderCode: receipt.order_code,
                 purchaseDate: receipt.created_at,
                 endDate: effectiveValidUntil,
@@ -241,7 +279,10 @@ export const PurchasedCoursesPage: React.FC = () => {
             const daysInfo = computeDaysRemainingLabel(ent.status, ent.valid_until, nowMs);
             merged.push({
                 id: ent.id,
+                seriesId: ent.series_id || null,
                 courseName: ent.series_name?.trim() || 'MindFlow Course Access',
+                courseType: ent.course_type,
+                validityDays: 365,
                 orderCode: `ENT-${ent.id.slice(0, 8).toUpperCase()}`,
                 purchaseDate: ent.starts_at || ent.created_at,
                 endDate: ent.valid_until,
@@ -260,6 +301,60 @@ export const PurchasedCoursesPage: React.FC = () => {
             return (Number.isFinite(bMs) ? bMs : 0) - (Number.isFinite(aMs) ? aMs : 0);
         });
     }, [receipts, entitlements]);
+
+    const handleOpenRenewDialog = useCallback((card: (typeof purchaseCards)[number]) => {
+        if (!card.seriesId) return;
+        triggerHaptic('light');
+        const cachedSeries =
+            getCachedAllPublishedMockSeriesCatalogSnapshot()?.series.find(
+                (s) => s.id === card.seriesId
+            ) ?? null;
+
+        const initialInfo: CourseCheckoutSeriesInfo = cachedSeries
+            ? {
+                  id: String(cachedSeries.id),
+                  name: String(cachedSeries.name),
+                  price_inr: cachedSeries.price_inr,
+                  mrp_inr: cachedSeries.mrp_inr,
+                  validity_days: cachedSeries.validity_days,
+                  free_demo_count: cachedSeries.free_demo_count,
+                  category_name: cachedSeries.category_name,
+              }
+            : {
+                  id: card.seriesId,
+                  name: card.courseName,
+                  price_inr: card.amountInr,
+                  validity_days: card.validityDays,
+              };
+
+        setRenewalSeries(initialInfo);
+
+        if (!cachedSeries && (typeof navigator === 'undefined' || navigator.onLine !== false)) {
+            fetchSeriesDetails(card.seriesId)
+                .then((fresh) => {
+                    if (!isMountedRef.current || !fresh) return;
+                    setRenewalSeries((prev) => {
+                        if (!prev || prev.id !== card.seriesId) return prev;
+                        return {
+                            id: String(fresh.id),
+                            name: String(fresh.name ?? prev.name),
+                            price_inr: Math.max(0, Number(fresh.price_inr ?? prev.price_inr)),
+                            mrp_inr: fresh.mrp_inr != null ? Number(fresh.mrp_inr) : null,
+                            validity_days: Math.max(
+                                1,
+                                Number(fresh.validity_days ?? prev.validity_days ?? 365)
+                            ),
+                            free_demo_count: Math.max(0, Number(fresh.free_demo_count ?? 1)),
+                            category_name:
+                                fresh.mock_categories?.name ??
+                                fresh.exam_categories?.name ??
+                                undefined,
+                        };
+                    });
+                })
+                .catch(() => {});
+        }
+    }, []);
 
     return (
         <div
@@ -330,85 +425,147 @@ export const PurchasedCoursesPage: React.FC = () => {
                                         ? 'bg-sky-50 dark:bg-sky-950/60 text-sky-700 dark:text-sky-300 border-sky-200 dark:border-sky-800/60'
                                         : 'bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800/60';
 
+                            const typeBadge =
+                                card.courseType !== 'mock_series'
+                                    ? COURSE_TYPE_BADGE[card.courseType]
+                                    : null;
+                            const showRenewalBanner =
+                                (card.daysTone === 'warning' || card.daysTone === 'expired') &&
+                                Boolean(card.seriesId);
+
                             return (
-                                <button
+                                <article
                                     key={card.id}
-                                    type="button"
-                                    data-testid="purchase-receipt-card"
-                                    onClick={() => {
-                                        triggerHaptic('light');
-                                        navigate(card.targetRoute);
-                                    }}
-                                    className="w-full text-left rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 hover:border-indigo-400 dark:hover:border-indigo-600 p-4 sm:p-5 shadow-sm transition-all active:scale-[0.99] touch-manipulation cursor-pointer group"
+                                    className="w-full rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 hover:border-indigo-400 dark:hover:border-indigo-600 shadow-sm overflow-hidden transition-colors"
                                 >
-                                    <div className="flex items-start justify-between gap-3">
-                                        <div className="min-w-0 space-y-1">
-                                            <div className="flex flex-wrap items-center gap-2">
-                                                <span
-                                                    className={`inline-flex items-center px-2.5 py-0.5 rounded-full border text-[11px] font-black ${statusBadgeClasses}`}
-                                                >
-                                                    {card.daysLabel}
-                                                </span>
-                                                <span className="inline-flex items-center gap-1 font-mono text-[11px] font-bold text-slate-500 dark:text-slate-400">
-                                                    <Receipt className="w-3.5 h-3.5" aria-hidden="true" />
-                                                    <span>Order ID: #{card.orderCode}</span>
+                                    <button
+                                        type="button"
+                                        data-testid="purchase-receipt-card"
+                                        onClick={() => {
+                                            triggerHaptic('light');
+                                            navigate(card.targetRoute);
+                                        }}
+                                        className="w-full min-h-[44px] text-left p-4 sm:p-5 transition-all active:scale-[0.99] touch-manipulation cursor-pointer group"
+                                    >
+                                        <div className="flex items-start justify-between gap-3">
+                                            <div className="min-w-0 space-y-1">
+                                                <div className="flex flex-wrap items-center gap-2">
+                                                    <span
+                                                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full border text-[11px] font-black ${statusBadgeClasses}`}
+                                                    >
+                                                        {card.daysLabel}
+                                                    </span>
+                                                    {typeBadge && (
+                                                        <span
+                                                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full border text-[11px] font-black uppercase tracking-wider ${typeBadge.className}`}
+                                                        >
+                                                            {typeBadge.label}
+                                                        </span>
+                                                    )}
+                                                    <span className="inline-flex items-center gap-1 font-mono text-[11px] font-bold text-slate-500 dark:text-slate-400">
+                                                        <Receipt className="w-3.5 h-3.5" aria-hidden="true" />
+                                                        <span>Order ID: #{card.orderCode}</span>
+                                                    </span>
+                                                </div>
+                                                <h2 className="text-base sm:text-lg font-black text-slate-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors leading-snug">
+                                                    {card.courseName}
+                                                </h2>
+                                            </div>
+
+                                            <div className="flex items-center gap-2 shrink-0">
+                                                {card.amountInr > 0 && (
+                                                    <span className="text-base font-black text-slate-900 dark:text-white">
+                                                        ₹{card.amountInr}
+                                                    </span>
+                                                )}
+                                                <span className="min-h-[44px] min-w-[44px] rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 inline-flex items-center justify-center text-slate-600 dark:text-slate-300 group-hover:bg-indigo-600 group-hover:text-white group-hover:border-indigo-600 transition-colors">
+                                                    <ChevronRight className="w-5 h-5" aria-hidden="true" />
                                                 </span>
                                             </div>
-                                            <h2 className="text-base sm:text-lg font-black text-slate-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors leading-snug">
-                                                {card.courseName}
-                                            </h2>
                                         </div>
 
-                                        <div className="flex items-center gap-2 shrink-0">
-                                            {card.amountInr > 0 && (
-                                                <span className="text-base font-black text-slate-900 dark:text-white">
-                                                    ₹{card.amountInr}
+                                        <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 grid grid-cols-2 sm:grid-cols-3 gap-2.5 text-xs">
+                                            <div className="flex items-center gap-1.5 text-slate-600 dark:text-slate-300">
+                                                <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" aria-hidden="true" />
+                                                <span>
+                                                    Purchase Date:{' '}
+                                                    <strong className="text-slate-900 dark:text-white">
+                                                        {formatReceiptDate(card.purchaseDate)}
+                                                    </strong>
                                                 </span>
+                                            </div>
+
+                                            <div className="flex items-center gap-1.5 text-slate-600 dark:text-slate-300">
+                                                <Clock className="w-3.5 h-3.5 text-slate-400 shrink-0" aria-hidden="true" />
+                                                <span>
+                                                    End Date:{' '}
+                                                    <strong className="text-slate-900 dark:text-white">
+                                                        {card.endDate
+                                                            ? formatReceiptDate(card.endDate)
+                                                            : String(card.status ?? '').toLowerCase() ===
+                                                                    'pending_verification' ||
+                                                                String(card.status ?? '').toLowerCase() ===
+                                                                    'pending'
+                                                              ? 'Pending'
+                                                              : '—'}
+                                                    </strong>
+                                                </span>
+                                            </div>
+
+                                            {card.upiReference && (
+                                                <div className="col-span-2 sm:col-span-1 text-[11px] font-mono text-slate-500 dark:text-slate-400 truncate sm:text-right">
+                                                    UTR: {card.upiReference}
+                                                </div>
                                             )}
-                                            <span className="min-h-[44px] min-w-[44px] rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 inline-flex items-center justify-center text-slate-600 dark:text-slate-300 group-hover:bg-indigo-600 group-hover:text-white group-hover:border-indigo-600 transition-colors">
-                                                <ChevronRight className="w-5 h-5" aria-hidden="true" />
-                                            </span>
                                         </div>
-                                    </div>
+                                    </button>
 
-                                    <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 grid grid-cols-2 sm:grid-cols-3 gap-2.5 text-xs">
-                                        <div className="flex items-center gap-1.5 text-slate-600 dark:text-slate-300">
-                                            <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" aria-hidden="true" />
-                                            <span>
-                                                Purchase Date:{' '}
-                                                <strong className="text-slate-900 dark:text-white">
-                                                    {formatReceiptDate(card.purchaseDate)}
-                                                </strong>
-                                            </span>
+                                    {showRenewalBanner && (
+                                        <div
+                                            className={`px-4 sm:px-5 py-3 border-t flex flex-wrap items-center justify-between gap-3 ${
+                                                card.daysTone === 'expired'
+                                                    ? 'border-rose-100 dark:border-rose-900/40 bg-rose-50/70 dark:bg-rose-950/20'
+                                                    : 'border-amber-100 dark:border-amber-900/40 bg-amber-50/70 dark:bg-amber-950/20'
+                                            }`}
+                                        >
+                                            <p
+                                                className={`text-xs font-bold ${
+                                                    card.daysTone === 'expired'
+                                                        ? 'text-rose-800 dark:text-rose-200'
+                                                        : 'text-amber-900 dark:text-amber-200'
+                                                }`}
+                                            >
+                                                {card.daysTone === 'expired'
+                                                    ? 'Course access has expired. Renew now to restore practice access.'
+                                                    : 'Expiring soon. Renew early to extend your validity.'}
+                                            </p>
+                                            <button
+                                                type="button"
+                                                onClick={() => handleOpenRenewDialog(card)}
+                                                data-testid={`renew-access-btn-${card.id}`}
+                                                className="min-h-[44px] min-w-[44px] px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black inline-flex items-center justify-center gap-1.5 active:scale-95 transition-all touch-manipulation cursor-pointer shadow-xs shrink-0"
+                                            >
+                                                <RefreshCw className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+                                                <span>Renew Access</span>
+                                            </button>
                                         </div>
-
-                                        <div className="flex items-center gap-1.5 text-slate-600 dark:text-slate-300">
-                                            <Clock className="w-3.5 h-3.5 text-slate-400 shrink-0" aria-hidden="true" />
-                                            <span>
-                                                End Date:{' '}
-                                                <strong className="text-slate-900 dark:text-white">
-                                                    {card.endDate
-                                                        ? formatReceiptDate(card.endDate)
-                                                        : String(card.status ?? '').toLowerCase() === 'pending_verification' ||
-                                                            String(card.status ?? '').toLowerCase() === 'pending'
-                                                          ? 'Pending'
-                                                          : '—'}
-                                                </strong>
-                                            </span>
-                                        </div>
-
-                                        {card.upiReference && (
-                                            <div className="col-span-2 sm:col-span-1 text-[11px] font-mono text-slate-500 dark:text-slate-400 truncate sm:text-right">
-                                                UTR: {card.upiReference}
-                                            </div>
-                                        )}
-                                    </div>
-                                </button>
+                                    )}
+                                </article>
                             );
                         })}
                     </div>
                 )}
             </main>
+
+            <CourseCheckoutDialog
+                isOpen={Boolean(renewalSeries)}
+                onClose={() => setRenewalSeries(null)}
+                series={renewalSeries}
+                studentId={profile?.student_id ?? null}
+                userId={userId}
+                isRenewal
+                onRequestSubmitted={() => void loadPurchaseHistory(true)}
+            />
         </div>
     );
 };
