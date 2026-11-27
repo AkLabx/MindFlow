@@ -27,7 +27,8 @@ import { PasswordStrengthMeter, evaluatePasswordStrength } from './PasswordStren
 import { EmailOtpInput, OTP_LENGTH, sanitizeOtpCode } from './EmailOtpInput';
 import { CURRENT_AGE_ATTESTATION, CURRENT_TERMS_VERSION } from '@/constants/legal';
 import { telemetry } from '@/lib/telemetry/telemetryService';
-import { buildAuthRedirectUrl, MIN_PASSWORD_LENGTH } from '../utils/authRedirect';
+import { buildAuthRedirectUrl } from '../utils/authRedirect';
+import { formatAuthError, validatePasswordPolicy } from '../utils/authErrorMapper';
 
 export interface AuthPageProps {
   onBack?: () => void;
@@ -126,6 +127,10 @@ export const AuthPage: React.FC<AuthPageProps> = ({
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [isResendingConfirmation, setIsResendingConfirmation] = useState(false);
   const [existingAccountNotice, setExistingAccountNotice] = useState(false);
+  const [signupRecoveryOptions, setSignupRecoveryOptions] = useState<{
+    canRetry: boolean;
+    suggestGoogleFallback: boolean;
+  } | null>(null);
   const [isCheckingVerification, setIsCheckingVerification] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
   const [forgotPasswordSent, setForgotPasswordSent] = useState(false);
@@ -137,11 +142,12 @@ export const AuthPage: React.FC<AuthPageProps> = ({
   // Legal In-App Modal State
   const [legalModalType, setLegalModalType] = useState<'terms' | 'privacy' | null>(null);
 
-  // Refs for auto-focus & verification mutex
+  // Refs for auto-focus & in-flight mutexes
   const emailInputRef = useRef<HTMLInputElement>(null);
   const passwordInputRef = useRef<HTMLInputElement>(null);
   const fullNameInputRef = useRef<HTMLInputElement>(null);
   const isCheckingVerificationRef = useRef(false);
+  const isSubmittingSignUpRef = useRef(false);
 
   // Surface any expired/invalid email redirect errors captured by useAppBootstrap
   useEffect(() => {
@@ -280,6 +286,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
     setError(null);
     setSuccessNotice(null);
     setExistingAccountNotice(false);
+    setSignupRecoveryOptions(null);
     setForgotPasswordSent(false);
   };
 
@@ -298,6 +305,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
     setError(null);
     setSuccessNotice(null);
     setExistingAccountNotice(false);
+    setSignupRecoveryOptions(null);
     setForgotPasswordSent(false);
   };
 
@@ -395,7 +403,8 @@ export const AuthPage: React.FC<AuthPageProps> = ({
         throw new Error('Unable to establish session. Please verify your email.');
       }
     } catch (err: any) {
-      setError(err.message || 'An error occurred during sign in.');
+      const formatted = formatAuthError(err, 'signin');
+      setError(formatted.message);
       triggerHaptic('error');
     } finally {
       setIsEmailLoading(false);
@@ -403,13 +412,15 @@ export const AuthPage: React.FC<AuthPageProps> = ({
   };
 
   /**
-   * Sign Up Submit
+   * Executes mutex-guarded email+password account creation (invoked by form submit and 1-tap timeout retry)
    */
-  const handleSignUp = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const executeSignUp = async () => {
+    if (isSubmittingSignUpRef.current) return;
+
     setError(null);
     setSuccessNotice(null);
     setExistingAccountNotice(false);
+    setSignupRecoveryOptions(null);
 
     const cleanName = fullName.trim();
     if (!cleanName) {
@@ -418,8 +429,9 @@ export const AuthPage: React.FC<AuthPageProps> = ({
       return;
     }
 
-    if (password.length < MIN_PASSWORD_LENGTH) {
-      setError(`Password must be at least ${MIN_PASSWORD_LENGTH} characters long.`);
+    const passwordCheck = validatePasswordPolicy(password);
+    if (!passwordCheck.valid) {
+      setError(passwordCheck.message || 'Please choose a stronger password.');
       passwordInputRef.current?.focus();
       return;
     }
@@ -434,6 +446,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
       return;
     }
 
+    isSubmittingSignUpRef.current = true;
     setIsEmailLoading(true);
 
     try {
@@ -496,11 +509,27 @@ export const AuthPage: React.FC<AuthPageProps> = ({
         }
       }
     } catch (err: any) {
-      setError(err.message || 'Failed to create account. Please try again.');
+      const formatted = formatAuthError(err, 'signup');
+      setError(formatted.message);
+      if (formatted.canRetry || formatted.suggestGoogleFallback) {
+        setSignupRecoveryOptions({
+          canRetry: formatted.canRetry,
+          suggestGoogleFallback: formatted.suggestGoogleFallback,
+        });
+      }
       triggerHaptic('error');
     } finally {
+      isSubmittingSignUpRef.current = false;
       setIsEmailLoading(false);
     }
+  };
+
+  /**
+   * Sign Up Submit
+   */
+  const handleSignUp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await executeSignUp();
   };
 
   /**
@@ -571,7 +600,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
       }
     } catch (err: any) {
       if (source === 'manual') {
-        setError(err?.message || 'Could not check verification status. Please check your connection.');
+        setError(formatAuthError(err, 'verify').message);
       }
     } finally {
       isCheckingVerificationRef.current = false;
@@ -655,7 +684,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
       setSuccessNotice(`Fresh verification link sent to ${email}. Check your inbox and spam folder.`);
       triggerHaptic('success');
     } catch (err: any) {
-      setError(err.message || 'Failed to resend confirmation email.');
+      setError(formatAuthError(err, 'resend').message);
       triggerHaptic('error');
     } finally {
       setIsResendingConfirmation(false);
@@ -701,7 +730,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
       });
       triggerHaptic('success');
     } catch (err: any) {
-      setError(err.message || 'Unable to send password reset email.');
+      setError(formatAuthError(err, 'recovery').message);
       triggerHaptic('error');
     } finally {
       setIsEmailLoading(false);
@@ -753,7 +782,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
         throw new Error('Verification succeeded, but no session was returned. Please sign in.');
       }
     } catch (err: any) {
-      setError(err?.message || 'Could not verify code. Please try again.');
+      setError(formatAuthError(err, 'verify').message);
       triggerHaptic('error');
     } finally {
       setIsVerifyingOtp(false);
@@ -817,7 +846,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
       });
       triggerHaptic('success');
     } catch (err: any) {
-      setError(err?.message || 'Unable to send sign-in code. Please try again.');
+      setError(formatAuthError(err, 'otp').message);
       triggerHaptic('error');
     } finally {
       setIsSendingSignInOtp(false);
@@ -873,7 +902,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
         throw new Error('Unable to establish session. Please request a fresh code.');
       }
     } catch (err: any) {
-      setError(err?.message || 'Sign-in code verification failed.');
+      setError(formatAuthError(err, 'verify').message);
       triggerHaptic('error');
     } finally {
       setIsVerifyingOtp(false);
@@ -940,7 +969,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
       try {
         sessionStorage.removeItem('mindflow_recovery_otp_pending');
       } catch {}
-      setError(err?.message || 'Recovery code verification failed.');
+      setError(formatAuthError(err, 'verify').message);
       triggerHaptic('error');
     } finally {
       setIsVerifyingRecoveryOtp(false);
@@ -1760,6 +1789,50 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                                       ? `Retry Reset (${forgotPasswordCooldown}s)`
                                       : 'Reset Password'}
                                   </button>
+                                </div>
+                              )}
+                              {!existingAccountNotice && signupRecoveryOptions && (
+                                <div
+                                  data-testid="signup-timeout-recovery"
+                                  className="flex flex-wrap items-center gap-2 pt-1"
+                                >
+                                  {signupRecoveryOptions.canRetry && (
+                                    <button
+                                      type="button"
+                                      data-testid="signup-retry-btn"
+                                      onClick={() => {
+                                        triggerHaptic('light');
+                                        telemetry.emit('recovery_action_clicked', {
+                                          view: 'auth_signup',
+                                          actionChosen: 'retry_signup',
+                                        });
+                                        void executeSignUp();
+                                      }}
+                                      disabled={isEmailLoading || isGoogleLoading}
+                                      className="min-h-[44px] px-3.5 py-2 rounded-lg bg-indigo-600 text-white font-semibold text-xs hover:bg-indigo-700 active:scale-95 transition-all flex items-center gap-1.5 disabled:opacity-50"
+                                    >
+                                      <RefreshCw className="w-3.5 h-3.5" aria-hidden="true" />
+                                      <span>Try Again</span>
+                                    </button>
+                                  )}
+                                  {signupRecoveryOptions.suggestGoogleFallback && (
+                                    <button
+                                      type="button"
+                                      data-testid="signup-google-fallback-btn"
+                                      onClick={() => {
+                                        triggerHaptic('light');
+                                        telemetry.emit('recovery_action_clicked', {
+                                          view: 'auth_signup',
+                                          actionChosen: 'google_fallback',
+                                        });
+                                        void handleGoogleSignIn();
+                                      }}
+                                      disabled={isEmailLoading || isGoogleLoading}
+                                      className="min-h-[44px] px-3.5 py-2 rounded-lg border border-rose-300 dark:border-rose-700 bg-white dark:bg-slate-900 text-rose-700 dark:text-rose-300 font-semibold text-xs hover:bg-rose-50 dark:hover:bg-rose-950/60 active:scale-95 transition-all disabled:opacity-50"
+                                    >
+                                      Continue with Google
+                                    </button>
+                                  )}
                                 </div>
                               )}
                             </motion.div>

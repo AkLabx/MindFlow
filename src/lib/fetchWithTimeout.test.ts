@@ -1,5 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { fetchWithTimeout, isSafeToRetry } from './fetchWithTimeout';
+import {
+    fetchWithTimeout,
+    isSafeToRetry,
+    isAuthEmailEndpoint,
+    AUTH_EMAIL_TIMEOUT_MS,
+} from './fetchWithTimeout';
 import { triggerAppRecovery } from './recovery/RecoveryManager';
 
 vi.mock('./recovery/RecoveryManager', () => ({
@@ -142,13 +147,48 @@ describe('fetchWithTimeout', () => {
         await expect(promise).rejects.toThrow('User aborted');
         expect(triggerAppRecovery).not.toHaveBeenCalled();
     });
+
+    it('Auth email endpoints expand timeout to 30s (do not abort at 15s) and never trigger recovery', async () => {
+        const promise = fetchWithTimeout('https://example.supabase.co/auth/v1/signup', { method: 'POST' });
+
+        // At 15s (default timeout), signup must still be pending so slow SMTP handshakes can finish
+        vi.advanceTimersByTime(15001);
+        const callArgs = vi.mocked(fetch).mock.calls[0];
+        const signal = callArgs[1]?.signal as AbortSignal;
+        expect(signal.aborted).toBe(false);
+
+        // At 30s (AUTH_EMAIL_TIMEOUT_MS), the timeout cleanly aborts without calling triggerAppRecovery
+        vi.advanceTimersByTime(AUTH_EMAIL_TIMEOUT_MS - 15000);
+        await expect(promise).rejects.toThrow('TimeoutError');
+        expect(signal.aborted).toBe(true);
+        expect(triggerAppRecovery).not.toHaveBeenCalled();
+    });
+
+    it('Native AbortSignal.timeout DOMException ("signal timed out") never triggers recovery', async () => {
+        const nativeTimeoutErr = new DOMException('signal timed out', 'TimeoutError');
+        vi.mocked(fetch).mockRejectedValueOnce(nativeTimeoutErr);
+
+        const promise = fetchWithTimeout('https://example.supabase.co/auth/v1/signup', { method: 'POST' });
+
+        await expect(promise).rejects.toMatchObject({
+            name: 'TimeoutError',
+            message: 'signal timed out',
+        });
+        expect(triggerAppRecovery).not.toHaveBeenCalled();
+    });
 });
 
 describe('isSafeToRetry (advanced)', () => {
-    it('rejects auth paths to prevent telemetry loops', () => {
+    it('rejects auth paths to prevent telemetry loops and duplicate signup/OTP dispatches', () => {
         expect(isSafeToRetry('https://example.com/auth/v1/user')).toBe(true);
         expect(isSafeToRetry('https://example.com/auth/v1/token')).toBe(false);
         expect(isSafeToRetry('https://example.com/auth/v1/token', { method: 'POST' })).toBe(false);
+        expect(isSafeToRetry('https://example.com/auth/v1/signup', { method: 'POST' })).toBe(false);
+        expect(isSafeToRetry('https://example.com/auth/v1/otp', { method: 'POST' })).toBe(false);
+        expect(isSafeToRetry('https://example.com/auth/v1/recover', { method: 'POST' })).toBe(false);
+        expect(isSafeToRetry('https://example.com/auth/v1/resend', { method: 'POST' })).toBe(false);
+        expect(isAuthEmailEndpoint('https://example.com/auth/v1/signup?redirect_to=x')).toBe(true);
+        expect(isAuthEmailEndpoint('https://example.com/auth/v1/token')).toBe(false);
     });
 
     it('rejects analytics events path to prevent telemetry loops', () => {

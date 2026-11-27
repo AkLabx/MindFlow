@@ -9,6 +9,7 @@ import { ArrowLeft, AlertCircle, CheckCircle2, Lock } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { PasswordStrengthMeter } from './PasswordStrengthMeter';
 import { MIN_PASSWORD_LENGTH } from '../utils/authRedirect';
+import { formatAuthError, validatePasswordPolicy } from '../utils/authErrorMapper';
 
 export const ResetPasswordPage: React.FC = () => {
   const [password, setPassword] = useState('');
@@ -38,8 +39,9 @@ export const ResetPasswordPage: React.FC = () => {
       return;
     }
 
-    if (password.length < MIN_PASSWORD_LENGTH) {
-      setError(`Password must be at least ${MIN_PASSWORD_LENGTH} characters long.`);
+    const passwordCheck = validatePasswordPolicy(password);
+    if (!passwordCheck.valid) {
+      setError(passwordCheck.message || `Password must be at least ${MIN_PASSWORD_LENGTH} characters long.`);
       return;
     }
 
@@ -74,7 +76,7 @@ export const ResetPasswordPage: React.FC = () => {
       }, 1200);
     } catch (err: any) {
       console.error('[ResetPassword] Error updating password:', err);
-      setError(err.message || 'Failed to update password. Please try again.');
+      setError(formatAuthError(err, 'password_update').message);
       triggerHaptic('error');
     } finally {
       setIsLoading(false);

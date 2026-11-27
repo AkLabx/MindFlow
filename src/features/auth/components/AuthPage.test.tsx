@@ -10,6 +10,7 @@ import { ResetPasswordPage } from './ResetPasswordPage';
 import SettingsPage from './SettingsPage';
 import { EmailOtpInput, sanitizeOtpCode } from './EmailOtpInput';
 import { buildAuthRedirectUrl, extractAuthHashParams } from '../utils/authRedirect';
+import { formatAuthError, validatePasswordPolicy } from '../utils/authErrorMapper';
 import { CURRENT_AGE_ATTESTATION, CURRENT_TERMS_VERSION } from '@/constants/legal';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
@@ -618,5 +619,107 @@ describe('AuthPage consent UX', () => {
     });
 
     expect(await screen.findByTestId('reset-password-route')).toBeTruthy();
+  });
+
+  it('maps signal timed out / 504 request_timeout errors cleanly and exposes Try Again + Google fallback on signup', async () => {
+    // Unit-verify mapper across timeout, 504, network, rate limit, SMTP, and weak password shapes
+    const nativeTimeout = formatAuthError(new DOMException('signal timed out', 'TimeoutError'), 'signup');
+    expect(nativeTimeout.kind).toBe('timeout');
+    expect(nativeTimeout.canRetry).toBe(true);
+    expect(nativeTimeout.suggestGoogleFallback).toBe(true);
+    expect(nativeTimeout.message.toLowerCase()).not.toContain('signal timed out');
+
+    const gateway504 = formatAuthError(
+      { status: 504, code: 'request_timeout', message: 'context deadline exceeded' },
+      'signup'
+    );
+    expect(gateway504.kind).toBe('timeout');
+    expect(gateway504.suggestGoogleFallback).toBe(true);
+
+    expect(formatAuthError(new TypeError('Failed to fetch'), 'signup').kind).toBe('network');
+    expect(formatAuthError({ status: 429, message: 'Email rate limit exceeded' }, 'signup').kind).toBe('rate_limit');
+    expect(formatAuthError({ message: 'Error sending confirmation email' }, 'signup').kind).toBe('smtp_error');
+    expect(
+      formatAuthError(
+        { message: 'Password should contain at least one character of each: abc...' },
+        'signup'
+      ).kind
+    ).toBe('weak_password');
+
+    // First attempt rejects with native AbortSignal.timeout DOMException; second attempt succeeds
+    mockSignUp.mockRejectedValueOnce(new DOMException('signal timed out', 'TimeoutError'));
+    mockSignUp.mockResolvedValueOnce({ data: { user: { id: 'u-retry-ok' }, session: null }, error: null });
+
+    renderAuthPage('signup');
+    fireEvent.change(screen.getByLabelText(/Email Address/i), { target: { value: 'timeoutuser@example.com' } });
+    fireEvent.click(screen.getByRole('button', { name: /Continue$/i }));
+    fireEvent.change(screen.getByLabelText(/Full Name/i), { target: { value: 'Timeout Tester' } });
+    fireEvent.change(screen.getByLabelText(/Choose Password/i), { target: { value: 'StrongPass1!' } });
+    fireEvent.change(screen.getByLabelText(/^Confirm Password$/i), { target: { value: 'StrongPass1!' } });
+    fireEvent.click(screen.getByRole('checkbox'));
+
+    const submitBtn = screen
+      .getAllByRole('button', { name: /^Create Account$/i })
+      .find((btn) => btn.getAttribute('type') === 'submit');
+    fireEvent.click(submitBtn!);
+
+    const alert = await screen.findByRole('alert');
+    expect(alert.textContent).toContain('verification email service took too long');
+    expect(alert.textContent).not.toContain('signal timed out');
+    expect(localStorage.getItem('mindflow_is_signup')).toBeNull();
+
+    // Actionable recovery controls appear with Try Again + Continue with Google
+    expect(screen.getByTestId('signup-timeout-recovery')).toBeTruthy();
+    expect(screen.getByTestId('signup-google-fallback-btn')).toBeTruthy();
+
+    fireEvent.click(screen.getByTestId('signup-retry-btn'));
+
+    expect(await screen.findByTestId('auth-verify-email-step')).toBeTruthy();
+    expect(mockSignUp).toHaveBeenCalledTimes(2);
+    expect(localStorage.getItem('mindflow_is_signup')).toBe('true');
+  });
+
+  it('prevents duplicate concurrent signUp calls via in-flight mutex and enforces Supabase password complexity upfront', async () => {
+    expect(validatePasswordPolicy('short7!').valid).toBe(false);
+    expect(validatePasswordPolicy('alllowercase12').valid).toBe(false);
+    expect(validatePasswordPolicy('StrongPass1!').valid).toBe(true);
+
+    let resolveSignUp: ((val: any) => void) | null = null;
+    mockSignUp.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveSignUp = resolve;
+        })
+    );
+
+    renderAuthPage('signup');
+    fireEvent.change(screen.getByLabelText(/Email Address/i), { target: { value: 'mutex@example.com' } });
+    fireEvent.click(screen.getByRole('button', { name: /Continue$/i }));
+    fireEvent.change(screen.getByLabelText(/Full Name/i), { target: { value: 'Mutex User' } });
+    fireEvent.change(screen.getByLabelText(/Choose Password/i), { target: { value: 'lowercase123' } });
+    fireEvent.change(screen.getByLabelText(/^Confirm Password$/i), { target: { value: 'lowercase123' } });
+    fireEvent.click(screen.getByRole('checkbox'));
+
+    const form = screen.getByLabelText(/Full Name/i).closest('form')!;
+    fireEvent.submit(form);
+
+    // Upfront complexity check blocks weak password before network call
+    expect(screen.getByRole('alert').textContent).toContain('uppercase letter');
+    expect(screen.getByRole('alert').textContent).toContain('special character');
+    expect(mockSignUp).not.toHaveBeenCalled();
+
+    // Update to valid strong password and trigger rapid double submit
+    fireEvent.change(screen.getByLabelText(/Choose Password/i), { target: { value: 'StrongPass1!' } });
+    fireEvent.change(screen.getByLabelText(/^Confirm Password$/i), { target: { value: 'StrongPass1!' } });
+
+    fireEvent.submit(form);
+    fireEvent.submit(form);
+
+    await waitFor(() => {
+      expect(mockSignUp).toHaveBeenCalledTimes(1);
+    });
+
+    resolveSignUp!({ data: { user: { id: 'u-mutex-ok' }, session: null }, error: null });
+    expect(await screen.findByTestId('auth-verify-email-step')).toBeTruthy();
   });
 });
