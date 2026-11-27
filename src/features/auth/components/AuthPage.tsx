@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { App } from '@capacitor/app';
 import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 import { supabase } from '../../../lib/supabase';
 import { BrandLogo, BrandSpinner } from '@/components/brand';
@@ -17,11 +17,14 @@ import {
   CheckCircle2,
   Mail,
   RefreshCw,
-  Clock
+  Clock,
+  KeyRound,
+  Lock
 } from 'lucide-react';
 import { AuthHeroShowcase } from './AuthHeroShowcase';
 import { AuthLegalModal } from './AuthLegalModal';
 import { PasswordStrengthMeter, evaluatePasswordStrength } from './PasswordStrengthMeter';
+import { EmailOtpInput, OTP_LENGTH, sanitizeOtpCode } from './EmailOtpInput';
 import { CURRENT_AGE_ATTESTATION, CURRENT_TERMS_VERSION } from '@/constants/legal';
 import { telemetry } from '@/lib/telemetry/telemetryService';
 import { buildAuthRedirectUrl, MIN_PASSWORD_LENGTH } from '../utils/authRedirect';
@@ -80,6 +83,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
   initialMode = 'signin'
 }) => {
   const location = useLocation();
+  const navigate = useNavigate();
   const shouldReduceMotion = useReducedMotion();
   const showToast = useNotificationStore((state) => state.showToast);
 
@@ -93,6 +97,9 @@ export const AuthPage: React.FC<AuthPageProps> = ({
   const [step, setStep] = useState<'email' | 'credentials' | 'verify-email'>('email');
   const [direction, setDirection] = useState<1 | -1>(1);
 
+  // Sign-In Method: 'password' | 'otp'
+  const [signInMethod, setSignInMethod] = useState<'password' | 'otp'>('password');
+
   // Form State
   const [email, setEmail] = useState(() => (location.state as any)?.email || '');
   const [password, setPassword] = useState('');
@@ -101,6 +108,16 @@ export const AuthPage: React.FC<AuthPageProps> = ({
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
+
+  // Email OTP State (Signup, Passwordless Sign-In, Recovery)
+  const [otpCode, setOtpCode] = useState('');
+  const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
+  const [isSendingSignInOtp, setIsSendingSignInOtp] = useState(false);
+  const [signInOtpSent, setSignInOtpSent] = useState(false);
+  const [signInOtpCooldown, setSignInOtpCooldown] = useState(0);
+  const [signInOtpUnregistered, setSignInOtpUnregistered] = useState(false);
+  const [recoveryOtpCode, setRecoveryOtpCode] = useState('');
+  const [isVerifyingRecoveryOtp, setIsVerifyingRecoveryOtp] = useState(false);
 
   // Status & Feedback States
   const [error, setError] = useState<string | null>(null);
@@ -175,19 +192,27 @@ export const AuthPage: React.FC<AuthPageProps> = ({
     return () => clearTimeout(timer);
   }, [resendCooldown]);
 
+  useEffect(() => {
+    if (signInOtpCooldown <= 0) return;
+    const timer = setTimeout(() => {
+      setSignInOtpCooldown((prev) => prev - 1);
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [signInOtpCooldown]);
+
   // Programmatic focus transitions
   useEffect(() => {
     const timer = setTimeout(() => {
       if (step === 'email') {
         emailInputRef.current?.focus();
-      } else if (step === 'credentials' && mode === 'signin') {
+      } else if (step === 'credentials' && mode === 'signin' && signInMethod === 'password') {
         passwordInputRef.current?.focus();
-      } else if (step === 'credentials') {
+      } else if (step === 'credentials' && mode === 'signup') {
         fullNameInputRef.current?.focus();
       }
     }, 80);
     return () => clearTimeout(timer);
-  }, [step, mode]);
+  }, [step, mode, signInMethod]);
 
   // Escape (Web) & Android Hardware Back navigation
   useEffect(() => {
@@ -247,6 +272,11 @@ export const AuthPage: React.FC<AuthPageProps> = ({
       setPassword('');
       setConfirmPassword('');
     }
+    setOtpCode('');
+    setRecoveryOtpCode('');
+    setSignInOtpSent(false);
+    setSignInOtpUnregistered(false);
+    setSignInMethod('password');
     setError(null);
     setSuccessNotice(null);
     setExistingAccountNotice(false);
@@ -261,10 +291,26 @@ export const AuthPage: React.FC<AuthPageProps> = ({
       setPassword('');
       setConfirmPassword('');
     }
+    setOtpCode('');
+    setRecoveryOtpCode('');
+    setSignInOtpSent(false);
+    setSignInOtpUnregistered(false);
     setError(null);
     setSuccessNotice(null);
     setExistingAccountNotice(false);
     setForgotPasswordSent(false);
+  };
+
+  const handleSwitchSignInMethod = (nextMethod: 'password' | 'otp') => {
+    if (signInMethod === nextMethod) return;
+    triggerHaptic('light');
+    setSignInMethod(nextMethod);
+    setError(null);
+    setSuccessNotice(null);
+    setOtpCode('');
+    setRecoveryOtpCode('');
+    setForgotPasswordSent(false);
+    setSignInOtpUnregistered(false);
   };
 
   /**
@@ -644,11 +690,13 @@ export const AuthPage: React.FC<AuthPageProps> = ({
       if (mode === 'signup') {
         setMode('signin');
       }
+      setSignInMethod('password');
+      setRecoveryOtpCode('');
       setForgotPasswordSent(true);
       setForgotPasswordCooldown(60);
       showToast({
-        title: 'Reset Instructions Sent',
-        message: `Password reset link delivered to ${cleanEmail}`,
+        title: 'Reset Code & Link Sent',
+        message: `6-digit recovery code and reset link delivered to ${cleanEmail}`,
         variant: 'success',
       });
       triggerHaptic('success');
@@ -657,6 +705,245 @@ export const AuthPage: React.FC<AuthPageProps> = ({
       triggerHaptic('error');
     } finally {
       setIsEmailLoading(false);
+    }
+  };
+
+  /**
+   * Verify 6-Digit Signup OTP (in-app alongside 3-layer link auto-detection fallback)
+   */
+  const handleVerifySignupOtp = async (rawCode: string) => {
+    const code = sanitizeOtpCode(rawCode);
+    setError(null);
+    setSuccessNotice(null);
+
+    if (code.length !== OTP_LENGTH) {
+      triggerHaptic('error');
+      setError(`Please enter the complete ${OTP_LENGTH}-digit verification code.`);
+      return;
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+    setIsVerifyingOtp(true);
+
+    try {
+      const { data, error: verifyError } = await supabase.auth.verifyOtp({
+        email: cleanEmail,
+        token: code,
+        type: 'signup',
+      });
+
+      if (verifyError) {
+        const msg = String(verifyError.message || '').toLowerCase();
+        if (msg.includes('expired') || msg.includes('invalid') || msg.includes('token')) {
+          throw new Error('Invalid or expired verification code. Please check the 6-digit code or tap Resend.');
+        }
+        throw verifyError;
+      }
+
+      if (data?.session || data?.user) {
+        clearRateLimit();
+        telemetry.emit('auth_login_succeeded', { provider: 'email' });
+        triggerHaptic('success');
+        showToast({
+          title: 'Email Verified!',
+          message: 'Your account is confirmed. Welcome to MindFlow!',
+          variant: 'success',
+        });
+      } else {
+        throw new Error('Verification succeeded, but no session was returned. Please sign in.');
+      }
+    } catch (err: any) {
+      setError(err?.message || 'Could not verify code. Please try again.');
+      triggerHaptic('error');
+    } finally {
+      setIsVerifyingOtp(false);
+    }
+  };
+
+  /**
+   * Send Passwordless Sign-In Email OTP (shouldCreateUser: false preserves DPDP consent on Create Account)
+   */
+  const handleSendSignInOtp = async () => {
+    if (signInOtpCooldown > 0 || isSendingSignInOtp) return;
+    setError(null);
+    setSuccessNotice(null);
+    setSignInOtpUnregistered(false);
+
+    if (lockoutRemaining > 0) {
+      setError(`Too many failed attempts. Please wait ${lockoutRemaining}s before trying again.`);
+      return;
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+    if (!cleanEmail) {
+      handleBackToEmail();
+      return;
+    }
+
+    setIsSendingSignInOtp(true);
+    try {
+      const { error: otpError } = await supabase.auth.signInWithOtp({
+        email: cleanEmail,
+        options: {
+          shouldCreateUser: false,
+          emailRedirectTo: buildAuthRedirectUrl('signup'),
+        },
+      });
+
+      if (otpError) {
+        const msg = String(otpError.message || '').toLowerCase();
+        if (
+          msg.includes('signups not allowed') ||
+          msg.includes('user not found') ||
+          msg.includes('not registered') ||
+          msg.includes('no user')
+        ) {
+          setSignInOtpUnregistered(true);
+          setError('No MindFlow account found for this email. Please create an account to accept Terms & age consent.');
+          triggerHaptic('warning');
+          return;
+        }
+        throw otpError;
+      }
+
+      setSignInOtpSent(true);
+      setSignInOtpCooldown(60);
+      setOtpCode('');
+      setSuccessNotice(`6-digit sign-in code sent to ${cleanEmail}. Check your inbox and spam folder.`);
+      showToast({
+        title: 'Sign-In Code Sent',
+        message: `We sent a 6-digit code to ${cleanEmail}.`,
+        variant: 'success',
+      });
+      triggerHaptic('success');
+    } catch (err: any) {
+      setError(err?.message || 'Unable to send sign-in code. Please try again.');
+      triggerHaptic('error');
+    } finally {
+      setIsSendingSignInOtp(false);
+    }
+  };
+
+  /**
+   * Verify 6-Digit Passwordless Sign-In OTP
+   */
+  const handleVerifySignInOtp = async (rawCode: string) => {
+    const code = sanitizeOtpCode(rawCode);
+    setError(null);
+    setSuccessNotice(null);
+
+    if (lockoutRemaining > 0) {
+      setError(`Too many failed attempts. Please wait ${lockoutRemaining}s before trying again.`);
+      return;
+    }
+
+    if (code.length !== OTP_LENGTH) {
+      triggerHaptic('error');
+      setError(`Please enter the complete ${OTP_LENGTH}-digit sign-in code.`);
+      return;
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+    setIsVerifyingOtp(true);
+    try {
+      const { data, error: verifyError } = await supabase.auth.verifyOtp({
+        email: cleanEmail,
+        token: code,
+        type: 'email',
+      });
+
+      if (verifyError) {
+        const updated = recordFailedAttempt();
+        if (updated.lockedUntil) {
+          setLockoutRemaining(LOCKOUT_SECONDS);
+          throw new Error(`Account temporarily locked for ${LOCKOUT_SECONDS}s due to repeated failed attempts.`);
+        }
+        const msg = String(verifyError.message || '').toLowerCase();
+        if (msg.includes('expired') || msg.includes('invalid') || msg.includes('token')) {
+          throw new Error('Invalid or expired sign-in code. Please check the 6-digit code or request a fresh one.');
+        }
+        throw verifyError;
+      }
+
+      if (data?.session) {
+        clearRateLimit();
+        telemetry.emit('auth_login_succeeded', { provider: 'email' });
+        triggerHaptic('success');
+      } else {
+        throw new Error('Unable to establish session. Please request a fresh code.');
+      }
+    } catch (err: any) {
+      setError(err?.message || 'Sign-in code verification failed.');
+      triggerHaptic('error');
+    } finally {
+      setIsVerifyingOtp(false);
+    }
+  };
+
+  /**
+   * Verify 6-Digit Password Recovery OTP and route directly to #/reset-password
+   */
+  const handleVerifyRecoveryOtp = async (rawCode: string) => {
+    const code = sanitizeOtpCode(rawCode);
+    setError(null);
+    setSuccessNotice(null);
+
+    if (code.length !== OTP_LENGTH) {
+      triggerHaptic('error');
+      setError(`Please enter the complete ${OTP_LENGTH}-digit recovery code.`);
+      return;
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+    setIsVerifyingRecoveryOtp(true);
+
+    // Prevent NavigationManager GUEST_ONLY policy from redirecting to /dashboard before /reset-password mounts
+    try {
+      sessionStorage.setItem('mindflow_recovery_otp_pending', 'true');
+    } catch {}
+
+    try {
+      const { data, error: verifyError } = await supabase.auth.verifyOtp({
+        email: cleanEmail,
+        token: code,
+        type: 'recovery',
+      });
+
+      if (verifyError) {
+        try {
+          sessionStorage.removeItem('mindflow_recovery_otp_pending');
+        } catch {}
+        const msg = String(verifyError.message || '').toLowerCase();
+        if (msg.includes('expired') || msg.includes('invalid') || msg.includes('token')) {
+          throw new Error('Invalid or expired recovery code. Please check the 6-digit code or request a new reset email.');
+        }
+        throw verifyError;
+      }
+
+      if (data?.session || data?.user) {
+        clearRateLimit();
+        telemetry.emit('auth_login_succeeded', { provider: 'email' });
+        triggerHaptic('success');
+        showToast({
+          title: 'Recovery Code Verified',
+          message: 'Create your new MindFlow password now.',
+          variant: 'success',
+        });
+        navigate('/reset-password', { replace: true });
+      } else {
+        try {
+          sessionStorage.removeItem('mindflow_recovery_otp_pending');
+        } catch {}
+        throw new Error('Unable to start recovery session. Please use the email reset link or request a new code.');
+      }
+    } catch (err: any) {
+      try {
+        sessionStorage.removeItem('mindflow_recovery_otp_pending');
+      } catch {}
+      setError(err?.message || 'Recovery code verification failed.');
+      triggerHaptic('error');
+    } finally {
+      setIsVerifyingRecoveryOtp(false);
     }
   };
 
@@ -819,6 +1106,8 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                     : mode === 'signin'
                     ? step === 'email'
                       ? 'Welcome Back'
+                      : signInMethod === 'otp'
+                      ? 'Sign In with Code'
                       : 'Enter Password'
                     : step === 'email'
                     ? 'Join MindFlow'
@@ -826,7 +1115,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                 </h1>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                   {step === 'verify-email'
-                    ? 'Confirm the link in your inbox — we will sign you in automatically'
+                    ? 'Enter the 6-digit code from your inbox, or click the confirmation link'
                     : mode === 'signin'
                     ? 'Access your saved mock drills and personal notebook'
                     : 'Get start-to-finish AI preparation for competitive exams'}
@@ -979,138 +1268,327 @@ export const AuthPage: React.FC<AuthPageProps> = ({
 
                     {/* Mode: SIGN IN */}
                     {mode === 'signin' ? (
-                      <form onSubmit={handleSignIn} className="space-y-3">
-                        {/* Hidden username for password manager compliance */}
-                        <input type="email" name="username" value={email} autoComplete="username" tabIndex={-1} className="sr-only" readOnly />
-
-                        <div>
-                          <div className="flex justify-between items-baseline mb-1">
-                            <label
-                              htmlFor="password-input"
-                              className="block text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-200"
-                            >
-                              Password
-                            </label>
-                            <button
-                              type="button"
-                              onClick={handleForgotPassword}
-                              disabled={isEmailLoading || forgotPasswordCooldown > 0}
-                              className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline disabled:opacity-50 min-h-[44px] flex items-center"
-                            >
-                              {forgotPasswordCooldown > 0
-                                ? `Retry in ${forgotPasswordCooldown}s`
-                                : 'Forgot Password?'}
-                            </button>
-                          </div>
-
-                          <div className="relative">
-                            <input
-                              ref={passwordInputRef}
-                              id="password-input"
-                              name="password"
-                              type={showPassword ? 'text' : 'password'}
-                              enterKeyHint="go"
-                              autoComplete="current-password"
-                              value={password}
-                              onChange={(e) => setPassword(e.target.value)}
-                              placeholder="••••••••"
-                              /* 16px on mobile prevents iOS Safari auto-zoom */
-                              className="select-text block w-full px-4 pr-12 min-h-[44px] h-12 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 text-base sm:text-sm focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/25 transition-all shadow-sm"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => {
-                                triggerHaptic('light');
-                                setShowPassword(!showPassword);
-                              }}
-                              aria-label={showPassword ? 'Hide password' : 'Show password'}
-                              className="absolute inset-y-0 right-0 min-w-[44px] w-12 flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 active:scale-95 transition-all"
-                            >
-                              {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                            </button>
-                          </div>
+                      <div className="space-y-3">
+                        {/* Sign-In Method Toggle: Password | Email OTP */}
+                        <div
+                          role="tablist"
+                          aria-label="Sign-in method"
+                          className="w-full p-1 bg-slate-100 dark:bg-slate-800 rounded-xl grid grid-cols-2 gap-1 text-xs font-semibold"
+                        >
+                          <button
+                            type="button"
+                            role="tab"
+                            aria-selected={signInMethod === 'password'}
+                            data-testid="signin-method-password"
+                            onClick={() => handleSwitchSignInMethod('password')}
+                            className={`min-h-[44px] rounded-lg flex items-center justify-center gap-1.5 transition-all active:scale-95 ${
+                              signInMethod === 'password'
+                                ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm'
+                                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                            }`}
+                          >
+                            <Lock className="w-3.5 h-3.5" aria-hidden="true" />
+                            <span>Password</span>
+                          </button>
+                          <button
+                            type="button"
+                            role="tab"
+                            aria-selected={signInMethod === 'otp'}
+                            data-testid="signin-method-otp"
+                            onClick={() => handleSwitchSignInMethod('otp')}
+                            className={`min-h-[44px] rounded-lg flex items-center justify-center gap-1.5 transition-all active:scale-95 ${
+                              signInMethod === 'otp'
+                                ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm'
+                                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                            }`}
+                          >
+                            <KeyRound className="w-3.5 h-3.5" aria-hidden="true" />
+                            <span>Email OTP</span>
+                          </button>
                         </div>
 
-                        {/* Forgot Password Confirmation Banner */}
-                        {forgotPasswordSent && (
-                          <div className="p-3 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 rounded-xl text-xs text-emerald-800 dark:text-emerald-300 flex items-start gap-2">
-                            <Mail className="w-4 h-4 shrink-0 text-emerald-600 dark:text-emerald-400 mt-0.5" />
+                        {signInMethod === 'password' ? (
+                          <form onSubmit={handleSignIn} className="space-y-3">
+                            {/* Hidden username for password manager compliance */}
+                            <input type="email" name="username" value={email} autoComplete="username" tabIndex={-1} className="sr-only" readOnly />
+
                             <div>
-                              <p className="font-semibold">Reset instructions dispatched!</p>
-                              <p className="mt-0.5 text-[11px] text-emerald-700 dark:text-emerald-400">
-                                Check your inbox and spam folder. Follow the link to reset your credentials.
-                              </p>
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Error Alert */}
-                        <AnimatePresence>
-                          {error && (
-                            <motion.div
-                              role="alert"
-                              aria-live="assertive"
-                              initial={{ opacity: 0, y: -4, height: 'auto' }}
-                              animate={{ opacity: 1, y: 0, height: 'auto' }}
-                              exit={{ opacity: 0, y: -4, height: 0 }}
-                              className="flex flex-col gap-2 p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 text-rose-600 dark:text-rose-400 text-xs font-medium"
-                            >
-                              <div className="flex items-center gap-2">
-                                <AlertCircle className="w-4 h-4 shrink-0" />
-                                <span>{error}</span>
-                              </div>
-
-                              {/* Resend Confirmation Email Action */}
-                              {isEmailNotConfirmed && (
+                              <div className="flex justify-between items-baseline mb-1">
+                                <label
+                                  htmlFor="password-input"
+                                  className="block text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-200"
+                                >
+                                  Password
+                                </label>
                                 <button
                                   type="button"
-                                  onClick={handleResendConfirmation}
-                                  disabled={isResendingConfirmation}
-                                  className="self-start mt-1 min-h-[44px] px-3 py-2 rounded-lg bg-rose-600 text-white font-semibold text-xs hover:bg-rose-700 active:scale-95 transition-all flex items-center gap-1.5"
+                                  onClick={handleForgotPassword}
+                                  disabled={isEmailLoading || forgotPasswordCooldown > 0}
+                                  className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline disabled:opacity-50 min-h-[44px] flex items-center"
                                 >
-                                  {isResendingConfirmation ? (
+                                  {forgotPasswordCooldown > 0
+                                    ? `Retry in ${forgotPasswordCooldown}s`
+                                    : 'Forgot Password?'}
+                                </button>
+                              </div>
+
+                              <div className="relative">
+                                <input
+                                  ref={passwordInputRef}
+                                  id="password-input"
+                                  name="password"
+                                  type={showPassword ? 'text' : 'password'}
+                                  enterKeyHint="go"
+                                  autoComplete="current-password"
+                                  value={password}
+                                  onChange={(e) => setPassword(e.target.value)}
+                                  placeholder="••••••••"
+                                  /* 16px on mobile prevents iOS Safari auto-zoom */
+                                  className="select-text block w-full px-4 pr-12 min-h-[44px] h-12 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 text-base sm:text-sm focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/25 transition-all shadow-sm"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    triggerHaptic('light');
+                                    setShowPassword(!showPassword);
+                                  }}
+                                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                                  className="absolute inset-y-0 right-0 min-w-[44px] w-12 flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 active:scale-95 transition-all"
+                                >
+                                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                                </button>
+                              </div>
+                            </div>
+
+                            {/* Forgot Password Confirmation + In-App Recovery OTP */}
+                            {forgotPasswordSent && (
+                              <div
+                                data-testid="recovery-otp-card"
+                                className="p-3.5 bg-emerald-50/90 dark:bg-emerald-950/35 border border-emerald-200 dark:border-emerald-800/60 rounded-2xl space-y-3"
+                              >
+                                <div className="text-xs text-emerald-800 dark:text-emerald-300 flex items-start gap-2">
+                                  <Mail className="w-4 h-4 shrink-0 text-emerald-600 dark:text-emerald-400 mt-0.5" />
+                                  <div>
+                                    <p className="font-semibold">Reset code &amp; link dispatched!</p>
+                                    <p className="mt-0.5 text-[11px] text-emerald-700 dark:text-emerald-400">
+                                      Enter the 6-digit recovery code below right away, or click the reset link in your inbox.
+                                    </p>
+                                  </div>
+                                </div>
+
+                                <EmailOtpInput
+                                  asForm={false}
+                                  value={recoveryOtpCode}
+                                  onChange={(next) => {
+                                    setRecoveryOtpCode(next);
+                                    if (error) setError(null);
+                                  }}
+                                  onSubmit={handleVerifyRecoveryOtp}
+                                  onResend={handleForgotPassword}
+                                  resendCooldown={forgotPasswordCooldown}
+                                  isVerifying={isVerifyingRecoveryOtp}
+                                  isResending={isEmailLoading}
+                                  label="6-Digit Recovery Code"
+                                  hint="Check your inbox or spam folder for the reset code."
+                                  submitLabel="Verify Recovery Code"
+                                  verifyingLabel="Verifying Recovery Code..."
+                                  resendLabel="Resend Reset Code"
+                                  error={error}
+                                  testIdPrefix="recovery-otp"
+                                />
+                              </div>
+                            )}
+
+                            {/* Error Alert */}
+                            <AnimatePresence>
+                              {error && (
+                                <motion.div
+                                  role="alert"
+                                  aria-live="assertive"
+                                  initial={{ opacity: 0, y: -4, height: 'auto' }}
+                                  animate={{ opacity: 1, y: 0, height: 'auto' }}
+                                  exit={{ opacity: 0, y: -4, height: 0 }}
+                                  className="flex flex-col gap-2 p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 text-rose-600 dark:text-rose-400 text-xs font-medium"
+                                >
+                                  <div className="flex items-center gap-2">
+                                    <AlertCircle className="w-4 h-4 shrink-0" />
+                                    <span>{error}</span>
+                                  </div>
+
+                                  {/* Resend Confirmation Email Action */}
+                                  {isEmailNotConfirmed && (
+                                    <button
+                                      type="button"
+                                      onClick={handleResendConfirmation}
+                                      disabled={isResendingConfirmation}
+                                      className="self-start mt-1 min-h-[44px] px-3 py-2 rounded-lg bg-rose-600 text-white font-semibold text-xs hover:bg-rose-700 active:scale-95 transition-all flex items-center gap-1.5"
+                                    >
+                                      {isResendingConfirmation ? (
+                                        <>
+                                          <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                                          <span>Resending...</span>
+                                        </>
+                                      ) : (
+                                        <>
+                                          <Mail className="w-3.5 h-3.5" />
+                                          <span>Resend Confirmation Email</span>
+                                        </>
+                                      )}
+                                    </button>
+                                  )}
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
+
+                            {/* Rate Limit Lockout Banner */}
+                            {lockoutRemaining > 0 && (
+                              <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300 text-xs flex items-center gap-2">
+                                <Clock className="w-4 h-4 text-amber-600" />
+                                <span>Too many attempts. Lockout active: <strong>{lockoutRemaining}s</strong></span>
+                              </div>
+                            )}
+
+                            {/* Sign In Submit Button */}
+                            <button
+                              type="submit"
+                              disabled={isEmailLoading || isGoogleLoading || lockoutRemaining > 0}
+                              className="w-full min-h-[44px] h-12 flex justify-center items-center gap-2 bg-indigo-600 text-white font-semibold px-4 rounded-xl hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-600/50 text-sm transition-all shadow-md shadow-indigo-500/20 active:scale-[0.98] active:brightness-95 select-none disabled:opacity-50"
+                            >
+                              {isEmailLoading ? (
+                                <>
+                                  <BrandSpinner variant="inline" size="sm" />
+                                  <span>Signing In...</span>
+                                </>
+                              ) : (
+                                <span>Sign In</span>
+                              )}
+                            </button>
+                          </form>
+                        ) : (
+                          /* Passwordless Email OTP Sign-In Panel */
+                          <div className="space-y-3" data-testid="signin-otp-panel">
+                            {!signInOtpSent ? (
+                              <div className="space-y-3">
+                                <div className="p-3.5 rounded-2xl bg-indigo-50/70 dark:bg-indigo-950/35 border border-indigo-200/80 dark:border-indigo-800/60 text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
+                                  We will email a one-time <strong>6-digit sign-in code</strong> to{' '}
+                                  <span className="font-semibold text-slate-900 dark:text-white break-all">{email}</span>.
+                                  No password needed for existing accounts.
+                                </div>
+
+                                {/* Error Alert (including unregistered -> Create Account DPDP guidance) */}
+                                <AnimatePresence>
+                                  {error && (
+                                    <motion.div
+                                      role="alert"
+                                      aria-live="assertive"
+                                      initial={{ opacity: 0, y: -4, height: 'auto' }}
+                                      animate={{ opacity: 1, y: 0, height: 'auto' }}
+                                      exit={{ opacity: 0, y: -4, height: 0 }}
+                                      className="flex flex-col gap-2 p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 text-rose-600 dark:text-rose-400 text-xs font-medium"
+                                    >
+                                      <div className="flex items-center gap-2">
+                                        <AlertCircle className="w-4 h-4 shrink-0" />
+                                        <span>{error}</span>
+                                      </div>
+                                      {signInOtpUnregistered && (
+                                        <button
+                                          type="button"
+                                          onClick={() => handleSwitchMode('signup')}
+                                          className="self-start min-h-[44px] px-3 py-2 rounded-lg bg-indigo-600 text-white font-semibold text-xs hover:bg-indigo-700 active:scale-95 transition-all"
+                                        >
+                                          Create Account Instead
+                                        </button>
+                                      )}
+                                    </motion.div>
+                                  )}
+                                </AnimatePresence>
+
+                                {lockoutRemaining > 0 && (
+                                  <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300 text-xs flex items-center gap-2">
+                                    <Clock className="w-4 h-4 text-amber-600" />
+                                    <span>Too many attempts. Lockout active: <strong>{lockoutRemaining}s</strong></span>
+                                  </div>
+                                )}
+
+                                <button
+                                  type="button"
+                                  data-testid="signin-send-otp-btn"
+                                  onClick={handleSendSignInOtp}
+                                  disabled={isSendingSignInOtp || lockoutRemaining > 0 || signInOtpCooldown > 0}
+                                  className="w-full min-h-[44px] h-12 flex justify-center items-center gap-2 bg-indigo-600 text-white font-semibold px-4 rounded-xl hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-600/50 text-sm transition-all shadow-md shadow-indigo-500/20 active:scale-95 select-none disabled:opacity-50"
+                                >
+                                  {isSendingSignInOtp ? (
                                     <>
-                                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                                      <span>Resending...</span>
+                                      <BrandSpinner variant="inline" size="sm" />
+                                      <span>Sending Code...</span>
                                     </>
                                   ) : (
                                     <>
-                                      <Mail className="w-3.5 h-3.5" />
-                                      <span>Resend Confirmation Email</span>
+                                      <Mail className="w-4 h-4" aria-hidden="true" />
+                                      <span>Send 6-Digit Sign-In Code</span>
                                     </>
                                   )}
                                 </button>
-                              )}
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
+                              </div>
+                            ) : (
+                              <div className="space-y-3">
+                                {successNotice && (
+                                  <div
+                                    role="status"
+                                    aria-live="polite"
+                                    className="flex items-start gap-2 p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 text-xs"
+                                  >
+                                    <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600 mt-0.5" />
+                                    <span>{successNotice}</span>
+                                  </div>
+                                )}
 
-                        {/* Rate Limit Lockout Banner */}
-                        {lockoutRemaining > 0 && (
-                          <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300 text-xs flex items-center gap-2">
-                            <Clock className="w-4 h-4 text-amber-600" />
-                            <span>Too many attempts. Lockout active: <strong>{lockoutRemaining}s</strong></span>
+                                {error && (
+                                  <div
+                                    role="alert"
+                                    aria-live="assertive"
+                                    className="flex items-start gap-2 p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 text-rose-600 dark:text-rose-400 text-xs font-medium"
+                                  >
+                                    <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                                    <span>{error}</span>
+                                  </div>
+                                )}
+
+                                {lockoutRemaining > 0 && (
+                                  <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300 text-xs flex items-center gap-2">
+                                    <Clock className="w-4 h-4 text-amber-600" />
+                                    <span>Too many attempts. Lockout active: <strong>{lockoutRemaining}s</strong></span>
+                                  </div>
+                                )}
+
+                                <EmailOtpInput
+                                  autoFocus
+                                  value={otpCode}
+                                  onChange={(next) => {
+                                    setOtpCode(next);
+                                    if (error) setError(null);
+                                  }}
+                                  onSubmit={handleVerifySignInOtp}
+                                  onResend={handleSendSignInOtp}
+                                  resendCooldown={signInOtpCooldown}
+                                  isVerifying={isVerifyingOtp}
+                                  isResending={isSendingSignInOtp}
+                                  disabled={lockoutRemaining > 0}
+                                  label="6-Digit Sign-In Code"
+                                  hint={`Enter or paste the 6-digit code sent to ${email}.`}
+                                  submitLabel="Verify & Sign In"
+                                  verifyingLabel="Signing In..."
+                                  resendLabel="Resend Sign-In Code"
+                                  error={error}
+                                  testIdPrefix="signin-otp"
+                                />
+                              </div>
+                            )}
                           </div>
                         )}
 
-                        {/* Sign In Submit Button */}
-                        <button
-                          type="submit"
-                          disabled={isEmailLoading || isGoogleLoading || lockoutRemaining > 0}
-                          className="w-full min-h-[44px] h-12 flex justify-center items-center gap-2 bg-indigo-600 text-white font-semibold px-4 rounded-xl hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-600/50 text-sm transition-all shadow-md shadow-indigo-500/20 active:scale-[0.98] active:brightness-95 select-none disabled:opacity-50"
-                        >
-                          {isEmailLoading ? (
-                            <>
-                              <BrandSpinner variant="inline" size="sm" />
-                              <span>Signing In...</span>
-                            </>
-                          ) : (
-                            <span>Sign In</span>
-                          )}
-                        </button>
-
                         {/* Step 2 New Aspirant Rescue Action */}
-                        <div className="pt-2 text-center">
+                        <div className="pt-1 text-center">
                           <button
                             type="button"
                             onClick={() => handleSwitchMode('signup')}
@@ -1119,7 +1597,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                             New to MindFlow? Create an account with this email
                           </button>
                         </div>
-                      </form>
+                      </div>
                     ) : (
                       /* Mode: SIGN UP */
                       <form onSubmit={handleSignUp} className="space-y-3">
@@ -1331,7 +1809,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                     )}
                   </motion.div>
                 ) : (
-                  /* ================= STEP 3: AUTOMATED EMAIL VERIFICATION WAIT SCREEN ================= */
+                  /* ================= STEP 3: EMAIL OTP & AUTOMATED LINK VERIFICATION ================= */
                   <motion.div
                     key="step-verify-email"
                     custom={direction}
@@ -1341,27 +1819,23 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                     exit="exit"
                     transition={{ duration: 0.22, ease: 'easeOut' }}
                     data-testid="auth-verify-email-step"
-                    className="w-full flex flex-col gap-4"
+                    className="w-full flex flex-col gap-3.5"
                   >
-                    <div className="rounded-2xl bg-indigo-50/80 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800/70 p-4 sm:p-5 text-center space-y-3">
-                      <div className="w-12 h-12 mx-auto rounded-2xl bg-indigo-600 text-white flex items-center justify-center shadow-md shadow-indigo-500/25">
-                        <Mail className="w-6 h-6" aria-hidden="true" />
+                    <div className="rounded-2xl bg-indigo-50/80 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800/70 p-4 text-center space-y-2">
+                      <div className="w-11 h-11 mx-auto rounded-2xl bg-indigo-600 text-white flex items-center justify-center shadow-md shadow-indigo-500/25">
+                        <Mail className="w-5 h-5" aria-hidden="true" />
                       </div>
-                      <div className="space-y-1">
-                        <p className="text-xs font-bold uppercase tracking-wider text-indigo-700 dark:text-indigo-300">
-                          Verification Link Sent
+                      <div className="space-y-0.5">
+                        <p className="text-[11px] font-bold uppercase tracking-wider text-indigo-700 dark:text-indigo-300">
+                          Code &amp; Verification Link Sent
                         </p>
                         <p className="text-sm font-bold text-slate-900 dark:text-white break-all">
                           {email}
                         </p>
                       </div>
-                      <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-                        Open your inbox (and spam folder) and click <strong>Confirm your mail</strong>.
-                        This screen checks automatically and will launch MindFlow as soon as you verify.
-                      </p>
-                      <div className="inline-flex items-center justify-center gap-2 px-3 py-1.5 rounded-full bg-white dark:bg-slate-900 border border-indigo-200 dark:border-indigo-800 text-[11px] font-semibold text-indigo-700 dark:text-indigo-300">
-                        <RefreshCw className="w-3.5 h-3.5 animate-spin" aria-hidden="true" />
-                        <span>Waiting for email confirmation...</span>
+                      <div className="inline-flex items-center justify-center gap-2 px-3 py-1 rounded-full bg-white dark:bg-slate-900 border border-indigo-200 dark:border-indigo-800 text-[11px] font-semibold text-indigo-700 dark:text-indigo-300">
+                        <RefreshCw className="w-3 h-3 animate-spin" aria-hidden="true" />
+                        <span>Auto-detecting inbox confirmation...</span>
                       </div>
                     </div>
 
@@ -1387,44 +1861,58 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                       </div>
                     )}
 
-                    <button
-                      type="button"
-                      onClick={() => checkEmailVerificationStatus('manual')}
-                      disabled={isCheckingVerification}
-                      data-testid="auth-verify-continue-btn"
-                      className="w-full min-h-[44px] h-12 flex justify-center items-center gap-2 bg-indigo-600 text-white font-semibold px-4 rounded-xl hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-600/50 text-sm transition-all shadow-md shadow-indigo-500/20 active:scale-95 select-none disabled:opacity-60"
-                    >
-                      {isCheckingVerification ? (
-                        <>
-                          <BrandSpinner variant="inline" size="sm" />
-                          <span>Checking Confirmation...</span>
-                        </>
-                      ) : (
-                        <>
-                          <CheckCircle2 className="w-4 h-4" aria-hidden="true" />
-                          <span>I&apos;ve Verified — Continue</span>
-                        </>
-                      )}
-                    </button>
+                    {/* Primary In-App 6-Digit Signup OTP Verification */}
+                    <EmailOtpInput
+                      autoFocus
+                      value={otpCode}
+                      onChange={(next) => {
+                        setOtpCode(next);
+                        if (error) setError(null);
+                      }}
+                      onSubmit={handleVerifySignupOtp}
+                      onResend={handleResendConfirmation}
+                      resendCooldown={resendCooldown}
+                      isVerifying={isVerifyingOtp}
+                      isResending={isResendingConfirmation}
+                      label="6-Digit Verification Code"
+                      hint="Enter the 6-digit code from your inbox (or click the confirmation link)."
+                      submitLabel="Verify 6-Digit Code"
+                      verifyingLabel="Verifying Code..."
+                      resendLabel="Resend Code & Link"
+                      error={error}
+                      testIdPrefix="signup-otp"
+                    />
 
-                    <div className="grid grid-cols-2 gap-2.5">
+                    <div className="relative">
+                      <div aria-hidden="true" className="absolute inset-0 flex items-center">
+                        <div className="w-full border-t border-slate-200 dark:border-slate-800" />
+                      </div>
+                      <div className="relative flex justify-center text-[11px]">
+                        <span className="px-2.5 bg-white dark:bg-slate-900 text-slate-400">
+                          Or if you clicked the email link
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                       <button
                         type="button"
-                        onClick={handleResendConfirmation}
-                        disabled={isResendingConfirmation || resendCooldown > 0}
-                        className="min-h-[44px] px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-semibold text-xs hover:bg-slate-50 dark:hover:bg-slate-700 active:scale-95 transition-all flex items-center justify-center gap-1.5 disabled:opacity-50"
+                        onClick={() => checkEmailVerificationStatus('manual')}
+                        disabled={isCheckingVerification || isVerifyingOtp}
+                        data-testid="auth-verify-continue-btn"
+                        className="min-h-[44px] px-3 py-2 rounded-xl border border-indigo-200 dark:border-indigo-800 bg-indigo-50/70 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 font-semibold text-xs hover:bg-indigo-100/70 dark:hover:bg-indigo-950/70 active:scale-95 transition-all flex items-center justify-center gap-1.5 disabled:opacity-60"
                       >
-                        <RefreshCw
-                          className={`w-3.5 h-3.5 ${isResendingConfirmation ? 'animate-spin' : ''}`}
-                          aria-hidden="true"
-                        />
-                        <span>
-                          {isResendingConfirmation
-                            ? 'Sending...'
-                            : resendCooldown > 0
-                            ? `Resend (${resendCooldown}s)`
-                            : 'Resend Link'}
-                        </span>
+                        {isCheckingVerification ? (
+                          <>
+                            <BrandSpinner variant="inline" size="sm" />
+                            <span>Checking...</span>
+                          </>
+                        ) : (
+                          <>
+                            <CheckCircle2 className="w-3.5 h-3.5" aria-hidden="true" />
+                            <span>I&apos;ve Verified — Continue</span>
+                          </>
+                        )}
                       </button>
 
                       <button
