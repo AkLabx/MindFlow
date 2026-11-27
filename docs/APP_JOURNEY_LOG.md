@@ -24,6 +24,19 @@ This document is the single source of truth for the evolution of the MindFlow ap
 
 ---
 
+## [v1.0.385.3] - 27 November 2026, 12:36 PM IST
+
+**Executive Summary:** Resolved Email + Password account creation `"signal timed out"` errors end-to-end by pairing live Brevo Custom SMTP port `587` resolution (`961ms` signup / `75ms` OTP verify) with `30s` auth-email timeout budgeting, native `TimeoutError` detection, centralized auth error & password complexity normalization, double-submit protection, and 1-tap timeout recovery UX.
+
+### 🐛 Bug Fixes
+- **Auth-Email Timeout Budget & Native `TimeoutError` Detection (`src/lib/fetchWithTimeout.ts`):** Expanded timeout to `30,000ms` (`AUTH_EMAIL_TIMEOUT_MS`) for `/auth/v1/(signup|otp|recover|resend)`, explicitly blocked auto-retries on non-idempotent auth email endpoints in `isSafeToRetry()`, and fixed `isOurTimeout` to detect native Chromium/Android WebView `DOMException` `TimeoutError` (`"signal timed out"`).
+- **Centralized Auth Error Normalization & Password Policy Alignment (`src/features/auth/utils/authErrorMapper.ts`):** Added `formatAuthError()` mapping timeouts, `504 request_timeout`, SMTP failures, network drops, `429` rate limits, and `422` weak passwords into actionable user-facing copy, plus `validatePasswordPolicy()` matching live Supabase rules (`>= 8` chars, uppercase, lowercase, digit, special character).
+- **Signup Mutex & 1-Tap Recovery UX (`src/features/auth/components/AuthPage.tsx`, `src/features/auth/components/ResetPasswordPage.tsx`):** Added `isSubmittingSignUpRef` double-submit guard, wired `formatAuthError()` across all email auth flows, and surfaced `>=44x44px` `Try Again` + `Continue with Google` recovery actions with privacy-safe `recovery_action_clicked` telemetry.
+
+### 🔒 Security & Architecture
+- Verified with `tsc --noEmit` (`0` errors), targeted tests (`28/28`: `AuthPage.test.tsx` `15/15`, `fetchWithTimeout.test.ts` `13/13`), full `vitest` (`51/51` files / `351/351` tests), `vite build` (`5508` modules, `215` PWA entries / `7261.44 KiB`), `playwright test --workers=1` (`2/2`), and Desktop (`1280x637`) + Mobile (`390x844`) Chrome DevTools MCP (`0` console errors, `0px` overflow, `0` sub-44px controls).
+- Bumped `package.json` (`1.0.385.3`) and `android/app/build.gradle` (`versionCode 15`, `versionName "1.15"`).
+
 ## [v1.0.385.2] - 27 November 2026, 11:17 AM IST
 
 **Executive Summary:** Shipped Gen 2 Step 5B delivering in-app Free Email + 6-Digit OTP authentication across Signup Verification, Passwordless Sign-In, and Password Recovery (backed by Brevo Custom SMTP) with zero new npm dependencies while preserving confirmation and reset email links as fallbacks.

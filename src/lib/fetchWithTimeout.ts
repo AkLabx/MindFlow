@@ -34,12 +34,31 @@ const SAFE_RPCS = [
     DB_RPCS.SUBMIT_QUIZ_SESSION, // idempotent upsert guard included
 ];
 
+// Expanded timeout for Supabase Auth email-dispatching endpoints (signup/OTP/recovery/resend)
+// so slow SMTP handshakes or upstream 504/429 responses complete cleanly instead of aborting mid-flight at 15s.
+export const AUTH_EMAIL_TIMEOUT_MS = 30000;
+
+const AUTH_EMAIL_ENDPOINTS = [
+    '/auth/v1/signup',
+    '/auth/v1/otp',
+    '/auth/v1/recover',
+    '/auth/v1/resend',
+];
+
+export const isAuthEmailEndpoint = (urlStr: string): boolean => {
+    return AUTH_EMAIL_ENDPOINTS.some((endpoint) => urlStr.includes(endpoint));
+};
+
 export const isSafeToRetry = (urlStr: string, options?: RequestInit): boolean => {
-    // 1. Guard against infinite auth / telemetry loops.
-    // We never want background telemetry or core session checks to trigger a recursive recovery.
+    // 1. Guard against infinite auth / telemetry loops and non-idempotent email-dispatching auth mutations.
+    // We never want background telemetry, core session checks, or signup/OTP/recovery POSTs to auto-retry.
     // /auth/v1/user is excluded to allow explicit intentional fetch retry by the app on stale load,
     // but analytics_events is fully blocked from initiating recovery.
-    if (urlStr.includes('/auth/v1/token') || urlStr.includes('/rest/v1/analytics_events')) {
+    if (
+        urlStr.includes('/auth/v1/token') ||
+        isAuthEmailEndpoint(urlStr) ||
+        urlStr.includes('/rest/v1/analytics_events')
+    ) {
         return false;
     }
 
@@ -65,6 +84,11 @@ export const isSafeToRetry = (urlStr: string, options?: RequestInit): boolean =>
 export const fetchWithTimeout = async (url: RequestInfo | URL, options?: RequestInit, timeoutMs: number = 15000, retryCount: number = 0): Promise<Response> => {
   const reqId = `req_${++requestIdCounter}`;
   const urlStr = url.toString();
+
+  // Conditionally expand timeout for Supabase Auth email-dispatching requests (signup/OTP/recovery/resend)
+  if (isAuthEmailEndpoint(urlStr) && timeoutMs < AUTH_EMAIL_TIMEOUT_MS) {
+      timeoutMs = AUTH_EMAIL_TIMEOUT_MS;
+  }
 
   // Conditionally expand timeout for AI Tutor generation which involves long-running Google Search grounding.
   if (urlStr.includes('/functions/v1/ask-ai-tutor')) {
@@ -129,8 +153,14 @@ export const fetchWithTimeout = async (url: RequestInfo | URL, options?: Request
       if (timeoutId !== undefined) clearTimeout(timeoutId);
       const endTime = performance.now();
 
-      // DO NOT confuse our own timeout AbortError with a broken lock AbortError
-      const isOurTimeout = err.message === 'TimeoutError' || (err.name === 'AbortError' && existingSignal?.aborted);
+      // DO NOT confuse our own timeout AbortError/TimeoutError with a broken lock AbortError.
+      // Modern Chrome/Android WebView AbortSignal.timeout() throws DOMException with name === 'TimeoutError'
+      // and message === 'signal timed out', whereas our manual fallback throws Error('TimeoutError').
+      const isOurTimeout =
+          err?.name === 'TimeoutError' ||
+          err?.message === 'TimeoutError' ||
+          err?.message === 'signal timed out' ||
+          (err?.name === 'AbortError' && existingSignal?.aborted);
 
       const isNetworkError = err.message === 'Failed to fetch' || err.name === 'TypeError';
       const isLockError = !isOurTimeout && err.name === 'AbortError' && err.message?.includes('Lock broken');
