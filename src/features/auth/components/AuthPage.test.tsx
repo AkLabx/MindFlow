@@ -103,33 +103,75 @@ const renderAuthPage = (initialMode: 'signin' | 'signup' = 'signin') =>
     </MemoryRouter>
   );
 
-describe('AuthPage consent UX', () => {
+describe('AuthPage linear UX & auth flows', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
+    sessionStorage.clear();
   });
 
   afterEach(() => {
     cleanup();
   });
 
-  it('renders only a single passive footer notice on the initial email step without a checkbox', () => {
+  it('renders a single Sign In screen with zero parallel tabs, New to MindFlow? Create Account CTA, and single passive legal footer', () => {
     renderAuthPage('signin');
 
+    expect(screen.getByTestId('auth-view-signin-email')).toBeTruthy();
+    expect(screen.queryByRole('tablist')).toBeNull();
     expect(screen.queryByRole('checkbox')).toBeNull();
     expect(screen.queryByText(/confirm you are 18\+/i)).toBeNull();
+
+    // Unmistakable Create Account switch carries typed email into single-page Create Account
+    fireEvent.change(screen.getByLabelText(/Email Address/i), { target: { value: 'rural.student@example.com' } });
+    const createAccountSwitch = screen.getByTestId('switch-to-signup-btn');
+    expect(createAccountSwitch.textContent).toContain('New to MindFlow?');
+    expect(createAccountSwitch.textContent).toContain('Create Account');
+
     expect(screen.getAllByText(/By continuing, you agree to our/i)).toHaveLength(1);
     expect(screen.getByRole('button', { name: 'Terms of Service' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Privacy Policy' })).toBeTruthy();
+
+    fireEvent.click(createAccountSwitch);
+    expect(screen.getByTestId('auth-view-signup')).toBeTruthy();
+    expect((screen.getByLabelText(/Email Address/i) as HTMLInputElement).value).toBe('rural.student@example.com');
+
+    // Bottom switch returns cleanly to Sign In
+    const signInSwitch = screen.getByTestId('switch-to-signin-btn');
+    expect(signInSwitch.textContent).toContain('Already have an account?');
+    fireEvent.click(signInSwitch);
+    expect(screen.getByTestId('auth-view-signin-email')).toBeTruthy();
   });
 
-  it('keeps Sign In step free of consent checkboxes and shows the single footer notice', async () => {
+  it('presents locked Email Address box and vertically stacked Login with Password / Login with Email OTP + Forgot Password? after Continue', async () => {
     mockSignInWithPassword.mockResolvedValue({ data: { session: { access_token: 'tok' } }, error: null });
     renderAuthPage('signin');
 
     fireEvent.change(screen.getByLabelText(/Email Address/i), { target: { value: 'aspirant@example.com' } });
-    fireEvent.click(screen.getByRole('button', { name: /Continue$/i }));
+    fireEvent.click(screen.getByRole('button', { name: /^Continue$/i }));
 
+    // Screen 2: Clean chooser with zero tabs and proper labeled read-only Email box
+    expect(screen.getByTestId('auth-view-signin-choose')).toBeTruthy();
+    expect(screen.queryByRole('tablist')).toBeNull();
+
+    const lockedBox = screen.getByTestId('auth-locked-email-field');
+    expect(lockedBox).toBeTruthy();
+    const lockedInput = screen.getByLabelText(/Email Address/i) as HTMLInputElement;
+    expect(lockedInput.readOnly).toBe(true);
+    expect(lockedInput.value).toBe('aspirant@example.com');
+    expect(screen.getByTestId('auth-change-email-btn')).toBeTruthy();
+
+    // Stacked method buttons + subtle Forgot Password link
+    const pwdChoiceBtn = screen.getByTestId('choose-login-password');
+    const otpChoiceBtn = screen.getByTestId('choose-login-otp');
+    const forgotBtn = screen.getByTestId('choose-forgot-password');
+    expect(pwdChoiceBtn.textContent).toContain('Login with Password');
+    expect(otpChoiceBtn.textContent).toContain('Login with Email OTP');
+    expect(forgotBtn.textContent).toContain('Forgot Password?');
+
+    // Choose Password -> focused password screen
+    fireEvent.click(pwdChoiceBtn);
+    expect(screen.getByTestId('auth-view-signin-password')).toBeTruthy();
     expect(screen.queryByRole('checkbox')).toBeNull();
     expect(screen.getAllByText(/By continuing, you agree to our/i)).toHaveLength(1);
 
@@ -148,14 +190,12 @@ describe('AuthPage consent UX', () => {
     });
   });
 
-  it('keeps the mandatory checkbox on Create Account without repeating the footer notice', async () => {
+  it('renders single vertical Create Account with mandatory DPDP consent checkbox and no duplicate footer notice', async () => {
     mockSignUp.mockResolvedValue({ data: { user: { id: 'u-1' } }, error: null });
     renderAuthPage('signup');
 
-    fireEvent.change(screen.getByLabelText(/Email Address/i), { target: { value: 'newuser@example.com' } });
-    fireEvent.click(screen.getByRole('button', { name: /Continue$/i }));
-
-    // Footer notice must NOT be repeated below the Create Account button
+    expect(screen.getByTestId('auth-view-signup')).toBeTruthy();
+    // Passive footer notice must NOT be repeated on Create Account
     expect(screen.queryByText(/By continuing, you agree to our/i)).toBeNull();
     expect(screen.queryByText(/By accessing MindFlow/i)).toBeNull();
 
@@ -169,6 +209,7 @@ describe('AuthPage consent UX', () => {
     fireEvent.click(screen.getByRole('button', { name: 'I Understand' }));
 
     fireEvent.change(screen.getByLabelText(/Full Name/i), { target: { value: 'Aarav Sharma' } });
+    fireEvent.change(screen.getByLabelText(/Email Address/i), { target: { value: 'newuser@example.com' } });
     fireEvent.change(screen.getByLabelText(/Choose Password/i), { target: { value: 'StrongPass1!' } });
     fireEvent.change(screen.getByLabelText(/^Confirm Password$/i), { target: { value: 'StrongPass1!' } });
 
@@ -209,7 +250,7 @@ describe('AuthPage consent UX', () => {
 
     // Transitions cleanly into automated Verify Your Email step (v1.0.385.1)
     expect(await screen.findByTestId('auth-verify-email-step')).toBeTruthy();
-    expect(screen.getByText('newuser@example.com')).toBeTruthy();
+    expect((screen.getByLabelText(/Email Address/i) as HTMLInputElement).value).toBe('newuser@example.com');
     expect(screen.getByRole('button', { name: /I've Verified/i })).toBeTruthy();
   });
 
@@ -222,9 +263,8 @@ describe('AuthPage consent UX', () => {
     });
 
     renderAuthPage('signup');
-    fireEvent.change(screen.getByLabelText(/Email Address/i), { target: { value: 'auto@example.com' } });
-    fireEvent.click(screen.getByRole('button', { name: /Continue$/i }));
     fireEvent.change(screen.getByLabelText(/Full Name/i), { target: { value: 'Auto Tester' } });
+    fireEvent.change(screen.getByLabelText(/Email Address/i), { target: { value: 'auto@example.com' } });
     fireEvent.change(screen.getByLabelText(/Choose Password/i), { target: { value: 'StrongPass1!' } });
     fireEvent.change(screen.getByLabelText(/^Confirm Password$/i), { target: { value: 'StrongPass1!' } });
     fireEvent.click(screen.getByRole('checkbox'));
@@ -235,7 +275,6 @@ describe('AuthPage consent UX', () => {
 
     expect(await screen.findByTestId('auth-verify-email-step')).toBeTruthy();
 
-    // 6 focus/manual checks while unconfirmed must NOT trigger the 5-attempt lockout
     for (let i = 0; i < 6; i++) {
       fireEvent.click(screen.getByTestId('auth-verify-continue-btn'));
       await waitFor(() => {
@@ -244,7 +283,6 @@ describe('AuthPage consent UX', () => {
     }
     expect(localStorage.getItem('mindflow_auth_rate_limit')).toBeNull();
 
-    // Once confirmed, focus automatically signs the user in
     mockSignInWithPassword.mockResolvedValueOnce({
       data: { session: { access_token: 'verified-tok' } },
       error: null,
@@ -310,10 +348,8 @@ describe('AuthPage consent UX', () => {
 
     renderAuthPage('signup');
 
-    fireEvent.change(screen.getByLabelText(/Email Address/i), { target: { value: 'existing@example.com' } });
-    fireEvent.click(screen.getByRole('button', { name: /Continue$/i }));
-
     fireEvent.change(screen.getByLabelText(/Full Name/i), { target: { value: 'Existing User' } });
+    fireEvent.change(screen.getByLabelText(/Email Address/i), { target: { value: 'existing@example.com' } });
     fireEvent.change(screen.getByLabelText(/Choose Password/i), { target: { value: 'StrongPass1!' } });
     fireEvent.change(screen.getByLabelText(/^Confirm Password$/i), { target: { value: 'StrongPass1!' } });
     fireEvent.click(screen.getByRole('checkbox'));
@@ -329,7 +365,6 @@ describe('AuthPage consent UX', () => {
     expect(screen.queryByText(/Account created/i)).toBeNull();
     expect(localStorage.getItem('mindflow_is_signup')).toBeNull();
 
-    // Offers 1-tap Switch to Sign In and Reset Password recovery actions
     expect(screen.getByRole('button', { name: 'Sign In Instead' })).toBeTruthy();
     const resetBtn = screen.getByRole('button', { name: 'Reset Password' });
     fireEvent.click(resetBtn);
@@ -341,7 +376,7 @@ describe('AuthPage consent UX', () => {
     });
   });
 
-  it('passes emailRedirectTo on resend confirmation for unconfirmed accounts', async () => {
+  it('passes emailRedirectTo on resend confirmation for unconfirmed accounts during password sign-in', async () => {
     mockSignInWithPassword.mockResolvedValue({
       data: { session: null },
       error: { message: 'Email not confirmed' },
@@ -350,7 +385,9 @@ describe('AuthPage consent UX', () => {
 
     renderAuthPage('signin');
     fireEvent.change(screen.getByLabelText(/Email Address/i), { target: { value: 'pending@example.com' } });
-    fireEvent.click(screen.getByRole('button', { name: /Continue$/i }));
+    fireEvent.click(screen.getByRole('button', { name: /^Continue$/i }));
+    fireEvent.click(screen.getByTestId('choose-login-password'));
+
     fireEvent.change(screen.getByLabelText(/^Password$/i), { target: { value: 'StrongPass1!' } });
     const signInBtn = screen
       .getAllByRole('button', { name: /^Sign In$/i })
@@ -485,9 +522,8 @@ describe('AuthPage consent UX', () => {
     });
 
     renderAuthPage('signup');
-    fireEvent.change(screen.getByLabelText(/Email Address/i), { target: { value: 'otpnew@example.com' } });
-    fireEvent.click(screen.getByRole('button', { name: /Continue$/i }));
     fireEvent.change(screen.getByLabelText(/Full Name/i), { target: { value: 'OTP Aspirant' } });
+    fireEvent.change(screen.getByLabelText(/Email Address/i), { target: { value: 'otpnew@example.com' } });
     fireEvent.change(screen.getByLabelText(/Choose Password/i), { target: { value: 'StrongPass1!' } });
     fireEvent.change(screen.getByLabelText(/^Confirm Password$/i), { target: { value: 'StrongPass1!' } });
     fireEvent.click(screen.getByRole('checkbox'));
@@ -497,18 +533,14 @@ describe('AuthPage consent UX', () => {
     fireEvent.click(submitBtn!);
 
     expect(await screen.findByTestId('auth-verify-email-step')).toBeTruthy();
-
-    // Resend starts on 60s cooldown right after signup
     expect((screen.getByTestId('signup-otp-resend') as HTMLButtonElement).disabled).toBe(true);
 
-    // First attempt: expired/invalid code
     fireEvent.change(screen.getByTestId('signup-otp-input'), { target: { value: '000111' } });
     fireEvent.click(screen.getByTestId('signup-otp-submit'));
 
     expect(await screen.findByRole('alert')).toBeTruthy();
     expect(screen.getByRole('alert').textContent).toContain('Invalid or expired verification code');
 
-    // Second attempt: valid code succeeds
     fireEvent.change(screen.getByTestId('signup-otp-input'), { target: { value: '042819' } });
     fireEvent.click(screen.getByTestId('signup-otp-submit'));
 
@@ -524,7 +556,7 @@ describe('AuthPage consent UX', () => {
     );
   });
 
-  it('supports Passwordless Email OTP Sign-In with shouldCreateUser: false and guides unregistered emails to Create Account', async () => {
+  it('dispatches Login with Email OTP directly from stacked chooser (shouldCreateUser: false), enforces DPDP Create Account redirect, and verifies 6-digit OTP', async () => {
     mockSignInWithOtp.mockResolvedValueOnce({
       data: { user: null, session: null },
       error: { message: 'Signups not allowed for otp' },
@@ -532,12 +564,10 @@ describe('AuthPage consent UX', () => {
 
     renderAuthPage('signin');
     fireEvent.change(screen.getByLabelText(/Email Address/i), { target: { value: 'unregistered@example.com' } });
-    fireEvent.click(screen.getByRole('button', { name: /Continue$/i }));
+    fireEvent.click(screen.getByRole('button', { name: /^Continue$/i }));
 
-    fireEvent.click(screen.getByTestId('signin-method-otp'));
-    expect(screen.getByTestId('signin-otp-panel')).toBeTruthy();
-
-    fireEvent.click(screen.getByTestId('signin-send-otp-btn'));
+    expect(screen.getByTestId('auth-view-signin-choose')).toBeTruthy();
+    fireEvent.click(screen.getByTestId('choose-login-otp'));
 
     await waitFor(() => {
       expect(mockSignInWithOtp).toHaveBeenCalledWith({
@@ -552,21 +582,25 @@ describe('AuthPage consent UX', () => {
     expect(await screen.findByRole('alert')).toBeTruthy();
     expect(screen.getByRole('alert').textContent).toContain('No MindFlow account found');
 
-    // Clicking "Create Account Instead" switches to signup mode with mandatory DPDP consent checkbox
-    fireEvent.click(screen.getByRole('button', { name: /Create Account Instead/i }));
+    // Clicking "Create Account Instead" opens single vertical Create Account with DPDP consent checkbox & email pre-filled
+    fireEvent.click(screen.getByTestId('choose-create-account-instead-btn'));
+    expect(screen.getByTestId('auth-view-signup')).toBeTruthy();
     expect(screen.getByRole('checkbox')).toBeTruthy();
+    expect((screen.getByLabelText(/Email Address/i) as HTMLInputElement).value).toBe('unregistered@example.com');
 
-    // Switch back to Sign In -> Email OTP for a registered user
-    fireEvent.click(screen.getByRole('button', { name: /^Sign In$/i }));
-    fireEvent.click(screen.getByTestId('signin-method-otp'));
+    // Return to Sign In -> Continue -> Login with Email OTP for a registered user
+    fireEvent.click(screen.getByTestId('switch-to-signin-btn'));
+    fireEvent.click(screen.getByRole('button', { name: /^Continue$/i }));
+
     mockSignInWithOtp.mockResolvedValueOnce({ data: { user: null, session: null }, error: null });
     mockVerifyOtp.mockResolvedValueOnce({
       data: { user: { id: 'u-reg' }, session: { access_token: 'email-otp-tok' } },
       error: null,
     });
 
-    fireEvent.click(screen.getByTestId('signin-send-otp-btn'));
-    expect(await screen.findByTestId('signin-otp-input')).toBeTruthy();
+    fireEvent.click(screen.getByTestId('choose-login-otp'));
+    expect(await screen.findByTestId('auth-view-signin-otp')).toBeTruthy();
+    expect(screen.getByTestId('signin-otp-input')).toBeTruthy();
     expect((screen.getByTestId('signin-otp-resend') as HTMLButtonElement).disabled).toBe(true);
 
     fireEvent.change(screen.getByTestId('signin-otp-input'), { target: { value: '654321' } });
@@ -581,7 +615,7 @@ describe('AuthPage consent UX', () => {
     });
   });
 
-  it('verifies 6-digit recovery OTP after resetPasswordForEmail and navigates to /reset-password', async () => {
+  it('launches dedicated Recovery screen from Forgot Password? link on chooser, verifies 6-digit recovery OTP, and navigates to /reset-password', async () => {
     mockResetPasswordForEmail.mockResolvedValue({ data: {}, error: null });
     mockVerifyOtp.mockResolvedValue({
       data: { user: { id: 'u-rec' }, session: { access_token: 'rec-otp-tok' } },
@@ -598,9 +632,9 @@ describe('AuthPage consent UX', () => {
     );
 
     fireEvent.change(screen.getByLabelText(/Email Address/i), { target: { value: 'recover@example.com' } });
-    fireEvent.click(screen.getByRole('button', { name: /Continue$/i }));
+    fireEvent.click(screen.getByRole('button', { name: /^Continue$/i }));
 
-    fireEvent.click(screen.getByRole('button', { name: /Forgot Password\?/i }));
+    fireEvent.click(screen.getByTestId('choose-forgot-password'));
 
     expect(await screen.findByTestId('recovery-otp-card')).toBeTruthy();
     expect(mockResetPasswordForEmail).toHaveBeenCalledWith('recover@example.com', {
@@ -622,7 +656,6 @@ describe('AuthPage consent UX', () => {
   });
 
   it('maps signal timed out / 504 request_timeout errors cleanly and exposes Try Again + Google fallback on signup', async () => {
-    // Unit-verify mapper across timeout, 504, network, rate limit, SMTP, and weak password shapes
     const nativeTimeout = formatAuthError(new DOMException('signal timed out', 'TimeoutError'), 'signup');
     expect(nativeTimeout.kind).toBe('timeout');
     expect(nativeTimeout.canRetry).toBe(true);
@@ -646,14 +679,12 @@ describe('AuthPage consent UX', () => {
       ).kind
     ).toBe('weak_password');
 
-    // First attempt rejects with native AbortSignal.timeout DOMException; second attempt succeeds
     mockSignUp.mockRejectedValueOnce(new DOMException('signal timed out', 'TimeoutError'));
     mockSignUp.mockResolvedValueOnce({ data: { user: { id: 'u-retry-ok' }, session: null }, error: null });
 
     renderAuthPage('signup');
-    fireEvent.change(screen.getByLabelText(/Email Address/i), { target: { value: 'timeoutuser@example.com' } });
-    fireEvent.click(screen.getByRole('button', { name: /Continue$/i }));
     fireEvent.change(screen.getByLabelText(/Full Name/i), { target: { value: 'Timeout Tester' } });
+    fireEvent.change(screen.getByLabelText(/Email Address/i), { target: { value: 'timeoutuser@example.com' } });
     fireEvent.change(screen.getByLabelText(/Choose Password/i), { target: { value: 'StrongPass1!' } });
     fireEvent.change(screen.getByLabelText(/^Confirm Password$/i), { target: { value: 'StrongPass1!' } });
     fireEvent.click(screen.getByRole('checkbox'));
@@ -668,7 +699,6 @@ describe('AuthPage consent UX', () => {
     expect(alert.textContent).not.toContain('signal timed out');
     expect(localStorage.getItem('mindflow_is_signup')).toBeNull();
 
-    // Actionable recovery controls appear with Try Again + Continue with Google
     expect(screen.getByTestId('signup-timeout-recovery')).toBeTruthy();
     expect(screen.getByTestId('signup-google-fallback-btn')).toBeTruthy();
 
@@ -693,9 +723,8 @@ describe('AuthPage consent UX', () => {
     );
 
     renderAuthPage('signup');
-    fireEvent.change(screen.getByLabelText(/Email Address/i), { target: { value: 'mutex@example.com' } });
-    fireEvent.click(screen.getByRole('button', { name: /Continue$/i }));
     fireEvent.change(screen.getByLabelText(/Full Name/i), { target: { value: 'Mutex User' } });
+    fireEvent.change(screen.getByLabelText(/Email Address/i), { target: { value: 'mutex@example.com' } });
     fireEvent.change(screen.getByLabelText(/Choose Password/i), { target: { value: 'lowercase123' } });
     fireEvent.change(screen.getByLabelText(/^Confirm Password$/i), { target: { value: 'lowercase123' } });
     fireEvent.click(screen.getByRole('checkbox'));
@@ -703,12 +732,10 @@ describe('AuthPage consent UX', () => {
     const form = screen.getByLabelText(/Full Name/i).closest('form')!;
     fireEvent.submit(form);
 
-    // Upfront complexity check blocks weak password before network call
     expect(screen.getByRole('alert').textContent).toContain('uppercase letter');
     expect(screen.getByRole('alert').textContent).toContain('special character');
     expect(mockSignUp).not.toHaveBeenCalled();
 
-    // Update to valid strong password and trigger rapid double submit
     fireEvent.change(screen.getByLabelText(/Choose Password/i), { target: { value: 'StrongPass1!' } });
     fireEvent.change(screen.getByLabelText(/^Confirm Password$/i), { target: { value: 'StrongPass1!' } });
 
@@ -721,5 +748,25 @@ describe('AuthPage consent UX', () => {
 
     resolveSignUp!({ data: { user: { id: 'u-mutex-ok' }, session: null }, error: null });
     expect(await screen.findByTestId('auth-verify-email-step')).toBeTruthy();
+  });
+
+  it('follows deterministic hierarchical back across Sign-In screens without losing the entered email', () => {
+    renderAuthPage('signin');
+    fireEvent.change(screen.getByLabelText(/Email Address/i), { target: { value: 'backflow@example.com' } });
+    fireEvent.click(screen.getByRole('button', { name: /^Continue$/i }));
+
+    expect(screen.getByTestId('auth-view-signin-choose')).toBeTruthy();
+    fireEvent.click(screen.getByTestId('choose-login-password'));
+    expect(screen.getByTestId('auth-view-signin-password')).toBeTruthy();
+
+    // Back from Password returns to Chooser (preserving email)
+    fireEvent.click(screen.getByTestId('auth-mobile-back-btn'));
+    expect(screen.getByTestId('auth-view-signin-choose')).toBeTruthy();
+    expect((screen.getByLabelText(/Email Address/i) as HTMLInputElement).value).toBe('backflow@example.com');
+
+    // Back from Chooser returns to Email input (preserving email for typo edits)
+    fireEvent.click(screen.getByTestId('auth-mobile-back-btn'));
+    expect(screen.getByTestId('auth-view-signin-email')).toBeTruthy();
+    expect((screen.getByLabelText(/Email Address/i) as HTMLInputElement).value).toBe('backflow@example.com');
   });
 });

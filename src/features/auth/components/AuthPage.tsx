@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useId } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { App } from '@capacitor/app';
 import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
@@ -19,11 +19,13 @@ import {
   RefreshCw,
   Clock,
   KeyRound,
-  Lock
+  Lock,
+  User,
+  ChevronRight,
 } from 'lucide-react';
 import { AuthHeroShowcase } from './AuthHeroShowcase';
 import { AuthLegalModal } from './AuthLegalModal';
-import { PasswordStrengthMeter, evaluatePasswordStrength } from './PasswordStrengthMeter';
+import { PasswordStrengthMeter } from './PasswordStrengthMeter';
 import { EmailOtpInput, OTP_LENGTH, sanitizeOtpCode } from './EmailOtpInput';
 import { CURRENT_AGE_ATTESTATION, CURRENT_TERMS_VERSION } from '@/constants/legal';
 import { telemetry } from '@/lib/telemetry/telemetryService';
@@ -35,6 +37,15 @@ export interface AuthPageProps {
   initialMode?: 'signin' | 'signup';
 }
 
+type AuthView =
+  | 'signin-email'
+  | 'signin-choose'
+  | 'signin-password'
+  | 'signin-otp'
+  | 'signin-recovery'
+  | 'signup'
+  | 'verify-email';
+
 interface RateLimitState {
   attempts: number;
   lockedUntil: number | null;
@@ -43,6 +54,7 @@ interface RateLimitState {
 const RATE_LIMIT_KEY = 'mindflow_auth_rate_limit';
 const MAX_ATTEMPTS = 5;
 const LOCKOUT_SECONDS = 30;
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const getStoredRateLimit = (): RateLimitState => {
   try {
@@ -80,26 +92,81 @@ const clearRateLimit = () => {
   }
 };
 
-export const AuthPage: React.FC<AuthPageProps> = ({
-  initialMode = 'signin'
+interface ReadOnlyEmailFieldProps {
+  email: string;
+  onChangeEmail: () => void;
+  changeLabel?: string;
+}
+
+/**
+ * Displays the user's entered email as a clean, properly labeled read-only input box
+ * with a leading Mail icon and accessible Change action (no status dots or toy badges).
+ */
+const ReadOnlyEmailField: React.FC<ReadOnlyEmailFieldProps> = ({
+  email,
+  onChangeEmail,
+  changeLabel = 'Change',
 }) => {
+  const fieldId = useId();
+  return (
+    <div>
+      <label
+        htmlFor={fieldId}
+        className="block text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-200 mb-1.5"
+      >
+        Email Address
+      </label>
+      <div
+        data-testid="auth-locked-email-field"
+        className="flex items-center min-h-[48px] bg-slate-50 dark:bg-slate-800/75 border border-slate-200 dark:border-slate-700 rounded-xl shadow-sm transition-colors"
+      >
+        <Mail
+          className="w-4 h-4 text-slate-400 dark:text-slate-500 shrink-0 ml-3.5"
+          aria-hidden="true"
+        />
+        <input
+          id={fieldId}
+          type="email"
+          value={email}
+          readOnly
+          aria-readonly="true"
+          tabIndex={-1}
+          className="select-text w-full min-w-0 bg-transparent px-3 py-2.5 text-sm font-medium text-slate-900 dark:text-slate-100 truncate focus:outline-none cursor-default"
+        />
+        <button
+          type="button"
+          data-testid="auth-change-email-btn"
+          onClick={onChangeEmail}
+          className="min-h-[44px] px-3.5 mr-0.5 text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 hover:bg-indigo-50/70 dark:hover:bg-indigo-950/50 rounded-lg active:scale-95 transition-all shrink-0"
+        >
+          {changeLabel}
+        </button>
+      </div>
+    </div>
+  );
+};
+
+const GoogleIcon: React.FC = () => (
+  <svg className="w-5 h-5 shrink-0" viewBox="0 0 48 48" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+    <path d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12s5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24s8.955,20,20,20s20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z" fill="#FFC107" />
+    <path d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z" fill="#FF3D00" />
+    <path d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.222,0-9.657-3.356-11.303-7.962l-6.571,4.819C9.656,39.663,16.318,44,24,44z" fill="#4CAF50" />
+    <path d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.574l6.19,5.238C41.38,34.464,44,29.561,44,24C44,22.659,43.862,21.35,43.611,20.083z" fill="#1976D2" />
+  </svg>
+);
+
+export const AuthPage: React.FC<AuthPageProps> = ({ initialMode = 'signin' }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const shouldReduceMotion = useReducedMotion();
   const showToast = useNotificationStore((state) => state.showToast);
 
-  // Authentication Mode: 'signin' | 'signup'
-  const [mode, setMode] = useState<'signin' | 'signup'>(() => {
-    if (location.pathname.includes('/signup')) return 'signup';
-    return initialMode;
+  // Clean linear screen state machine (zero parallel tab bars)
+  const [view, setView] = useState<AuthView>(() => {
+    if (location.pathname.includes('/signup') || initialMode === 'signup') return 'signup';
+    return 'signin-email';
   });
-
-  // Step Machine: 'email' -> 'credentials' -> 'verify-email' (Email Signup confirmation wait)
-  const [step, setStep] = useState<'email' | 'credentials' | 'verify-email'>('email');
   const [direction, setDirection] = useState<1 | -1>(1);
-
-  // Sign-In Method: 'password' | 'otp'
-  const [signInMethod, setSignInMethod] = useState<'password' | 'otp'>('password');
 
   // Form State
   const [email, setEmail] = useState(() => (location.state as any)?.email || '');
@@ -119,6 +186,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
   const [signInOtpUnregistered, setSignInOtpUnregistered] = useState(false);
   const [recoveryOtpCode, setRecoveryOtpCode] = useState('');
   const [isVerifyingRecoveryOtp, setIsVerifyingRecoveryOtp] = useState(false);
+  const [isSendingRecovery, setIsSendingRecovery] = useState(false);
 
   // Status & Feedback States
   const [error, setError] = useState<string | null>(null);
@@ -133,7 +201,6 @@ export const AuthPage: React.FC<AuthPageProps> = ({
   } | null>(null);
   const [isCheckingVerification, setIsCheckingVerification] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
-  const [forgotPasswordSent, setForgotPasswordSent] = useState(false);
   const [forgotPasswordCooldown, setForgotPasswordCooldown] = useState(0);
 
   // Rate Limiting State
@@ -142,12 +209,30 @@ export const AuthPage: React.FC<AuthPageProps> = ({
   // Legal In-App Modal State
   const [legalModalType, setLegalModalType] = useState<'terms' | 'privacy' | null>(null);
 
-  // Refs for auto-focus & in-flight mutexes
+  // Refs for programmatic focus & in-flight mutexes
   const emailInputRef = useRef<HTMLInputElement>(null);
   const passwordInputRef = useRef<HTMLInputElement>(null);
+  const signupPasswordInputRef = useRef<HTMLInputElement>(null);
   const fullNameInputRef = useRef<HTMLInputElement>(null);
+  const signupEmailInputRef = useRef<HTMLInputElement>(null);
   const isCheckingVerificationRef = useRef(false);
   const isSubmittingSignUpRef = useRef(false);
+  const isSendingSignInOtpRef = useRef(false);
+  const otpSentForEmailRef = useRef<string>('');
+
+  const clearTransientFeedback = () => {
+    setError(null);
+    setSuccessNotice(null);
+    setExistingAccountNotice(false);
+    setSignupRecoveryOptions(null);
+    setSignInOtpUnregistered(false);
+  };
+
+  const transitionToView = (nextView: AuthView, nextDir: 1 | -1) => {
+    setDirection(nextDir);
+    setView(nextView);
+    clearTransientFeedback();
+  };
 
   // Surface any expired/invalid email redirect errors captured by useAppBootstrap
   useEffect(() => {
@@ -181,44 +266,66 @@ export const AuthPage: React.FC<AuthPageProps> = ({
     return () => clearInterval(interval);
   }, []);
 
-  // Cooldown countdown for Forgot Password & Resend Verification
+  // Cooldown countdowns
   useEffect(() => {
     if (forgotPasswordCooldown <= 0) return;
-    const timer = setTimeout(() => {
-      setForgotPasswordCooldown((prev) => prev - 1);
-    }, 1000);
+    const timer = setTimeout(() => setForgotPasswordCooldown((prev) => prev - 1), 1000);
     return () => clearTimeout(timer);
   }, [forgotPasswordCooldown]);
 
   useEffect(() => {
     if (resendCooldown <= 0) return;
-    const timer = setTimeout(() => {
-      setResendCooldown((prev) => prev - 1);
-    }, 1000);
+    const timer = setTimeout(() => setResendCooldown((prev) => prev - 1), 1000);
     return () => clearTimeout(timer);
   }, [resendCooldown]);
 
   useEffect(() => {
     if (signInOtpCooldown <= 0) return;
-    const timer = setTimeout(() => {
-      setSignInOtpCooldown((prev) => prev - 1);
-    }, 1000);
+    const timer = setTimeout(() => setSignInOtpCooldown((prev) => prev - 1), 1000);
     return () => clearTimeout(timer);
   }, [signInOtpCooldown]);
 
-  // Programmatic focus transitions
+  // Programmatic focus transitions across linear steps (MWG multi-page forms)
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (step === 'email') {
+      if (view === 'signin-email') {
         emailInputRef.current?.focus();
-      } else if (step === 'credentials' && mode === 'signin' && signInMethod === 'password') {
+      } else if (view === 'signin-password') {
         passwordInputRef.current?.focus();
-      } else if (step === 'credentials' && mode === 'signup') {
+      } else if (view === 'signup') {
         fullNameInputRef.current?.focus();
       }
     }, 80);
     return () => clearTimeout(timer);
-  }, [step, mode, signInMethod]);
+  }, [view]);
+
+  // Deterministic hierarchical back target (DEC-0002)
+  const handleLogicalBack = () => {
+    triggerHaptic('light');
+    switch (view) {
+      case 'signin-password':
+      case 'signin-otp':
+      case 'signin-recovery':
+        setOtpCode('');
+        setRecoveryOtpCode('');
+        transitionToView('signin-choose', -1);
+        return;
+      case 'signin-choose':
+        transitionToView('signin-email', -1);
+        return;
+      case 'signup':
+        setPassword('');
+        setConfirmPassword('');
+        transitionToView('signin-email', -1);
+        return;
+      case 'verify-email':
+        setOtpCode('');
+        transitionToView('signup', -1);
+        return;
+      default:
+        return;
+    }
+  };
 
   // Escape (Web) & Android Hardware Back navigation
   useEffect(() => {
@@ -229,15 +336,15 @@ export const AuthPage: React.FC<AuthPageProps> = ({
           setLegalModalType(null);
           return;
         }
-        if (step === 'credentials' || step === 'verify-email') {
+        if (view !== 'signin-email') {
           e.preventDefault();
-          handleBackToEmail();
+          handleLogicalBack();
         }
       }
     };
     document.addEventListener('keydown', handleKeyDown, true);
     return () => document.removeEventListener('keydown', handleKeyDown, true);
-  }, [step, legalModalType]);
+  }, [view, legalModalType]);
 
   // Capacitor Android Hardware & Gesture Back Button Listener
   useEffect(() => {
@@ -251,12 +358,10 @@ export const AuthPage: React.FC<AuthPageProps> = ({
           setLegalModalType(null);
           return;
         }
-        if (step === 'credentials' || step === 'verify-email') {
-          triggerHaptic('light');
-          handleBackToEmail();
+        if (view !== 'signin-email') {
+          handleLogicalBack();
           return;
         }
-        // At root login step on Android, minimize the app smoothly
         App.minimizeApp();
       });
     };
@@ -268,66 +373,46 @@ export const AuthPage: React.FC<AuthPageProps> = ({
         listenerHandle.remove();
       }
     };
-  }, [step, legalModalType]);
+  }, [view, legalModalType]);
 
-  const handleBackToEmail = () => {
+  const handleEditEmail = () => {
     triggerHaptic('light');
-    setDirection(-1);
-    setStep('email');
-    if (step === 'verify-email') {
-      setPassword('');
-      setConfirmPassword('');
-    }
     setOtpCode('');
     setRecoveryOtpCode('');
-    setSignInOtpSent(false);
-    setSignInOtpUnregistered(false);
-    setSignInMethod('password');
-    setError(null);
-    setSuccessNotice(null);
-    setExistingAccountNotice(false);
-    setSignupRecoveryOptions(null);
-    setForgotPasswordSent(false);
+    setPassword('');
+    transitionToView('signin-email', -1);
   };
 
-  const handleSwitchMode = (newMode: 'signin' | 'signup') => {
+  const handleOpenSignUp = () => {
     triggerHaptic('light');
-    setMode(newMode);
-    if (step === 'verify-email') {
-      setStep('credentials');
-      setPassword('');
-      setConfirmPassword('');
-    }
+    setPassword('');
+    setConfirmPassword('');
     setOtpCode('');
     setRecoveryOtpCode('');
-    setSignInOtpSent(false);
-    setSignInOtpUnregistered(false);
-    setError(null);
-    setSuccessNotice(null);
-    setExistingAccountNotice(false);
-    setSignupRecoveryOptions(null);
-    setForgotPasswordSent(false);
+    transitionToView('signup', 1);
   };
 
-  const handleSwitchSignInMethod = (nextMethod: 'password' | 'otp') => {
-    if (signInMethod === nextMethod) return;
+  const handleOpenSignIn = () => {
     triggerHaptic('light');
-    setSignInMethod(nextMethod);
-    setError(null);
-    setSuccessNotice(null);
+    setPassword('');
+    setConfirmPassword('');
     setOtpCode('');
     setRecoveryOtpCode('');
-    setForgotPasswordSent(false);
-    setSignInOtpUnregistered(false);
+    const trimmed = email.trim().toLowerCase();
+    if (trimmed && EMAIL_REGEX.test(trimmed)) {
+      setEmail(trimmed);
+      transitionToView('signin-choose', -1);
+    } else {
+      transitionToView('signin-email', -1);
+    }
   };
 
   /**
-   * Step 1 Submit: Format validation and advance to credentials step
+   * Step 1 Submit (Sign In): Validate email and advance to stacked method chooser
    */
   const handleContinueEmail = (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
-    setSuccessNotice(null);
+    clearTransientFeedback();
 
     const trimmed = email.trim().toLowerCase();
     if (!trimmed) {
@@ -337,22 +422,30 @@ export const AuthPage: React.FC<AuthPageProps> = ({
       return;
     }
 
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(trimmed)) {
+    if (!EMAIL_REGEX.test(trimmed)) {
       triggerHaptic('error');
       setError('Please enter a valid email address.');
       emailInputRef.current?.focus();
       return;
     }
 
+    // Reset stale OTP flags if user changed to a different email
+    if (otpSentForEmailRef.current && otpSentForEmailRef.current !== trimmed) {
+      setSignInOtpSent(false);
+      setSignInOtpCooldown(0);
+      setForgotPasswordCooldown(0);
+      setOtpCode('');
+      setRecoveryOtpCode('');
+      otpSentForEmailRef.current = '';
+    }
+
     triggerHaptic('light');
     setEmail(trimmed);
-    setDirection(1);
-    setStep('credentials');
+    transitionToView('signin-choose', 1);
   };
 
   /**
-   * Sign In Submit
+   * Sign In with Password Submit
    */
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -379,7 +472,6 @@ export const AuthPage: React.FC<AuthPageProps> = ({
       });
 
       if (signInError) {
-        // Record failure for brute force tracking
         const updated = recordFailedAttempt();
         if (updated.lockedUntil) {
           setLockoutRemaining(LOCKOUT_SECONDS);
@@ -412,7 +504,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
   };
 
   /**
-   * Executes mutex-guarded email+password account creation (invoked by form submit and 1-tap timeout retry)
+   * Mutex-guarded Email + Password Account Creation (single vertical Create Account form)
    */
   const executeSignUp = async () => {
     if (isSubmittingSignUpRef.current) return;
@@ -429,10 +521,18 @@ export const AuthPage: React.FC<AuthPageProps> = ({
       return;
     }
 
+    const cleanEmail = email.trim().toLowerCase();
+    if (!cleanEmail || !EMAIL_REGEX.test(cleanEmail)) {
+      setError('Please enter a valid email address.');
+      signupEmailInputRef.current?.focus();
+      return;
+    }
+    setEmail(cleanEmail);
+
     const passwordCheck = validatePasswordPolicy(password);
     if (!passwordCheck.valid) {
       setError(passwordCheck.message || 'Please choose a stronger password.');
-      passwordInputRef.current?.focus();
+      signupPasswordInputRef.current?.focus();
       return;
     }
 
@@ -452,7 +552,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
     try {
       const emailRedirectTo = buildAuthRedirectUrl('signup');
       const { data, error: signUpError } = await supabase.auth.signUp({
-        email: email.trim().toLowerCase(),
+        email: cleanEmail,
         password,
         options: {
           emailRedirectTo,
@@ -504,8 +604,8 @@ export const AuthPage: React.FC<AuthPageProps> = ({
           setSuccessNotice('Account created successfully! Signing you in...');
         } else {
           setResendCooldown(60);
-          setDirection(1);
-          setStep('verify-email');
+          setOtpCode('');
+          transitionToView('verify-email', 1);
         }
       }
     } catch (err: any) {
@@ -524,17 +624,14 @@ export const AuthPage: React.FC<AuthPageProps> = ({
     }
   };
 
-  /**
-   * Sign Up Submit
-   */
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     await executeSignUp();
   };
 
   /**
-   * Checks whether the newly registered email has been verified (via cross-tab session or signInWithPassword)
-   * without triggering brute-force rate limits while still awaiting confirmation.
+   * Checks whether newly registered email is confirmed (cross-tab session or signInWithPassword)
+   * without tripping brute-force lockout on 'Email not confirmed'.
    */
   const checkEmailVerificationStatus = async (source: 'auto' | 'manual' = 'manual') => {
     if (isCheckingVerificationRef.current) return;
@@ -545,7 +642,6 @@ export const AuthPage: React.FC<AuthPageProps> = ({
     }
 
     try {
-      // 1. Check if another tab already hydrated the Supabase session into storage
       if (typeof (supabase.auth as any)?.getSession === 'function') {
         const { data: sessData } = await supabase.auth.getSession();
         if (sessData?.session) {
@@ -556,7 +652,6 @@ export const AuthPage: React.FC<AuthPageProps> = ({
         }
       }
 
-      // 2. Otherwise verify against Supabase using the in-memory email & password
       const cleanEmail = email.trim().toLowerCase();
       if (!cleanEmail || !password) {
         if (source === 'manual') {
@@ -594,7 +689,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
           return;
         }
         if (source === 'manual') {
-          setError(signInErr.message || 'Unable to verify status right now. Please try signing in.');
+          setError(formatAuthError(signInErr, 'verify').message);
           triggerHaptic('error');
         }
       }
@@ -610,12 +705,12 @@ export const AuthPage: React.FC<AuthPageProps> = ({
     }
   };
 
-  // Automated verification watcher when user is on the Verify Your Email step
+  // Automated 3-layer verification watcher on Verify Your Email view
   useEffect(() => {
-    if (step !== 'verify-email') return;
+    if (view !== 'verify-email') return;
 
     let pollCount = 0;
-    const MAX_POLLS = 75; // 5 minutes at 4s interval
+    const MAX_POLLS = 75;
 
     const handleVisibilityOrFocus = () => {
       if (typeof document === 'undefined' || document.visibilityState === 'visible') {
@@ -656,13 +751,13 @@ export const AuthPage: React.FC<AuthPageProps> = ({
         channel?.close();
       } catch {}
     };
-  }, [step, email, password]);
+  }, [view, email, password]);
 
   /**
    * Resend Email Confirmation
    */
   const handleResendConfirmation = async () => {
-    if (resendCooldown > 0 && step === 'verify-email') return;
+    if (resendCooldown > 0 && view === 'verify-email') return;
     setIsResendingConfirmation(true);
     setError(null);
     try {
@@ -681,7 +776,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
         message: `A fresh verification link was sent to ${email}.`,
         variant: 'success',
       });
-      setSuccessNotice(`Fresh verification link sent to ${email}. Check your inbox and spam folder.`);
+      setSuccessNotice(`Fresh verification code and link sent to ${email}. Check your inbox and spam folder.`);
       triggerHaptic('success');
     } catch (err: any) {
       setError(formatAuthError(err, 'resend').message);
@@ -692,23 +787,28 @@ export const AuthPage: React.FC<AuthPageProps> = ({
   };
 
   /**
-   * Forgot Password Handler with Cooldown
+   * Forgot Password Handler with Cooldown — transitions into dedicated Recovery screen
    */
   const handleForgotPassword = async () => {
-    if (forgotPasswordCooldown > 0) return;
+    if (forgotPasswordCooldown > 0 || isSendingRecovery) {
+      if (forgotPasswordCooldown > 0 && view !== 'signin-recovery') {
+        transitionToView('signin-recovery', 1);
+      }
+      return;
+    }
     triggerHaptic('light');
 
     const cleanEmail = email.trim().toLowerCase();
-    if (!cleanEmail) {
-      handleBackToEmail();
+    if (!cleanEmail || !EMAIL_REGEX.test(cleanEmail)) {
+      transitionToView('signin-email', -1);
       return;
     }
 
+    setIsSendingRecovery(true);
     setIsEmailLoading(true);
     setError(null);
     try {
       const redirectUrl = buildAuthRedirectUrl('recovery');
-
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(cleanEmail, {
         redirectTo: redirectUrl,
       });
@@ -716,13 +816,10 @@ export const AuthPage: React.FC<AuthPageProps> = ({
       if (resetError) throw resetError;
 
       setExistingAccountNotice(false);
-      if (mode === 'signup') {
-        setMode('signin');
-      }
-      setSignInMethod('password');
       setRecoveryOtpCode('');
-      setForgotPasswordSent(true);
       setForgotPasswordCooldown(60);
+      transitionToView('signin-recovery', 1);
+      setSuccessNotice(`6-digit recovery code and reset link sent to ${cleanEmail}.`);
       showToast({
         title: 'Reset Code & Link Sent',
         message: `6-digit recovery code and reset link delivered to ${cleanEmail}`,
@@ -733,12 +830,13 @@ export const AuthPage: React.FC<AuthPageProps> = ({
       setError(formatAuthError(err, 'recovery').message);
       triggerHaptic('error');
     } finally {
+      setIsSendingRecovery(false);
       setIsEmailLoading(false);
     }
   };
 
   /**
-   * Verify 6-Digit Signup OTP (in-app alongside 3-layer link auto-detection fallback)
+   * Verify 6-Digit Signup OTP (in-app alongside 3-layer link auto-detection)
    */
   const handleVerifySignupOtp = async (rawCode: string) => {
     const code = sanitizeOtpCode(rawCode);
@@ -790,10 +888,28 @@ export const AuthPage: React.FC<AuthPageProps> = ({
   };
 
   /**
-   * Send Passwordless Sign-In Email OTP (shouldCreateUser: false preserves DPDP consent on Create Account)
+   * Send Passwordless Sign-In Email OTP (`shouldCreateUser: false` enforces DPDP consent on Create Account)
    */
-  const handleSendSignInOtp = async () => {
-    if (signInOtpCooldown > 0 || isSendingSignInOtp) return;
+  const handleSendSignInOtp = async (navigateOnSuccess = true) => {
+    const cleanEmail = email.trim().toLowerCase();
+    if (!cleanEmail || !EMAIL_REGEX.test(cleanEmail)) {
+      transitionToView('signin-email', -1);
+      return;
+    }
+
+    // If an OTP was already sent for this exact email while cooldown is active, open OTP screen without re-sending
+    if (
+      navigateOnSuccess &&
+      signInOtpSent &&
+      otpSentForEmailRef.current === cleanEmail &&
+      signInOtpCooldown > 0
+    ) {
+      transitionToView('signin-otp', 1);
+      return;
+    }
+
+    if (signInOtpCooldown > 0 || isSendingSignInOtpRef.current) return;
+
     setError(null);
     setSuccessNotice(null);
     setSignInOtpUnregistered(false);
@@ -803,12 +919,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
       return;
     }
 
-    const cleanEmail = email.trim().toLowerCase();
-    if (!cleanEmail) {
-      handleBackToEmail();
-      return;
-    }
-
+    isSendingSignInOtpRef.current = true;
     setIsSendingSignInOtp(true);
     try {
       const { error: otpError } = await supabase.auth.signInWithOtp({
@@ -835,9 +946,13 @@ export const AuthPage: React.FC<AuthPageProps> = ({
         throw otpError;
       }
 
+      otpSentForEmailRef.current = cleanEmail;
       setSignInOtpSent(true);
       setSignInOtpCooldown(60);
       setOtpCode('');
+      if (navigateOnSuccess) {
+        transitionToView('signin-otp', 1);
+      }
       setSuccessNotice(`6-digit sign-in code sent to ${cleanEmail}. Check your inbox and spam folder.`);
       showToast({
         title: 'Sign-In Code Sent',
@@ -849,6 +964,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
       setError(formatAuthError(err, 'otp').message);
       triggerHaptic('error');
     } finally {
+      isSendingSignInOtpRef.current = false;
       setIsSendingSignInOtp(false);
     }
   };
@@ -998,7 +1114,6 @@ export const AuthPage: React.FC<AuthPageProps> = ({
         telemetry.emit('auth_login_succeeded', { provider: 'google' });
       } catch (err: any) {
         const msg = String(err?.message || err || '');
-        // Gracefully ignore native user cancellation (code 12501 or cancelled)
         if (err?.code === '12501' || msg.includes('12501') || msg.toLowerCase().includes('cancel')) {
           console.log('[Auth] Google sign-in cancelled by user.');
         } else {
@@ -1027,7 +1142,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
 
   const slideVariants = {
     enter: (dir: number) => ({
-      x: shouldReduceMotion ? 0 : dir > 0 ? 32 : -32,
+      x: shouldReduceMotion ? 0 : dir > 0 ? 28 : -28,
       opacity: 0,
     }),
     center: {
@@ -1035,25 +1150,73 @@ export const AuthPage: React.FC<AuthPageProps> = ({
       opacity: 1,
     },
     exit: (dir: number) => ({
-      x: shouldReduceMotion ? 0 : dir > 0 ? -32 : 32,
+      x: shouldReduceMotion ? 0 : dir > 0 ? -28 : 28,
       opacity: 0,
     }),
   };
 
   const isEmailNotConfirmed = error?.toLowerCase().includes('email not confirmed');
+  const showBackControl = view !== 'signin-email';
+  const showPassiveFooter = view !== 'signup' && view !== 'verify-email';
+
+  const viewCopy: Record<AuthView, { appBar: string; heading: string; subtitle: string; backLabel: string }> = {
+    'signin-email': {
+      appBar: 'Sign In',
+      heading: 'Welcome Back',
+      subtitle: 'Sign in to continue your exam preparation',
+      backLabel: 'Back',
+    },
+    'signin-choose': {
+      appBar: 'Sign In',
+      heading: 'Sign In to MindFlow',
+      subtitle: 'Choose how you would like to continue',
+      backLabel: 'Back to email input',
+    },
+    'signin-password': {
+      appBar: 'Password Sign In',
+      heading: 'Enter Password',
+      subtitle: 'Use your MindFlow password to sign in',
+      backLabel: 'Back to sign-in options',
+    },
+    'signin-otp': {
+      appBar: 'Email OTP',
+      heading: 'Enter Sign-In Code',
+      subtitle: 'Enter the 6-digit code sent to your inbox',
+      backLabel: 'Back to sign-in options',
+    },
+    'signin-recovery': {
+      appBar: 'Reset Password',
+      heading: 'Reset Password',
+      subtitle: 'Enter the 6-digit recovery code or use your email link',
+      backLabel: 'Back to sign-in options',
+    },
+    signup: {
+      appBar: 'Create Account',
+      heading: 'Create Your Account',
+      subtitle: 'Start your AI-powered exam preparation',
+      backLabel: 'Back to sign in',
+    },
+    'verify-email': {
+      appBar: 'Verify Email',
+      heading: 'Verify Your Email',
+      subtitle: 'Enter the 6-digit code or open the link in your inbox',
+      backLabel: 'Back to create account',
+    },
+  };
+
+  const activeCopy = viewCopy[view];
 
   return (
     <main
       id="main-content"
       role="main"
-      className="min-h-[100dvh] w-full flex flex-col lg:items-center lg:justify-center relative bg-slate-50 dark:bg-slate-950 lg:bg-gradient-to-br lg:from-slate-50 lg:via-indigo-50/30 lg:to-purple-50/20 lg:dark:from-slate-950 lg:dark:via-slate-900 lg:dark:to-indigo-950/40 p-0 sm:p-0 md:p-4 lg:p-8 pt-[env(safe-area-inset-top,0px)] pb-[env(safe-area-inset-bottom,0px)] overflow-x-clip select-none"
+      className="min-h-[100dvh] w-full flex flex-col lg:items-center lg:justify-center relative bg-slate-50 dark:bg-slate-950 lg:bg-gradient-to-br lg:from-slate-50 lg:via-indigo-50/30 lg:to-purple-50/20 lg:dark:from-slate-950 lg:dark:via-slate-900 lg:dark:to-indigo-950/40 p-0 md:p-4 lg:p-8 pt-[env(safe-area-inset-top,0px)] pb-[env(safe-area-inset-bottom,0px)] overflow-x-clip select-none"
     >
-      {/* Background ambient lighting (desktop only) */}
+      {/* Subtle top ambient gradient on desktop */}
       <div className="hidden lg:block absolute top-0 inset-x-0 h-72 bg-gradient-to-b from-indigo-500/10 via-purple-500/5 to-transparent pointer-events-none" />
 
-      {/* Main Responsive Container: Edge-to-edge native surface on mobile, floating card on desktop */}
+      {/* Main Responsive Shell: Edge-to-edge native surface on mobile, elevated split card on desktop */}
       <div className="relative z-10 w-full max-w-5xl my-0 lg:my-auto bg-white dark:bg-slate-900 border-0 md:border border-slate-200/80 dark:border-slate-800 rounded-none md:rounded-3xl shadow-none md:shadow-2xl overflow-hidden grid grid-cols-1 lg:grid-cols-12 min-h-[100dvh] md:min-h-[600px] lg:min-h-[680px] flex-1 lg:flex-initial">
-        
         {/* Left Column: Desktop Hero Showcase */}
         <div className="hidden lg:flex lg:col-span-7 h-full">
           <AuthHeroShowcase />
@@ -1061,617 +1224,751 @@ export const AuthPage: React.FC<AuthPageProps> = ({
 
         {/* Right Column: Interactive Auth Console */}
         <div className="col-span-12 lg:col-span-5 flex flex-col justify-between bg-white dark:bg-slate-900 flex-1">
-          {/* Android Native Top App Bar on Mobile when on credentials or verify-email step */}
-          {(step === 'credentials' || step === 'verify-email') && (
-            <div className="flex items-center h-14 px-4 border-b border-slate-100 dark:border-slate-800/80 lg:hidden shrink-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md sticky top-0 z-20">
+          {/* Android-Native Sticky Top App Bar on Mobile sub-screens */}
+          {showBackControl && (
+            <div className="flex items-center h-14 px-3 border-b border-slate-100 dark:border-slate-800/80 lg:hidden shrink-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md sticky top-0 z-20">
               <button
                 type="button"
-                onClick={handleBackToEmail}
-                aria-label="Back to email input"
-                className="min-w-[44px] min-h-[44px] -ml-1 rounded-full flex items-center justify-center text-slate-700 dark:text-slate-200 active:bg-slate-100 dark:active:bg-slate-800 active:scale-95 transition-all"
+                onClick={handleLogicalBack}
+                aria-label={activeCopy.backLabel}
+                data-testid="auth-mobile-back-btn"
+                className="min-w-[44px] min-h-[44px] rounded-full flex items-center justify-center text-slate-700 dark:text-slate-200 active:bg-slate-100 dark:active:bg-slate-800 active:scale-95 transition-all"
               >
                 <ArrowLeft className="w-5 h-5" />
               </button>
-              <span className="ml-2 font-semibold text-sm text-slate-800 dark:text-slate-100">
-                {step === 'verify-email'
-                  ? 'Verify Email'
-                  : mode === 'signin'
-                  ? 'Sign In'
-                  : 'Create Account'}
+              <span className="ml-1.5 font-semibold text-sm text-slate-800 dark:text-slate-100">
+                {activeCopy.appBar}
               </span>
             </div>
           )}
 
           <div className="p-5 sm:p-8 lg:p-10 flex-1 flex flex-col justify-between">
             <div>
-              {/* Brand Logo & Mobile Intro Header */}
-              <header className="flex flex-col items-center text-center mb-5 shrink-0 relative">
-                {(step === 'credentials' || step === 'verify-email') && (
+              {/* Brand Header (Zero Parallel Tabs) */}
+              <header className="flex flex-col items-center text-center mb-6 shrink-0 relative">
+                {showBackControl && (
                   <button
                     type="button"
-                    onClick={handleBackToEmail}
-                    aria-label="Back to email input"
-                    className="hidden lg:flex absolute left-0 top-0 min-w-[44px] min-h-[44px] items-center justify-center rounded-xl text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+                    onClick={handleLogicalBack}
+                    aria-label={activeCopy.backLabel}
+                    data-testid="auth-desktop-back-btn"
+                    className="hidden lg:flex absolute left-0 top-0 min-w-[44px] min-h-[44px] items-center justify-center rounded-xl text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5 active:scale-95 transition-all"
                   >
                     <ArrowLeft className="w-5 h-5" />
                   </button>
                 )}
 
-                <div className="mb-2">
+                <div className="mb-3">
                   <BrandLogo variant="wordmark" size="md" />
                 </div>
 
-                {/* Dual-Tab Mode Switcher with Android Material Feel */}
-                {step !== 'verify-email' && (
-                  <div className="w-full max-w-xs mt-2 p-1 bg-slate-100 dark:bg-slate-800 rounded-2xl flex items-center text-xs font-semibold">
-                    <button
-                      type="button"
-                      onClick={() => handleSwitchMode('signin')}
-                      className={`flex-1 min-h-[44px] rounded-xl transition-all active:scale-95 ${
-                        mode === 'signin'
-                          ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm'
-                          : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                      }`}
-                    >
-                      Sign In
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleSwitchMode('signup')}
-                      className={`flex-1 min-h-[44px] rounded-xl transition-all active:scale-95 ${
-                        mode === 'signup'
-                          ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm'
-                          : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                      }`}
-                    >
-                      Create Account
-                    </button>
-                  </div>
-                )}
-
-                <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight mt-4">
-                  {step === 'verify-email'
-                    ? 'Verify Your Email'
-                    : mode === 'signin'
-                    ? step === 'email'
-                      ? 'Welcome Back'
-                      : signInMethod === 'otp'
-                      ? 'Sign In with Code'
-                      : 'Enter Password'
-                    : step === 'email'
-                    ? 'Join MindFlow'
-                    : 'Complete Profile'}
+                <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
+                  {activeCopy.heading}
                 </h1>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                  {step === 'verify-email'
-                    ? 'Enter the 6-digit code from your inbox, or click the confirmation link'
-                    : mode === 'signin'
-                    ? 'Access your saved mock drills and personal notebook'
-                    : 'Get start-to-finish AI preparation for competitive exams'}
+                <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
+                  {activeCopy.subtitle}
                 </p>
               </header>
 
-            {/* Step Slider */}
-            <div className="w-full relative overflow-hidden p-1 -m-1">
-              <AnimatePresence mode="wait" custom={direction} initial={false}>
-                {step === 'email' ? (
-                  /* ================= STEP 1: EMAIL & GOOGLE IDENTIFICATION ================= */
-                  <motion.div
-                    key="step-email"
-                    custom={direction}
-                    variants={slideVariants}
-                    initial="enter"
-                    animate="center"
-                    exit="exit"
-                    transition={{ duration: 0.22, ease: 'easeOut' }}
-                    className="w-full flex flex-col gap-3"
-                  >
-                    {/* Google OAuth Button */}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        triggerHaptic('light');
-                        handleGoogleSignIn();
-                      }}
-                      disabled={isEmailLoading || isGoogleLoading}
-                      className={`w-full min-h-[44px] h-12 flex justify-center items-center gap-3 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-semibold px-4 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-indigo-500 hover:bg-indigo-50/50 dark:hover:bg-indigo-950/30 focus:outline-none focus:ring-2 focus:ring-indigo-600/50 text-sm transition-all shadow-sm active:scale-[0.98] active:bg-slate-100 dark:active:bg-slate-700/60 select-none ${
-                        isEmailLoading ? 'opacity-50 cursor-not-allowed' : isGoogleLoading ? 'cursor-wait' : ''
-                      }`}
+              {/* Animated Linear Screen Container */}
+              <div className="w-full relative overflow-hidden p-1 -m-1">
+                <AnimatePresence mode="wait" custom={direction} initial={false}>
+                  {view === 'signin-email' && (
+                    /* ================= SCREEN 1: SIGN IN HOME ================= */
+                    <motion.div
+                      key="view-signin-email"
+                      custom={direction}
+                      variants={slideVariants}
+                      initial="enter"
+                      animate="center"
+                      exit="exit"
+                      transition={{ duration: 0.2, ease: 'easeOut' }}
+                      data-testid="auth-view-signin-email"
+                      className="w-full flex flex-col gap-4"
                     >
-                      {isGoogleLoading ? (
-                        <>
-                          <BrandSpinner variant="inline" size="sm" className="text-indigo-600 dark:text-indigo-400" />
-                          <span>Connecting Google...</span>
-                        </>
-                      ) : (
-                        <>
-                          <svg className="w-5 h-5 shrink-0" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12s5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24s8.955,20,20,20s20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z" fill="#FFC107" />
-                            <path d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z" fill="#FF3D00" />
-                            <path d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.222,0-9.657-3.356-11.303-7.962l-6.571,4.819C9.656,39.663,16.318,44,24,44z" fill="#4CAF50" />
-                            <path d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.574l6.19,5.238C41.38,34.464,44,29.561,44,24C44,22.659,43.862,21.35,43.611,20.083z" fill="#1976D2" />
-                          </svg>
-                          <span>Continue with Google</span>
-                        </>
-                      )}
-                    </button>
+                      {/* Google OAuth */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          triggerHaptic('light');
+                          handleGoogleSignIn();
+                        }}
+                        disabled={isEmailLoading || isGoogleLoading}
+                        className={`w-full min-h-[48px] flex justify-center items-center gap-3 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-semibold px-4 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-indigo-500 hover:bg-indigo-50/40 dark:hover:bg-indigo-950/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600/50 text-sm transition-all shadow-sm active:scale-[0.98] select-none ${
+                          isEmailLoading ? 'opacity-50 cursor-not-allowed' : isGoogleLoading ? 'cursor-wait' : ''
+                        }`}
+                      >
+                        {isGoogleLoading ? (
+                          <>
+                            <BrandSpinner variant="inline" size="sm" className="text-indigo-600 dark:text-indigo-400" />
+                            <span>Connecting Google...</span>
+                          </>
+                        ) : (
+                          <>
+                            <GoogleIcon />
+                            <span>Continue with Google</span>
+                          </>
+                        )}
+                      </button>
 
-                    <div className="relative my-1">
-                      <div aria-hidden="true" className="absolute inset-0 flex items-center">
-                        <div className="w-full border-t border-slate-200 dark:border-slate-800" />
+                      <div className="relative">
+                        <div aria-hidden="true" className="absolute inset-0 flex items-center">
+                          <div className="w-full border-t border-slate-200 dark:border-slate-800" />
+                        </div>
+                        <div className="relative flex justify-center text-xs">
+                          <span className="px-3 bg-white dark:bg-slate-900 text-slate-400 font-medium">
+                            or continue with email
+                          </span>
+                        </div>
                       </div>
-                      <div className="relative flex justify-center text-xs">
-                        <span className="px-3 bg-white dark:bg-slate-900 text-slate-400">
-                          Or continue with email
-                        </span>
-                      </div>
-                    </div>
 
-                    {/* Email Form */}
-                    <form onSubmit={handleContinueEmail} className="space-y-3">
-                      <div>
-                        <label
-                          htmlFor="email-input"
-                          className="block text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-200 mb-1"
+                      <form onSubmit={handleContinueEmail} noValidate className="space-y-4">
+                        <div>
+                          <label
+                            htmlFor="email-input"
+                            className="block text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-200 mb-1.5"
+                          >
+                            Email Address
+                          </label>
+                          <div className="relative flex items-center">
+                            <Mail
+                              className="w-4 h-4 text-slate-400 dark:text-slate-500 absolute left-3.5 pointer-events-none"
+                              aria-hidden="true"
+                            />
+                            <input
+                              ref={emailInputRef}
+                              id="email-input"
+                              name="email"
+                              type="email"
+                              inputMode="email"
+                              enterKeyHint="next"
+                              autoComplete="username"
+                              autoCorrect="off"
+                              autoCapitalize="none"
+                              spellCheck={false}
+                              required
+                              value={email}
+                              onChange={(e) => {
+                                setEmail(e.target.value);
+                                if (error) setError(null);
+                              }}
+                              aria-invalid={error ? 'true' : undefined}
+                              placeholder="Enter your email address"
+                              className="select-text block w-full pl-10 pr-4 min-h-[48px] bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 text-base sm:text-sm focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/20 transition-all shadow-sm"
+                            />
+                          </div>
+                        </div>
+
+                        <AnimatePresence>
+                          {error && (
+                            <motion.div
+                              role="alert"
+                              aria-live="assertive"
+                              initial={{ opacity: 0, y: -4 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, y: -4 }}
+                              className="flex items-start gap-2 p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 text-rose-600 dark:text-rose-400 text-xs font-medium"
+                            >
+                              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" aria-hidden="true" />
+                              <span>{error}</span>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+
+                        <button
+                          type="submit"
+                          className="w-full min-h-[48px] flex justify-center items-center gap-2 bg-indigo-600 text-white font-semibold px-4 rounded-xl hover:bg-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600/50 text-sm transition-all shadow-md shadow-indigo-500/20 active:scale-[0.98] select-none"
                         >
-                          Email Address
-                        </label>
-                        <input
-                          ref={emailInputRef}
-                          id="email-input"
-                          name="email"
-                          type="email"
-                          inputMode="email"
-                          enterKeyHint="next"
-                          autoComplete="username"
-                          value={email}
-                          onChange={(e) => setEmail(e.target.value)}
-                          placeholder="aspirant@mindflow.app"
-                          /* 16px font on mobile prevents iOS Safari auto-zoom bug */
-                          className="select-text block w-full px-4 min-h-[44px] h-12 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 text-base sm:text-sm focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/25 transition-all shadow-sm"
-                        />
-                      </div>
+                          <span>Continue</span>
+                        </button>
+                      </form>
 
-                      {/* Error Banner */}
+                      {/* Clear, Unmistakable Create Account Switch */}
+                      <div className="pt-1">
+                        <button
+                          type="button"
+                          data-testid="switch-to-signup-btn"
+                          onClick={handleOpenSignUp}
+                          className="w-full min-h-[48px] px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700/90 bg-slate-50/70 dark:bg-slate-800/50 hover:bg-slate-100/80 dark:hover:bg-slate-800 text-xs sm:text-sm text-slate-600 dark:text-slate-300 font-medium flex items-center justify-center gap-1.5 active:scale-[0.98] transition-all"
+                        >
+                          <span>New to MindFlow?</span>
+                          <span className="font-semibold text-indigo-600 dark:text-indigo-400">Create Account</span>
+                        </button>
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {view === 'signin-choose' && (
+                    /* ================= SCREEN 2: STACKED SIGN-IN METHOD CHOOSER ================= */
+                    <motion.div
+                      key="view-signin-choose"
+                      custom={direction}
+                      variants={slideVariants}
+                      initial="enter"
+                      animate="center"
+                      exit="exit"
+                      transition={{ duration: 0.2, ease: 'easeOut' }}
+                      data-testid="auth-view-signin-choose"
+                      className="w-full flex flex-col gap-4"
+                    >
+                      <ReadOnlyEmailField email={email} onChangeEmail={handleEditEmail} />
+
+                      {/* Error Alert (e.g., Unregistered Email DPDP Redirect or Lockout) */}
                       <AnimatePresence>
                         {error && (
                           <motion.div
                             role="alert"
                             aria-live="assertive"
-                            initial={{ opacity: 0, y: -4, height: 0 }}
-                            animate={{ opacity: 1, y: 0, height: 'auto' }}
-                            exit={{ opacity: 0, y: -4, height: 0 }}
-                            className="flex items-center gap-2 p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 text-rose-600 dark:text-rose-400 text-xs font-medium overflow-hidden"
+                            initial={{ opacity: 0, y: -4 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -4 }}
+                            className="flex flex-col gap-2.5 p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 text-rose-600 dark:text-rose-400 text-xs font-medium"
                           >
-                            <AlertCircle className="w-4 h-4 shrink-0" />
-                            <span>{error}</span>
+                            <div className="flex items-start gap-2">
+                              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" aria-hidden="true" />
+                              <span>{error}</span>
+                            </div>
+                            {signInOtpUnregistered && (
+                              <button
+                                type="button"
+                                data-testid="choose-create-account-instead-btn"
+                                onClick={handleOpenSignUp}
+                                className="self-start min-h-[44px] px-3.5 py-2 rounded-lg bg-indigo-600 text-white font-semibold text-xs hover:bg-indigo-700 active:scale-95 transition-all"
+                              >
+                                Create Account Instead
+                              </button>
+                            )}
                           </motion.div>
                         )}
                       </AnimatePresence>
 
-                      <button
-                        type="submit"
-                        className="w-full min-h-[44px] h-12 flex justify-center items-center gap-2 bg-indigo-600 text-white font-semibold px-4 rounded-xl hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-600/50 text-sm transition-all shadow-md shadow-indigo-500/20 active:scale-[0.98] active:brightness-95 select-none"
-                      >
-                        <span>Continue</span>
-                        <motion.svg
-                          className="w-4 h-4"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                          initial={{ x: 0 }}
-                          animate={{ x: [0, 4, 0] }}
-                          transition={{ repeat: Infinity, duration: 1.5, ease: 'easeInOut' }}
-                        >
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                        </motion.svg>
-                      </button>
-                    </form>
-                  </motion.div>
-                ) : step === 'credentials' ? (
-                  /* ================= STEP 2: CREDENTIALS (SIGN IN OR SIGN UP) ================= */
-                  <motion.div
-                    key="step-credentials"
-                    custom={direction}
-                    variants={slideVariants}
-                    initial="enter"
-                    animate="center"
-                    exit="exit"
-                    transition={{ duration: 0.22, ease: 'easeOut' }}
-                    className="w-full flex flex-col gap-3"
-                  >
-                    {/* Active Email Pill */}
-                    <div className="flex items-center justify-between px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs sm:text-sm">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
-                        <span className="font-medium text-slate-800 dark:text-slate-200 truncate">{email}</span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={handleBackToEmail}
-                        className="min-h-[44px] px-2 text-indigo-600 dark:text-indigo-400 font-semibold hover:underline flex items-center shrink-0"
-                      >
-                        Change
-                      </button>
-                    </div>
-
-                    {/* Mode: SIGN IN */}
-                    {mode === 'signin' ? (
-                      <div className="space-y-3">
-                        {/* Sign-In Method Toggle: Password | Email OTP */}
-                        <div
-                          role="tablist"
-                          aria-label="Sign-in method"
-                          className="w-full p-1 bg-slate-100 dark:bg-slate-800 rounded-xl grid grid-cols-2 gap-1 text-xs font-semibold"
-                        >
-                          <button
-                            type="button"
-                            role="tab"
-                            aria-selected={signInMethod === 'password'}
-                            data-testid="signin-method-password"
-                            onClick={() => handleSwitchSignInMethod('password')}
-                            className={`min-h-[44px] rounded-lg flex items-center justify-center gap-1.5 transition-all active:scale-95 ${
-                              signInMethod === 'password'
-                                ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm'
-                                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                            }`}
-                          >
-                            <Lock className="w-3.5 h-3.5" aria-hidden="true" />
-                            <span>Password</span>
-                          </button>
-                          <button
-                            type="button"
-                            role="tab"
-                            aria-selected={signInMethod === 'otp'}
-                            data-testid="signin-method-otp"
-                            onClick={() => handleSwitchSignInMethod('otp')}
-                            className={`min-h-[44px] rounded-lg flex items-center justify-center gap-1.5 transition-all active:scale-95 ${
-                              signInMethod === 'otp'
-                                ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm'
-                                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                            }`}
-                          >
-                            <KeyRound className="w-3.5 h-3.5" aria-hidden="true" />
-                            <span>Email OTP</span>
-                          </button>
+                      {lockoutRemaining > 0 && (
+                        <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300 text-xs flex items-center gap-2">
+                          <Clock className="w-4 h-4 text-amber-600 shrink-0" aria-hidden="true" />
+                          <span>Too many attempts. Lockout active: <strong>{lockoutRemaining}s</strong></span>
                         </div>
+                      )}
 
-                        {signInMethod === 'password' ? (
-                          <form onSubmit={handleSignIn} className="space-y-3">
-                            {/* Hidden username for password manager compliance */}
-                            <input type="email" name="username" value={email} autoComplete="username" tabIndex={-1} className="sr-only" readOnly />
+                      {/* Two Vertically Stacked Method Buttons (Zero Tabs) */}
+                      <div className="flex flex-col gap-3 pt-1">
+                        <button
+                          type="button"
+                          data-testid="choose-login-password"
+                          onClick={() => {
+                            triggerHaptic('light');
+                            transitionToView('signin-password', 1);
+                          }}
+                          disabled={isSendingSignInOtp || isSendingRecovery}
+                          className="w-full min-h-[52px] px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm flex items-center justify-between shadow-md shadow-indigo-500/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600/50 active:scale-[0.98] transition-all disabled:opacity-60"
+                        >
+                          <span className="flex items-center gap-3">
+                            <Lock className="w-4 h-4 shrink-0" aria-hidden="true" />
+                            <span>Login with Password</span>
+                          </span>
+                          <ChevronRight className="w-4 h-4 shrink-0 opacity-85" aria-hidden="true" />
+                        </button>
 
-                            <div>
-                              <div className="flex justify-between items-baseline mb-1">
-                                <label
-                                  htmlFor="password-input"
-                                  className="block text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-200"
-                                >
-                                  Password
-                                </label>
-                                <button
-                                  type="button"
-                                  onClick={handleForgotPassword}
-                                  disabled={isEmailLoading || forgotPasswordCooldown > 0}
-                                  className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline disabled:opacity-50 min-h-[44px] flex items-center"
-                                >
-                                  {forgotPasswordCooldown > 0
-                                    ? `Retry in ${forgotPasswordCooldown}s`
-                                    : 'Forgot Password?'}
-                                </button>
-                              </div>
+                        <button
+                          type="button"
+                          data-testid="choose-login-otp"
+                          onClick={() => {
+                            triggerHaptic('light');
+                            void handleSendSignInOtp(true);
+                          }}
+                          disabled={isSendingSignInOtp || isSendingRecovery || lockoutRemaining > 0}
+                          className="w-full min-h-[52px] px-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-indigo-500 hover:bg-indigo-50/40 dark:hover:bg-indigo-950/30 text-slate-900 dark:text-white font-semibold text-sm flex items-center justify-between shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600/50 active:scale-[0.98] transition-all disabled:opacity-60"
+                        >
+                          {isSendingSignInOtp ? (
+                            <span className="flex items-center gap-3 mx-auto">
+                              <BrandSpinner variant="inline" size="sm" className="text-indigo-600 dark:text-indigo-400" />
+                              <span>Sending 6-Digit Code...</span>
+                            </span>
+                          ) : (
+                            <>
+                              <span className="flex items-center gap-3">
+                                <KeyRound className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0" aria-hidden="true" />
+                                <span>Login with Email OTP</span>
+                              </span>
+                              <ChevronRight className="w-4 h-4 text-slate-400 shrink-0" aria-hidden="true" />
+                            </>
+                          )}
+                        </button>
+                      </div>
 
-                              <div className="relative">
-                                <input
-                                  ref={passwordInputRef}
-                                  id="password-input"
-                                  name="password"
-                                  type={showPassword ? 'text' : 'password'}
-                                  enterKeyHint="go"
-                                  autoComplete="current-password"
-                                  value={password}
-                                  onChange={(e) => setPassword(e.target.value)}
-                                  placeholder="••••••••"
-                                  /* 16px on mobile prevents iOS Safari auto-zoom */
-                                  className="select-text block w-full px-4 pr-12 min-h-[44px] h-12 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 text-base sm:text-sm focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/25 transition-all shadow-sm"
-                                />
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    triggerHaptic('light');
-                                    setShowPassword(!showPassword);
-                                  }}
-                                  aria-label={showPassword ? 'Hide password' : 'Show password'}
-                                  className="absolute inset-y-0 right-0 min-w-[44px] w-12 flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 active:scale-95 transition-all"
-                                >
-                                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                                </button>
-                              </div>
-                            </div>
+                      {/* Subtle Hyperlink: Forgot Password */}
+                      <div className="flex justify-center pt-1">
+                        <button
+                          type="button"
+                          data-testid="choose-forgot-password"
+                          onClick={() => void handleForgotPassword()}
+                          disabled={isSendingRecovery || isSendingSignInOtp}
+                          className="min-h-[44px] px-3 inline-flex items-center justify-center text-xs sm:text-sm font-semibold text-indigo-600 dark:text-indigo-400 hover:underline active:scale-95 transition-all disabled:opacity-50"
+                        >
+                          {isSendingRecovery
+                            ? 'Sending Reset Code...'
+                            : forgotPasswordCooldown > 0
+                            ? `Reset Code Sent (${forgotPasswordCooldown}s)`
+                            : 'Forgot Password?'}
+                        </button>
+                      </div>
+                    </motion.div>
+                  )}
 
-                            {/* Forgot Password Confirmation + In-App Recovery OTP */}
-                            {forgotPasswordSent && (
-                              <div
-                                data-testid="recovery-otp-card"
-                                className="p-3.5 bg-emerald-50/90 dark:bg-emerald-950/35 border border-emerald-200 dark:border-emerald-800/60 rounded-2xl space-y-3"
-                              >
-                                <div className="text-xs text-emerald-800 dark:text-emerald-300 flex items-start gap-2">
-                                  <Mail className="w-4 h-4 shrink-0 text-emerald-600 dark:text-emerald-400 mt-0.5" />
-                                  <div>
-                                    <p className="font-semibold">Reset code &amp; link dispatched!</p>
-                                    <p className="mt-0.5 text-[11px] text-emerald-700 dark:text-emerald-400">
-                                      Enter the 6-digit recovery code below right away, or click the reset link in your inbox.
-                                    </p>
-                                  </div>
-                                </div>
+                  {view === 'signin-password' && (
+                    /* ================= SCREEN 3A: LOGIN WITH PASSWORD ================= */
+                    <motion.div
+                      key="view-signin-password"
+                      custom={direction}
+                      variants={slideVariants}
+                      initial="enter"
+                      animate="center"
+                      exit="exit"
+                      transition={{ duration: 0.2, ease: 'easeOut' }}
+                      data-testid="auth-view-signin-password"
+                      className="w-full flex flex-col gap-4"
+                    >
+                      <ReadOnlyEmailField email={email} onChangeEmail={handleEditEmail} />
 
-                                <EmailOtpInput
-                                  asForm={false}
-                                  value={recoveryOtpCode}
-                                  onChange={(next) => {
-                                    setRecoveryOtpCode(next);
-                                    if (error) setError(null);
-                                  }}
-                                  onSubmit={handleVerifyRecoveryOtp}
-                                  onResend={handleForgotPassword}
-                                  resendCooldown={forgotPasswordCooldown}
-                                  isVerifying={isVerifyingRecoveryOtp}
-                                  isResending={isEmailLoading}
-                                  label="6-Digit Recovery Code"
-                                  hint="Check your inbox or spam folder for the reset code."
-                                  submitLabel="Verify Recovery Code"
-                                  verifyingLabel="Verifying Recovery Code..."
-                                  resendLabel="Resend Reset Code"
-                                  error={error}
-                                  testIdPrefix="recovery-otp"
-                                />
-                              </div>
-                            )}
+                      <form onSubmit={handleSignIn} noValidate className="space-y-4">
+                        {/* Hidden username for browser Password Manager autofill compliance */}
+                        <input
+                          type="email"
+                          name="username"
+                          value={email}
+                          autoComplete="username"
+                          tabIndex={-1}
+                          className="sr-only"
+                          readOnly
+                        />
 
-                            {/* Error Alert */}
-                            <AnimatePresence>
-                              {error && (
-                                <motion.div
-                                  role="alert"
-                                  aria-live="assertive"
-                                  initial={{ opacity: 0, y: -4, height: 'auto' }}
-                                  animate={{ opacity: 1, y: 0, height: 'auto' }}
-                                  exit={{ opacity: 0, y: -4, height: 0 }}
-                                  className="flex flex-col gap-2 p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 text-rose-600 dark:text-rose-400 text-xs font-medium"
-                                >
-                                  <div className="flex items-center gap-2">
-                                    <AlertCircle className="w-4 h-4 shrink-0" />
-                                    <span>{error}</span>
-                                  </div>
-
-                                  {/* Resend Confirmation Email Action */}
-                                  {isEmailNotConfirmed && (
-                                    <button
-                                      type="button"
-                                      onClick={handleResendConfirmation}
-                                      disabled={isResendingConfirmation}
-                                      className="self-start mt-1 min-h-[44px] px-3 py-2 rounded-lg bg-rose-600 text-white font-semibold text-xs hover:bg-rose-700 active:scale-95 transition-all flex items-center gap-1.5"
-                                    >
-                                      {isResendingConfirmation ? (
-                                        <>
-                                          <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                                          <span>Resending...</span>
-                                        </>
-                                      ) : (
-                                        <>
-                                          <Mail className="w-3.5 h-3.5" />
-                                          <span>Resend Confirmation Email</span>
-                                        </>
-                                      )}
-                                    </button>
-                                  )}
-                                </motion.div>
-                              )}
-                            </AnimatePresence>
-
-                            {/* Rate Limit Lockout Banner */}
-                            {lockoutRemaining > 0 && (
-                              <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300 text-xs flex items-center gap-2">
-                                <Clock className="w-4 h-4 text-amber-600" />
-                                <span>Too many attempts. Lockout active: <strong>{lockoutRemaining}s</strong></span>
-                              </div>
-                            )}
-
-                            {/* Sign In Submit Button */}
-                            <button
-                              type="submit"
-                              disabled={isEmailLoading || isGoogleLoading || lockoutRemaining > 0}
-                              className="w-full min-h-[44px] h-12 flex justify-center items-center gap-2 bg-indigo-600 text-white font-semibold px-4 rounded-xl hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-600/50 text-sm transition-all shadow-md shadow-indigo-500/20 active:scale-[0.98] active:brightness-95 select-none disabled:opacity-50"
+                        <div>
+                          <div className="flex justify-between items-center mb-1">
+                            <label
+                              htmlFor="password-input"
+                              className="block text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-200"
                             >
-                              {isEmailLoading ? (
-                                <>
-                                  <BrandSpinner variant="inline" size="sm" />
-                                  <span>Signing In...</span>
-                                </>
-                              ) : (
-                                <span>Sign In</span>
-                              )}
+                              Password
+                            </label>
+                            <button
+                              type="button"
+                              onClick={() => void handleForgotPassword()}
+                              disabled={isEmailLoading || isSendingRecovery}
+                              className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline disabled:opacity-50 min-h-[44px] flex items-center px-1"
+                            >
+                              {forgotPasswordCooldown > 0
+                                ? `Retry in ${forgotPasswordCooldown}s`
+                                : 'Forgot Password?'}
                             </button>
-                          </form>
-                        ) : (
-                          /* Passwordless Email OTP Sign-In Panel */
-                          <div className="space-y-3" data-testid="signin-otp-panel">
-                            {!signInOtpSent ? (
-                              <div className="space-y-3">
-                                <div className="p-3.5 rounded-2xl bg-indigo-50/70 dark:bg-indigo-950/35 border border-indigo-200/80 dark:border-indigo-800/60 text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
-                                  We will email a one-time <strong>6-digit sign-in code</strong> to{' '}
-                                  <span className="font-semibold text-slate-900 dark:text-white break-all">{email}</span>.
-                                  No password needed for existing accounts.
-                                </div>
-
-                                {/* Error Alert (including unregistered -> Create Account DPDP guidance) */}
-                                <AnimatePresence>
-                                  {error && (
-                                    <motion.div
-                                      role="alert"
-                                      aria-live="assertive"
-                                      initial={{ opacity: 0, y: -4, height: 'auto' }}
-                                      animate={{ opacity: 1, y: 0, height: 'auto' }}
-                                      exit={{ opacity: 0, y: -4, height: 0 }}
-                                      className="flex flex-col gap-2 p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 text-rose-600 dark:text-rose-400 text-xs font-medium"
-                                    >
-                                      <div className="flex items-center gap-2">
-                                        <AlertCircle className="w-4 h-4 shrink-0" />
-                                        <span>{error}</span>
-                                      </div>
-                                      {signInOtpUnregistered && (
-                                        <button
-                                          type="button"
-                                          onClick={() => handleSwitchMode('signup')}
-                                          className="self-start min-h-[44px] px-3 py-2 rounded-lg bg-indigo-600 text-white font-semibold text-xs hover:bg-indigo-700 active:scale-95 transition-all"
-                                        >
-                                          Create Account Instead
-                                        </button>
-                                      )}
-                                    </motion.div>
-                                  )}
-                                </AnimatePresence>
-
-                                {lockoutRemaining > 0 && (
-                                  <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300 text-xs flex items-center gap-2">
-                                    <Clock className="w-4 h-4 text-amber-600" />
-                                    <span>Too many attempts. Lockout active: <strong>{lockoutRemaining}s</strong></span>
-                                  </div>
-                                )}
-
-                                <button
-                                  type="button"
-                                  data-testid="signin-send-otp-btn"
-                                  onClick={handleSendSignInOtp}
-                                  disabled={isSendingSignInOtp || lockoutRemaining > 0 || signInOtpCooldown > 0}
-                                  className="w-full min-h-[44px] h-12 flex justify-center items-center gap-2 bg-indigo-600 text-white font-semibold px-4 rounded-xl hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-600/50 text-sm transition-all shadow-md shadow-indigo-500/20 active:scale-95 select-none disabled:opacity-50"
-                                >
-                                  {isSendingSignInOtp ? (
-                                    <>
-                                      <BrandSpinner variant="inline" size="sm" />
-                                      <span>Sending Code...</span>
-                                    </>
-                                  ) : (
-                                    <>
-                                      <Mail className="w-4 h-4" aria-hidden="true" />
-                                      <span>Send 6-Digit Sign-In Code</span>
-                                    </>
-                                  )}
-                                </button>
-                              </div>
-                            ) : (
-                              <div className="space-y-3">
-                                {successNotice && (
-                                  <div
-                                    role="status"
-                                    aria-live="polite"
-                                    className="flex items-start gap-2 p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 text-xs"
-                                  >
-                                    <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600 mt-0.5" />
-                                    <span>{successNotice}</span>
-                                  </div>
-                                )}
-
-                                {error && (
-                                  <div
-                                    role="alert"
-                                    aria-live="assertive"
-                                    className="flex items-start gap-2 p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 text-rose-600 dark:text-rose-400 text-xs font-medium"
-                                  >
-                                    <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                                    <span>{error}</span>
-                                  </div>
-                                )}
-
-                                {lockoutRemaining > 0 && (
-                                  <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300 text-xs flex items-center gap-2">
-                                    <Clock className="w-4 h-4 text-amber-600" />
-                                    <span>Too many attempts. Lockout active: <strong>{lockoutRemaining}s</strong></span>
-                                  </div>
-                                )}
-
-                                <EmailOtpInput
-                                  autoFocus
-                                  value={otpCode}
-                                  onChange={(next) => {
-                                    setOtpCode(next);
-                                    if (error) setError(null);
-                                  }}
-                                  onSubmit={handleVerifySignInOtp}
-                                  onResend={handleSendSignInOtp}
-                                  resendCooldown={signInOtpCooldown}
-                                  isVerifying={isVerifyingOtp}
-                                  isResending={isSendingSignInOtp}
-                                  disabled={lockoutRemaining > 0}
-                                  label="6-Digit Sign-In Code"
-                                  hint={`Enter or paste the 6-digit code sent to ${email}.`}
-                                  submitLabel="Verify & Sign In"
-                                  verifyingLabel="Signing In..."
-                                  resendLabel="Resend Sign-In Code"
-                                  error={error}
-                                  testIdPrefix="signin-otp"
-                                />
-                              </div>
-                            )}
                           </div>
-                        )}
 
-                        {/* Step 2 New Aspirant Rescue Action */}
-                        <div className="pt-1 text-center">
-                          <button
-                            type="button"
-                            onClick={() => handleSwitchMode('signup')}
-                            className="min-h-[44px] text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline px-2 py-1 active:scale-95 transition-transform"
-                          >
-                            New to MindFlow? Create an account with this email
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      /* Mode: SIGN UP */
-                      <form onSubmit={handleSignUp} className="space-y-3">
-                        <input type="email" name="username" value={email} autoComplete="username" tabIndex={-1} className="sr-only" readOnly />
-
-                        {/* Full Name */}
-                        <div>
-                          <label htmlFor="fullname-input" className="block text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-200 mb-1">
-                            Full Name
-                          </label>
-                          <input
-                            ref={fullNameInputRef}
-                            id="fullname-input"
-                            type="text"
-                            enterKeyHint="next"
-                            autoComplete="name"
-                            value={fullName}
-                            onChange={(e) => setFullName(e.target.value)}
-                            placeholder="Aspirant Name"
-                            className="select-text block w-full px-4 min-h-[44px] h-12 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 text-base sm:text-sm focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/25 transition-all shadow-sm"
-                          />
-                        </div>
-
-                        {/* Password & Strength Meter */}
-                        <div>
-                          <label htmlFor="signup-password" className="block text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-200 mb-1">
-                            Choose Password
-                          </label>
-                          <div className="relative">
+                          <div className="relative flex items-center">
+                            <Lock
+                              className="w-4 h-4 text-slate-400 dark:text-slate-500 absolute left-3.5 pointer-events-none"
+                              aria-hidden="true"
+                            />
                             <input
-                              id="signup-password"
+                              ref={passwordInputRef}
+                              id="password-input"
+                              name="password"
                               type={showPassword ? 'text' : 'password'}
-                              enterKeyHint="next"
-                              autoComplete="new-password"
+                              enterKeyHint="go"
+                              autoComplete="current-password"
+                              required
                               value={password}
-                              onChange={(e) => setPassword(e.target.value)}
-                              placeholder="At least 8 characters"
-                              className="select-text block w-full px-4 pr-12 min-h-[44px] h-12 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 text-base sm:text-sm focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/25 transition-all shadow-sm"
+                              onChange={(e) => {
+                                setPassword(e.target.value);
+                                if (error) setError(null);
+                              }}
+                              aria-invalid={error ? 'true' : undefined}
+                              placeholder="Enter your password"
+                              className="select-text block w-full pl-10 pr-12 min-h-[48px] bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 text-base sm:text-sm focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/20 transition-all shadow-sm"
                             />
                             <button
                               type="button"
                               onClick={() => {
                                 triggerHaptic('light');
-                                setShowPassword(!showPassword);
+                                setShowPassword((prev) => !prev);
                               }}
+                              aria-pressed={showPassword}
+                              aria-label={showPassword ? 'Hide password' : 'Show password'}
+                              className="absolute inset-y-0 right-0 min-w-[44px] w-12 flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 active:scale-95 transition-all"
+                            >
+                              {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                            </button>
+                          </div>
+                        </div>
+
+                        <AnimatePresence>
+                          {error && (
+                            <motion.div
+                              role="alert"
+                              aria-live="assertive"
+                              initial={{ opacity: 0, y: -4 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, y: -4 }}
+                              className="flex flex-col gap-2 p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 text-rose-600 dark:text-rose-400 text-xs font-medium"
+                            >
+                              <div className="flex items-start gap-2">
+                                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" aria-hidden="true" />
+                                <span>{error}</span>
+                              </div>
+                              {isEmailNotConfirmed && (
+                                <button
+                                  type="button"
+                                  onClick={handleResendConfirmation}
+                                  disabled={isResendingConfirmation}
+                                  className="self-start mt-1 min-h-[44px] px-3 py-2 rounded-lg bg-rose-600 text-white font-semibold text-xs hover:bg-rose-700 active:scale-95 transition-all flex items-center gap-1.5"
+                                >
+                                  {isResendingConfirmation ? (
+                                    <>
+                                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                                      <span>Resending...</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Mail className="w-3.5 h-3.5" />
+                                      <span>Resend Confirmation Email</span>
+                                    </>
+                                  )}
+                                </button>
+                              )}
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+
+                        {lockoutRemaining > 0 && (
+                          <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300 text-xs flex items-center gap-2">
+                            <Clock className="w-4 h-4 text-amber-600 shrink-0" aria-hidden="true" />
+                            <span>Too many attempts. Lockout active: <strong>{lockoutRemaining}s</strong></span>
+                          </div>
+                        )}
+
+                        <button
+                          type="submit"
+                          disabled={isEmailLoading || isGoogleLoading || lockoutRemaining > 0}
+                          className="w-full min-h-[48px] flex justify-center items-center gap-2 bg-indigo-600 text-white font-semibold px-4 rounded-xl hover:bg-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600/50 text-sm transition-all shadow-md shadow-indigo-500/20 active:scale-[0.98] select-none disabled:opacity-50"
+                        >
+                          {isEmailLoading ? (
+                            <>
+                              <BrandSpinner variant="inline" size="sm" />
+                              <span>Signing In...</span>
+                            </>
+                          ) : (
+                            <span>Sign In</span>
+                          )}
+                        </button>
+                      </form>
+
+                      <div className="flex justify-center">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            triggerHaptic('light');
+                            void handleSendSignInOtp(true);
+                          }}
+                          disabled={isSendingSignInOtp || isEmailLoading}
+                          className="min-h-[44px] px-3 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 active:scale-95 transition-all"
+                        >
+                          {isSendingSignInOtp ? 'Sending 6-Digit Code...' : 'Login with Email OTP instead'}
+                        </button>
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {view === 'signin-otp' && (
+                    /* ================= SCREEN 3B: LOGIN WITH EMAIL OTP ================= */
+                    <motion.div
+                      key="view-signin-otp"
+                      custom={direction}
+                      variants={slideVariants}
+                      initial="enter"
+                      animate="center"
+                      exit="exit"
+                      transition={{ duration: 0.2, ease: 'easeOut' }}
+                      data-testid="auth-view-signin-otp"
+                      className="w-full flex flex-col gap-4"
+                    >
+                      <ReadOnlyEmailField email={email} onChangeEmail={handleEditEmail} />
+
+                      {successNotice && (
+                        <div
+                          role="status"
+                          aria-live="polite"
+                          className="flex items-start gap-2 p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 text-xs"
+                        >
+                          <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600 mt-0.5" aria-hidden="true" />
+                          <span>{successNotice}</span>
+                        </div>
+                      )}
+
+                      {error && (
+                        <div
+                          role="alert"
+                          aria-live="assertive"
+                          className="flex items-start gap-2 p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 text-rose-600 dark:text-rose-400 text-xs font-medium"
+                        >
+                          <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" aria-hidden="true" />
+                          <span>{error}</span>
+                        </div>
+                      )}
+
+                      {lockoutRemaining > 0 && (
+                        <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300 text-xs flex items-center gap-2">
+                          <Clock className="w-4 h-4 text-amber-600 shrink-0" aria-hidden="true" />
+                          <span>Too many attempts. Lockout active: <strong>{lockoutRemaining}s</strong></span>
+                        </div>
+                      )}
+
+                      <EmailOtpInput
+                        autoFocus
+                        value={otpCode}
+                        onChange={(next) => {
+                          setOtpCode(next);
+                          if (error) setError(null);
+                        }}
+                        onSubmit={handleVerifySignInOtp}
+                        onResend={() => void handleSendSignInOtp(false)}
+                        resendCooldown={signInOtpCooldown}
+                        isVerifying={isVerifyingOtp}
+                        isResending={isSendingSignInOtp}
+                        disabled={lockoutRemaining > 0}
+                        label="6-Digit Sign-In Code"
+                        hint="Enter or paste the 6-digit code from your email."
+                        submitLabel="Verify & Sign In"
+                        verifyingLabel="Signing In..."
+                        resendLabel="Resend Sign-In Code"
+                        error={error}
+                        testIdPrefix="signin-otp"
+                      />
+
+                      <div className="flex justify-center">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            triggerHaptic('light');
+                            transitionToView('signin-password', -1);
+                          }}
+                          className="min-h-[44px] px-3 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 active:scale-95 transition-all"
+                        >
+                          Login with Password instead
+                        </button>
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {view === 'signin-recovery' && (
+                    /* ================= SCREEN 3C: DEDICATED RECOVERY OTP ================= */
+                    <motion.div
+                      key="view-signin-recovery"
+                      custom={direction}
+                      variants={slideVariants}
+                      initial="enter"
+                      animate="center"
+                      exit="exit"
+                      transition={{ duration: 0.2, ease: 'easeOut' }}
+                      data-testid="recovery-otp-card"
+                      className="w-full flex flex-col gap-4"
+                    >
+                      <ReadOnlyEmailField email={email} onChangeEmail={handleEditEmail} />
+
+                      {successNotice && (
+                        <div
+                          role="status"
+                          aria-live="polite"
+                          className="flex items-start gap-2 p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 text-xs"
+                        >
+                          <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600 mt-0.5" aria-hidden="true" />
+                          <span>{successNotice}</span>
+                        </div>
+                      )}
+
+                      {error && (
+                        <div
+                          role="alert"
+                          aria-live="assertive"
+                          className="flex items-start gap-2 p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 text-rose-600 dark:text-rose-400 text-xs font-medium"
+                        >
+                          <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" aria-hidden="true" />
+                          <span>{error}</span>
+                        </div>
+                      )}
+
+                      <EmailOtpInput
+                        autoFocus
+                        value={recoveryOtpCode}
+                        onChange={(next) => {
+                          setRecoveryOtpCode(next);
+                          if (error) setError(null);
+                        }}
+                        onSubmit={handleVerifyRecoveryOtp}
+                        onResend={() => void handleForgotPassword()}
+                        resendCooldown={forgotPasswordCooldown}
+                        isVerifying={isVerifyingRecoveryOtp}
+                        isResending={isSendingRecovery}
+                        label="6-Digit Recovery Code"
+                        hint="Enter the recovery code from your inbox, or click the reset link."
+                        submitLabel="Verify Recovery Code"
+                        verifyingLabel="Verifying Recovery Code..."
+                        resendLabel="Resend Reset Code"
+                        error={error}
+                        testIdPrefix="recovery-otp"
+                      />
+                    </motion.div>
+                  )}
+
+                  {view === 'signup' && (
+                    /* ================= SCREEN 4: SINGLE VERTICAL CREATE ACCOUNT ================= */
+                    <motion.div
+                      key="view-signup"
+                      custom={direction}
+                      variants={slideVariants}
+                      initial="enter"
+                      animate="center"
+                      exit="exit"
+                      transition={{ duration: 0.2, ease: 'easeOut' }}
+                      data-testid="auth-view-signup"
+                      className="w-full flex flex-col gap-3.5"
+                    >
+                      <button
+                        type="button"
+                        onClick={() => {
+                          triggerHaptic('light');
+                          handleGoogleSignIn();
+                        }}
+                        disabled={isEmailLoading || isGoogleLoading}
+                        className={`w-full min-h-[48px] flex justify-center items-center gap-3 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-semibold px-4 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-indigo-500 hover:bg-indigo-50/40 dark:hover:bg-indigo-950/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600/50 text-sm transition-all shadow-sm active:scale-[0.98] select-none ${
+                          isEmailLoading ? 'opacity-50 cursor-not-allowed' : isGoogleLoading ? 'cursor-wait' : ''
+                        }`}
+                      >
+                        {isGoogleLoading ? (
+                          <>
+                            <BrandSpinner variant="inline" size="sm" className="text-indigo-600 dark:text-indigo-400" />
+                            <span>Connecting Google...</span>
+                          </>
+                        ) : (
+                          <>
+                            <GoogleIcon />
+                            <span>Sign up with Google</span>
+                          </>
+                        )}
+                      </button>
+
+                      <div className="relative">
+                        <div aria-hidden="true" className="absolute inset-0 flex items-center">
+                          <div className="w-full border-t border-slate-200 dark:border-slate-800" />
+                        </div>
+                        <div className="relative flex justify-center text-xs">
+                          <span className="px-3 bg-white dark:bg-slate-900 text-slate-400 font-medium">
+                            or sign up with email
+                          </span>
+                        </div>
+                      </div>
+
+                      <form onSubmit={handleSignUp} noValidate className="space-y-3.5">
+                        {/* Full Name */}
+                        <div>
+                          <label
+                            htmlFor="fullname-input"
+                            className="block text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-200 mb-1"
+                          >
+                            Full Name
+                          </label>
+                          <div className="relative flex items-center">
+                            <User
+                              className="w-4 h-4 text-slate-400 dark:text-slate-500 absolute left-3.5 pointer-events-none"
+                              aria-hidden="true"
+                            />
+                            <input
+                              ref={fullNameInputRef}
+                              id="fullname-input"
+                              name="full-name"
+                              type="text"
+                              enterKeyHint="next"
+                              autoComplete="name"
+                              required
+                              value={fullName}
+                              onChange={(e) => {
+                                setFullName(e.target.value);
+                                if (error) setError(null);
+                              }}
+                              placeholder="Enter your full name"
+                              className="select-text block w-full pl-10 pr-4 min-h-[48px] bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 text-base sm:text-sm focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/20 transition-all shadow-sm"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Email Address */}
+                        <div>
+                          <label
+                            htmlFor="signup-email-input"
+                            className="block text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-200 mb-1"
+                          >
+                            Email Address
+                          </label>
+                          <div className="relative flex items-center">
+                            <Mail
+                              className="w-4 h-4 text-slate-400 dark:text-slate-500 absolute left-3.5 pointer-events-none"
+                              aria-hidden="true"
+                            />
+                            <input
+                              ref={signupEmailInputRef}
+                              id="signup-email-input"
+                              name="email"
+                              type="email"
+                              inputMode="email"
+                              enterKeyHint="next"
+                              autoComplete="username"
+                              autoCorrect="off"
+                              autoCapitalize="none"
+                              spellCheck={false}
+                              required
+                              value={email}
+                              onChange={(e) => {
+                                setEmail(e.target.value);
+                                if (error) setError(null);
+                              }}
+                              placeholder="Enter your email address"
+                              className="select-text block w-full pl-10 pr-4 min-h-[48px] bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 text-base sm:text-sm focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/20 transition-all shadow-sm"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Password & Strength Meter */}
+                        <div>
+                          <label
+                            htmlFor="signup-password"
+                            className="block text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-200 mb-1"
+                          >
+                            Choose Password
+                          </label>
+                          <div className="relative flex items-center">
+                            <Lock
+                              className="w-4 h-4 text-slate-400 dark:text-slate-500 absolute left-3.5 pointer-events-none"
+                              aria-hidden="true"
+                            />
+                            <input
+                              ref={signupPasswordInputRef}
+                              id="signup-password"
+                              name="new-password"
+                              type={showPassword ? 'text' : 'password'}
+                              enterKeyHint="next"
+                              autoComplete="new-password"
+                              required
+                              value={password}
+                              onChange={(e) => {
+                                setPassword(e.target.value);
+                                if (error) setError(null);
+                              }}
+                              placeholder="At least 8 characters"
+                              className="select-text block w-full pl-10 pr-12 min-h-[48px] bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 text-base sm:text-sm focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/20 transition-all shadow-sm"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                triggerHaptic('light');
+                                setShowPassword((prev) => !prev);
+                              }}
+                              aria-pressed={showPassword}
                               aria-label={showPassword ? 'Hide password' : 'Show password'}
                               className="absolute inset-y-0 right-0 min-w-[44px] w-12 flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 active:scale-95 transition-all"
                             >
@@ -1683,26 +1980,39 @@ export const AuthPage: React.FC<AuthPageProps> = ({
 
                         {/* Confirm Password */}
                         <div>
-                          <label htmlFor="confirm-password" className="block text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-200 mb-1">
+                          <label
+                            htmlFor="confirm-password"
+                            className="block text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-200 mb-1"
+                          >
                             Confirm Password
                           </label>
-                          <div className="relative">
+                          <div className="relative flex items-center">
+                            <Lock
+                              className="w-4 h-4 text-slate-400 dark:text-slate-500 absolute left-3.5 pointer-events-none"
+                              aria-hidden="true"
+                            />
                             <input
                               id="confirm-password"
+                              name="confirm-password"
                               type={showConfirmPassword ? 'text' : 'password'}
                               enterKeyHint="done"
                               autoComplete="new-password"
+                              required
                               value={confirmPassword}
-                              onChange={(e) => setConfirmPassword(e.target.value)}
-                              placeholder="Confirm password"
-                              className="select-text block w-full px-4 pr-12 min-h-[44px] h-12 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 text-base sm:text-sm focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/25 transition-all shadow-sm"
+                              onChange={(e) => {
+                                setConfirmPassword(e.target.value);
+                                if (error) setError(null);
+                              }}
+                              placeholder="Re-enter password"
+                              className="select-text block w-full pl-10 pr-12 min-h-[48px] bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 text-base sm:text-sm focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/20 transition-all shadow-sm"
                             />
                             <button
                               type="button"
                               onClick={() => {
                                 triggerHaptic('light');
-                                setShowConfirmPassword(!showConfirmPassword);
+                                setShowConfirmPassword((prev) => !prev);
                               }}
+                              aria-pressed={showConfirmPassword}
                               aria-label={showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'}
                               className="absolute inset-y-0 right-0 min-w-[44px] w-12 flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 active:scale-95 transition-all"
                             >
@@ -1712,7 +2022,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                         </div>
 
                         {/* DPDP Act 2023 Statutory Minor / Learner Consent Clause */}
-                        <div className="flex items-start gap-2.5 pt-1">
+                        <div className="flex items-start gap-2.5 pt-0.5">
                           <input
                             id="terms-consent"
                             type="checkbox"
@@ -1722,7 +2032,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                               setAgreedToTerms(e.target.checked);
                               if (error) setError(null);
                             }}
-                            className="mt-1 w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer shrink-0"
+                            className="mt-1 w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer shrink-0 accent-indigo-600"
                           />
                           <label htmlFor="terms-consent" className="text-xs text-slate-600 dark:text-slate-300 leading-normal select-none">
                             I confirm I am 18+, or have parental/guardian consent if under 18, and agree to the{' '}
@@ -1761,27 +2071,27 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                             <motion.div
                               role="alert"
                               aria-live="assertive"
-                              initial={{ opacity: 0, y: -4, height: 'auto' }}
-                              animate={{ opacity: 1, y: 0, height: 'auto' }}
-                              exit={{ opacity: 0, y: -4, height: 0 }}
+                              initial={{ opacity: 0, y: -4 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, y: -4 }}
                               className="flex flex-col gap-2 p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 text-rose-600 dark:text-rose-400 text-xs font-medium"
                             >
-                              <div className="flex items-center gap-2">
-                                <AlertCircle className="w-4 h-4 shrink-0" />
+                              <div className="flex items-start gap-2">
+                                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" aria-hidden="true" />
                                 <span>{error}</span>
                               </div>
                               {existingAccountNotice && (
                                 <div className="flex flex-wrap items-center gap-2 pt-1">
                                   <button
                                     type="button"
-                                    onClick={() => handleSwitchMode('signin')}
+                                    onClick={handleOpenSignIn}
                                     className="min-h-[44px] px-3 py-2 rounded-lg bg-indigo-600 text-white font-semibold text-xs hover:bg-indigo-700 active:scale-95 transition-all"
                                   >
                                     Sign In Instead
                                   </button>
                                   <button
                                     type="button"
-                                    onClick={handleForgotPassword}
+                                    onClick={() => void handleForgotPassword()}
                                     disabled={isEmailLoading || forgotPasswordCooldown > 0}
                                     className="min-h-[44px] px-3 py-2 rounded-lg border border-rose-300 dark:border-rose-700 bg-white dark:bg-slate-900 text-rose-700 dark:text-rose-300 font-semibold text-xs hover:bg-rose-50 dark:hover:bg-rose-950/60 active:scale-95 transition-all disabled:opacity-50"
                                   >
@@ -1841,33 +2151,22 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                             <motion.div
                               role="status"
                               aria-live="polite"
-                              initial={{ opacity: 0, y: -4, height: 'auto' }}
-                              animate={{ opacity: 1, y: 0, height: 'auto' }}
-                              exit={{ opacity: 0, y: -4, height: 0 }}
-                              className="flex flex-col gap-2 p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 text-xs"
+                              initial={{ opacity: 0, y: -4 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, y: -4 }}
+                              className="flex items-start gap-2 p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 text-xs"
                             >
-                              <div className="flex items-start gap-2">
-                                <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600 mt-0.5" />
-                                <span>{successNotice}</span>
-                              </div>
-                              <button
-                                type="button"
-                                onClick={handleResendConfirmation}
-                                disabled={isResendingConfirmation}
-                                className="self-start min-h-[44px] px-3 py-2 rounded-lg border border-emerald-300 dark:border-emerald-700 bg-white dark:bg-slate-900 text-emerald-700 dark:text-emerald-300 font-semibold text-xs hover:bg-emerald-50 dark:hover:bg-emerald-950/60 active:scale-95 transition-all flex items-center gap-1.5 disabled:opacity-50"
-                              >
-                                <RefreshCw className={`w-3.5 h-3.5 ${isResendingConfirmation ? 'animate-spin' : ''}`} />
-                                <span>{isResendingConfirmation ? 'Resending...' : 'Resend Verification Email'}</span>
-                              </button>
+                              <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600 mt-0.5" aria-hidden="true" />
+                              <span>{successNotice}</span>
                             </motion.div>
                           )}
                         </AnimatePresence>
 
-                        {/* Sign Up Submit Button */}
+                        {/* Primary Create Account Submit */}
                         <button
                           type="submit"
                           disabled={isEmailLoading || isGoogleLoading}
-                          className="w-full min-h-[44px] h-12 flex justify-center items-center gap-2 bg-indigo-600 text-white font-semibold px-4 rounded-xl hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-600/50 text-sm transition-all shadow-md shadow-indigo-500/20 active:scale-[0.98] active:brightness-95 select-none disabled:opacity-50"
+                          className="w-full min-h-[48px] flex justify-center items-center gap-2 bg-indigo-600 text-white font-semibold px-4 rounded-xl hover:bg-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600/50 text-sm transition-all shadow-md shadow-indigo-500/20 active:scale-[0.98] select-none disabled:opacity-50"
                         >
                           {isEmailLoading ? (
                             <>
@@ -1879,161 +2178,176 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                           )}
                         </button>
                       </form>
-                    )}
-                  </motion.div>
-                ) : (
-                  /* ================= STEP 3: EMAIL OTP & AUTOMATED LINK VERIFICATION ================= */
-                  <motion.div
-                    key="step-verify-email"
-                    custom={direction}
-                    variants={slideVariants}
-                    initial="enter"
-                    animate="center"
-                    exit="exit"
-                    transition={{ duration: 0.22, ease: 'easeOut' }}
-                    data-testid="auth-verify-email-step"
-                    className="w-full flex flex-col gap-3.5"
-                  >
-                    <div className="rounded-2xl bg-indigo-50/80 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800/70 p-4 text-center space-y-2">
-                      <div className="w-11 h-11 mx-auto rounded-2xl bg-indigo-600 text-white flex items-center justify-center shadow-md shadow-indigo-500/25">
-                        <Mail className="w-5 h-5" aria-hidden="true" />
+
+                      {/* Clear Sign In Switch */}
+                      <div className="pt-1">
+                        <button
+                          type="button"
+                          data-testid="switch-to-signin-btn"
+                          onClick={() => {
+                            triggerHaptic('light');
+                            setPassword('');
+                            setConfirmPassword('');
+                            transitionToView('signin-email', -1);
+                          }}
+                          className="w-full min-h-[48px] px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700/90 bg-slate-50/70 dark:bg-slate-800/50 hover:bg-slate-100/80 dark:hover:bg-slate-800 text-xs sm:text-sm text-slate-600 dark:text-slate-300 font-medium flex items-center justify-center gap-1.5 active:scale-[0.98] transition-all"
+                        >
+                          <span>Already have an account?</span>
+                          <span className="font-semibold text-indigo-600 dark:text-indigo-400">Sign In</span>
+                        </button>
                       </div>
-                      <div className="space-y-0.5">
-                        <p className="text-[11px] font-bold uppercase tracking-wider text-indigo-700 dark:text-indigo-300">
-                          Code &amp; Verification Link Sent
-                        </p>
-                        <p className="text-sm font-bold text-slate-900 dark:text-white break-all">
-                          {email}
-                        </p>
-                      </div>
-                      <div className="inline-flex items-center justify-center gap-2 px-3 py-1 rounded-full bg-white dark:bg-slate-900 border border-indigo-200 dark:border-indigo-800 text-[11px] font-semibold text-indigo-700 dark:text-indigo-300">
-                        <RefreshCw className="w-3 h-3 animate-spin" aria-hidden="true" />
+                    </motion.div>
+                  )}
+
+                  {view === 'verify-email' && (
+                    /* ================= SCREEN 5: VERIFY EMAIL (OTP + AUTO LINK) ================= */
+                    <motion.div
+                      key="view-verify-email"
+                      custom={direction}
+                      variants={slideVariants}
+                      initial="enter"
+                      animate="center"
+                      exit="exit"
+                      transition={{ duration: 0.2, ease: 'easeOut' }}
+                      data-testid="auth-verify-email-step"
+                      className="w-full flex flex-col gap-3.5"
+                    >
+                      <ReadOnlyEmailField
+                        email={email}
+                        onChangeEmail={() => {
+                          triggerHaptic('light');
+                          setOtpCode('');
+                          transitionToView('signup', -1);
+                        }}
+                        changeLabel="Edit"
+                      />
+
+                      <div className="flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-indigo-50/70 dark:bg-indigo-950/40 border border-indigo-200/80 dark:border-indigo-800/60 text-xs font-medium text-indigo-700 dark:text-indigo-300">
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin shrink-0" aria-hidden="true" />
                         <span>Auto-detecting inbox confirmation...</span>
                       </div>
-                    </div>
 
-                    {successNotice && (
-                      <div
-                        role="status"
-                        aria-live="polite"
-                        className="flex items-start gap-2 p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 text-xs"
-                      >
-                        <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600 mt-0.5" />
-                        <span>{successNotice}</span>
+                      {successNotice && (
+                        <div
+                          role="status"
+                          aria-live="polite"
+                          className="flex items-start gap-2 p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 text-xs"
+                        >
+                          <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600 mt-0.5" aria-hidden="true" />
+                          <span>{successNotice}</span>
+                        </div>
+                      )}
+
+                      {error && (
+                        <div
+                          role="alert"
+                          aria-live="assertive"
+                          className="flex items-start gap-2 p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 text-rose-600 dark:text-rose-400 text-xs font-medium"
+                        >
+                          <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" aria-hidden="true" />
+                          <span>{error}</span>
+                        </div>
+                      )}
+
+                      <EmailOtpInput
+                        autoFocus
+                        value={otpCode}
+                        onChange={(next) => {
+                          setOtpCode(next);
+                          if (error) setError(null);
+                        }}
+                        onSubmit={handleVerifySignupOtp}
+                        onResend={handleResendConfirmation}
+                        resendCooldown={resendCooldown}
+                        isVerifying={isVerifyingOtp}
+                        isResending={isResendingConfirmation}
+                        label="6-Digit Verification Code"
+                        hint="Enter the 6-digit code from your inbox, or click the confirmation link."
+                        submitLabel="Verify 6-Digit Code"
+                        verifyingLabel="Verifying Code..."
+                        resendLabel="Resend Code & Link"
+                        error={error}
+                        testIdPrefix="signup-otp"
+                      />
+
+                      <div className="relative">
+                        <div aria-hidden="true" className="absolute inset-0 flex items-center">
+                          <div className="w-full border-t border-slate-200 dark:border-slate-800" />
+                        </div>
+                        <div className="relative flex justify-center text-[11px]">
+                          <span className="px-2.5 bg-white dark:bg-slate-900 text-slate-400">
+                            Or if you clicked the email link
+                          </span>
+                        </div>
                       </div>
-                    )}
 
-                    {error && (
-                      <div
-                        role="alert"
-                        aria-live="assertive"
-                        className="flex items-start gap-2 p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 text-rose-600 dark:text-rose-400 text-xs font-medium"
-                      >
-                        <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                        <span>{error}</span>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                        <button
+                          type="button"
+                          onClick={() => checkEmailVerificationStatus('manual')}
+                          disabled={isCheckingVerification || isVerifyingOtp}
+                          data-testid="auth-verify-continue-btn"
+                          className="min-h-[44px] px-3 py-2 rounded-xl border border-indigo-200 dark:border-indigo-800 bg-indigo-50/70 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 font-semibold text-xs hover:bg-indigo-100/70 dark:hover:bg-indigo-950/70 active:scale-95 transition-all flex items-center justify-center gap-1.5 disabled:opacity-60"
+                        >
+                          {isCheckingVerification ? (
+                            <>
+                              <BrandSpinner variant="inline" size="sm" />
+                              <span>Checking...</span>
+                            </>
+                          ) : (
+                            <>
+                              <CheckCircle2 className="w-3.5 h-3.5" aria-hidden="true" />
+                              <span>I&apos;ve Verified — Continue</span>
+                            </>
+                          )}
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={handleEditEmail}
+                          className="min-h-[44px] px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-semibold text-xs hover:bg-slate-50 dark:hover:bg-slate-700 active:scale-95 transition-all flex items-center justify-center gap-1.5"
+                        >
+                          <ArrowLeft className="w-3.5 h-3.5" aria-hidden="true" />
+                          <span>Change Email</span>
+                        </button>
                       </div>
-                    )}
-
-                    {/* Primary In-App 6-Digit Signup OTP Verification */}
-                    <EmailOtpInput
-                      autoFocus
-                      value={otpCode}
-                      onChange={(next) => {
-                        setOtpCode(next);
-                        if (error) setError(null);
-                      }}
-                      onSubmit={handleVerifySignupOtp}
-                      onResend={handleResendConfirmation}
-                      resendCooldown={resendCooldown}
-                      isVerifying={isVerifyingOtp}
-                      isResending={isResendingConfirmation}
-                      label="6-Digit Verification Code"
-                      hint="Enter the 6-digit code from your inbox (or click the confirmation link)."
-                      submitLabel="Verify 6-Digit Code"
-                      verifyingLabel="Verifying Code..."
-                      resendLabel="Resend Code & Link"
-                      error={error}
-                      testIdPrefix="signup-otp"
-                    />
-
-                    <div className="relative">
-                      <div aria-hidden="true" className="absolute inset-0 flex items-center">
-                        <div className="w-full border-t border-slate-200 dark:border-slate-800" />
-                      </div>
-                      <div className="relative flex justify-center text-[11px]">
-                        <span className="px-2.5 bg-white dark:bg-slate-900 text-slate-400">
-                          Or if you clicked the email link
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                      <button
-                        type="button"
-                        onClick={() => checkEmailVerificationStatus('manual')}
-                        disabled={isCheckingVerification || isVerifyingOtp}
-                        data-testid="auth-verify-continue-btn"
-                        className="min-h-[44px] px-3 py-2 rounded-xl border border-indigo-200 dark:border-indigo-800 bg-indigo-50/70 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 font-semibold text-xs hover:bg-indigo-100/70 dark:hover:bg-indigo-950/70 active:scale-95 transition-all flex items-center justify-center gap-1.5 disabled:opacity-60"
-                      >
-                        {isCheckingVerification ? (
-                          <>
-                            <BrandSpinner variant="inline" size="sm" />
-                            <span>Checking...</span>
-                          </>
-                        ) : (
-                          <>
-                            <CheckCircle2 className="w-3.5 h-3.5" aria-hidden="true" />
-                            <span>I&apos;ve Verified — Continue</span>
-                          </>
-                        )}
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={handleBackToEmail}
-                        className="min-h-[44px] px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-semibold text-xs hover:bg-slate-50 dark:hover:bg-slate-700 active:scale-95 transition-all flex items-center justify-center gap-1.5"
-                      >
-                        <ArrowLeft className="w-3.5 h-3.5" aria-hidden="true" />
-                        <span>Change Email</span>
-                      </button>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
             </div>
-          </div>
-        </div>
 
-          {/* Footer Legal Links (omitted on Create Account details & verify-email steps) */}
-          {!(step === 'credentials' && mode === 'signup') && step !== 'verify-email' && (
-            <footer className="pt-6 mt-4 border-t border-slate-100 dark:border-slate-800/80 text-center select-none">
-              <p className="text-xs text-slate-500 dark:text-slate-400 flex flex-wrap items-center justify-center gap-1.5 leading-normal">
-                <span>By continuing, you agree to our</span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    triggerHaptic('light');
-                    setLegalModalType('terms');
-                  }}
-                  className="font-semibold text-slate-700 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 underline min-h-[44px] inline-flex items-center px-1"
-                >
-                  Terms of Service
-                </button>
-                <span>and</span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    triggerHaptic('light');
-                    setLegalModalType('privacy');
-                  }}
-                  className="font-semibold text-slate-700 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 underline min-h-[44px] inline-flex items-center px-1"
-                >
-                  Privacy Policy
-                </button>
-                <span>.</span>
-              </p>
-            </footer>
-          )}
+            {/* Single Passive Footer Legal Notice (omitted on Create Account & Verify Email) */}
+            {showPassiveFooter && (
+              <footer className="pt-6 mt-4 border-t border-slate-100 dark:border-slate-800/80 text-center select-none">
+                <p className="text-xs text-slate-500 dark:text-slate-400 flex flex-wrap items-center justify-center gap-1 leading-normal">
+                  <span>By continuing, you agree to our</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      triggerHaptic('light');
+                      setLegalModalType('terms');
+                    }}
+                    className="font-semibold text-slate-700 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 underline min-h-[44px] inline-flex items-center px-1"
+                  >
+                    Terms of Service
+                  </button>
+                  <span>and</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      triggerHaptic('light');
+                      setLegalModalType('privacy');
+                    }}
+                    className="font-semibold text-slate-700 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 underline min-h-[44px] inline-flex items-center px-1"
+                  >
+                    Privacy Policy
+                  </button>
+                  <span>.</span>
+                </p>
+              </footer>
+            )}
+          </div>
         </div>
       </div>
 

@@ -24,6 +24,21 @@ This document is the single source of truth for the evolution of the MindFlow ap
 
 ---
 
+## [v1.0.385.4] - 27 November 2026, 01:48 PM IST
+
+**Executive Summary:** Overhauled MindFlow's Sign-In and Create Account UI/UX into a clean, zero-tab linear flow built for rural and urban mobile learners alike—replacing parallel tab bars and toy-like UI details with stacked method buttons, a proper labeled `ReadOnlyEmailField`, and a focused single vertical Create Account screen.
+
+### ✨ Features Added
+- **Zero-Tab Linear Auth Experience (`src/features/auth/components/AuthPage.tsx`):**
+  - Removed the top `Sign In | Create Account` segmented tabs in favor of a single focused Sign-In landing screen paired with an unmistakable `New to MindFlow? Create Account` CTA (carrying any entered email seamlessly into Create Account) and `Already have an account? Sign In` switch.
+  - Removed the inner `Password | Email OTP` segmented tabs in favor of a clean Sign-In Method Chooser featuring two vertically stacked `52px` buttons (`Login with Password` and `Login with Email OTP` with instant OTP dispatch & mutex guard) plus a centered `Forgot Password?` link launching a dedicated recovery screen.
+  - Replaced the plain-text green-dot email pill with a proper bordered `ReadOnlyEmailField` (`Email Address` label, `Mail` icon, `readOnly` email box, and `Change` button), removed the bouncing arrow animation, and aligned Create Account into a single vertical form preserving all DPDP consent, password complexity, OTP, and timeout recovery invariants.
+
+### 🔒 Security & Architecture
+- Fixed dual-`<h1>` accessibility outline on desktop by switching `AuthHeroShowcase.tsx`'s marketing headline to `<h2>`, added MWG `spellCheck={false}` and `aria-pressed` password visibility toggles, and enforced deterministic hierarchical back (`DEC-0002`).
+- Verified with `tsc --noEmit` (`0` errors), `AuthPage.test.tsx` (`16/16`), full `vitest` (`51/51` files / `352/352` tests), `vite build` (`5508` modules, `215` PWA entries / `7267.17 KiB`), `playwright test --workers=1` (`2/2`), and Desktop (`1280x800`) + Mobile (`390x844`) Chrome DevTools MCP (`0` console errors, `0px` overflow, `0` sub-44px controls, `0` tablists, `1` visible `<h1>`).
+- Bumped `package.json` (`1.0.385.4`) and `android/app/build.gradle` (`versionCode 16`, `versionName "1.16"`).
+
 ## [v1.0.385.3] - 27 November 2026, 12:36 PM IST
 
 **Executive Summary:** Resolved Email + Password account creation `"signal timed out"` errors end-to-end by pairing live Brevo Custom SMTP port `587` resolution (`961ms` signup / `75ms` OTP verify) with `30s` auth-email timeout budgeting, native `TimeoutError` detection, centralized auth error & password complexity normalization, double-submit protection, and 1-tap timeout recovery UX.
