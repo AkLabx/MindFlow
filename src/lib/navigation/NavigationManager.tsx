@@ -61,7 +61,15 @@ export const NavigationManager: React.FC<NavigationManagerProps> = ({ children, 
     // 3. Guest Only Policy (Login/Register)
     else if (type === RouteAccessType.GUEST_ONLY) {
       if (user) {
-        if (OnboardingPolicy.shouldRedirectToOnboarding(user)) {
+        let isPendingRecoveryOtp = false;
+        try {
+          isPendingRecoveryOtp = sessionStorage.getItem('mindflow_recovery_otp_pending') === 'true';
+        } catch {}
+
+        if (isPendingRecoveryOtp) {
+          targetRedirect = '/reset-password';
+          reason = 'Authenticated user completing in-app recovery OTP';
+        } else if (OnboardingPolicy.shouldRedirectToOnboarding(user)) {
            targetRedirect = '/onboarding';
            reason = 'New authenticated user routed directly to Onboarding';
         } else {
@@ -80,7 +88,15 @@ export const NavigationManager: React.FC<NavigationManagerProps> = ({ children, 
     // 4. Public Policy
     else if (type === RouteAccessType.PUBLIC) {
       if (user) {
-        if (OnboardingPolicy.shouldRedirectToOnboarding(user)) {
+        let isPendingRecoveryOtp = false;
+        try {
+          isPendingRecoveryOtp = sessionStorage.getItem('mindflow_recovery_otp_pending') === 'true';
+        } catch {}
+
+        if (isPendingRecoveryOtp) {
+          targetRedirect = '/reset-password';
+          reason = 'Authenticated user completing in-app recovery OTP';
+        } else if (OnboardingPolicy.shouldRedirectToOnboarding(user)) {
            targetRedirect = '/onboarding';
            reason = 'New authenticated user routed directly to Onboarding';
         } else {

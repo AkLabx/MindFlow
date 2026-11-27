@@ -4,15 +4,18 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { AuthPage } from './AuthPage';
 import { ResetPasswordPage } from './ResetPasswordPage';
 import SettingsPage from './SettingsPage';
+import { EmailOtpInput, sanitizeOtpCode } from './EmailOtpInput';
 import { buildAuthRedirectUrl, extractAuthHashParams } from '../utils/authRedirect';
 import { CURRENT_AGE_ATTESTATION, CURRENT_TERMS_VERSION } from '@/constants/legal';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 const mockSignInWithPassword = vi.fn();
+const mockSignInWithOtp = vi.fn();
+const mockVerifyOtp = vi.fn();
 const mockSignUp = vi.fn();
 const mockResend = vi.fn();
 const mockResetPasswordForEmail = vi.fn();
@@ -53,6 +56,8 @@ vi.mock('../../../lib/supabase', () => ({
   supabase: {
     auth: {
       signInWithPassword: (...args: any[]) => mockSignInWithPassword(...args),
+      signInWithOtp: (...args: any[]) => mockSignInWithOtp(...args),
+      verifyOtp: (...args: any[]) => mockVerifyOtp(...args),
       signUp: (...args: any[]) => mockSignUp(...args),
       resend: (...args: any[]) => mockResend(...args),
       resetPasswordForEmail: (...args: any[]) => mockResetPasswordForEmail(...args),
@@ -429,5 +434,189 @@ describe('AuthPage consent UX', () => {
       expect(mockUpdateUser).toHaveBeenCalledWith({ password: 'StrongPass1!' });
       expect(mockRefreshUser).toHaveBeenCalled();
     });
+  });
+
+  it('normalizes pasted OTP values preserving leading zeros and enforces 60s resend cooldown in EmailOtpInput', () => {
+    expect(sanitizeOtpCode('Code: 042 819-99')).toBe('042819');
+
+    const handleChange = vi.fn();
+    const handleSubmit = vi.fn();
+    const handleResend = vi.fn();
+
+    render(
+      <EmailOtpInput
+        value="042819"
+        onChange={handleChange}
+        onSubmit={handleSubmit}
+        onResend={handleResend}
+        resendCooldown={60}
+      />
+    );
+
+    const input = screen.getByTestId('email-otp-input') as HTMLInputElement;
+    expect(input.type).toBe('text');
+    expect(input.getAttribute('inputmode')).toBe('numeric');
+    expect(input.getAttribute('autocomplete')).toBe('one-time-code');
+    expect(input.maxLength).toBe(6);
+
+    fireEvent.paste(input, {
+      clipboardData: { getData: () => 'MindFlow OTP: 007 321' },
+    });
+    expect(handleChange).toHaveBeenCalledWith('007321');
+
+    const resendBtn = screen.getByTestId('email-otp-resend') as HTMLButtonElement;
+    expect(resendBtn.disabled).toBe(true);
+    expect(resendBtn.textContent).toContain('(60s)');
+
+    fireEvent.click(screen.getByTestId('email-otp-submit'));
+    expect(handleSubmit).toHaveBeenCalledWith('042819');
+  });
+
+  it('verifies 6-digit signup OTP via verifyOtp(type: signup) inside verify-email step and handles expired codes', async () => {
+    mockSignUp.mockResolvedValue({ data: { user: { id: 'u-otp-signup' }, session: null }, error: null });
+    mockVerifyOtp.mockResolvedValueOnce({
+      data: { user: null, session: null },
+      error: { message: 'Token has expired or is invalid' },
+    });
+    mockVerifyOtp.mockResolvedValueOnce({
+      data: { user: { id: 'u-otp-signup' }, session: { access_token: 'signup-otp-tok' } },
+      error: null,
+    });
+
+    renderAuthPage('signup');
+    fireEvent.change(screen.getByLabelText(/Email Address/i), { target: { value: 'otpnew@example.com' } });
+    fireEvent.click(screen.getByRole('button', { name: /Continue$/i }));
+    fireEvent.change(screen.getByLabelText(/Full Name/i), { target: { value: 'OTP Aspirant' } });
+    fireEvent.change(screen.getByLabelText(/Choose Password/i), { target: { value: 'StrongPass1!' } });
+    fireEvent.change(screen.getByLabelText(/^Confirm Password$/i), { target: { value: 'StrongPass1!' } });
+    fireEvent.click(screen.getByRole('checkbox'));
+    const submitBtn = screen
+      .getAllByRole('button', { name: /^Create Account$/i })
+      .find((btn) => btn.getAttribute('type') === 'submit');
+    fireEvent.click(submitBtn!);
+
+    expect(await screen.findByTestId('auth-verify-email-step')).toBeTruthy();
+
+    // Resend starts on 60s cooldown right after signup
+    expect((screen.getByTestId('signup-otp-resend') as HTMLButtonElement).disabled).toBe(true);
+
+    // First attempt: expired/invalid code
+    fireEvent.change(screen.getByTestId('signup-otp-input'), { target: { value: '000111' } });
+    fireEvent.click(screen.getByTestId('signup-otp-submit'));
+
+    expect(await screen.findByRole('alert')).toBeTruthy();
+    expect(screen.getByRole('alert').textContent).toContain('Invalid or expired verification code');
+
+    // Second attempt: valid code succeeds
+    fireEvent.change(screen.getByTestId('signup-otp-input'), { target: { value: '042819' } });
+    fireEvent.click(screen.getByTestId('signup-otp-submit'));
+
+    await waitFor(() => {
+      expect(mockVerifyOtp).toHaveBeenLastCalledWith({
+        email: 'otpnew@example.com',
+        token: '042819',
+        type: 'signup',
+      });
+    });
+    expect(mockShowToast).toHaveBeenCalledWith(
+      expect.objectContaining({ title: 'Email Verified!', variant: 'success' })
+    );
+  });
+
+  it('supports Passwordless Email OTP Sign-In with shouldCreateUser: false and guides unregistered emails to Create Account', async () => {
+    mockSignInWithOtp.mockResolvedValueOnce({
+      data: { user: null, session: null },
+      error: { message: 'Signups not allowed for otp' },
+    });
+
+    renderAuthPage('signin');
+    fireEvent.change(screen.getByLabelText(/Email Address/i), { target: { value: 'unregistered@example.com' } });
+    fireEvent.click(screen.getByRole('button', { name: /Continue$/i }));
+
+    fireEvent.click(screen.getByTestId('signin-method-otp'));
+    expect(screen.getByTestId('signin-otp-panel')).toBeTruthy();
+
+    fireEvent.click(screen.getByTestId('signin-send-otp-btn'));
+
+    await waitFor(() => {
+      expect(mockSignInWithOtp).toHaveBeenCalledWith({
+        email: 'unregistered@example.com',
+        options: {
+          shouldCreateUser: false,
+          emailRedirectTo: expect.stringContaining('#/'),
+        },
+      });
+    });
+
+    expect(await screen.findByRole('alert')).toBeTruthy();
+    expect(screen.getByRole('alert').textContent).toContain('No MindFlow account found');
+
+    // Clicking "Create Account Instead" switches to signup mode with mandatory DPDP consent checkbox
+    fireEvent.click(screen.getByRole('button', { name: /Create Account Instead/i }));
+    expect(screen.getByRole('checkbox')).toBeTruthy();
+
+    // Switch back to Sign In -> Email OTP for a registered user
+    fireEvent.click(screen.getByRole('button', { name: /^Sign In$/i }));
+    fireEvent.click(screen.getByTestId('signin-method-otp'));
+    mockSignInWithOtp.mockResolvedValueOnce({ data: { user: null, session: null }, error: null });
+    mockVerifyOtp.mockResolvedValueOnce({
+      data: { user: { id: 'u-reg' }, session: { access_token: 'email-otp-tok' } },
+      error: null,
+    });
+
+    fireEvent.click(screen.getByTestId('signin-send-otp-btn'));
+    expect(await screen.findByTestId('signin-otp-input')).toBeTruthy();
+    expect((screen.getByTestId('signin-otp-resend') as HTMLButtonElement).disabled).toBe(true);
+
+    fireEvent.change(screen.getByTestId('signin-otp-input'), { target: { value: '654321' } });
+    fireEvent.click(screen.getByTestId('signin-otp-submit'));
+
+    await waitFor(() => {
+      expect(mockVerifyOtp).toHaveBeenCalledWith({
+        email: 'unregistered@example.com',
+        token: '654321',
+        type: 'email',
+      });
+    });
+  });
+
+  it('verifies 6-digit recovery OTP after resetPasswordForEmail and navigates to /reset-password', async () => {
+    mockResetPasswordForEmail.mockResolvedValue({ data: {}, error: null });
+    mockVerifyOtp.mockResolvedValue({
+      data: { user: { id: 'u-rec' }, session: { access_token: 'rec-otp-tok' } },
+      error: null,
+    });
+
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <Routes>
+          <Route path="/" element={<AuthPage initialMode="signin" />} />
+          <Route path="/reset-password" element={<div data-testid="reset-password-route">Reset Password Screen</div>} />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    fireEvent.change(screen.getByLabelText(/Email Address/i), { target: { value: 'recover@example.com' } });
+    fireEvent.click(screen.getByRole('button', { name: /Continue$/i }));
+
+    fireEvent.click(screen.getByRole('button', { name: /Forgot Password\?/i }));
+
+    expect(await screen.findByTestId('recovery-otp-card')).toBeTruthy();
+    expect(mockResetPasswordForEmail).toHaveBeenCalledWith('recover@example.com', {
+      redirectTo: expect.stringContaining('#/reset-password'),
+    });
+
+    fireEvent.change(screen.getByTestId('recovery-otp-input'), { target: { value: '112233' } });
+    fireEvent.click(screen.getByTestId('recovery-otp-submit'));
+
+    await waitFor(() => {
+      expect(mockVerifyOtp).toHaveBeenCalledWith({
+        email: 'recover@example.com',
+        token: '112233',
+        type: 'recovery',
+      });
+    });
+
+    expect(await screen.findByTestId('reset-password-route')).toBeTruthy();
   });
 });

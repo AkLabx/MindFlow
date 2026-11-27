@@ -24,6 +24,22 @@ This document is the single source of truth for the evolution of the MindFlow ap
 
 ---
 
+## [v1.0.385.2] - 27 November 2026, 11:17 AM IST
+
+**Executive Summary:** Shipped Gen 2 Step 5B delivering in-app Free Email + 6-Digit OTP authentication across Signup Verification, Passwordless Sign-In, and Password Recovery (backed by Brevo Custom SMTP) with zero new npm dependencies while preserving confirmation and reset email links as fallbacks.
+
+### ✨ Features Added
+- **Reusable `<EmailOtpInput />` (`src/features/auth/components/EmailOtpInput.tsx`):** Built an MWG-compliant single-input 6-digit OTP component (`type="text"`, `inputMode="numeric"`, `autoComplete="one-time-code"`, `sanitizeOtpCode()` paste normalization preserving leading zeros, `>=44x44px` touch targets, `active:scale-95`, 60s resend cooldown, and `asForm` flag).
+- **Signup 6-Digit OTP Verification (`src/features/auth/components/AuthPage.tsx`):** Wired `supabase.auth.verifyOtp({ email, token, type: 'signup' })` directly inside `step="verify-email"` alongside the existing 3-layer link auto-detection watcher (`BroadcastChannel`, `focus`/`visibilitychange`, 4s poll).
+- **Passwordless Email OTP Sign-In (`src/features/auth/components/AuthPage.tsx`):** Added `Password | Email OTP` toggle using `signInWithOtp({ email, options: { shouldCreateUser: false } })` (guiding unregistered emails to Create Account to preserve mandatory DPDP 18+/Terms consent) + `verifyOtp({ email, token, type: 'email' })`.
+- **In-App Recovery OTP (`AuthPage.tsx`, `NavigationManager.tsx`, `ResetPasswordPage.tsx`):** Added inline 6-digit recovery code verification (`verifyOtp({ email, token, type: 'recovery' })`) after `resetPasswordForEmail()` with a `mindflow_recovery_otp_pending` guard in `NavigationManager.tsx` for deterministic `#/reset-password` routing while keeping `extractAuthHashParams()` link recovery intact.
+
+### 🔒 Security & Architecture
+- Verified with `13/13` tests in `AuthPage.test.tsx`, full `vitest` (`51/51` files / `347/347` tests), `tsc --noEmit` (`0` errors), `vite build` (`215` PWA entries), `playwright test --workers=1` (`2/2`), and Desktop (`1280x800`) + Mobile (`390x844`) Chrome DevTools MCP (`0` console errors, `0px` overflow, `0` sub-44px controls).
+- Bumped `package.json` (`1.0.385.2`) and `android/app/build.gradle` (`versionCode 14`, `versionName "1.14"`).
+
+---
+
 ## 🚀 App Journey Changelog
 
 ## [v1.0.385.1] - 27 November 2026, 01:38 AM IST

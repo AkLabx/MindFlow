@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { BrandLogo, BrandSpinner } from '@/components/brand';
@@ -22,6 +22,12 @@ export const ResetPasswordPage: React.FC = () => {
   const navigate = useNavigate();
   const showToast = useNotificationStore((state) => state.showToast);
   const { session, loading: authLoading, refreshUser } = useAuth();
+
+  useEffect(() => {
+    try {
+      sessionStorage.removeItem('mindflow_recovery_otp_pending');
+    } catch {}
+  }, []);
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -121,9 +127,9 @@ export const ResetPasswordPage: React.FC = () => {
               <AlertCircle className="w-6 h-6" />
             </div>
             <div>
-              <h2 className="text-base font-bold text-gray-900 dark:text-white">Reset Link Expired or Missing</h2>
+              <h2 className="text-base font-bold text-gray-900 dark:text-white">Reset Session Expired or Missing</h2>
               <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                Please request a fresh password reset email from the Sign In screen.
+                Please request a fresh password reset code or email link from the Sign In screen.
               </p>
             </div>
             <button
