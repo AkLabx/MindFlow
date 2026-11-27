@@ -39,12 +39,12 @@ export const AuthHeroShowcase: React.FC = () => {
         </div>
 
         <div className="space-y-3">
-          <h1 className="text-3xl xl:text-4xl 2xl:text-5xl font-black tracking-tight leading-tight">
+          <h2 className="text-3xl xl:text-4xl 2xl:text-5xl font-black tracking-tight leading-tight">
             Master Competitive Exams with{' '}
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 via-purple-300 to-pink-300">
               Cognitive Precision.
             </span>
-          </h1>
+          </h2>
           <p className="text-slate-300 text-sm xl:text-base max-w-xl leading-relaxed">
             SSC CGL, BPSC, Railways & State PSCs. Practice with real exam timers, mistake remediation, and instant diagnostic feedback.
           </p>
